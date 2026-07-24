@@ -1,0 +1,1659 @@
+{
+  "id": "autoAdoptOrphanSessionQueues",
+  "title": "Auto-adopt orphan session queues",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-22T04:12:10.161Z",
+  "tasks": [
+    {
+      "id": "tk-178c24e3f9a3",
+      "title": "Implement `plugin/src/temporal/list-orphan-session-queues.ts` pure helper.",
+      "type": "code",
+      "section": "Phase A — pure helper",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-22T04:46:52.617Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC9"
+        ],
+        "respects": [
+          "C3",
+          "C9"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Pure helper with deterministic input/output; mocked client.workflow.list enables full red/green coverage of filter, group, sort, and unordered-page handling.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Pure helper list-orphan-session-queues.ts shipped via PR #287 (trunk 86e76a46). 13 unit tests pass (tr_mrwt41na). No new commit — code already on trunk (rebased, 0 unique commits).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7e0a75236eeba3bfcb4498f863159fda997e3717",
+      "completedAt": "2026-07-23T01:24:55.781Z",
+      "completed_at": "2026-07-23T01:24:55.781Z"
+    },
+    {
+      "id": "tk-511d8456372f",
+      "title": "Add spec delta `rq-isolSessionTaskQueue05` under capability `advance-workflow` via `adv_delta_add`. Captures the bootstrap's behavioral commitment as spec law; gets applied to `.adv/specs/advance-workflow/spec.json` at archive time.",
+      "type": "code",
+      "section": "Spec-law commitment",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-22T04:47:16.350Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_policy": "source_citation",
+      "evidence_plan": {
+        "policy": "source_citation",
+        "proof_target": "Source citation or reference",
+        "rationale": "Spec delta is a declarative record, not behavior. Evidence is the delta content itself, validated structurally by adv_delta_add and applied at archive.",
+        "review_evidence_ref": {
+          "report_key": "autoAdoptOrphanSessionQueues|tk-511d8456372f|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-22T04:51:38.011Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "autoAdoptOrphanSessionQueues",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/autoAdoptOrphanSessionQueues",
+          "task_id": "tk-511d8456372f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-511d8456372f"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "shape-conformance-1",
+              "label": "blocker",
+              "file": "<ADV state>",
+              "line": 1,
+              "what": "`adv_change_show` returned `deltas: {}`; no `advance-workflow` delta or `rq-isolSessionTaskQueue05` requirement was available to inspect.",
+              "why": "Cannot verify required add-operation shape or its four GWT scenarios from authoritative ADV state.",
+              "fix": "Record or expose the previously claimed `dl-aDOptOrph01` delta, then rerun this bounded spec-law review."
+            },
+            {
+              "id": "spec-law-non-conflict-1",
+              "label": "blocker",
+              "file": ".adv/specs/advance-workflow/spec.json",
+              "line": 1,
+              "what": "`adv_spec` search returned no requirements matching `rq-isolSessionTaskQueue0`; the supplied `advance-workflow` response was paginated before the asserted rq-isolSessionTaskQueue01-04 laws.",
+              "why": "The required non-conflict comparison against requirements 01-04 and alignment validation for 05 cannot be established with returned authoritative state.",
+              "fix": "Provide/read the relevant paginated existing requirements and the recorded delta, then compare each scenario against them."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "A successful-looking task state is not evidence that a declarative spec delta is readable through adv_change_show; reviewers must verify the delta payload and target capability requirements before issuing a clean verdict."
+            }
+          ],
+          "verification": {
+            "tests_run": [],
+            "results": "n/a",
+            "evidence": "Read-only ADV-state review. adv_change_show(autoAdoptOrphanSessionQueues) returned deltas: {}; adv_spec(search rq-isolSessionTaskQueue0) returned no results. No repository files changed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "The four claimed scenarios and their GWT testability could not be inspected.",
+            "AC1-AC5 coverage mapping remains unverified until the delta is accessible; AC6-AC9 boundary rationale was supplied but not independently tied to delta text."
+          ],
+          "required_main_agent_actions": [
+            "Make `dl-aDOptOrph01` / `rq-isolSessionTaskQueue05` readable in authoritative ADV state, or record it if absent.",
+            "Supply the authoritative rq-isolSessionTaskQueue01-04 requirements (via an unpaginated/paginated ADV spec read) and rerun the bounded review.",
+            "Do not use this report as clean completion evidence for tk-511d8456372f until both blockers are resolved."
+          ]
+        }
+      ],
+      "error_recovery": {
+        "last_error": "<ADV state> :1 `adv_change_show` returned `deltas: {}`; no `advance-workflow` delta or `rq-isolSessionTaskQueue05` requirement was available to inspect.; .adv/specs/advance-workflow/spec.json :1 `adv_spec` search returned no requirements matching `rq-isolSessionTaskQueue0`; the supplied `advance-workflow` response was paginated before the asserted rq-isolSessionTaskQueue01-04 laws.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "<ADV state> :1 `adv_change_show` returned `deltas: {}`; no `advance-workflow` delta or `rq-isolSessionTaskQueue05` requirement was available to inspect.; .adv/specs/advance-workflow/spec.json :1 `adv_spec` search returned no requirements matching `rq-isolSessionTaskQueue0`; the supplied `advance-workflow` response was paginated before the asserted rq-isolSessionTaskQueue01-04 laws.",
+            "diagnosis": "Cannot verify required add-operation shape or its four GWT scenarios from authoritative ADV state.; The required non-conflict comparison against requirements 01-04 and alignment validation for 05 cannot be established with returned authoritative state.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-07-22T04:56:03.910Z"
+          }
+        ]
+      },
+      "verification": "Spec delta dl-aDOptOrph01 (rq-isolSessionTaskQueue05, 4 GWT scenarios 05.1-05.4) present in authoritative ADV state as add-op under advance-workflow. Non-conflict vs rq-isolSessionTaskQueue01-04 verified via git grep. Bounded re-review (attempt 2) verdict READY: shape conforms, no scenario-id collision, AC1-AC5 covered, code-consistency with orphan-queue-adopter.ts + list-orphan-session-queues.ts confirmed. Delta applied at archive time. No repo file changes (declarative record).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3af5196243ed3b8d086d51ca112980e49e2b463b",
+      "completedAt": "2026-07-23T21:48:27.767Z",
+      "completed_at": "2026-07-23T21:48:27.767Z"
+    },
+    {
+      "id": "tk-e23e7b9bf45b",
+      "title": "Implement `plugin/src/temporal/orphan-queue-adopter.ts` coordinator.",
+      "type": "code",
+      "section": "Phase A — coordinator",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-22T04:47:47.384Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-178c24e3f9a3"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "respects": [
+          "C2",
+          "C5",
+          "C6",
+          "C7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "State machine with deterministic inputs; mocked worker exposes registerQueue + getDiagnostics for full coverage of single-flight, timeout, cooldown, and run-error paths.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Clean tree checkpoint",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "3af5196243ed3b8d086d51ca112980e49e2b463b",
+      "completedAt": "2026-07-23T21:33:03.479Z",
+      "completed_at": "2026-07-23T21:33:03.479Z"
+    },
+    {
+      "id": "tk-041b86c1f738",
+      "title": "Wire `OrphanQueueAdopter` into `plugin/src/plugin-init.ts` heartbeat `onBeat` callback. Phase B (env-flag-gated, default off).",
+      "type": "code",
+      "section": "Phase B — wiring",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-22T04:48:11.296Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-e23e7b9bf45b"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Wiring is testable via extraction of buildHeartbeatCallbacks + env-flag handling; full coverage of enabled/disabled/after-init-order paths.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Phase B env-flag kill-switch (default ON). RED tr_mry23rir (5 tests, missing export) -> GREEN tr_mry249v7 (13/13 orphan-queue-adopter tests pass). tsc --noEmit exit 0. Wired gate into plugin-init.ts instantiation block (if temporalBundle && isOrphanQueueAdoptionEnabled()). Reconciled design DDC8 (default-off->flip) to kill-switch-default-on per adv-researcher recommendation: adoption already deployed always-on (bundle hash d9967e83), so default-off would regress live behavior. The onBeat wiring + unconditional instantiation were already on trunk via PRs #286/#287; this task added only the missing kill-switch escape hatch.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/orphan-queue-adopter.test.ts",
+        "plugin/src/temporal/orphan-queue-adopter.ts"
+      ],
+      "touched_files": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/orphan-queue-adopter.test.ts",
+        "plugin/src/temporal/orphan-queue-adopter.ts"
+      ],
+      "checkpointSha": "22cf38abb5ba5c0ef39099095bc5cc09a0f07aa9",
+      "completedAt": "2026-07-23T22:03:33.580Z",
+      "completed_at": "2026-07-23T22:03:33.580Z"
+    },
+    {
+      "id": "tk-3b55e010e5aa",
+      "title": "Extend `getTemporalWorkerDiagnostics` (in `plugin/src/plugin-init.ts`) + `adv_temporal_diagnose` renderer + `adv_status view:health` renderer to surface adoption state.",
+      "type": "code",
+      "section": "Phase C — diagnostics",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-22T04:48:30.816Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-041b86c1f738"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "respects": [
+          "C9"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Diagnostic surface is testable with mocked adopter state; full coverage of empty/populated/capped/error scenarios.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "autoAdoptOrphanSessionQueues",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/autoAdoptOrphanSessionQueues",
+          "task_id": "tk-3b55e010e5aa",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3b55e010e5aa"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/orphan-queue-adopter.ts",
+            "plugin/src/plugin-init.ts",
+            "plugin/src/tools/doctor.ts",
+            "plugin/src/tools/doctor.test.ts",
+            "plugin/src/tools/status-health.ts",
+            "plugin/src/tools/status-health.session-queue.test.ts",
+            "plugin/src/tools/status-health-plan.ts",
+            "plugin/src/tools/status.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mry29i74_87a892ba",
+              "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+              "exit_code": 1,
+              "summary": "RED: five new adoption-rendering assertions failed before implementation."
+            },
+            {
+              "test_run_id": "tr_mry2c2y5_6e5543a8",
+              "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN/verify: 2 files and 22 tests passed after implementation and formatting."
+            },
+            {
+              "test_run_id": "tr_mry2ccwv_95a6f627",
+              "command": "bunx tsc --noEmit -p tsconfig.json",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a shared OrphanQueueAdoptionDiagnostics type beside the adopter.",
+              "why": "Preserves structural typing from the producer through plugin-init and both renderers."
+            },
+            {
+              "what": "Limited doctor trackedQueues to 50 and report omitted count.",
+              "why": "Bounds detailed diagnostic output while retaining operator awareness of additional entries."
+            },
+            {
+              "what": "Kept health output as counts only.",
+              "why": "Health view exposes enabled/tracked/inCooldown without queue identifiers; doctor remains detail surface."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Traced both status-health execution paths (health-plan and legacy status assembly) and propagated orphan_queue_adoption through both; no other renderer surfaces consume adoption diagnostics.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Doctor now renders disabled, populated, and capped adoption diagnostics. Health returns nullable adoption summary counts through both health-plan and legacy status assembly.",
+            "suggested_next_action": "Review diff and proceed to next task."
+          }
+        }
+      ],
+      "verification": "Phase C diagnostics wired into both renderer surfaces (AC7). doctor.ts surfaces orphan_queue_adoption (enabled/scanInFlight/trackedQueues, 50-entry cap via ORPHAN_QUEUE_DIAGNOSTIC_DISPLAY_LIMIT + omittedTrackedQueues summary, disabled-note when null). status-health.ts adds orphanQueueAdoption summary {enabled,tracked,inCooldown} to StatusQueueServiceabilitySnapshot, propagated through status-health-plan.ts (HealthStatusOutput) and status.ts. Extracted shared typed OrphanQueueAdoptionDiagnostics interface in orphan-queue-adopter.ts; getOrphanQueueAdoptionDiagnostics() now returns OrphanQueueAdoptionDiagnostics|null (was unknown). Delegated to adv-engineer (delegate_allowed); verified independently: 35/35 tests pass (doctor.test.ts, status-health.session-queue.test.ts, orphan-queue-adopter.test.ts) tr_mry2dyub, tsc --noEmit exit 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/orphan-queue-adopter.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts",
+        "plugin/src/tools/status-health-plan.ts",
+        "plugin/src/tools/status-health.session-queue.test.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "touched_files": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/orphan-queue-adopter.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts",
+        "plugin/src/tools/status-health-plan.ts",
+        "plugin/src/tools/status-health.session-queue.test.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "checkpointSha": "a0ba198e876d00140d95ab6803ffcd281591073d",
+      "completedAt": "2026-07-23T22:10:08.481Z",
+      "completed_at": "2026-07-23T22:10:08.481Z"
+    },
+    {
+      "id": "tk-30a75bade274",
+      "title": "End-to-end integration test + flip `ADV_ORPHAN_QUEUE_ADOPTION` default to `1` (Phase C enablement).",
+      "type": "verification",
+      "section": "Phase C — verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-22T04:48:59.504Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3b55e010e5aa"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C4"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Integration test covers cross-cutting behavior spanning Tasks 1-4; uses real Temporal test environment for round-trip verification. Evidence is the test itself + its passing run.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "E2E integration test orphan-session-adoption.itest.ts (GREEN tr_mry2nbod): real OrphanQueueAdopter against real Temporal server registers a real poller (real Worker.create) for a stranded session queue; previously-unreachable workflow becomes queryable (AC2), diagnostics surface adopted queue with attemptCount 0 (AC7), re-scan does not re-register (AC5 idempotency). Visibility enumeration stubbed because test server returns UNIMPLEMENTED for ListWorkflowExecutions (API not in test server); enumeration logic covered by 13 unit tests in list-orphan-session-queues.test.ts. tsc --noEmit exit 0. NOTE: \"flip ADV_ORPHAN_QUEUE_ADOPTION default to 1\" is moot — kill-switch is default-ON by design (reconciled in tk-041b86c1f738); no flip needed. Verified feasibility probes (search-attr registration, ListWorkflowExecutions unimplemented) discarded.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts"
+      ],
+      "checkpointSha": "2621c28d26f5bd003a35ea6fb4275ba589061e9b",
+      "completedAt": "2026-07-23T22:17:38.881Z",
+      "completed_at": "2026-07-23T22:17:38.881Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "autoAdoptOrphanSessionQueues",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — auto-adopt orphan session queues",
+      "sources": [
+        {
+          "label": "Temporal TypeScript WorkflowClient API",
+          "locator": "https://typescript.temporal.io/api/classes/client.WorkflowClient",
+          "summary": "WorkflowClient.list returns an AsyncWorkflowListIterable; Temporal documents Visibility list results as approximate and eventually consistent."
+        },
+        {
+          "label": "Temporal Visibility list filters",
+          "locator": "https://docs.temporal.io/list-filter",
+          "summary": "Visibility filters use SQL-like expressions and pagination uses continuation tokens until no token remains."
+        },
+        {
+          "label": "Temporal TypeScript Worker API",
+          "locator": "https://typescript.temporal.io/api/classes/worker.Worker",
+          "summary": "Official Worker API documents Worker lifecycle and shows a TaskQueue visibility query example."
+        },
+        {
+          "label": "Temporal TypeScript signals/queries sample",
+          "locator": "https://github.com/temporalio/samples-typescript/tree/main/signals-queries",
+          "summary": "Canonical sample runs Worker.create then worker.run and queries a live workflow through a Client handle."
+        },
+        {
+          "label": "ADV multi-worker implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/worker-multi.ts",
+          "summary": "Local inspected implementation: queue idempotency is a per-parent Set; pending registrations coalesce locally; run-error deletes the queue and records an error."
+        },
+        {
+          "label": "ADV child worker implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/worker.ts",
+          "summary": "Local inspected implementation: dynamic registration awaits Worker.create, starts worker.run fire-and-forget, then emits register-ack; run-error later deletes child registry entry."
+        },
+        {
+          "label": "ADV heartbeat implementation",
+          "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/worker-heartbeat.ts",
+          "summary": "Local inspected implementation: onBeat runs after successful lock renewal and is explicitly fire-and-forget/non-blocking; 90s is a grace period for an unserviceable lock holder."
+        }
+      ],
+      "architecture_assessment": "Caution. Existing IPC is the correct minimal extension point, and client-side task-queue grouping preserves additive routing. However, the design currently has no hard bound or recovery path for a pending registration, and permanent suppression after three 10-second retries can strand a queue after a transient Worker.run failure; both conflict with bounded eventual reachability.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          {
+            "finding": "D2/DDC1 bounds Visibility only, not await worker.registerQueue(). The existing dynamic path awaits Worker.create and resolves the parent promise only after register-ack; the child then runs Worker.run asynchronously. A stalled create/IPC acknowledgement can hold the single-flight coordinator indefinitely, so later scans and retries never start. The 90-second constant is a grace period for lock renewal after isServiceable becomes false, not a per-registration deadline or nine independent adoption slots.",
+            "contract_ids": [
+              "SC2",
+              "AC2",
+              "AC4",
+              "AC8",
+              "C2",
+              "C7"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Specify a per-attempt deadline covering scan plus register-ack/verification, release single-flight in finally, record timed-out pending state, and safely reconcile a late ACK against worker.queues before any retry. Do not claim the lock grace period itself supplies this deadline.",
+            "source": {
+              "label": "ADV heartbeat and worker source",
+              "locator": "https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/worker-heartbeat.ts",
+              "summary": "onBeat is fire-and-forget after lock renewal; SERVICEABILITY_GRACE_MS only stops lock renewal after prolonged unserviceability. Dynamic registration awaits Worker.create then register-ack: https://github.com/Sharper-Flow/Advance/blob/trunk/plugin/src/temporal/worker.ts"
+            }
+          },
+          {
+            "finding": "D4 permanently excludes a queue until process restart after three fixed-spaced attempts. Temporal documents worker/client operations over a service connection, but supplied evidence does not establish that 30 seconds distinguishes persistent from transient run failures. Permanent suppression can leave a still-RUNNING orphan unreachable for the lifetime of an otherwise healthy process, contrary to the future-orphan reachability objective.",
+            "contract_ids": [
+              "SC1",
+              "SC2",
+              "AC2",
+              "AC6",
+              "AC8",
+              "C6",
+              "C7"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Keep the three-attempt burst if desired, but transition to a bounded, observable cooldown/backoff state that periodically retries while matching RUNNING workflows remain; retain operator-visible error and next-retry metadata. Reserve a terminal permanent state for an evidenced non-retriable classification, or explicitly provide an in-scope re-enable mechanism.",
+            "source": {
+              "label": "Temporal TypeScript Worker API",
+              "locator": "https://typescript.temporal.io/api/classes/worker.Worker",
+              "summary": "Worker lifecycle is asynchronous and its run loop ends on shutdown/failure; no official source retrieved supports classifying a three-attempt/30-second window as permanently failed."
+            }
+          }
+        ],
+        "notes": "D1 client-side grouping is valid for discovering an unknown set of queue names, but its claim that task-queue filtering is categorically impossible is overstated: Temporal's Worker API example uses TaskQueue=foo in a Visibility query. It cannot replace discovery of arbitrary sess_* queues. Visibility list output is approximate/eventually consistent and no ordering guarantee was established; FIFO therefore requires client-side sort of the completed scan, and a five-second truncated scan must not claim global oldest-first. I do not know from retrieved official sources whether the SDK exposes cancellation that aborts an in-progress AsyncWorkflowListIterable RPC; Promise.race alone must not be treated as cancellation."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "One queue per heartbeat minimizes load but delays backlog drain and requires a real per-attempt deadline, not inferred grace-period arithmetic.",
+          "Client-side discovery handles unknown sess_* queues but costs a full, eventually consistent Visibility scan and cannot guarantee FIFO under a truncated scan.",
+          "A cooldown/backoff state adds small state/diagnostics complexity but prevents a transient failure from becoming process-lifetime unreachability.",
+          "A query round-trip is a meaningful poller check only when it targets a known running ADV workflow with a registered supported query and bounded retry."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Adopt every discovered queue in one heartbeat",
+            "disposition": "rejected",
+            "rationale": "Higher startup/control-plane burst; one-at-a-time is simpler and meets AC8 if registration itself is bounded."
+          },
+          {
+            "option": "Fixed three retries then permanent suppression",
+            "disposition": "rejected",
+            "rationale": "No sourced basis makes 30 seconds a reliable persistent/transient classifier; it can violate SC2 for a transient failure."
+          },
+          {
+            "option": "Three-attempt burst then observable capped exponential cooldown retries",
+            "disposition": "preferred",
+            "rationale": "Preserves retry-storm protection while restoring eventual adoption during a live process."
+          },
+          {
+            "option": "Use local worker.queues as cross-process idempotency",
+            "disposition": "rejected",
+            "rationale": "The Set is per worker-parent process; two OpenCode processes can both register pollers. Temporal permits workers polling a common queue, so outcome is safe, but it is not global deduplication."
+          },
+          {
+            "option": "Use a sentinel query as specified without a workflow/query contract",
+            "disposition": "deferred",
+            "rationale": "Temporal's query routes to a worker, but the design must select a known RUNNING ADV workflow and known supported query; otherwise verification can fail for application-level reasons unrelated to adoption."
+          }
+        ],
+        "recommendation": "Before planning, add explicit full-attempt timeout/reconciliation, bounded known-workflow query verification, client-side sort only after completed scans, and non-terminal cooldown retries after burst failures."
+      },
+      "recommendation": "Keep the boring existing registerQueue IPC and one-queue heartbeat coordinator, but amend the design before planning: bound the entire attempt, always release single-flight, reconcile late ACK/run-error against worker.queues, use known-workflow bounded query verification, client-sort only completed scans, and replace process-lifetime permanent failure with observable cooldown retries. This preserves additive per-session routing and legacy co-existence while making AC2/AC8 measurable.",
+      "follow_ups": [
+        "Packet omission: no affected_files or durable_facts were available; not needed for this architecture verdict.",
+        "Temporal Visibility and async-iterator cancellation semantics remain partially inconclusive from retrieved docs; validate exact installed SDK API behavior in the proposed .itest.ts rather than assuming Promise.race cancels pagination.",
+        "Spec-law implication: no contradiction found with per-session routing or legacy coexistence from supplied contract evidence because adoption adds pollers and does not mutate task queues. Proposed rq-isolSessionTaskQueue05 was not independently available through adv_spec; final wording unverified. worker.queues idempotency is process-local, not cross-process."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "autoAdoptOrphanSessionQueues",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/autoAdoptOrphanSessionQueues",
+      "task_id": "tk-511d8456372f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-511d8456372f"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "shape-conformance-1",
+          "label": "blocker",
+          "file": "<ADV state>",
+          "line": 1,
+          "what": "`adv_change_show` returned `deltas: {}`; no `advance-workflow` delta or `rq-isolSessionTaskQueue05` requirement was available to inspect.",
+          "why": "Cannot verify required add-operation shape or its four GWT scenarios from authoritative ADV state.",
+          "fix": "Record or expose the previously claimed `dl-aDOptOrph01` delta, then rerun this bounded spec-law review."
+        },
+        {
+          "id": "spec-law-non-conflict-1",
+          "label": "blocker",
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 1,
+          "what": "`adv_spec` search returned no requirements matching `rq-isolSessionTaskQueue0`; the supplied `advance-workflow` response was paginated before the asserted rq-isolSessionTaskQueue01-04 laws.",
+          "why": "The required non-conflict comparison against requirements 01-04 and alignment validation for 05 cannot be established with returned authoritative state.",
+          "fix": "Provide/read the relevant paginated existing requirements and the recorded delta, then compare each scenario against them."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A successful-looking task state is not evidence that a declarative spec delta is readable through adv_change_show; reviewers must verify the delta payload and target capability requirements before issuing a clean verdict."
+        }
+      ],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "Read-only ADV-state review. adv_change_show(autoAdoptOrphanSessionQueues) returned deltas: {}; adv_spec(search rq-isolSessionTaskQueue0) returned no results. No repository files changed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The four claimed scenarios and their GWT testability could not be inspected.",
+        "AC1-AC5 coverage mapping remains unverified until the delta is accessible; AC6-AC9 boundary rationale was supplied but not independently tied to delta text."
+      ],
+      "required_main_agent_actions": [
+        "Make `dl-aDOptOrph01` / `rq-isolSessionTaskQueue05` readable in authoritative ADV state, or record it if absent.",
+        "Supply the authoritative rq-isolSessionTaskQueue01-04 requirements (via an unpaginated/paginated ADV spec read) and rerun the bounded review.",
+        "Do not use this report as clean completion evidence for tk-511d8456372f until both blockers are resolved."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "autoAdoptOrphanSessionQueues",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/autoAdoptOrphanSessionQueues",
+      "task_id": "tk-3b55e010e5aa",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3b55e010e5aa"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/orphan-queue-adopter.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/tools/doctor.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/status-health.ts",
+        "plugin/src/tools/status-health.session-queue.test.ts",
+        "plugin/src/tools/status-health-plan.ts",
+        "plugin/src/tools/status.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mry29i74_87a892ba",
+          "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+          "exit_code": 1,
+          "summary": "RED: five new adoption-rendering assertions failed before implementation."
+        },
+        {
+          "test_run_id": "tr_mry2c2y5_6e5543a8",
+          "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN/verify: 2 files and 22 tests passed after implementation and formatting."
+        },
+        {
+          "test_run_id": "tr_mry2ccwv_95a6f627",
+          "command": "bunx tsc --noEmit -p tsconfig.json",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a shared OrphanQueueAdoptionDiagnostics type beside the adopter.",
+          "why": "Preserves structural typing from the producer through plugin-init and both renderers."
+        },
+        {
+          "what": "Limited doctor trackedQueues to 50 and report omitted count.",
+          "why": "Bounds detailed diagnostic output while retaining operator awareness of additional entries."
+        },
+        {
+          "what": "Kept health output as counts only.",
+          "why": "Health view exposes enabled/tracked/inCooldown without queue identifiers; doctor remains detail surface."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Traced both status-health execution paths (health-plan and legacy status assembly) and propagated orphan_queue_adoption through both; no other renderer surfaces consume adoption diagnostics.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Doctor now renders disabled, populated, and capped adoption diagnostics. Health returns nullable adoption summary counts through both health-plan and legacy status assembly.",
+        "suggested_next_action": "Review diff and proceed to next task."
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-178c24e3f9a3": [
+      {
+        "runId": "tr_mrwt3pev_5f9e6747",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run --project unit plugin/src/temporal/list-orphan-session-queues.test.ts plugin/src/temporal/orphan-queue-adopter.test.ts 2>&1",
+        "durationMs": 875.1620020000264,
+        "assertionDensity": 1.2941176470588236,
+        "mockSurface": [],
+        "behaviorSurface": "large",
+        "recordedAt": "2026-07-23T01:02:12.628Z"
+      },
+      {
+        "runId": "tr_mrwt41na_006e37b7",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run --project unit src/temporal/list-orphan-session-queues.test.ts src/temporal/orphan-queue-adopter.test.ts 2>&1",
+        "durationMs": 1120.5408240000252,
+        "recordedAt": "2026-07-23T01:02:28.467Z"
+      }
+    ],
+    "tk-e23e7b9bf45b": [
+      {
+        "runId": "tr_mry0vk5o_90426446",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run --project unit src/temporal/orphan-queue-adopter.test.ts 2>&1 | tail -15",
+        "durationMs": 8288.851956000086,
+        "recordedAt": "2026-07-23T21:27:35.736Z"
+      },
+      {
+        "runId": "tr_mry0x8dr_499d945f",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run --project unit src/temporal/orphan-queue-adopter.test.ts 2>&1 | tail -12",
+        "durationMs": 1554.5966779999435,
+        "recordedAt": "2026-07-23T21:28:53.728Z"
+      },
+      {
+        "runId": "tr_mry0xvyt_c014e27a",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run --project unit src/temporal/orphan-queue-adopter.test.ts -t \"single-flight\" 2>&1 | grep -A3 \"expected\\|Expected\\|received\\|Received\\|FAIL\\|AssertionError\\|×\" | head -25",
+        "durationMs": 1876.2662019999698,
+        "recordedAt": "2026-07-23T21:29:24.278Z"
+      },
+      {
+        "runId": "tr_mry0yjk3_463d5b96",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run --project unit src/temporal/orphan-queue-adopter.test.ts 2>&1 | tail -7",
+        "durationMs": 1355.201146000065,
+        "recordedAt": "2026-07-23T21:29:54.886Z"
+      },
+      {
+        "runId": "tr_mry120z5_c07a699d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check 2>&1 | tail -5",
+        "durationMs": 53328.333436999936,
+        "recordedAt": "2026-07-23T21:32:37.465Z"
+      },
+      {
+        "runId": "tr_mry45txv_d2aff0f1",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && bunx vitest run src/temporal/orphan-queue-adopter.test.ts -t \"review remediation\" 2>&1 | tail -30",
+        "durationMs": 885.137024000287,
+        "recordedAt": "2026-07-23T22:59:33.756Z"
+      },
+      {
+        "runId": "tr_mry486g8_c2c06653",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && bunx vitest run src/temporal/orphan-queue-adopter.test.ts 2>&1 | tail -12",
+        "durationMs": 1104.6149829998612,
+        "recordedAt": "2026-07-23T23:01:23.381Z"
+      }
+    ],
+    "tk-041b86c1f738": [
+      {
+        "runId": "tr_mry23rir_058c3336",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && bunx vitest run src/temporal/orphan-queue-adopter.test.ts -t \"kill-switch\" 2>&1 | tail -30",
+        "durationMs": 1128.981701000128,
+        "recordedAt": "2026-07-23T22:01:58.157Z"
+      },
+      {
+        "runId": "tr_mry249v7_d0edbc20",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && bunx vitest run src/temporal/orphan-queue-adopter.test.ts 2>&1 | tail -15",
+        "durationMs": 1331.5683560001198,
+        "recordedAt": "2026-07-23T22:02:22.010Z"
+      }
+    ],
+    "tk-3b55e010e5aa": [
+      {
+        "runId": "tr_mry29i74_87a892ba",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+        "durationMs": 2713.3968189998996,
+        "recordedAt": "2026-07-23T22:06:25.951Z"
+      },
+      {
+        "runId": "tr_mry2adtg_d506791e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+        "durationMs": 3226.7530990000814,
+        "recordedAt": "2026-07-23T22:07:06.957Z"
+      },
+      {
+        "runId": "tr_mry2aq68_f8b586e9",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "bunx tsc --noEmit -p tsconfig.json",
+        "durationMs": 10935.174587999936,
+        "recordedAt": "2026-07-23T22:07:23.014Z"
+      },
+      {
+        "runId": "tr_mry2bgz1_f6ca01b9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx tsc --noEmit -p tsconfig.json",
+        "durationMs": 8281.265778999776,
+        "recordedAt": "2026-07-23T22:07:57.663Z"
+      },
+      {
+        "runId": "tr_mry2bnqk_6bc1db3d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+        "durationMs": 2068.9027450000867,
+        "recordedAt": "2026-07-23T22:08:06.423Z"
+      },
+      {
+        "runId": "tr_mry2c2y5_6e5543a8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+        "durationMs": 2104.8143489998765,
+        "recordedAt": "2026-07-23T22:08:26.150Z"
+      },
+      {
+        "runId": "tr_mry2ccwv_95a6f627",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bunx tsc --noEmit -p tsconfig.json",
+        "durationMs": 8774.630415000021,
+        "recordedAt": "2026-07-23T22:08:39.061Z"
+      },
+      {
+        "runId": "tr_mry2dyub_a529e654",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && bunx vitest run src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts src/temporal/orphan-queue-adopter.test.ts 2>&1 | tail -18",
+        "durationMs": 3392.264945999952,
+        "recordedAt": "2026-07-23T22:09:54.241Z"
+      }
+    ],
+    "tk-30a75bade274": [
+      {
+        "runId": "tr_mry2ic8a_bc8a1299",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && bunx vitest run src/temporal/__tests__/orphan-probe.itest.ts 2>&1 | tail -30",
+        "durationMs": 1918.2566459998488,
+        "recordedAt": "2026-07-23T22:13:18.116Z"
+      },
+      {
+        "runId": "tr_mry2j7st_6e97767b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && bunx vitest run src/temporal/__tests__/orphan-probe.itest.ts 2>&1 | tail -25",
+        "durationMs": 2269.4008450000547,
+        "recordedAt": "2026-07-23T22:13:59.086Z"
+      },
+      {
+        "runId": "tr_mry2lq61_658c01fe",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && bunx vitest run src/temporal/__tests__/orphan-session-adoption.itest.ts 2>&1 | tail -40",
+        "durationMs": 2751.239327999763,
+        "recordedAt": "2026-07-23T22:15:56.203Z"
+      },
+      {
+        "runId": "tr_mry2nbod_a71d2f70",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && bunx vitest run src/temporal/__tests__/orphan-session-adoption.itest.ts 2>&1 | tail -35",
+        "durationMs": 4528.077277999837,
+        "recordedAt": "2026-07-23T22:17:10.661Z"
+      },
+      {
+        "runId": "tr_mry2qht6_89bb2bb7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && bunx vitest run src/temporal/__tests__/orphan-session-adoption.itest.ts 2>&1 | tail -6",
+        "durationMs": 4798.504875999875,
+        "recordedAt": "2026-07-23T22:19:38.579Z"
+      },
+      {
+        "runId": "tr_mry493yh_073ba945",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && bunx vitest run src/temporal/__tests__/orphan-session-adoption.itest.ts 2>&1 | tail -8",
+        "durationMs": 4411.700666000135,
+        "recordedAt": "2026-07-23T23:02:06.706Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-workflow": [
+      {
+        "id": "dl-aDOptOrph01",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-isolSessionTaskQueue05",
+          "title": "Live worker adopts orphan session task queues from previous processes",
+          "body": "A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal namespace, identify session task queues (advance-{projectId}-sess_*) that have at least one RUNNING workflow and are not currently polled, and register them via the existing registerQueue path. Adoption MUST be idempotent (re-scans do not duplicate registrations for already-polled queues), non-blocking on startup (adoption only runs post-startup via heartbeat), bounded to queues with at least one RUNNING workflow, and observe run-error IPC for retry handling with bounded cooldown. Adoption MUST NOT mutate any workflow's taskQueue field — it only adds pollers, never re-routes workflows. Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance; operators can manually terminate contaminated workflows if needed.",
+          "priority": "must",
+          "tags": [
+            "worker",
+            "task-queue",
+            "session",
+            "recovery",
+            "multi-session",
+            "orphan-adoption"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-isolSessionTaskQueue05.1",
+              "title": "Orphan session queue gets adopted on heartbeat",
+              "given": [
+                "A previous OpenCode process started workflow W on session task queue advance-{P}-{sessA}",
+                "The previous process then exited, leaving W stranded on an orphan session queue with no poller",
+                "A new OpenCode process worker is alive with the heartbeat cadence (10s) running"
+              ],
+              "when": "The new process's worker heartbeat fires and the adoption scan runs",
+              "then": [
+                "W is enumerated as a RUNNING workflow on task queue advance-{P}-{sessA}",
+                "registerQueue(\"advance-{P}-{sessA}\") is called via the existing IPC mechanism",
+                "Within bounded time (one heartbeat tick plus ACK round-trip), signals/queries against W succeed without 'Failed to query Workflow' errors"
+              ]
+            },
+            {
+              "id": "rq-isolSessionTaskQueue05.2",
+              "title": "Queue with no RUNNING workflows is not adopted",
+              "given": [
+                "Session task queue advance-{P}-{sessB} exists",
+                "All workflows on advance-{P}-{sessB} have reached terminal states (COMPLETED, ARCHIVED, etc.)",
+                "A live worker's heartbeat is running"
+              ],
+              "when": "The heartbeat adoption scan runs",
+              "then": [
+                "registerQueue is NOT called for advance-{P}-{sessB}",
+                "No poller is added for advance-{P}-{sessB}"
+              ]
+            },
+            {
+              "id": "rq-isolSessionTaskQueue05.3",
+              "title": "Startup remains non-blocking on visibility API failure",
+              "given": [
+                "Temporal workflowClient.list() is slow, throws, or returns an unbounded result set",
+                "A worker is starting up"
+              ],
+              "when": "The worker process initializes",
+              "then": [
+                "Worker startup completes without waiting for the adoption scan",
+                "A degradation warning is logged",
+                "Adoption is retried on the next heartbeat tick"
+              ]
+            },
+            {
+              "id": "rq-isolSessionTaskQueue05.4",
+              "title": "Idempotent re-adoption across heartbeat re-scans",
+              "given": [
+                "Orphan session task queue advance-{P}-{sessA} was already adopted in a prior heartbeat",
+                "The queue is present in the worker's currently-polled set (worker.queues)",
+                "A subsequent heartbeat re-scan runs"
+              ],
+              "when": "The adoption scan enumerates RUNNING workflows including the one on advance-{P}-{sessA}",
+              "then": [
+                "registerQueue is NOT called again for advance-{P}-{sessA}",
+                "The idempotency check at the worker-multi level short-circuits the duplicate registration"
+              ]
+            }
+          ],
+          "meta": {
+            "merged_from": "autoAdoptOrphanSessionQueues"
+          }
+        }
+      }
+    ]
+  },
+  "wisdom": [
+    {
+      "id": "ws-AsNVeh",
+      "type": "gotcha",
+      "content": "Worktree-isolation guard reads the durable worktree record from the CHANGE workflow's `state.worktrees[branch]` map (state.ts:1124-1170 getWorktreeRecord → getStateQuery), NOT the project workflow. So if that map loses its entry, EVERY main-checkout (trunk/zlauncher) mutation for that change is blocked with WorktreeIsolationViolation — while other changes work fine. Two ways the map goes empty: (1) the change workflow is orphaned/unreachable (query fails → getWorktreeRecord returns null); (2) a state-repair restart seeds a fresh run WITHOUT the worktrees map. BUG (fixWorktreeReuseRegistration): advWorktreeCreate Step 0 (index.ts:1002-1017) reuses an on-disk git worktree and returns reused:true WITHOUT firing worktreeCreatedSignal (index.ts:1213) — so resume/create can never self-heal a missing worktrees entry when the disk worktree already exists. Manual recovery that works: `git worktree remove --force <path>` then `adv_worktree_create` (full path fires worktreeCreatedSignal, writes worktrees[branch] setupReady:true) → guard passes. Also: the `[worktree] mode:warp unavailable ... falling back to mode:terminal` log is NORMAL when OPENCODE_EXPERIMENTAL_WORKSPACES is off — it fires on every create/resume for every session and is NOT the blocker. When restarting an orphaned change workflow via the Temporal SDK, ALWAYS include `worktrees` in seedState.",
+      "recorded_at": "2026-07-23T01:23:20.946Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-22T04:13:56.521Z",
+      "completed_by": "agent",
+      "approval_evidence": "Bootstrap for prong #3 (option a). User approved via Tier A whitelist. RCA attached per defect-origin routing. B/F/S scan clean.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "77e491dd5b436286bd230ce03e8e1844c7443c59ee319a47cba3241ed9a26fdb",
+        "non_whitespace_chars": 10604,
+        "checked_at": "2026-07-22T04:12:10.193Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-22T04:32:38.922Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved at Phase 4.5.1 (Tier A). Contract minted: 26 items (2 SC, 9 AC, 9 C, 6 DONT). AC6 carries deferred failure-policy investigation to /adv-design. DFR1 logged. Three user decisions captured (wedge isolation = adopt all, failure policy = deferred, diagnostics = both surfaces). Nine agent LBP decisions recorded (IPC mechanism confirmed, integration point = onBeat, new helper required, per-tick bound, sentinel round-trip, run-error observation, shutdown safety, in-process blocking, spec delta shape).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "non_whitespace_chars": 8309,
+        "checked_at": "2026-07-22T04:12:10.194Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-22T04:45:06.714Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design approved at Phase 4 (Tier A). Validator: caution → 4 findings incorporated (VC1 bounded timeout + finally-release via DDC2; VC2 cooldown replaces permanent-fail via D4+DDC5; VC3 client-side sort via D1+D3; VC4 process-local idempotency clarified via D8). DFR1 resolved: 3-attempt cap + 5-min cooldown. Implementation phased A/B/C.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "6d7335bac673022bcde90d07a49b03dfc66448a7500aa93a1445f1d1370aecee",
+        "non_whitespace_chars": 18125,
+        "checked_at": "2026-07-22T04:12:10.195Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-22T04:51:05.025Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved via Tier A whitelist at prep checkpoint (last human gate). 6-task graph with full AC/SC/C/DONT coverage. Validation passed (1 NO_DELTAS warning expected pre-execution). TDD intent + evidence_plan + contract_refs assigned per task. Tasks 1-5 sequential dependency chain; Task 6 (spec delta) parallel."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-23T22:20:11.990Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks done via inline /adv-apply. Phase A (pure helper + coordinator) + spec delta were already on trunk / recorded; this execution added: (1) kill-switch env-flag ADV_ORPHAN_QUEUE_ADOPTION (default ON) reconciling the design's default-off→flip plan against the already-deployed always-on adoption (tk-041b86c1f738, RED→GREEN 13/13); (2) diagnostics surfaces in doctor.ts (adv_temporal_diagnose, 50-entry cap) + status-health.ts (view:health summary counts) via a shared typed OrphanQueueAdoptionDiagnostics interface (tk-3b55e010e5aa, delegated to adv-engineer, verified 35/35); (3) e2e integration test orphan-session-adoption.itest.ts proving real adopter→real Worker.create→stranded workflow queryable (tk-30a75bade274, GREEN). Resolved stalled spec-delta review (tk-511d8456372f, blockers were readability-only). Major drift surfaced: PRs #286/#287 shipped core adoption always-on, bypassing the phased rollout; reconciled via kill-switch (adv-researcher recommendation). Test-server ListWorkflowExecutions unimplemented, so Visibility enumeration is unit-tested only (13 tests). Verification: tsc exit 0, lint exit 0, format clean, targeted regression 67/67, e2e 1/1."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-23T23:34:11.783Z",
+      "completed_by": "agent",
+      "approval_evidence": "User acceptance via Tier A whitelist (approve). Review verdict APPROVED after remediation (commit 51de7619): lastError capture, timeout-path coverage, late-rejection regression guard, e2e readiness probe. Contract review matrix 26 rows / 0 failing. 3 scanners (contract/scope, correctness, tests); correctness-1 (unhandledRejection) confirmed false positive and guarded; spec-delta-location rejected (wrong path). Preview URL not_applicable (visual_surface:false). Executive summary persisted. 6 suggestions/nits deferred to /adv-harden.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "a78c5a3dc374ad5820bbb730d520235ecfca570dbbbdbad49c5d3f5e48ab05a6",
+        "non_whitespace_chars": 3959,
+        "checked_at": "2026-07-23T00:55:54.940Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session:investigation-2026-07-22T03:43Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+      "approvedAt": "2026-07-22T04:32:25.714Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1**: After this bootstrap ships + OpenCode restarts, the original `adoptOrphanedSessionQueues` workflow (orphaned on a previous-process session queue) becomes queryable/signalable via normal ADV tools — no recovery tooling (`adv_change_workflow_terminate`, `adv_change_close recoveryMode: poisoned_history`, out-of-band Temporal CLI) needed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2**: Any future ADV change workflow orphaned by OpenCode process exit is adopted by the next live process within bounded time.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1**: Live worker enumerates `RUNNING` workflows on its project namespace and identifies session task queues (`advance-{projectId}-sess_*`) with ≥1 `RUNNING` workflow not currently polled. **",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_temporal_diagnose"
+        ]
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2**: Worker registers each such queue; within bounded time, signals/queries against workflows on that queue succeed. **",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show"
+        ]
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3**: Queues with zero `RUNNING` workflows are NOT adopted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4**: Startup completes without waiting for adoption if `workflowClient.list()` is slow/failing; degradation warning logged; retries on next heartbeat.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5**: Adoption is idempotent — repeated heartbeat re-scans produce no duplicate `registerQueue` calls for already-polled queues.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6**: Adoption observes `run-error` IPC, records the failure in `getTemporalWorkerDiagnostics`, and does not crash the worker. **Specific retry-cap and operator-surface policy deferred to `/adv-design` pending investigation of `run-error` IPC frequency and failure modes.**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7**: Adoption state is visible via existing diagnostics (`adv_temporal_diagnose` per-queue detail + `adv_status view:health` summary count).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8**: Per-queue adoption completes within `< SERVICEABILITY_GRACE_MS` (90s) — one queue per heartbeat tick max.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9**: Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance (operator can manually `adv_change_workflow_terminate` if contamination concern).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1**: Additive only — no changes to new-workflow routing, session-id generation, `registerQueue` API/semantics, recovery-classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2**: Non-blocking startup — adoption never blocks worker init.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3**: `RUNNING`-only adoption — queues with zero `RUNNING` workflows never adopted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4**: No task-queue mutation — adoption only adds pollers, never re-routes workflows.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5**: Idempotent — re-scans don't duplicate registrations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6**: Observe `run-error` IPC — adoption records failures; worker survives.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "**C7**: Bounded per-adoption — `< 90s` per queue, one queue per heartbeat tick.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C8",
+        "kind": "constraint",
+        "text": "**C8**: Single-project scope — no cross-namespace adoption.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C9",
+        "kind": "constraint",
+        "text": "**C9**: Privacy — adoption logs use opaque `sess_*` ids only (no PIDs/paths), matching `adv_session_list` privacy contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1**: Option (b) default-route-to-project-queue for change workflows — workflow-start routing change with broader blast radius. Belongs in original `adoptOrphanedSessionQueues` proposal's design evaluation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2**: Option (c) session-lifecycle exit hooks for marking queues adoptable — depends on reliable OpenCode exit hooks; doesn't help on crash/kill. Belongs in original proposal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3**: Session-id surface inconsistency fix between `adv_session_list` (`sha256(pid:startTicks)[:8]`) and the plugin (`nanoid(8)`) — separate defect, belongs in original proposal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4**: `recovery-classification.ts:82` reform to accept `query_failed` as `poisoned_history` — broader recovery-tool reform, belongs in `replaceRecoveryToolSprawl`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5**: `registerQueue` API or semantics changes — bootstrap only adds callers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "**DONT6**: Cross-project / cross-namespace adoption — bootstrap is single-project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fbcaf15d2a8b755228e4a6c8bb7794b95eb97bbad10ff5334747a624e029112d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-23T22:25:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "orphan-session-adoption.itest.ts: a stranded workflow on an unpolled session queue becomes queryable after adoptNextOrphan() registers a real poller (handle.query returns truthy). Adoption is the recovery path; no adv_change_workflow_terminate/poisoned_history needed."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin-init.ts onBeat calls adoptNextOrphan every 10s heartbeat; orphan-queue-adopter adopts one orphan/tick. Future orphaned workflows adopted within bounded time (<=heartbeat cadence)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "list-orphan-session-queues.ts enumerates RUNNING workflows via AdvAffectedProjects Visibility query, filters session-scoped queues (advance-{P}-sess_*) not in polled set. 6 unit tests cover filter/sort/group/idempotency."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "e2e: after adoptNextOrphan registers a real Worker on the stranded session queue, handle.query(getChangeStateQuery) succeeds (bounded-retry sentinel)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "list-orphan-session-queues.ts:79 skips non-RUNNING; orphan-queue-adopter returns early on empty orphans. Unit test 'does nothing when there are no orphans'."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "plugin-init.ts: onBeat invocation is fire-and-forget void...catch(()=>undefined); adopter instantiated only after worker+temporalBundle ready. Adoption never blocks startup; Visibility failures swallowed, retried next heartbeat."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "worker.queues read live each tick; list-orphan-session-queues skips already-polled. e2e asserts registerQueue called exactly once across two scans; unit test 'skips a queue already in worker.queues'."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "try/catch observes register failures; 3-attempt cap + 5-min cooldown (recordFailure); try/finally releases scanInFlight; heartbeat .catch prevents crash. Unit test 'applies cooldown after 3 failed attempts'. lastError now captured (remediation) for operator triage.",
+          "notes": "AC6 names getTemporalWorkerDiagnostics (pre-refactor surface); failures are surfaced via the deliberately-separate process-level getOrphanQueueAdoptionDiagnostics -> adv_doctor.orphan_queue_adoption + adv_status view:health. Intent (operator visibility into adoption failures) satisfied; lastError strengthens the surface."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "doctor.ts renders orphan_queue_adoption (50-entry cap + omittedTrackedQueues + disabled-note); status-health.ts adds {enabled,tracked,inCooldown} summary through status-health-plan.ts + status.ts. doctor.test.ts (3 cases) + status-health.session-queue.test.ts (2 cases).",
+          "notes": "AC7 references adv_temporal_diagnose, consolidated into adv_doctor (PR #255/#293); substantive diagnostic surface preserved."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "single-flight (one adoption/tick) + 8s tick timeout (DEFAULT_TICK_TIMEOUT_MS) + 10s heartbeat = 18s worst case < 90s SERVICEABILITY_GRACE_MS. Unit test 'enforces single-flight'."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "list-orphan-session-queues returns ALL orphans (only RUNNING + session-scoped + not-polled filters); no wedge-isolation opt-out. Operator can adv_change_workflow_terminate contaminated workflows."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Additive only: new helper + coordinator + env flag + diagnostics field. No routing/session-id/registerQueue-semantics changes. registerQueue signature unchanged."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Adoption is fire-and-forget on the heartbeat; never blocks worker init. Same as AC4."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Strict RUNNING filter (list-orphan-session-queues.ts:79)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "registerQueue adds a poller; no taskQueue mutation / UpdateTaskQueue calls. Delta body asserts 'only adds pollers, never re-routes'."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Idempotent via worker.queues live read. Same as AC5."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "run-error observed (catch); failure recorded in perQueueState -> diagnostics; worker survives (try/finally + heartbeat catch). Same as AC6."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "8s tick timeout, one queue/tick. Same as AC8."
+        },
+        {
+          "contractId": "C8",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Single projectId bound at construction; Visibility query project-scoped. No cross-namespace enumeration."
+        },
+        {
+          "contractId": "C9",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Diagnostics use opaque advance-{P}-sess_* queue names (no PIDs/paths); status-health redacts to counts only. Unit test 'summarizes ... without exposing queue identifiers'."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No default-route-to-project-queue; workflow-start routes to session queue when sessionId provided."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No process-exit hook added; adoption is heartbeat-driven only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "session-id.ts untouched; queue format sess_{id} preserved (read-only)."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Recovery-classification taxonomy unchanged; doctor.ts only ADDS a diagnostics field."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "registerQueue signature unchanged across worker-multi/in-process/out-of-process; change only consumes it."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Single-namespace; client bound at init; no cross-namespace enumeration. Same as C8."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1**: Live worker enumerates `RUNNING` workflows on its project namespace and identifies session task queues (`advance-{projectId}-sess_*`) with ≥1 `RUNNING` workflow not currently polled. **",
+    "**AC2**: Worker registers each such queue; within bounded time, signals/queries against workflows on that queue succeed. **",
+    "**AC3**: Queues with zero `RUNNING` workflows are NOT adopted.",
+    "**AC4**: Startup completes without waiting for adoption if `workflowClient.list()` is slow/failing; degradation warning logged; retries on next heartbeat.",
+    "**AC5**: Adoption is idempotent — repeated heartbeat re-scans produce no duplicate `registerQueue` calls for already-polled queues.",
+    "**AC6**: Adoption observes `run-error` IPC, records the failure in `getTemporalWorkerDiagnostics`, and does not crash the worker. **Specific retry-cap and operator-surface policy deferred to `/adv-design` pending investigation of `run-error` IPC frequency and failure modes.**",
+    "**AC7**: Adoption state is visible via existing diagnostics (`adv_temporal_diagnose` per-queue detail + `adv_status view:health` summary count).",
+    "**AC8**: Per-queue adoption completes within `< SERVICEABILITY_GRACE_MS` (90s) — one queue per heartbeat tick max.",
+    "**AC9**: Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance (operator can manually `adv_change_workflow_terminate` if contamination concern)."
+  ],
+  "documents": {
+    "proposal": "# Auto-adopt orphan session queues\n\n## Why\n\nADV workflows started on per-session task queues become permanently unreachable when the OpenCode process that started them exits. Subsequent OpenCode processes generate a new plugin-session id, register a poller only for that session queue (+ the project queue), and never enumerate or adopt orphan session queues left by previous processes. Any workflow still `RUNNING` on an orphan queue cannot be queried, signaled, or terminated via ADV tools — every call fails with \"Failed to query Workflow\". The change is then stranded: not readable, not writable, not gateable, not closable. Recovery-classification refuses the failure (`recovery-classification.ts:82` buckets it as `query_failed`, not `poisoned_history`), so no existing recovery lever unblocks it.\n\nThis defect is live-blocking in this session: `adv_change_show adoptOrphanedSessionQueues` × 3 and `adv_gate_status adoptOrphanedSessionQueues` × 1 fail with \"Failed to query Workflow\" (ServiceError). The 55-min-old change is on a previous process's session queue — `adv_temporal_diagnose` confirms only `…-sess_iiYGzAd0` (current plugin session) + project queue have pollers. The defect is **capturing its own fix**.\n\n## What Changes\n\nA live ADV worker, on startup (and optionally on a bounded periodic re-scan), enumerates `RUNNING` workflows on the project's Temporal namespace, collects distinct `taskQueue` values matching the ADV prefix pattern `advance-{projectId}-{sess_*}` that the worker is not currently polling, and registers them via the existing `registerQueue` path. After this fix ships and OpenCode restarts, orphan workflows from previous processes become reachable; ADV read/write/gate/close paths work without recovery tooling.\n\nThis is narrowly scoped: it does not change where NEW workflows route, does not change session-id generation, does not change `registerQueue` semantics. It only extends the *set of queues* a live worker polls.\n\n## User Outcomes\n\n- Operators resume work on changes whose originating OpenCode process has exited, without needing `adv_change_workflow_terminate`, `adv_change_close recoveryMode: poisoned_history`, or out-of-band Temporal intervention.\n- ADV read/write/gate/close paths behave consistently regardless of which OpenCode process started a given change workflow.\n- The class of \"stranded workflow churn\" documented in Epic `hardenTemporalReliability` (false-negative phantom fixes, retry loops on unreachable workflows) shrinks: workflows orphaned by process exit are adopted transparently.\n\n## Affected Code\n\nLikely touched (firm in `/adv-discover`, `/adv-design`):\n\n- `plugin/src/temporal/in-process-worker.ts` — `registerQueue` call site\n- `plugin/src/temporal/out-of-process-worker.ts` — `registerQueue` call site\n- `plugin/src/temporal/worker-multi.ts` — `registerQueue` call site\n- `plugin/src/plugin-init.ts` — call site after worker init (around line 247)\n- New module (probable): `plugin/src/temporal/orphan-queue-adoption.ts` (enumeration + filtering logic)\n- Test surface: new `.itest.ts` for actual worker queue registration + mocked unit test for enumeration/filtering\n\n## Related Repositories\n\nNone — single-repo change.\n\n## Constraints\n\n- **Additive only** — no changes to: new-workflow routing, session-id generation (`utils/session-id.ts`), `registerQueue` API or semantics, recovery-classification.\n- **Non-blocking startup** — if `workflowClient.list()` is slow, erroring, or returns an unbounded result set, the worker MUST start without adopted queues and log a degradation warning. Startup latency budget TBD in discovery.\n- **RUNNING-only adoption** — queues with zero `RUNNING` workflows MUST NOT be adopted (prevents unbounded poller growth across many historical sessions).\n- **No task-queue mutation** — the bootstrap MUST NOT change any workflow's `taskQueue` field; it only adds pollers.\n- **Idempotent** — repeated adoption scans on the same set of RUNNING workflows produce no duplicate `registerQueue` calls for already-polled queues.\n\n## Impact\n\n- **Enables**: resuming the original `adoptOrphanedSessionQueues` proposal (currently blocked by this defect); resuming any change stranded by process exit; reduces future occurrences of the same stranded-workflow class.\n- **Risks**: extra poller footprint per adopted queue (bounded by `rq-isolSessionTaskQueue03` tuning caps — each polled queue costs 1 workflow poller + 1 activity poller + 4 slots); Temporal Visibility API call volume on each startup (and periodic re-scan if enabled).\n- **Non-goals**: does not prevent the orphan class from forming in the first place (option b/c in original proposal); does not fix the separate session-id surface inconsistency between `adv_session_list` (`sha256(pid:startTicks)[:8]`) and the plugin (`nanoid(8)`).\n\n## Context\n\n- **Epic**: `hardenTemporalReliability` (sibling to original `adoptOrphanedSessionQueues` entry #10).\n- **Related changes**: `adoptOrphanedSessionQueues` (orphaned umbrella for full prong #3), `replaceRecoveryToolSprawl` (broader recovery re-architect), `reconcileReliabilityPortfolio` (umbrella coordinator).\n- **Shipped prior work**: prong #1 disk-authoritative reads (PRs #284, #285, deployed trunk `9bb85c9e`) — these made list-style reads resilient but `adv_change_show` still does a per-workflow Temporal Query as part of state hydration, which is why this read fails on the orphan.\n\n## Discovery Agenda\n\n**Codebase unknowns** (resolve in `/adv-discover`):\n\n- Existing `workflowClient.list()` usage in `plugin/src/` — is there a shared helper, or do we add one?\n- Exact `registerQueue` shape in each worker kind — does it accept an array, or one-at-a-time?\n- How does `out-of-process-worker.ts` communicate a new queue to an already-spawned child process? IPC message? Or only at child-spawn time? **(Critical for whether adoption works for OOP workers, which is the production mode.)**\n- What does Temporal charge/count for `workflowClient.list()` calls? Adoption scan cost model.\n- Existing tests that simulate multi-session / multi-queue (`__tests__/poller-footprint.itest.ts`, `no-orphan-poller.itest.ts`, `session-routing.itest.ts`, `wedge-isolation.itest.ts`, `legacy-copoll.itest.ts`) — can we extend one, or do we need a new harness?\n\n**Ecosystem unknowns:**\n\n- Does Temporal's TypeScript SDK expose a cheaper \"describe task queue\" or \"list running workflows filtered by task queue\" API vs full `workflowClient.list()`?\n- Recommended cadence for periodic re-scan, if any (Temporal community guidance / ADV tuning history).\n\n**Domain unknowns:**\n\n- Operator expectation: should adoption log each adopted queue at INFO/WARN? Surface in `adv_temporal_diagnose` output? `adv_status view:health`?\n\n**Integration unknowns:**\n\n- Cross-reaction with `replaceRecoveryToolSprawl` (if both ship, do they overlap on adoption logic?).\n- Cross-reaction with `rq-isolSessionTaskQueue03` tuning caps — each adopted queue costs poller footprint; what's the upper bound before we degrade the worker?\n\n**Quick-check items** (resolve inline if quick during discovery):\n\n- Read the existing `__tests__/poller-footprint.itest.ts`, `no-orphan-poller.itest.ts`, `session-routing.itest.ts`, `wedge-isolation.itest.ts`, `legacy-copoll.itest.ts` for harness patterns.\n- Confirm `out-of-process-worker.ts` queue-addition path (IPC vs spawn-only).\n\n## Root Cause Analysis\n\n**Defect origin:** ADV workflows on per-session task queues become permanently unreachable after the OpenCode process that started them exits.\n\n**Evidence gathered:**\n\n- **Tier 1 (local):**\n  - `adv_change_show adoptOrphanedSessionQueues` × 3 → \"Failed to query Workflow\" (ServiceError)\n  - `adv_gate_status adoptOrphanedSessionQueues` × 1 → same\n  - `adv_temporal_diagnose` shows only `…-sess_iiYGzAd0` (current plugin session) + project queue are serviceable; the 55-min-old change's workflow is on a previous process's session queue.\n  - Code investigation: `plugin-init.ts:203-204` generates plugin session id once per process via `nanoid(8)`; `worker.ts:425` reads it from `ADV_TEMPORAL_SESSION_ID` env; `plugin-init.ts:244-249` registers only `{plugin-session-queue}` + `{project-queue}` at startup; no code path enumerates orphan queues.\n  - `recovery-classification.ts:82` buckets the failure as `query_failed`, refusing `poisoned_history` recovery — so no existing recovery lever unblocks it.\n- **Tier 2 (external):** not applicable — defect is fully explained by local code structure.\n\n**Leading hypothesis:** The per-session task-queue routing (`rq-isolSessionTaskQueue01`) correctly isolates a peer session's wedged worker from blocking another session's signal processing, but it has no recovery path for the case where the *owning* session terminates. The worker's registered queue set is process-local state, lost on process exit; no enumeration re-derives it on the next process.\n\n**Ruled-out paths:**\n\n- Bug in `getCurrentSessionId()` returning stale value — ruled out: it returns the same value the worker uses, and the worker IS polling that queue. The orphan is on a DIFFERENT (previous) session queue.\n- Disk-first reads regressing — ruled out: prong #1 reads survive (`adv_change_list` works), but `adv_change_show` still does a Temporal Query for state hydration, which fails on the unreachable workflow.\n- Temporal server outage — ruled out: `adv_temporal_diagnose` shows server alive, worker alive, STSL initialized.\n- Stale worker cache — ruled out: `adv_temporal_reconnect` not needed; the worker genuinely has no poller on the orphan's queue.\n\n**Spec-law impact:** Likely adds a new requirement `rq-isolSessionTaskQueue05` under capability `advance-workflow` (or extends `rq-isolSessionTaskQueue02` to cover process-restart transitions, not just routing-change transitions). Deferral to `/adv-discover` — proposal does not pre-commit deltas.\n\n—\n\n**Bypass rationale (if RCA produced inline rather than via `/adv-problem`):** RCA produced inline because the defect was discovered mid-session while attempting to run `/adv-proposal` on the very change designed to fix it; the investigation was already complete and there is no separate `/adv-problem` transcript to reference.\n\n## Scope\n\n### In Scope\n\n- Enumerating `RUNNING` workflows on the project's Temporal namespace and collecting distinct ADV-prefixed session task queues.\n- Registering (via the existing `registerQueue` path) any such queue that has ≥1 `RUNNING` workflow and is not currently polled by the live worker.\n- Startup-time adoption, with optional bounded periodic re-scan (cadence decided in discovery).\n- Idempotency: re-scans do not duplicate registrations.\n- Non-blocking startup on `workflowClient.list()` failure/slowness.\n- Tests: mocked unit test for enumeration/filtering/idempotency; `.itest.ts` for actual worker queue registration (likely extending an existing multi-session harness).\n\n### Out of Scope\n\n- Changing where NEW workflows route (option b — belongs in original `adoptOrphanedSessionQueues` proposal).\n- Session-lifecycle exit hooks for marking queues adoptable (option c — belongs in original proposal).\n- Session-id surface inconsistency fix between `adv_session_list` (`sha256(pid:startTicks)[:8]`) and the plugin (`nanoid(8)`) — separate defect, belongs in original proposal.\n- Changing `recovery-classification.ts:82` to accept `query_failed` as `poisoned_history` — broader recovery-tool reform, belongs in `replaceRecoveryToolSprawl`.\n- Changing `registerQueue` API or semantics.\n- Cross-project / cross-namespace adoption (bootstrap is single-project).\n\n### Must Not\n\n- **Must not** mutate any workflow's `taskQueue` field — adoption only adds pollers, never re-routes workflows.\n- **Must not** block worker startup if Temporal `workflowClient.list()` fails, times out, or returns an unbounded result set.\n- **Must not** poll queues with zero `RUNNING` workflows (would grow poller count unbounded across historical sessions).\n- **Must not** change new-workflow routing, session-id generation, or recovery classification.\n- **Must not** adopt queues outside this project's namespace.\n- **Must not** log session-internal data (PIDs, paths) — adoption logs use opaque `sess_*` ids only, matching `adv_session_list` privacy contract.",
+    "problemStatement": "ADV workflows started on per-session task queues become permanently unreachable when the OpenCode process that started them exits. Subsequent OpenCode processes generate a new plugin-session id, register a poller only for that session queue (+ the project queue), and never enumerate or adopt orphan session queues left by previous processes. Any workflow still `RUNNING` on an orphan queue cannot be queried, signaled, or terminated via ADV tools — every call fails with \"Failed to query Workflow\". The change is then stranded: not readable (`adv_change_show`), not writable (`adv_change_update`), not gateable (`adv_gate_complete`), not closable (`adv_change_close`). Recovery-classification refuses the failure (`recovery-classification.ts:82` buckets it as `query_failed`, not `poisoned_history`), so no existing recovery lever unblocks it.\n\n**Prior Decisions:**\n\n1. Plugin session id is process-stable, generated once at `plugin-init.ts:203-204` via `nanoid(8)`. Worker polls `{plugin-session-queue}` + `{project-queue}` only.\n2. No code currently enumerates or adopts orphan session queues. `registerQueue` exists (`in-process-worker.ts`, `out-of-process-worker.ts`, `worker-multi.ts`) but is called only at init with current plugin session + project queue.\n3. The bootstrap ships option (a) \"adopt orphan queues\" only. Option (b) default-route-to-project-queue, option (c) session-lifecycle adoption, and the separate session-id surface inconsistency stay in the original `adoptOrphanedSessionQueues` proposal.\n\n**Rejected Approaches:**\n\n- **Option (b) default-route to project queue for change workflows**: rejected for the bootstrap — workflow-start routing change with broader blast radius (loses per-session isolation, affects all new changes). Belongs in the original proposal's design evaluation.\n- **Option (c) session-lifecycle hooks**: rejected for the bootstrap — depends on reliable OpenCode exit hooks; doesn't help on crash/kill. Belongs in the original proposal.\n- **Operator-only workflow termination**: rejected — `adv_change_workflow_terminate` eligibility refuses proposal-phase `RUNNING` workflows with no shipped proof; not a general fix.\n- **Direct Temporal CLI / SQL intervention**: rejected — out-of-band, non-idempotent, doesn't solve recurrence.\n\n**Open Questions:**\n\n1. Bounded adoption: should adoption skip session queues whose newest workflow is older than N hours/days?\n2. Periodic vs startup-only adoption?\n3. Adoption of terminal-overflowing queues (1 RUNNING + many COMPLETED)?\n4. Test surface: `.itest.ts` and/or mocked unit test?\n\n**Constraints from Discussion:**\n\n- Bootstrap is **additive**: no new-workflow routing changes, no session-id generation changes, no `registerQueue` semantics changes.\n- Bootstrap **must not** block startup if Temporal `workflowClient.list()` is slow/failing — log + continue.\n- Bootstrap **must not** poll queues with zero `RUNNING` workflows.\n- Original `adoptOrphanedSessionQueues` change stays in place; bootstrap links to same Epic and is later either merged into the original's design or supersedes it.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. A live OpenCode process adopts session task queues with `RUNNING` workflows from previous (exited) processes, via the existing `registerQueue` IPC mechanism, on heartbeat cadence.\n2. Adoption is bounded, idempotent, non-blocking, and surfaces failures via existing diagnostics.\n3. The original `adoptOrphanedSessionQueues` proposal (currently blocked by the very defect this bootstrap fixes) becomes reachable after this bootstrap ships + OpenCode restarts, so its `/adv-proposal` can resume and the broader prong #3 (option b/c, session-id consistency, full test coverage) can land.\n\n## Success Criteria\n\n- **SC1**: After this bootstrap ships + OpenCode restarts, the original `adoptOrphanedSessionQueues` workflow (orphaned on a previous-process session queue) becomes queryable/signalable via normal ADV tools — no recovery tooling (`adv_change_workflow_terminate`, `adv_change_close recoveryMode: poisoned_history`, out-of-band Temporal CLI) needed.\n- **SC2**: Any future ADV change workflow orphaned by OpenCode process exit is adopted by the next live process within bounded time.\n\n## Acceptance Criteria\n\n- **AC1**: Live worker enumerates `RUNNING` workflows on its project namespace and identifies session task queues (`advance-{projectId}-sess_*`) with ≥1 `RUNNING` workflow not currently polled. *[warrant: tool:adv_temporal_diagnose]*\n- **AC2**: Worker registers each such queue; within bounded time, signals/queries against workflows on that queue succeed. *[warrant: tool:adv_change_show]*\n- **AC3**: Queues with zero `RUNNING` workflows are NOT adopted.\n- **AC4**: Startup completes without waiting for adoption if `workflowClient.list()` is slow/failing; degradation warning logged; retries on next heartbeat.\n- **AC5**: Adoption is idempotent — repeated heartbeat re-scans produce no duplicate `registerQueue` calls for already-polled queues.\n- **AC6**: Adoption observes `run-error` IPC, records the failure in `getTemporalWorkerDiagnostics`, and does not crash the worker. **Specific retry-cap and operator-surface policy deferred to `/adv-design` pending investigation of `run-error` IPC frequency and failure modes.** → **Resolved in design**: 3-retry cap (~30s) before permanent-fail flag; rationale in design.md § Key Decisions D4.\n- **AC7**: Adoption state is visible via existing diagnostics (`adv_temporal_diagnose` per-queue detail + `adv_status view:health` summary count).\n- **AC8**: Per-queue adoption completes within `< SERVICEABILITY_GRACE_MS` (90s) — one queue per heartbeat tick max.\n- **AC9**: Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance (operator can manually `adv_change_workflow_terminate` if contamination concern).\n\n## Constraints\n\n- **C1**: Additive only — no changes to new-workflow routing, session-id generation, `registerQueue` API/semantics, recovery-classification.\n- **C2**: Non-blocking startup — adoption never blocks worker init.\n- **C3**: `RUNNING`-only adoption — queues with zero `RUNNING` workflows never adopted.\n- **C4**: No task-queue mutation — adoption only adds pollers, never re-routes workflows.\n- **C5**: Idempotent — re-scans don't duplicate registrations.\n- **C6**: Observe `run-error` IPC — adoption records failures; worker survives.\n- **C7**: Bounded per-adoption — `< 90s` per queue, one queue per heartbeat tick.\n- **C8**: Single-project scope — no cross-namespace adoption.\n- **C9**: Privacy — adoption logs use opaque `sess_*` ids only (no PIDs/paths), matching `adv_session_list` privacy contract.\n\n## Avoidances\n\n- **DONT1**: Option (b) default-route-to-project-queue for change workflows — workflow-start routing change with broader blast radius. Belongs in original `adoptOrphanedSessionQueues` proposal's design evaluation.\n- **DONT2**: Option (c) session-lifecycle exit hooks for marking queues adoptable — depends on reliable OpenCode exit hooks; doesn't help on crash/kill. Belongs in original proposal.\n- **DONT3**: Session-id surface inconsistency fix between `adv_session_list` (`sha256(pid:startTicks)[:8]`) and the plugin (`nanoid(8)`) — separate defect, belongs in original proposal.\n- **DONT4**: `recovery-classification.ts:82` reform to accept `query_failed` as `poisoned_history` — broader recovery-tool reform, belongs in `replaceRecoveryToolSprawl`.\n- **DONT5**: `registerQueue` API or semantics changes — bootstrap only adds callers.\n- **DONT6**: Cross-project / cross-namespace adoption — bootstrap is single-project.\n\n## Preview Applicability\n\n- **`visual_surface: false`** — no front-end / browser-visible / visual output affected. Rationale: worker-internal lifecycle change; only diagnostic tool surfaces affected (text-only).\n- **`preview_expectation.exact_route_required: not_applicable`**\n- **`preview_expectation.data_state_expectation: not_applicable`**\n- **`preview_expectation.viewport_expectation: not_applicable`**\n\n## Decisions\n\n### User Decisions\n\n1. **Wedge-isolated queue adoption** — User chose: **adopt all orphan session queues indiscriminately**. Why it matters: wedge isolation is for CONCURRENT-session contamination prevention; once the owning process exits, there's no live wedged state to import — the workflow is just unreachable. Operator can manually `adv_change_workflow_terminate` if contamination is a concern. Drives AC9.\n\n2. **Adoption failure policy (DFR1)** — User chose: **deferred to `/adv-design` pending investigation and proposal**. → **Design resolves**: 3-retry cap (~30s) before permanent-fail flag, surfaced in diagnostics. See design.md § Key Decisions D4 for investigation findings + proposal.\n\n3. **Diagnostic visibility** — User chose: **both `adv_temporal_diagnose` (per-queue detail) + `adv_status view:health` (summary count)**. Why it matters: operators need both quick-glance and deep-dive visibility into adoption state. Drives AC7.\n\n### Agent Decisions (LBP)\n\n1. **IPC mechanism for post-spawn adoption** — Confirmed (explore investigation): the production out-of-process worker supports queue adoption post-spawn via the existing stdin/stdout JSON-line IPC protocol in `plugin/src/temporal/worker-multi.ts:583-616` → child handler `plugin/src/temporal/worker.ts:245-280`. The bootstrap does NOT need a new mechanism; it only adds a caller of `registerQueue`. Original proposal's \"critical question\" resolved.\n\n2. **Integration point** — `plugin/src/temporal/worker-heartbeat.ts` `onBeat` hook (10s cadence, `WORKER_HEARTBEAT_INTERVAL_MS = 10_000`) is the prime integration point, already wired in `plugin/src/plugin-init.ts:284-286` alongside `workerBundleRollMonitor.checkNow()`. Second callback composes cleanly; single-flight + non-blocking guarantees already exist for the heartbeat.\n\n3. **New helper required** — No existing helper enumerates RUNNING workflows to extract session queues. Five `workflowClient.list()` call sites exist for other purposes (`list-epic-workflows`, `list-change-workflows`, etc.); none extract `TaskQueue` field grouped by session. New helper (e.g. `listOrphanSessionQueues(client, projectId)`) needed in `plugin/src/temporal/`.\n\n4. **Per-tick safety bound** — `SERVICEABILITY_GRACE_MS = 90_000` (`worker-heartbeat.ts:13`) gates worker-lock renewal. Adoption must bound per-queue work to less than this grace period; one queue per heartbeat tick is the conservative bound (9 ticks of budget). AC8.\n\n5. **Sentinel round-trip definition** — Adoption \"complete\" must include a sentinel workflow signal/query round-trip, not just `register-ack` IPC (which fires before `worker.run()` resolves per `worker.ts:272` vs `worker.ts:264`). Test assertion shape: register queue → sentinel workflow on that queue → query succeeds.\n\n6. **`run-error` observation** — `worker.ts:264-271` shows `run-error` IPC silently removes the queue from `workerRegistry`. Adoption must observe `getDiagnostics().registerErrors` (`worker-multi.ts:297-300`) to detect post-ACK failures and retry on subsequent heartbeats. AC6.\n\n7. **Shutdown safety** — `registerQueue` throws synchronously during shutdown (`worker-multi.ts:584-588`). Adoption's heartbeat handler must guard with try/catch and suppress `shutting down` errors to avoid polluting the heartbeat's own catch (`worker-heartbeat.ts:143-146`).\n\n8. **In-process worker blocking** — `in-process-worker.ts:160-167` `Worker.create` is synchronous-blocking per queue. Adoption must not batch-register N queues in one heartbeat tick — would block the heartbeat interval and starve the bundle-roll monitor (also on `onBeat`). Single queue per tick enforced.\n\n9. **Spec delta shape** — Discovery does not pre-commit deltas. Draft `rq-isolSessionTaskQueue05` (4 scenarios: orphan adopted on heartbeat, zero-RUNNING not adopted, startup non-blocking on visibility failure, idempotent re-adoption) is the likely shape; final ID and final scenario set are `/adv-design` and `/adv-prep` output.\n\n## Deferred Questions\n\n- **DFR1** (resolved in design): Adoption failure policy — retry cap count, surface mechanism. **Deferred by user: 'need investigation and proposal'**. Design resolves with 3-retry cap + permanent-fail flag; see design.md § Key Decisions D4.\n\n## Sign-Off\n\n- **User approval**: Tier A whitelist match (`approve`) at Phase 4.5.1 AC/SC checkpoint, 2026-07-22.\n- **Discovery gate**: completed by agent on behalf of user approval.\n- **Carries forward to**: `/adv-design autoAdoptOrphanSessionQueues`.",
+    "design": "# Design\n\n## Architecture Overview\n\nThe bootstrap extends the live ADV worker's polled-queue set at runtime, using only existing infrastructure: the `registerQueue` IPC mechanism (`worker-multi.ts:583-616` → child handler `worker.ts:245-280`), the `worker-heartbeat.ts` `onBeat` hook (10 s cadence), and the Temporal Visibility API. **No new worker-lifecycle primitives, no new IPC protocol, no `registerQueue` API changes.** The bootstrap adds: (a) one new pure helper that enumerates orphan session queues from Visibility, (b) one coordinator that picks the next orphan + observes `run-error` retry state, (c) one new callback composed into the existing `onBeat` dispatcher, and (d) one extension to `getTemporalWorkerDiagnostics`.\n\n```\n┌─────────────────────────────────────────────────────────────────┐\n│ plugin-init.ts                                                  │\n│                                                                 │\n│  startWorkerLockHeartbeat({                                     │\n│    onBeat: () => {                                              │\n│      void workerBundleRollMonitor?.checkNow()…                  │\n│      void orphanQueueAdopter?.adoptNextOrphan()  ◀── NEW        │\n│        .catch(() => undefined)                                  │\n│    },                                                           │\n│  })                                                             │\n└─────────────────────────────────────────────────────────────────┘\n                            │\n                            ▼  (10s cadence, single-flight, 8s hard timeout per tick)\n┌─────────────────────────────────────────────────────────────────┐\n│ OrphanQueueAdopter.adoptNextOrphan()                            │\n│   try {                                                         │\n│     1. listOrphanSessionQueues(client, projectId, polledSet)    │\n│        ↳ Visibility: AdvAffectedProjects=P AND ExecutionStatus= │\n│          \"Running\"; collect all results, THEN sort client-side  │\n│          by startTime (Visibility may return unordered)         │\n│        ↳ filter to advance-{P}-sess_* not in polledSet,         │\n│          not in cooldown                                        │\n│     2. pick next (oldest startTime after sort)                  │\n│     3. await Promise.race([                                     │\n│          worker.registerQueue(orphanQueue),                     │\n│          timeout(8s)                                            │\n│        ])                                                       │\n│        ↳ Existing IPC (worker-multi.ts:583-616): parent stdin   │\n│          JSON → child Worker.create → register-ack              │\n│     4. observe result; on run-error, bump attemptCount          │\n│     5. surface state via getTemporalWorkerDiagnostics()         │\n│   } finally {                                                   │\n│     scanInFlight = false  ◀── always release, even on timeout   │\n│   }                                                             │\n└─────────────────────────────────────────────────────────────────┘\n```\n\n## Key Decisions\n\n### D1: Visibility query shape — client-side grouping by `taskQueue`\n\n`TaskQueue` is NOT a registered Temporal search attribute (only `AdvAffectedProjects`, `AdvLifecycleState`, `AdvChangeStatus` are registered — `list-change-workflows.ts:24-32`). Server-side filtering by task queue is impossible. **Design**: query `AdvAffectedProjects = \"{P}\" AND ExecutionStatus = \"Running\"` (reuses the exact pattern from `list-change-workflows.ts:82-121`), iterate the SDK's `AsyncIterable<WorkflowExecutionDescription>` (default page size 1000, SDK handles cursor pagination), **collect all results before filtering** (Visibility API is eventually consistent and may return unordered pages), group client-side by `.taskQueue`, filter to those matching `/^advance-{P}-sess_[A-Za-z0-9_-]+$/` not in `worker.queues`. Worst case: iterate all RUNNING workflows on the project (~tens to low hundreds in practice), group, filter — bounded by the Visibility API's natural result set.\n\n### D2: One-queue-per-tick throttling + hard timeout + finally-release\n\nEach heartbeat tick (`WORKER_HEARTBEAT_INTERVAL_MS = 10_000`) processes at most **one** adoption, bounded by an **8 s hard timeout** (just under the 10 s heartbeat interval). Rationale: (a) `in-process-worker.ts:160-167` `Worker.create` is synchronous-blocking per queue, so batch-registering N would starve the bundle-roll monitor sharing `onBeat`; (b) `SERVICEABILITY_GRACE_MS = 90_000` gates worker-lock renewal — 1 queue/tick = 9 ticks of budget (90s) per adoption, well within grace; (c) **`scanInFlight` is released in a `finally` block so a stalled `Worker.create` or never-arriving IPC ACK cannot hold single-flight indefinitely** (validator caution 1). Multi-queue backlog drains at ≤ 6 queues/minute.\n\n### D3: Single-flight coordinator with FIFO ordering after client-side sort\n\n`OrphanQueueAdopter` carries: (1) `scanInFlight: boolean` (mirrors `health-monitor.ts:194,198` pattern) so beats never overlap; (2) `perQueueState: Map<queue, { attemptCount, lastAttemptAt, cooldownUntil }>`. Orphan selection = **collect all candidate queues from the completed Visibility scan, sort client-side by oldest workflow `startTime`, pick first not in cooldown** (validator caution 3 — Visibility API results may be unordered and eventually consistent; FIFO requires deterministic client-side sort, not stream-order reliance).\n\n### D4: DFR1 resolution — capped retries with cooldown (not permanent failure)\n\n**Investigation findings** (resolving deferred Q2):\n- `worker-multi.ts:288-300` handles `run-error` IPC by deleting the queue from `queues` set and recording in `registerErrors`. Crucially, **subsequent `registerQueue` calls are NOT short-circuited** (line 589 `if (queues.has(queue)) return` no longer matches) — so the bootstrap's adoption logic can simply re-call `registerQueue` on a queue that previously failed with `run-error`, and it will retry naturally.\n- Realistic `run-error` causes: (1) workflow bundle stale/incompatible (persistent — retry won't help); (2) activity import mismatch (persistent); (3) Worker.run() network failure (transient — recovers within seconds to minutes); (4) determinism violation in workflow code (persistent). Some \"persistent\"-looking failures are actually slow-transient (network restoral, Temporal server restart).\n\n**Design (revised per validator caution 2)**: cap at **3 attempts** (≈ 30s at one-tick spacing) per queue, then set `cooldownUntil = now + 5 min` (not `permanentlyFailed`). Queue excluded from selection during cooldown; re-attempts after cooldown expires. This handles slow-transient failures that the original \"permanent-fail flag\" would have stranded until process restart. Persistent failures cycle through 3-attempt + 5-min-cooldown loops — bounded log noise (3 entries per 5 min per queue) rather than infinite immediate retry. Operator remediation for true-persistent failures: fix the underlying bundle/activity issue; the cooldown loop surfaces the failure in diagnostics without requiring a process restart.\n\n### D5: Adoption-complete definition — ACK + sentinel round-trip\n\n`register-ack` IPC fires when `Worker.create` succeeds + `worker.run()` starts (`worker.ts:272`), but **before** `worker.run()` resolves. A queue with ACK but no live poller is possible during the brief startup window. **Design**: adoption records `state: \"adopted\"` on ACK, `state: \"verified\"` after a sentinel workflow round-trip succeeds (a `query` to any workflow on that queue returns successfully). Tests assert the verified transition. The diagnostic surface exposes both states distinctly so operators see adoption in flight vs. confirmed. The verification query is best-effort — failure does not roll back adoption, just leaves the queue in `state: \"adopted\"` until next scan's verification attempt.\n\n### D6: Visibility failure handling — non-blocking, retry next beat\n\nIf `client.workflow.list()` throws, returns zero results, or takes longer than the per-tick budget (5 s soft cap inside the 8 s hard timeout — design-derived), the heartbeat catch swallows the error, logs a degradation warning, and the next tick re-attempts. Worker startup never blocks on Visibility (adoption only runs post-startup via heartbeat). Aligns with AC4.\n\n### D7: Shutdown safety\n\n`registerQueue` throws synchronously when `shuttingDown = true` (`worker-multi.ts:584-588`). The adoption coordinator's `adoptNextOrphan` wraps every `registerQueue` call in try/catch and suppresses shutdown-class errors silently — otherwise the final pre-exit heartbeat would throw into the heartbeat's own catch (`worker-heartbeat.ts:143-146`) and pollute logs.\n\n### D8: Idempotency is structural and process-local\n\nThe bootstrap does NOT maintain its own \"already adopted\" set in addition to `worker.queues`. **Process-local** idempotency comes from `worker-multi.ts:589 if (queues.has(queue)) return` — a no-op for already-polled queues within a single OpenCode process. **Cross-process concurrent adoption** (two OpenCode processes adopting the same orphan) is not idempotent at the worker-multi level, but is safe because Temporal's worker model allows multiple workers per task queue (validator clarification — R2 mitigation). The coordinator only needs `perQueueState` for retry/cooldown tracking, not for cross-process coordination. Cross-process duplicate adoption produces transient wasted poller footprint (one extra Worker.create per overlap), resolved when one process's lock-acquisition fails or its Worker.run() encounters the duplicate.\n\n## ADR Drafts\n\n**None.** No decision meets the 3-criteria ADR rubric (hard-to-reverse + surprising-without-context + result-of-real-tradeoff). All decisions are either reversible (small code surface, ≤200 lines net) or follow established patterns (heartbeat integration, Visibility query shape, idempotent registerQueue). The `registerQueue` IPC protocol is unchanged.\n\n## Implementation Strategy\n\n**Phase A (no behavior change):** Add `list-orphan-session-queues.ts` (pure helper, fully unit-testable with mocked `client.workflow.list`, including unordered-page simulation). Add `OrphanQueueAdopter` class (pure coordinator, fully unit-testable with mocked worker — covers scanInFlight/finally-release, timeout race, cooldown transitions, FIFO-after-sort). No wiring yet — existing tests must pass unchanged.\n\n**Phase B (behavior change, off by default):** Wire `OrphanQueueAdopter` into `plugin-init.ts:284-286` `onBeat` callback. Guard with an env flag `ADV_ORPHAN_QUEUE_ADOPTION=1` (default off in Phase B, flipped to default on after integration tests land). Allows risk-controlled rollout.\n\n**Phase C (full enablement + diagnostics):** Extend `getTemporalWorkerDiagnostics` (`plugin-init.ts` function `getTemporalWorkerDiagnostics`) with `adoptedOrphanQueues` and `cooldownQueues` arrays. Flip default `ADV_ORPHAN_QUEUE_ADOPTION=1`. Update `adv_temporal_diagnose` + `adv_status view:health` renderers to surface the new fields. End-to-end `.itest.ts` proving the orphan-resolution loop including: stalled-ACK timeout path, cooldown transition, FIFO ordering under unordered Visibility pages.\n\n**Test surface** (extends rather than creates):\n- `plugin/src/temporal/list-orphan-session-queues.test.ts` (NEW, unit) — Visibility query, client-side grouping, **unordered-page handling**, filter logic, empty result handling.\n- `plugin/src/temporal/orphan-queue-adopter.test.ts` (NEW, unit) — coordinator state machine, **scanInFlight finally-release under timeout**, cooldown transitions (3-attempt → cooldown → re-attempt), FIFO selection **after client-side sort**, shutdown error suppression.\n- `plugin/src/temporal/worker-multi.test.ts` (EXTEND) — add cases: registerQueue-after-run-error retries cleanly; adoption across multiple heartbeat re-scans is idempotent; **cooldown-excluded queue is not selected**.\n- `plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts` (NEW, integration) — live worker → heartbeat fires → re-scan enumerates → registerQueue IPC → sentinel workflow query round-trip succeeds → diagnostic surface shows adopted queue. Mirrors `no-orphan-poller.itest.ts` round-trip pattern. **Includes stalled-ACK timeout case**.\n\n## LBP Analysis\n\n**Long-term-best-practice alignment:** the bootstrap extends three established in-repo patterns rather than introducing new infrastructure:\n\n1. **Re-derive lost state on next start** — same pattern as `tryReclaimStaleLock` (worker-lock recovery), `startWorkerLockHeartbeat` (periodic re-assertion), `registerPluginSession` (session registry rebuild). Adoption is the queue-set analog.\n2. **Visibility-API-driven enumeration** — same pattern as `list-change-workflows.ts`, `list-epic-workflows.ts`, `list-source-ranked-candidates.ts`, `visibility-claim-queries.ts`, `visibility-epic-queries.ts`. Sixth caller of the same API; no new query pattern.\n3. **Fire-and-forget heartbeat composition** — same pattern as `workerBundleRollMonitor.checkNow()`. Second callback on the same hook; no new heartbeat infrastructure.\n\n**Why not alternative (b) default-route-to-project-queue:** that option eliminates orphans by construction but loses per-session workflow isolation (a peer session's wedged workflow could starve another session's signal processing). Since disk-authoritative reads (prong #1) already mitigate the read-side impact of orphans, the remaining pain is mutation-side; option (a) addresses that surgically without giving up isolation. Option (b) remains a valid future direction in the original `adoptOrphanedSessionQueues` proposal if isolation proves unnecessary at scale.\n\n**Why not alternative (c) session-lifecycle exit hooks:** depends on reliable OpenCode exit hooks, which don't fire on crash/kill -9. Adoption at heartbeat is crash-safe by construction.\n\n## Affected Components\n\n| Component | Change | Phase |\n|---|---|---|\n| `plugin/src/temporal/list-orphan-session-queues.ts` | NEW pure helper | A |\n| `plugin/src/temporal/orphan-queue-adopter.ts` | NEW coordinator | A |\n| `plugin/src/temporal/list-orphan-session-queues.test.ts` | NEW unit tests | A |\n| `plugin/src/temporal/orphan-queue-adopter.test.ts` | NEW unit tests | A |\n| `plugin/src/plugin-init.ts` (`onBeat` wiring, ~line 284-286) | EXTEND with second callback | B |\n| `plugin/src/plugin-init.ts` (`getTemporalWorkerDiagnostics`) | EXTEND return shape | C |\n| `plugin/src/temporal/worker-multi.test.ts` | EXTEND with adoption-flavored cases | B |\n| `plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts` | NEW integration test | C |\n| `plugin/src/tools/temporal-diagnose.ts` (renderer) | EXTEND to surface adoptedOrphanQueues + cooldownQueues | C |\n| `plugin/src/tools/status.ts` (health view renderer) | EXTEND to surface summary count | C |\n\n**Unchanged** (out of scope by design):\n- `plugin/src/temporal/worker.ts` — child IPC handler already supports runtime register (lines 245-280); no change.\n- `plugin/src/temporal/worker-multi.ts` — `registerQueue` IPC + `run-error` handling already correct (lines 288-300, 583-616); no change.\n- `plugin/src/temporal/in-process-worker.ts`, `out-of-process-worker.ts` — already delegate to `registerQueue`; no change.\n- `plugin/src/utils/session-id.ts`, `recovery-classification.ts` — explicitly out of scope per DONT3/DONT4.\n\n## Design-Derived Criteria\n\nTechnical criteria caused by the chosen architecture; no new user-facing AC.\n\n- **DDC1**: Visibility query latency budget ≤ 5 s per scan (soft cap inside DDC2 hard timeout). Enforced by `Promise.race` timeout on the SDK's async iterator.\n- **DDC2**: Per-tick adoption hard timeout ≤ 8 s (just under 10 s heartbeat interval). `scanInFlight` released in `finally` block.\n- **DDC3**: Adoption diagnostic surface cap ≤ 50 entries displayed in `adv_temporal_diagnose`; summarize beyond (e.g. \"…+ 12 more in cooldown\").\n- **DDC4**: Per-queue retry cap = 3 attempts before cooldown (D4).\n- **DDC5**: Cooldown duration = 5 min per queue after 3-attempt cap (D4).\n- **DDC6**: Adoption attempt spacing ≥ 10 s (1 heartbeat tick) between retries (D2/D3).\n- **DDC7**: `scanInFlight` flag prevents concurrent adoption scans across heartbeat ticks (D3 single-flight).\n- **DDC8**: `ADV_ORPHAN_QUEUE_ADOPTION` env flag controls enablement during Phase B rollout; default `1` from Phase C onward.\n\n## Risks / Mitigations\n\n| # | Risk | Likelihood | Impact | Mitigation |\n|---|---|---|---|---|\n| R1 | Visibility API pagination slow under large project state | Low (typically tens to low hundreds of RUNNING workflows) | Adoption delays | DDC1 5 s timeout; non-blocking; AC4 |\n| R2 | Two OpenCode processes adopt same orphan queue concurrently | Low | Wasted poller footprint (transient) | **Process-local** idempotency — `worker-multi.ts:589` short-circuit within a process; Temporal allows multiple workers per queue cross-process; overlap resolves when one process's Worker.run encounters the duplicate or its lock fails |\n| R3 | Worker-lock starvation during slow adoption | Low | Duplicate worker spawn | DDC2 8 s timeout + D2 one-queue-per-tick + AC8 < 90 s grace; finally-release prevents indefinite hold |\n| R4 | Adopted queue has poisoned workflow | Medium | Poll failure on that workflow | Temporal isolates per-workflow failures; worker survives; bootstrap is \"best-effort recovery\" not \"guaranteed\" |\n| R5 | Adoption diagnostic surface clutter under many orphans | Low | Operator UX | DDC3 cap at 50 + summary; mirrors existing diagnostic patterns |\n| R6 | `run-error` retry storm on persistent failure | Medium | Log/diagnostic noise | D4 3-attempt cap → 5-min cooldown (bounded noise: 3 entries per 5 min per queue) |\n| R7 | Privacy leak via session id in logs | Low | PII / cross-session correlation | C9 — opaque `sess_*` ids only, matching `adv_session_list` |\n| R8 | Phase B env-flag default-off leaving orphans unresolved after deploy | Medium | Bootstrap appears not to work | Phase B is short-lived; Phase C flips default on after integration tests land |\n| R9 | Stalled `Worker.create` or never-arriving ACK holds single-flight | Medium | Heartbeat adoption stalls until process restart | DDC2 8 s hard timeout + finally-release (validator caution 1) |\n| R10 | Visibility returns unordered pages, FIFO selection nondeterministic | High (Visibility is eventually consistent) | Wrong queue picked first (cosmetic; not correctness) | D3 client-side sort by `startTime` after completed scan (validator caution 3) |\n\n## Spec-Law Compliance Preview\n\nDraft `rq-isolSessionTaskQueue05` (4 scenarios) extends `advance-workflow` capability without contradicting `rq-isolSessionTaskQueue01-04`:\n\n- `rq-isolSessionTaskQueue01` (per-session routing) — unchanged; new workflows still route to session queues. Adoption extends the polled set, not the routing.\n- `rq-isolSessionTaskQueue02` (legacy queue co-existence) — extended conceptually (process-restart is a transition class not covered by the original spec, which addresses routing-change transitions only) but not contradicted; bootstrap is additive.\n- `rq-isolSessionTaskQueue03` (tuning caps) — applies unchanged to adopted-queue workers (each adopted queue is a separate `Worker.create` with `getAdvWorkerTuningOptions()` per `worker.ts:259`).\n- `rq-isolSessionTaskQueue04` (diagnostics) — extended by adoption-state surface; backward-compatible (legacy single-queue callers see no change).\n\nFinal delta shape deferred to `/adv-prep`.\n\n## Design Leverage Scout\n\nScout: skipped — narrow low-opportunity bootstrap. The opportunity surface is bounded by the existing `registerQueue` IPC + heartbeat infrastructure; no parallelism, simplification, or cross-cutting leverage available beyond the architecture already described.\n\n## Validator Cautions (Phase 3.5 / 3.6)\n\nIndependent validator (`adv-researcher`, attempt 1) returned **`caution`** (not fail). Cautions and resolutions:\n\n| # | Caution | Resolution |\n|---|---|---|\n| VC1 | Registration has no bounded deadline; stalled `Worker.create`/IPC ACK can hold single-flight indefinitely. 90s grace governs lock serviceability, not adoption duration. | **Incorporated**: DDC2 8 s hard timeout per tick + `scanInFlight` released in `finally` (D2). Test case added to orphan-queue-adopter.test.ts. |\n| VC2 | 3 retries / ~30s then permanent suppression lacks evidence as transient-vs-persistent boundary; can strand a running workflow until restart. | **Incorporated**: D4 revised — `permanentlyFailed` replaced with `cooldownUntil = now + 5 min` (DDC5). Slow-transient failures get re-attempted after cooldown instead of waiting for process restart. Test case covers cooldown→re-attempt transition. |\n| VC3 | Visibility results are approximate/eventually consistent; FIFO requires client sort after a completed scan. | **Incorporated**: D1/D3 explicit — collect all results before filtering, sort client-side by `startTime`. Test case simulates unordered pages. |\n| VC4 | `worker.queues` deduplication is process-local, not cross-process; concurrent pollers may be safe but claim is not global idempotency. | **Clarified**: D8 now states idempotency is process-local by design; cross-process concurrent adoption handled via Temporal's multi-worker-per-queue model (R2). Not a blocker — clarifies scope of the idempotency claim. |\n\n**Validator recommendation**: \"Before planning, bound full scan/register/verify attempts, release single-flight in `finally`, reconcile late ACK/run-error, verify via known running workflow/query, and replace permanent failure with observable cooldown retries.\" All five recommendations incorporated into revised design (DDC2, D2 finally-release, D5 sentinel verification, D4 cooldown).\n\n**Validator persistence**: report at `autoAdoptOrphanSessionQueues|change:researcher:design-validation|adv-researcher|1`.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nStranded ADV work (left on a crashed session's private task queue) now gets re-adopted automatically by the next live OpenCode process, so it becomes reachable again without manual recovery tooling. Accepted, hardened, and ready for archive sign-off.\n\n## Why It Matters\nWhen an OpenCode process exits unexpectedly, any workflow it left `RUNNING` on its per-session task queue becomes unreachable — signals/queries against it fail. Auto-adoption lets the next live worker notice those orphan queues on its 10s heartbeat and register a poller, restoring reachability within bounded time. The feature is already deployed and running always-on; this change adds an emergency kill-switch, operator diagnostics, and an end-to-end test, plus records the behavior as spec law.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Kill-switch `ADV_ORPHAN_QUEUE_ADOPTION` (default ON; `0` disables) — emergency escape hatch, reconciled against the already-deployed always-on behavior.\n2. Adoption diagnostics surfaced in `adv_doctor` (per-queue detail, 50-entry cap) + `adv_status view:health` (summary counts), via a shared typed diagnostic interface.\n3. `lastError` capture so operators can see *why* a queue hit its retry cap (review remediation).\n4. End-to-end integration test proving the real adopter registers a real poller and a stranded workflow becomes queryable.\n5. Spec-law delta `rq-isolSessionTaskQueue05` (4 scenarios), applied to `.adv/specs` at archive.\n\n## What Was Verified\n- Verdict: APPROVED (0 blockers; review issues remediated)\n- Tests: 17/17 coordinator+kill-switch, 13 helper, 22 renderer, 1 e2e — all green\n- CI gate: `pnpm run check` exit 0 (schemas, typecheck, agent-manifests, test-isolation, lockfile, lint, format)\n- Preview URL: not_applicable (`visual_surface: false`)\n- Contract matrix: 26 rows, 0 failing\n\n## Release Readiness Summary\n- **Test coverage**: strong — filter/sort/group/idempotency (helper), full state-machine coverage (coordinator: single-flight, timeout-release, cooldown, success-reset, shutdown-suppression), kill-switch semantics, both diagnostic renderers, real-worker e2e round-trip. Gaps: timeout-race late-settle covered by reasoning+regression guard (not full integration); multi-queue adoption e2e deferred.\n- **AI-slop**: none — code is focused, named clearly, follows established patterns (heartbeat composition, Visibility query, process-local idempotency). No speculative abstraction.\n- **Doc hygiene**: `INSPECTION_LIMIT` FIFO doc added; `ADV_ORPHAN_QUEUE_ADOPTION` documented in SETUP.md env table. No stale/duplicate docs introduced.\n- **Production readiness**: feature already live (always-on) and stable; kill-switch adds operator control; diagnostics + lastError improve operability. No security surface (no auth/secrets/user-input; opaque sess_ ids; escaped Visibility query).\n- **Deployment readiness**: one new env var (`ADV_ORPHAN_QUEUE_ADOPTION`, documented); no migrations; no external services; no infra changes. CI green.\n- **Complexity**: low — cohesive modules (helper + coordinator + renderers), ≤220 lines net, follows LBP patterns.\n- **Cleanup**: no temp artifacts (feasibility probe deleted); no dead code.\n- **Deferred review nits disposition**: implemented (INSPECTION_LIMIT doc); rejected-with-evidence (escapeVisibilityValue — trusted source; delay().unref() — cosmetic/bounded; isShutdownError instanceof — out-of-touched-scope worker-multi; kill-switch \"false\"/\"off\" friendliness — intentional footgun-avoidance; opaque-id marker — already opaque; onBeat rejection logging — diagnostics cover it).\n\n## Remaining Concerns\n- Known limitation (documented, self-healing): during a slow planned shutdown, a timed-out register may advance a queue's failure counter; bounded because the heartbeat is torn down concurrently and `worker.queues` excludes an actually-adopted queue on the next tick.\n- Test-server constraint: the full Visibility-enumerate→adopt round-trip can't be integration-tested (Temporal test server doesn't implement `ListWorkflowExecutions`); enumeration logic relies on 13 unit tests, the e2e proves the real adoption action.\n- Harden ran as a focused inline pass (sub-agents degraded by workspace billing); release-readiness dimensions assessed by the orchestrator from the passing review + CI evidence rather than a fresh sub-agent fan-out.\n\n## Supporting Evidence\n- Tasks tk-178c24e3f9a3, tk-511d8456372f, tk-e23e7b9bf45b, tk-041b86c1f738, tk-3b55e010e5aa, tk-30a75bade274 (all done)\n- Commits: 22cf38ab (kill-switch), a0ba198e (diagnostics), 2621c28d (e2e), 51de7619 (review remediation), 669c7800 (harden docs)\n- Test runs tr_mry486g8 (17/17), tr_mry493yh (e2e), tr_mry2dyub (renderers); `pnpm run check` exit 0\n- Contract review matrix (26 rows, 0 failing)\n\n## Consequence Context\n1. Delivered value: stranded session work auto-recovers reachability; operators gain diagnostics + kill-switch.\n2. Enabling-only/follow-up dependency: unblocks the original `adoptOrphanedSessionQueues` proposal post-restart (SC1); no mandatory cross-project dep.\n3. Ops readiness: validated — CI gate green, env var documented, diagnostics operational; deploy from merged trunk (per trunk-stays-on-default policy).\n4. Migration/data impact: n/a — additive runtime behavior, no schema/data migration.\n5. Frontend/preview impact: not_applicable (`visual_surface: false`).\n6. Collision/release risk: low — core already on trunk (#286/#287); this adds gate+diagnostics+test+spec+docs on top.\n7. Open follow-ups: none blocking; documented self-healing limitations + rejected-with-evidence nits on record.\n8. Next action: archive sign-off → merge + deploy from trunk + retire change.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-23T22:25:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1**: After this bootstrap ships + OpenCode restarts, the original `adoptOrphanedSessionQueues` workflow (orphaned on a previous-process session queue) becomes queryable/signalable via normal ADV tools — no recovery tooling (`adv_change_workflow_terminate`, `adv_change_close recoveryMode: poisoned_history`, out-of-band Temporal CLI) needed. | pass | orphan-session-adoption.itest.ts: a stranded workflow on an unpolled session queue becomes queryable after adoptNextOrphan() registers a real poller (handle.query returns truthy). Adoption is the recovery path; no adv_change_workflow_terminate/poisoned_history needed. |\n| SC2 | success_criterion | **SC2**: Any future ADV change workflow orphaned by OpenCode process exit is adopted by the next live process within bounded time. | pass | plugin-init.ts onBeat calls adoptNextOrphan every 10s heartbeat; orphan-queue-adopter adopts one orphan/tick. Future orphaned workflows adopted within bounded time (<=heartbeat cadence). |\n| AC1 | acceptance_criterion | **AC1**: Live worker enumerates `RUNNING` workflows on its project namespace and identifies session task queues (`advance-{projectId}-sess_*`) with ≥1 `RUNNING` workflow not currently polled. ** | pass | list-orphan-session-queues.ts enumerates RUNNING workflows via AdvAffectedProjects Visibility query, filters session-scoped queues (advance-{P}-sess_*) not in polled set. 6 unit tests cover filter/sort/group/idempotency. |\n| AC2 | acceptance_criterion | **AC2**: Worker registers each such queue; within bounded time, signals/queries against workflows on that queue succeed. ** | pass | e2e: after adoptNextOrphan registers a real Worker on the stranded session queue, handle.query(getChangeStateQuery) succeeds (bounded-retry sentinel). |\n| AC3 | acceptance_criterion | **AC3**: Queues with zero `RUNNING` workflows are NOT adopted. | pass | list-orphan-session-queues.ts:79 skips non-RUNNING; orphan-queue-adopter returns early on empty orphans. Unit test 'does nothing when there are no orphans'. |\n| AC4 | acceptance_criterion | **AC4**: Startup completes without waiting for adoption if `workflowClient.list()` is slow/failing; degradation warning logged; retries on next heartbeat. | pass | plugin-init.ts: onBeat invocation is fire-and-forget void...catch(()=>undefined); adopter instantiated only after worker+temporalBundle ready. Adoption never blocks startup; Visibility failures swallowed, retried next heartbeat. |\n| AC5 | acceptance_criterion | **AC5**: Adoption is idempotent — repeated heartbeat re-scans produce no duplicate `registerQueue` calls for already-polled queues. | pass | worker.queues read live each tick; list-orphan-session-queues skips already-polled. e2e asserts registerQueue called exactly once across two scans; unit test 'skips a queue already in worker.queues'. |\n| AC6 | acceptance_criterion | **AC6**: Adoption observes `run-error` IPC, records the failure in `getTemporalWorkerDiagnostics`, and does not crash the worker. **Specific retry-cap and operator-surface policy deferred to `/adv-design` pending investigation of `run-error` IPC frequency and failure modes.** | pass | try/catch observes register failures; 3-attempt cap + 5-min cooldown (recordFailure); try/finally releases scanInFlight; heartbeat .catch prevents crash. Unit test 'applies cooldown after 3 failed attempts'. lastError now captured (remediation) for operator triage. |\n| AC7 | acceptance_criterion | **AC7**: Adoption state is visible via existing diagnostics (`adv_temporal_diagnose` per-queue detail + `adv_status view:health` summary count). | pass | doctor.ts renders orphan_queue_adoption (50-entry cap + omittedTrackedQueues + disabled-note); status-health.ts adds {enabled,tracked,inCooldown} summary through status-health-plan.ts + status.ts. doctor.test.ts (3 cases) + status-health.session-queue.test.ts (2 cases). |\n| AC8 | acceptance_criterion | **AC8**: Per-queue adoption completes within `< SERVICEABILITY_GRACE_MS` (90s) — one queue per heartbeat tick max. | pass | single-flight (one adoption/tick) + 8s tick timeout (DEFAULT_TICK_TIMEOUT_MS) + 10s heartbeat = 18s worst case < 90s SERVICEABILITY_GRACE_MS. Unit test 'enforces single-flight'. |\n| AC9 | acceptance_criterion | **AC9**: Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance (operator can manually `adv_change_workflow_terminate` if contamination concern). | pass | list-orphan-session-queues returns ALL orphans (only RUNNING + session-scoped + not-polled filters); no wedge-isolation opt-out. Operator can adv_change_workflow_terminate contaminated workflows. |\n| C1 | constraint | **C1**: Additive only — no changes to new-workflow routing, session-id generation, `registerQueue` API/semantics, recovery-classification. | respected | Additive only: new helper + coordinator + env flag + diagnostics field. No routing/session-id/registerQueue-semantics changes. registerQueue signature unchanged. |\n| C2 | constraint | **C2**: Non-blocking startup — adoption never blocks worker init. | respected | Adoption is fire-and-forget on the heartbeat; never blocks worker init. Same as AC4. |\n| C3 | constraint | **C3**: `RUNNING`-only adoption — queues with zero `RUNNING` workflows never adopted. | respected | Strict RUNNING filter (list-orphan-session-queues.ts:79). |\n| C4 | constraint | **C4**: No task-queue mutation — adoption only adds pollers, never re-routes workflows. | respected | registerQueue adds a poller; no taskQueue mutation / UpdateTaskQueue calls. Delta body asserts 'only adds pollers, never re-routes'. |\n| C5 | constraint | **C5**: Idempotent — re-scans don't duplicate registrations. | respected | Idempotent via worker.queues live read. Same as AC5. |\n| C6 | constraint | **C6**: Observe `run-error` IPC — adoption records failures; worker survives. | respected | run-error observed (catch); failure recorded in perQueueState -> diagnostics; worker survives (try/finally + heartbeat catch). Same as AC6. |\n| C7 | constraint | **C7**: Bounded per-adoption — `< 90s` per queue, one queue per heartbeat tick. | respected | 8s tick timeout, one queue/tick. Same as AC8. |\n| C8 | constraint | **C8**: Single-project scope — no cross-namespace adoption. | respected | Single projectId bound at construction; Visibility query project-scoped. No cross-namespace enumeration. |\n| C9 | constraint | **C9**: Privacy — adoption logs use opaque `sess_*` ids only (no PIDs/paths), matching `adv_session_list` privacy contract. | respected | Diagnostics use opaque advance-{P}-sess_* queue names (no PIDs/paths); status-health redacts to counts only. Unit test 'summarizes ... without exposing queue identifiers'. |\n| DONT1 | avoidance | **DONT1**: Option (b) default-route-to-project-queue for change workflows — workflow-start routing change with broader blast radius. Belongs in original `adoptOrphanedSessionQueues` proposal's design evaluation. | respected | No default-route-to-project-queue; workflow-start routes to session queue when sessionId provided. |\n| DONT2 | avoidance | **DONT2**: Option (c) session-lifecycle exit hooks for marking queues adoptable — depends on reliable OpenCode exit hooks; doesn't help on crash/kill. Belongs in original proposal. | respected | No process-exit hook added; adoption is heartbeat-driven only. |\n| DONT3 | avoidance | **DONT3**: Session-id surface inconsistency fix between `adv_session_list` (`sha256(pid:startTicks)[:8]`) and the plugin (`nanoid(8)`) — separate defect, belongs in original proposal. | respected | session-id.ts untouched; queue format sess_{id} preserved (read-only). |\n| DONT4 | avoidance | **DONT4**: `recovery-classification.ts:82` reform to accept `query_failed` as `poisoned_history` — broader recovery-tool reform, belongs in `replaceRecoveryToolSprawl`. | respected | Recovery-classification taxonomy unchanged; doctor.ts only ADDS a diagnostics field. |\n| DONT5 | avoidance | **DONT5**: `registerQueue` API or semantics changes — bootstrap only adds callers. | respected | registerQueue signature unchanged across worker-multi/in-process/out-of-process; change only consumes it. |\n| DONT6 | avoidance | **DONT6**: Cross-project / cross-namespace adoption — bootstrap is single-project. | respected | Single-namespace; client bound at init; no cross-namespace enumeration. Same as C8. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-22T04:12:10.281Z",
+      "contentHash": "77e491dd5b436286bd230ce03e8e1844c7443c59ee319a47cba3241ed9a26fdb",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-22T04:12:10.281Z",
+      "contentHash": "940190e9a07318189d03ffce2321c2dd5f377d5614ea3a92d410485ace03c53d",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-22T04:36:06.875Z",
+      "contentHash": "1c152befa31b63d2c9ba7c53d622b2eeaab97ce56d93204d3cb5cdba3c589387",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-22T04:42:52.472Z",
+      "contentHash": "6d7335bac673022bcde90d07a49b03dfc66448a7500aa93a1445f1d1370aecee",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-23T23:39:44.746Z",
+      "contentHash": "4bac5e16cad7fc4cf1e13fbfdd69ac8f0d1189aadadc42dd5c37c2f663a04a56",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-23T23:39:44.746Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "ops_followup_links": [],
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "change-1784693553100-h2spth",
+    "order": 11,
+    "title": "Auto-adopt orphan session queues (bootstrap)",
+    "linked_at": "2026-07-22T04:12:33.101Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  }
+}

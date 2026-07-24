@@ -24,7 +24,11 @@ import {
   type InProcessWorker,
 } from "./temporal/in-process-worker";
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
-import { OrphanQueueAdopter } from "./temporal/orphan-queue-adopter";
+import {
+  OrphanQueueAdopter,
+  isOrphanQueueAdoptionEnabled,
+  type OrphanQueueAdoptionDiagnostics,
+} from "./temporal/orphan-queue-adopter";
 import {
   ensureTemporalRuntime,
   probeTemporalWorkerRuntime,
@@ -387,8 +391,10 @@ export async function tryInitStore(
         registerInProcessTemporalWorker(worker);
         // rq-isolSessionTaskQueue05: instantiate the adopter once worker +
         // temporalBundle are ready. The heartbeat onBeat calls adoptNextOrphan()
-        // on each tick (10s cadence).
-        if (temporalBundle) {
+        // on each tick (10s cadence). Gated by the ADV_ORPHAN_QUEUE_ADOPTION
+        // kill-switch (default ON; "0" disables) — adoption is always-on in
+        // production; the flag is an emergency escape hatch only.
+        if (temporalBundle && isOrphanQueueAdoptionEnabled()) {
           activeOrphanQueueAdopter = new OrphanQueueAdopter({
             client: temporalBundle.client,
             projectId,
@@ -473,7 +479,7 @@ let activeOrphanQueueAdopter: OrphanQueueAdopter | null = null;
  * Return orphan-queue adoption diagnostics for adv_doctor +
  * adv_status health view (rq-isolSessionTaskQueue05 / AC7).
  */
-export function getOrphanQueueAdoptionDiagnostics(): unknown {
+export function getOrphanQueueAdoptionDiagnostics(): OrphanQueueAdoptionDiagnostics | null {
   return activeOrphanQueueAdopter?.getDiagnostics() ?? null;
 }
 

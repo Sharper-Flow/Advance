@@ -35,6 +35,7 @@ import {
   registerMissingAdvSearchAttributes,
 } from "../temporal/observability";
 import {
+  getOrphanQueueAdoptionDiagnostics,
   getTemporalWorkerDiagnostics,
   restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
@@ -207,6 +208,8 @@ interface WorkerDiagnosticsEntry {
   diagnostics?: Array<unknown>;
 }
 
+const ORPHAN_QUEUE_DIAGNOSTIC_DISPLAY_LIMIT = 50;
+
 function projectFromStore(store: Store): string | undefined {
   // Prefer the external ADV state dir basename (ADV project id), then
   // fall back to undefined — doctor will surface the gap as a finding.
@@ -302,6 +305,7 @@ export const doctorTools = {
 
       const serverAlive = health.server_alive === true;
       const stslInitialized = bundle !== null;
+      const orphanQueueAdoption = getOrphanQueueAdoptionDiagnostics();
 
       if (!serverAlive || !stslInitialized) {
         findings.push({
@@ -707,6 +711,24 @@ export const doctorTools = {
         fixes_applied: fixesApplied,
         fixes_refused: fixesRefused,
         verification,
+        orphan_queue_adoption: orphanQueueAdoption
+          ? {
+              enabled: true,
+              scanInFlight: orphanQueueAdoption.scanInFlight,
+              trackedQueues: orphanQueueAdoption.trackedQueues.slice(
+                0,
+                ORPHAN_QUEUE_DIAGNOSTIC_DISPLAY_LIMIT,
+              ),
+              omittedTrackedQueues: Math.max(
+                0,
+                orphanQueueAdoption.trackedQueues.length -
+                  ORPHAN_QUEUE_DIAGNOSTIC_DISPLAY_LIMIT,
+              ),
+            }
+          : {
+              enabled: false,
+              note: "orphan-queue adoption: disabled (no active adopter)",
+            },
         recommendedNextAction:
           refusedCount > 0
             ? `${refusedCount} approval-required proposal(s) returned — operator must resolve manually; rerun adv_doctor after the operator action.`

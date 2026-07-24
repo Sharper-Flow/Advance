@@ -112,8 +112,9 @@ should review the **Bun out-of-process Temporal worker** section for
 | `ADV_TEMPORAL_ALLOW_REMOTE` | _(unset)_        | Set to `true` to permit non-loopback addresses.          |
 | `ADV_TEMPORAL_TASK_QUEUE`   | _(worker-only)_  | Task queue the worker subscribes to.                     |
 | `ADV_TEMPORAL_TASK_QUEUES`  | _(worker-only)_  | Comma-separated queues for multi-queue child mode.       |
-| `ADV_TEMPORAL_MULTI_QUEUE`  | _(worker-only)_  | Set internally to `1` for multi-queue child mode.        |
+| `ADV_TEMPORAL_MULTI_QUEUE`  | _(worker-only)_  | Set internally to `1` for multi-queue child mode.       |
 | `ADV_TEMPORAL_PROJECT_ID`   | _(worker-only)_  | Set internally by the runtime manager.                   |
+| `ADV_ORPHAN_QUEUE_ADOPTION` | _(unset → on)_   | Emergency kill-switch. `0` disables auto-adoption of orphan session queues; any other value (or unset) leaves it on. See `rq-isolSessionTaskQueue05`. |
 
 Activation happens in code by passing a Temporal client bundle into
 `createStore({ temporalBundle })`; production bootstrap owns that wiring. On a

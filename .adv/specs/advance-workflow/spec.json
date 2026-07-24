@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.36.0",
-  "updated_at": "2026-07-23T19:10:46.986Z",
+  "version": "1.37.0",
+  "updated_at": "2026-07-23T23:50:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -7147,6 +7147,82 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-isolSessionTaskQueue05",
+      "title": "Live worker adopts orphan session task queues from previous processes",
+      "body": "A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal namespace, identify session task queues (advance-{projectId}-sess_*) that have at least one RUNNING workflow and are not currently polled, and register them via the existing registerQueue path. Adoption MUST be idempotent (re-scans do not duplicate registrations for already-polled queues), non-blocking on startup (adoption only runs post-startup via heartbeat), bounded to queues with at least one RUNNING workflow, and observe run-error IPC for retry handling with bounded cooldown. Adoption MUST NOT mutate any workflow's taskQueue field — it only adds pollers, never re-routes workflows. Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance; operators can manually terminate contaminated workflows if needed.",
+      "priority": "must",
+      "tags": [
+        "worker",
+        "task-queue",
+        "session",
+        "recovery",
+        "multi-session",
+        "orphan-adoption"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-isolSessionTaskQueue05.1",
+          "title": "Orphan session queue gets adopted on heartbeat",
+          "given": [
+            "A previous OpenCode process started workflow W on session task queue advance-{P}-{sessA}",
+            "The previous process then exited, leaving W stranded on an orphan session queue with no poller",
+            "A new OpenCode process worker is alive with the heartbeat cadence (10s) running"
+          ],
+          "when": "The new process's worker heartbeat fires and the adoption scan runs",
+          "then": [
+            "W is enumerated as a RUNNING workflow on task queue advance-{P}-{sessA}",
+            "registerQueue(\"advance-{P}-{sessA}\") is called via the existing IPC mechanism",
+            "Within bounded time (one heartbeat tick plus ACK round-trip), signals/queries against W succeed without 'Failed to query Workflow' errors"
+          ]
+        },
+        {
+          "id": "rq-isolSessionTaskQueue05.2",
+          "title": "Queue with no RUNNING workflows is not adopted",
+          "given": [
+            "Session task queue advance-{P}-{sessB} exists",
+            "All workflows on advance-{P}-{sessB} have reached terminal states (COMPLETED, ARCHIVED, etc.)",
+            "A live worker's heartbeat is running"
+          ],
+          "when": "The heartbeat adoption scan runs",
+          "then": [
+            "registerQueue is NOT called for advance-{P}-{sessB}",
+            "No poller is added for advance-{P}-{sessB}"
+          ]
+        },
+        {
+          "id": "rq-isolSessionTaskQueue05.3",
+          "title": "Startup remains non-blocking on visibility API failure",
+          "given": [
+            "Temporal workflowClient.list() is slow, throws, or returns an unbounded result set",
+            "A worker is starting up"
+          ],
+          "when": "The worker process initializes",
+          "then": [
+            "Worker startup completes without waiting for the adoption scan",
+            "A degradation warning is logged",
+            "Adoption is retried on the next heartbeat tick"
+          ]
+        },
+        {
+          "id": "rq-isolSessionTaskQueue05.4",
+          "title": "Idempotent re-adoption across heartbeat re-scans",
+          "given": [
+            "Orphan session task queue advance-{P}-{sessA} was already adopted in a prior heartbeat",
+            "The queue is present in the worker's currently-polled set (worker.queues)",
+            "A subsequent heartbeat re-scan runs"
+          ],
+          "when": "The adoption scan enumerates RUNNING workflows including the one on advance-{P}-{sessA}",
+          "then": [
+            "registerQueue is NOT called again for advance-{P}-{sessA}",
+            "The idempotency check at the worker-multi level short-circuits the duplicate registration"
+          ]
+        }
+      ],
+      "meta": {
+        "merged_from": "autoAdoptOrphanSessionQueues"
+      }
     },
     {
       "id": "rq-launcherProjectionTruth01",

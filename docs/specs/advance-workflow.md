@@ -6414,6 +6414,71 @@ The change-owned staged spec-delta record (change.deltas[capability][]) supports
 
 ---
 
+### Live worker adopts orphan session task queues from previous processes
+
+**ID:** `rq-isolSessionTaskQueue05` | **Priority:** **[MUST]**
+
+A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal namespace, identify session task queues (advance-{projectId}-sess_*) that have at least one RUNNING workflow and are not currently polled, and register them via the existing registerQueue path. Adoption MUST be idempotent (re-scans do not duplicate registrations for already-polled queues), non-blocking on startup (adoption only runs post-startup via heartbeat), bounded to queues with at least one RUNNING workflow, and observe run-error IPC for retry handling with bounded cooldown. Adoption MUST NOT mutate any workflow's taskQueue field — it only adds pollers, never re-routes workflows. Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance; operators can manually terminate contaminated workflows if needed.
+
+**Tags:** `worker`, `task-queue`, `session`, `recovery`, `multi-session`, `orphan-adoption`
+
+#### Scenarios
+
+**Orphan session queue gets adopted on heartbeat** (`rq-isolSessionTaskQueue05.1`)
+
+**Given:**
+- A previous OpenCode process started workflow W on session task queue advance-{P}-{sessA}
+- The previous process then exited, leaving W stranded on an orphan session queue with no poller
+- A new OpenCode process worker is alive with the heartbeat cadence (10s) running
+
+**When:** The new process's worker heartbeat fires and the adoption scan runs
+
+**Then:**
+- W is enumerated as a RUNNING workflow on task queue advance-{P}-{sessA}
+- registerQueue("advance-{P}-{sessA}") is called via the existing IPC mechanism
+- Within bounded time (one heartbeat tick plus ACK round-trip), signals/queries against W succeed without 'Failed to query Workflow' errors
+
+**Queue with no RUNNING workflows is not adopted** (`rq-isolSessionTaskQueue05.2`)
+
+**Given:**
+- Session task queue advance-{P}-{sessB} exists
+- All workflows on advance-{P}-{sessB} have reached terminal states (COMPLETED, ARCHIVED, etc.)
+- A live worker's heartbeat is running
+
+**When:** The heartbeat adoption scan runs
+
+**Then:**
+- registerQueue is NOT called for advance-{P}-{sessB}
+- No poller is added for advance-{P}-{sessB}
+
+**Startup remains non-blocking on visibility API failure** (`rq-isolSessionTaskQueue05.3`)
+
+**Given:**
+- Temporal workflowClient.list() is slow, throws, or returns an unbounded result set
+- A worker is starting up
+
+**When:** The worker process initializes
+
+**Then:**
+- Worker startup completes without waiting for the adoption scan
+- A degradation warning is logged
+- Adoption is retried on the next heartbeat tick
+
+**Idempotent re-adoption across heartbeat re-scans** (`rq-isolSessionTaskQueue05.4`)
+
+**Given:**
+- Orphan session task queue advance-{P}-{sessA} was already adopted in a prior heartbeat
+- The queue is present in the worker's currently-polled set (worker.queues)
+- A subsequent heartbeat re-scan runs
+
+**When:** The adoption scan enumerates RUNNING workflows including the one on advance-{P}-{sessA}
+
+**Then:**
+- registerQueue is NOT called again for advance-{P}-{sessA}
+- The idempotency check at the worker-multi level short-circuits the duplicate registration
+
+---
+
 ### Launcher read-projection provenance truthfulness
 
 **ID:** `rq-launcherProjectionTruth01` | **Priority:** **[MUST]**

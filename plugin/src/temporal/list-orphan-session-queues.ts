@@ -16,7 +16,12 @@ import {
 } from "./contracts";
 import { escapeVisibilityValue } from "./lifecycle-visibility";
 
-/** Hard cap on inspected workflows (safety bound). */
+/**
+ * Hard cap on inspected workflows (safety bound). FIFO selection is
+ * best-effort past this cap: with >500 active workflows on a project, the
+ * truly-oldest orphans beyond the first inspected page may be deferred to a
+ * later heartbeat. Bounded by realistic project sizes (tens to low hundreds).
+ */
 const INSPECTION_LIMIT = 500;
 
 /**
