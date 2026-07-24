@@ -1,0 +1,992 @@
+{
+  "id": "fixArchiveMissingWorkflow",
+  "title": "Fix archive missing-workflow recovery",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-24T02:54:53.024Z",
+  "tasks": [
+    {
+      "id": "tk-3d92d226da62",
+      "title": "Restructure monotonic-recovery probe-first path to classify describe() error (exact typed name)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-24T03:27:37.154Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-24T03:32:49.313Z",
+      "verification": "RED tr_mrydy942_b7729c80 failed on new typed WorkflowNotFoundError probe-first test; GREEN tr_mrydyq1p_ef2bfe3a passed 19 focused tests; VERIFY tr_mrydz2dx_3667ce9c passed focused tests and tr_mrye1md6_37136565 passed pnpm run check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/tools/monotonic-recovery.test.ts",
+        "plugin/src/tools/monotonic-recovery.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/tools/monotonic-recovery.test.ts",
+        "plugin/src/tools/monotonic-recovery.ts"
+      ],
+      "checkpointSha": "67bf4304b7c0ef8785b5882fc7a9fafc0264aa5b",
+      "completedAt": "2026-07-24T03:36:28.801Z",
+      "completed_at": "2026-07-24T03:36:28.801Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveMissingWorkflow",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveMissingWorkflow",
+          "task_id": "tk-3d92d226da62",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3d92d226da62"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/recovery-classification.ts",
+            "plugin/src/tools/monotonic-recovery.ts",
+            "plugin/src/tools/monotonic-recovery.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mrydy942_b7729c80",
+              "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+              "exit_code": 1,
+              "summary": "RED: new typed WorkflowNotFoundError describe() test failed as expected; old probe path returned proceed_with_signal."
+            },
+            {
+              "test_run_id": "tr_mrydyq1p_ef2bfe3a",
+              "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 19 focused monotonic-recovery tests passed."
+            },
+            {
+              "test_run_id": "tr_mrydz2dx_3667ce9c",
+              "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: 19 focused monotonic-recovery tests passed."
+            },
+            {
+              "test_run_id": "tr_mrye1md6_37136565",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "VERIFY: schemas, typecheck, manifest checks, isolation, lockfile policy, lint, and formatting passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Probe-first missing-workflow recovery uses isWorkflowAbsentByExactName only.",
+              "why": "Untyped describe errors must not authorize disk recovery based on broad message text."
+            },
+            {
+              "what": "Retained isWorkflowCompletedError and recoveryReasonFromError in signal-error path.",
+              "why": "Signal-error behavior remains unchanged, including query_failed operator-required handling."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Searched recovery classification/probe references in the scoped Temporal/tools subsystem. The existing workflowPoisonedDescriptionEvidence wrapper remains required by the signal-error path and recovery-probe diagnostics; no additional probe-first callers required changes.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Checkpoint 67bf4304b7c0ef8785b5882fc7a9fafc0264aa5b adds exact-name workflow absence recovery and message-only guards. Initial check failed only for Prettier and was remediated; final check passed.",
+            "suggested_next_action": "Proceed to dependent archive-phase task; do not revisit unrelated recovery callers."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-8687db5a966c",
+      "title": "Flip archive pinned test + add AC5 incomplete-disk guard",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-24T03:28:00.696Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3d92d226da62"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-24T03:37:50.211Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveMissingWorkflow",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/fixArchiveMissingWorkflow",
+          "task_id": "tk-8687db5a966c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8687db5a966c"
+          },
+          "agent": "adv-engineer",
+          "status": "error",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "tr_mrye49cq_31ded841",
+              "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+              "exit_code": 1,
+              "summary": "Not run: worktree path unavailable; shell spawn failed with ENOENT."
+            }
+          ],
+          "decisions": [],
+          "blockers": [
+            {
+              "file": "WORKING DIRECTORY",
+              "line": 1,
+              "what": "Provided worktree path is inaccessible, preventing preflight, edits, and verification.",
+              "diagnosis": "FileSystem.access and test shell spawn both returned ENOENT for /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/fixArchiveMissingWorkflow."
+            }
+          ],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [
+            "Restore or provide the ADV worktree at the packet's WORKING DIRECTORY, then re-dispatch this task."
+          ],
+          "related_scan": "not performed: locked worktree unavailable",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "No files changed. Worktree path inaccessible before preflight; focused test evidence is recorded as spawn_error.",
+            "suggested_next_action": "Recover or recreate the worktree and rerun tk-8687db5a966c."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_packet-missing",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-8687db5a966c-attempt-1"
+            }
+          }
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveMissingWorkflow",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveMissingWorkflow",
+          "task_id": "tk-8687db5a966c",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8687db5a966c"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mryec6u4_abb117bd",
+              "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "48 Phase 9 archive tests pass, including absent-workflow disk recovery and incomplete-projection refusal."
+            },
+            {
+              "test_run_id": "tr_mryedgn9_c8d03e1e",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Schema, type, manifest, isolation, lockfile, lint, and format checks pass."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Mocked exact-name WorkflowNotFoundError from the probe describe call.",
+              "why": "The archive path's probe-first classifier authorizes disk recovery only after the exact typed absence signal."
+            },
+            {
+              "what": "Used valid pending entries for every disk gate in the AC5 fixture.",
+              "why": "Exercises the existing typed incomplete-gates proof rather than passing malformed gate data."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Reviewed adjacent poisoned-history recovery test and mirrored its complete projection/archive assertions; added paired incomplete-projection guard.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC1 now proves exact WorkflowNotFoundError probe recovery reads a complete disk projection and writes the archive bundle. AC5 proves pending disk gates refuse before bundle write.",
+            "suggested_next_action": "Review diff and checkpoint task completion from the orchestrator."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_packet-missing",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-8687db5a966c-attempt-2"
+            }
+          }
+        }
+      ],
+      "error_recovery": {
+        "last_error": "WORKING DIRECTORY :1 Provided worktree path is inaccessible, preventing preflight, edits, and verification.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "WORKING DIRECTORY :1 Provided worktree path is inaccessible, preventing preflight, edits, and verification.",
+            "diagnosis": "FileSystem.access and test shell spawn both returned ENOENT for /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/fixArchiveMissingWorkflow.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-engineer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-07-24T03:38:39.547Z"
+          }
+        ]
+      },
+      "verification": "Task 2: flipped change.archive-phase9.test.ts:1900 absent-workflow test to assert disk recovery + archiveChange bundle write; added AC5 incomplete-disk-projection guard (archive refuses, no bundle). VERIFY tr_mryec6u4 (48 archive-phase9 tests pass) + tr_mryedgn9 (pnpm run check).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "checkpointSha": "8323e8fcc22d45393aa8ba4056193963e025f6da",
+      "completedAt": "2026-07-24T03:46:20.423Z",
+      "completed_at": "2026-07-24T03:46:20.423Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveMissingWorkflow",
+      "attempt": 3,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: probe-first missing-workflow recovery",
+      "sources": [
+        {
+          "label": "Completed-workflow recognizer",
+          "locator": "plugin/src/temporal/recovery-classification.ts:65-105",
+          "summary": "Exact-name checks are followed by broad, unanchored message-substring checks; generic not-found text is excluded from isWorkflowCompletedError itself."
+        },
+        {
+          "label": "Recognition tests",
+          "locator": "plugin/src/temporal/recovery-classification.test.ts:25-69",
+          "summary": "Tests lock WorkflowNotFoundError and the generic mid-string phrase 'already completed' as recognized."
+        },
+        {
+          "label": "Recovery requirement",
+          "locator": "docs/specs/advance-workflow.md:6287-6342",
+          "summary": "Direct convergence requires unambiguous structured evidence; reachable authority disagreement must fail closed without overwriting authority."
+        },
+        {
+          "label": "Approved change constraint",
+          "locator": "ADV briefing packet contract DONT1",
+          "summary": "Only precise missing_workflow/completed describe failures authorize disk recovery; indeterminate query_failed must not auto-recover."
+        }
+      ],
+      "architecture_assessment": "Catching describe() at the probe-first boundary is structurally appropriate: successful output can still flow through poisonedDescriptionEvidence, while an exact WorkflowNotFoundError can route to missing_workflow. However, isWorkflowCompletedError also accepts broad message substrings, so using it directly as authority for a caught describe failure does not meet the spec's unambiguous-evidence requirement.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "The proposed catch path treats unanchored message substrings, including 'already completed', as sufficient authority to overwrite the disk projection even though they need not identify a completed/absent Temporal workflow.",
+            "contract_ids": [
+              "DONT1"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "For probe-first describe() catches, authorize missing_workflow recovery only from exact completed/absent Temporal error names (including WorkflowNotFoundError); route message-only matches to proceed_with_signal. Keep successful describe output routed through poisonedDescriptionEvidence.",
+            "source": {
+              "label": "Completed error classifier and approved DONT1 constraint",
+              "locator": "plugin/src/temporal/recovery-classification.ts:73-97; ADV briefing packet contract DONT1",
+              "summary": "The classifier accepts broad message patterns, while DONT1 permits recovery only for precise missing_workflow/completed describe failures."
+            }
+          }
+        ],
+        "notes": "The proposed use of isWorkflowCompletedError is safe for its exact-name branch but unsafe for its accepted generic message branch."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "Exact-name-only recovery can miss message-only SDK wrappers, but preserves fail-closed authority handling.",
+          "Broad text recognition improves recovery coverage but can misclassify an unrelated describe failure as an absent workflow."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Use isWorkflowCompletedError unchanged in the describe() catch",
+            "disposition": "rejected",
+            "rationale": "Its unanchored 'already completed' message branch is not unambiguous completed/absent-workflow authority."
+          },
+          {
+            "option": "Exact-name-only classifier at the describe() catch",
+            "disposition": "preferred",
+            "rationale": "WorkflowNotFoundError is explicitly recognized by exact membership and preserves a fail-closed path for message-only errors."
+          }
+        ],
+        "recommendation": "Narrow the catch-path condition to exact completed/absent Temporal error names before implementing; do not use message-pattern recognition as autonomous recovery authority."
+      },
+      "recommendation": "CONFLICT: revise the design to exact-name-only recovery for describe() exceptions, then preserve the proposed successful-description poisoned evidence path.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveMissingWorkflow",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveMissingWorkflow",
+      "task_id": "tk-3d92d226da62",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3d92d226da62"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/recovery-classification.ts",
+        "plugin/src/tools/monotonic-recovery.ts",
+        "plugin/src/tools/monotonic-recovery.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mrydy942_b7729c80",
+          "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+          "exit_code": 1,
+          "summary": "RED: new typed WorkflowNotFoundError describe() test failed as expected; old probe path returned proceed_with_signal."
+        },
+        {
+          "test_run_id": "tr_mrydyq1p_ef2bfe3a",
+          "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 19 focused monotonic-recovery tests passed."
+        },
+        {
+          "test_run_id": "tr_mrydz2dx_3667ce9c",
+          "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: 19 focused monotonic-recovery tests passed."
+        },
+        {
+          "test_run_id": "tr_mrye1md6_37136565",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "VERIFY: schemas, typecheck, manifest checks, isolation, lockfile policy, lint, and formatting passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Probe-first missing-workflow recovery uses isWorkflowAbsentByExactName only.",
+          "why": "Untyped describe errors must not authorize disk recovery based on broad message text."
+        },
+        {
+          "what": "Retained isWorkflowCompletedError and recoveryReasonFromError in signal-error path.",
+          "why": "Signal-error behavior remains unchanged, including query_failed operator-required handling."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Searched recovery classification/probe references in the scoped Temporal/tools subsystem. The existing workflowPoisonedDescriptionEvidence wrapper remains required by the signal-error path and recovery-probe diagnostics; no additional probe-first callers required changes.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Checkpoint 67bf4304b7c0ef8785b5882fc7a9fafc0264aa5b adds exact-name workflow absence recovery and message-only guards. Initial check failed only for Prettier and was remediated; final check passed.",
+        "suggested_next_action": "Proceed to dependent archive-phase task; do not revisit unrelated recovery callers."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveMissingWorkflow",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/fixArchiveMissingWorkflow",
+      "task_id": "tk-8687db5a966c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8687db5a966c"
+      },
+      "agent": "adv-engineer",
+      "status": "error",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "tr_mrye49cq_31ded841",
+          "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "exit_code": 1,
+          "summary": "Not run: worktree path unavailable; shell spawn failed with ENOENT."
+        }
+      ],
+      "decisions": [],
+      "blockers": [
+        {
+          "file": "WORKING DIRECTORY",
+          "line": 1,
+          "what": "Provided worktree path is inaccessible, preventing preflight, edits, and verification.",
+          "diagnosis": "FileSystem.access and test shell spawn both returned ENOENT for /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc65b085528d/change/fixArchiveMissingWorkflow."
+        }
+      ],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [
+        "Restore or provide the ADV worktree at the packet's WORKING DIRECTORY, then re-dispatch this task."
+      ],
+      "related_scan": "not performed: locked worktree unavailable",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "No files changed. Worktree path inaccessible before preflight; focused test evidence is recorded as spawn_error.",
+        "suggested_next_action": "Recover or recreate the worktree and rerun tk-8687db5a966c."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_packet-missing",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-8687db5a966c-attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveMissingWorkflow",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveMissingWorkflow",
+      "task_id": "tk-8687db5a966c",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8687db5a966c"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mryec6u4_abb117bd",
+          "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "48 Phase 9 archive tests pass, including absent-workflow disk recovery and incomplete-projection refusal."
+        },
+        {
+          "test_run_id": "tr_mryedgn9_c8d03e1e",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Schema, type, manifest, isolation, lockfile, lint, and format checks pass."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Mocked exact-name WorkflowNotFoundError from the probe describe call.",
+          "why": "The archive path's probe-first classifier authorizes disk recovery only after the exact typed absence signal."
+        },
+        {
+          "what": "Used valid pending entries for every disk gate in the AC5 fixture.",
+          "why": "Exercises the existing typed incomplete-gates proof rather than passing malformed gate data."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reviewed adjacent poisoned-history recovery test and mirrored its complete projection/archive assertions; added paired incomplete-projection guard.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC1 now proves exact WorkflowNotFoundError probe recovery reads a complete disk projection and writes the archive bundle. AC5 proves pending disk gates refuse before bundle write.",
+        "suggested_next_action": "Review diff and checkpoint task completion from the orchestrator."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_packet-missing",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-8687db5a966c-attempt-2"
+        }
+      }
+    }
+  ],
+  "test_runs": {
+    "tk-3d92d226da62": [
+      {
+        "runId": "tr_mrydy1uz_f49b14e7",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+        "durationMs": 3.717908000573516,
+        "recordedAt": "2026-07-24T03:33:26.940Z"
+      },
+      {
+        "runId": "tr_mrydy942_b7729c80",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+        "durationMs": 2612.200021000579,
+        "recordedAt": "2026-07-24T03:33:36.325Z"
+      },
+      {
+        "runId": "tr_mrydyq1p_ef2bfe3a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+        "durationMs": 1538.1860210001469,
+        "recordedAt": "2026-07-24T03:33:58.269Z"
+      },
+      {
+        "runId": "tr_mrydz2dx_3667ce9c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts",
+        "durationMs": 1545.8324269996956,
+        "recordedAt": "2026-07-24T03:34:14.280Z"
+      },
+      {
+        "runId": "tr_mrye09f4_8cb88b7f",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 51137.770592999645,
+        "recordedAt": "2026-07-24T03:35:10.055Z"
+      },
+      {
+        "runId": "tr_mrye1md6_37136565",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 53730.41371899936,
+        "recordedAt": "2026-07-24T03:36:13.505Z"
+      }
+    ],
+    "tk-8687db5a966c": [
+      {
+        "runId": "tr_mrye49cq_31ded841",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "spawn_error",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 3.6889159996062517,
+        "recordedAt": "2026-07-24T03:38:16.632Z"
+      },
+      {
+        "runId": "tr_mryec6u4_abb117bd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 6268.389223000035,
+        "recordedAt": "2026-07-24T03:44:26.620Z"
+      },
+      {
+        "runId": "tr_mryedgn9_c8d03e1e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 54133.33418199979,
+        "recordedAt": "2026-07-24T03:45:25.934Z"
+      },
+      {
+        "runId": "tr_mryef197_f3fe092f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 4992.415052999742,
+        "recordedAt": "2026-07-24T03:46:39.325Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-24T02:58:18.318Z",
+      "completed_by": "user",
+      "approval_evidence": "Proposal approved via command-as-approval: user invoked the exact /adv-discovery continuation command shown in the pending proposal checkpoint wayfinder. Defect-origin RCA persisted; root cause source-verified (monotonic-recovery.ts:155-181 swallows describe() failures; pinned test change.archive-phase9.test.ts:1900).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "d972a2bd6d700e6b70f12d20dfb999b27ac39206d3eb515b52994249df2bfdc4",
+        "non_whitespace_chars": 3171,
+        "checked_at": "2026-07-24T02:54:53.162Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-24T03:09:50.868Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "non_whitespace_chars": 4300,
+        "checked_at": "2026-07-24T02:54:53.163Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-24T03:26:35.535Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher (3 rounds). CONFLICTs resolved by progressive adoption of validator recommendations: final design auto-recovers probe-first on EXACT typed Temporal error names only (isWorkflowAbsentByExactName over COMPLETED_WORKFLOW_NAMES), not message substrings or broad not-found text. Broadening-guard tests (#3a not-found text, #3b completed message substrings) assert those do NOT authorize probe-first recovery. Spec-compliant (rq-directMonotonicRecovery01.1/.2/.3/.4). No user-value/contract-compromise tradeoff — strictness decision internal to the change; validator position adopted.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "955b6d32bfa765e6ead51a39dda8fc9c5082f22e80ec92d99176cf9431a5937f",
+        "non_whitespace_chars": 8627,
+        "checked_at": "2026-07-24T02:54:53.164Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-24T03:31:58.594Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep (Tier A \"approve\"). 2-task graph, strict wave-1→wave-2 dependency. All 5 AC covered (uncovered: none). Both tasks delegate_allowed → adv-engineer. Concurrency cap 1."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-24T03:47:00.648Z",
+      "completed_by": "agent",
+      "approval_evidence": "Both tasks done. Task 1 (tk-3d92d226da62, checkpoint 67bf4304): isWorkflowAbsentByExactName + probe-first exact-name recovery; RED tr_mrydy942 → GREEN tr_mrydyq1p → VERIFY tr_mrydz2dx + check tr_mrye1md6. Task 2 (tk-8687db5a966c, checkpoint 8323e8fc): flipped archive pinned test (disk recovery + bundle write) + AC5 incomplete-disk guard; VERIFY tr_mryec6u4 (48) + check tr_mryedgn9. Consolidated integration tr_mryef197: 67 tests pass. pnpm run check green throughout. AC1-AC5 covered."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-24T04:26:26.310Z",
+      "completed_at": "2026-07-24T04:35:05.529Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted (Tier A \"approve\"). Review APPROVED. 11-row matrix (OOS1 omitted — verificationRequired:false out-of-scope item; per validateReviewMatrixRowCoverage diagnosis, an OOS1 row is what tripped the unknown-check). Executive summary + Consequence Context persisted. Preview not_applicable. All AC1-AC5, C1-C3, DONT1-DONT2 verified; OOS1 tracked as fast-follow in agreement.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "e2516d592069459a2b61e1427147cb6af1bd11982b702d216ba6db7a564fa91e",
+        "non_whitespace_chars": 3635,
+        "checked_at": "2026-07-24T02:54:53.166Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "issue_number": 253
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+      "approvedAt": "2026-07-24T03:09:38.712Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1** A shipped, gate-done change with a genuinely-missing workflow retires through the normal archive flow (bundle written, Phase 9 starts) instead of throwing `Failed to query Workflow`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** On archive preflight, when `describe()` throws `WorkflowNotFoundError`/completed, the monotonic-recovery classifier returns `recover_via_disk` (`missing_workflow`); archive reads the durable disk projection and writes the bundle. RED: pinned test `plugin/src/tools/change.archive-phase9.test.ts:1900` currently asserts it throws → GREEN: asserts it recovers via disk + writes bundle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** A reachable-but-poisoned workflow still recovers via the existing `poisoned_history` path — no regression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** A reachable, healthy workflow still proceeds via the normal signal/store path — no false disk recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** A `query_failed` / authority-disagreement case still returns `operator_required` — no unsafe broadening to indeterminate failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** Missing workflow AND incomplete disk projection (no archive bundle / missing gates) → refuse with a typed error; no partial/best-effort archive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** Fix localized to `plugin/src/tools/monotonic-recovery.ts` probe-first path + tests; no new persistence layer, tombstone, compatibility record, or daemon (`rq-directMonotonicRecovery01.4`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** Reuse existing `isWorkflowCompletedError` / `recoveryReasonFromError` from `plugin/src/temporal/recovery-classification.ts`; invent no new classification path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** No release-gate-done fabrication; the disk projection carries the real gate state (`rq-releaseProjectionDurability01`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** Do not auto-recover on indeterminate `query_failed` describe failures — only precise `missing_workflow`/completed authorizes disk recovery.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** Do not reintroduce operator `recoveryMode`/`recoveryEvidence` ceremony — `rq-directMonotonicRecovery01` mandates internal convergence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1** `adv_archive_purge`'s separate missing-workflow read path — fast-follow (different lifecycle stage: purge, not archive).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-24T04:34:22.450Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Flipped archive test asserts missing-workflow change archives via disk projection + writes bundle (tr_mryec6u4)."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "monotonic-recovery.test.ts typed WorkflowNotFoundError -> recover_via_disk; archive-phase9 flipped test asserts loadChange + archiveChange (tr_mryef197)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Poisoned probe-first path preserved; 19+48 tests green."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "describe() healthy -> proceed_with_signal (unchanged)."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "it.each guards: not-found/NOT_FOUND and completed message-substrings -> proceed_with_signal; signal-error query_failed -> operator_required unchanged."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-phase9 test: missing workflow + incomplete disk -> 'Cannot archive: incomplete gates' + archiveChange NOT called."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff +168/-23; no new persistence/daemon."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "isWorkflowAbsentByExactName reuses existing COMPLETED_WORKFLOW_NAMES; DRY refactor. No parallel classification."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Disk branch only swaps read source; AC5 proves no fabrication."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Probe-first catch recovers ONLY on isWorkflowAbsentByExactName; guards pin this."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No recoveryMode/recoveryEvidence reintroduced."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** On archive preflight, when `describe()` throws `WorkflowNotFoundError`/completed, the monotonic-recovery classifier returns `recover_via_disk` (`missing_workflow`); archive reads the durable disk projection and writes the bundle. RED: pinned test `plugin/src/tools/change.archive-phase9.test.ts:1900` currently asserts it throws → GREEN: asserts it recovers via disk + writes bundle.",
+    "**AC2** A reachable-but-poisoned workflow still recovers via the existing `poisoned_history` path — no regression.",
+    "**AC3** A reachable, healthy workflow still proceeds via the normal signal/store path — no false disk recovery.",
+    "**AC4** A `query_failed` / authority-disagreement case still returns `operator_required` — no unsafe broadening to indeterminate failures.",
+    "**AC5** Missing workflow AND incomplete disk projection (no archive bundle / missing gates) → refuse with a typed error; no partial/best-effort archive."
+  ],
+  "documents": {
+    "proposal": "# Fix archive missing-workflow recovery\n\n## Summary\n\n`adv_change_archive` cannot recover a change whose Temporal workflow is **genuinely missing** (`WorkflowNotFoundError` / completed). The recovery-decision probe swallows the `describe()` failure as indeterminate and returns `proceed_with_signal`; archive then throws on `store.changes.get` before writing the bundle. Fix the probe to classify a precise missing/completed workflow as `recover_via_disk` / `missing_workflow`, routing archive to its existing disk branch — without forging state.\n\n## Root Cause Analysis (defect-origin, rq-defectOriginRca01)\n\n**Defect:** unintended blocking — a genuinely-missing-workflow change is unarchivable.\n\nVerified root cause in `plugin/src/tools/monotonic-recovery.ts:155-181` (probe-first path):\n- `probeDescribeEvidence(handle)` → `workflowPoisonedDescriptionEvidence(handle)` (`recovery-probe.ts:118-127`), which **swallows all `describe()` failures** and returns `null`.\n- On `WorkflowNotFoundError`, `null` → classifier returns `{ kind: \"proceed_with_signal\" }` (`:162-165`).\n- Archive proceeds normally → `store.changes.get(changeId)` (`change.ts:3154`) throws `Failed to query Workflow` before bundle creation. The existing disk branch (`change.ts:3137-3147`) is never reached.\n\nThe **signal-error path already handles this correctly** (`monotonic-recovery.ts:124-131`: `missing_workflow` → `recover_via_disk`, authority `workflow_completed`). The **probe-first path** (no signal yet) is the sole gap: it checks describe() *output* for poison markers but never classifies the describe() *error* for absence.\n\n**Pinned broken behavior:** `plugin/src/tools/change.archive-phase9.test.ts:1900-1925` asserts an absent workflow makes archive throw, never reaching `loadChange`/`archiveChange`.\n\n**Not a substitute:** `adv_archive_purge` (archived-only; also calls `store.changes.get` first) and `adv_change_workflow_terminate` (terminates workflows; writes no archive bundle).\n\n## Spec-law (decisive)\n\n`rq-directMonotonicRecovery01` ([MUST], advance-workflow v1.37) explicitly **mandates** this fix — *\"A normal operation detects **completed, missing, poisoned, or stale**... the convergence runs internally... the caller does not provide recoveryMode/recoveryEvidence/recoveryReason.\"* #253 is a direct spec violation: archive detects the missing workflow but throws instead of converging. The fix **implements an existing requirement** — no new spec-delta required. Constraints `.2` (authority conflict → operator-required), `.3` (no fabricated human approval), `.4` (no infrastructure cruft) are all satisfied by a probe-classification change.\n\n## Discovery Findings\n\n### Sole-control-surface (verified)\nThe probe-first swallow gap lives in exactly one place: `monotonic-recovery.ts:174-181` → `recovery-probe.ts:124-126`. `classifyMutationRecoveryDecision` is called from 9 mutation sites (archive `change.ts:3110`, gate completion `gate.ts:1608/1825`, task `task.ts:943/1016/1542`, contract `contract.ts:344/535`, design-concern, verification-evidence). All probe-first callers share the gap and all benefit from a single fix. The only other `workflowPoisonedDescriptionEvidence` caller is `logRecoveryProbeDiagnostics` (advisory logging, never a recovery decision).\n\n### Classification machinery already exists\n`recovery-classification.ts` provides `isWorkflowCompletedError(err)` (recognizes `workflownotfounderror` name + completed message patterns) and `recoveryReasonFromError(error)` (returns `missing_workflow`). The fix reuses these on the describe() *error* — no new classification invented.\n\n### Authority model (resolves forge-guard question)\nPer `rq-directMonotonicRecovery01.1`, machine evidence of a missing workflow authorizes internal convergence **without** operator ceremony or a new forge guard — symmetric to how poisoned_history already auto-recovers via the same disk branch. The disk projection carries the real gate state; no release-gate-done is fabricated (`rq-releaseProjectionDurability01` intact). This is a NORMAL archive (writes bundle), not a purge, so `rq-archivePurge01` is not implicated.\n\n## Proposed direction\n\n- In the probe-first path, catch the describe() **error** (not just inspect output). Run `recoveryReasonFromError`/`isWorkflowCompletedError` on it. A `missing_workflow` result → `recover_via_disk` with `reason: \"missing_workflow\"`, authority `workflow_completed`.\n- Archive's existing disk branch (`loadChange` → `archiveChange`) writes the bundle.\n- Flip the pinned test (`change.archive-phase9.test.ts:1900`) from \"throws\" to \"recovers via disk and writes the bundle.\" Add a `monotonic-recovery.test.ts` case for probe-first + describe-throws-WorkflowNotFoundError → `recover_via_disk`.\n\n## Out of scope\n\n- Live-wedged workflow recovery (#198, shipped).\n- Durable-proof cache poisoning (#305, shipped).\n- `adv_archive_purge`'s separate missing-workflow read path — secondary surface (disposition in agreement).\n\n## Live proof of fix\n\nA change whose workflow is `WorkflowNotFoundError` archives via the disk projection, writing the bundle and enabling Phase 9.",
+    "problemStatement": "## Problem\n\nA change whose Temporal workflow is **genuinely missing** (`WorkflowNotFoundError` / completed) cannot be archived. `adv_change_archive` aborts at the preflight `store.changes.get(changeId)` read with `ServiceError: Failed to query Workflow` — before any archive bundle is written, so the documented disk-projection recovery path is unreachable and Phase 9 cannot start.\n\n## Severity\n\n- **Archive-path blocker for missing-workflow changes.** Any change whose workflow was lost (poisoned-then-terminated, server data loss, completed-and-evicted) is permanently unarchivable through the normal flow.\n- **No workaround in the tool layer.** `adv_archive_purge` and `adv_change_workflow_terminate` both call `store.changes.get` first and neither writes an archive bundle — neither is a substitute.\n\n## Evidence (source-verified 2026-07-23)\n\nA test **pins the broken behavior** — `plugin/src/tools/change.archive-phase9.test.ts:1900-1925`:\n\n```js\ntest(\"absent workflow without recovery mode still throws on archive read\", async () => {\n  vi.mocked(store.changes.get).mockRejectedValue(\n    Object.assign(new Error(\"Failed to query Workflow\"), { name: \"WorkflowNotFoundError\" }),\n  );\n  await expect(adv_change_archive.execute(...)).rejects.toThrow(\"Failed to query Workflow\");\n  expect(loadChangeSpy).not.toHaveBeenCalled();      // disk projection NOT loaded\n  expect(mocks.archiveChange).not.toHaveBeenCalled(); // bundle NOT written\n});\n```\n\nOriginal incident: project `pokeedge-web`, change `addAppIcons`, `temporal workflow describe` → `WorkflowNotFoundError`; `adv_change_archive recoveryMode:\"poisoned_history\"` (then a public arg) → `ServiceError: Failed to query Workflow` regardless of evidence.\n\n## Root Cause Analysis (defect-origin, rq-defectOriginRca01)\n\n**Defect:** the recovery-decision layer fails to recognize a genuinely-missing workflow, so archive never reaches its disk branch.\n\nTrace (current source):\n1. `adv_change_archive` no longer exposes `recoveryMode` as a public arg (removed; recovery is decided internally). Preflight calls the monotonic-recovery classifier.\n2. `plugin/src/tools/monotonic-recovery.ts:155-181` — probe-first path: when no signal has been attempted, it calls `probeDescribeEvidence(handle)` → `workflowPoisonedDescriptionEvidence(handle)`, which **swallows** `describe()` failures and returns `null`.\n3. For a genuinely-missing workflow, `describe()` throws `WorkflowNotFoundError` → swallowed → `null` → classifier returns `{ kind: \"proceed_with_signal\" }` (`:162-165`) instead of `recover_via_disk`.\n4. Archive therefore takes the normal path: `store.changes.get(changeId)` (`plugin/src/tools/change.ts:3149-3156`) throws `Failed to query Workflow` before bundle creation (`:3455`). The existing disk branch (`change.ts:3137-3147`, `readFromDisk` → `loadChange`) is never reached.\n\n**Why it's a defect, not a contract gap:** the disk-projection archive recovery exists (`loadChange` → `archiveChange`) and is reachable for *poisoned*-history workflows (describe confirms poison → `recover_via_disk`). A *missing* workflow is the same class (workflow cannot answer) but is misclassified as `proceed_with_signal` because the probe cannot distinguish \"describe failed because poisoned\" from \"describe failed because absent.\" The classifier treats all `describe()` failures as \"indeterminate → proceed,\" when a precise `WorkflowNotFoundError` / completed-workflow is authoritative evidence of absence.\n\n## Scope hypotheses (to validate in discovery)\n\n- `probeDescribeEvidence` / `workflowPoisonedDescriptionEvidence` should surface a *precise* `WorkflowNotFoundError` (and `isWorkflowCompletedError`) distinctly from swallowed indeterminate failures, returning `recover_via_disk` with `reason: \"missing_workflow\"` (mirroring `recovery-classification.ts`).\n- A disk-recovered archive must not forge state — needs a provenance/audit guard symmetric to the `fixDurableProofFallback` forge guard (only a genuinely terminal/missing workflow authorizes a disk-only archive).\n- Spec impact: `rq-releaseProjectionDurability01`, `rq-archivePurge01` boundaries.\n\n## Out of scope (preliminary)\n\n- Live-but-wedged workflow recovery (#198, shipped via `adv_change_workflow_terminate` + disk-authoritative reads) — separate class.\n- The durable-proof cache-poisoning fix (#305, shipped via `fixArchiveDurableProof`) — already resolved.\n\n## Related\n\n- #305 (archived `fixArchiveDurableProof` — adjacent archive durable-proof).\n- #198 (archived — live-wedged recovery, shipped).\n- `plugin/src/tools/monotonic-recovery.ts`, `plugin/src/tools/recovery-probe.ts`, `plugin/src/tools/change.ts` (archive handler).",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Archive a change whose Temporal workflow is genuinely missing (`WorkflowNotFoundError`/completed) via the durable disk projection — writing the bundle and enabling Phase 9 — internally, with no operator recovery ceremony.\n\n## Success Criteria\n\n- **SC1** A shipped, gate-done change with a genuinely-missing workflow retires through the normal archive flow (bundle written, Phase 9 starts) instead of throwing `Failed to query Workflow`.\n\n## Acceptance Criteria\n\n- **AC1** On archive preflight, when `describe()` throws `WorkflowNotFoundError`/completed, the monotonic-recovery classifier returns `recover_via_disk` (`missing_workflow`); archive reads the durable disk projection and writes the bundle. RED: pinned test `plugin/src/tools/change.archive-phase9.test.ts:1900` currently asserts it throws → GREEN: asserts it recovers via disk + writes bundle.\n- **AC2** A reachable-but-poisoned workflow still recovers via the existing `poisoned_history` path — no regression.\n- **AC3** A reachable, healthy workflow still proceeds via the normal signal/store path — no false disk recovery.\n- **AC4** A `query_failed` / authority-disagreement case still returns `operator_required` — no unsafe broadening to indeterminate failures.\n- **AC5** Missing workflow AND incomplete disk projection (no archive bundle / missing gates) → refuse with a typed error; no partial/best-effort archive.\n\n## Constraints\n\n- **C1** Fix localized to `plugin/src/tools/monotonic-recovery.ts` probe-first path + tests; no new persistence layer, tombstone, compatibility record, or daemon (`rq-directMonotonicRecovery01.4`).\n- **C2** Reuse existing `isWorkflowCompletedError` / `recoveryReasonFromError` from `plugin/src/temporal/recovery-classification.ts`; invent no new classification path.\n- **C3** No release-gate-done fabrication; the disk projection carries the real gate state (`rq-releaseProjectionDurability01`).\n\n## Avoidances\n\n- **DONT1** Do not auto-recover on indeterminate `query_failed` describe failures — only precise `missing_workflow`/completed authorizes disk recovery.\n- **DONT2** Do not reintroduce operator `recoveryMode`/`recoveryEvidence` ceremony — `rq-directMonotonicRecovery01` mandates internal convergence.\n\n## Out of Scope\n\n- **OOS1** `adv_archive_purge`'s separate missing-workflow read path — fast-follow (different lifecycle stage: purge, not archive).\n\n## Preview Applicability\n\n- `visual_surface: false` — backend Temporal/disk recovery code; no UI, no browser-visible output.\n- `preview_expectation`:\n  - `exact_route_required`: not_applicable\n  - `data_state_expectation`: not_applicable\n  - `viewport_expectation`: not_applicable\n  - rationale: pure backend recovery path; no visual surface.\n\n## Decisions\n\n### User Decisions\n\n1. **adv_archive_purge scope** — Fast-follow. Keep this change narrowly on `adv_change_archive` (#253); track `adv_archive_purge`'s missing-workflow read path as a separate follow-up (OOS1). *Why it matters:* archive (writes bundle) and purge (already-archived cleanup) are distinct lifecycle stages; bundling risks scope creep.\n2. **Broad verification** — Archive + probe tests only. Fix the probe, flip the archive pinned test, add a `monotonic-recovery` probe test; trust the single-point fix for the gate/task/contract paths. *Why it matters:* the sole-control-surface fix propagates correctness automatically; locking every path now is disproportionate to the #253 defect.\n3. **Missing + incomplete disk** — Refuse with typed error (fail-closed), no partial archive. *Why it matters:* a missing workflow with an incomplete disk projection cannot be proven terminal; shipping an incomplete record is unsafe.\n\n### Agent Decisions (LBP)\n\n1. **Single fix point** — `monotonic-recovery.ts` probe-first path catches the describe() *error* (not just output) and classifies it via `recoveryReasonFromError`. Rationale: the swallow lives in one function (`probeDescribeEvidence` → `workflowPoisonedDescriptionEvidence`); the signal-error path already handles `missing_workflow` correctly, so the probe-first path is the sole gap. Verified sole-control-surface via caller scan (9 mutation sites all route through `classifyMutationRecoveryDecision`).\n2. **No new forge guard** — machine evidence of `WorkflowNotFoundError` is authoritative per `rq-directMonotonicRecovery01.1` (symmetric to existing poisoned_history auto-recovery); the disk projection carries real gate state, so no `release-gate-done` is fabricated.\n3. **No spec-delta** — the fix implements existing `rq-directMonotonicRecovery01.1` (\"missing\" explicitly listed); no new requirement needed.\n\n## Deferred Questions\n\nNone — all three open questions resolved by user decisions above.\n\n## Sign-Off\n\nAcceptance criteria approved (Tier A inline approval) 2026-07-24. Agreement persists objectives, SC1, AC1–AC5, C1–C3, DONT1–DONT2, OOS1, and the three user decisions for `/adv-design` and `/adv-prep`.",
+    "design": "# Design — Fix archive missing-workflow recovery\n\n## Architecture\n\nThe fix is a single change to the **probe-first path** of `classifyMutationRecoveryDecision` (`plugin/src/tools/monotonic-recovery.ts:155-171`). Today that path inspects only describe() *output* for poison markers (via `probeDescribeEvidence` → `workflowPoisonedDescriptionEvidence`, which swallows all describe() failures as `null`). It never classifies the describe() *error*, so a genuinely-missing workflow (describe throws `WorkflowNotFoundError`) is misread as \"indeterminate → proceed with signal,\" and archive then throws on `store.changes.get`.\n\nThe **signal-error path** (`:108-153`) already handles missing/completed workflows. The probe-first path is the sole gap (verified sole-control-surface: 26 production call sites route through this one function; the only other `workflowPoisonedDescriptionEvidence` caller is advisory diagnostics).\n\n## Implementation strategy\n\nRestructure the probe-first path to run describe() with **strict exact-name** error classification (revised per independent validator CONFLICT — see Validator resolution). For autonomous disk-write recovery on the probe-first path, require the strongest authority: an exact typed Temporal completed/absent error **name**, not message-substring matching.\n\n```ts\n// Probe-first path (no signal attempted yet).\nif (skipProbe || !handle || typeof handle.describe !== \"function\") {\n  return { kind: \"proceed_with_signal\" };\n}\nlet description: unknown;\ntry {\n  description = await handle.describe();\n} catch (describeError) {\n  // Auto-recover ONLY on an exact typed Temporal completed/absent error\n  // NAME (WorkflowNotFoundError / WorkflowExecutionAlreadyCompleted) via\n  // exact-name membership in COMPLETED_WORKFLOW_NAMES. Deliberately NOT the\n  // message-substring branch of isWorkflowCompletedError (already completed /\n  // workflow is not running / cannot signal a completed) — message substrings\n  // are weaker authority for autonomous recovery (rq-directMonotonicRecovery01.1/.2;\n  // validator CONFLICT attempts 2-3; DONT1). Message-only matches fall through\n  // to proceed_with_signal; the signal-error path re-classifies if it throws.\n  if (isWorkflowAbsentByExactName(describeError)) {\n    return {\n      kind: \"recover_via_disk\",\n      reason: \"missing_workflow\",\n      authority: \"workflow_completed\",\n      evidence: summarizeError(describeError),\n    };\n  }\n  return { kind: \"proceed_with_signal\" };\n}\n// describe() succeeded: inspect output for poisoned markers.\nconst poisonedEvidence = poisonedDescriptionEvidence(description);\nreturn poisonedEvidence\n  ? { kind: \"recover_via_disk\", reason: \"poisoned_history\",\n      authority: \"workflow_poisoned_describe\", evidence: poisonedEvidence }\n  : { kind: \"proceed_with_signal\" }; // reachable + healthy\n```\n\n**Supporting primitive (C2 — reuse existing taxonomy, no parallel classification):** add a thin `isWorkflowAbsentByExactName(err)` predicate in `plugin/src/temporal/recovery-classification.ts` that checks EXACT name membership against the already-curated `COMPLETED_WORKFLOW_NAMES` set (`workflownotfounderror`, `workflowexecutionalreadycompleted`). This is a precise subset of the existing taxonomy (the set already lives there), not a new classification path — it exposes the name-branch that `isWorkflowCompletedError` already uses internally. The message-substring branch of `isWorkflowCompletedError` (used by the signal-error path via `recoveryReasonFromError`) is left untouched.\n\nThis replaces `probeDescribeEvidence`/`workflowPoisonedDescriptionEvidence` use in this path with an in-line describe + error/value classification. `workflowPoisonedDescriptionEvidence` is retained for the advisory `logRecoveryProbeDiagnostics` caller.\n\n**AC5 (missing + incomplete disk):** the disk branch (`change.ts:3137-3162`) only changes the *read source* (`loadChange` instead of `store.changes.get`); the rest of the archive flow (ops-followup obligations, gate/contract proof, bundle creation) runs **unchanged**. An incomplete projection (missing gates / no bundle) therefore fails the existing archive proofs with their typed errors — no partial archive, no special-casing needed.\n\n## Test plan (TDD)\n\n1. **AC1 RED→GREEN** — flip `plugin/src/tools/change.archive-phase9.test.ts:1900` (\"absent workflow … still throws\") to assert recovery: archive reads disk projection (`loadChange` called) + writes bundle (`archiveChange` called), no throw. The mock uses `name: \"WorkflowNotFoundError\"` (exact typed name). RED on current code (throws), GREEN after fix.\n2. **AC1 unit** — `plugin/src/tools/monotonic-recovery.test.ts`: probe-first (`{ handle }`, no `signalError`) where `handle.describe()` rejects with a typed `WorkflowNotFoundError` (exact name) → `recover_via_disk` / `missing_workflow` / `workflow_completed`.\n3. **AC4 broadening guard (validator blocker, two sub-cases):**\n   - (a) describe() rejects with a generic error whose **message** contains `not found`/`NOT_FOUND` but whose name is NOT typed → `proceed_with_signal` (NOT auto-recover).\n   - (b) describe() rejects with an error whose message matches `already completed`/`workflow is not running`/`cannot signal a completed` but whose name is NOT typed → `proceed_with_signal` (exact-name-only; message substrings do not authorize probe-first recovery).\n4. **AC2 regression** — `monotonic-recovery.test.ts`: probe-first where describe() returns poisoned markers → `recover_via_disk` / `poisoned_history` (unchanged).\n5. **AC3 regression** — `monotonic-recovery.test.ts`: probe-first where describe() returns healthy (no markers) → `proceed_with_signal`.\n6. **AC4 signal-error guard** — `monotonic-recovery.test.ts`: signal-error path `query_failed` → `operator_required` (unchanged).\n7. **AC5** — `change.archive-phase9.test.ts`: missing workflow + disk projection missing gates → archive refuses with the existing typed proof error (no bundle written).\n\nRun via `bin/oc-test targeted -- src/tools/monotonic-recovery.test.ts src/tools/change.archive-phase9.test.ts`; `pnpm run check` for typecheck/lint/format/schemas.\n\n## LBP decisions\n\n1. **Classify the describe() error, not just output** — the signal-error path proves this is the right model; the probe-first path was simply incomplete.\n2. **EXACT-NAME-ONLY authority for probe-first auto-recovery (validator-driven)** — recover on exact typed Temporal completed/absent error names only (`COMPLETED_WORKFLOW_NAMES`), not message substrings. The signal-error path already authorizes recovery on the broader message patterns via `recoveryReasonFromError`; the probe-first path (new autonomous recovery) is held to the strictest, unambiguous authority (`rq-directMonotonicRecovery01.1`). Zero capability loss: message-pattern cases proceed_with_signal and the signal-error path catches them.\n3. **Thin exact-name predicate, not a new classification path (C2)** — `isWorkflowAbsentByExactName` exposes the name-branch of the existing `COMPLETED_WORKFLOW_NAMES` taxonomy; the set is not duplicated or re-curated.\n4. **Indeterminate describe errors → proceed_with_signal (not operator_required)** — the signal hasn't been attempted; letting it run surfaces a real error the signal-error path then classifies. Avoids a spurious operator-required for transient describe hiccups while never auto-recovering (DONT1).\n5. **No forge guard / no operator ceremony** — machine typed `WorkflowNotFoundError` is authoritative per `rq-directMonotonicRecovery01.1`, symmetric to existing poisoned_history auto-recovery (C3, DONT2).\n\n## Spec-law compliance\n\n- `rq-directMonotonicRecovery01` [MUST] — **implements** `.1` (missing → internal convergence, no caller ceremony); exact-name gate honors \"unambiguous monotonic convergence.\" `.2` honored (no authority overwritten; indeterminate proceeds). `.3` honored (no fabricated approval). `.4` honored (no new persistence/daemon — C1).\n- `rq-releaseProjectionDurability01` — disk projection carries real gate state; no fabrication (C3).\n- `rq-archivePurge01` — not implicated; this is a normal archive (bundle write), not a purge (OOS1).\n\n## Validator resolution\n\n- **Attempt 1 — CONFLICT:** originally-proposed `recoveryReasonFromError(...) === \"missing_workflow\"` admitted the broad `/not[_ ]found|NOT_FOUND/` text fallback — not authoritative, could mask a live workflow.\n- **Attempt 2 — CONFLICT (category error):** validator inspected code for the not-yet-implemented fix; substantive answer confirmed `isWorkflowCompletedError` excludes generic not-found text via exact-name branch.\n- **Attempt 3 — CONFLICT (valid refinement):** `isWorkflowCompletedError`'s message-substring branch (`already completed`/`workflow is not running`/`cannot signal a completed`) is weaker authority for autonomous recovery. Minimal clearing change: recover on exact typed error names only.\n- **Resolution:** design now recovers on exact-name only (`isWorkflowAbsentByExactName`) per the attempt-3 minimal-clearing recommendation, with explicit broadening-guard tests (#3a not-found text, #3b completed message substrings) asserting those do NOT authorize probe-first recovery. This is the validator's literal clearing change; no further narrowing is warranted.\n\n## Risks / follow-ups\n\n- **Broad benefit is unverified in-scope** (user decision): the single-point fix also fixes gate/task/contract missing-workflow recovery, but per agreement only archive + probe tests are added.\n- **`adv_archive_purge`** separate read path remains (OOS1, fast-follow).\n- **Successor-race** is NOT a concern here: a genuinely-missing workflow (completed/evicted) has no competing run; the shipped_terminal race case is owned by `adv_change_workflow_terminate` (#198, shipped).\n- **Pre-existing message-pattern authority in the signal-error path** is out of scope; this change is stricter (exact-name) and does not widen it.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nFixes an archive blocker: an ADV change whose Temporal workflow was genuinely missing (completed/evicted) could not be archived — the tool threw instead of retiring it. After this change, such changes archive cleanly from the durable disk projection. The approver is deciding whether to accept this fix and proceed to release hardening.\n\n## Why It Matters\nThe missing-workflow state occurs whenever a workflow is lost to poison-termination, server data loss, or completion-and-eviction. Without this fix, those changes are permanently unarchivable through the normal flow — the end of the ADV 7-gate lifecycle is blocked. This restores it. The fix also auto-applies to the 26 mutation sites that route through the same classifier (gate completion, task updates, contract proof), though only the archive path is verified here per scope.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. Added `isWorkflowAbsentByExactName` — a strict recognizer of a genuinely-absent Temporal workflow by exact typed error name only (not message text), so autonomous disk recovery is authorized only on unambiguous evidence.\n2. Reworked the recovery classifier's \"probe-first\" path (used before any signal is attempted) to catch a `describe()` failure and route a missing-workflow change to the existing disk-projection archive branch — instead of throwing \"Failed to query Workflow.\"\n3. Flipped the test that previously pinned the broken behavior (asserted archive throws) to assert archive now recovers via disk and writes the bundle; added a guard that an incomplete disk projection is still refused.\n4. Added parameterized guard tests proving generic \"not found\" text and completed-workflow message phrases do NOT authorize recovery — only the exact typed error name does.\n\n## What Was Verified\n- Verdict: APPROVED with 0 blockers, 0 issues (1 praise).\n- Tests: 67 combined (monotonic-recovery + archive-phase9) green; `pnpm run check` green (typecheck/lint/format/schemas). TDD RED→GREEN→VERIFY recorded.\n- Preview URL: not_applicable — backend Temporal/disk recovery code; no visual surface (visual_surface: false).\n- Contract matrix: 12/12 required rows pass/respected/not_applicable; 0 fail/violated/unknown.\n\n## Remaining Concerns\n- Non-blocking fast-follow: `adv_archive_purge`'s separate missing-workflow read path (OOS1) — different lifecycle stage, tracked separately.\n- Pre-existing broader message-text authority in the signal-error path is unchanged and out of scope; this change is strictly narrower (exact-name).\n- Broad benefit to the other 25 mutation callers is unverified in-scope by agreement (single-point fix propagates correctness automatically).\n\n## Supporting Evidence\n- Tasks: tk-3d92d226da62 (checkpoint 67bf4304), tk-8687db5a966c (checkpoint 8323e8fc).\n- Test runs: RED tr_mrydy942 → GREEN tr_mrydyq1p → VERIFY tr_mrydz2dx + check tr_mrye1md6 (task 1); VERIFY tr_mryec6u4 + check tr_mryedgn9 (task 2); integration tr_mryef197 (67 pass).\n- Independent design validation: 3 adv-researcher rounds, CONFLICTs resolved via exact-name narrowing.\n- Spec-law: implements rq-directMonotonicRecovery01.1 (missing explicitly listed).\n\n## Consequence Context\n1. Delivered value: archive succeeds for missing-workflow changes (#253 closed); restores end-of-lifecycle for workflows lost to poison-termination/eviction. Evidence: AC1 + flipped archive test.\n2. Enabling-only/follow-up dependency: adv_archive_purge missing-workflow path remains (OOS1 fast-follow); non-blocking.\n3. Ops readiness: pending — harden owns release/deploy/production/docs/cleanup readiness.\n4. Migration/data impact: n/a — disk-read/cache-drop only; no schema/data/config migration. Evidence: C3 + AC5 test (no fabrication).\n5. Frontend/preview impact: not_applicable — backend recovery code (visual_surface:false).\n6. Collision/release risk: low — focused, additive (one new predicate + probe-first branch swap); single-surface, 26 callers benefit, none conflict.\n7. Open follow-ups: OOS1 (adv_archive_purge fast-follow); pre-existing signal-error message-text authority unchanged (out of scope).\n8. Next action: acceptance approval proceeds inline to `/adv-harden fixArchiveMissingWorkflow`.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-24T04:34:22.450Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1** A shipped, gate-done change with a genuinely-missing workflow retires through the normal archive flow (bundle written, Phase 9 starts) instead of throwing `Failed to query Workflow`. | pass | Flipped archive test asserts missing-workflow change archives via disk projection + writes bundle (tr_mryec6u4). |\n| AC1 | acceptance_criterion | **AC1** On archive preflight, when `describe()` throws `WorkflowNotFoundError`/completed, the monotonic-recovery classifier returns `recover_via_disk` (`missing_workflow`); archive reads the durable disk projection and writes the bundle. RED: pinned test `plugin/src/tools/change.archive-phase9.test.ts:1900` currently asserts it throws → GREEN: asserts it recovers via disk + writes bundle. | pass | monotonic-recovery.test.ts typed WorkflowNotFoundError -> recover_via_disk; archive-phase9 flipped test asserts loadChange + archiveChange (tr_mryef197). |\n| AC2 | acceptance_criterion | **AC2** A reachable-but-poisoned workflow still recovers via the existing `poisoned_history` path — no regression. | pass | Poisoned probe-first path preserved; 19+48 tests green. |\n| AC3 | acceptance_criterion | **AC3** A reachable, healthy workflow still proceeds via the normal signal/store path — no false disk recovery. | pass | describe() healthy -> proceed_with_signal (unchanged). |\n| AC4 | acceptance_criterion | **AC4** A `query_failed` / authority-disagreement case still returns `operator_required` — no unsafe broadening to indeterminate failures. | pass | it.each guards: not-found/NOT_FOUND and completed message-substrings -> proceed_with_signal; signal-error query_failed -> operator_required unchanged. |\n| AC5 | acceptance_criterion | **AC5** Missing workflow AND incomplete disk projection (no archive bundle / missing gates) → refuse with a typed error; no partial/best-effort archive. | pass | archive-phase9 test: missing workflow + incomplete disk -> 'Cannot archive: incomplete gates' + archiveChange NOT called. |\n| C1 | constraint | **C1** Fix localized to `plugin/src/tools/monotonic-recovery.ts` probe-first path + tests; no new persistence layer, tombstone, compatibility record, or daemon (`rq-directMonotonicRecovery01.4`). | respected | Diff +168/-23; no new persistence/daemon. |\n| C2 | constraint | **C2** Reuse existing `isWorkflowCompletedError` / `recoveryReasonFromError` from `plugin/src/temporal/recovery-classification.ts`; invent no new classification path. | respected | isWorkflowAbsentByExactName reuses existing COMPLETED_WORKFLOW_NAMES; DRY refactor. No parallel classification. |\n| C3 | constraint | **C3** No release-gate-done fabrication; the disk projection carries the real gate state (`rq-releaseProjectionDurability01`). | respected | Disk branch only swaps read source; AC5 proves no fabrication. |\n| DONT1 | avoidance | **DONT1** Do not auto-recover on indeterminate `query_failed` describe failures — only precise `missing_workflow`/completed authorizes disk recovery. | respected | Probe-first catch recovers ONLY on isWorkflowAbsentByExactName; guards pin this. |\n| DONT2 | avoidance | **DONT2** Do not reintroduce operator `recoveryMode`/`recoveryEvidence` ceremony — `rq-directMonotonicRecovery01` mandates internal convergence. | respected | No recoveryMode/recoveryEvidence reintroduced. |\n| OOS1 | out_of_scope | **OOS1** `adv_archive_purge`'s separate missing-workflow read path — fast-follow (different lifecycle stage: purge, not archive). | missing |  |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-24T03:03:33.561Z",
+      "contentHash": "107049e7de67d004ca8ebefc19f134b4d3466093026335ae9999c22d90db8b9f",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-24T02:54:53.248Z",
+      "contentHash": "b40216897544f1f5d825f21ea6a22c9d569256ccfb6fa732da71212a791c19df",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-24T03:09:26.106Z",
+      "contentHash": "0452cd9bb1eadadcb8c6289c6d396b65a695cf9f2af9c058ed95246e62bbef73",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-24T03:25:48.547Z",
+      "contentHash": "955b6d32bfa765e6ead51a39dda8fc9c5082f22e80ec92d99176cf9431a5937f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-24T04:01:54.530Z",
+      "contentHash": "e2516d592069459a2b61e1427147cb6af1bd11982b702d216ba6db7a564fa91e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-24T04:35:05.529Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-24T02:57:33.913Z"
+    }
+  ]
+}
