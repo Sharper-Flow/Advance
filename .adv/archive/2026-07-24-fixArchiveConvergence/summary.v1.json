@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-24T22:48:19.180Z",
+  "capabilities": [],
+  "change_hash": "05ff8ac62540584a1888553fab0d44d3e4dbc027d458e9701b48fa96f14c62ad",
+  "change_id": "fixArchiveConvergence",
+  "completed_tasks": 3,
+  "created_at": "2026-07-24T05:02:39.890Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-24T22:47:14.107Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "e422ec68212431eb15394440de0d48f39f6eaa0f16e57c6a5a37697755f82f4e",
+  "task_count": 3,
+  "title": "Fix archive convergence durability gap",
+  "version": "1"
+}
