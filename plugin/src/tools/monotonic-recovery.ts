@@ -27,11 +27,13 @@
  * monotonicity check; this only decides which path they should take.
  */
 import {
+  isWorkflowAbsentByExactName,
   isWorkflowCompletedError,
   recoveryReasonFromError,
   type ProjectionRecoveryReason,
 } from "../temporal/recovery-classification";
 import {
+  poisonedDescriptionEvidence,
   workflowPoisonedDescriptionEvidence,
   type PoisonedDescribeProbeTarget,
 } from "./recovery-probe";
@@ -159,16 +161,29 @@ export async function classifyMutationRecoveryDecision(
     return { kind: "proceed_with_signal" };
   }
 
-  const describeEvidence = await probeDescribeEvidence(handle);
-  if (describeEvidence === null) {
+  try {
+    const description = await handle.describe();
+    const evidence = poisonedDescriptionEvidence(description);
+    if (evidence === null) {
+      return { kind: "proceed_with_signal" };
+    }
+    return {
+      kind: "recover_via_disk",
+      reason: "poisoned_history",
+      authority: "workflow_poisoned_describe",
+      evidence,
+    };
+  } catch (describeError) {
+    if (isWorkflowAbsentByExactName(describeError)) {
+      return {
+        kind: "recover_via_disk",
+        reason: "missing_workflow",
+        authority: "workflow_completed",
+        evidence: summarizeError(describeError),
+      };
+    }
     return { kind: "proceed_with_signal" };
   }
-  return {
-    kind: "recover_via_disk",
-    reason: "poisoned_history",
-    authority: "workflow_poisoned_describe",
-    evidence: describeEvidence,
-  };
 }
 
 async function probeDescribeEvidence(

@@ -1897,31 +1897,111 @@ describe("adv_change_archive Phase 9 behavior", () => {
     delete (mocks.workflow.handle as { describe?: unknown }).describe;
   });
 
-  test("absent workflow without recovery mode still throws on archive read", async () => {
+  test("absent workflow recovers from a complete disk projection and archives", async () => {
     const store = createMockStore();
     mocks.findArchiveBundle.mockResolvedValue(null);
-    const loadChangeSpy = vi.spyOn(storageJson, "loadChange");
+    const change = (await store.changes.get("example")).data as Change;
+    const loadChangeSpy = vi
+      .spyOn(storageJson, "loadChange")
+      .mockResolvedValue({ success: true, data: change });
     vi.mocked(store.changes.get).mockRejectedValue(
       Object.assign(new Error("Failed to query Workflow"), {
         name: "WorkflowNotFoundError",
       }),
     );
+    (
+      mocks.workflow.handle as typeof mocks.workflow.handle & {
+        describe: ReturnType<typeof vi.fn>;
+      }
+    ).describe = vi.fn(async () => {
+      throw Object.assign(new Error("Workflow not found"), {
+        name: "WorkflowNotFoundError",
+      });
+    });
 
-    await expect(
-      changeTools.adv_change_archive.execute(
-        {
-          changeId: "example",
-          worktreePath: "/tmp/worktree",
-          phase9: "run",
-        },
-        store,
-      ),
-    ).rejects.toThrow("Failed to query Workflow");
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        phase9: "run",
+      },
+      store,
+    );
 
-    expect(loadChangeSpy).not.toHaveBeenCalled();
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(loadChangeSpy).toHaveBeenCalledWith(store.paths.changes, "example");
+    expect(mocks.archiveChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        change: expect.objectContaining({ id: "example" }),
+      }),
+    );
+
+    loadChangeSpy.mockRestore();
+    delete (mocks.workflow.handle as { describe?: unknown }).describe;
+  });
+
+  test("absent workflow refuses an incomplete disk projection without writing a bundle", async () => {
+    const store = createMockStore();
+    mocks.findArchiveBundle.mockResolvedValue(null);
+    const completeChange = (await store.changes.get("example")).data as Change;
+    const incompleteChange = {
+      ...completeChange,
+      gates: {
+        proposal: { status: "pending" },
+        discovery: { status: "pending" },
+        design: { status: "pending" },
+        planning: { status: "pending" },
+        execution: { status: "pending" },
+        acceptance: { status: "pending" },
+        release: { status: "pending" },
+      } as Gates,
+    };
+    mocks.workflow.gates = incompleteChange.gates;
+    const loadChangeSpy = vi
+      .spyOn(storageJson, "loadChange")
+      .mockResolvedValue({ success: true, data: incompleteChange });
+    vi.mocked(store.changes.get).mockRejectedValue(
+      Object.assign(new Error("Failed to query Workflow"), {
+        name: "WorkflowNotFoundError",
+      }),
+    );
+    (
+      mocks.workflow.handle as typeof mocks.workflow.handle & {
+        describe: ReturnType<typeof vi.fn>;
+      }
+    ).describe = vi.fn(async () => {
+      throw Object.assign(new Error("Workflow not found"), {
+        name: "WorkflowNotFoundError",
+      });
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        phase9: "run",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toBe(
+      "Cannot archive: incomplete gates. Complete all quality gates before archiving.",
+    );
+    expect(parsed.incompleteGates).toEqual([
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+      "acceptance",
+    ]);
+    expect(loadChangeSpy).toHaveBeenCalledWith(store.paths.changes, "example");
     expect(mocks.archiveChange).not.toHaveBeenCalled();
 
     loadChangeSpy.mockRestore();
+    delete (mocks.workflow.handle as { describe?: unknown }).describe;
   });
 
   // AC4: phase9_status visible in adv_change_show
