@@ -877,30 +877,6 @@ export function releaseGateEvidenceMatches(
   );
 }
 
-/**
- * Bounded allowlist of the recovery-audit reasons ADV's own release-gate
- * recovery paths stamp on a disk release gate. The shipped disk reconciliation
- * below accepts ONLY these provenances so a forged/unrecognized recovery audit
- * cannot bypass the evidence-match guard on the strength of `finalizationStatus`
- * alone (fixDurableProofFallback, design-validation hardening + live-repro fix).
- *
- * - `completed_workflow_release_gate_recovery`: archive's own release-gate
- *   recovery (recoverReleaseGateViaDiskProjection).
- * - `missing_workflow`: generic gate recovery when the change workflow has
- *   terminated (adv_gate_complete release recovery; recovery-classification).
- * - `poisoned_history`: poisoned-history disk recovery (adv_gate_complete /
- *   verification-evidence disposition).
- *
- * A single-reason binding was insufficient: a terminated-workflow change whose
- * release gate was recovered via generic gate recovery carries `missing_workflow`
- * (or `poisoned_history`), not the archive reason, and was wrongly rejected.
- */
-const RELEASE_GATE_RECOVERY_REASONS = new Set<string>([
-  "completed_workflow_release_gate_recovery",
-  "missing_workflow",
-  "poisoned_history",
-]);
-
 async function loadAuditedDiskReleaseGate(input: {
   store: Store;
   changeId: string;
@@ -916,28 +892,28 @@ async function loadAuditedDiskReleaseGate(input: {
   const disk = await loadChange(input.store.paths.changes, input.changeId);
   if (!disk.success || !disk.data?.gates) return null;
   const gate = disk.data.gates.release;
-  // Resilience (rq-releaseProjectionDurability01): when the store-backed gate
-  // read is stale — a poisoned/missing workflow returns a pre-completion
-  // projection — a disk release gate that ADV genuinely completed is still
-  // authoritative. Require `done`; accept without a recovery audit only when
-  // the archive's fresh finalization is git-verified `shipped` (finalization
-  // sets `shipped` exclusively on confirmed default-branch reachability/merge,
-  // which cannot be forged without a real merge). Recovery-audit remains
-  // required for non-shipped disk fallbacks, preserving the strict guard.
+  // rq-releaseProjectionDurability01 resilience: when the store-backed gate
+  // read is stale — a poisoned/missing workflow or a stale changeCache entry
+  // (getTemporalChange reads changeCache first) returns a pre-completion
+  // pending projection — a disk release gate that ADV genuinely completed
+  // (status done) is still authoritative. Require `done`; accept without a
+  // recovery audit only when the archive's fresh finalization is git-verified
+  // `shipped` (finalization sets `shipped` exclusively on confirmed
+  // default-branch reachability/merge, which cannot be forged without a real
+  // merge). Recovery-audit remains required for non-shipped disk fallbacks,
+  // preserving the strict guard.
   if (gate?.status !== "done") return null;
   if (!hasGateRecoveryAudit(gate) && !input.shipped) return null;
-  // Shipped reconciliation: a change whose git work reached the default branch
-  // (finalization shipped — git-verified reachability that cannot be forged
-  // without a real merge) but whose workflow terminated is recovered on disk
-  // with a release-gate recovery provenance. Its recovery-audit evidence text
-  // need not substring-match the freshly computed finalization evidence — this
-  // mirrors the store-backed `shipped` bypass so a terminated-workflow shipped
-  // change is not permanently unarchivable. Guarded by the bounded release-gate
-  // recovery allowlist so a forged/unrecognized recovery audit cannot bypass.
-  const shippedReconcile =
-    input.shipped === true &&
-    RELEASE_GATE_RECOVERY_REASONS.has(gate.recovery_audit?.reason ?? "");
-  if (shippedReconcile || releaseGateEvidenceMatches(gate, input.evidence)) {
+  // Shipped reconciliation: `shipped` is derived INSIDE the verifier from
+  // finalization.status === "shipped" (confirmed default-branch reachability —
+  // cannot be forged without a real merge). A done disk gate + git-verified
+  // shipped is authoritative proof the change is released, covering both a
+  // healthy manual completion (free-text notes, no recovery audit) whose store
+  // projection lags behind a done disk gate, and a terminated-workflow disk
+  // recovery. This does NOT weaken the un-shipped guard: unshipped changes have
+  // input.shipped === false and fall through to the strict evidence-match
+  // requirement below.
+  if (input.shipped || releaseGateEvidenceMatches(gate, input.evidence)) {
     return gate;
   }
   return null;

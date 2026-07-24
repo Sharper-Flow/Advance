@@ -46,6 +46,18 @@ vi.mock("../_recovery-writers", () => ({
   saveRecoveredGateCompletion: recoveryWriterMocks.saveRecoveredGateCompletion,
 }));
 
+const diskLoadMocks = vi.hoisted(() => ({
+  loadChange: vi.fn(),
+}));
+
+vi.mock("../../storage/json", async () => {
+  const actual =
+    await vi.importActual<typeof import("../../storage/json")>(
+      "../../storage/json",
+    );
+  return { ...actual, loadChange: diskLoadMocks.loadChange };
+});
+
 function createStore(mainCheckout: string): Store {
   return {
     paths: {
@@ -844,12 +856,10 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
   });
 
   it("accepts a shipped change whose release gate is done via shipped bypass (store path, no audit required)", async () => {
-    // Two-path forge guard (validator-confirmed): the LIVE STORE path accepts a
-    // done release gate when finalization is shipped (git-confirmed
-    // reachability is authoritative) WITHOUT requiring a recovery audit or
-    // allowlisted reason — even when the approval evidence does NOT substring-
-    // match the structured completion evidence. Only the disk fallback
-    // (loadAuditedDiskReleaseGate) requires audited + allowlisted reason.
+    // Forge guard: the LIVE STORE path accepts a done release gate when
+    // finalization is shipped (git-confirmed reachability is authoritative)
+    // WITHOUT requiring a recovery audit — even when the approval evidence does
+    // NOT substring-match the structured completion evidence.
     const doneNoAudit = {
       status: "done",
       completed_at: "2026-01-01T00:00:00Z",
@@ -871,5 +881,46 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
     });
 
     expect(durableProof).toMatchObject({ ok: true, source: "store" });
+  });
+
+  it("accepts a shipped change whose store gate lags pending but disk gate is done (rq-releaseProjectionDurability01)", async () => {
+    // Repro (fixArchiveMissingWorkflow): a healthy manual
+    // adv_gate_complete(release) persisted release=done to disk, but the
+    // store-backed projection (store.gates.get) returns a stale pre-completion
+    // pending snapshot — changeCache was poisoned by the old
+    // fireSignalAndRefresh re-readback (getTemporalChange reads changeCache
+    // first). finalization is git-verified shipped (merge commit already on the
+    // default branch). The disk fallback must reconcile: shipped + done disk
+    // gate = released. The free-text approval_evidence does NOT substring-match
+    // the structured Phase 9 evidence, and there is no recovery_audit — so the
+    // pre-fix code rejected this at loadAuditedDiskReleaseGate
+    // (shippedReconcile false, evidence false → returns null).
+    const stalePendingStoreGate = { status: "pending" };
+    const doneDiskGate = {
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+      approval_evidence: "free-text-manual-approval-notes",
+    };
+    const store = {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({ release: stalePendingStoreGate })),
+      },
+    } as unknown as Store;
+
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: doneDiskGate } },
+    });
+
+    const durableProof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "staleStoreShippedDiskDone",
+      evidence: "structured-phase9-evidence",
+      finalizationStatus: "shipped",
+    });
+
+    expect(durableProof).toMatchObject({ ok: true, source: "disk" });
   });
 });

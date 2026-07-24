@@ -732,7 +732,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
       }
     });
 
-    test("AC2b (forge guard): shipped + unknown (non-allowlisted) recovery reason + non-matching evidence → blocked", async () => {
+    test("AC2b: shipped + unknown recovery reason + non-matching evidence → accepted (shipped is authoritative; forge-guard preserved for unshipped via AC2a)", async () => {
       const { store, cleanup } = await makeDiskFallbackStore({
         releaseGate: {
           status: "done",
@@ -752,7 +752,13 @@ describe("adv_change_archive Phase 9 behavior", () => {
           evidence: structuredEvidence,
           finalizationStatus: "shipped",
         });
-        expect(proof.ok).toBe(false);
+        // rq-releaseProjectionDurability01: `shipped` is git-verified proof
+        // (finalization.status === "shipped" = confirmed default-branch
+        // reachability — unforgeable without a real merge). A done disk gate +
+        // shipped is accepted regardless of recovery_audit reason. The
+        // forge-guard for UN-shipped changes is preserved by the evidence-match
+        // requirement (AC2a).
+        expect(proof.ok).toBe(true);
       } finally {
         await cleanup();
       }
