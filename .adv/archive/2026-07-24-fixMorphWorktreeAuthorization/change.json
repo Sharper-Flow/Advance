@@ -1,0 +1,635 @@
+{
+  "id": "fixMorphWorktreeAuthorization",
+  "title": "Fix morph worktree authorization",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-24T20:43:04.793Z",
+  "tasks": [
+    {
+      "id": "tk-36a647aacef0",
+      "title": "Rewrite the morph_edit directive in all three sub-agent files to honest, forward-compatible wording.",
+      "type": "docs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-24T21:00:41.443Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Directive rewrite in adv-engineer.md:108, adv-designer.md:122, adv-reviewer.md:116 (identical sentence swap) captured in commit 561d981c. Worktree files verified to contain new honest wording; main checkout correctly unchanged (trunk).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "561d981c239fe4d1b0562ecf7e3c5760cdaf61a8",
+      "completedAt": "2026-07-24T21:09:38.365Z",
+      "completed_at": "2026-07-24T21:09:38.365Z"
+    },
+    {
+      "id": "tk-fb3eb92f5db2",
+      "title": "Rewrite the regression-guard test to a truth guard (RED-first).",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-24T21:00:41.475Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-24T21:03:46.908Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-24T21:07:29.838Z",
+      "verification": "Commit 561d981c captured the test rewrite. RED tr_mrzfi5x2 (fail) → GREEN tr_mrzfizit (pass); full suite 26/26 tr_mrzfju64.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "561d981c239fe4d1b0562ecf7e3c5760cdaf61a8",
+      "completedAt": "2026-07-24T21:09:06.074Z",
+      "completed_at": "2026-07-24T21:09:06.074Z"
+    },
+    {
+      "id": "tk-d13bd556ca31",
+      "title": "Verify Part A: grep clean, validator unchanged, tests green.",
+      "type": "verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-24T21:01:17.024Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-fb3eb92f5db2"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-36a647aacef0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Verification task, not logic-bearing implementation. AC3 and AC4 are inherently static proofs: AC3 is an absence-of-string grep (the false sentence must not appear outside archived changes); AC4 is a git-diff confirming a specific file/line range is unchanged. AC2's runtime proof is produced by the test run recorded via adv_run_test on the rewritten assets test (tk-fb3eb92f5db2). The static route is correct because the acceptance is about textual absence and code-unchanged, not new runtime behavior.",
+        "review_evidence_ref": {
+          "report_key": "fixMorphWorktreeAuthorization|tk-d13bd556ca31|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixMorphWorktreeAuthorization",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixMorphWorktreeAuthorization",
+          "task_id": "tk-d13bd556ca31",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d13bd556ca31"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "npx vitest run src/adv-engineer-assets.test.ts (26/26 pass)",
+              "rg 'ADV authorizes this pair' excluding archive/node_modules (only test:204 assertion string)",
+              "git diff 561d981c~1 561d981c -- morph-worktree-authorization.ts index.ts (empty)"
+            ],
+            "results": "pass",
+            "evidence": "AC1-AC4 pass. Vitest 26/26 green (run tr_mrzfju64 on tk-fb3eb92f5db2). rg found only the test's own not.toContain assertion string (test:204). Validator + index.ts diff empty. Constraints C1-C5 and avoidances DONT1-DONT4 respected. Part B out of scope."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [
+            "Record as approved/READY evidence for tk-d13bd556ca31 and acceptance.",
+            "Keep Part B (morph-side capability read) as a separate cross-project change."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx vitest run src/adv-engineer-assets.test.ts (26/26 pass)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: rg 'ADV authorizes this pair' excluding archive/node_modules (only test:204 assertion string)"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff 561d981c~1 561d981c -- morph-worktree-authorization.ts index.ts (empty)"
+            }
+          ]
+        }
+      ],
+      "verification": "AC3/AC4 verified by reviewer report (verdict READY): grep clean (only test:204 assertion string), validator diff empty. Full suite 26/26 (tr_mrzfju64). All work at 561d981c.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "561d981c239fe4d1b0562ecf7e3c5760cdaf61a8",
+      "completedAt": "2026-07-24T21:16:25.930Z",
+      "completed_at": "2026-07-24T21:16:25.930Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixMorphWorktreeAuthorization",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixMorphWorktreeAuthorization",
+      "task_id": "tk-d13bd556ca31",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d13bd556ca31"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "npx vitest run src/adv-engineer-assets.test.ts (26/26 pass)",
+          "rg 'ADV authorizes this pair' excluding archive/node_modules (only test:204 assertion string)",
+          "git diff 561d981c~1 561d981c -- morph-worktree-authorization.ts index.ts (empty)"
+        ],
+        "results": "pass",
+        "evidence": "AC1-AC4 pass. Vitest 26/26 green (run tr_mrzfju64 on tk-fb3eb92f5db2). rg found only the test's own not.toContain assertion string (test:204). Validator + index.ts diff empty. Constraints C1-C5 and avoidances DONT1-DONT4 respected. Part B out of scope."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Record as approved/READY evidence for tk-d13bd556ca31 and acceptance.",
+        "Keep Part B (morph-side capability read) as a separate cross-project change."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx vitest run src/adv-engineer-assets.test.ts (26/26 pass)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: rg 'ADV authorizes this pair' excluding archive/node_modules (only test:204 assertion string)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff 561d981c~1 561d981c -- morph-worktree-authorization.ts index.ts (empty)"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-fb3eb92f5db2": [
+      {
+        "runId": "tr_mrzfi5x2_77cf1a82",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run src/adv-engineer-assets.test.ts -t \"honestly describes morph_edit confinement\" 2>&1 | tail -40",
+        "durationMs": 1921.6225080001168,
+        "recordedAt": "2026-07-24T21:04:51.101Z"
+      },
+      {
+        "runId": "tr_mrzfizit_09095d45",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/adv-engineer-assets.test.ts -t \"honestly describes morph_edit confinement\" 2>&1 | tail -20",
+        "durationMs": 1580.569034999935,
+        "recordedAt": "2026-07-24T21:05:29.487Z"
+      },
+      {
+        "runId": "tr_mrzfju64_2cd0cadd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/adv-engineer-assets.test.ts 2>&1 | tail -12",
+        "durationMs": 2324.227794999955,
+        "recordedAt": "2026-07-24T21:06:09.241Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-24T20:44:34.694Z",
+      "completed_by": "agent",
+      "approval_evidence": "Proposal confirmed. RCA: dead-code ADV_MORPH_WORKTREE_CAPABILITY; morph 1.10.2 root = context.worktree ?? context.directory; ADV never sets context.worktree to change worktree. Direction: Part A honest directive + Part B structural capability wiring.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "a6d1e5d713c7f2656ce8a38ff62ed1b0df1bf10dc87c1952fdcbc69221ad6867",
+        "non_whitespace_chars": 4443,
+        "checked_at": "2026-07-24T20:43:08.495Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-24T20:52:36.864Z",
+      "completed_at": "2026-07-24T20:58:54.663Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. Symbol-survival feasibility confirmed by independent validator against OpenCode 1.18.4 source (same-object dispatch; zod safeParse is boolean-only). Contract minted. Design amended with validator corrections.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "0a7850f87c3b6e2029c7a33f6b1830a3df1e2a2e4928bfc0adf14fd792f77db1",
+        "non_whitespace_chars": 2752,
+        "checked_at": "2026-07-24T20:43:08.497Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-24T20:59:04.990Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Cross-project split: Part A (ADV, this change) + Part B (morph, follow-up). Symbol-survival validated for OpenCode 1.18.4. Validator amendments: corrected zod rationale, added runtime integration test (Part B), forged-capability trust boundary, concurrency coverage, unused capability fields note.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "137695ebce30dd93dc98db6bf069bb5054803c73c6508f54266d24d63326c9a1",
+        "non_whitespace_chars": 7850,
+        "checked_at": "2026-07-24T20:43:08.498Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-24T21:02:59.056Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning complete. 3 tasks: tk-fb3eb92f5db2 (test, AC2), tk-36a647aacef0 (directive, AC1), tk-d13bd556ca31 (verify, AC3/AC4). AC5 deferred to Part B morph follow-up. Worktree materialized."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-24T21:16:44.283Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete. tk-fb3eb92f5db2 (test, AC2) RED tr_mrzfi5x2 -> GREEN tr_mrzfizit; tk-36a647aacef0 (directive, AC1); tk-d13bd556ca31 (verify, AC3/AC4). All at 561d981c. Reviewer report READY. AC5 deferred to Part B morph follow-up."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-24T21:24:32.976Z",
+      "completed_at": "2026-07-24T21:26:51.466Z",
+      "completed_by": "user",
+      "approval_evidence": "Acceptance complete. AC1-AC4 pass; AC5 not_applicable (Part B morph follow-up). Constraints C1-C5 respected; avoidances DONT1-DONT4 respected. Review matrix 14 rows 0 failing. Reviewer verdict READY.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5e44d6f168c7bdebf58162636d3f32facdb13a5b4fa9d70eac8e64cf6f341ed5",
+        "non_whitespace_chars": 2977,
+        "checked_at": "2026-07-24T20:43:08.500Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-24T20:43:02.591Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+      "approvedAt": "2026-07-24T20:58:54.663Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — `adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md` no longer contain \"ADV authorizes this pair before Morph can use the external root\"; they truthfully describe `morph_edit`'s session-root confinement and route ADV-worktree edits to `edit`/`write`, with an immediate `edit`/`write` fallback if `morph_edit` rejects a worktree path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — `adv-engineer-assets.test.ts` asserts the corrected wording (no false authorization claim; `edit`/`write` routing for worktree edits; `morph_edit` session-root confinement) and is green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — Repo-wide grep for the removed false sentence and \"ADV authorizes this pair\" returns zero matches outside archived changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — ADV's `authorizeMorphWorktree` + `ADV_MORPH_WORKTREE_CAPABILITY` code is unchanged (Part B depends on it).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**Part A is ADV-only** (`~/dev/advance`); no morph source edits in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**No runtime behavior change in Part A** — directive + test only (lowest risk, ships first).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**Do not remove ADV's capability/validator** — Part B consumes it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**P33 (structural correctness):** the durable fix is structural (morph reads the capability), not prose-only. Part A is the honest interim; Part B is the structural completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Part B is a cross-project change in `~/dev/opencode-morph-fast-apply` (morph is path-loaded dev source + ADV-enabled; no deploy ceremony).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** — Do not claim `morph_edit` authorizes external worktree roots (false today).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** (from archived `2026-05-29-fixTrunkFirewallRelPath`) — Do not add a `workdir` parameter to `write`/`edit`/`morph_edit` at the OpenCode SDK level. Note: morph's *own* tool-args schema adding `workdir`/`taskId` in Part B is in-scope and distinct — it is morph's schema, not an SDK change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** — Do not re-implement morph's `execute` inside ADV (fork/safety-logic-drift risk).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4** — Do not remove `morph_edit` from the sub-agent tool surface (it still serves in-session-repo edits).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-24T21:40:00Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "3 agent files (adv-engineer.md:108, adv-designer.md:122, adv-reviewer.md:116) rewritten; false 'ADV authorizes this pair' sentence removed; honest edit/write routing + fallback. Reviewer verdict READY. commit 561d981c, merged PR #317 (50e3df8)."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-engineer-assets.test.ts truth guard: RED tr_mrzfi5x2 (fail) -> GREEN tr_mrzfizit (pass); full assets suite 26/26 tr_mrzfju64."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "rg 'ADV authorizes this pair' (excl .adv/archive, node_modules) returns only the test's own not.toContain assertion string at test:204; all directive/source files clean."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff on plugin/src/utils/morph-worktree-authorization.ts and plugin/src/index.ts (morph-wrapping block 677-695) is EMPTY; ADV validator untouched."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only ~/dev/advance files touched (3 agent md + 1 test); no morph source edits."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Directive + test only; no runtime code changed."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "authorizeMorphWorktree + ADV_MORPH_WORKTREE_CAPABILITY unchanged (empty diff)."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Part A is the honest interim; Part B is the structural completion. Design validated; symbol-survival confirmed for OpenCode 1.18.4."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Part B scoped as a separate cross-project change in ~/dev/opencode-morph-fast-apply (path-loaded dev source, ADV-enabled)."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No remaining claim that morph_edit authorizes external worktree roots (grep clean)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No SDK-level workdir param added to write/edit/morph_edit; change is directive + test only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No re-implementation of morph execute in ADV."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "morph_edit not removed from any tool surface."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — `adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md` no longer contain \"ADV authorizes this pair before Morph can use the external root\"; they truthfully describe `morph_edit`'s session-root confinement and route ADV-worktree edits to `edit`/`write`, with an immediate `edit`/`write` fallback if `morph_edit` rejects a worktree path.",
+    "**AC2** — `adv-engineer-assets.test.ts` asserts the corrected wording (no false authorization claim; `edit`/`write` routing for worktree edits; `morph_edit` session-root confinement) and is green.",
+    "**AC3** — Repo-wide grep for the removed false sentence and \"ADV authorizes this pair\" returns zero matches outside archived changes.",
+    "**AC4** — ADV's `authorizeMorphWorktree` + `ADV_MORPH_WORKTREE_CAPABILITY` code is unchanged (Part B depends on it)."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Fix morph_edit worktree authorization\n\n## Problem\n\n`morph_edit` cannot edit files inside ADV per-change worktrees, and the sub-agent directives that instruct engineers/designers/reviewers to use it for worktree edits are factually wrong — producing agent confusion (schema vs instruction conflict), failed calls, and forced fallback to `edit`/`write`.\n\n## Root Cause Analysis\n\n**Symptom:** adv-engineer (and adv-designer / adv-reviewer) sub-agents waffle before calling morph_edit — *\"the tool signature doesn't show workdir/taskId but instructions say pass them\"* — then error out on worktree files, recovering only by falling back to `edit`/`write`.\n\n**Root cause — dead-code authorization path:**\n\n1. ADV wraps morph_edit via `handleToolExecuteBefore` (`plugin/src/index.ts:677`). When the sub-agent passes `workdir`+`taskId`, `authorizeMorphWorktree` (`plugin/src/utils/morph-worktree-authorization.ts`) validates them against the task's worktree and attaches `ADV_MORPH_WORKTREE_CAPABILITY` to the args object.\n\n2. **The capability is consumed by nothing.** morph (`opencode-morph-fast-apply` v1.10.2) computes its allowed root as `context.worktree ?? context.directory` (`src/execute.ts:116`) and confines via `resolveTargetPath`. It has zero references to the ADV capability symbol, `workdir`, or `taskId` (grep-verified across the package). The capability is attached and discarded.\n\n3. ADV never pushes the active change's worktree into OpenCode's `context.worktree` (`plugin/src/plugin-context.ts` only reads `worktree` from session init; it never overrides it). So morph's root is always the session repo, never the ADV change worktree at `~/.local/share/opencode/worktree/{id}/change/{cid}`.\n\n4. ∴ any absolute worktree `target_filepath` is outside morph's root → rejected *\"Path is outside allowed root.\"* morph_edit **cannot edit ADV-worktree files** in the current design.\n\n**Compounding factor — instruction/schema mismatch:** the morph_edit schema exposed to sub-agents lists only `target_filepath`, `instructions`, `code_edit`. ADV's directives (`adv-engineer.md:108`, `adv-designer.md:122`, `adv-reviewer.md:116`) claim *\"For morph_edit, pass both workdir … and taskId …; ADV authorizes this pair before Morph can use the external root.\"* The agent sees the instruction contradict the visible schema → waffles → errors → falls back. A regression-guard test (`adv-engineer-assets.test.ts:193-204`) pins this false directive wording in place.\n\n**Why edit/write succeed where morph fails:** `edit`/`write` resolve worktree paths through ADV's trunk-write firewall + relative-path worktree resolution (change `2026-05-29-fixTrunkFirewallRelPath`). morph has no equivalent path; its confinement is purely `context.worktree ?? context.directory`.\n\n## Proposed Direction\n\nTwo parts, one change:\n\n**Part A — Honest directive (ships first, stops the bleeding):**\n- Rewrite the Working Directory Lock directives in `adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md`: stop claiming morph_edit authorizes external worktree roots. State the truth — morph_edit's root is the session repo; for ADV-worktree edits use `edit`/`write` (which resolve worktree paths), reserve morph_edit for in-session-repo edits or when the worktree equals the session directory.\n- Update the regression-guard test `adv-engineer-assets.test.ts:193-204` to assert the corrected (honest) wording instead of the false workdir+taskId claim.\n- Remove the false \"ADV authorizes this pair\" sentence everywhere it appears.\n\n**Part B — Make the authorization mechanism real (structural):**\n- Wire the capability through: when `workdir`+`taskId` validate, ADV must make morph's effective root the capability's `root` (the validated worktree), not the session repo. Approach to be finalized in design — candidate paths: (a) ADV registers/overrides its own morph_edit that invokes morph's `executeMorphEdit` runtime with `context.worktree = capability.root`; (b) a documented capability-read hook so morph resolves root from the ADV capability when present.\n- Surface `workdir` and `taskId` as documented parameters in the morph_edit schema exposed to sub-agents (so instruction and schema agree and the agent stops waffling).\n- Add tests proving morph_edit can write to an ADV change worktree given valid workdir+taskId, and is rejected for mismatched/unauthorized roots.\n\n## Files (preliminary)\n\n- `plugin/src/index.ts` (morph wrapping, line ~677)\n- `plugin/src/utils/morph-worktree-authorization.ts`\n- `.opencode/agents/adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md`\n- `plugin/src/adv-engineer-assets.test.ts` (+ parallel designer/reviewer assets tests if they exist)\n- New tests for the wired-through authorization.\n\n## Origin\n\nDiscovery defect — surfaced from observed sub-agent behavior (\"still having trouble with morph\").",
+    "problemStatement": "## Problem\n\n`morph_edit` cannot edit files inside ADV per-change worktrees, yet the adv-engineer / adv-designer / adv-reviewer directives instruct sub-agents to use it for worktree edits by passing `workdir`+`taskId`. The instruction is factually wrong: morph never reads those tokens. Result — agent confusion (visible schema lists only target_filepath/instructions/code_edit, contradicting the directive), failed calls on worktree paths, and forced fallback to `edit`/`write`.\n\n## Impact\n\nSub-agents waste cycles waffling before each morph_edit call (\"signature doesn't show workdir/taskId… let's try\"), then hit \"Path is outside allowed root\" on worktree files, then recover via edit/write. The morph integration path for worktrees is non-functional; the capability-based authorization built for it is dead code.\n\n## In Scope\n\n- Correct the false morph directive in adv-engineer/designer/reviewer agents + their assets tests (Part A).\n- Make ADV's morph worktree authorization actually work: capability flows into morph's effective root; workdir+taskId surfaced in the morph schema (Part B).\n\n## Out of Scope\n\n- Editing the upstream morph package (opencode-morph-fast-apply) beyond consuming an ADV-defined capability.\n- The edit/write worktree path (already functional via the trunk-write firewall / change 2026-05-29-fixTrunkFirewallRelPath).\n- Cross-project worktree root derivation.",
+    "design": "# Design — Fix morph_edit worktree authorization\n\n## Mechanism (as designed vs as-built)\n\nADV's `handleToolExecuteBefore` (`plugin/src/index.ts:677`) intercepts every `morph_edit` call. When the sub-agent passes `workdir`+`taskId`, `authorizeMorphWorktree` (`plugin/src/utils/morph-worktree-authorization.ts`) validates them against the task's worktree and attaches a **global** symbol `Symbol.for(\"advance.morph-worktree-capability.v1\")` — value `{ root, taskId, sessionID }`, non-enumerable — onto the args object.\n\nThe **global** symbol was chosen deliberately so morph (a separate package, no import edge to ADV) could read it. **morph never implemented the read.** morph 1.10.2 computes its allowed root as `context.worktree ?? context.directory` (`src/execute.ts:116`) and confines via `resolveTargetPath`. The capability is attached and discarded.\n\n## Discovery findings (constraints)\n\n1. **OpenCode `ToolContext.worktree` is session-level** — set at plugin init (`plugin/src/index.ts:341-346`); ADV only reads it (`plugin-context.ts:49`), never overrides per-call. So morph's root is the session repo, never the ADV change worktree.\n2. **`tool.execute.before` cannot mutate `context`.** Hook input is `{ tool, sessionID, callID }` (`@opencode-ai/plugin/dist/index.d.ts:235-241`); `context` is constructed by OpenCode and passed separately to execute (`tool.d.ts:2-24`). `output.args` carries raw args (`index.ts:1165`) but no mutable context.\n3. **`executeMorphEdit` is not part of morph's public entry.** It is exported from the internal `src/execute.ts` but the public entry `index.ts` exports only the default; ADV has no stable public API to re-wrap it.\n4. **Two plugins registering the same tool name (`morph_edit`)** is fragile/undefined; re-implementing morph's execute (truncation, dropped-import, marker-leak guards) in ADV would fork behavior (violates P35).\n5. **morph source is local + path-loaded + ADV-enabled**: opencode.jsonc:141 loads `/home/jon/dev/opencode-morph-fast-apply/index.ts` directly (live, no deploy ceremony). Remote `JRedeker/opencode-morph-fast-apply`; carries archived ADV changes (e.g. `improveMorphRecovery`).\n6. **ADV already receives `workdir`/`taskId`** via raw `output.args`.\n\n**Conclusion:** Part B (the structural fix) **must be morph-side**. ADV-side alone cannot make morph edit worktree files.\n\n## CRITICAL FEASIBILITY — symbol survives to morph execute (validated)\n\nVerified by independent design validation against OpenCode 1.18.4 source:\n- The dispatcher passes `{ args }` to `tool.execute.before`, then calls `item.execute(args, ctx)` with the **same object** (no clone).\n- The plugin registry uses `z.object(def.args).safeParse(u).success` only as a **boolean** validation gate, then forwards the **original raw args**; the zod output is discarded.\n- ∴ the non-enumerable `Symbol.for(...)` property ADV attaches in the before-hook (`morph-worktree-authorization.ts:35-40`) reaches morph's `execute(args, context)` intact. **Part B can read it from `args`.**\n\nThis is OpenCode-version-dependent: if a future OpenCode dispatch/registry change introduces parsed-copy semantics, the symbol would be dropped. Mitigation: a runtime integration test (Part B) asserting the before-hook-attached symbol reaches a plugin tool's `execute`, re-run on OpenCode upgrades.\n\n## Decisions (LBP)\n\n- **D1 — Keep the global-symbol design; do not re-wrap morph in ADV.** The symbol decouples ADV↔morph with no import; ADV's validator is correct and tested. morph needs a small read. Re-implementing morph's execute in ADV forks safety logic (reject).\n- **D2 — Cross-project split.** This change (ADV) = **Part A** (honest directive + fix the regression-guard test). A separate **morph** change (`~/dev/opencode-morph-fast-apply`, cross-project follow-up) = **Part B** (read the global capability → use `capability.root`; add `workdir`/`taskId` to morph's tool args).\n- **D3 — Part A directive is forward-compatible.** It states morph_edit confines to the session repo root today; ADV-worktree edits use `edit`/`write` (which resolve worktree paths via the trunk-write firewall / change `2026-05-29-fixTrunkFirewallRelPath`); `workdir`+`taskId` are mentioned only as the capability path that requires morph support, with immediate `edit`/`write` fallback if morph rejects. After Part B ships the fallback stops triggering.\n- **D4 — Do NOT remove ADV's capability/authorization code in Part A.** It is the validator Part B depends on.\n- **D5 — Don't strip `morph_edit` from the sub-agent tool surface.** It still serves in-session-repo edits.\n\n## Implementation\n\n### Part A — ADV (this change)\n\nFiles:\n- `.opencode/agents/adv-engineer.md:108`, `adv-designer.md:122`, `adv-reviewer.md:116` — replace the single false sentence with the honest, forward-compatible directive (identical across all three).\n- `plugin/src/adv-engineer-assets.test.ts:193-204` — replace the false-wording regression guard with a truth guard.\n\nHonest directive wording (target): \"morph_edit confines files to the session repo root (`context.worktree ?? context.directory`); it cannot reach ADV per-change worktrees today. For ADV-worktree edits use `edit`/`write` with the worktree path. You may pass `workdir`+`taskId` to morph_edit only when editing inside the session repo (the ADV capability path); if morph_edit rejects a worktree path, fall back to `edit`/`write` immediately — do not retry morph_edit.\"\n\nNo runtime/behavior change in Part A — directive + test only. Ships first; stops the waffling + false errors immediately.\n\n### Part B — morph (cross-project follow-up change)\n\nFiles (in `~/dev/opencode-morph-fast-apply`):\n- `index.ts` tool registration — add optional `workdir` and `taskId` zod args (improves model-visible contract + type validation; the symbol survives via same-object dispatch, not via zod passthrough).\n- `src/execute.ts` (`executeMorphEdit`) — before the `context.worktree ?? context.directory` confinement, read `args[Symbol.for(\"advance.morph-worktree-capability.v1\")]`. If present and well-formed, use `capability.root` (validated as an absolute canonical string; fail closed on malformed values) as the confinement root. `resolveTargetPath` otherwise unchanged.\n\n## Design validation amendments (adv-researcher, APPROVED_WITH_CHANGES)\n\n1. **Zod rationale corrected.** Adding `workdir`/`taskId` to morph's schema improves the model-visible contract and type validation — it is NOT why the symbol survives (same-object dispatch is). Removed any \"zod passthrough\" implication.\n2. **Runtime integration test (Part B).** Assert a before-hook-attached non-enumerable symbol reaches a plugin tool's `execute` on the installed OpenCode; re-run on OpenCode upgrades (guards the version-dependent transport).\n3. **Forged-capability boundary corrected.** `Symbol.for` is global, not secret. morph can reject *malformed* capability values, but cannot distinguish a forged valid `{ root }` from ADV's. Model-supplied JSON cannot forge symbols (good); only another in-process plugin could. **Trust boundary:** the capability trusts ADV/plugin-runtime code, not mutually hostile plugins. If hostile-plugin resistance were required, a global symbol is insufficient and a host-supported capability channel would be needed (out of scope).\n4. **Concurrency coverage (Part B).** Two simultaneous morph_edit calls with separate args/capabilities must remain independently confined (no shared mutable root state).\n5. **Unused capability fields.** `taskId`/`sessionID` in the capability are ADV's provenance; morph's read must not imply it independently verifies them. morph only consumes `root`.\n\n## Non-regression\n\n- ADV's before-hook reads raw `output.args`; `workdir`/`taskId` reach ADV regardless of morph's schema. Part B's schema addition only improves visibility.\n- `edit`/`write` worktree path unchanged.\n- ADV's `authorizeMorphWorktree` and its unit test unchanged.\n\n## Test plan\n\nPart A:\n- `adv-engineer-assets.test.ts` assertions rewritten and green.\n- Repo grep: no remaining \"ADV authorizes this pair\" sentence outside archived changes.\n\nPart B (morph change):\n- morph unit/integration tests: capability present + valid root → worktree write succeeds; capability absent → session-root confinement; malformed capability → fail closed; two concurrent calls independently confined.\n- Runtime integration test: before-hook symbol reaches execute on installed OpenCode.\n- End-to-end: adv-engineer edits a worktree file via morph_edit with valid `workdir`+`taskId` → succeeds; mismatched root → rejected.\n\n## Risks / fallbacks\n\n- OpenCode dispatch/registry changes (upgrade) could drop the symbol → Part B's runtime integration test catches it; Part A's edit/write routing keeps agents functional regardless.\n- Part B depends on the morph repo; if blocked, Part A alone keeps all sub-agents fully functional.\n\n## Open question (design checkpoint) — resolved\n\nShip Part A now (stops active waffling regardless of Part B timing); Part B as cross-project follow-up. Confirmed via user agreement approval.",
+    "agreement": "# Agreement — Fix morph_edit worktree authorization (Part A)\n\n## Objectives\n\n1. **Stop the waffling.** Sub-agents (adv-engineer / adv-designer / adv-reviewer) no longer hesitate before `morph_edit` calls — the directive matches the model-visible schema and morph's actual confinement behavior.\n2. **Stop the false failures.** No sub-agent is instructed to use `morph_edit` for ADV per-change worktree edits in a way that cannot succeed; worktree edits route to `edit`/`write`.\n3. **Pin the truth.** The regression-guard test asserts the real behavior, not the false \"ADV authorizes this pair before Morph can use the external root\" claim.\n\n## Acceptance Criteria\n\n- **AC1** — `adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md` no longer contain \"ADV authorizes this pair before Morph can use the external root\"; they truthfully describe `morph_edit`'s session-root confinement and route ADV-worktree edits to `edit`/`write`, with an immediate `edit`/`write` fallback if `morph_edit` rejects a worktree path.\n- **AC2** — `adv-engineer-assets.test.ts` asserts the corrected wording (no false authorization claim; `edit`/`write` routing for worktree edits; `morph_edit` session-root confinement) and is green.\n- **AC3** — Repo-wide grep for the removed false sentence and \"ADV authorizes this pair\" returns zero matches outside archived changes.\n- **AC4** — ADV's `authorizeMorphWorktree` + `ADV_MORPH_WORKTREE_CAPABILITY` code is unchanged (Part B depends on it).\n\n## Follow-ups (out of scope for Part A — separate cross-project change)\n\n- **Part B** — Make the authorization mechanism real: morph reads `Symbol.for(\"advance.morph-worktree-capability.v1\")` and uses `capability.root` for confinement; `workdir`/`taskId` added to morph's tool args; tests prove a worktree write succeeds with valid `workdir`+`taskId` and is rejected for mismatched/unauthorized roots. This is a **separate cross-project change** in `~/dev/opencode-morph-fast-apply` (`fixMorphWorktreeCapabilityRead`). Reclassified out of Part A's acceptance criteria at release: Part A delivers only the honest directive + test; Part B is the structural completion. Symbol-survival into morph's `execute` is validated for OpenCode 1.18.4, so Part B is unblocked.\n\n## Constraints\n\n- **Part A is ADV-only** (`~/dev/advance`); no morph source edits in this change.\n- **No runtime behavior change in Part A** — directive + test only (lowest risk, ships first).\n- **Do not remove ADV's capability/validator** — Part B consumes it.\n- **P33 (structural correctness):** the durable fix is structural (morph reads the capability), not prose-only. Part A is the honest interim; Part B is the structural completion.\n- Part B is a cross-project change in `~/dev/opencode-morph-fast-apply` (morph is path-loaded dev source + ADV-enabled; no deploy ceremony).\n\n## Avoidances\n\n- **DONT1** — Do not claim `morph_edit` authorizes external worktree roots (false today).\n- **DONT2** (from archived `2026-05-29-fixTrunkFirewallRelPath`) — Do not add a `workdir` parameter to `write`/`edit`/`morph_edit` at the OpenCode SDK level. Note: morph's *own* tool-args schema adding `workdir`/`taskId` in Part B is in-scope and distinct — it is morph's schema, not an SDK change.\n- **DONT3** — Do not re-implement morph's `execute` inside ADV (fork/safety-logic-drift risk).\n- **DONT4** — Do not remove `morph_edit` from the sub-agent tool surface (it still serves in-session-repo edits).",
+    "executiveSummary": "# Executive Summary — Fix morph_edit worktree authorization (Part A)\n\n## Outcome\nStopped sub-agents (adv-engineer / adv-designer / adv-reviewer) from waffling and failing on `morph_edit` when editing ADV per-change worktree files. The sub-agent directives previously claimed `morph_edit` could authorize edits to external worktree roots by passing `workdir`+`taskId` — but that claim was false: morph never reads ADV's authorization capability, so every worktree `morph_edit` call hit \"Path is outside allowed root\" and agents recovered only by falling back to `edit`/`write`. The directives now state the truth and route worktree edits to `edit`/`write`.\n\n## Why it matters\nSub-agents wasted cycles hesitating before each `morph_edit` (\"the tool signature doesn't show workdir/taskId… let's try\"), then errored, then fell back — a recurring friction loop on every worktree-bound implementation task. Part A removes the false instruction and pins the corrected behavior in a regression-guard test, so the loop stops immediately.\n\n## What was delivered (Part A — ADV-only, no runtime change)\n- Rewrote the `morph_edit` directive in `.opencode/agents/adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md` from the false \"ADV authorizes this pair\" claim to honest, forward-compatible wording: `morph_edit` confines to the session repo root; ADV-worktree edits use `edit`/`write`; fall back immediately if `morph_edit` rejects.\n- Rewrote the regression-guard test (`plugin/src/adv-engineer-assets.test.ts`) from a false-wording pin to a truth guard (asserts the false claim is absent; asserts edit/write routing + fallback). TDD: RED → GREEN.\n- ADV's `authorizeMorphWorktree` / `ADV_MORPH_WORKTREE_CAPABILITY` validator deliberately left unchanged — it is correct and is the foundation Part B consumes.\n\n## Verification\n- TDD cycle: RED (`tr_mrzfi5x2`, failed against the old directive as expected) → GREEN (`tr_mrzfizit`, passed after rewrite).\n- Full assets suite: 26/26 green (`tr_mrzfju64`).\n- Independent review: verdict READY; AC1–AC4 pass; constraints C1–C5 and avoidances DONT1–DONT4 respected.\n- AC4: ADV validator + morph-wrapping block show empty diff (untouched).\n- All work at commit `561d981c` on branch `change/fixMorphWorktreeAuthorization`.\n\n## What is NOT in this change (Part B — separate follow-up)\nAC5 — making the authorization mechanism actually work (morph reads the global `Symbol.for(\"advance.morph-worktree-capability.v1\")` ADV attaches and uses `capability.root` for confinement; adds `workdir`/`taskId` to morph's tool schema) — is a **separate cross-project change** in `~/dev/opencode-morph-fast-apply`. Independent design validation confirmed the symbol survives into morph's `execute` on OpenCode 1.18.4 (same-object dispatch; zod's `safeParse` is boolean-only), so Part B is unblocked. Until Part B lands, `morph_edit` remains session-repo-only — but Part A's `edit`/`write` routing keeps every sub-agent fully functional.\n\n## Risks / follow-ups\n- Part B (morph capability read + schema) is the structural completion; create it as the next change so AC5 has a home and `morph_edit` can finally edit worktree files.\n- A future OpenCode dispatch/registry change could alter same-object arg passing; Part B includes a runtime integration test to catch that.\n- After Part B ships, a micro-follow-up can re-recommend `morph_edit` for worktree edits (Part A's wording is already forward-compatible, so this is optional polish).",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-24T21:26:00Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1** — `adv-engineer.md`, `adv-designer.md`, `adv-reviewer.md` no longer contain \"ADV authorizes this pair before Morph can use the external root\"; they truthfully describe `morph_edit`'s session-root confinement and route ADV-worktree edits to `edit`/`write`, with an immediate `edit`/`write` fallback if `morph_edit` rejects a worktree path. | pass | 3 agent files (adv-engineer.md:108, adv-designer.md:122, adv-reviewer.md:116) rewritten; false 'ADV authorizes this pair' sentence removed; honest edit/write routing + fallback present. Reviewer verdict READY. commit 561d981c. |\n| AC2 | acceptance_criterion | **AC2** — `adv-engineer-assets.test.ts` asserts the corrected wording (no false authorization claim; `edit`/`write` routing for worktree edits; `morph_edit` session-root confinement) and is green. | pass | adv-engineer-assets.test.ts truth guard: RED tr_mrzfi5x2 (fail) -> GREEN tr_mrzfizit (pass); full assets suite 26/26 tr_mrzfju64. |\n| AC3 | acceptance_criterion | **AC3** — Repo-wide grep for the removed false sentence and \"ADV authorizes this pair\" returns zero matches outside archived changes. | pass | rg 'ADV authorizes this pair' (excl .adv/archive, node_modules) returns only the test's own not.toContain assertion string at test:204; all directive/source files clean. |\n| AC4 | acceptance_criterion | **AC4** — ADV's `authorizeMorphWorktree` + `ADV_MORPH_WORKTREE_CAPABILITY` code is unchanged (Part B and non-regression depend on it). | pass | git diff on plugin/src/utils/morph-worktree-authorization.ts and plugin/src/index.ts (morph-wrapping block 677-695) is EMPTY; ADV validator untouched. |\n| AC5 | acceptance_criterion | **AC5 (Part B — separate morph change)** — morph reads `Symbol.for(\"advance.morph-worktree-capability.v1\")` and uses `capability.root` for confinement; `workdir`/`taskId` added to morph's tool args; tests prove a worktree write succeeds with valid `workdir`+`taskId` and is rejected for mismatched/unauthorized roots. | not_applicable | AC5 is Part B (morph-side capability read) - explicitly deferred to a separate cross-project change in ~/dev/opencode-morph-fast-apply per the agreement. Not applicable to Part A. |\n| C1 | constraint | **Part A is ADV-only** (`~/dev/advance`); no morph source edits in this change. | respected | Only ~/dev/advance files touched (3 agent md + 1 test); no morph source edits. |\n| C2 | constraint | **No runtime behavior change in Part A** — directive + test only (lowest risk, ships first). | respected | Directive + test only; no runtime code changed. |\n| C3 | constraint | **Do not remove ADV's capability/validator** — Part B consumes it. | respected | authorizeMorphWorktree + ADV_MORPH_WORKTREE_CAPABILITY unchanged (empty diff). |\n| C4 | constraint | **P33 (structural correctness):** the durable fix is structural (morph reads the capability), not prose-only. Part A is the honest interim; Part B is the structural completion. | respected | Part A is the honest interim; Part B is the structural completion. Design validated; symbol-survival confirmed for OpenCode 1.18.4. |\n| C5 | constraint | Part B is a cross-project change in `~/dev/opencode-morph-fast-apply` (morph is path-loaded dev source + ADV-enabled; no deploy ceremony). | respected | Part B scoped as a separate cross-project change in ~/dev/opencode-morph-fast-apply (path-loaded dev source, ADV-enabled). |\n| DONT1 | avoidance | **DONT1** — Do not claim `morph_edit` authorizes external worktree roots (false today). | respected | No remaining claim that morph_edit authorizes external worktree roots (grep clean). |\n| DONT2 | avoidance | **DONT2** (from archived `2026-05-29-fixTrunkFirewallRelPath`) — Do not add a `workdir` parameter to `write`/`edit`/`morph_edit` at the OpenCode SDK level. Note: morph's *own* tool-args schema adding `workdir`/`taskId` in Part B is in-scope and distinct — it is morph's schema, not an SDK change. | respected | No SDK-level workdir param added to write/edit/morph_edit; change is directive + test only. |\n| DONT3 | avoidance | **DONT3** — Do not re-implement morph's `execute` inside ADV (fork/safety-logic-drift risk). | respected | No re-implementation of morph execute in ADV. |\n| DONT4 | avoidance | **DONT4** — Do not remove `morph_edit` from the sub-agent tool surface (it still serves in-session-repo edits). | respected | morph_edit not removed from any tool surface. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-24T20:43:04.944Z",
+      "contentHash": "a6d1e5d713c7f2656ce8a38ff62ed1b0df1bf10dc87c1952fdcbc69221ad6867",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-24T20:43:04.944Z",
+      "contentHash": "ad2324aafc50893582892f653b19498f5b7d6f9dd6a226466ab2d899836e2503",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-24T20:58:05.928Z",
+      "contentHash": "137695ebce30dd93dc98db6bf069bb5054803c73c6508f54266d24d63326c9a1",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-24T21:38:29.528Z",
+      "contentHash": "14263083bf5041817e514ac0dee9fc9d6136516b765d578deed3c75ce57815ae",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-24T21:17:19.088Z",
+      "contentHash": "5e44d6f168c7bdebf58162636d3f32facdb13a5b4fa9d70eac8e64cf6f341ed5",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-24T21:38:54.072Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}
