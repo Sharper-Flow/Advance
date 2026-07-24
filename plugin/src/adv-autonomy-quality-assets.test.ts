@@ -53,30 +53,63 @@ describe("Human checkpoint and auto-continue policy", () => {
 
   test("explicit merge authority immediately arms same-change squash auto-merge", () => {
     const agent = readAsset(join(AGENT_DIR, "adv.md"));
-    const spec = readAsset(
-      join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+    const ciWaiter = readAsset(join(AGENT_DIR, "adv-ci-waiter.md"));
+    const spec = JSON.parse(
+      readAsset(join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json")),
+    ) as {
+      requirements: Array<{
+        id: string;
+        body: string;
+        scenarios: Array<{ id: string; then: string[] }>;
+      }>;
+    };
+    const requirement = spec.requirements.find(
+      (entry) => entry.id === "rq-approvedPrAutoMerge01",
     );
+    const remediationScenario = requirement?.scenarios.find(
+      (scenario) => scenario.id === "rq-approvedPrAutoMerge01.2",
+    );
+    expect(requirement).toBeDefined();
 
     expect(agent).toMatch(/PR Merge Authority/);
     expect(agent).toMatch(/explicit user grant to merge/i);
-    expect(agent).toMatch(/push-only[^.\n]*does not authorize/i);
+    expect(agent).toMatch(/push-only[^.\n]*does not authorize merge/i);
     expect(agent).toMatch(
-      /changeId[^.\n]*repository[^.\n]*change\/<changeId>[^.\n]*default base/i,
+      /generic Tier-A approval[^.\n]*does not authorize merge/i,
+    );
+    expect(agent).toMatch(
+      /changeId[^.\n]*repository[^.\n]*change\/<changeId>[^.\n]*default base[^.\n]*requested end-state/i,
     );
     expect(agent).toContain(
       "gh pr merge <number> --repo <owner/repo> --squash --auto",
     );
     expect(agent).toMatch(/autoMergeRequest\.enabledAt/);
-    expect(agent).toMatch(/fix in worktree[^\n]*push[^\n]*re-read[^\n]*arm/i);
+    expect(agent).toMatch(/^\s*task:\s*true\s*$/m);
+    expect(ciWaiter).toMatch(/^\s*mode:\s*subagent\s*$/m);
+    expect(agent).toMatch(
+      /fix in worktree[^\n]*push change branch[^\n]*re-read PR number\/repository\/head\/base\/state[^\n]*arm or re-arm[^\n]*verify[^\n]*spawn `adv-ci-waiter`/i,
+    );
     expect(agent).toMatch(/state == `MERGED`|state == MERGED/);
     expect(agent).toMatch(/revocation[^.\n]*stop\/cancel[^.\n]*drift/i);
     expect(agent).toMatch(/Tier-B archive sign-off[^.\n]*unchanged/i);
     expect(agent).toMatch(/never[^.\n]*(--delete-branch|-d)/i);
 
-    expect(spec).toContain("rq-approvedPrAutoMerge01");
-    expect(spec).toMatch(/same-change[^\n]*auto-merge/i);
-    expect(spec).toMatch(/autoMergeRequest\.enabledAt/);
-    expect(spec).toMatch(/--delete-branch/);
+    expect(requirement?.body).toMatch(/requested end-state/i);
+    expect(requirement?.body).toMatch(/autoMergeRequest\.enabledAt/);
+    expect(requirement?.body).toMatch(/--delete-branch.*-d/);
+    expect(requirement?.scenarios).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "rq-approvedPrAutoMerge01.1" }),
+        expect.objectContaining({ id: "rq-approvedPrAutoMerge01.2" }),
+        expect.objectContaining({ id: "rq-approvedPrAutoMerge01.3" }),
+      ]),
+    );
+    expect(remediationScenario?.then).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/repository, head, base, and state/i),
+        expect.stringMatching(/autoMergeRequest\.enabledAt/),
+      ]),
+    );
   });
 });
 

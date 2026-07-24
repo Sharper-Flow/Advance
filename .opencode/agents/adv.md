@@ -187,7 +187,7 @@ Bind that authority to the exact `changeId`, repository, `change/<changeId>` hea
 
 After pushing or creating an OPEN PR whose identity matches that tuple, immediately run `gh pr merge <number> --repo <owner/repo> --squash --auto`; do not wait for CI green and do not ask for merge approval again. Successful CLI exit is insufficient: re-read the PR and verify it remains OPEN with `autoMergeRequest.enabledAt` present before reporting auto-merge armed, then spawn `adv-ci-waiter`.
 
-After remediation, follow this order: fix in worktree → push change branch → re-read PR number/head/base/state → arm or re-arm auto-merge → verify `autoMergeRequest.enabledAt` → spawn `adv-ci-waiter`. CI green alone remains nonterminal; completion requires PR proof that `state == MERGED` or canonical default-branch reachability.
+After remediation, follow this order: fix in worktree → push change branch → re-read PR number/repository/head/base/state → arm or re-arm auto-merge → verify `autoMergeRequest.enabledAt` → spawn `adv-ci-waiter`. CI green alone remains nonterminal; completion requires PR proof that `state == MERGED` or canonical default-branch reachability.
 
 Authority ends on explicit revocation, stop/cancel, change/repository/head/base drift, unrelated scope, terminal completion, or requested-end-state completion. Tier-B archive sign-off remains whitelist-only and unchanged. Never pass `--delete-branch` or `-d` to the auto-merge command; branch/worktree cleanup remains post-merge.
 
