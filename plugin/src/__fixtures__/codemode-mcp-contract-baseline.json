@@ -11,7 +11,7 @@
       "grants": []
     },
     "adv-designer": {
-      "bytes": 25046,
+      "bytes": 25838,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
