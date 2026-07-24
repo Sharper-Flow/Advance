@@ -341,37 +341,28 @@ describe("runTemporalQuery aggregate deadline", () => {
     expect(reinitStsl).not.toHaveBeenCalled();
   });
 
-  test("retries on the per-attempt query ceiling WITHOUT reconnecting (timeout is retryable, not reconnectable)", async () => {
-    let calls = 0;
-    const op = vi.fn(() => {
-      calls += 1;
-      if (calls === 1) return new Promise<never>(() => {});
-      return Promise.resolve("ok");
-    });
+  test("fails fast on the per-attempt query ceiling WITHOUT reconnecting (bounded-read cap is terminal, not reconnectable)", async () => {
+    const op = vi.fn(() => new Promise<never>(() => {}));
 
     // Explicit per-attempt ceiling (decoupled from the env-configurable
-    // QUERY_TIMEOUT_MS default so this test pins retry/reconnect semantics,
-    // not the default value).
+    // QUERY_TIMEOUT_MS default so this test pins the cap semantics, not the
+    // default value).
     const promise = runTemporalQuery(op, { timeoutMs: 5_000 });
-    const assertion = expect(promise).resolves.toBe("ok");
+    const assertion = expect(promise).rejects.toBeInstanceOf(
+      TemporalQueryTimeoutError,
+    );
 
-    // First attempt hangs until the 5s per-attempt ceiling.
-    await vi.advanceTimersByTimeAsync(4_999);
-    expect(op).toHaveBeenCalledTimes(1);
-    expect(reinitStsl).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(1);
-    // Two-axis semantics (#217): a bare query timeout is a slow/contended
-    // worker, not a broken transport channel — it is retryable but NOT
-    // reconnectable. The retry proceeds after backoff with NO reconnect, so
-    // one op's timeout never closes the shared connection under other
-    // sessions' in-flight ops (avoids reconnect churn).
-    expect(reinitStsl).not.toHaveBeenCalled();
-
-    await vi.advanceTimersByTimeAsync(250);
+    // The attempt hangs until the 5s per-attempt ceiling.
+    await vi.advanceTimersByTimeAsync(5_000);
     await assertion;
 
-    expect(op).toHaveBeenCalledTimes(2);
+    // rq-boundedAuthoritativeRead03 (per-member circuit-breaker, 1879fb64):
+    // our own per-attempt cap is terminal — a retry would burn the same cap
+    // again and defeat the bounded-read deadline, so the op runs exactly once
+    // (classifyTemporalError → "fatal"). #217 reconnect axis: a timeout is
+    // never a broken transport channel, so it must NOT close the shared
+    // connection (no reinit) — retryable-vs-reconnectable stays decoupled.
+    expect(op).toHaveBeenCalledTimes(1);
     expect(reinitStsl).not.toHaveBeenCalled();
   });
 });
