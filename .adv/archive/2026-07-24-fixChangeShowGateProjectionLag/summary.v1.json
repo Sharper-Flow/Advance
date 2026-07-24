@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-24T19:33:59.955Z",
+  "capabilities": [],
+  "change_hash": "c6b22a3b8080fb0dfbbd30b06b7ec986d44ca3b9c1fe16189c87fe4f115fcbdc",
+  "change_id": "fixChangeShowGateProjectionLag",
+  "completed_tasks": 3,
+  "created_at": "2026-07-23T16:42:05.187Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-23T23:38:46.236Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "ffad122297b805f4d3f38b89482af0e173501de2b08fca380a71a3178179d41a",
+  "task_count": 3,
+  "title": "Fix change-show gate projection lag",
+  "version": "1"
+}

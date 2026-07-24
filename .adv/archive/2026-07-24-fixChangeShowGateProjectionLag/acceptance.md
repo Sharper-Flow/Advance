@@ -1,0 +1,22 @@
+# Acceptance
+
+Reviewed at: 2026-07-23T23:33:36.435Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| AC1 | acceptance_criterion | [ ] **AC1 — Parity after gate completion.** Immediately after `adv_gate_complete` succeeds for any gate, a single `adv_change_show` call returns a top-level `gates` field whose per-gate `status` is identical to `adv_gate_status` for every gate. No second read/re-fetch required. *(Regression test: red → green.)* | pass | Non-release gate cache freshness red→green test in gate.test.ts; 63 gate tests passing. After planning gate completion, store.changes.get returns fresh gates. |
+| AC2 | acceptance_criterion | [ ] **AC2 — Snapshot ↔ top-level consistency.** In a single `adv_change_show` response that includes `snapshot: true`, the gate statuses rendered in `_contextSnapshot` match the top-level `gates` field for every gate. | pass | Snapshot ↔ top-level parity test in change.test.ts; after discovery gate completion, _contextSnapshot gate markers match top-level gates for every gate. |
+| AC3 | acceptance_criterion | [ ] **AC3 — Terminal classification.** A change whose authoritative gate store shows all gates done (or status `archived`) is classified as terminal by downstream projection consumers (worktree delete/cleanup). No false `change_not_terminal` / `INTEGRATION_REQUIRED` for a genuinely archived + merged change. | pass | Archived all-gates-done terminal classification test in worktree/index-delete.test.ts; worktree delete classifies archived change as terminal. |
+| AC4 | acceptance_criterion | [ ] **AC4 — Graceful degradation.** When the authoritative gate source is unavailable (Temporal query fails / worker unreachable), `adv_change_show` does not throw — it falls back to the best-available projection (existing disk/temporal_query_fallback behavior) and the response indicates the degradation. | pass | Read path unchanged; gate-status-fail-closed tests green in 292-test regression sweep. Existing TemporalReadContext + disk fallback handles degradation. |
+| AC5 | acceptance_criterion | [ ] **AC5 — No workflow mutations.** The change-show read path makes zero Temporal signals, zero workflow writes, zero store mutations. Verified by test (no signal spies fire during a show call). | pass | store.changes.invalidate is in gate-complete WRITE path only (gate.ts:1186, 1958). adv_change_show source unchanged — no signals or writes added to the read path. |
+| AC6 | acceptance_criterion | [ ] **AC6 — Poisoned-history fallback preserved.** The existing poisoned-history / completed-workflow disk-projection fallback in the gate read path is not broken (existing `gate-status-fail-closed` / poisoned-recovery tests remain green). | pass | Poisoned-history/fail-closed tests green in regression sweep. No changes to read-failure classification. |
+| SC1 | success_criterion | An operator/agent never sees `adv_change_show` report a gate as `stuck`/`pending` when `adv_gate_status` reports it `done`, in any session, after any gate completes. | pass | Cache invalidated after every gate completion (both paths) — no stale stuck/pending projection possible. |
+| SC2 | success_criterion | Post-archive worktree cleanup succeeds for a genuinely archived + merged change without manual repair or re-fetch. | pass | AC3 test proves worktree delete succeeds for archived change without manual repair. |
+| SC3 | success_criterion | No `adv-temporal-repair` diagnosis is triggered by a false stale-projection again. | pass | Root cause fixed at the signal-fire path; the re-poisoned cache that triggered adv-temporal-repair is eliminated. |
+| DONT1 | avoidance | Do NOT change the authoritative gate store, the live workflow signal mechanism (`getGateStatusQuery`), or the gate reducers in `change-state.ts`. | respected | Authoritative gate store, workflow signal mechanism (getGateStatusQuery), and gate reducers in change-state.ts unchanged. |
+| DONT2 | avoidance | Do NOT refactor the broader directive / phase-plan derivation pipeline beyond what gate-projection consistency requires. | respected | Directive/phase-plan derivation pipeline unchanged. |
+| DONT3 | avoidance | Do NOT add material read latency without graceful degradation. | respected | temporal_query_fallback / poisoned-history disk-projection path unchanged. |
+| DONT4 | avoidance | Do NOT break the `temporal_query_fallback` / poisoned-history disk-projection path. | respected | No material read latency added; invalidate is in write path only, read path unchanged. |
+
