@@ -423,6 +423,55 @@
       ]
     },
     {
+      "id": "rq-approvedPrAutoMerge01",
+      "title": "Approved Same-Change PRs Arm Squash Auto-Merge Immediately",
+      "body": "When a user explicitly grants merge authority for the current ADV change and requested end-state, ADV MUST retain that authority for matching same-change remediation PRs and MUST immediately arm GitHub squash auto-merge after each matching PR is pushed or created. Authority is bound to changeId, repository, change/<changeId> head branch, resolved default base branch, and requested end-state; push-only permission, generic gate approval, and unrelated PRs do not authorize merge. ADV MUST run `gh pr merge <number> --repo <owner/repo> --squash --auto`, re-read the OPEN PR, and require `autoMergeRequest.enabledAt` before reporting auto-merge armed. After remediation it MUST push, re-read PR identity/state, re-arm, verify, and resume adv-ci-waiter. CI green is nonterminal until PR state is MERGED or canonical default-branch reachability is proven. Authority ends on revocation, stop/cancel, identity drift, unrelated scope, terminal completion, or requested-end-state completion. Tier-B archive sign-off remains unchanged. The auto-merge command MUST NOT include `--delete-branch` or `-d`; cleanup remains post-merge.",
+      "priority": "must",
+      "tags": ["workflow", "approval", "git", "auto-merge"],
+      "scenarios": [
+        {
+          "id": "rq-approvedPrAutoMerge01.1",
+          "title": "Explicit merge authority arms matching PR immediately",
+          "given": [
+            "The user explicitly authorizes merge for the current change and requested end-state",
+            "An OPEN PR has the current repository, change/<changeId> head, and resolved default base"
+          ],
+          "when": "The change branch is pushed or the matching PR is created",
+          "then": [
+            "ADV immediately runs `gh pr merge <number> --repo <owner/repo> --squash --auto` without waiting for CI green or asking again",
+            "ADV verifies the PR remains OPEN and `autoMergeRequest.enabledAt` is present",
+            "ADV starts adv-ci-waiter and requires MERGED proof before completion"
+          ]
+        },
+        {
+          "id": "rq-approvedPrAutoMerge01.2",
+          "title": "Remediation re-arms same-change PR",
+          "given": [
+            "Durable merge authority remains valid",
+            "CI failure or merge conflict requires an in-scope remediation push"
+          ],
+          "when": "The remediation branch update is pushed",
+          "then": [
+            "ADV re-reads PR number, repository, head, base, and state before mutation",
+            "ADV arms or re-arms squash auto-merge and verifies `autoMergeRequest.enabledAt`",
+            "ADV resumes adv-ci-waiter instead of requesting merge approval again"
+          ]
+        },
+        {
+          "id": "rq-approvedPrAutoMerge01.3",
+          "title": "Authority invalidation fails closed",
+          "given": ["Merge authority was previously granted for a change"],
+          "when": "The user revokes authority, stops or cancels, identity drifts, scope becomes unrelated, or the requested end-state completes",
+          "then": [
+            "ADV does not arm or merge the PR under stale authority",
+            "Push-only or generic gate approval is not treated as merge authority",
+            "Tier-B archive sign-off remains whitelist-only",
+            "No auto-merge command uses `--delete-branch` or `-d`"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-releaseFinalization01",
       "title": "Archive Finalization Requires Origin or PR Merge Proof",
       "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:\"skip\"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or `Merged locally.` for `no_remote`), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.",

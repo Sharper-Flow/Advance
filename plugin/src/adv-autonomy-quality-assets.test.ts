@@ -50,6 +50,34 @@ describe("Human checkpoint and auto-continue policy", () => {
     expect(content).toMatch(/Doom-loop recovery/);
     expect(content).toMatch(/Post-approval auto-continue/);
   });
+
+  test("explicit merge authority immediately arms same-change squash auto-merge", () => {
+    const agent = readAsset(join(AGENT_DIR, "adv.md"));
+    const spec = readAsset(
+      join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json"),
+    );
+
+    expect(agent).toMatch(/PR Merge Authority/);
+    expect(agent).toMatch(/explicit user grant to merge/i);
+    expect(agent).toMatch(/push-only[^.\n]*does not authorize/i);
+    expect(agent).toMatch(
+      /changeId[^.\n]*repository[^.\n]*change\/<changeId>[^.\n]*default base/i,
+    );
+    expect(agent).toContain(
+      "gh pr merge <number> --repo <owner/repo> --squash --auto",
+    );
+    expect(agent).toMatch(/autoMergeRequest\.enabledAt/);
+    expect(agent).toMatch(/fix in worktree[^\n]*push[^\n]*re-read[^\n]*arm/i);
+    expect(agent).toMatch(/state == `MERGED`|state == MERGED/);
+    expect(agent).toMatch(/revocation[^.\n]*stop\/cancel[^.\n]*drift/i);
+    expect(agent).toMatch(/Tier-B archive sign-off[^.\n]*unchanged/i);
+    expect(agent).toMatch(/never[^.\n]*(--delete-branch|-d)/i);
+
+    expect(spec).toContain("rq-approvedPrAutoMerge01");
+    expect(spec).toMatch(/same-change[^\n]*auto-merge/i);
+    expect(spec).toMatch(/autoMergeRequest\.enabledAt/);
+    expect(spec).toMatch(/--delete-branch/);
+  });
 });
 
 // =============================================================================
