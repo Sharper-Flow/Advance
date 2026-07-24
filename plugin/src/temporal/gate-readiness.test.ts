@@ -559,47 +559,6 @@ describe("gate readiness", () => {
     );
   });
 
-  it("allows an acceptance review matrix row for an optional out-of-scope item", () => {
-    const contract = passingContract();
-    contract.items.push({
-      id: "AC_OOS",
-      kind: "out_of_scope",
-      text: "This work is intentionally out of scope.",
-      sourceArtifact: "agreement",
-      verificationRequired: false,
-      evidencePolicy: "test",
-      status: "approved",
-    });
-    contract.reviewMatrix!.rows.push({
-      ...contract.reviewMatrix!.rows[0],
-      contractId: "AC_OOS",
-      kind: "out_of_scope",
-    });
-
-    const result = evaluateGateReadiness(
-      makeState({
-        gates: acceptanceReadyGates(),
-        projectionChangesDir: "/tmp/changes",
-        contract,
-        artifacts: {
-          executiveSummary: {
-            path: "/tmp/changes/change-1/executive-summary.md",
-            updatedAt: "2026-05-20T00:00:00.000Z",
-            contentHash: "a".repeat(64),
-          },
-        },
-      }),
-      "acceptance",
-    );
-
-    expect(result.ready).toBe(true);
-    expect(result.blockers).not.toContainEqual(
-      expect.objectContaining({
-        code: "ACCEPTANCE_REVIEW_MATRIX_INVALID",
-      }),
-    );
-  });
-
   it("fails closed when an acceptance review matrix includes an unknown row", () => {
     const contract = passingContract();
     contract.reviewMatrix!.rows.push({

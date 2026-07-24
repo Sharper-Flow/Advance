@@ -1037,7 +1037,6 @@ function validateReviewMatrixRowCoverage(
     (item) => item.verificationRequired !== false,
   );
   const expectedIds = new Set(expectedItems.map((item) => item.id));
-  const allContractIds = new Set(contract.items.map((item) => item.id));
   const seen = new Set<string>();
   const duplicates: string[] = [];
   for (const row of contract.reviewMatrix.rows) {
@@ -1049,9 +1048,11 @@ function validateReviewMatrixRowCoverage(
       seen.add(row.contractId);
     }
   }
-  const missing = [...expectedIds].filter((id) => !seen.has(id));
+  const missing = expectedItems
+    .filter((item) => !seen.has(item.id))
+    .map((item) => item.id);
   const unknown = contract.reviewMatrix.rows
-    .filter((row) => !allContractIds.has(row.contractId))
+    .filter((row) => !expectedIds.has(row.contractId))
     .map((row) => row.contractId);
 
   if (duplicates.length > 0 || missing.length > 0 || unknown.length > 0) {
