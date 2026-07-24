@@ -190,17 +190,22 @@ describe("adv-engineer assets", () => {
     }
   });
 
-  test("Working Directory Lock section pins morph_edit workdir+taskId pair", () => {
+  test("Working Directory Lock section honestly describes morph_edit confinement and routes worktree edits to edit/write", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const wdSection =
       content.split("## Working Directory Lock")[1]?.split("## ")[0] ?? "";
-    // Regression guard: deployment must never regress to workdir-only Morph
-    // calls — the directive must state BOTH tokens, tied to morph_edit.
-    expect(wdSection).toContain("`workdir: WORKING DIRECTORY`");
-    expect(wdSection).toContain("`taskId: TASK`");
-    expect(wdSection).toContain(
-      "For `morph_edit`, pass both `workdir: WORKING DIRECTORY` and `taskId: TASK`",
+    // Truth guard (replaces a false-wording pin). morph_edit confines files to
+    // the session repo root (context.worktree ?? context.directory) and cannot
+    // reach ADV per-change worktrees today — the global capability ADV attaches
+    // is consumed by nothing until the morph-side Part B lands. The directive
+    // must NOT claim ADV authorizes morph_edit for external worktree roots;
+    // worktree edits route to edit/write with an immediate fallback.
+    expect(wdSection).not.toContain(
+      "ADV authorizes this pair before Morph can use the external root",
     );
+    expect(wdSection).toContain("`morph_edit`");
+    expect(wdSection).toContain("`edit`/`write`");
+    expect(wdSection).toContain("fall back to `edit`/`write`");
   });
 
   test("Scope Lock section mentions WORKING DIRECTORY", () => {

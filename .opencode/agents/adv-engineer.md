@@ -105,7 +105,7 @@ If the Apply or remediation Context Packet omits `TASK` or `ATTEMPT`, return a s
 
 Every tool call you make MUST target the working directory specified in the Apply Context Packet. This is how the orchestrator ensures your file operations land in the correct location (typically a per-change worktree, NOT the default project root).
 
-**Directive:** Extract `WORKING DIRECTORY` from the Apply Context Packet. Pass it as `workdir` to `bash`, `read`, `write`, `edit`, and `adv_run_test`. For `morph_edit`, pass both `workdir: WORKING DIRECTORY` and `taskId: TASK`; ADV authorizes this pair before Morph can use the external root.
+**Directive:** Extract `WORKING DIRECTORY` from the Apply Context Packet. Pass it as `workdir` to `bash`, `read`, `write`, `edit`, and `adv_run_test`. For `morph_edit`: it confines files to the session repo root (`context.worktree ?? context.directory`) and cannot reach ADV per-change worktrees today. For ADV-worktree edits, use `edit`/`write` with the worktree path. You may pass `workdir`+`taskId` to `morph_edit` only when editing inside the session repo (the ADV capability path); if `morph_edit` rejects a worktree path, fall back to `edit`/`write` immediately — do not retry `morph_edit`.
 
 **If WORKING DIRECTORY is missing or empty:** Refuse to begin work. Return a structured packet-defect failure to the orchestrator with `packet_defect: missing WORKING DIRECTORY`. Do NOT call `question` and do NOT ask the user for packet identity values.
 
