@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-24T17:49:56.138Z",
+  "capabilities": [],
+  "change_hash": "b4312ec7df965cc1df6f65cfc5bbd55e78742247c21a56de82c51f631422e8f0",
+  "change_id": "fixArchiveMissingWorkflow",
+  "completed_tasks": 2,
+  "created_at": "2026-07-24T02:54:53.024Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-24T04:35:05.529Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "8ed76232f32a1be442e469eab0d8fa3bba287e7a8fd64a6d1bd1c1b98fa23563",
+  "task_count": 2,
+  "title": "Fix archive missing-workflow recovery",
+  "version": "1"
+}
