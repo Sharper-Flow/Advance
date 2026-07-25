@@ -940,7 +940,9 @@ import {
 } from "../temporal/gate-readiness";
 import {
   isRequiredOpsFollowupLink,
+  overlayOpsResolutionsForRead,
   reconcileOpsFollowupLinks,
+  resolveRequiredOpsLinks,
 } from "./ops-followup-reconciliation";
 import {
   detectArchiveMode,
@@ -3578,9 +3580,11 @@ export const changeTools = {
         }
         // Reconcile required ops follow-up resolutions from authoritative child
         // state before any archive authority decision. Skip when reading from a
-        // completed/poisoned workflow disk projection (signaling is unavailable)
-        // or during dryRun (no writes). The blocker check still runs on the
-        // current projection so unresolved required links remain fail-closed.
+        // completed/poisoned workflow disk projection (signaling is unavailable);
+        // otherwise dryRun derives an ephemeral non-aliasing overlay so the
+        // blocker/obligation check uses fresh child proof, while wet runs signal
+        // the resolution and re-read the parent. Unresolved required links
+        // remain fail-closed in both modes.
         const hasRequiredOpsFollowup = change.ops_followup_links?.some(
           isRequiredOpsFollowupLink,
         );
@@ -3593,13 +3597,21 @@ export const changeTools = {
             code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
           });
         }
-        if (!readFromDisk && !dryRun) {
+        if (!readFromDisk && hasRequiredOpsFollowup) {
           try {
-            const reconciled = await reconcileOpsFollowupLinks({
-              parent: change,
-              store,
-            });
-            change = reconciled.parent;
+            if (dryRun) {
+              const { resolutionByLinkId } = await resolveRequiredOpsLinks({
+                parent: change,
+                store,
+              });
+              change = overlayOpsResolutionsForRead(change, resolutionByLinkId);
+            } else {
+              const reconciled = await reconcileOpsFollowupLinks({
+                parent: change,
+                store,
+              });
+              change = reconciled.parent;
+            }
           } catch (error) {
             logger.warn(
               `Archive ops follow-up reconciliation failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
