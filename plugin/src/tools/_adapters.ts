@@ -40,6 +40,18 @@ import {
   type TemporalMutationOutcome,
   type TemporalWorkflowDiagnostic,
 } from "../temporal/mutation-safety";
+import {
+  type AdvSessionNotReady,
+  type AdvSessionNotReadyRetryHint,
+  type ClassifiedAdvEnvelope,
+  createAdvSessionNotReadyEnvelope,
+  isAdvSessionNotReady,
+} from "../temporal/readiness-types";
+export type {
+  AdvSessionNotReady,
+  AdvSessionNotReadyRetryHint,
+  ClassifiedAdvEnvelope,
+} from "../temporal/readiness-types";
 
 // Temporal signal processing + projection can take several seconds under load.
 // 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
