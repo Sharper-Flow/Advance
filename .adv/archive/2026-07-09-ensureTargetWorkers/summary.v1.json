@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-25T19:31:19.305Z",
+  "capabilities": [],
+  "change_hash": "d4243ca1c390b07f7dd52d30f418aa04f607d02eef8cce9ca83c4358bd9403f3",
+  "change_id": "ensureTargetWorkers",
+  "completed_tasks": 5,
+  "created_at": "2026-07-09T00:52:23.753Z",
+  "current_gate": "done",
+  "last_activity_at": "2026-07-09T18:15:04.819Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "ba2adc66610b1b3d02e7bfb09cfb68c69775bf8b6eaf2a7bbd677cad41b4b648",
+  "task_count": 5,
+  "title": "Ensure target workers",
+  "version": "1"
+}

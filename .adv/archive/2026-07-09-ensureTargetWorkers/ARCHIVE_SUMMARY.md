@@ -1,7 +1,7 @@
 # Archive: Ensure target workers
 
 **Change ID:** ensureTargetWorkers
-**Archived:** 2026-07-09T18:12:06.684Z
+**Archived:** 2026-07-25T19:31:19.982Z
 **Created:** 2026-07-09T00:52:23.753Z
 
 ## Tasks Completed

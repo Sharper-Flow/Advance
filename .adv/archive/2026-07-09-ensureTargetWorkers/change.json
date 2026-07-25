@@ -13,10 +13,15 @@
       "status": "done",
       "priority": 0,
       "created_at": "2026-07-09T02:26:21.128Z",
-      "metadata": {
-        "tdd_intent": "not_applicable",
-        "delegation_hint": "delegate_allowed"
-      },
+      "started_at": "2026-07-09T02:31:22.858Z",
+      "completed_at": "2026-07-09T02:43:43.066Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Static spec/docs verification passed via adv_run_test tr_mrcwfwki_d0234feb: parsed all .adv/specs/*/spec.json and confirmed rq-targetWorkerLifecycle01/rq-targetReadAuthority01 exist in JSON and docs mirrors. Checkpoint commit already present: 84b097cc chore(adv): checkpoint tk-f2e442d10c5e.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "84b097ccee57208ae15ae97cdb547c7dcaf77cc8",
+      "completedAt": "2026-07-09T02:43:43.066Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC9"
@@ -43,8 +48,11 @@
         ]
       },
       "evidence_policy": "static_check",
-      "assignedTo": "agent",
-      "started_at": "2026-07-09T02:31:22.858Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [],
       "subagent_reports": [
         {
           "schema_version": "1.0",
@@ -103,15 +111,7 @@
             }
           ]
         }
-      ],
-      "verification": "Static spec/docs verification passed via adv_run_test tr_mrcwfwki_d0234feb: parsed all .adv/specs/*/spec.json and confirmed rq-targetWorkerLifecycle01/rq-targetReadAuthority01 exist in JSON and docs mirrors. Checkpoint commit already present: 84b097cc chore(adv): checkpoint tk-f2e442d10c5e.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [],
-      "touched_files": [],
-      "checkpointSha": "84b097ccee57208ae15ae97cdb547c7dcaf77cc8",
-      "completedAt": "2026-07-09T02:43:43.066Z",
-      "completed_at": "2026-07-09T02:43:43.066Z"
+      ]
     },
     {
       "id": "tk-8c167525833f",
@@ -120,17 +120,29 @@
       "section": "Worker lifecycle",
       "status": "done",
       "priority": 1,
-      "created_at": "2026-07-09T02:26:34.315Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-f2e442d10c5e"
         }
       ],
-      "metadata": {
-        "tdd_intent": "inline",
-        "delegation_hint": "delegate_allowed"
-      },
+      "created_at": "2026-07-09T02:26:34.315Z",
+      "started_at": "2026-07-09T02:44:03.689Z",
+      "completed_at": "2026-07-09T03:10:59.970Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "adv_run_test tr_mrcxj7xq_f514fe72: pnpm run check passed. adv_run_test tr_mrcxi9po_735a8b5b: 8 targeted Vitest files passed, 284 tests.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "docs/specs/advance-meta.md",
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "4b9fe28566f70e6424ee82c94a94676fb5aa4a12",
+      "completedAt": "2026-07-09T03:10:59.970Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC1",
@@ -165,8 +177,18 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-09T02:44:03.689Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        "docs/specs/advance-meta.md",
+        "plugin/src/tool-registry.surface.test.ts",
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts",
+        "plugin/src/utils/tool-arg-preflight.test.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
       "subagent_reports": [
         {
           "schema_version": "1.0",
@@ -240,29 +262,7 @@
             }
           ]
         }
-      ],
-      "verification": "adv_run_test tr_mrcxj7xq_f514fe72: pnpm run check passed. adv_run_test tr_mrcxi9po_735a8b5b: 8 targeted Vitest files passed, 284 tests.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        "docs/specs/advance-meta.md",
-        "plugin/src/tool-registry.surface.test.ts",
-        "plugin/src/tools/temporal-ops.test.ts",
-        "plugin/src/tools/temporal-ops.ts",
-        "plugin/src/utils/tool-arg-preflight.test.ts",
-        "plugin/src/utils/tool-arg-preflight.ts"
-      ],
-      "touched_files": [
-        "docs/specs/advance-meta.md",
-        "plugin/src/tool-registry.surface.test.ts",
-        "plugin/src/tools/temporal-ops.test.ts",
-        "plugin/src/tools/temporal-ops.ts",
-        "plugin/src/utils/tool-arg-preflight.test.ts",
-        "plugin/src/utils/tool-arg-preflight.ts"
-      ],
-      "checkpointSha": "4b9fe28566f70e6424ee82c94a94676fb5aa4a12",
-      "completedAt": "2026-07-09T03:10:59.970Z",
-      "completed_at": "2026-07-09T03:10:59.970Z"
+      ]
     },
     {
       "id": "tk-1fa6281f46f2",
@@ -271,17 +271,25 @@
       "section": "Worker lifecycle",
       "status": "done",
       "priority": 2,
-      "created_at": "2026-07-09T02:26:47.442Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-8c167525833f"
         }
       ],
-      "metadata": {
-        "tdd_intent": "inline",
-        "delegation_hint": "delegate_allowed"
-      },
+      "created_at": "2026-07-09T02:26:47.442Z",
+      "started_at": "2026-07-09T03:11:16.662Z",
+      "completed_at": "2026-07-09T03:42:42.570Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "adv_run_test tr_mrcyncx1_dfe73344: pnpm test src/tools/temporal-ops.test.ts passed (19 tests). adv_run_test tr_mrcyo1ba_2230681d: pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
+      "checkpointSha": "c1dc4acc93be2f31a0a08f5023a6334e9a47b88f",
+      "completedAt": "2026-07-09T03:42:42.570Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC1",
@@ -316,8 +324,14 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-09T03:11:16.662Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        "plugin/src/tools/temporal-ops.test.ts",
+        "plugin/src/tools/temporal-ops.ts"
+      ],
       "subagent_reports": [
         {
           "schema_version": "1.0",
@@ -387,21 +401,7 @@
             }
           ]
         }
-      ],
-      "verification": "adv_run_test tr_mrcyncx1_dfe73344: pnpm test src/tools/temporal-ops.test.ts passed (19 tests). adv_run_test tr_mrcyo1ba_2230681d: pnpm run check passed.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        "plugin/src/tools/temporal-ops.test.ts",
-        "plugin/src/tools/temporal-ops.ts"
-      ],
-      "touched_files": [
-        "plugin/src/tools/temporal-ops.test.ts",
-        "plugin/src/tools/temporal-ops.ts"
-      ],
-      "checkpointSha": "c1dc4acc93be2f31a0a08f5023a6334e9a47b88f",
-      "completedAt": "2026-07-09T03:42:42.570Z",
-      "completed_at": "2026-07-09T03:42:42.570Z"
+      ]
     },
     {
       "id": "tk-c9f5748f51e1",
@@ -410,17 +410,25 @@
       "section": "Read authority",
       "status": "done",
       "priority": 3,
-      "created_at": "2026-07-09T02:27:00.104Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-f2e442d10c5e"
         }
       ],
-      "metadata": {
-        "tdd_intent": "inline",
-        "delegation_hint": "delegate_allowed"
-      },
+      "created_at": "2026-07-09T02:27:00.104Z",
+      "started_at": "2026-07-09T03:43:11.333Z",
+      "completed_at": "2026-07-09T04:02:26.091Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "adv_run_test tr_mrczcpyw_02e3132a: bin/oc-test targeted -- src/tools/target-project.test.ts passed (22 tests). adv_run_test tr_mrczddps_6e92f443: pnpm run check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
+      "checkpointSha": "fc8562c3ec6e7033fffb09c89c7cd848e93c3205",
+      "completedAt": "2026-07-09T04:02:26.091Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC5",
@@ -445,8 +453,14 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-09T03:43:11.333Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        "plugin/src/tools/target-project.test.ts",
+        "plugin/src/tools/target-project.ts"
+      ],
       "subagent_reports": [
         {
           "schema_version": "1.0",
@@ -506,21 +520,7 @@
             }
           ]
         }
-      ],
-      "verification": "adv_run_test tr_mrczcpyw_02e3132a: bin/oc-test targeted -- src/tools/target-project.test.ts passed (22 tests). adv_run_test tr_mrczddps_6e92f443: pnpm run check passed.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        "plugin/src/tools/target-project.test.ts",
-        "plugin/src/tools/target-project.ts"
-      ],
-      "touched_files": [
-        "plugin/src/tools/target-project.test.ts",
-        "plugin/src/tools/target-project.ts"
-      ],
-      "checkpointSha": "fc8562c3ec6e7033fffb09c89c7cd848e93c3205",
-      "completedAt": "2026-07-09T04:02:26.091Z",
-      "completed_at": "2026-07-09T04:02:26.091Z"
+      ]
     },
     {
       "id": "tk-19fb26d78e5a",
@@ -529,7 +529,6 @@
       "section": "Verification",
       "status": "done",
       "priority": 4,
-      "created_at": "2026-07-09T02:27:13.103Z",
       "deps": [
         {
           "type": "blocked_by",
@@ -540,10 +539,16 @@
           "target": "tk-c9f5748f51e1"
         }
       ],
-      "metadata": {
-        "tdd_intent": "separate_verification",
-        "delegation_hint": "inline_required"
-      },
+      "created_at": "2026-07-09T02:27:13.103Z",
+      "started_at": "2026-07-09T04:02:55.453Z",
+      "completed_at": "2026-07-09T04:04:21.835Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Final verification passed: adv_run_test tr_mrczefv2_026bf20e (9 targeted files, 312 tests), tr_mrczf9sq_2b4f1434 (pnpm run check), tr_mrczfrni_686f2467 (pnpm run build). Git worktree clean before checkpoint.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "fc8562c3ec6e7033fffb09c89c7cd848e93c3205",
+      "completedAt": "2026-07-09T04:04:21.835Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "verifies": [
           "SC1",
@@ -578,16 +583,11 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-09T04:02:55.453Z",
-      "verification": "Final verification passed: adv_run_test tr_mrczefv2_026bf20e (9 targeted files, 312 tests), tr_mrczf9sq_2b4f1434 (pnpm run check), tr_mrczfrni_686f2467 (pnpm run build). Git worktree clean before checkpoint.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [],
-      "touched_files": [],
-      "checkpointSha": "fc8562c3ec6e7033fffb09c89c7cd848e93c3205",
-      "completedAt": "2026-07-09T04:04:21.835Z",
-      "completed_at": "2026-07-09T04:04:21.835Z"
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "touched_files": []
     }
   ],
   "subagent_reports": [
@@ -1215,13 +1215,10 @@
       }
     },
     "release": {
-      "status": "pending"
+      "status": "done",
+      "completed_at": "2026-07-09T18:15:04.819Z",
+      "completed_by": "adv"
     }
-  },
-  "reentry_history": [],
-  "origin": {
-    "kind": "roadmap",
-    "issue_number": 205
   },
   "contract": {
     "version": 1,
@@ -1507,7 +1504,6 @@
         "notRequiredReason": "Out-of-scope contract item"
       }
     ],
-    "amendments": [],
     "reviewMatrix": {
       "reviewedAt": "2026-07-09T04:35:41.858Z",
       "rows": [
@@ -1701,7 +1697,8 @@
           "evidence": "No frontend/browser UI changes."
         }
       ]
-    }
+    },
+    "amendments": []
   },
   "acceptanceCriteria": [
     "Given `adv_temporal_worker_restart` is called with a trusted `target_path`, when the target worker can be started or registered, the response returns `success:true`, the target `projectId`, expected queue `advance-<targetProjectId>`, fresh serviceability evidence, and `_projectContext` for the target project.",
@@ -1754,7 +1751,19 @@
       "readable": false
     }
   },
-  "lastSignalAt": "2026-07-09T04:39:41.253Z",
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-09T18:15:18.045Z",
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 205
+  },
   "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
-  "worktree_auto_managed": true
+  "worktree_auto_managed": true,
+  "phase9_status": {
+    "status": "failed",
+    "startedAt": "2026-07-09T18:12:06.734Z",
+    "completedAt": "2026-07-09T18:12:45.552Z",
+    "error": "Unexpected error while making gRPC request"
+  }
 }
