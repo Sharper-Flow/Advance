@@ -54,6 +54,7 @@ import type {
   GateStuckSignalPayload,
   OpsEvidenceAppendedSignalPayload,
   OpsFollowupLinkAddedSignalPayload,
+  OpsFollowupResolutionUpsertedSignalPayload,
   OpsFollowupSeededSignalPayload,
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
@@ -331,6 +332,9 @@ export const opsFollowupSeededSignal = wf.defineSignal<
 export const opsFollowupLinkAddedSignal = wf.defineSignal<
   [OpsFollowupLinkAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupLinkAdded);
+export const opsFollowupResolutionUpsertedSignal = wf.defineSignal<
+  [OpsFollowupResolutionUpsertedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupResolutionUpserted);
 export const opsEvidenceAppendedSignal = wf.defineSignal<
   [OpsEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);

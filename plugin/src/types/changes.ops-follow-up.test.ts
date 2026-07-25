@@ -9,6 +9,7 @@ import {
   OpsRunSchema,
   OpsFollowupLinkSchema,
   OpsFollowupProfileSchema,
+  OpsFollowupResolutionSchema,
   OpsFollowupSourceSchema,
 } from "./changes";
 
@@ -174,6 +175,45 @@ describe("ops follow-up schemas", () => {
             next_status: "complete",
           },
         ],
+      }),
+    ).toThrow();
+  });
+
+  it("parses an outbound ops follow-up link with bounded resolution provenance", () => {
+    const result = OpsFollowupLinkSchema.parse({
+      id: "ofl-1",
+      changeId: "child-1",
+      relationship: "blocks",
+      status: "running",
+      linked_at: timestamp,
+      resolution: {
+        status: "complete",
+        verified_at: "2026-06-20T04:05:00.000Z",
+        child_updated_at: "2026-06-20T04:04:00.000Z",
+        resolution_reason: "verified",
+        source: "child_profile",
+        completion_signal: "deploy finished",
+        health_verification: "smoke passed",
+        rollback_or_cleanup_disposition: "no rollback needed",
+        evidence_summary: "child profile shows complete",
+      },
+    });
+
+    expect(result.resolution).toMatchObject({
+      status: "complete",
+      child_updated_at: "2026-06-20T04:04:00.000Z",
+      resolution_reason: "verified",
+      source: "child_profile",
+    });
+  });
+
+  it("rejects an unknown resolution_reason", () => {
+    expect(() =>
+      OpsFollowupResolutionSchema.parse({
+        status: "complete",
+        verified_at: timestamp,
+        resolution_reason: "unknown_reason",
+        source: "child_profile",
       }),
     ).toThrow();
   });

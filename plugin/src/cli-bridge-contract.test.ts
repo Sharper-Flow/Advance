@@ -159,6 +159,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_followup_promote",
       "adv_report_followup_promote",
       "adv_ops_evidence_add",
+      "adv_ops_followup_resolution_upsert",
       "adv_ops_run_upsert",
       "adv_ops_run_evidence_add",
       "adv_contract_mint",

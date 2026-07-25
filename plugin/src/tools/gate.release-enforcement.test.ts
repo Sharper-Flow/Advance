@@ -8,7 +8,13 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { gateTools } from "./gate";
 import type { Store } from "../storage/store";
-import type { Change, Gates, OpsFollowupLink } from "../types";
+import type {
+  Change,
+  Gates,
+  OpsFollowupLink,
+  OpsFollowupProfile,
+} from "../types";
+import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 
 const mocks = vi.hoisted(() => {
   const handleMock = { signal: vi.fn(), query: vi.fn() };
@@ -109,6 +115,7 @@ function createMockStore(overrides?: {
   archiveMode?: string;
   autoPush?: boolean;
   ops_followup_links?: OpsFollowupLink[];
+  children?: Record<string, Change>;
 }): Store {
   const gates = releaseReadyGates();
   const change: Change = {
@@ -142,7 +149,10 @@ function createMockStore(overrides?: {
     specs: {} as Store["specs"],
     changes: {
       list: vi.fn(),
-      get: vi.fn(async () => ({ success: true, data: change })),
+      get: vi.fn(async (id: string) => {
+        if (id === change.id) return { success: true, data: change };
+        return { success: true, data: overrides?.children?.[id] ?? null };
+      }),
       create: vi.fn(),
       save: vi.fn(),
       updateArtifacts: vi.fn(),
@@ -158,6 +168,34 @@ function createMockStore(overrides?: {
   } as unknown as Store;
 }
 
+function makeOpsFollowupProfile(
+  overrides?: Partial<OpsFollowupProfile>,
+): OpsFollowupProfile {
+  return {
+    kind: "migration",
+    source: { source_change_id: "example", source_kind: "required_follow_up" },
+    relationship: "blocks",
+    status: "running",
+    created_at: "2026-01-01T00:00:00Z",
+    evidence: [],
+    runs: [],
+    ...overrides,
+  };
+}
+
+function makeChildChange(
+  changeId: string,
+  profile: OpsFollowupProfile,
+): Change {
+  return {
+    id: changeId,
+    title: "Child change",
+    status: "active",
+    created_at: "2026-01-01T00:00:00Z",
+    ops_followup: profile,
+  } as Change;
+}
+
 describe("release gate trunk-merge enforcement", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -168,6 +206,20 @@ describe("release gate trunk-merge enforcement", () => {
       route: "direct",
       repo: "Sharper-Flow/Advance",
     });
+    mocks.fireSignalAndRefresh.mockImplementation(
+      async (_handle, sigStore, changeId, signal, payload) => {
+        if (signal !== opsFollowupResolutionUpsertedSignal) return;
+        const result = await sigStore.changes.get(changeId);
+        const parent = result.data as Change | undefined;
+        const link = parent?.ops_followup_links?.find(
+          (l) => l.id === (payload as { linkId?: string }).linkId,
+        );
+        if (link) {
+          link.resolution = (payload as { resolution: unknown })
+            .resolution as NonNullable<OpsFollowupLink["resolution"]>;
+        }
+      },
+    );
     mocks.resolveReleaseReachability.mockReturnValue({
       reachable: false,
       proof: "origin_unmerged",
@@ -432,7 +484,7 @@ describe("release gate trunk-merge enforcement", () => {
         gateId: "release",
       }),
     );
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
   });
 
   test("blocks release completion when required_handoff follow-up is incomplete", async () => {
@@ -490,28 +542,207 @@ describe("release gate trunk-merge enforcement", () => {
         gateId: "release",
       }),
     );
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
   });
 
-  test("allows release completion in pr mode when merged PR proof exists", async () => {
-    mocks.detectArchiveMode.mockReturnValueOnce({
-      archiveMode: "pr",
-      autoPush: true,
+  test("allows release completion when reconciliation resolves a completed blocking ops follow-up", async () => {
+    mocks.verifyChangeBranchReachable.mockReturnValueOnce({
+      reachable: true,
+      unmergedCommits: [],
+    });
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
+      pushed: true,
     });
     mocks.resolveReleaseReachability.mockReturnValueOnce({
       reachable: true,
-      proof: "pr_merged",
-      prNumber: 202,
-      mergeCommitOid: "merge-202",
+      proof: "origin_default",
+    });
+
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "not_started",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({
+            status: "complete",
+            completion_signal: "deploy finished",
+            evidence: [
+              {
+                id: "ore-1",
+                recorded_at: "2026-01-01T01:00:00Z",
+                step_kind: "execute",
+                env: "prod",
+                run_id: "run-1",
+                status: "complete",
+                summary: "Deployment completed",
+                next_status: "complete",
+                completion_signal: "deploy finished",
+                health_verification: "smoke passed",
+                rollback_or_cleanup_disposition: "no rollback needed",
+              },
+            ],
+          }),
+        ),
+      },
     });
 
     const result = await gateTools.adv_gate_complete.execute(
       { changeId: "example", gateId: "release", completedBy: "user:signoff" },
-      createMockStore({ archiveMode: "pr" }),
+      store,
     );
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      expect.anything(),
+      store,
+      "example",
+      opsFollowupResolutionUpsertedSignal,
+      expect.objectContaining({
+        linkId: "ofl-1",
+        resolution: expect.objectContaining({
+          source: "child_profile",
+          status: "complete",
+        }),
+      }),
+    );
+  });
+
+  test("blocks release completion when reconciliation leaves blocking ops follow-up incomplete", async () => {
+    mocks.verifyChangeBranchReachable.mockReturnValueOnce({
+      reachable: true,
+      unmergedCommits: [],
+    });
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({
+      pushed: true,
+    });
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "origin_default",
+    });
+    mocks.querySignal.mockReset();
+    mocks.querySignal.mockResolvedValueOnce(releaseReadyGates());
+    mocks.querySignal.mockResolvedValueOnce({
+      status: "stuck",
+      stuck_reason: "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+      readiness_blockers: [
+        {
+          code: "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+          gateId: "release",
+          message: "Blocking ops follow-up is incomplete",
+          remediation: "Complete the blocking ops follow-up before releasing",
+        },
+      ],
+    });
+
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "not_started",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({ status: "running" }),
+        ),
+      },
+    });
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "example", gateId: "release", completedBy: "user:signoff" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toContain("workflow readiness blocked");
+    expect(parsed.readinessBlockers).toContainEqual(
+      expect.objectContaining({
+        code: "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+        gateId: "release",
+      }),
+    );
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      expect.anything(),
+      store,
+      "example",
+      opsFollowupResolutionUpsertedSignal,
+      expect.objectContaining({
+        linkId: "ofl-1",
+        resolution: expect.objectContaining({
+          source: "child_profile",
+          status: "running",
+        }),
+      }),
+    );
+  });
+
+  test("fails closed when a required ops resolution cannot be reconciled", async () => {
+    mocks.verifyChangeBranchReachable.mockReturnValueOnce({
+      reachable: true,
+      unmergedCommits: [],
+    });
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({ pushed: true });
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "origin_default",
+    });
+    mocks.fireSignalAndRefresh.mockImplementation(
+      async (_handle, _store, _changeId, signal) => {
+        if (signal === opsFollowupResolutionUpsertedSignal) {
+          throw new Error("Temporal service unavailable");
+        }
+      },
+    );
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "complete",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
+          resolution: {
+            status: "complete",
+            source: "child_profile",
+            resolution_reason: "verified",
+            verified_at: "2026-01-01T01:00:00Z",
+            completion_signal: "deploy finished",
+            health_verification: "smoke passed",
+            rollback_or_cleanup_disposition: "no rollback needed",
+          },
+        },
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({ status: "complete" }),
+        ),
+      },
+    });
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "example", gateId: "release", completedBy: "user:signoff" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.code).toBe("OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE");
+    expect(parsed.error).toContain("Cannot verify required ops follow-up");
   });
 });

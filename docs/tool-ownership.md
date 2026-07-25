@@ -158,6 +158,7 @@ class rather than operator-only.
 | Tool | Class | Notes |
 |---|---|---|
 | `adv_ops_evidence_add` | orchestrator | Ops follow-up evidence append |
+| `adv_ops_followup_resolution_upsert` | orchestrator | Typed parent-link resolution upsert from authoritative child-state reconciliation |
 | `adv_ops_run_upsert` | orchestrator | Ops runbook run upsert |
 | `adv_ops_run_evidence_add` | orchestrator | Run-step evidence append; prod execute steps approval-gated |
 

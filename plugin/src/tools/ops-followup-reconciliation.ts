@@ -1,0 +1,469 @@
+/**
+ * Host reconciliation for ops follow-up link resolutions.
+ *
+ * Reads the authoritative child ops_followup profile through Temporal-backed
+ * state only and projects a fresh child_profile resolution onto the parent
+ * outbound link. No workflow-side reads; all routing and persistence happens in
+ * the host tool layer.
+ */
+import type {
+  Change,
+  OpsFollowupLink,
+  OpsFollowupProfile,
+  OpsFollowupResolution,
+  OpsFollowupResolutionReason,
+  OpsRelationship,
+} from "../types";
+import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
+import {
+  withTargetPathStore,
+  type TargetStoreScope,
+  type WithTargetPathStoreInput,
+} from "./target-project";
+import { getProjectId } from "../utils/project-id";
+import { getService } from "../temporal/service";
+import type { Store } from "../storage/store";
+
+const HANDOFF_RELATIONSHIPS: OpsRelationship[] = [
+  "follows_release",
+  "monitors",
+  "cleanup_after",
+];
+const COMPLETE_OPS_STATUSES: OpsFollowupResolution["status"][] = ["complete"];
+
+export interface ReconcileOpsFollowupResolutionInput {
+  link: OpsFollowupLink;
+  childProfile: OpsFollowupProfile;
+  /** ISO timestamp used as the verified_at boundary. Defaults to now. */
+  now?: string;
+}
+
+export interface ReconcileOpsFollowupResolutionResult {
+  linkId: string;
+  resolution: OpsFollowupResolution;
+}
+
+export interface ReconcileOpsFollowupLinksDeps {
+  withTargetPathStore?: typeof withTargetPathStore;
+  getProjectId?: typeof getProjectId;
+  fireSignalAndRefresh?: typeof fireSignalAndRefresh;
+  getChangeHandle?: typeof getChangeHandle;
+  getService?: typeof getService;
+  now?: () => string;
+}
+
+export interface ReconcileOpsFollowupLinksInput {
+  parent: Change;
+  store: Store;
+  deps?: ReconcileOpsFollowupLinksDeps;
+}
+
+export interface ReconcileOpsFollowupLinksResult {
+  /** Parent change re-read after any persistence. */
+  parent: Change;
+  /** Links for which a resolution was derived and (if changed) persisted. */
+  reconciled: ReconcileOpsFollowupResolutionResult[];
+  /** Links that were not required obligations and were skipped. */
+  skipped: string[];
+}
+
+export function isRequiredOpsFollowupLink(link: OpsFollowupLink): boolean {
+  if (link.relationship === "blocks") return true;
+  return (
+    HANDOFF_RELATIONSHIPS.includes(link.relationship) && link.required_handoff
+  );
+}
+
+interface ProofFields {
+  completionSignal?: string;
+  healthVerification?: string;
+  rollbackOrCleanupDisposition?: string;
+}
+
+interface EvidenceEntry {
+  recorded_at: string;
+  summary?: string;
+  completion_signal?: string;
+  health_verification?: string;
+  rollback_or_cleanup_disposition?: string;
+}
+
+function gatherEvidenceEntries(profile: OpsFollowupProfile): EvidenceEntry[] {
+  const entries: EvidenceEntry[] = [...(profile.evidence ?? [])];
+  for (const run of profile.runs ?? []) {
+    entries.push(...(run.evidence ?? []));
+  }
+  return entries.sort((a, b) => a.recorded_at.localeCompare(b.recorded_at));
+}
+
+function latestProofFields(profile: OpsFollowupProfile): ProofFields {
+  const entries = gatherEvidenceEntries(profile);
+  let completionSignal: string | undefined = profile.completion_signal;
+  let healthVerification: string | undefined;
+  let rollbackOrCleanupDisposition: string | undefined;
+  for (const entry of entries) {
+    if (entry.completion_signal) completionSignal = entry.completion_signal;
+    if (entry.health_verification)
+      healthVerification = entry.health_verification;
+    if (entry.rollback_or_cleanup_disposition)
+      rollbackOrCleanupDisposition = entry.rollback_or_cleanup_disposition;
+  }
+  return { completionSignal, healthVerification, rollbackOrCleanupDisposition };
+}
+
+function evidenceSummary(profile: OpsFollowupProfile): string | undefined {
+  const entries = gatherEvidenceEntries(profile);
+  if (entries.length === 0) {
+    return profile.completion_signal
+      ? `completed: ${profile.completion_signal}`
+      : undefined;
+  }
+  const latest = entries[entries.length - 1];
+  return latest.summary ?? profile.completion_signal ?? undefined;
+}
+
+export function deriveOpsFollowupResolution(
+  _link: OpsFollowupLink,
+  childProfile: OpsFollowupProfile,
+  now: string,
+): OpsFollowupResolution {
+  const proof = latestProofFields(childProfile);
+  const summary = evidenceSummary(childProfile);
+  const resolution: OpsFollowupResolution = {
+    status: childProfile.status,
+    verified_at: now,
+    source: "child_profile",
+    resolution_reason: "verified",
+    ...(childProfile.updated_at
+      ? { child_updated_at: childProfile.updated_at }
+      : {}),
+    ...(proof.completionSignal
+      ? { completion_signal: proof.completionSignal }
+      : {}),
+    ...(proof.healthVerification
+      ? { health_verification: proof.healthVerification }
+      : {}),
+    ...(proof.rollbackOrCleanupDisposition
+      ? {
+          rollback_or_cleanup_disposition: proof.rollbackOrCleanupDisposition,
+        }
+      : {}),
+    ...(summary ? { evidence_summary: summary } : {}),
+  };
+  return resolution;
+}
+
+type UnreachableReason =
+  | "child_missing"
+  | "profile_missing"
+  | "target_identity_mismatch"
+  | "unreachable";
+
+function makeUnreachableResolution(
+  link: OpsFollowupLink,
+  now: string,
+  reason: UnreachableReason,
+  error: string,
+): OpsFollowupResolution {
+  const status = COMPLETE_OPS_STATUSES.includes(link.status)
+    ? "not_started"
+    : link.status;
+  return {
+    status,
+    verified_at: now,
+    source: "unreachable",
+    resolution_reason: reason as OpsFollowupResolutionReason,
+    error,
+  };
+}
+
+type ChildReadResult =
+  | { ok: true; profile: OpsFollowupProfile }
+  | { ok: false; reason: UnreachableReason; error: string };
+
+type CrossProjectReadResult =
+  | { type: "mismatch"; projectId: string }
+  | {
+      type: "child";
+      projectId: string;
+      childResult: Awaited<ReturnType<Store["changes"]["get"]>>;
+    };
+
+async function readCrossProjectChild(input: {
+  link: OpsFollowupLink;
+  store: Store;
+  withTargetPathFn: typeof withTargetPathStore;
+}): Promise<ChildReadResult> {
+  const { link, store, withTargetPathFn } = input;
+  try {
+    const result = await withTargetPathFn(
+      {
+        currentProjectPath: store.paths.root,
+        target_path: link.target_path,
+        stateRequirement: "temporal-required",
+        target_confirmed: true,
+        confirmationEvidence: "ops follow-up reconciliation",
+      } as WithTargetPathStoreInput,
+      async (scope: TargetStoreScope): Promise<CrossProjectReadResult> => {
+        if (
+          link.target_project_id &&
+          scope.context.projectId !== link.target_project_id
+        ) {
+          return { type: "mismatch", projectId: scope.context.projectId };
+        }
+        await scope.store.changes.refresh(link.changeId);
+        const childResult = await scope.store.changes.get(link.changeId);
+        return {
+          type: "child",
+          projectId: scope.context.projectId,
+          childResult,
+        };
+      },
+    );
+
+    if (result.type === "mismatch") {
+      return {
+        ok: false,
+        reason: "target_identity_mismatch",
+        error: `target_project_id mismatch: expected ${link.target_project_id}, got ${result.projectId}`,
+      };
+    }
+
+    const { childResult } = result;
+    if (!childResult.success) {
+      return {
+        ok: false,
+        reason: "child_missing",
+        error: childResult.error ?? `child change not found: ${link.changeId}`,
+      };
+    }
+    if (!childResult.data) {
+      return {
+        ok: false,
+        reason: "child_missing",
+        error: `child change not found: ${link.changeId}`,
+      };
+    }
+    if (!childResult.data.ops_followup) {
+      return {
+        ok: false,
+        reason: "profile_missing",
+        error: `child has no ops_followup profile: ${link.changeId}`,
+      };
+    }
+    return { ok: true, profile: childResult.data.ops_followup };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: "unreachable",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function readSameProjectChild(input: {
+  link: OpsFollowupLink;
+  store: Store;
+  getProjectIdFn: typeof getProjectId;
+}): Promise<ChildReadResult> {
+  const { link, store } = input;
+  try {
+    const canonicalProjectId = await input.getProjectIdFn(store.paths.root);
+    if (
+      link.target_project_id &&
+      canonicalProjectId &&
+      link.target_project_id !== canonicalProjectId
+    ) {
+      return {
+        ok: false,
+        reason: "target_identity_mismatch",
+        error: `target_project_id mismatch: expected ${link.target_project_id}, got ${canonicalProjectId}`,
+      };
+    }
+    await store.changes.refresh(link.changeId);
+    const childResult = await store.changes.get(link.changeId);
+    if (!childResult.success) {
+      return {
+        ok: false,
+        reason: "child_missing",
+        error: childResult.error ?? `child change not found: ${link.changeId}`,
+      };
+    }
+    if (!childResult.data) {
+      return {
+        ok: false,
+        reason: "child_missing",
+        error: `child change not found: ${link.changeId}`,
+      };
+    }
+    if (!childResult.data.ops_followup) {
+      return {
+        ok: false,
+        reason: "profile_missing",
+        error: `child has no ops_followup profile: ${link.changeId}`,
+      };
+    }
+    return { ok: true, profile: childResult.data.ops_followup };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: "unreachable",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function readAuthoritativeChildOpsProfile(input: {
+  link: OpsFollowupLink;
+  store: Store;
+  deps: ReconcileOpsFollowupLinksDeps;
+}): Promise<ChildReadResult> {
+  const { link, store } = input;
+  const getProjectIdFn = input.deps.getProjectId ?? getProjectId;
+  const withTargetPathFn =
+    input.deps.withTargetPathStore ?? withTargetPathStore;
+
+  if (link.target_path) {
+    return readCrossProjectChild({ link, store, withTargetPathFn });
+  }
+  return readSameProjectChild({ link, store, getProjectIdFn });
+}
+
+function resolutionsEqual(
+  a: OpsFollowupResolution | undefined,
+  b: OpsFollowupResolution | undefined,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.status === b.status &&
+    a.source === b.source &&
+    a.child_updated_at === b.child_updated_at &&
+    a.resolution_reason === b.resolution_reason &&
+    a.completion_signal === b.completion_signal &&
+    a.health_verification === b.health_verification &&
+    a.rollback_or_cleanup_disposition === b.rollback_or_cleanup_disposition &&
+    a.evidence_summary === b.evidence_summary &&
+    a.error === b.error
+  );
+}
+
+async function persistResolutionUpsert(input: {
+  store: Store;
+  changeId: string;
+  linkId: string;
+  resolution: OpsFollowupResolution;
+  upsertedAt: string;
+  deps: ReconcileOpsFollowupLinksDeps;
+}): Promise<void> {
+  const { store, changeId, linkId, resolution, upsertedAt, deps } = input;
+  const payload = { linkId, resolution, upsertedAt };
+
+  if (deps.fireSignalAndRefresh) {
+    await deps.fireSignalAndRefresh(
+      {} as unknown as WorkflowHandleLike,
+      store,
+      changeId,
+      opsFollowupResolutionUpsertedSignal,
+      payload,
+    );
+    return;
+  }
+
+  const getServiceFn = deps.getService ?? getService;
+  const getChangeHandleFn = deps.getChangeHandle ?? getChangeHandle;
+  const getProjectIdFn = deps.getProjectId ?? getProjectId;
+
+  const bundle = getServiceFn();
+  if (!bundle) {
+    throw new Error("Temporal service not available");
+  }
+  const projectId =
+    store.productContext?.productProjectId ??
+    (await getProjectIdFn(store.paths.root));
+  if (!projectId) {
+    throw new Error("Could not resolve project ID");
+  }
+  const handle = getChangeHandleFn(
+    bundle.client as unknown as {
+      workflow: { getHandle: (workflowId: string) => WorkflowHandleLike };
+    },
+    projectId,
+    changeId,
+  );
+  await fireSignalAndRefresh(
+    handle,
+    store,
+    changeId,
+    opsFollowupResolutionUpsertedSignal,
+    payload,
+  );
+}
+
+export async function reconcileOpsFollowupLinks(
+  input: ReconcileOpsFollowupLinksInput,
+): Promise<ReconcileOpsFollowupLinksResult> {
+  const { parent, store } = input;
+  const deps = input.deps ?? {};
+  const now = deps.now ? deps.now() : new Date().toISOString();
+  const reconciled: ReconcileOpsFollowupResolutionResult[] = [];
+  const skipped: string[] = [];
+
+  for (const link of parent.ops_followup_links ?? []) {
+    if (!isRequiredOpsFollowupLink(link)) {
+      skipped.push(link.id);
+      continue;
+    }
+
+    const readResult = await readAuthoritativeChildOpsProfile({
+      link,
+      store,
+      deps,
+    });
+    const resolution = readResult.ok
+      ? deriveOpsFollowupResolution(link, readResult.profile, now)
+      : makeUnreachableResolution(
+          link,
+          now,
+          readResult.reason,
+          readResult.error,
+        );
+
+    if (!resolutionsEqual(link.resolution, resolution)) {
+      await persistResolutionUpsert({
+        store,
+        changeId: parent.id,
+        linkId: link.id,
+        resolution,
+        upsertedAt: now,
+        deps,
+      });
+    }
+
+    reconciled.push({ linkId: link.id, resolution });
+  }
+
+  const refreshed = await store.changes.get(parent.id);
+  return {
+    parent: refreshed.success && refreshed.data ? refreshed.data : parent,
+    reconciled,
+    skipped,
+  };
+}
+
+/**
+ * Pure derivation helper for callers that only need to compute a resolution from
+ * an already-fetched child profile. Returns null for non-required links.
+ */
+export function reconcileOpsFollowupResolution(
+  input: ReconcileOpsFollowupResolutionInput,
+): OpsFollowupResolution | null {
+  if (!isRequiredOpsFollowupLink(input.link)) return null;
+  return deriveOpsFollowupResolution(
+    input.link,
+    input.childProfile,
+    input.now ?? new Date().toISOString(),
+  );
+}

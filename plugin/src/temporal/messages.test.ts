@@ -55,6 +55,7 @@ import {
   WorktreeSetupFailedSignalPayloadSchema,
   OpsEvidenceAppendedSignalPayloadSchema,
   OpsFollowupLinkAddedSignalPayloadSchema,
+  OpsFollowupResolutionUpsertedSignalPayloadSchema,
   OpsFollowupSeededSignalPayloadSchema,
   OpsRunEvidenceAppendedSignalPayloadSchema,
   OpsRunUpsertedSignalPayloadSchema,
@@ -113,6 +114,7 @@ const designSignalKeys = [
   "changeCancelled",
   "opsFollowupSeeded",
   "opsFollowupLinkAdded",
+  "opsFollowupResolutionUpserted",
   "opsEvidenceAppended",
   "opsRunUpserted",
   "opsRunEvidenceAppended",
@@ -138,11 +140,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 61 signal surface", () => {
+  it("defines the 62 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(61);
+    expect(surfacedKeys).toHaveLength(62);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -509,6 +511,23 @@ describe("change workflow message contract", () => {
             linked_at: timestamp,
           },
           addedAt: timestamp,
+        },
+      ],
+      [
+        OpsFollowupResolutionUpsertedSignalPayloadSchema,
+        {
+          linkId: "ofl-1",
+          resolution: {
+            status: "complete",
+            verified_at: timestamp,
+            child_updated_at: timestamp,
+            resolution_reason: "verified",
+            source: "child_profile",
+            completion_signal: "deploy finished",
+            health_verification: "smoke passed",
+            rollback_or_cleanup_disposition: "no rollback needed",
+          },
+          upsertedAt: timestamp,
         },
       ],
       [

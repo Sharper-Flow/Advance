@@ -12,6 +12,7 @@ import {
   getChangeStateQuery,
   opsEvidenceAppendedSignal,
   opsFollowupLinkAddedSignal,
+  opsFollowupResolutionUpsertedSignal,
   opsFollowupSeededSignal,
   opsRunEvidenceAppendedSignal,
   opsRunUpsertedSignal,
@@ -230,6 +231,66 @@ describe("changeWorkflow ops follow-up signal handlers", () => {
       expect(state.signal_rejections).toHaveLength(1);
       expect(state.signal_rejections?.[0]?.signalName).toBe(
         "opsEvidenceAppended",
+      );
+      expect(state.signal_rejections_total).toBe(1);
+    });
+  }, 30_000);
+
+  it("upserts resolution on an outbound ops follow-up link", async () => {
+    await withOpsSignalWorker("resolution-upsert", async (handle) => {
+      await handle.signal(opsFollowupLinkAddedSignal, {
+        link: {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "running",
+          linked_at: "2026-06-20T04:00:01.000Z",
+        },
+        addedAt: "2026-06-20T04:00:01.000Z",
+      });
+      await handle.signal(opsFollowupResolutionUpsertedSignal, {
+        linkId: "ofl-1",
+        resolution: {
+          status: "complete",
+          verified_at: "2026-06-20T04:05:00.000Z",
+          child_updated_at: "2026-06-20T04:04:00.000Z",
+          resolution_reason: "verified",
+          source: "child_profile",
+          completion_signal: "deploy finished",
+          health_verification: "smoke passed",
+          rollback_or_cleanup_disposition: "no rollback needed",
+        },
+        upsertedAt: "2026-06-20T04:05:00.000Z",
+      });
+
+      const state = await queryState(handle);
+      expect(state.ops_followup_links).toHaveLength(1);
+      expect(state.ops_followup_links?.[0]?.resolution).toMatchObject({
+        status: "complete",
+        resolution_reason: "verified",
+        completion_signal: "deploy finished",
+      });
+      expect(state.ops_followup_links?.[0]?.status).toBe("running");
+    });
+  }, 30_000);
+
+  it("rejects resolution upsert for unknown link id", async () => {
+    await withOpsSignalWorker("resolution-unknown-link", async (handle) => {
+      await handle.signal(opsFollowupResolutionUpsertedSignal, {
+        linkId: "missing",
+        resolution: {
+          status: "unreachable",
+          verified_at: "2026-06-20T04:01:00.000Z",
+          resolution_reason: "child_missing",
+          source: "unreachable",
+        },
+        upsertedAt: "2026-06-20T04:01:00.000Z",
+      });
+
+      const state = await queryState(handle);
+      expect(state.signal_rejections).toHaveLength(1);
+      expect(state.signal_rejections?.[0]?.signalName).toBe(
+        "opsFollowupResolutionUpserted",
       );
       expect(state.signal_rejections_total).toBe(1);
     });

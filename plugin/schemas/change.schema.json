@@ -3225,6 +3225,9 @@
           "resolution": {
             "additionalProperties": false,
             "properties": {
+              "child_updated_at": {
+                "type": "string"
+              },
               "completion_signal": {
                 "minLength": 1,
                 "type": "string"
@@ -3239,6 +3242,16 @@
               },
               "health_verification": {
                 "minLength": 1,
+                "type": "string"
+              },
+              "resolution_reason": {
+                "enum": [
+                  "verified",
+                  "child_missing",
+                  "profile_missing",
+                  "target_identity_mismatch",
+                  "unreachable"
+                ],
                 "type": "string"
               },
               "rollback_or_cleanup_disposition": {

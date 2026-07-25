@@ -629,6 +629,11 @@ export function createToolMap(
       "adv_ops_evidence_add",
       store,
     ),
+    adv_ops_followup_resolution_upsert: bindTool(
+      opsEvidenceTools.adv_ops_followup_resolution_upsert,
+      "adv_ops_followup_resolution_upsert",
+      store,
+    ),
     adv_ops_run_upsert: bindTool(
       opsEvidenceTools.adv_ops_run_upsert,
       "adv_ops_run_upsert",

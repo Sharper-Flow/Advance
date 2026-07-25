@@ -12,7 +12,13 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import { changeTools } from "./change";
 import { verifyReleaseGateDurableForArchive } from "./change/archive-gate";
 import type { Store } from "../storage/store";
-import type { Change, Gates, OpsFollowupLink } from "../types";
+import type {
+  Change,
+  Gates,
+  OpsFollowupLink,
+  OpsFollowupProfile,
+} from "../types";
+import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import * as storageJson from "../storage/json";
 
 const mocks = vi.hoisted(() => {
@@ -93,6 +99,7 @@ const mocks = vi.hoisted(() => {
     getArchiveContractProofErrors: vi.fn(() => []),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
+    fireSignalAndRefresh: vi.fn(async () => {}),
     getProjectId: vi.fn(() => Promise.resolve("test-project")),
     getService: vi.fn(() => ({
       client: {
@@ -169,6 +176,15 @@ vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
 }));
 
+vi.mock("./_adapters", async () => {
+  const actual =
+    await vi.importActual<typeof import("./_adapters")>("./_adapters");
+  return {
+    ...actual,
+    fireSignalAndRefresh: mocks.fireSignalAndRefresh,
+  };
+});
+
 vi.mock("./_recovery-writers", () => ({
   saveRecoveredGateCompletion: mocks.saveRecoveredGateCompletion,
 }));
@@ -180,6 +196,7 @@ function createMockStore(
     phase9_status?: Change["phase9_status"];
     durableReleasePending?: boolean;
     ops_followup_links?: OpsFollowupLink[];
+    children?: Record<string, Change>;
     epicMembership?: NonNullable<Change["epic_membership"]>;
   } = {},
 ): Store {
@@ -236,7 +253,10 @@ function createMockStore(
     } as unknown as Store["specs"],
     changes: {
       list: vi.fn(async () => ({ changes: [] })),
-      get: vi.fn(async () => ({ success: true, data: change })),
+      get: vi.fn(async (id: string) => {
+        if (id === change.id) return { success: true, data: change };
+        return { success: true, data: options.children?.[id] ?? null };
+      }),
       create: vi.fn(),
       save: vi.fn(),
       updateArtifacts: vi.fn(),
@@ -276,6 +296,34 @@ function createMockStore(
   } as unknown as Store;
 }
 
+function makeOpsFollowupProfile(
+  overrides?: Partial<OpsFollowupProfile>,
+): OpsFollowupProfile {
+  return {
+    kind: "migration",
+    source: { source_change_id: "example", source_kind: "required_follow_up" },
+    relationship: "blocks",
+    status: "running",
+    created_at: "2026-01-01T00:00:00Z",
+    evidence: [],
+    runs: [],
+    ...overrides,
+  };
+}
+
+function makeChildChange(
+  changeId: string,
+  profile: OpsFollowupProfile,
+): Change {
+  return {
+    id: changeId,
+    title: "Child change",
+    status: "active",
+    created_at: "2026-01-01T00:00:00Z",
+    ops_followup: profile,
+  } as Change;
+}
+
 describe("adv_change_archive Phase 9 behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -307,6 +355,23 @@ describe("adv_change_archive Phase 9 behavior", () => {
       route: "direct",
       repo: "Sharper-Flow/Advance",
     });
+    mocks.fireSignalAndRefresh.mockImplementation(
+      async (handle, sigStore, changeId, signal, payload) => {
+        if (signal === opsFollowupResolutionUpsertedSignal) {
+          const result = await sigStore.changes.get(changeId);
+          const parent = result.data as Change | undefined;
+          const link = parent?.ops_followup_links?.find(
+            (l) => l.id === (payload as { linkId?: string }).linkId,
+          );
+          if (link) {
+            link.resolution = (payload as { resolution: unknown })
+              .resolution as NonNullable<OpsFollowupLink["resolution"]>;
+          }
+          return;
+        }
+        await handle.signal(signal, payload);
+      },
+    );
     mocks.resolveReleaseReachability.mockReturnValue({
       reachable: true,
       proof: "origin_default",
@@ -393,7 +458,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(epicOrder).toBeGreaterThan(saveOrder);
   });
 
-  test("surfaces open ops follow-up obligations in archive output", async () => {
+  test("blocks archive when required blocking ops follow-up remains unresolved after reconciliation", async () => {
     const store = createMockStore({
       ops_followup_links: [
         {
@@ -404,27 +469,142 @@ describe("adv_change_archive Phase 9 behavior", () => {
           required_handoff: false,
           linked_at: "2026-01-01T00:00:00Z",
         },
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({ status: "running" }),
+        ),
+      },
+    });
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.readinessBlockers).toContainEqual(
+      expect.objectContaining({
+        code: "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+        gateId: "release",
+        linkId: "ofl-1",
+      }),
+    );
+    expect(parsed.openOpsObligations).toBeDefined();
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+  });
+
+  test("fails closed when required ops reconciliation cannot replace stale proof", async () => {
+    mocks.fireSignalAndRefresh.mockImplementation(
+      async (_handle, _store, _changeId, signal) => {
+        if (signal === opsFollowupResolutionUpsertedSignal) {
+          throw new Error("Temporal service unavailable");
+        }
+      },
+    );
+    const store = createMockStore({
+      ops_followup_links: [
         {
-          id: "ofl-2",
-          changeId: "child-2",
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "complete",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
+          resolution: {
+            status: "complete",
+            source: "child_profile",
+            resolution_reason: "verified",
+            verified_at: "2026-01-01T01:00:00Z",
+            completion_signal: "deploy finished",
+            health_verification: "smoke passed",
+            rollback_or_cleanup_disposition: "no rollback needed",
+          },
+        },
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({ status: "complete" }),
+        ),
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE");
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+  });
+
+  test("blocks archive when required handoff ops follow-up remains unresolved after reconciliation", async () => {
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
           relationship: "follows_release",
           status: "not_started",
           required_handoff: true,
           linked_at: "2026-01-01T00:00:00Z",
         },
-        {
-          id: "ofl-3",
-          changeId: "child-3",
-          relationship: "cleanup_after",
-          status: "complete",
-          required_handoff: true,
-          linked_at: "2026-01-01T00:00:00Z",
-          resolution: {
-            source: "unreachable",
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({
             status: "complete",
-            verified_at: "2026-01-01T01:00:00Z",
-            error: "child workflow unavailable",
-          },
+            completion_signal: "deploy finished",
+            evidence: [
+              {
+                id: "ore-1",
+                recorded_at: "2026-01-01T01:00:00Z",
+                step_kind: "execute",
+                env: "prod",
+                run_id: "run-1",
+                status: "complete",
+                summary: "Deployment completed",
+                next_status: "complete",
+                completion_signal: "deploy finished",
+              },
+            ],
+          }),
+        ),
+      },
+    });
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.readinessBlockers).toContainEqual(
+      expect.objectContaining({
+        code: "OPS_FOLLOWUP_COMPLETION_PROOF_INCOMPLETE",
+        gateId: "release",
+        linkId: "ofl-1",
+      }),
+    );
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("reports non-required ops follow-up obligations as report-only and completes archive", async () => {
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "follows_release",
+          status: "not_started",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
         },
       ],
     });
@@ -435,35 +615,15 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(parsed.openOpsObligations).toHaveLength(3);
+    expect(parsed.openOpsObligations).toHaveLength(1);
     expect(parsed.openOpsObligations).toContainEqual(
       expect.objectContaining({
         linkId: "ofl-1",
         changeId: "child-1",
-        relationship: "blocks",
-        open: true,
-      }),
-    );
-    expect(parsed.openOpsObligations).toContainEqual(
-      expect.objectContaining({
-        linkId: "ofl-2",
-        changeId: "child-2",
         relationship: "follows_release",
-        required_handoff: true,
+        required_handoff: false,
         status_source: "parent_snapshot",
         completion_proof: "unverified",
-        open: true,
-      }),
-    );
-    expect(parsed.openOpsObligations).toContainEqual(
-      expect.objectContaining({
-        linkId: "ofl-3",
-        changeId: "child-3",
-        relationship: "cleanup_after",
-        status: "complete",
-        status_source: "unreachable",
-        completion_proof: "unreachable",
-        resolution_error: "child workflow unavailable",
         open: true,
       }),
     );

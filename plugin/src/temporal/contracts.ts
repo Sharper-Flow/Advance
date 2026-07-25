@@ -126,6 +126,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   changeCancelled: "adv.change.changeCancelled",
   opsFollowupSeeded: "adv.change.opsFollowupSeeded",
   opsFollowupLinkAdded: "adv.change.opsFollowupLinkAdded",
+  opsFollowupResolutionUpserted: "adv.change.opsFollowupResolutionUpserted",
   opsEvidenceAppended: "adv.change.opsEvidenceAppended",
   opsRunUpserted: "adv.change.opsRunUpserted",
   opsRunEvidenceAppended: "adv.change.opsRunEvidenceAppended",

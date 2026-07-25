@@ -398,6 +398,20 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     next_step: { blank: "omit" },
     completion_signal: { blank: "omit" },
   },
+  adv_ops_followup_resolution_upsert: {
+    changeId: { blank: "reject" },
+    linkId: { blank: "reject" },
+    status: { blank: "reject" },
+    verifiedAt: { blank: "reject" },
+    resolutionReason: { blank: "reject" },
+    source: { blank: "reject" },
+    childUpdatedAt: { blank: "omit" },
+    completionSignal: { blank: "omit" },
+    healthVerification: { blank: "omit" },
+    rollbackOrCleanupDisposition: { blank: "omit" },
+    evidenceSummary: { blank: "omit" },
+    error: { blank: "omit" },
+  },
   // tk-2b89b9cf3042: verified top-level strict-mode placeholder policy groups.
   // Zero omission for the positive-int optionals
   // (adv_change_repair_origin.origin_issue_number above); blank omission for

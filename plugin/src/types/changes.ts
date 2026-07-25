@@ -645,9 +645,22 @@ export type OpsFollowupProfile = z.infer<typeof OpsFollowupProfileSchema>;
  * the child/source-of-truth profile. This is not a standalone source of truth;
  * it is a bounded release/archive readiness proof.
  */
+export const OpsFollowupResolutionReasonSchema = z.enum([
+  "verified",
+  "child_missing",
+  "profile_missing",
+  "target_identity_mismatch",
+  "unreachable",
+]);
+export type OpsFollowupResolutionReason = z.infer<
+  typeof OpsFollowupResolutionReasonSchema
+>;
+
 export const OpsFollowupResolutionSchema = z.object({
   status: OpsFollowupStatusSchema,
   verified_at: z.string(),
+  child_updated_at: z.string().optional(),
+  resolution_reason: OpsFollowupResolutionReasonSchema.optional(),
   source: z.enum(["child_profile", "unreachable"]),
   completion_signal: z.string().min(1).optional(),
   health_verification: z.string().min(1).optional(),
