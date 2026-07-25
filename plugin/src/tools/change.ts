@@ -104,7 +104,10 @@ import {
   computeShippedTerminalProof,
   type ShippedTerminalProofResult,
 } from "./change/recovery";
-import { logRecoveryProbeDiagnostics } from "./recovery-probe";
+import {
+  logRecoveryProbeDiagnostics,
+  shouldTakeRecoveryBranch,
+} from "./recovery-probe";
 import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { reconcileRecoveredGates } from "./gate";
 import {
@@ -2585,6 +2588,19 @@ export const changeTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .default("normal")
+        .describe(
+          "Recovery mode. 'poisoned_history' allows the operator to supply precise recovery evidence to skip the workflow describe precheck and fall through to the disk projection on signal failure.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Operator-supplied precise recovery evidence (e.g. TMPRL1100, WorkflowNotFoundError, WorkflowExecutionAlreadyCompleted). Required when recoveryMode is 'poisoned_history'.",
+        ),
     },
     execute: async (
       {
@@ -2597,6 +2613,8 @@ export const changeTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
       }: {
         changeId: string;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -2607,6 +2625,8 @@ export const changeTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
@@ -2668,6 +2688,68 @@ export const changeTools = {
           supersededBy,
           cancelledAt: new Date().toISOString(),
         };
+        // Operator-supplied recovery branch (fixPoisonedClosePathPrecheck):
+        // when the operator has provided precise poisoned-history evidence,
+        // skip the describe() precheck (which can fail on Terminated/zombie
+        // workflows), attempt the signal, and fall back to the disk projection
+        // if the signal fails.
+        if (
+          shouldTakeRecoveryBranch({
+            recoveryMode,
+            recoveryEvidence,
+            approvedByUser: _approvedByUser,
+            approvalEvidence,
+          })
+        ) {
+          try {
+            await fireSignalAndRefresh(
+              handle,
+              activeStore,
+              changeId,
+              changeCancelledSignal,
+              buildChangeClosePayload(closeInput),
+            );
+            let cleanupWarning: string | undefined;
+            if (activeStore.paths?.changes) {
+              try {
+                await removeChangeDir(activeStore.paths.changes, changeId);
+              } catch (err) {
+                cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
+              }
+            }
+            return formatToolOutput({
+              success: true,
+              changeId,
+              message: cleanupWarning
+                ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
+                : `Closed change ${changeId} as ${reason}.`,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          } catch {
+            const { saveRecoveredChangeStatus } =
+              await import("./_recovery-writers");
+            const { buildChangeClosure } = await import("./change/recovery");
+            await saveRecoveredChangeStatus({
+              store: activeStore,
+              change: result.data,
+              authorization: {
+                reason: "poisoned_history",
+                evidence: recoveryEvidence as string,
+              },
+              status: "closed",
+              closure: buildChangeClosure(closeInput),
+            });
+            return formatToolOutput({
+              success: true,
+              _recoveryMutation: true,
+              diskProjectionRetained: true,
+              changeId,
+              reason,
+              message: `Closed change ${changeId} as ${reason} via operator-supplied poisoned-history recovery branch. Retained closed disk projection for stale-visibility reconciliation.`,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+        }
         // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
         // probe describe() to auto-detect poisoned/completed workflows without
         // operator-supplied recoveryMode/evidence ceremony.
@@ -2842,6 +2924,19 @@ export const changeTools = {
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .default("normal")
+        .describe(
+          "Recovery mode. 'poisoned_history' allows the operator to supply precise recovery evidence to skip the per-change workflow describe precheck and fall through to the disk projection on signal failure.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Operator-supplied precise recovery evidence (e.g. TMPRL1100, WorkflowNotFoundError, WorkflowExecutionAlreadyCompleted). Required when recoveryMode is 'poisoned_history'.",
+        ),
     },
     execute: async (
       {
@@ -2854,6 +2949,8 @@ export const changeTools = {
         target_path,
         target_confirmed,
         confirmationEvidence,
+        recoveryMode,
+        recoveryEvidence,
       }: {
         selector: import("../types").BulkCloseSelector;
         reason: "cancelled" | "superseded" | "not_planned";
@@ -2864,6 +2961,8 @@ export const changeTools = {
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
@@ -2953,6 +3052,61 @@ export const changeTools = {
                 supersededBy,
                 cancelledAt: new Date().toISOString(),
               };
+              // Operator-supplied recovery branch (fixPoisonedClosePathPrecheck):
+              // when the operator has provided precise poisoned-history evidence,
+              // skip the per-change describe() precheck and attempt the signal.
+              if (
+                shouldTakeRecoveryBranch({
+                  recoveryMode,
+                  recoveryEvidence,
+                  approvedByUser: _approvedByUser,
+                  approvalEvidence,
+                })
+              ) {
+                try {
+                  await fireSignalAndRefresh(
+                    handle,
+                    activeStore,
+                    id,
+                    changeCancelledSignal,
+                    buildChangeClosePayload(closeInput),
+                  );
+                  results.push({ changeId: id, success: true });
+                  closed++;
+                  continue;
+                } catch (err) {
+                  const existing = await activeStore.changes.get(id);
+                  if (existing.success && existing.data) {
+                    const { saveRecoveredChangeStatus } =
+                      await import("./_recovery-writers");
+                    const { buildChangeClosure } =
+                      await import("./change/recovery");
+                    await saveRecoveredChangeStatus({
+                      store: activeStore,
+                      change: existing.data,
+                      authorization: {
+                        reason: "poisoned_history",
+                        evidence: recoveryEvidence as string,
+                      },
+                      status: "closed",
+                      closure: buildChangeClosure(closeInput),
+                    });
+                    results.push({
+                      changeId: id,
+                      success: true,
+                      recovered: true,
+                    });
+                    closed++;
+                    continue;
+                  }
+                  results.push({
+                    changeId: id,
+                    success: false,
+                    error: err instanceof Error ? err.message : String(err),
+                  });
+                  continue;
+                }
+              }
               // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
               // probe describe() per change to auto-detect poisoned/completed
               // workflows without operator-supplied recoveryMode/evidence ceremony.
@@ -4518,6 +4672,19 @@ export const changeTools = {
         .describe(
           "Preview the eligibility + pin assessment (describe is performed) without terminating the run or refreshing the projection cache.",
         ),
+      recoveryMode: z
+        .enum(["normal", "poisoned_history"])
+        .optional()
+        .default("normal")
+        .describe(
+          "Recovery mode. 'poisoned_history' allows the operator to supply precise recovery evidence to skip the workflow describe precheck and terminate via the unpinned handle, falling through to the disk projection on signal failure.",
+        ),
+      recoveryEvidence: z
+        .string()
+        .optional()
+        .describe(
+          "Operator-supplied precise recovery evidence (e.g. TMPRL1100, WorkflowNotFoundError, WorkflowExecutionAlreadyCompleted). Required when recoveryMode is 'poisoned_history'.",
+        ),
     },
     execute: async (
       {
@@ -4525,11 +4692,15 @@ export const changeTools = {
         approvedByUser,
         approvalEvidence,
         dryRun,
+        recoveryMode,
+        recoveryEvidence,
       }: {
         changeId: string;
         approvedByUser: true;
         approvalEvidence: string;
         dryRun?: boolean;
+        recoveryMode?: "normal" | "poisoned_history";
+        recoveryEvidence?: string;
       },
       store: Store,
     ) => {
@@ -4631,6 +4802,56 @@ export const changeTools = {
       };
       const { isWorkflowCompletedError } =
         await import("../temporal/recovery-classification");
+
+      // Operator-supplied poisoned-history recovery branch
+      // (fixPoisonedClosePathPrecheck): skip the describe() precheck when the
+      // operator has provided precise recovery evidence. This only applies to
+      // the poisoned_history eligibility class; shipped_terminal proof is unchanged.
+      if (
+        shouldTakeRecoveryBranch({
+          recoveryMode,
+          recoveryEvidence,
+          approvedByUser,
+          approvalEvidence,
+        })
+      ) {
+        if (dryRun) {
+          return formatToolOutput({
+            success: true,
+            dryRun: true,
+            wouldTerminate: true,
+            changeId,
+            eligibilityClass: "poisoned_history",
+            message: `Would terminate change ${changeId} via operator-supplied poisoned-history recovery branch (describe skipped).`,
+          });
+        }
+        let alreadyTerminated = false;
+        try {
+          await (
+            handle as unknown as {
+              terminate: (reason?: string) => Promise<unknown>;
+            }
+          ).terminate(
+            `adv_change_workflow_terminate: operator-approved termination of poisoned_history shipped change workflow ${changeId} (unpinned recovery branch)`,
+          );
+        } catch (error) {
+          if (isWorkflowCompletedError(error)) {
+            alreadyTerminated = true;
+          }
+          // Non-completed errors are treated as an unreachable wedged workflow
+          // because the operator provided precise recovery evidence; fall
+          // through to the disk-projection refresh.
+        }
+        await refreshProjectionCache();
+        return formatToolOutput({
+          success: true,
+          changeId,
+          workflowTerminated: true,
+          ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
+          eligibilityClass: "poisoned_history",
+          message: `Terminated change ${changeId} workflow via operator-supplied poisoned-history recovery branch (describe skipped). Disk projection remains authoritative; subsequent reads fall through to disk.`,
+        });
+      }
 
       let description: unknown;
       let describeThrewCompleted = false;

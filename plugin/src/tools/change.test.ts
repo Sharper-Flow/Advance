@@ -3157,6 +3157,52 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     });
 
+    test("poisoned_history recovery branch skips precheck describe and succeeds via disk projection when signal fails", async () => {
+      const store = createMockStore();
+      (
+        mocks.handleMock as typeof mocks.handleMock & {
+          describe: ReturnType<typeof vi.fn>;
+        }
+      ).describe = vi.fn(async () => {
+        throw new Error("Failed to query Workflow ServiceError");
+      });
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to query Workflow ServiceError"),
+      );
+
+      const result = await changeTools.adv_change_close.execute(
+        {
+          changeId: "test-change",
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "test",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        } as Parameters<typeof changeTools.adv_change_close.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed._recoveryMutation).toBe(true);
+      expect(mocks.handleMock.describe).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
+        expect.objectContaining({
+          store,
+          change: expect.objectContaining({ id: "test-change" }),
+          status: "closed",
+          authorization: expect.objectContaining({
+            reason: "poisoned_history",
+            evidence:
+              "WorkflowNotFoundError: workflow execution already completed",
+          }),
+        }),
+      );
+      expect(mocks.removeChangeDir).not.toHaveBeenCalled();
+    });
+
     describe("target_path routing", () => {
       test("routes target close through target store with temporal-required and confirmation fields", async () => {
         const store = createMockStore();
@@ -3606,6 +3652,74 @@ describe("change tools — signal-driven lifecycle", () => {
         ["chg-2"],
         store.paths.changes,
       );
+    });
+
+    test("poisoned_history recovery branch skips per-change precheck and recovers all ids on signal failure", async () => {
+      const store = createMockStore();
+      store.changes.list = vi.fn(async () => ({
+        changes: [
+          { id: "chg-1", title: "Change 1", status: "draft" },
+          { id: "chg-2", title: "Change 2", status: "draft" },
+        ],
+      }));
+      store.changes.get = vi.fn(async (id: string) => ({
+        success: true,
+        data: {
+          id,
+          title: `Change ${id}`,
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+        } as import("../types").Change,
+      }));
+      (
+        mocks.handleMock as typeof mocks.handleMock & {
+          describe: ReturnType<typeof vi.fn>;
+        }
+      ).describe = vi.fn(async () => {
+        throw new Error("Failed to query Workflow ServiceError");
+      });
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to query Workflow ServiceError"),
+      );
+      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+        new Error("Failed to query Workflow ServiceError"),
+      );
+
+      const result = await changeTools.adv_change_bulk_close.execute(
+        {
+          selector: { kind: "explicit", changeIds: ["chg-1", "chg-2"] },
+          reason: "not_planned",
+          approvedByUser: true,
+          approvalEvidence: "user approved poisoned bulk close",
+          recoveryMode: "poisoned_history",
+          recoveryEvidence:
+            "WorkflowNotFoundError: workflow execution already completed",
+        } as Parameters<typeof changeTools.adv_change_bulk_close.execute>[0],
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.closed).toBe(2);
+      expect(parsed.results).toHaveLength(2);
+      expect(parsed.results[0]).toMatchObject({
+        changeId: "chg-1",
+        success: true,
+        recovered: true,
+      });
+      expect(parsed.results[1]).toMatchObject({
+        changeId: "chg-2",
+        success: true,
+        recovered: true,
+      });
+      expect(mocks.handleMock.describe).not.toHaveBeenCalled();
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
+      expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledTimes(2);
+      expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
     });
 
     describe("target_path routing", () => {
