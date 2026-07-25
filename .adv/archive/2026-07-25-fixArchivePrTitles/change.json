@@ -1,0 +1,2354 @@
+{
+  "id": "fixArchivePrTitles",
+  "title": "Fix archive PR titles",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-25T15:24:08.384Z",
+  "tasks": [
+    {
+      "id": "tk-dcd05f724abb",
+      "title": "Stage modify-operation spec delta against `advance-workflow` / `rq-approvedPrAutoMerge01` adding the title-policy exception (design D6).",
+      "type": "code",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-25T17:10:34.057Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "A spec-law amendment is a structural text change to rq-approvedPrAutoMerge01, not executable behavior. Correctness is verified structurally: adv_delta_modify schema/precondition acceptance, adv_delta_show post-image, and adv_change_validate spec-conformance (no conflict with sibling requirements). There is no runtime code path to test for the delta itself; the code enforcing the exception is covered by the guard task's tests.",
+        "review_evidence_ref": {
+          "report_key": "fixArchivePrTitles|tk-dcd05f724abb|adv-reviewer|2"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-25T17:22:30.267Z",
+      "contract_refs": {
+        "not_applicable_reason": "Spec-law task only stages a modify-delta; AC1-AC5 and C1-C3 are covered by downstream code tasks."
+      },
+      "updatedAt": "2026-07-25T17:31:00.898Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-dcd05f724abb",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dcd05f724abb"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "tr_ms0n5sgi_4280776b",
+              "command": "node /tmp/opencode/check-delta-modify.js /tmp/opencode/delta-proof-pre.json",
+              "exit_code": 1,
+              "summary": "RED: no modify delta for rq-approvedPrAutoMerge01 before staging"
+            },
+            {
+              "test_run_id": "tr_ms0nblwu_9f66ea19",
+              "command": "node /tmp/opencode/check-delta-modify.js /tmp/opencode/delta-proof-post.json",
+              "exit_code": 0,
+              "summary": "GREEN: modify delta for rq-approvedPrAutoMerge01 present after staging"
+            },
+            {
+              "test_run_id": "adv_delta_show",
+              "command": "adv_delta_show(changeId: fixArchivePrTitles, capability: advance-workflow, deltaId: dl-archivePrTitlePolicyException)",
+              "exit_code": 0,
+              "summary": "Staged modify delta returned correct body and scenario .4"
+            },
+            {
+              "test_run_id": "adv_change_validate",
+              "command": "adv_change_validate(changeId: fixArchivePrTitles)",
+              "exit_code": 0,
+              "summary": "Validation passed with 0 errors (9 overlapping-capability warnings remain from other active changes)"
+            },
+            {
+              "test_run_id": "adv_delta_list",
+              "command": "adv_delta_list(changeId: fixArchivePrTitles)",
+              "exit_code": 0,
+              "summary": "Rows include dl-archivePrTitlePolicyException modifying rq-approvedPrAutoMerge01"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Used adv_tool_invoke to dispatch all ADV mutation/read tools because the sub-agent role firewall blocks direct adv_* tool calls",
+              "why": "The spawned adv-engineer session cannot call adv_delta_modify/adv_run_test/etc. directly; adv_tool_invoke is the allowed host-level dispatch path"
+            },
+            {
+              "what": "Added contract_refs.not_applicable_reason to the task so adv_change_validate would be clean",
+              "why": "The validator requires each non-cancelled task to have contract_refs or not_applicable_reason under standard rigor; the spec-law task does not itself implement ACs, so not_applicable_reason is the correct traceability marker"
+            },
+            {
+              "what": "Preserved existing scenarios .1/.2/.3 verbatim and appended scenario .4 in the modify delta",
+              "why": "Requirement was to leave existing scenarios unchanged and add one new scenario encoding the title-policy blocker"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Staged modify delta dl-archivePrTitlePolicyException against advance-workflow/rq-approvedPrAutoMerge01. Body appends the conventional-commit title-policy exception with typed blockers PR_TITLE_POLICY_VIOLATION, PR_TITLE_TYPE_UNRESOLVED, PR_TITLE_LOOKUP_FAILED. Scenario .4 added. adv_change_validate now clean (0 errors).",
+            "suggested_next_action": "Proceed to next task tk-d02c7abde910 (ProjectConfigSchema archive.pr_title_policy field) or tk-58a8f99b367e depending on dependency readiness."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: adv_delta_show"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: adv_change_validate"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: adv_delta_list"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-dcd05f724abb",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dcd05f724abb"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "NEEDS_WORK",
+          "blocking_findings": [
+            {
+              "id": "review-issue-1",
+              "label": "issue",
+              "file": ".adv/specs/advance-workflow/spec.json",
+              "line": 428,
+              "what": "Modify delta changes pre-existing text beyond title-policy exception: delta uses “requested end-state completion”, while current requirement uses “requested-end-state completion”.",
+              "why": "Review scope permits only the narrowly designed title-policy exception; this silent body-text alteration is unrelated to D6 and violates no-scope-creep intent.",
+              "fix": "Amend the delta post-image to preserve exact pre-image wording: “requested-end-state completion”."
+            },
+            {
+              "id": "review-issue-2",
+              "label": "issue",
+              "file": ".adv/specs/advance-workflow/spec.json",
+              "line": 431,
+              "what": "New scenario `.4` collapses three distinct failure cases and codes into “a non-conforming or unresolvable-title PR” and “ADV returns the typed blocker”.",
+              "why": "The appended clause explicitly requires `PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, and `PR_TITLE_LOOKUP_FAILED`, including live-title lookup failure. The scenario does not make the lookup-failure case or the exact mappings observable.",
+              "fix": "Amend scenario `.4` to name conventional `archive.pr_title_policy.format`, all three failure conditions, each corresponding typed blocker, and no arming."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "adv_change_validate(changeId:\"fixArchivePrTitles\")"
+            ],
+            "results": "pass",
+            "evidence": "Validation passed with 0 errors and 9 non-blocking OVERLAPPING_CAPABILITY warnings. Delta precondition is schema_version=1, target_requirement_sha256=4ddeb8bfd0cdf9b5da02a5795699bd51ba03e9644974b93d1e8e6504bf046f80, and new_id_absent=true; the SHA matches the required pre-image. Scenario .1/.2/.3 objects match the current requirement. The new body clause correctly states: “when the target project's `archive.pr_title_policy.format` is `conventional`, `armPullRequestAutoMerge` MUST first verify the live PR title conforms to `allowed_types` and that a semantic type is resolvable; on a non-conforming title, an unresolvable type, or a live-title lookup failure it MUST return a typed blocker (`PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, or `PR_TITLE_LOOKUP_FAILED`) instead of arming.” It also explicitly preserves “All other authority, identity, `--delete-branch` prohibition, and Tier-B sign-off invariants are unchanged.”"
+          },
+          "scope_drift": null,
+          "risks": [
+            "Delta currently contains an unrelated punctuation/wording change in the copied pre-image body.",
+            "Scenario .4 cannot independently demonstrate exact typed-blocker coverage for title lookup failure."
+          ],
+          "required_main_agent_actions": [
+            "Amend `dl-archivePrTitlePolicyException` to restore exact pre-image wording “requested-end-state completion”.",
+            "Strengthen scenario `rq-approvedPrAutoMerge01.4` with all required failure states and exact typed blockers, then rerun `adv_change_validate`.",
+            "Reviewer-owned evidence report key: generated by this submission response; attach it to task completion after remediation and a fresh review."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_validate(changeId:\"fixArchivePrTitles\")"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-dcd05f724abb",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dcd05f724abb"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "adv_delta_show-20260725-174147",
+              "command": "adv_delta_show(changeId:\"fixArchivePrTitles\", capability:\"advance-workflow\", deltaId:\"dl-archivePrTitlePolicyException\")",
+              "exit_code": 0,
+              "summary": "Amended delta shows pre-image body (rq-approvedPrAutoMerge01:428) verbatim + exception clause, and scenarios .1/.2/.3 verbatim plus explicit .4 enumerating PR_TITLE_POLICY_VIOLATION, PR_TITLE_TYPE_UNRESOLVED, PR_TITLE_LOOKUP_FAILED"
+            },
+            {
+              "test_run_id": "adv_change_validate-20260725-174153",
+              "command": "adv_change_validate(changeId:\"fixArchivePrTitles\")",
+              "exit_code": 0,
+              "summary": "Validation passed: 0 errors, 9 overlapping-capability warnings unrelated to the delta amendment"
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Staged modify-delta dl-archivePrTitlePolicyException for rq-approvedPrAutoMerge01 was amended successfully. Both reviewer findings fixed: (1) body is byte-for-byte pre-image from spec.json:428 plus space + exception clause, (2) scenario .4 explicitly lists all three typed blockers. Validation has 0 errors.",
+            "suggested_next_action": "Re-run reviewer/re-check the staged delta or proceed to gate completion if the change is otherwise ready"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: adv_delta_show-20260725-174147"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: adv_change_validate-20260725-174153"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-dcd05f724abb",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dcd05f724abb"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-praise-1",
+              "label": "praise",
+              "file": ".adv/specs/advance-workflow/spec.json",
+              "line": 428,
+              "what": "Amended delta preserves the full pre-image body verbatim, then appends one narrow exception clause.",
+              "why": "Exact comparison confirms `requested-end-state completion` and adjacent authority/invariant language are unchanged; scenarios .1/.2/.3 exactly retain the pre-image text."
+            },
+            {
+              "id": "review-praise-2",
+              "label": "praise",
+              "file": ".adv/specs/advance-workflow/spec.json",
+              "line": 474,
+              "what": "Scenario .4 explicitly maps every title-policy failure mode to its typed blocker.",
+              "why": "It enumerates `PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, and `PR_TITLE_LOOKUP_FAILED`, and says auto-merge is not armed."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "adv_delta_show(changeId:\"fixArchivePrTitles\", capability:\"advance-workflow\", deltaId:\"dl-archivePrTitlePolicyException\")",
+              "adv_change_validate(changeId:\"fixArchivePrTitles\")"
+            ],
+            "results": "pass",
+            "evidence": "Delta target precondition SHA is exactly 4ddeb8bfd0cdf9b5da02a5795699bd51ba03e9644974b93d1e8e6504bf046f80. Delta body is the byte-for-byte current pre-image from .adv/specs/advance-workflow/spec.json:428 followed by exactly one space and the conventional-title exception. Scenarios rq-approvedPrAutoMerge01.1/.2/.3 match spec.json:433-472 unchanged. New .4 names all three blockers and preserves authority, identity, --delete-branch prohibition, and Tier-B invariants. Validation passed: 0 errors; 9 pre-existing overlapping-capability warnings only."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Validation reports nine OVERLAPPING_CAPABILITY warnings for other draft changes on advance-workflow; this review found no error or conflicting text in this delta."
+          ],
+          "required_main_agent_actions": [
+            "Pass: both prior findings resolved. Use this persisted reviewer report as reviewer-owned completion evidence (review_evidence_ref).",
+            "No spec-delta amendment needed; task is ready for completion subject to orchestrator workflow."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_delta_show(changeId:\"fixArchivePrTitles\", capability:\"advance-workflow\", deltaId:\"dl-archivePrTitlePolicyException\")"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_validate(changeId:\"fixArchivePrTitles\")"
+            }
+          ]
+        }
+      ],
+      "error_recovery": {
+        "last_error": ".adv/specs/advance-workflow/spec.json :428 Modify delta changes pre-existing text beyond title-policy exception: delta uses “requested end-state completion”, while current requirement uses “requested-end-state completion”.; .adv/specs/advance-workflow/spec.json :431 New scenario `.4` collapses three distinct failure cases and codes into “a non-conforming or unresolvable-title PR” and “ADV returns the typed blocker”.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": ".adv/specs/advance-workflow/spec.json :428 Modify delta changes pre-existing text beyond title-policy exception: delta uses “requested end-state completion”, while current requirement uses “requested-end-state completion”.; .adv/specs/advance-workflow/spec.json :431 New scenario `.4` collapses three distinct failure cases and codes into “a non-conforming or unresolvable-title PR” and “ADV returns the typed blocker”.",
+            "diagnosis": "Review scope permits only the narrowly designed title-policy exception; this silent body-text alteration is unrelated to D6 and violates no-scope-creep intent.; The appended clause explicitly requires `PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, and `PR_TITLE_LOOKUP_FAILED`, including live-title lookup failure. The scenario does not make the lookup-failure case or the exact mappings observable.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-07-25T17:37:20.919Z"
+          }
+        ]
+      },
+      "verification": "Spec delta dl-archivePrTitlePolicyException staged (advance-workflow/rq-approvedPrAutoMerge01): body = verbatim pre-image + title-policy exception clause; scenario .4 explicit for all 3 typed blockers (PR_TITLE_POLICY_VIOLATION/TYPE_UNRESOLVED/LOOKUP_FAILED); .1-.3 unchanged; sha precondition matches. adv-reviewer PASS (review_evidence_ref fixArchivePrTitles|tk-dcd05f724abb|adv-reviewer|2). adv_change_validate 0 errors.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "15f4a21d329753b180e0d42a425983b5175a4c03",
+      "completedAt": "2026-07-25T17:55:59.399Z",
+      "completed_at": "2026-07-25T17:55:59.399Z"
+    },
+    {
+      "id": "tk-d02c7abde910",
+      "title": "Add typed `archive.pr_title_policy` field to ProjectConfigSchema (plugin/src/types/project.ts).",
+      "type": "code",
+      "section": "Config schema",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-25T17:10:54.979Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-25T17:22:30.265Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-d02c7abde910",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d02c7abde910"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/types/project.ts",
+            "plugin/src/types/project.test.ts",
+            "plugin/schemas/project.schema.json",
+            "plugin/src/storage/store-disk.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "manual-vitest-red-2026-07-25",
+              "command": "pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: 10 tests, 2 failed as expected (archive undefined; bogus format not rejected)"
+            },
+            {
+              "test_run_id": "manual-vitest-green-2026-07-25",
+              "command": "pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN phase: 10 tests passed (4 new archive.pr_title_policy cases + 6 existing)"
+            },
+            {
+              "test_run_id": "manual-schemas-2026-07-25",
+              "command": "pnpm run schemas:generate && pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Generated project.schema.json updated; schemas:check clean"
+            },
+            {
+              "test_run_id": "manual-typecheck-2026-07-25",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript clean after adding archive default to store-disk.ts ProjectConfig literal"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added nested PrTitlePolicySchema and ArchiveConfigSchema as local consts with passthrough and default format 'plain'",
+              "why": "Keeps the schema purely declarative while guaranteeing absent archive defaults to format plain, matching the requested behavior"
+            },
+            {
+              "what": "Updated store-disk.ts init ProjectConfig literal to include archive: { pr_title_policy: { format: 'plain' } }",
+              "why": "Zod default makes archive required in the output type; this was the only construction site that broke typecheck, so the minimal fix keeps the build green without adding a consumer"
+            },
+            {
+              "what": "Used manual bash vitest runs instead of adv_run_test",
+              "why": "adv_run_test is blocked in sub-agent sessions (role firewall). Routed through pnpm --dir plugin exec vitest run --project unit for fast, targeted results."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added archive.pr_title_policy to ProjectConfigSchema with default format 'plain' and enum validation. TDD red→green tests pass. Generated JSON schema updated. Typecheck fixed in store-disk.ts by including archive default in the ProjectConfig literal used on init.",
+            "suggested_next_action": "Proceed to threading/guard tasks that consume the new archive.pr_title_policy field."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_fixArchivePrTitles_tk-d02c7abde910_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "archive_pr_title_policy"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-vitest-red-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-vitest-green-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-schemas-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-typecheck-2026-07-25"
+            }
+          ]
+        }
+      ],
+      "verification": "Schema field added: PrTitlePolicySchema + ArchiveConfigSchema in plugin/src/types/project.ts (format conventional|plain default plain, optional release_types/allowed_types); archive default added to store-disk.ts init literal; schemas/project.schema.json regenerated; 4 new schema tests in project.test.ts. Verified: 10/10 schema tests pass (adv_run_test tr_ms0nebxd_aa56b58b green), schemas:check clean, typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/project.schema.json",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/types/project.test.ts",
+        "plugin/src/types/project.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/project.schema.json",
+        "plugin/src/storage/store-disk.ts",
+        "plugin/src/types/project.test.ts",
+        "plugin/src/types/project.ts"
+      ],
+      "checkpointSha": "03803b9e0442f2eabd6cca35947602e0a606e34a",
+      "completedAt": "2026-07-25T17:34:03.661Z",
+      "completed_at": "2026-07-25T17:34:03.661Z"
+    },
+    {
+      "id": "tk-58a8f99b367e",
+      "title": "Thread change.title + prTitleType + resolved prTitlePolicy into the finalize path and construct the correct PR title in createArchivePullRequest.",
+      "type": "code",
+      "section": "Title construction",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-25T17:11:12.624Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-d02c7abde910"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-25T17:36:24.839Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-58a8f99b367e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-58a8f99b367e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/types/project.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "red-git-finalize-title-2026-07-25",
+              "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 1,
+              "summary": "RED: 124 passed, 2 failed — new title tests failed as expected before implementing conventional branch"
+            },
+            {
+              "test_run_id": "green-git-finalize-title-2026-07-25",
+              "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 126 tests pass, including 4 new title-construction cases"
+            },
+            {
+              "test_run_id": "typecheck-2026-07-25",
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit clean"
+            },
+            {
+              "test_run_id": "lint-2026-07-25",
+              "command": "pnpm --dir plugin run lint",
+              "exit_code": 0,
+              "summary": "eslint src/ clean"
+            },
+            {
+              "test_run_id": "related-phase9-enforcement-2026-07-25",
+              "command": "pnpm --dir plugin exec vitest run --project unit src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts",
+              "exit_code": 0,
+              "summary": "65 related tests pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Exported PrTitlePolicySchema and PrTitlePolicy from project.ts",
+              "why": "GitFinalizeContext and helpers need a typed policy reference; exporting the schema keeps the source of truth in the project config layer."
+            },
+            {
+              "what": "Added changeTitle, prTitleType, and prTitlePolicy to GitFinalizeContext",
+              "why": "Required to carry change.title and archive.pr_title_policy from the change tool into PR title construction."
+            },
+            {
+              "what": "Threaded new fields through executePullRequestHandoff, completeMergeQueueHandoff, and completeProtectedBranchViaPullRequest",
+              "why": "These are the only production paths that call ensureArchivePullRequest; they must receive the context fields to avoid regressing to the hardcoded title."
+            },
+            {
+              "what": "Made changeTitle optional in createArchivePullRequest/ensureArchivePullRequest while keeping it required in GitFinalizeContext",
+              "why": "Avoids a breaking type-change for the unrelated redriveArchivedUnmergedBranch helper, which still uses the legacy Archive title."
+            },
+            {
+              "what": "Used UNRESOLVED_PR_TITLE sentinel reason for conventional policy without prTitleType",
+              "why": "Signals the guard task (tk-3bd6a3f67e02) that the title cannot be resolved without emitting a malformed `${undefined}: ...` title."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "redriveArchivedUnmergedBranch still invokes ensureArchivePullRequest without title/policy; left unchanged because it is outside the finalizeRelease path. All other PR creation/reuse paths in git-finalize.ts now thread title fields.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Title construction for archive PRs is implemented and tested. GitFinalizeContext now carries changeTitle, prTitleType, and prTitlePolicy. Plain/absent policy still emits 'Archive {changeId}' exactly. Conventional + prTitleType emits '{type}: {changeTitle}'. Conventional without prTitleType returns an UNRESOLVED_PR_TITLE error. change.ts forwards change.title and project config archive.pr_title_policy into finalizeRelease. Typecheck, lint, and targeted tests are clean.",
+            "suggested_next_action": "Run the full plugin test suite (bin/oc-test full or pnpm --dir plugin test) and optionally the adv-designer UI quality check."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-58a8f99b367e",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "default"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: red-git-finalize-title-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-git-finalize-title-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: typecheck-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: lint-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: related-phase9-enforcement-2026-07-25"
+            }
+          ]
+        }
+      ],
+      "verification": "GitFinalizeContext extended (changeTitle, prTitleType, prTitlePolicy); change.title + store.config.archive.pr_title_policy forwarded from change.ts:3961; createArchivePullRequest title construction (plain→Archive ${changeId} byte-for-byte; conventional+type→${type}:${title}; conventional+no type→UNRESOLVED_PR_TITLE signal); threaded through ensureArchivePullRequest + executePullRequestHandoff + completeMergeQueueHandoff + completeProtectedBranchViaPullRequest; exported PrTitlePolicySchema/PrTitlePolicy. 4 new unit tests. Green: 126/126 git-finalize tests (adv_run_test tr_ms0o4pvl_202cd778); typecheck + lint clean; related phase9/enforcement tests 65 passed. Respects DONT2 (no title-text inference).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/project.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/project.ts"
+      ],
+      "checkpointSha": "15f4a21d329753b180e0d42a425983b5175a4c03",
+      "completedAt": "2026-07-25T17:55:17.271Z",
+      "completed_at": "2026-07-25T17:55:17.271Z"
+    },
+    {
+      "id": "tk-1c560667391b",
+      "title": "Add optional `prTitleType` parameter to adv_change_archive (the archive handler), flowing into GitFinalizeContext.prTitleType.",
+      "type": "code",
+      "section": "Archive entry",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-25T17:11:38.012Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-58a8f99b367e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-25T17:56:48.080Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-1c560667391b",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-1c560667391b"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/utils/tool-arg-preflight.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "run_id": "run-1c560667391b-archive-phase9",
+              "command": "pnpm exec vitest run --project unit src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "54 tests pass; new red→green tests verify prTitleType is threaded into finalizeRelease for conventional targets and ignored for plain targets."
+            },
+            {
+              "run_id": "run-1c560667391b-archive-suite",
+              "command": "pnpm exec vitest run --project unit src/tools/change.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-purge.test.ts src/tools/change.archive-convergence.test.ts src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts src/validator/contract-mint.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "394 tests pass across archive, preflight, registry, and contract surfaces with no regressions."
+            },
+            {
+              "run_id": "run-1c560667391b-checks",
+              "command": "pnpm run typecheck && pnpm run schemas:check && pnpm run generate:manifests:check && pnpm run lint && pnpm run format:check",
+              "exit_code": 0,
+              "summary": "TypeScript --noEmit clean; no public schema drift; agent manifests match; lint and formatting clean."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Declared prTitleType as an inline z.enum of the 11 Conventional Commit types in the adv_change_archive args schema and execute parameter type.",
+              "why": "Matches the task's bounded enum requirement and keeps the schema co-located with the existing inline tool arg definitions."
+            },
+            {
+              "what": "Passed prTitleType unconditionally into finalizeRelease on the GitFinalizeContext.",
+              "why": "GitFinalizeContext already carries prTitleType as optional, and the plain/conventional policy guard inside git-finalize ignores the value when not needed; this avoids adding redundant conditional logic in the handler."
+            },
+            {
+              "what": "Added prTitleType to the adv_change_archive tool-arg-preflight blank-omit rules.",
+              "why": "Optional enum field should not fail validation on an empty-string placeholder; omitting blanks is consistent with other optional archive args."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added optional prTitleType to adv_change_archive args and threaded it into finalizeRelease as GitFinalizeContext.prTitleType. Handler-level red→green tests pass. plugin/src/tools/archive-helpers/git-finalize.ts and git-finalize.test.ts already contain prerequisite changes from tk-58a8f99b367e and were not modified by this task.",
+            "suggested_next_action": "Run the full plugin test suite (bin/oc-test targeted or pnpm test) and proceed to the next task if clean."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-1c560667391b_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "engineer_report"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: run-1c560667391b-archive-phase9"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: run-1c560667391b-archive-suite"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: run-1c560667391b-checks"
+            }
+          ]
+        }
+      ],
+      "verification": "adv_change_archive (change.ts) gained optional prTitleType bounded enum (feat|fix|perf|chore|docs|refactor|test|build|ci|style|revert), threaded into finalizeRelease as GitFinalizeContext.prTitleType. tool-arg-preflight.ts gained prTitleType blank-omit rule. change.archive-phase9.test.ts red→green (conventional threading + plain no-op). 54/54 phase9 tests green (adv_run_test tr_ms0oo3qe_d5c245c3); broader suite 394 pass. typecheck/schemas:check/generate:manifests:check/lint/format clean. Explicit-param path for AC5 (metadata → param → block). Note: code committed under tk-3bd6a3f67e02's checkpoint (7c6b566f) due to parallel engineer execution; attribution recorded here.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7c6b566fe9c30a77eac2fb7523c383384e651023",
+      "completedAt": "2026-07-25T18:09:57.140Z",
+      "completed_at": "2026-07-25T18:09:57.140Z"
+    },
+    {
+      "id": "tk-3bd6a3f67e02",
+      "title": "Make armPullRequestAutoMerge (git-finalize.ts:1583) policy-aware: the pre-merge title-policy guard. This is the SHARED chokepoint (called at 1704 by executePullRequestHandoff AND 2329 by redriveArchivedUnmergedBranch — both map !armed.ok → blocked). It is the ONLY merge-arming primitive; no bypass exists.",
+      "type": "code",
+      "section": "Pre-merge guard",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-25T17:11:38.085Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-58a8f99b367e"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-25T17:56:48.082Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-3bd6a3f67e02",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3bd6a3f67e02"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "run_id": "arm-title-guard-vitest-20260725",
+              "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "133 passed, including 7 new armPullRequestAutoMerge policy-guard tests; no regressions in existing git-finalize tests"
+            },
+            {
+              "run_id": "arm-title-guard-check-20260725",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Exported armPullRequestAutoMerge and extended readPullRequestByBranch to include the live PR title",
+              "why": "Enables direct unit testing of the armer and lets the conventional-title guard use the already-fetched PR summary instead of adding a separate gh pr view call on the happy path, while still falling back to a title fetch when the summary lacks it."
+            },
+            {
+              "what": "Kept the plain/absent policy path identical to the pre-change armer",
+              "why": "Satisfies AC3 byte-for-byte preservation: no title lookup, same --squash --auto command, no --delete-branch flag."
+            },
+            {
+              "what": "Extended redriveArchivedUnmergedBranch to accept changeTitle, prTitleType, and prTitlePolicy",
+              "why": "The armer call site inside redrive needs the same resolved title inputs as executePullRequestHandoff so the shared primitive can enforce policy on re-drive."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated the single redriveArchivedUnmergedBranch test fixture to pass the new required changeTitle input; verified no other callers exist.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "armPullRequestAutoMerge is now the policy-aware pre-merge guard. Conventional-format archive PRs are validated against the live PR title prefix and allowed_types before arming auto-merge; plain/absent policy arms unchanged. executePullRequestHandoff and redriveArchivedUnmergedBranch both thread the resolved title inputs to the shared primitive.",
+            "suggested_next_action": "Run the Temporal integration suite if archive finalization ITs are part of the gate, then proceed to designer review or the next task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: arm-title-guard-vitest-20260725"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: arm-title-guard-check-20260725"
+            }
+          ]
+        }
+      ],
+      "verification": "armPullRequestAutoMerge (git-finalize.ts:1583) now exported + policy-aware: plain/absent policy → unchanged arm (AC3); conventional → fetch live PR title (readPullRequestByBranch extended to include title), validate type prefix + allowed_types, block with PR_TITLE_POLICY_VIOLATION / PR_TITLE_TYPE_UNRESOLVED / PR_TITLE_LOOKUP_FAILED. Both call sites (executePullRequestHandoff 1704, redriveArchivedUnmergedBranch 2329) thread changeTitle/prTitle/prTitleType/prTitlePolicy; redriveArchivedUnmergedBranch signature extended. 7 new guard tests; 133/133 git-finalize tests green (adv_run_test tr_ms0oo4ps_9ccbb14f). Full pnpm run check clean (schemas/typecheck/manifests/test-isolation/lockfile/lint/format). Respects C1 (guard in sole shared primitive, no bypass).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.ts"
+      ],
+      "checkpointSha": "7c6b566fe9c30a77eac2fb7523c383384e651023",
+      "completedAt": "2026-07-25T18:09:43.338Z",
+      "completed_at": "2026-07-25T18:09:43.338Z"
+    },
+    {
+      "id": "tk-031e83d184ef",
+      "title": "Integration tests reproducing the full archive → PR → merge-arm path. This task verifies AC1-AC5 end-to-end and is the AC4 deliverable (PokeEdge PR #1020 repro).",
+      "type": "verification",
+      "section": "Integration tests",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-25T17:11:55.305Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3bd6a3f67e02"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-1c560667391b"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-25T18:10:31.314Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-031e83d184ef",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-031e83d184ef"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "vitest-git-finalize-2026-07-25",
+              "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "140 tests passed (1 newly added)"
+            },
+            {
+              "test_run_id": "tsc-typecheck-2026-07-25",
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Skipped adding TEST 1 and TEST 2 because identical scenarios already existed in the file.",
+              "why": "The task instructions explicitly require noting duplicates and skipping them rather than re-adding."
+            },
+            {
+              "what": "Added the missing TEST 3 as a new armPullRequestAutoMerge guard test that fetches the live PR title via gh pr view and blocks on an 'Archive ...' title.",
+              "why": "This exact scenario was not yet present in the arm guard describe block; existing coverage only blocked via the redrive path."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Only one new test was required; the PokeEdge #1020 and AC2 redrive scenarios already existed. Added the missing D5 live-title arm guard test. All 140 tests pass and typecheck is clean.",
+            "suggested_next_action": "Run the full unit test suite (bin/oc-test targeted/full) to confirm no regressions, then proceed to the next task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: vitest-git-finalize-2026-07-25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tsc-typecheck-2026-07-25"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivePrTitles",
+          "attempt": 4,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+          "task_id": "tk-031e83d184ef",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-031e83d184ef"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "pattern",
+              "content": "For policy enforcement with optional config lists, parse-time non-empty validation plus runtime presence-based membership guards prevents malformed legacy inputs from bypassing release-critical checks."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Exit 0; 3 test files and 209 tests passed in 7.94s. Verified commits c1f41363 and 0e6a2351 are HEAD and worktree is clean."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Freshness probe reports this change worktree is 6 commits behind origin/trunk; this is integration freshness, not a title-policy enforcement gap."
+          ],
+          "required_main_agent_actions": [
+            "Final verdict: pass. Record the 10-row review matrix delivered in the reviewer final response as acceptance evidence.",
+            "Before release/archive, refresh/rebase the change worktree per normal ADV freshness workflow because origin/trunk is ahead by 6 commits."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Integration test TEST 3 added (reuse bad-title → PR_TITLE_POLICY_VIOLATION, no arm) at git-finalize.test.ts:4363. TEST 1 (PokeEdge #1020 repro, AC4/AC1) and TEST 2 (AC2 via redriveArchivedUnmergedBranch, validator finding 2 regression) already covered by tasks 3/4 at lines 5167 + 5263 — not duplicated. 140/140 git-finalize tests green (adv_run_test evidence). AC1-AC5 verified end-to-end. typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "checkpointSha": "4420aebc744ed4da8680edefbbafa9972f7ef40f",
+      "completedAt": "2026-07-25T18:29:33.907Z",
+      "completed_at": "2026-07-25T18:29:33.907Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-d02c7abde910",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d02c7abde910"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/types/project.ts",
+        "plugin/src/types/project.test.ts",
+        "plugin/schemas/project.schema.json",
+        "plugin/src/storage/store-disk.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "manual-vitest-red-2026-07-25",
+          "command": "pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: 10 tests, 2 failed as expected (archive undefined; bogus format not rejected)"
+        },
+        {
+          "test_run_id": "manual-vitest-green-2026-07-25",
+          "command": "pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN phase: 10 tests passed (4 new archive.pr_title_policy cases + 6 existing)"
+        },
+        {
+          "test_run_id": "manual-schemas-2026-07-25",
+          "command": "pnpm run schemas:generate && pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Generated project.schema.json updated; schemas:check clean"
+        },
+        {
+          "test_run_id": "manual-typecheck-2026-07-25",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript clean after adding archive default to store-disk.ts ProjectConfig literal"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added nested PrTitlePolicySchema and ArchiveConfigSchema as local consts with passthrough and default format 'plain'",
+          "why": "Keeps the schema purely declarative while guaranteeing absent archive defaults to format plain, matching the requested behavior"
+        },
+        {
+          "what": "Updated store-disk.ts init ProjectConfig literal to include archive: { pr_title_policy: { format: 'plain' } }",
+          "why": "Zod default makes archive required in the output type; this was the only construction site that broke typecheck, so the minimal fix keeps the build green without adding a consumer"
+        },
+        {
+          "what": "Used manual bash vitest runs instead of adv_run_test",
+          "why": "adv_run_test is blocked in sub-agent sessions (role firewall). Routed through pnpm --dir plugin exec vitest run --project unit for fast, targeted results."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added archive.pr_title_policy to ProjectConfigSchema with default format 'plain' and enum validation. TDD red→green tests pass. Generated JSON schema updated. Typecheck fixed in store-disk.ts by including archive default in the ProjectConfig literal used on init.",
+        "suggested_next_action": "Proceed to threading/guard tasks that consume the new archive.pr_title_policy field."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_fixArchivePrTitles_tk-d02c7abde910_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "archive_pr_title_policy"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-vitest-red-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-vitest-green-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-schemas-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-typecheck-2026-07-25"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-dcd05f724abb",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dcd05f724abb"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "tr_ms0n5sgi_4280776b",
+          "command": "node /tmp/opencode/check-delta-modify.js /tmp/opencode/delta-proof-pre.json",
+          "exit_code": 1,
+          "summary": "RED: no modify delta for rq-approvedPrAutoMerge01 before staging"
+        },
+        {
+          "test_run_id": "tr_ms0nblwu_9f66ea19",
+          "command": "node /tmp/opencode/check-delta-modify.js /tmp/opencode/delta-proof-post.json",
+          "exit_code": 0,
+          "summary": "GREEN: modify delta for rq-approvedPrAutoMerge01 present after staging"
+        },
+        {
+          "test_run_id": "adv_delta_show",
+          "command": "adv_delta_show(changeId: fixArchivePrTitles, capability: advance-workflow, deltaId: dl-archivePrTitlePolicyException)",
+          "exit_code": 0,
+          "summary": "Staged modify delta returned correct body and scenario .4"
+        },
+        {
+          "test_run_id": "adv_change_validate",
+          "command": "adv_change_validate(changeId: fixArchivePrTitles)",
+          "exit_code": 0,
+          "summary": "Validation passed with 0 errors (9 overlapping-capability warnings remain from other active changes)"
+        },
+        {
+          "test_run_id": "adv_delta_list",
+          "command": "adv_delta_list(changeId: fixArchivePrTitles)",
+          "exit_code": 0,
+          "summary": "Rows include dl-archivePrTitlePolicyException modifying rq-approvedPrAutoMerge01"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Used adv_tool_invoke to dispatch all ADV mutation/read tools because the sub-agent role firewall blocks direct adv_* tool calls",
+          "why": "The spawned adv-engineer session cannot call adv_delta_modify/adv_run_test/etc. directly; adv_tool_invoke is the allowed host-level dispatch path"
+        },
+        {
+          "what": "Added contract_refs.not_applicable_reason to the task so adv_change_validate would be clean",
+          "why": "The validator requires each non-cancelled task to have contract_refs or not_applicable_reason under standard rigor; the spec-law task does not itself implement ACs, so not_applicable_reason is the correct traceability marker"
+        },
+        {
+          "what": "Preserved existing scenarios .1/.2/.3 verbatim and appended scenario .4 in the modify delta",
+          "why": "Requirement was to leave existing scenarios unchanged and add one new scenario encoding the title-policy blocker"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Staged modify delta dl-archivePrTitlePolicyException against advance-workflow/rq-approvedPrAutoMerge01. Body appends the conventional-commit title-policy exception with typed blockers PR_TITLE_POLICY_VIOLATION, PR_TITLE_TYPE_UNRESOLVED, PR_TITLE_LOOKUP_FAILED. Scenario .4 added. adv_change_validate now clean (0 errors).",
+        "suggested_next_action": "Proceed to next task tk-d02c7abde910 (ProjectConfigSchema archive.pr_title_policy field) or tk-58a8f99b367e depending on dependency readiness."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: adv_delta_show"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: adv_change_validate"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: adv_delta_list"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-dcd05f724abb",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dcd05f724abb"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "review-issue-1",
+          "label": "issue",
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 428,
+          "what": "Modify delta changes pre-existing text beyond title-policy exception: delta uses “requested end-state completion”, while current requirement uses “requested-end-state completion”.",
+          "why": "Review scope permits only the narrowly designed title-policy exception; this silent body-text alteration is unrelated to D6 and violates no-scope-creep intent.",
+          "fix": "Amend the delta post-image to preserve exact pre-image wording: “requested-end-state completion”."
+        },
+        {
+          "id": "review-issue-2",
+          "label": "issue",
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 431,
+          "what": "New scenario `.4` collapses three distinct failure cases and codes into “a non-conforming or unresolvable-title PR” and “ADV returns the typed blocker”.",
+          "why": "The appended clause explicitly requires `PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, and `PR_TITLE_LOOKUP_FAILED`, including live-title lookup failure. The scenario does not make the lookup-failure case or the exact mappings observable.",
+          "fix": "Amend scenario `.4` to name conventional `archive.pr_title_policy.format`, all three failure conditions, each corresponding typed blocker, and no arming."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "adv_change_validate(changeId:\"fixArchivePrTitles\")"
+        ],
+        "results": "pass",
+        "evidence": "Validation passed with 0 errors and 9 non-blocking OVERLAPPING_CAPABILITY warnings. Delta precondition is schema_version=1, target_requirement_sha256=4ddeb8bfd0cdf9b5da02a5795699bd51ba03e9644974b93d1e8e6504bf046f80, and new_id_absent=true; the SHA matches the required pre-image. Scenario .1/.2/.3 objects match the current requirement. The new body clause correctly states: “when the target project's `archive.pr_title_policy.format` is `conventional`, `armPullRequestAutoMerge` MUST first verify the live PR title conforms to `allowed_types` and that a semantic type is resolvable; on a non-conforming title, an unresolvable type, or a live-title lookup failure it MUST return a typed blocker (`PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, or `PR_TITLE_LOOKUP_FAILED`) instead of arming.” It also explicitly preserves “All other authority, identity, `--delete-branch` prohibition, and Tier-B sign-off invariants are unchanged.”"
+      },
+      "scope_drift": null,
+      "risks": [
+        "Delta currently contains an unrelated punctuation/wording change in the copied pre-image body.",
+        "Scenario .4 cannot independently demonstrate exact typed-blocker coverage for title lookup failure."
+      ],
+      "required_main_agent_actions": [
+        "Amend `dl-archivePrTitlePolicyException` to restore exact pre-image wording “requested-end-state completion”.",
+        "Strengthen scenario `rq-approvedPrAutoMerge01.4` with all required failure states and exact typed blockers, then rerun `adv_change_validate`.",
+        "Reviewer-owned evidence report key: generated by this submission response; attach it to task completion after remediation and a fresh review."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_validate(changeId:\"fixArchivePrTitles\")"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-dcd05f724abb",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dcd05f724abb"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "adv_delta_show-20260725-174147",
+          "command": "adv_delta_show(changeId:\"fixArchivePrTitles\", capability:\"advance-workflow\", deltaId:\"dl-archivePrTitlePolicyException\")",
+          "exit_code": 0,
+          "summary": "Amended delta shows pre-image body (rq-approvedPrAutoMerge01:428) verbatim + exception clause, and scenarios .1/.2/.3 verbatim plus explicit .4 enumerating PR_TITLE_POLICY_VIOLATION, PR_TITLE_TYPE_UNRESOLVED, PR_TITLE_LOOKUP_FAILED"
+        },
+        {
+          "test_run_id": "adv_change_validate-20260725-174153",
+          "command": "adv_change_validate(changeId:\"fixArchivePrTitles\")",
+          "exit_code": 0,
+          "summary": "Validation passed: 0 errors, 9 overlapping-capability warnings unrelated to the delta amendment"
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Staged modify-delta dl-archivePrTitlePolicyException for rq-approvedPrAutoMerge01 was amended successfully. Both reviewer findings fixed: (1) body is byte-for-byte pre-image from spec.json:428 plus space + exception clause, (2) scenario .4 explicitly lists all three typed blockers. Validation has 0 errors.",
+        "suggested_next_action": "Re-run reviewer/re-check the staged delta or proceed to gate completion if the change is otherwise ready"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: adv_delta_show-20260725-174147"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: adv_change_validate-20260725-174153"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-58a8f99b367e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-58a8f99b367e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/types/project.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "red-git-finalize-title-2026-07-25",
+          "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 1,
+          "summary": "RED: 124 passed, 2 failed — new title tests failed as expected before implementing conventional branch"
+        },
+        {
+          "test_run_id": "green-git-finalize-title-2026-07-25",
+          "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 126 tests pass, including 4 new title-construction cases"
+        },
+        {
+          "test_run_id": "typecheck-2026-07-25",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit clean"
+        },
+        {
+          "test_run_id": "lint-2026-07-25",
+          "command": "pnpm --dir plugin run lint",
+          "exit_code": 0,
+          "summary": "eslint src/ clean"
+        },
+        {
+          "test_run_id": "related-phase9-enforcement-2026-07-25",
+          "command": "pnpm --dir plugin exec vitest run --project unit src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts",
+          "exit_code": 0,
+          "summary": "65 related tests pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Exported PrTitlePolicySchema and PrTitlePolicy from project.ts",
+          "why": "GitFinalizeContext and helpers need a typed policy reference; exporting the schema keeps the source of truth in the project config layer."
+        },
+        {
+          "what": "Added changeTitle, prTitleType, and prTitlePolicy to GitFinalizeContext",
+          "why": "Required to carry change.title and archive.pr_title_policy from the change tool into PR title construction."
+        },
+        {
+          "what": "Threaded new fields through executePullRequestHandoff, completeMergeQueueHandoff, and completeProtectedBranchViaPullRequest",
+          "why": "These are the only production paths that call ensureArchivePullRequest; they must receive the context fields to avoid regressing to the hardcoded title."
+        },
+        {
+          "what": "Made changeTitle optional in createArchivePullRequest/ensureArchivePullRequest while keeping it required in GitFinalizeContext",
+          "why": "Avoids a breaking type-change for the unrelated redriveArchivedUnmergedBranch helper, which still uses the legacy Archive title."
+        },
+        {
+          "what": "Used UNRESOLVED_PR_TITLE sentinel reason for conventional policy without prTitleType",
+          "why": "Signals the guard task (tk-3bd6a3f67e02) that the title cannot be resolved without emitting a malformed `${undefined}: ...` title."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "redriveArchivedUnmergedBranch still invokes ensureArchivePullRequest without title/policy; left unchanged because it is outside the finalizeRelease path. All other PR creation/reuse paths in git-finalize.ts now thread title fields.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Title construction for archive PRs is implemented and tested. GitFinalizeContext now carries changeTitle, prTitleType, and prTitlePolicy. Plain/absent policy still emits 'Archive {changeId}' exactly. Conventional + prTitleType emits '{type}: {changeTitle}'. Conventional without prTitleType returns an UNRESOLVED_PR_TITLE error. change.ts forwards change.title and project config archive.pr_title_policy into finalizeRelease. Typecheck, lint, and targeted tests are clean.",
+        "suggested_next_action": "Run the full plugin test suite (bin/oc-test full or pnpm --dir plugin test) and optionally the adv-designer UI quality check."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-58a8f99b367e",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "default"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: red-git-finalize-title-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-git-finalize-title-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: typecheck-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: lint-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: related-phase9-enforcement-2026-07-25"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-dcd05f724abb",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dcd05f724abb"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 428,
+          "what": "Amended delta preserves the full pre-image body verbatim, then appends one narrow exception clause.",
+          "why": "Exact comparison confirms `requested-end-state completion` and adjacent authority/invariant language are unchanged; scenarios .1/.2/.3 exactly retain the pre-image text."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 474,
+          "what": "Scenario .4 explicitly maps every title-policy failure mode to its typed blocker.",
+          "why": "It enumerates `PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, and `PR_TITLE_LOOKUP_FAILED`, and says auto-merge is not armed."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "adv_delta_show(changeId:\"fixArchivePrTitles\", capability:\"advance-workflow\", deltaId:\"dl-archivePrTitlePolicyException\")",
+          "adv_change_validate(changeId:\"fixArchivePrTitles\")"
+        ],
+        "results": "pass",
+        "evidence": "Delta target precondition SHA is exactly 4ddeb8bfd0cdf9b5da02a5795699bd51ba03e9644974b93d1e8e6504bf046f80. Delta body is the byte-for-byte current pre-image from .adv/specs/advance-workflow/spec.json:428 followed by exactly one space and the conventional-title exception. Scenarios rq-approvedPrAutoMerge01.1/.2/.3 match spec.json:433-472 unchanged. New .4 names all three blockers and preserves authority, identity, --delete-branch prohibition, and Tier-B invariants. Validation passed: 0 errors; 9 pre-existing overlapping-capability warnings only."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Validation reports nine OVERLAPPING_CAPABILITY warnings for other draft changes on advance-workflow; this review found no error or conflicting text in this delta."
+      ],
+      "required_main_agent_actions": [
+        "Pass: both prior findings resolved. Use this persisted reviewer report as reviewer-owned completion evidence (review_evidence_ref).",
+        "No spec-delta amendment needed; task is ready for completion subject to orchestrator workflow."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_delta_show(changeId:\"fixArchivePrTitles\", capability:\"advance-workflow\", deltaId:\"dl-archivePrTitlePolicyException\")"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: adv_change_validate(changeId:\"fixArchivePrTitles\")"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-3bd6a3f67e02",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3bd6a3f67e02"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "arm-title-guard-vitest-20260725",
+          "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "133 passed, including 7 new armPullRequestAutoMerge policy-guard tests; no regressions in existing git-finalize tests"
+        },
+        {
+          "run_id": "arm-title-guard-check-20260725",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Exported armPullRequestAutoMerge and extended readPullRequestByBranch to include the live PR title",
+          "why": "Enables direct unit testing of the armer and lets the conventional-title guard use the already-fetched PR summary instead of adding a separate gh pr view call on the happy path, while still falling back to a title fetch when the summary lacks it."
+        },
+        {
+          "what": "Kept the plain/absent policy path identical to the pre-change armer",
+          "why": "Satisfies AC3 byte-for-byte preservation: no title lookup, same --squash --auto command, no --delete-branch flag."
+        },
+        {
+          "what": "Extended redriveArchivedUnmergedBranch to accept changeTitle, prTitleType, and prTitlePolicy",
+          "why": "The armer call site inside redrive needs the same resolved title inputs as executePullRequestHandoff so the shared primitive can enforce policy on re-drive."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated the single redriveArchivedUnmergedBranch test fixture to pass the new required changeTitle input; verified no other callers exist.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "armPullRequestAutoMerge is now the policy-aware pre-merge guard. Conventional-format archive PRs are validated against the live PR title prefix and allowed_types before arming auto-merge; plain/absent policy arms unchanged. executePullRequestHandoff and redriveArchivedUnmergedBranch both thread the resolved title inputs to the shared primitive.",
+        "suggested_next_action": "Run the Temporal integration suite if archive finalization ITs are part of the gate, then proceed to designer review or the next task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: arm-title-guard-vitest-20260725"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: arm-title-guard-check-20260725"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-1c560667391b",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-1c560667391b"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "run-1c560667391b-archive-phase9",
+          "command": "pnpm exec vitest run --project unit src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "54 tests pass; new red→green tests verify prTitleType is threaded into finalizeRelease for conventional targets and ignored for plain targets."
+        },
+        {
+          "run_id": "run-1c560667391b-archive-suite",
+          "command": "pnpm exec vitest run --project unit src/tools/change.test.ts src/tools/change.archive-phase9.test.ts src/tools/change.archive-purge.test.ts src/tools/change.archive-convergence.test.ts src/utils/tool-arg-preflight.test.ts src/tool-registry.test.ts src/tool-registry.inventory.test.ts src/tool-registry.surface.test.ts src/validator/contract-mint.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "394 tests pass across archive, preflight, registry, and contract surfaces with no regressions."
+        },
+        {
+          "run_id": "run-1c560667391b-checks",
+          "command": "pnpm run typecheck && pnpm run schemas:check && pnpm run generate:manifests:check && pnpm run lint && pnpm run format:check",
+          "exit_code": 0,
+          "summary": "TypeScript --noEmit clean; no public schema drift; agent manifests match; lint and formatting clean."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Declared prTitleType as an inline z.enum of the 11 Conventional Commit types in the adv_change_archive args schema and execute parameter type.",
+          "why": "Matches the task's bounded enum requirement and keeps the schema co-located with the existing inline tool arg definitions."
+        },
+        {
+          "what": "Passed prTitleType unconditionally into finalizeRelease on the GitFinalizeContext.",
+          "why": "GitFinalizeContext already carries prTitleType as optional, and the plain/conventional policy guard inside git-finalize ignores the value when not needed; this avoids adding redundant conditional logic in the handler."
+        },
+        {
+          "what": "Added prTitleType to the adv_change_archive tool-arg-preflight blank-omit rules.",
+          "why": "Optional enum field should not fail validation on an empty-string placeholder; omitting blanks is consistent with other optional archive args."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added optional prTitleType to adv_change_archive args and threaded it into finalizeRelease as GitFinalizeContext.prTitleType. Handler-level red→green tests pass. plugin/src/tools/archive-helpers/git-finalize.ts and git-finalize.test.ts already contain prerequisite changes from tk-58a8f99b367e and were not modified by this task.",
+        "suggested_next_action": "Run the full plugin test suite (bin/oc-test targeted or pnpm test) and proceed to the next task if clean."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-1c560667391b_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer_report"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: run-1c560667391b-archive-phase9"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: run-1c560667391b-archive-suite"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: run-1c560667391b-checks"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-031e83d184ef",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-031e83d184ef"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "vitest-git-finalize-2026-07-25",
+          "command": "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "140 tests passed (1 newly added)"
+        },
+        {
+          "test_run_id": "tsc-typecheck-2026-07-25",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Skipped adding TEST 1 and TEST 2 because identical scenarios already existed in the file.",
+          "why": "The task instructions explicitly require noting duplicates and skipping them rather than re-adding."
+        },
+        {
+          "what": "Added the missing TEST 3 as a new armPullRequestAutoMerge guard test that fetches the live PR title via gh pr view and blocks on an 'Archive ...' title.",
+          "why": "This exact scenario was not yet present in the arm guard describe block; existing coverage only blocked via the redrive path."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Only one new test was required; the PokeEdge #1020 and AC2 redrive scenarios already existed. Added the missing D5 live-title arm guard test. All 140 tests pass and typecheck is clean.",
+        "suggested_next_action": "Run the full unit test suite (bin/oc-test targeted/full) to confirm no regressions, then proceed to the next task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: vitest-git-finalize-2026-07-25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tsc-typecheck-2026-07-25"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "DONT2-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 1680,
+          "what": "`release_types` is persisted but never enforced; a conventional target allowing `chore` can auto-merge `chore: ...` during Phase 9.",
+          "why": "`chore` satisfies the title-format/allowed-types check but is not releasable when release is intended, violating AC1 and DONT2. The integration fixture itself declares release_types [feat, fix, perf] and allowed_types including chore, but no test asserts the required rejection.",
+          "fix": "Before creating or arming on a conventional Phase-9 release path, require prTitleType to be in policy.release_types when configured; return a typed blocker and add direct plus handoff/redrive regression coverage proving no merge-arm call for chore."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "review-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 1612,
+          "what": "Shared merge-arming primitive validates live PR title before arming.",
+          "why": "Both executePullRequestHandoff and redriveArchivedUnmergedBranch route through this guard; tests cover missing type, malformed/reused title, disallowed type, and lookup failure."
+        },
+        {
+          "id": "review-praise-2",
+          "label": "praise",
+          "file": "plugin/src/tools/change.ts",
+          "line": 3494,
+          "what": "Archive-time semantic choice is structurally bounded.",
+          "why": "The public argument uses an enum rather than title-text inference, satisfying the explicit-choice route of AC5/C1."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A policy schema field is not an enforcement mechanism: tests must prove release_types excludes valid-but-nonreleasable types such as chore before auto-merge is armed."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/project.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Vitest: 3 files passed, 204 tests passed, exit 0. Review found deterministic contract gap despite green tests."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Contract matrix: AC1 FAIL — impl git-finalize.ts:1518-1533 and 1624-1692 accepts any allowed type; test fixture at git-finalize.test.ts:4918-4922 declares release_types but no assertion consumes it. AC2 PASS — creation blocks no type at git-finalize.ts:1522-1529; live-policy blocks avoid merge at 1626-1691; tests 5220-5255, 5263-5288, 5297-5329. AC3 PASS — plain/absent title and arming paths at 1518-1533, 1624-1692; tests 4861-4877, 5336-5377, change.archive-phase9.test.ts:458-478. AC4 PASS — PokeEdge repro and conforming fix test at git-finalize.test.ts:5167-5213. AC5 PASS — bounded explicit enum at change.ts:3494-3511 and mechanical construction at git-finalize.ts:1522-1531; tests change.archive-phase9.test.ts:430-455 and git-finalize.test.ts:5392-5429. C1 PASS — no title parsing; explicit enum and direct interpolation; AC5 test uses feat-looking title but explicit fix. C2 PASS — plain default schema project.ts:210-228 and no-policy tests cited under AC3. C3 PASS — auto-merge command remains squash/auto only at git-finalize.ts:1694-1704; regression assertions at git-finalize.test.ts:4173-4177. DONT1 PASS — typed project config policy project.ts:210-228, forwarded change.ts:4004-4007; no repository-file policy detector added. DONT2 FAIL — release_types is only declared at project.ts:215 and test fixture git-finalize.test.ts:4920; no code reads it."
+      ],
+      "required_main_agent_actions": [
+        "Block user acceptance until release_types is enforced for conventional Phase-9 PR title selection/arming and tests cover allowed-but-nonreleasable chore rejection with zero gh pr merge calls.",
+        "Recommended review-matrix rows: AC1 fail/test — git-finalize.ts:1518-1533, 1624-1692; fixture git-finalize.test.ts:4918-4922 exposes missing release_types enforcement. AC2 pass/test — git-finalize.ts:1522-1529, 1626-1691; tests 5220-5288 and 5297-5329. AC3 pass/test — git-finalize.ts:1518-1533, 1624-1692; tests 4861-4877, 5336-5377, change.archive-phase9.test.ts:458-478. AC4 pass/test — test 5167-5213. AC5 pass/test — change.ts:3494-3511, git-finalize.ts:1522-1531; tests change.archive-phase9.test.ts:430-455 and git-finalize.test.ts:5392-5429. C1 pass/static_check — change.ts:3494-3511, git-finalize.ts:1531; AC5 test 5392-5429. C2 pass/static_check — project.ts:210-228; tests 84-89 and 5336-5377. C3 pass/static_check — git-finalize.ts:1694-1704; tests 4173-4177. DONT1 pass/rubric_review — project.ts:210-228, change.ts:4004-4007. DONT2 fail/test — project.ts:215 versus git-finalize.ts:1624-1692; fixture 4918-4922.",
+        "Spec delta is narrow and correct: it only adds a conventional-title pre-arm exception to rq-approvedPrAutoMerge01, preserves authority/identity/Tier-B/--delete-branch invariants, and names typed blockers. Extend its implementation coverage to enforce release intent. Leave all other Phase 9 routing and plain-policy behavior unchanged."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/types/project.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "review-release-types-empty-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 1695,
+          "what": "A provided empty release_types array bypasses release-membership enforcement and arms auto-merge.",
+          "why": "PrTitlePolicySchema accepts release_types: [] (plugin/src/types/project.ts:215). For any prTitleType, that type is not a member of the provided list, so the current length > 0 guard permits a non-releasing archive contrary to AC1 and DONT2.",
+          "fix": "Remove the release_types.length > 0 bypass (or reject empty release_types structurally) and add an empty-array regression test proving PR_TITLE_POLICY_VIOLATION with no merge arm."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Optional policy arrays accepting [] must not use truthiness/length guards when empty means 'no permitted values'; validate non-empty at schema boundary or enforce membership whenever the field is present."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Vitest exit 0: 1 file passed, 142 tests passed. Existing tests prove non-empty release_types blocks chore and arms fix, but no test covers schema-valid release_types: [] bypass."
+      },
+      "scope_drift": null,
+      "risks": [
+        "A conventional policy with release_types: [] can arm auto-merge for any allowed type because the guard requires length > 0.",
+        "The requested non-empty-list must-fix is resolved; the schema-valid empty-list policy remains unprotected."
+      ],
+      "required_main_agent_actions": [
+        "Apply the narrowly scoped empty-release_types remediation: enforce membership whenever release_types is provided, or structurally reject empty release_types in PrTitlePolicySchema.",
+        "Add and run a regression test for conventional allowed type with release_types: [] returning PR_TITLE_POLICY_VIOLATION and zero merge calls.",
+        "Re-run acceptance review after remediation; do not set the contract review matrix to all-pass until AC1 and DONT2 cover the empty-list policy state."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivePrTitles",
+      "attempt": 4,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivePrTitles",
+      "task_id": "tk-031e83d184ef",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-031e83d184ef"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "For policy enforcement with optional config lists, parse-time non-empty validation plus runtime presence-based membership guards prevents malformed legacy inputs from bypassing release-critical checks."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Exit 0; 3 test files and 209 tests passed in 7.94s. Verified commits c1f41363 and 0e6a2351 are HEAD and worktree is clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Freshness probe reports this change worktree is 6 commits behind origin/trunk; this is integration freshness, not a title-policy enforcement gap."
+      ],
+      "required_main_agent_actions": [
+        "Final verdict: pass. Record the 10-row review matrix delivered in the reviewer final response as acceptance evidence.",
+        "Before release/archive, refresh/rebase the change worktree per normal ADV freshness workflow because origin/trunk is ahead by 6 commits."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec vitest run --project unit src/types/project.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-dcd05f724abb": [
+      {
+        "runId": "tr_ms0n5sgi_4280776b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "node /tmp/opencode/check-delta-modify.js /tmp/opencode/delta-proof-pre.json",
+        "durationMs": 38.072970000095665,
+        "recordedAt": "2026-07-25T17:26:56.916Z"
+      },
+      {
+        "runId": "tr_ms0nblwu_9f66ea19",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "node /tmp/opencode/check-delta-modify.js /tmp/opencode/delta-proof-post.json",
+        "durationMs": 44.959060000255704,
+        "recordedAt": "2026-07-25T17:31:28.366Z"
+      }
+    ],
+    "tk-d02c7abde910": [
+      {
+        "runId": "tr_ms0nebxd_aa56b58b",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/types/project.test.ts 2>&1 | tail -15",
+        "durationMs": 1275.4260359993204,
+        "recordedAt": "2026-07-25T17:33:35.392Z"
+      },
+      {
+        "runId": "tr_ms0q1rfg_b667ed27",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/types/project.test.ts src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -8",
+        "durationMs": 7024.347550000995,
+        "recordedAt": "2026-07-25T18:47:47.805Z"
+      }
+    ],
+    "tk-58a8f99b367e": [
+      {
+        "runId": "tr_ms0o4pvl_202cd778",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -12",
+        "durationMs": 9703.483493000269,
+        "recordedAt": "2026-07-25T17:54:06.591Z"
+      }
+    ],
+    "tk-1c560667391b": [
+      {
+        "runId": "tr_ms0oo3qe_d5c245c3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/tools/change.archive-phase9.test.ts 2>&1 | tail -10",
+        "durationMs": 5312.794737000018,
+        "recordedAt": "2026-07-25T18:09:10.943Z"
+      }
+    ],
+    "tk-3bd6a3f67e02": [
+      {
+        "runId": "tr_ms0oo4ps_9ccbb14f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -10",
+        "durationMs": 6594.812140000053,
+        "recordedAt": "2026-07-25T18:09:12.230Z"
+      },
+      {
+        "runId": "tr_ms0pnxju_e2a3da22",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -8",
+        "durationMs": 6594.827560998499,
+        "recordedAt": "2026-07-25T18:37:02.586Z"
+      }
+    ],
+    "tk-031e83d184ef": [
+      {
+        "runId": "tr_ms0peft5_e7f25812",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run --project unit src/tools/archive-helpers/git-finalize.test.ts 2>&1 | tail -8",
+        "durationMs": 6026.254315000027,
+        "recordedAt": "2026-07-25T18:29:39.638Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-workflow": [
+      {
+        "id": "dl-archivePrTitlePolicyException",
+        "operation": "modify",
+        "target_id": "rq-approvedPrAutoMerge01",
+        "changes": {
+          "body": "When a user explicitly grants merge authority for the current ADV change and requested end-state, ADV MUST retain that authority within the active orchestration session for matching same-change remediation PRs and MUST immediately arm GitHub squash auto-merge after each matching PR is pushed or created. Authority is bound to changeId, repository, change/<changeId> head branch, resolved default base branch, requested end-state, and active session; push-only permission, generic gate approval, and unrelated PRs do not authorize merge. ADV MUST run `gh pr merge <number> --repo <owner/repo> --squash --auto`, re-read the OPEN PR, and require `autoMergeRequest.enabledAt` before reporting auto-merge armed. After remediation it MUST push, re-read PR identity/state, re-arm, verify, and resume adv-ci-waiter. CI green is nonterminal until PR state is MERGED or canonical default-branch reachability is proven. Authority ends on revocation, stop/cancel, identity drift, unrelated scope, terminal completion, requested-end-state completion, or session restart/compaction/context loss that removes authoritative approval evidence; a new explicit merge grant is then required. Tier-B archive sign-off remains unchanged. The auto-merge command MUST NOT include `--delete-branch` or `-d`; cleanup remains post-merge. This immediate-auto-merge obligation has one exception: when the target project's `archive.pr_title_policy.format` is `conventional`, `armPullRequestAutoMerge` MUST first verify the live PR title conforms to `allowed_types` and that a semantic type is resolvable; on a non-conforming title, an unresolvable type, or a live-title lookup failure it MUST return a typed blocker (`PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, or `PR_TITLE_LOOKUP_FAILED`) instead of arming. All other authority, identity, `--delete-branch` prohibition, and Tier-B sign-off invariants are unchanged.",
+          "scenarios": [
+            {
+              "id": "rq-approvedPrAutoMerge01.1",
+              "title": "Explicit merge authority arms matching PR immediately",
+              "given": [
+                "The user explicitly authorizes merge for the current change and requested end-state",
+                "An OPEN PR has the current repository, change/<changeId> head, and resolved default base",
+                "The explicit approval evidence remains available in the active orchestration session"
+              ],
+              "when": "The change branch is pushed or the matching PR is created",
+              "then": [
+                "ADV immediately runs `gh pr merge <number> --repo <owner/repo> --squash --auto` without waiting for CI green or asking again",
+                "ADV verifies the PR remains OPEN and `autoMergeRequest.enabledAt` is present",
+                "ADV starts adv-ci-waiter and requires MERGED proof before completion"
+              ]
+            },
+            {
+              "id": "rq-approvedPrAutoMerge01.2",
+              "title": "Remediation re-arms same-change PR",
+              "given": [
+                "Durable merge authority remains valid",
+                "CI failure or merge conflict requires an in-scope remediation push"
+              ],
+              "when": "The remediation branch update is pushed",
+              "then": [
+                "ADV re-reads PR number, repository, head, base, and state before mutation",
+                "ADV arms or re-arms squash auto-merge and verifies `autoMergeRequest.enabledAt`",
+                "ADV resumes adv-ci-waiter instead of requesting merge approval again"
+              ]
+            },
+            {
+              "id": "rq-approvedPrAutoMerge01.3",
+              "title": "Authority invalidation fails closed",
+              "given": [
+                "Merge authority was previously granted for a change"
+              ],
+              "when": "The user revokes authority, stops or cancels, identity drifts, scope becomes unrelated, the requested end-state completes, or session restart/compaction/context loss removes authoritative approval evidence",
+              "then": [
+                "ADV does not arm or merge the PR under stale authority",
+                "Push-only or generic gate approval is not treated as merge authority",
+                "A new session requires a new explicit merge grant",
+                "Tier-B archive sign-off remains whitelist-only",
+                "No auto-merge command uses `--delete-branch` or `-d`"
+              ]
+            },
+            {
+              "id": "rq-approvedPrAutoMerge01.4",
+              "title": "Title-policy exception blocks arming at CC targets",
+              "given": [
+                "The target project's archive.pr_title_policy.format is conventional",
+                "armPullRequestAutoMerge is about to arm a same-change PR"
+              ],
+              "when": "The live PR title does not conform to allowed_types, the semantic type is unresolvable, or the live-title lookup fails",
+              "then": [
+                "armPullRequestAutoMerge returns the matching typed blocker (PR_TITLE_POLICY_VIOLATION for a non-conforming title, PR_TITLE_TYPE_UNRESOLVED for an unresolvable type, PR_TITLE_LOOKUP_FAILED for a live-title lookup failure) and does NOT arm auto-merge",
+                "The caller maps the blocker to a blocked outcome with no shipped claim",
+                "Authority, identity, --delete-branch prohibition, and Tier-B sign-off invariants remain unchanged"
+              ]
+            }
+          ]
+        },
+        "precondition": {
+          "schema_version": 1,
+          "target_requirement_sha256": "4ddeb8bfd0cdf9b5da02a5795699bd51ba03e9644974b93d1e8e6504bf046f80",
+          "new_id_absent": true
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-25T16:20:09.466Z",
+      "completed_by": "user",
+      "approval_evidence": "Proposal checkpoint confirmed by user. Artifact complete: RCA (defect origin) + scope + constraints + failure handling. Validation clean (0 errors, 0 conflicts).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "3f7c042a90703b220449adf887d4c1e42819bfab3ae706b479f5b08448342b84",
+        "non_whitespace_chars": 1802,
+        "checked_at": "2026-07-25T15:24:16.461Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-25T16:35:47.730Z",
+      "completed_at": "2026-07-25T16:36:12.191Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement persisted + ChangeContract minted (10 items: AC1-AC5, C1-C3, DONT1-DONT2). Discovery complete: bug site located (git-finalize.ts:1520), no title validation exists, PokeEdge mechanism understood (PR-title action, not required check → gates release not merge), ADV policy-detection gap confirmed, 0 conflicts. Design fork deferred to design gate.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "non_whitespace_chars": 2125,
+        "checked_at": "2026-07-25T15:24:16.463Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-25T17:08:42.073Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher (2 passes). Architecture confirmed sound: armPullRequestAutoMerge is the sole merge-arming primitive (callers 1704 + 2329, both map !armed.ok→blocked; no bypass; PR creation centralized). Two validator findings folded into design: (1) D6 — modify-delta on rq-approvedPrAutoMerge01 (title-policy exception), staged in planning; (2) D5 — armer fetches LIVE pr title + lookup-failure→PR_TITLE_LOOKUP_FAILED blocker (covers re-drive reuse case). Design amends a release-safety spec law (scope elevation, user-approved). Fix surface: git-finalize.ts (createArchivePullRequest 1497, armPullRequestAutoMerge 1583, GitFinalizeContext 2791) + ProjectConfigSchema (project.ts) + adv_change_archive prTitleType param.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "80b2b0e68a37a4197555a88c019243419f6d7817ca153a86f91be1a8bee277cf",
+        "non_whitespace_chars": 5580,
+        "checked_at": "2026-07-25T15:24:16.464Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-25T17:21:09.545Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep checkpoint approved by user. Task graph: 6 tasks (1 spec-delta stage, 2 schema field, 3 threading+title construction, 4 guard, 5 prTitleType param, 6 integration tests). Dep chain 1∥2→3→{4,5}→6. All 5 ACs covered (AC1/3/5 by tk-3, AC2 by tk-4, AC5 by tk-5, all verified by tk-6; AC4 = tk-6). Contract minted (10 items). Change amends rq-approvedPrAutoMerge01 (spec-law). Worktree change/fixArchivePrTitles materialized."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-25T18:30:29.577Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks done. Implementation: archive.pr_title_policy in ProjectConfigSchema (format conventional|plain, release_types/allowed_types); GitFinalizeContext threads changeTitle/prTitleType/prTitlePolicy; createArchivePullRequest constructs {type}:{title} / Archive {id} / UNRESOLVED_PR_TITLE; armPullRequestAutoMerge is policy-aware (live-title fetch via readPullRequestByBranch, validate allowed_types, block PR_TITLE_POLICY_VIOLATION/TYPE_UNRESOLVED/LOOKUP_FAILED) covering both executePullRequestHandoff + redriveArchivedUnmergedBranch; adv_change_archive prTitleType param; spec delta dl-archivePrTitlePolicyException on rq-approvedPrAutoMerge01 (reviewer PASS). Tests: 140 git-finalize + 54 phase9 + schema tests green; task 4 ran full pnpm run check clean. adv_change_validate 0 errors (9 non-blocking overlap warnings). Commits: 03803b9e, 15f4a21d, 7c6b566f, 4420aebc on change/fixArchivePrTitles. AC1-AC5 covered (AC4 PokeEdge #1020 repro at git-finalize.test.ts:5167)."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-25T18:59:30.120Z",
+      "completed_at": "2026-07-25T19:07:08.723Z",
+      "completed_by": "user",
+      "approval_evidence": "Retry after adv_doctor confirmed healthy + disposition signal processing lag. All artifacts persisted (executive-summary.md, 6 verification dispositions fixed).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "32e5cba4de66ca715b81ce7b590b6466ba91aed07e9c94ffb3d42f93a5883457",
+        "non_whitespace_chars": 2745,
+        "checked_at": "2026-07-25T15:24:16.467Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "PokeEdge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "source_change_id": "restoreMissedReleaseTag",
+    "linked_at": "2026-07-25T15:24:06.889Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+      "approvedAt": "2026-07-25T16:36:01.491Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — Given a target project that requires Conventional Commit PR titles, when Phase 9 creates the archive PR, then the title conforms to an allowed type and is releasable (`feat` / `fix` / `perf`) when a release is intended.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — Given the constructed title would violate the target's title policy, then Phase 9 stops before merge with a typed, actionable blocker (does NOT arm auto-merge, does NOT claim shipped).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — Given a target without Conventional Commit enforcement, then current behavior is preserved with no regression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — Tests reproduce the PokeEdge PR #1020 scenario (generic `Archive …` title rejected) and the fixed conforming-title path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — The semantic type (`feat` / `fix` / `perf` / `chore`) is selected from typed change metadata or an explicit bounded choice — never inferred from title-text heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not infer semantic impact or prefix from title text heuristics; use typed project policy / change metadata, or require an explicit bounded choice.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Preserve compatibility for repositories without Conventional Commit enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not bypass CI, force-merge, rewrite merged commits, or auto-create synthetic release commits.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not make fragile repository-file inspection the primary CC-detection mechanism. Discovery confirmed the PR-title validator is NOT a required merge check (required = `Sharperflow CI Gate` only); the policy lives in workflow files + semantic-release config, which is unreliable for ADV to read as the source of truth.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not treat a \"valid Conventional Commit title\" as sufficient. A `chore:` title passes the title check but does not trigger a release. The chosen type must match the release intent, not merely the format rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-25T18:52:23.255Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "git-finalize.ts:1521-1531,1680-1706 (conventional title construction + release_types enforcement); tests git-finalize.test.ts:4298-4311,5224-5269"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "git-finalize.ts:1625-1706,1839-1855 (guard blocks before arm; both call sites map !armed.ok→blocked); tests :4276-4296,4336-4420,5277-5313 (re-drive path regression)"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "project.ts:213 (plain default); git-finalize.ts:1518-1534 (plain→Archive {id} unchanged); tests :4235-4262,5393-5433"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "PokeEdge #1020 repro tests git-finalize.test.ts:5217-5270,5354-5387 (generic Archive rejected → fix: title accepted + arms)"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.ts:3494-3511 (bounded prTitleType enum); tests change.archive-phase9.test.ts:430-455, git-finalize.test.ts:5437-5487 (metadata + explicit param; no heuristic inference)"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Bounded explicit type + typed policy; no title-text inference: change.ts:3494-3511, git-finalize.ts:1531"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Plain/absent policy compatibility unchanged: git-finalize.ts:1518-1534,1624-1707; tests :4235-4262"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Normal gh pr merge --auto; policy/lookup failures block instead of force-merge: git-finalize.ts:1711-1719,1839-1855"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Typed project config + bounded input supply the policy; no target repo-file inspection: project.ts:210-228, change.ts:3494-3511"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Separate release_types membership check (non-releasing type blocks): git-finalize.ts:1693-1706; tests :4276-4311"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — Given a target project that requires Conventional Commit PR titles, when Phase 9 creates the archive PR, then the title conforms to an allowed type and is releasable (`feat` / `fix` / `perf`) when a release is intended.",
+    "**AC2** — Given the constructed title would violate the target's title policy, then Phase 9 stops before merge with a typed, actionable blocker (does NOT arm auto-merge, does NOT claim shipped).",
+    "**AC3** — Given a target without Conventional Commit enforcement, then current behavior is preserved with no regression.",
+    "**AC4** — Tests reproduce the PokeEdge PR #1020 scenario (generic `Archive …` title rejected) and the fixed conforming-title path.",
+    "**AC5** — The semantic type (`feat` / `fix` / `perf` / `chore`) is selected from typed change metadata or an explicit bounded choice — never inferred from title-text heuristics."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **PokeEdge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | PokeEdge |\n| Source path | `/home/jon/dev/pokeedge` |\n| Source change | restoreMissedReleaseTag |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Fix Archive PR Titles\n\n## Problem\n\nADV Phase 9 created PokeEdge PR #1020 with title `Archive removeExternalArtistResolvers`. PokeEdge requires Conventional Commit PR titles because squash titles become release commit subjects. The title check failed, auto-merge still completed, and Semantic Release produced no tag.\n\n## Root Cause Analysis\n\nArchive finalization selected a generic `Archive {changeId}` title instead of deriving repository-compatible release semantics from project policy/change intent. Auto-merge proceeded without treating the failed required title contract as a release blocker. This allowed ADV to report shipped while the target repository's release automation could not classify the merge commit.\n\n## Intended Outcome\n\nPhase 9 generates a valid repository-compatible Conventional Commit PR title when the target project requires one, verifies title-policy checks before terminal shipped state, and prevents an archive from silently completing with an unreleasable squash subject.\n\n## Scope\n\n- Archive/Phase 9 PR title generation and validation.\n- Target-project policy/config input needed to choose a prefix structurally.\n- Tests reproducing PokeEdge PR #1020 behavior.\n- Release-state handling when title-policy checks fail.\n\n## Constraints\n\n- Do not infer semantic impact from title text heuristics alone; use typed project policy/change metadata or require an explicit bounded choice.\n- Preserve compatibility for repositories without Conventional Commit enforcement.\n- Do not bypass CI, force merge, rewrite merged commits, or auto-create synthetic release commits.\n\n## Failure Handling\n\nIf no structurally valid prefix can be selected, Phase 9 must stop before merge with an actionable typed blocker rather than emit a generic title or claim shipped.",
+    "agreement": "# Agreement — fixArchivePrTitles\n\n## Objectives\n\n1. Archive Phase 9 emits a **repository-compatible** PR title when the target project requires Conventional Commit semantics.\n2. A failed title-policy contract is treated as a **release blocker** — ADV must not reach terminal \"shipped\" while the target's release automation cannot classify the merge commit.\n3. Repositories **without** Conventional Commit enforcement keep working unchanged.\n\n## Acceptance Criteria\n\n- **AC1** — Given a target project that requires Conventional Commit PR titles, when Phase 9 creates the archive PR, then the title conforms to an allowed type and is releasable (`feat` / `fix` / `perf`) when a release is intended.\n- **AC2** — Given the constructed title would violate the target's title policy, then Phase 9 stops before merge with a typed, actionable blocker (does NOT arm auto-merge, does NOT claim shipped).\n- **AC3** — Given a target without Conventional Commit enforcement, then current behavior is preserved with no regression.\n- **AC4** — Tests reproduce the PokeEdge PR #1020 scenario (generic `Archive …` title rejected) and the fixed conforming-title path.\n- **AC5** — The semantic type (`feat` / `fix` / `perf` / `chore`) is selected from typed change metadata or an explicit bounded choice — never inferred from title-text heuristics.\n\n## Constraints\n\n- Do not infer semantic impact or prefix from title text heuristics; use typed project policy / change metadata, or require an explicit bounded choice.\n- Preserve compatibility for repositories without Conventional Commit enforcement.\n- Do not bypass CI, force-merge, rewrite merged commits, or auto-create synthetic release commits.\n\n## Avoidances\n\n- Do not make fragile repository-file inspection the primary CC-detection mechanism. Discovery confirmed the PR-title validator is NOT a required merge check (required = `Sharperflow CI Gate` only); the policy lives in workflow files + semantic-release config, which is unreliable for ADV to read as the source of truth.\n- Do not treat a \"valid Conventional Commit title\" as sufficient. A `chore:` title passes the title check but does not trigger a release. The chosen type must match the release intent, not merely the format rule.\n\n## Open Design Question (deferred to design gate)\n\nWhere the CC-requirement signal and the semantic type originate — (A) typed project-config field, (B) explicit archive-time bounded choice, or (C) target repo inspection. AC5 and the avoidances constrain the choice but do not select it.\n",
+    "design": "# Design — fixArchivePrTitles\n\n## Architecture\n\nADV archive Phase 9 currently hardcodes a non-Conventional PR title (`Archive {changeId}`) and arms auto-merge without any title-policy verification. For targets whose release automation derives semantics from the squash PR title (e.g. PokeEdge: Python Semantic Release + `amannn/action-semantic-pull-request`), this yields a title that fails the target's validator while still auto-merging — ADV then claims \"shipped\" though no release tag is produced.\n\nThe fix adds three structural pieces inside the existing Phase 9 path:\n1. A **typed project-config field** declaring the target's PR-title policy.\n2. **Title + type threading** into the finalize path.\n3. A **pre-merge title-policy guard inside the shared `armPullRequestAutoMerge` primitive** (chokepoint for both the primary handoff and the re-drive path) that turns a non-conforming/unresolvable title into a typed blocker instead of a silent ship.\n\n## LBP Decisions\n\n### D1 — CC-requirement signal: typed project config (not repo inspection)\nThe PR-title validator is NOT a required merge check (PokeEdge required check = `Sharperflow CI Gate` only); policy lives in workflow + semantic-release config, unreliable as source of truth. Target declares its policy in `project.json`. Deterministic, structural, honors the avoidance.\n\n### D2 — Semantic type: typed metadata → explicit choice → block\nNever inferred from title text. Order: change metadata → `adv_change_archive prTitleType` param → block. Satisfies AC5 + the original silent-non-release failure mode.\n\n### D3 — Non-CC repos: preserve current behavior\n`format: \"plain\"` (absent-field default) keeps `Archive {changeId}`. No regression (AC3).\n\n### D4 — Block over silent non-release\nUnresolvable type at a CC target → block (AC2), not default to `chore` (`chore:` passes validation but releases nothing — the original defect).\n\n### D5 — Guard placement: shared primitive `armPullRequestAutoMerge` + LIVE title fetch\nIndependent validation confirmed `armPullRequestAutoMerge` (git-finalize.ts:1583) is the sole merge-arming primitive, called by BOTH `executePullRequestHandoff` (1704) and `redriveArchivedUnmergedBranch` (2329); both map `!armed.ok` → `blocked`; no third caller, no alternate `gh pr merge` path. PR creation is centralized through `ensureArchivePullRequest` → `createArchivePullRequest`.\n\nThe armer becomes policy-aware. On `format: \"conventional\"`:\n1. **Fetch the LIVE PR title** (`gh pr view <n> --json title`) — NOT just the freshly-constructed one — so the reuse case (re-drive reusing a PR with a bad title from a prior partial run) is covered. The current reused-PR summary lacks `title` (git-finalize.ts:1475-1494) and the armer currently accepts only checkout/repo/number (1583-1588); both are extended.\n2. Resolve type (metadata → param → none) and validate the live title against `allowed_types`.\n3. Missing type, violation, or **lookup failure** → return `{ ok: false, reason: \"PR_TITLE_POLICY_VIOLATION\" | \"PR_TITLE_TYPE_UNRESOLVED\" | \"PR_TITLE_LOOKUP_FAILED\", ... }`. Both callers already map this to `blocked`.\n4. **Race/failure handling**: a `gh pr view` failure or title mutation after validation is treated as a typed blocker (`PR_TITLE_LOOKUP_FAILED`), never as a silent arm. Tested explicitly.\n\n### D6 — Spec-law amendment: modify `rq-approvedPrAutoMerge01`\n`rq-approvedPrAutoMerge01` (advance-workflow, spec.json:426) currently mandates immediate auto-merge after matching PR create/push. The blocking guard requires a carve-out. This change carries a **modify-delta** adding the title-policy exception:\n\n> Auto-merge arming returns a typed blocker (`PR_TITLE_POLICY_VIOLATION` / `PR_TITLE_TYPE_UNRESOLVED` / `PR_TITLE_LOOKUP_FAILED`) when the target's `archive.pr_title_policy.format` is `conventional` and the PR title is non-conforming, the semantic type is unresolvable, or the live-title lookup fails. All other immediate-auto-merge behavior, authority invariants, and `--delete-branch` prohibition are unchanged.\n\nThe delta is **staged during planning** (adv_delta_modify against `advance-workflow` / `rq-approvedPrAutoMerge01`) when the exact current requirement text + sha256 precondition are resolved with tooling. This makes the change a spec-amending change, not a pure code fix. Validated as a legitimate amendment shape (preserves authority/identity invariants; defines a narrow pre-arm exception).\n\n## Components\n\n### Config schema — `plugin/src/types/project.ts`\nAdd to `ProjectConfigSchema` (`.passthrough()`; root-level `archive_mode`/`auto_push` don't collide with nested `archive`):\n```ts\narchive: {\n  pr_title_policy: {\n    format: \"conventional\" | \"plain\";   // default \"plain\"\n    release_types?: string[];\n    allowed_types?: string[];\n  }\n}\n```\n\n### Title + type threading — `git-finalize.ts`\n- `GitFinalizeContext` (2791): add `changeTitle`, `prTitleType?`, resolved `prTitlePolicy`.\n- `createArchivePullRequest` (1497/1520): `{type}: {changeTitle}` (conventional) or `Archive {changeId}` (plain).\n- Forward `change.title` from `change.ts:3961` (in scope at 3930, currently not forwarded).\n\n### Shared guard — `armPullRequestAutoMerge` (1583)\nPolicy-aware: plain → arm as today; conventional → fetch live title, resolve type, validate `allowed_types`, block on violation/missing/lookup-failure (per D5).\n\n### Spec delta — `rq-approvedPrAutoMerge01`\nmodify-operation delta (per D6), staged in planning.\n\n### Archive entry — `adv_change_archive`\nOptional `prTitleType` (bounded enum) → `GitFinalizeContext.prTitleType`.\n\n## Test Strategy\n- PokeEdge #1020 repro: conventional target + policy + type → `fix: …`.\n- AC2: unresolvable type → blocker via BOTH `executePullRequestHandoff` AND `redriveArchivedUnmergedBranch` (re-drive is the regression for validator finding 2).\n- Reuse coverage: re-drive on a PR with a pre-existing bad title → blocker (validator D5 live-title finding).\n- Lookup-failure: `gh pr view` failure → `PR_TITLE_LOOKUP_FAILED` blocker, no arm.\n- AC3: plain target → unchanged.\n- AC5: type from metadata and param; heuristic paths rejected.\n- Spec-delta conformance: amended `rq-approvedPrAutoMerge01` permits the blocker; no other spec conflict.\n\n## Out of Scope\n- Auto-detecting CC by reading target workflow/semantic-release config (avoidance).\n- Editing PokeEdge's project.json (cross-project, when PokeEdge adopts the field).\n- Branch-protection/required-check polling beyond existing routing.\n",
+    "executiveSummary": "# Executive Summary — fixArchivePrTitles\n\n## Outcome\nADV archive Phase 9 now produces **Conventional-Commit-compatible PR titles** for target projects that require them, and **blocks (instead of silently shipping)** when a title would be non-conforming, non-releasing, or unresolvable.\n\n## Why it matters\nRepositories using squash-title-driven release automation (e.g. PokeEdge: Python Semantic Release + a PR-title Conventional Commit validator) derive release semantics from the squash PR title. The previous behavior titled archive PRs `Archive {changeId}`, which failed the target's title validator, auto-merged anyway, and produced **no release tag** — while ADV reported \"shipped.\" This is the silent-non-release failure class: ADV reaches terminal shipped while the target's release automation cannot classify the merge.\n\n## What changed\n- **Typed project config**: `archive.pr_title_policy` (format `conventional`|`plain` default, `release_types`, `allowed_types`; arrays `.min(1)`). A target declares its own policy; absent field = plain (no regression).\n- **Title construction**: conventional → `{type}: {change.title}`; plain → `Archive {changeId}` (byte-for-byte unchanged); conventional + no resolvable type → `UNRESOLVED_PR_TITLE` signal.\n- **Shared pre-merge guard** in `armPullRequestAutoMerge` (the sole merge-arming primitive, used by both the primary handoff and the re-drive path): fetches the **live** PR title and blocks on `PR_TITLE_POLICY_VIOLATION` (non-conforming or non-releasing type), `PR_TITLE_TYPE_UNRESOLVED`, or `PR_TITLE_LOOKUP_FAILED`. Covers reused PRs (re-drive on a prior bad title).\n- **Explicit choice**: `adv_change_archive` gained an optional bounded `prTitleType` param for the case where change metadata doesn't yield a type.\n- **Spec-law amendment**: modify-delta on `rq-approvedPrAutoMerge01` carves out the title-policy exception (preserving all authority/identity/`--delete-branch`/Tier-B invariants).\n\n## Verification\n- **209 tests green** (git-finalize 155 incl. PokeEdge PR #1020 repro, AC2 via re-drive path regression, reuse bad-title coverage, release_types + empty-array enforcement; change.archive-phase9 54; project schema).\n- **Independent acceptance review: PASS** (3 review passes; 2 real must-fixes surfaced and fixed — release_types enforcement, empty-array rejection).\n- **Review matrix 10/10 rows, 0 failing** (AC1-AC5 pass; C1-C3 + DONT1-DONT2 respected).\n- Full `pnpm run check` clean (schemas/typecheck/manifests/test-isolation/lockfile/lint/format).\n- `adv_change_validate` 0 errors.\n\n## Risks / follow-ups\n- **PokeEdge adoption (out of scope here)**: PokeEdge must add `archive.pr_title_policy` to its project.json for the fix to take effect — a separate cross-project config edit.\n- **Worktree drift**: change branch is 6 commits behind `origin/trunk`; rebase before release/archive.\n- No CI bypass, force-merge, commit rewriting, or synthetic release commits introduced (C3).\n\n## Supporting evidence\nCommits `03803b9e` → `0e6a2351` on `change/fixArchivePrTitles`. Spec delta `dl-archivePrTitlePolicyException` on `advance-workflow`/`rq-approvedPrAutoMerge01`.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-25T18:52:23.255Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1** — Given a target project that requires Conventional Commit PR titles, when Phase 9 creates the archive PR, then the title conforms to an allowed type and is releasable (`feat` / `fix` / `perf`) when a release is intended. | pass | git-finalize.ts:1521-1531,1680-1706 (conventional title construction + release_types enforcement); tests git-finalize.test.ts:4298-4311,5224-5269 |\n| AC2 | acceptance_criterion | **AC2** — Given the constructed title would violate the target's title policy, then Phase 9 stops before merge with a typed, actionable blocker (does NOT arm auto-merge, does NOT claim shipped). | pass | git-finalize.ts:1625-1706,1839-1855 (guard blocks before arm; both call sites map !armed.ok→blocked); tests :4276-4296,4336-4420,5277-5313 (re-drive path regression) |\n| AC3 | acceptance_criterion | **AC3** — Given a target without Conventional Commit enforcement, then current behavior is preserved with no regression. | pass | project.ts:213 (plain default); git-finalize.ts:1518-1534 (plain→Archive {id} unchanged); tests :4235-4262,5393-5433 |\n| AC4 | acceptance_criterion | **AC4** — Tests reproduce the PokeEdge PR #1020 scenario (generic `Archive …` title rejected) and the fixed conforming-title path. | pass | PokeEdge #1020 repro tests git-finalize.test.ts:5217-5270,5354-5387 (generic Archive rejected → fix: title accepted + arms) |\n| AC5 | acceptance_criterion | **AC5** — The semantic type (`feat` / `fix` / `perf` / `chore`) is selected from typed change metadata or an explicit bounded choice — never inferred from title-text heuristics. | pass | change.ts:3494-3511 (bounded prTitleType enum); tests change.archive-phase9.test.ts:430-455, git-finalize.test.ts:5437-5487 (metadata + explicit param; no heuristic inference) |\n| C1 | constraint | Do not infer semantic impact or prefix from title text heuristics; use typed project policy / change metadata, or require an explicit bounded choice. | respected | Bounded explicit type + typed policy; no title-text inference: change.ts:3494-3511, git-finalize.ts:1531 |\n| C2 | constraint | Preserve compatibility for repositories without Conventional Commit enforcement. | respected | Plain/absent policy compatibility unchanged: git-finalize.ts:1518-1534,1624-1707; tests :4235-4262 |\n| C3 | constraint | Do not bypass CI, force-merge, rewrite merged commits, or auto-create synthetic release commits. | respected | Normal gh pr merge --auto; policy/lookup failures block instead of force-merge: git-finalize.ts:1711-1719,1839-1855 |\n| DONT1 | avoidance | Do not make fragile repository-file inspection the primary CC-detection mechanism. Discovery confirmed the PR-title validator is NOT a required merge check (required = `Sharperflow CI Gate` only); the policy lives in workflow files + semantic-release config, which is unreliable for ADV to read as the source of truth. | respected | Typed project config + bounded input supply the policy; no target repo-file inspection: project.ts:210-228, change.ts:3494-3511 |\n| DONT2 | avoidance | Do not treat a \"valid Conventional Commit title\" as sufficient. A `chore:` title passes the title check but does not trigger a release. The chosen type must match the release intent, not merely the format rule. | respected | Separate release_types membership check (non-releasing type blocks): git-finalize.ts:1693-1706; tests :4276-4311 |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-25T15:24:08.639Z",
+      "contentHash": "3f7c042a90703b220449adf887d4c1e42819bfab3ae706b479f5b08448342b84",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-25T16:35:36.741Z",
+      "contentHash": "5b2d361457c237b220db4615b0c4b0b74037f8a5387be972bfa7054a86dbd90b",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-25T17:08:29.436Z",
+      "contentHash": "80b2b0e68a37a4197555a88c019243419f6d7817ca153a86f91be1a8bee277cf",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-25T19:00:17.099Z",
+      "contentHash": "32e5cba4de66ca715b81ce7b590b6466ba91aed07e9c94ffb3d42f93a5883457",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-25T19:07:08.723Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}

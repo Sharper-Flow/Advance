@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.36.0
-> **Updated:** 2026-07-23
+> **Version:** 1.38.1
+> **Updated:** 2026-07-25
 
 ## Purpose
 
@@ -378,6 +378,72 @@ Archive of a change that touches a spec with `conformance_required: true` is blo
 **Then:**
 - Phase 6 (Execute Archive) runs
 - The override entry is preserved in the spec's append-only audit log
+
+---
+
+### Approved Same-Change PRs Arm Squash Auto-Merge Immediately
+
+**ID:** `rq-approvedPrAutoMerge01` | **Priority:** **[MUST]**
+
+When a user explicitly grants merge authority for the current ADV change and requested end-state, ADV MUST retain that authority within the active orchestration session for matching same-change remediation PRs and MUST immediately arm GitHub squash auto-merge after each matching PR is pushed or created. Authority is bound to changeId, repository, change/<changeId> head branch, resolved default base branch, requested end-state, and active session; push-only permission, generic gate approval, and unrelated PRs do not authorize merge. ADV MUST run `gh pr merge <number> --repo <owner/repo> --squash --auto`, re-read the OPEN PR, and require `autoMergeRequest.enabledAt` before reporting auto-merge armed. After remediation it MUST push, re-read PR identity/state, re-arm, verify, and resume adv-ci-waiter. CI green is nonterminal until PR state is MERGED or canonical default-branch reachability is proven. Authority ends on revocation, stop/cancel, identity drift, unrelated scope, terminal completion, requested-end-state completion, or session restart/compaction/context loss that removes authoritative approval evidence; a new explicit merge grant is then required. Tier-B archive sign-off remains unchanged. The auto-merge command MUST NOT include `--delete-branch` or `-d`; cleanup remains post-merge. This immediate-auto-merge obligation has one exception: when the target project's `archive.pr_title_policy.format` is `conventional`, `armPullRequestAutoMerge` MUST first verify the live PR title conforms to `allowed_types` and that a semantic type is resolvable; on a non-conforming title, an unresolvable type, or a live-title lookup failure it MUST return a typed blocker (`PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, or `PR_TITLE_LOOKUP_FAILED`) instead of arming. All other authority, identity, `--delete-branch` prohibition, and Tier-B sign-off invariants are unchanged.
+
+**Tags:** `workflow`, `approval`, `git`, `auto-merge`
+
+#### Scenarios
+
+**Explicit merge authority arms matching PR immediately** (`rq-approvedPrAutoMerge01.1`)
+
+**Given:**
+- The user explicitly authorizes merge for the current change and requested end-state
+- An OPEN PR has the current repository, change/<changeId> head, and resolved default base
+- The explicit approval evidence remains available in the active orchestration session
+
+**When:** The change branch is pushed or the matching PR is created
+
+**Then:**
+- ADV immediately runs `gh pr merge <number> --repo <owner/repo> --squash --auto` without waiting for CI green or asking again
+- ADV verifies the PR remains OPEN and `autoMergeRequest.enabledAt` is present
+- ADV starts adv-ci-waiter and requires MERGED proof before completion
+
+**Remediation re-arms same-change PR** (`rq-approvedPrAutoMerge01.2`)
+
+**Given:**
+- Durable merge authority remains valid
+- CI failure or merge conflict requires an in-scope remediation push
+
+**When:** The remediation branch update is pushed
+
+**Then:**
+- ADV re-reads PR number, repository, head, base, and state before mutation
+- ADV arms or re-arms squash auto-merge and verifies `autoMergeRequest.enabledAt`
+- ADV resumes adv-ci-waiter instead of requesting merge approval again
+
+**Authority invalidation fails closed** (`rq-approvedPrAutoMerge01.3`)
+
+**Given:**
+- Merge authority was previously granted for a change
+
+**When:** The user revokes authority, stops or cancels, identity drifts, scope becomes unrelated, the requested end-state completes, or session restart/compaction/context loss removes authoritative approval evidence
+
+**Then:**
+- ADV does not arm or merge the PR under stale authority
+- Push-only or generic gate approval is not treated as merge authority
+- A new session requires a new explicit merge grant
+- Tier-B archive sign-off remains whitelist-only
+- No auto-merge command uses `--delete-branch` or `-d`
+
+**Title-policy exception blocks arming at CC targets** (`rq-approvedPrAutoMerge01.4`)
+
+**Given:**
+- The target project's archive.pr_title_policy.format is conventional
+- armPullRequestAutoMerge is about to arm a same-change PR
+
+**When:** The live PR title does not conform to allowed_types, the semantic type is unresolvable, or the live-title lookup fails
+
+**Then:**
+- armPullRequestAutoMerge returns the matching typed blocker (PR_TITLE_POLICY_VIOLATION for a non-conforming title, PR_TITLE_TYPE_UNRESOLVED for an unresolvable type, PR_TITLE_LOOKUP_FAILED for a live-title lookup failure) and does NOT arm auto-merge
+- The caller maps the blocker to a blocked outcome with no shipped claim
+- Authority, identity, --delete-branch prohibition, and Tier-B sign-off invariants remain unchanged
 
 ---
 
@@ -769,6 +835,31 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - Direct archive mode re-verifies the change branch is reachable from and pushed with the default branch before repair
 - PR archive mode re-verifies the change branch was pushed for PR handoff before repair
 - If finalization evidence is missing or invalid, repair is rejected and release remains not done
+
+**Shipped finalization is git-authoritative when both release-gate projections lag** (`rq-releaseProjectionDurability01.4`)
+
+**Given:**
+- A change whose Phase 9 finalization is `shipped` (git-verified default-branch reachability/merge — `finalization.status === "shipped"`, derived only from confirmed reachability, un-forgeable)
+- Both the store-backed release-gate read and the disk release-gate projection lag `pending` (propagation lag)
+
+**When:** adv_change_archive runs the durable release-gate proof
+
+**Then:**
+- The proof ACCEPTS via `shipped` (authoritative reachability)
+- The archive succeeds
+- The release gate is reconciled to `done`
+
+**Non-shipped finalization keeps the strict guard when release-gate projections lag** (`rq-releaseProjectionDurability01.5`)
+
+**Given:**
+- A change whose finalization is NOT `shipped` (`pending_merge`/`blocked`/etc.)
+- The release-gate projection is `pending`
+
+**When:** adv_change_archive evaluates the durable release-gate proof
+
+**Then:**
+- The durable proof REJECTS with the existing strict guard
+- Evidence-match + recovery-audit requirements remain unchanged
 
 ---
 
@@ -6476,6 +6567,99 @@ A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal nam
 **Then:**
 - registerQueue is NOT called again for advance-{P}-{sessA}
 - The idempotency check at the worker-multi level short-circuits the duplicate registration
+
+---
+
+### Session readiness barrier gates tool exposure and mutation execution
+
+**ID:** `rq-sessionReadinessBarrier01` | **Priority:** **[MUST]**
+
+Tool exposure and per-mutation execution in an ADV session MUST prove readiness before servicing a mutation, independent of non-blocking worker startup. A fail-closed `ADV_SESSION_NOT_READY` error is returned when readiness cannot be proven for the target queue or change workflow. Readiness proof is per-target-queue and per-session; an unrelated orphan queue does not block fresh own-queue mutations. When a target change workflow already exists, a bounded successful read-only Query against that workflow is required; a failed Query overrides fresh `DescribeTaskQueue` evidence. When no workflow exists yet, observed local-worker readiness for the session queue is required, with `DescribeTaskQueue` freshness advisory only. Mid-session worker death after initial readiness invalidates the proof until recovery, re-enforcing the barrier. `ADV_SESSION_READINESS_BYPASS=1` skips the barrier for tests and deterministic dev paths, default OFF. Worker startup MUST NOT await the readiness probe; the barrier is enforced in post-init tool exposure and per-mutation execution only, preserving `rq-isolSessionTaskQueue05` non-blocking startup semantics.
+
+**Tags:** `execution`, `readiness`, `session-queue`, `tool-exposure`, `fail-closed`
+
+#### Scenarios
+
+**Mutation against unproven/orphan prior-session queue fails closed without signal** (`rq-sessionReadinessBarrier01.1`)
+
+**Given:**
+- A mutation tool targets change workflow W on session task queue advance-{P}-{sessA}
+- No local worker currently polls advance-{P}-{sessA}
+- Readiness for advance-{P}-{sessA} has not been proven in this session
+
+**When:** The mutation tool executes
+
+**Then:**
+- The call returns `ADV_SESSION_NOT_READY`
+- No signal is sent to W
+- The error clearly distinguishes startup (worker init) from tool exposure / execution readiness
+
+**Fresh own-queue mutation is not blocked by unrelated orphaned queue** (`rq-sessionReadinessBarrier01.2`)
+
+**Given:**
+- Session S1 is active with sessionId sessA and its own task queue advance-{P}-{sessA}
+- Worker readiness for advance-{P}-{sessA} has been proven
+- An unrelated orphan session queue advance-{P}-{sessB} exists and is not polled
+
+**When:** S1 issues a mutation for its own change workflow
+
+**Then:**
+- The mutation proceeds against advance-{P}-{sessA}
+- The orphaned advance-{P}-{sessB} queue does not cause `ADV_SESSION_NOT_READY` for S1's own mutation
+
+**Proof truth table distinguishes existing workflow from new workflow** (`rq-sessionReadinessBarrier01.3`)
+
+**Given:**
+- Target change workflow W exists on advance-{P}-{sessA}
+- Session S1 has proven local-worker readiness for advance-{P}-{sessA}
+- `DescribeTaskQueue` reports the queue as healthy
+
+**When:** Readiness is evaluated for a mutation targeting W
+
+**Then:**
+- A bounded successful read-only Query against W is required
+- If the Query fails, the mutation returns `ADV_SESSION_NOT_READY` even when `DescribeTaskQueue` is fresh
+- If no workflow exists yet, observed local-worker readiness for advance-{P}-{sessA} is sufficient
+- `DescribeTaskQueue` evidence is advisory and never the sole admission authority
+
+**Mid-session worker death re-closes the readiness barrier until recovery** (`rq-sessionReadinessBarrier01.4`)
+
+**Given:**
+- Initial readiness for advance-{P}-{sessA} has been proven
+- The worker polling advance-{P}-{sessA} dies or loses connection mid-session
+- The readiness proof TTL expires and the worker-death hook fires
+
+**When:** A mutation is attempted before recovery re-proves readiness
+
+**Then:**
+- The mutation returns `ADV_SESSION_NOT_READY`
+- Readiness remains unproven until a fresh bounded Query or local-worker observation re-establishes it
+- The ambiguous window does not silently re-open
+
+**Readiness bypass env flag skips barrier for tests and dev determinism** (`rq-sessionReadinessBarrier01.5`)
+
+**Given:**
+- `ADV_SESSION_READINESS_BYPASS=1` is set in the environment
+
+**When:** A mutation is executed
+
+**Then:**
+- The readiness barrier is skipped
+- The mutation proceeds without proving readiness
+- Default behavior (flag unset or `0`) keeps the barrier enabled
+
+**Worker startup does not await readiness probe** (`rq-sessionReadinessBarrier01.6`)
+
+**Given:**
+- A worker process is initializing
+- Readiness proof for the session queue is not yet available
+
+**When:** Worker startup completes
+
+**Then:**
+- Startup finishes without blocking on the readiness probe
+- The readiness barrier is enforced later during tool exposure / per-mutation execution
+- This preserves `rq-isolSessionTaskQueue05` non-blocking startup semantics
 
 ---
 

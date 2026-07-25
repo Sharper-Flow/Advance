@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.38.0",
-  "updated_at": "2026-07-25T00:00:00.000Z",
+  "version": "1.38.1",
+  "updated_at": "2026-07-25T19:13:20.693Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -425,9 +425,14 @@
     {
       "id": "rq-approvedPrAutoMerge01",
       "title": "Approved Same-Change PRs Arm Squash Auto-Merge Immediately",
-      "body": "When a user explicitly grants merge authority for the current ADV change and requested end-state, ADV MUST retain that authority within the active orchestration session for matching same-change remediation PRs and MUST immediately arm GitHub squash auto-merge after each matching PR is pushed or created. Authority is bound to changeId, repository, change/<changeId> head branch, resolved default base branch, requested end-state, and active session; push-only permission, generic gate approval, and unrelated PRs do not authorize merge. ADV MUST run `gh pr merge <number> --repo <owner/repo> --squash --auto`, re-read the OPEN PR, and require `autoMergeRequest.enabledAt` before reporting auto-merge armed. After remediation it MUST push, re-read PR identity/state, re-arm, verify, and resume adv-ci-waiter. CI green is nonterminal until PR state is MERGED or canonical default-branch reachability is proven. Authority ends on revocation, stop/cancel, identity drift, unrelated scope, terminal completion, requested-end-state completion, or session restart/compaction/context loss that removes authoritative approval evidence; a new explicit merge grant is then required. Tier-B archive sign-off remains unchanged. The auto-merge command MUST NOT include `--delete-branch` or `-d`; cleanup remains post-merge.",
+      "body": "When a user explicitly grants merge authority for the current ADV change and requested end-state, ADV MUST retain that authority within the active orchestration session for matching same-change remediation PRs and MUST immediately arm GitHub squash auto-merge after each matching PR is pushed or created. Authority is bound to changeId, repository, change/<changeId> head branch, resolved default base branch, requested end-state, and active session; push-only permission, generic gate approval, and unrelated PRs do not authorize merge. ADV MUST run `gh pr merge <number> --repo <owner/repo> --squash --auto`, re-read the OPEN PR, and require `autoMergeRequest.enabledAt` before reporting auto-merge armed. After remediation it MUST push, re-read PR identity/state, re-arm, verify, and resume adv-ci-waiter. CI green is nonterminal until PR state is MERGED or canonical default-branch reachability is proven. Authority ends on revocation, stop/cancel, identity drift, unrelated scope, terminal completion, requested-end-state completion, or session restart/compaction/context loss that removes authoritative approval evidence; a new explicit merge grant is then required. Tier-B archive sign-off remains unchanged. The auto-merge command MUST NOT include `--delete-branch` or `-d`; cleanup remains post-merge. This immediate-auto-merge obligation has one exception: when the target project's `archive.pr_title_policy.format` is `conventional`, `armPullRequestAutoMerge` MUST first verify the live PR title conforms to `allowed_types` and that a semantic type is resolvable; on a non-conforming title, an unresolvable type, or a live-title lookup failure it MUST return a typed blocker (`PR_TITLE_POLICY_VIOLATION`, `PR_TITLE_TYPE_UNRESOLVED`, or `PR_TITLE_LOOKUP_FAILED`) instead of arming. All other authority, identity, `--delete-branch` prohibition, and Tier-B sign-off invariants are unchanged.",
       "priority": "must",
-      "tags": ["workflow", "approval", "git", "auto-merge"],
+      "tags": [
+        "workflow",
+        "approval",
+        "git",
+        "auto-merge"
+      ],
       "scenarios": [
         {
           "id": "rq-approvedPrAutoMerge01.1",
@@ -461,7 +466,9 @@
         {
           "id": "rq-approvedPrAutoMerge01.3",
           "title": "Authority invalidation fails closed",
-          "given": ["Merge authority was previously granted for a change"],
+          "given": [
+            "Merge authority was previously granted for a change"
+          ],
           "when": "The user revokes authority, stops or cancels, identity drifts, scope becomes unrelated, the requested end-state completes, or session restart/compaction/context loss removes authoritative approval evidence",
           "then": [
             "ADV does not arm or merge the PR under stale authority",
@@ -469,6 +476,20 @@
             "A new session requires a new explicit merge grant",
             "Tier-B archive sign-off remains whitelist-only",
             "No auto-merge command uses `--delete-branch` or `-d`"
+          ]
+        },
+        {
+          "id": "rq-approvedPrAutoMerge01.4",
+          "title": "Title-policy exception blocks arming at CC targets",
+          "given": [
+            "The target project's archive.pr_title_policy.format is conventional",
+            "armPullRequestAutoMerge is about to arm a same-change PR"
+          ],
+          "when": "The live PR title does not conform to allowed_types, the semantic type is unresolvable, or the live-title lookup fails",
+          "then": [
+            "armPullRequestAutoMerge returns the matching typed blocker (PR_TITLE_POLICY_VIOLATION for a non-conforming title, PR_TITLE_TYPE_UNRESOLVED for an unresolvable type, PR_TITLE_LOOKUP_FAILED for a live-title lookup failure) and does NOT arm auto-merge",
+            "The caller maps the blocker to a blocked outcome with no shipped claim",
+            "Authority, identity, --delete-branch prohibition, and Tier-B sign-off invariants remain unchanged"
           ]
         }
       ]
