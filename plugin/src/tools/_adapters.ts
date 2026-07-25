@@ -258,7 +258,7 @@ const workflowTaskQueueCache = new Map<string, string>();
 
 function isSessionReadinessBypassActive(): boolean {
   const bypass = process.env.ADV_SESSION_READINESS_BYPASS;
-  return bypass === "1" || bypass === "true";
+  return bypass === "1";
 }
 
 interface WorkflowHandleDescription {

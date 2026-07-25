@@ -666,6 +666,45 @@ describe("_adapters", () => {
         }
       }
     });
+
+    test("AC5.1: ADV_SESSION_READINESS_BYPASS=true is not accepted (only '1')", async () => {
+      const previousBypass = process.env.ADV_SESSION_READINESS_BYPASS;
+      process.env.ADV_SESSION_READINESS_BYPASS = "true";
+      vi.mocked(evaluateTargetReadiness).mockClear();
+
+      const handle = createMockHandle();
+      handle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      handle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const store = createMockStore();
+
+      let caught: unknown;
+      try {
+        await fireSignalAndRefresh(
+          handle as never,
+          store as any,
+          "chg-bypass-true",
+          { name: "taskAdded" },
+          { taskId: "tk-bypass-true" },
+        );
+      } catch (e) {
+        caught = e;
+      } finally {
+        if (previousBypass === undefined) {
+          delete process.env.ADV_SESSION_READINESS_BYPASS;
+        } else {
+          process.env.ADV_SESSION_READINESS_BYPASS = previousBypass;
+        }
+      }
+
+      expectAdvSessionNotReady(caught);
+      expect(vi.mocked(evaluateTargetReadiness)).toHaveBeenCalled();
+      expect(handle.signal).not.toHaveBeenCalled();
+      expect(store.changes.refresh).not.toHaveBeenCalled();
+    });
   });
 
   describe("getChangeHandle", () => {

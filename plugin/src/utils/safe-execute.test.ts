@@ -19,6 +19,11 @@ import {
   ToolExecutionTimeoutError,
   type ErrorContext,
 } from "./safe-execute";
+import {
+  createAdvSessionNotReadyEnvelope,
+  ADV_SESSION_READINESS_RETRY_HINT,
+  isAdvSessionNotReady,
+} from "../temporal/readiness-types";
 
 describe("safe-execute", () => {
   let profileDir: string;
@@ -401,6 +406,55 @@ describe("safe-execute", () => {
         expect(result.errorClass).toBe("ToolExecutionTimeout");
         expect(result.tool).toBe("throwing_classifier_tool");
       });
+    });
+  });
+
+  describe("ADV_SESSION_NOT_READY preservation (KD4 fail-closed barrier)", () => {
+    it("returns a structured, caller-discriminable payload when a mutation throws ADV_SESSION_NOT_READY", async () => {
+      const blockers = [
+        "describe_task_queue_no_pollers",
+        "queue_not_serviceable",
+      ];
+      const envelope = createAdvSessionNotReadyEnvelope(blockers);
+      const fn = async (): Promise<string> => {
+        throw envelope;
+      };
+      const wrapped = safeExecute(fn, "adv_task_update");
+      const raw = await wrapped({ changeId: "chg-1" }, {} as any);
+
+      // Before the fix this would be a generic error string.
+      const result = JSON.parse(raw);
+      expect(result.error).toBe("ADV_SESSION_NOT_READY");
+      expect(result.kind).toBe("ADV_SESSION_NOT_READY");
+      expect(result.blockers).toEqual(
+        expect.arrayContaining(["ADV_SESSION_NOT_READY", ...blockers]),
+      );
+      expect(result.blockers).toContain("ADV_SESSION_NOT_READY");
+      expect(result.retryHint).toBe(ADV_SESSION_READINESS_RETRY_HINT);
+      expect(result.retryable).toBe(true);
+      expect(result.tool).toBe("adv_task_update");
+      // Must be re-discriminable by isAdvSessionNotReady
+      expect(isAdvSessionNotReady(result)).toBe(true);
+      // Distinct from ADV_PLUGIN_INIT_FAILED
+      expect(result.status).not.toBe("ADV_PLUGIN_INIT_FAILED");
+      // Distinct from no_poller
+      expect(result.class).not.toBe("no_poller");
+    });
+
+    it("safeExecuteSimple also preserves ADV_SESSION_NOT_READY structure", async () => {
+      const envelope = createAdvSessionNotReadyEnvelope(["query_probe_failed"]);
+      const fn = async (): Promise<string> => {
+        throw envelope;
+      };
+      const wrapped = safeExecuteSimple(fn, "adv_doctor");
+      const raw = await wrapped({ changeId: "chg-2" }, "/tmp/proj");
+      const result = JSON.parse(raw);
+      expect(result.kind).toBe("ADV_SESSION_NOT_READY");
+      expect(result.blockers).toContain("ADV_SESSION_NOT_READY");
+      expect(result.retryHint).toBe(ADV_SESSION_READINESS_RETRY_HINT);
+      expect(result.retryable).toBe(true);
+      expect(result.tool).toBe("adv_doctor");
+      expect(isAdvSessionNotReady(result)).toBe(true);
     });
   });
 
