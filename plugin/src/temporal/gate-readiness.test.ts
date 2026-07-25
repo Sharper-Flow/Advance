@@ -3,6 +3,7 @@ import { createDefaultGates } from "../types";
 import {
   ARTIFACT_BACKED_GATES,
   artifactCascadeWarnings,
+  CRITERION_EVALUATORS,
   evaluateGateReadiness,
   evaluateWorkerBundleProvenance,
   gateArtifactEvidenceSchema,
@@ -2137,5 +2138,175 @@ describe("evaluateWorkerBundleProvenance — worker-bundle release provenance (K
         b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
       ),
     ).toBe(false);
+  });
+
+  describe("AC matrix end-to-end through evaluateGateReadiness (AC1-AC5)", () => {
+    it("AC1: required + missing provenance -> WORKER_BUNDLE_PROVENANCE_MISSING blocker", () => {
+      const state = workerBundleState({
+        worker_bundle_impact: {
+          kind: "required",
+          rationale: "touches workflow-reachable code",
+        },
+      });
+      const result = evaluateGateReadiness(state, "release", {
+        enforceWorkerBundleProvenance: true,
+      });
+      expect(result.ready).toBe(false);
+      expect(
+        result.blockers.some(
+          (b) => b.code === "WORKER_BUNDLE_PROVENANCE_MISSING",
+        ),
+      ).toBe(true);
+    });
+
+    it("AC2: required + valid provenance + passing typed runs -> release ready", () => {
+      const state = workerBundleState({
+        worker_bundle_impact: {
+          kind: "required",
+          rationale: "touches workflow-reachable code",
+        },
+        workerBundleProvenance: {
+          source_sha: "sha256-abc",
+          build_run_id: "run-build-1",
+          replay_run_id: "run-replay-1",
+          recorded_at: "2026-05-20T00:00:00.000Z",
+        },
+        testRuns: {
+          tk: [
+            passingRun("run-build-1", "build_worker"),
+            passingRun("run-replay-1", "replay_determinism"),
+          ],
+        },
+      });
+      const result = evaluateGateReadiness(state, "release", {
+        enforceWorkerBundleProvenance: true,
+      });
+      expect(
+        result.blockers.some((b) =>
+          b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+        ),
+      ).toBe(false);
+    });
+
+    it("AC3: not_applicable -> no worker-bundle provenance blocker", () => {
+      const state = workerBundleState({
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "pure documentation change",
+        },
+      });
+      const result = evaluateGateReadiness(state, "release", {
+        enforceWorkerBundleProvenance: true,
+      });
+      expect(
+        result.blockers.some((b) =>
+          b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+        ),
+      ).toBe(false);
+    });
+
+    it("AC4 + no-heuristic-bypass: absent worker_bundle_impact -> DECLARATION_REQUIRED blocker", () => {
+      const state = workerBundleState();
+      const result = evaluateGateReadiness(state, "release", {
+        enforceWorkerBundleProvenance: true,
+      });
+      expect(result.ready).toBe(false);
+      expect(
+        result.blockers.some(
+          (b) => b.code === "WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED",
+        ),
+      ).toBe(true);
+    });
+
+    it("AC5: worker-bundle provenance check is evaluated in evaluateGateReadiness, not CRITERION_EVALUATORS", () => {
+      // The helper is wired directly into evaluateGateReadiness; there is no
+      // advisory criterion evaluator that could be bypassed or that owns the
+      // hard readiness decision.
+      const ids = Object.keys(CRITERION_EVALUATORS);
+      expect(ids).not.toContain("WORKER_BUNDLE_PROVENANCE");
+      expect(ids.some((id) => id.toLowerCase().includes("worker"))).toBe(false);
+
+      const state = workerBundleState({
+        worker_bundle_impact: { kind: "required", rationale: "x" },
+      });
+      const enforced = evaluateGateReadiness(state, "release", {
+        enforceWorkerBundleProvenance: true,
+      });
+      const notEnforced = evaluateGateReadiness(state, "release", {
+        enforceWorkerBundleProvenance: false,
+      });
+      expect(
+        enforced.blockers.some((b) =>
+          b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+        ),
+      ).toBe(true);
+      expect(
+        notEnforced.blockers.some((b) =>
+          b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+        ),
+      ).toBe(false);
+    });
+  });
+
+  describe("evidence identity negative tests (KD3)", () => {
+    it("a passing build run with WRONG evidence_kind does NOT satisfy build_worker requirement", () => {
+      const state = workerBundleState({
+        worker_bundle_impact: {
+          kind: "required",
+          rationale: "touches workflow-reachable code",
+        },
+        workerBundleProvenance: {
+          source_sha: "sha256-abc",
+          build_run_id: "run-build-1",
+          replay_run_id: "run-replay-1",
+          recorded_at: "2026-05-20T00:00:00.000Z",
+        },
+        testRuns: {
+          tk: [
+            {
+              ...passingRun("run-build-1", "build_worker"),
+              evidence_kind: "unit_test",
+            },
+            passingRun("run-replay-1", "replay_determinism"),
+          ],
+        },
+      });
+      const result = evaluateWorkerBundleProvenance(state);
+      expect(result.ok).toBe(false);
+      expect(result.blockers[0].code).toBe("WORKER_BUNDLE_PROVENANCE_MISSING");
+      expect(result.blockers[0].message).toContain(
+        "build_worker run run-build-1",
+      );
+    });
+
+    it("a passing replay run with WRONG evidence_kind does NOT satisfy replay_determinism requirement", () => {
+      const state = workerBundleState({
+        worker_bundle_impact: {
+          kind: "required",
+          rationale: "touches workflow-reachable code",
+        },
+        workerBundleProvenance: {
+          source_sha: "sha256-abc",
+          build_run_id: "run-build-1",
+          replay_run_id: "run-replay-1",
+          recorded_at: "2026-05-20T00:00:00.000Z",
+        },
+        testRuns: {
+          tk: [
+            passingRun("run-build-1", "build_worker"),
+            {
+              ...passingRun("run-replay-1", "replay_determinism"),
+              evidence_kind: "unit_test",
+            },
+          ],
+        },
+      });
+      const result = evaluateWorkerBundleProvenance(state);
+      expect(result.ok).toBe(false);
+      expect(result.blockers[0].code).toBe("WORKER_BUNDLE_PROVENANCE_MISSING");
+      expect(result.blockers[0].message).toContain(
+        "replay_determinism run run-replay-1",
+      );
+    });
   });
 });

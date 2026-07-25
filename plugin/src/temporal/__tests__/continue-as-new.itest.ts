@@ -12,6 +12,7 @@ import {
   DEFAULT_CHANGE_HISTORY_THRESHOLD,
   shouldContinueAsNewFromInfo,
 } from "../contracts";
+import { evaluateGateReadiness } from "../gate-readiness";
 import { getChangeStateQuery, taskAddedSignal } from "../messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 
@@ -206,6 +207,123 @@ describe("changeWorkflow continue-as-new", () => {
           "can-seen-test|tk-1|adv-engineer|1",
         ]);
         expect(state.seenReportIdsTotal).toBe(1);
+      });
+    });
+  }, 120000);
+
+  it("preserves worker-bundle provenance and typed test runs across continue-as-new (KD6/KD7)", async () => {
+    await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+      const taskQueue = `continue-as-new-wbp-${Date.now()}`;
+      const worker = await Worker.create({
+        connection: env.nativeConnection,
+        workflowsPath,
+        taskQueue,
+      });
+
+      await worker.runUntil(async () => {
+        const workflowId = `continue-as-new-wbp-${Date.now()}`;
+        const changeId = "can-wbp-test";
+        const baseInput = makeChangeInput(changeId);
+        const input: ChangeWorkflowInput = {
+          ...baseInput,
+          seedState: {
+            ...baseInput.seedState,
+            worker_bundle_impact: {
+              kind: "required",
+              rationale: "Touches workflow-reachable code",
+              confirmed_at: "2026-05-05T00:00:00.000Z",
+            },
+            workerBundleProvenance: {
+              source_sha: "sha256-wbp",
+              build_run_id: "tr-build-can-1",
+              replay_run_id: "tr-replay-can-1",
+              worker_manifest_generation: 9,
+              recorded_at: "2026-05-05T00:00:01.000Z",
+            },
+            testRuns: {
+              "tk-can-wbp": [
+                {
+                  runId: "tr-build-can-1",
+                  phase: "verify",
+                  exitCode: 0,
+                  classification: "passed",
+                  command: "pnpm run build:worker",
+                  durationMs: 1000,
+                  evidence_kind: "build_worker",
+                  recordedAt: "2026-05-05T00:00:02.000Z",
+                },
+                {
+                  runId: "tr-replay-can-1",
+                  phase: "verify",
+                  exitCode: 0,
+                  classification: "passed",
+                  command: "bin/oc-test targeted -- replay-determinism.test.ts",
+                  durationMs: 2000,
+                  evidence_kind: "replay_determinism",
+                  recordedAt: "2026-05-05T00:00:03.000Z",
+                },
+              ],
+            },
+          },
+        };
+
+        const handle: StartedChangeWorkflowHandle =
+          await env.client.workflow.start("changeWorkflow", {
+            workflowId,
+            taskQueue,
+            args: [input],
+          });
+        const firstRunId = handle.firstExecutionRunId;
+
+        const signalCount = 5_200;
+        await Promise.allSettled(
+          Array.from({ length: signalCount }, (_, i) =>
+            handle.signal(taskAddedSignal, {
+              task: makeTask(`can-wbp-tk-${i}`),
+              addedAt: `2026-05-05T00:${String(Math.floor(i / 60)).padStart(2, "0")}:${String(i % 60).padStart(2, "0")}.000Z`,
+            }),
+          ),
+        );
+
+        const latestHandle =
+          env.client.workflow.getHandle<
+            typeof import("../workflows").changeWorkflow
+          >(workflowId);
+        const state = await pollForState(
+          latestHandle,
+          (s) => s.tasks.length === signalCount,
+          60000,
+        );
+        const description = await latestHandle.describe();
+
+        expect(description.runId).not.toBe(firstRunId);
+        expect(state.worker_bundle_impact).toMatchObject({
+          kind: "required",
+          rationale: "Touches workflow-reachable code",
+        });
+        expect(state.workerBundleProvenance).toMatchObject({
+          source_sha: "sha256-wbp",
+          build_run_id: "tr-build-can-1",
+          replay_run_id: "tr-replay-can-1",
+          worker_manifest_generation: 9,
+        });
+        expect(state.testRuns?.["tk-can-wbp"]).toHaveLength(2);
+        expect(state.testRuns?.["tk-can-wbp"]?.[0]?.evidence_kind).toBe(
+          "build_worker",
+        );
+        expect(state.testRuns?.["tk-can-wbp"]?.[1]?.evidence_kind).toBe(
+          "replay_determinism",
+        );
+
+        // KD6: the release gate can still evaluate the provenance after rotation.
+        const result = evaluateGateReadiness(state, "release", {
+          enforceWorkerBundleProvenance: true,
+        });
+        expect(
+          result.blockers.some((b) =>
+            b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+          ),
+        ).toBe(false);
       });
     });
   }, 120000);

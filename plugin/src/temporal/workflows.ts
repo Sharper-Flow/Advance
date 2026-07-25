@@ -855,6 +855,15 @@ export async function changeWorkflow(
       state.same_project_dependencies =
         input.seedState.same_project_dependencies;
     }
+    if (input.seedState.worker_bundle_impact) {
+      state.worker_bundle_impact = input.seedState.worker_bundle_impact;
+    }
+    if (input.seedState.workerBundleProvenance) {
+      state.workerBundleProvenance = input.seedState.workerBundleProvenance;
+    }
+    if (input.seedState.testRuns) {
+      state.testRuns = input.seedState.testRuns;
+    }
     // rq-creationRequestHash01 (tk-74c358188ffb): stamp the canonical
     // creation-request hash onto workflow state at start time so the
     // "already started" recovery path can reconcile retries. Immutable
