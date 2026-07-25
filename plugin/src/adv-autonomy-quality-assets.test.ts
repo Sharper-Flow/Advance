@@ -490,6 +490,117 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/store-backed gate read/i);
   });
 
+  test("advance-workflow spec encodes worker bundle release provenance", () => {
+    const content = readAsset(ADVANCE_WORKFLOW_SPEC);
+    expect(content).toMatch(/rq-workerBundleReleaseProvenance01/);
+
+    const spec = JSON.parse(content) as {
+      requirements: Array<{
+        id: string;
+        title: string;
+        tags: string[];
+        scenarios: Array<{
+          id: string;
+          title: string;
+          given?: string[];
+          when?: string;
+          then?: string[];
+          warrant?: string;
+        }>;
+      }>;
+    };
+    const requirement = spec.requirements.find(
+      (r) => r.id === "rq-workerBundleReleaseProvenance01",
+    );
+    expect(
+      requirement,
+      "rq-workerBundleReleaseProvenance01 must exist",
+    ).toBeDefined();
+    expect(requirement!.title).toBe(
+      "Worker Bundle Release Requires Freshness and Replay-Determinism Provenance",
+    );
+    expect(requirement!.tags).toEqual(
+      expect.arrayContaining([
+        "archive",
+        "release",
+        "worker-bundle",
+        "provenance",
+        "replay-determinism",
+      ]),
+    );
+    expect(requirement!.scenarios.map((s) => s.id)).toEqual([
+      "rq-workerBundleReleaseProvenance01.1",
+      "rq-workerBundleReleaseProvenance01.2",
+      "rq-workerBundleReleaseProvenance01.3",
+      "rq-workerBundleReleaseProvenance01.4",
+      "rq-workerBundleReleaseProvenance01.5",
+      "rq-workerBundleReleaseProvenance01.6",
+    ]);
+
+    const blocked = requirement!.scenarios.find(
+      (s) => s.id === "rq-workerBundleReleaseProvenance01.1",
+    );
+    expect(blocked?.title).toMatch(/missing|failing/i);
+    expect(blocked?.given?.join("\n")).toMatch(
+      /worker_bundle_impact: required/i,
+    );
+    expect(blocked?.when).toMatch(/release gate/i);
+    expect(blocked?.then?.join("\n")).toMatch(/BLOCKED/i);
+    expect(blocked?.then?.join("\n")).toMatch(
+      /rq-workerBundleReleaseProvenance01/,
+    );
+    expect(blocked?.warrant).toBe("AC1");
+
+    const passed = requirement!.scenarios.find(
+      (s) => s.id === "rq-workerBundleReleaseProvenance01.2",
+    );
+    expect(passed?.title).toMatch(/valid provenance/i);
+    expect(passed?.given?.join("\n")).toMatch(/source_sha/);
+    expect(passed?.given?.join("\n")).toMatch(/build_run_id/);
+    expect(passed?.given?.join("\n")).toMatch(/replay_run_id/);
+    expect(passed?.then?.join("\n")).toMatch(/PASSES/i);
+    expect(passed?.warrant).toBe("AC2");
+
+    const skipped = requirement!.scenarios.find(
+      (s) => s.id === "rq-workerBundleReleaseProvenance01.3",
+    );
+    expect(skipped?.title).toMatch(/not applicable/i);
+    expect(skipped?.then?.join("\n")).toMatch(/SKIPPED/i);
+    expect(skipped?.then?.join("\n")).toMatch(/not BLOCKED/i);
+    expect(skipped?.warrant).toBe("AC3");
+
+    const authority = requirement!.scenarios.find(
+      (s) => s.id === "rq-workerBundleReleaseProvenance01.4",
+    );
+    expect(authority?.title).toMatch(/typed declaration/i);
+    expect(authority?.then?.join("\n")).toMatch(/heuristic/i);
+    expect(authority?.then?.join("\n")).toMatch(
+      /rq-workerBundleReleaseProvenance01/,
+    );
+    expect(authority?.warrant).toBe("AC4");
+
+    const runtime = requirement!.scenarios.find(
+      (s) => s.id === "rq-workerBundleReleaseProvenance01.5",
+    );
+    expect(runtime?.title).toMatch(/out of scope/i);
+    expect(runtime?.given?.join("\n")).toMatch(
+      /deployed.*loaded|loaded.*deployed/i,
+    );
+    expect(runtime?.then?.join("\n")).toMatch(/out of scope/i);
+    expect(runtime?.warrant).toBeUndefined();
+
+    const blocking = requirement!.scenarios.find(
+      (s) => s.id === "rq-workerBundleReleaseProvenance01.6",
+    );
+    expect(blocking?.title).toMatch(/blocking/i);
+    expect(blocking?.title).toMatch(/not advisory/i);
+    expect(blocking?.when).toMatch(/release readiness/i);
+    expect(blocking?.then?.join("\n")).toMatch(/BLOCKING/i);
+    expect(blocking?.then?.join("\n")).toMatch(/GateReadinessBlocker/i);
+    expect(blocking?.then?.join("\n")).toMatch(/CRITERION_EVALUATORS/i);
+    expect(blocking?.warrant).toBe("AC5");
+  });
+
   test("advance-workflow spec encodes product-linked multi-repo state", () => {
     // rq-productLinking01 rq-productScopedChanges01 rq-productLearning01 rq-multiRepoArchive01
     const content = readAsset(ADVANCE_WORKFLOW_SPEC);
