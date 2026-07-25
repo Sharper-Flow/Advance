@@ -140,7 +140,7 @@ export function overlayOpsResolutionsForRead(
   for (const link of overlaid.ops_followup_links!) {
     const resolution = resolutionByLinkId.get(link.id);
     if (resolution !== undefined) {
-      link.resolution = resolution;
+      link.resolution = structuredClone(resolution);
     }
   }
   return overlaid;

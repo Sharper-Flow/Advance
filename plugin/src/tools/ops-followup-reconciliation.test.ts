@@ -802,6 +802,36 @@ describe("overlayOpsResolutionsForRead", () => {
     expect(parent.ops_followup_links![0]).toBe(originalLink);
   });
 
+  test("overlayOpsResolutionsForRead clones replacement resolutions and does not alias the source Map", () => {
+    const mapResolution = reconcileOpsFollowupResolution({
+      link: makeLink(),
+      childProfile: completeProfile(),
+      now: verifiedAt,
+    })!;
+    const parent = makeParent({
+      links: [
+        makeLink({
+          relationship: "blocks",
+          required_handoff: false,
+        }),
+      ],
+    });
+    const resolutionByLinkId = new Map([["ofl-1", mapResolution]]);
+
+    const overlaid = overlayOpsResolutionsForRead(parent, resolutionByLinkId);
+
+    expect(overlaid).not.toBe(parent);
+    expect(overlaid.ops_followup_links![0].resolution).toEqual(mapResolution);
+    expect(overlaid.ops_followup_links![0].resolution).not.toBe(mapResolution);
+
+    const originalMapStatus = mapResolution.status;
+    (overlaid.ops_followup_links![0].resolution as { status: string }).status =
+      "not_started";
+    expect(mapResolution.status).toBe(originalMapStatus);
+
+    expect(parent.ops_followup_links![0].resolution).toBeUndefined();
+  });
+
   test("leaves non-targeted links unchanged", () => {
     const parent = makeParent({
       links: [
