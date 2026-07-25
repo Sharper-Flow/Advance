@@ -18,6 +18,7 @@
  */
 import { listOrphanSessionQueues } from "./list-orphan-session-queues";
 import type { OrphanListClient } from "./list-orphan-session-queues";
+import { markStale } from "./session-readiness";
 
 /** Minimal worker shape the coordinator depends on (structural). */
 export interface OrphanAdopterWorker {
@@ -190,6 +191,11 @@ export class OrphanQueueAdopter {
           lastError: undefined,
         });
       } else {
+        // Worker observed dead/unresponsive during the adoption heartbeat:
+        // mark the target queue stale so the readiness barrier re-probes before
+        // the next mutation (KD5 / AC4). Existing retry/cooldown accounting
+        // continues unchanged (DONT3).
+        markStale(target.queue);
         this.recordFailure(
           target.queue,
           now,
@@ -197,6 +203,11 @@ export class OrphanQueueAdopter {
         );
       }
     } catch (err) {
+      // Worker observed dead during the adoption heartbeat: mark the target
+      // queue stale so the readiness barrier re-probes before the next mutation
+      // (KD5 / AC4). Existing shutdown-error suppression and retry accounting
+      // continue unchanged (DONT3).
+      markStale(target.queue);
       // D7 — suppress shutdown-class refusals silently (no retry bump).
       if (isShutdownError(err)) return;
       this.recordFailure(target.queue, now, describeError(err));

@@ -7,8 +7,13 @@
  * the helper's client-side sort, shutdown-error suppression, process-local
  * idempotency via worker.queues.
  */
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { OrphanListClient } from "./list-orphan-session-queues";
+import {
+  evaluateTargetReadiness,
+  resetReadinessState,
+  type QueryProbe,
+} from "./session-readiness";
 
 // Late-import so the RED run fails on the missing module before GREEN creates it.
 async function loadAdopter() {
@@ -58,6 +63,10 @@ function mockClient(
 
 const Q = (n: number, t: string) => `advance-P-sess_${n}${t}`;
 const T0 = new Date("2026-07-22T00:00:00Z");
+
+beforeEach(() => {
+  resetReadinessState();
+});
 
 describe("OrphanQueueAdopter", () => {
   it("adopts the first (oldest) orphan via registerQueue", async () => {
@@ -257,6 +266,96 @@ describe("OrphanQueueAdopter", () => {
     expect(
       adopter.getState().perQueueState.get(Q(1, ""))?.attemptCount ?? 0,
     ).toBe(0);
+  });
+
+  it("marks the target queue stale when the worker dies during adoption (AC4)", async () => {
+    const worker = mockWorker();
+    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    worker.setRegisterImpl(async () => {
+      throw new Error("worker is shutting down");
+    });
+    const { OrphanQueueAdopter } = await loadAdopter();
+    const adopter = new OrphanQueueAdopter({
+      client,
+      projectId: "P",
+      worker: {
+        registerQueue: worker.registerQueue,
+        queues: worker.polledQueues,
+      },
+      now: () => 1000,
+    });
+
+    // Establish initial readiness for the target queue.
+    const queryProbe: QueryProbe = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, error: "worker_dead" });
+    await evaluateTargetReadiness({
+      targetQueue: Q(1, ""),
+      hasWorkflow: true,
+      queryProbe,
+      nowMs: () => 0,
+      cacheTtlMs: 10_000,
+    });
+    expect(queryProbe).toHaveBeenCalledTimes(1);
+
+    // Worker dies during the adoption heartbeat tick.
+    await adopter.adoptNextOrphan();
+
+    // The next mutation re-probes and fails because the worker is dead.
+    const result = await evaluateTargetReadiness({
+      targetQueue: Q(1, ""),
+      hasWorkflow: true,
+      queryProbe,
+      nowMs: () => 1,
+      cacheTtlMs: 10_000,
+    });
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContain("ADV_SESSION_NOT_READY");
+    expect(queryProbe).toHaveBeenCalledTimes(2);
+  });
+
+  it("marks the target queue stale when registerQueue times out (worker unresponsive)", async () => {
+    const worker = mockWorker();
+    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    // Never resolves → tick timeout wins.
+    worker.setRegisterImpl(() => new Promise<void>(() => {}));
+    const { OrphanQueueAdopter } = await loadAdopter();
+    const adopter = new OrphanQueueAdopter({
+      client,
+      projectId: "P",
+      worker: {
+        registerQueue: worker.registerQueue,
+        queues: worker.polledQueues,
+      },
+      tickTimeoutMs: 20,
+      now: () => 1000,
+    });
+
+    const queryProbe: QueryProbe = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, error: "worker_unresponsive" });
+    await evaluateTargetReadiness({
+      targetQueue: Q(1, ""),
+      hasWorkflow: true,
+      queryProbe,
+      nowMs: () => 0,
+      cacheTtlMs: 10_000,
+    });
+
+    await adopter.adoptNextOrphan();
+
+    const result = await evaluateTargetReadiness({
+      targetQueue: Q(1, ""),
+      hasWorkflow: true,
+      queryProbe,
+      nowMs: () => 1,
+      cacheTtlMs: 10_000,
+    });
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContain("ADV_SESSION_NOT_READY");
+    expect(queryProbe).toHaveBeenCalledTimes(2);
   });
 });
 
