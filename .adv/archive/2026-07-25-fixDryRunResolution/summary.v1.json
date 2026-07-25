@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-25T18:44:36.218Z",
+  "capabilities": [],
+  "change_hash": "44fac824a7fd18637d6dfc191c684bbd2c79d90aacd30ab525691e375c7a1e46",
+  "change_id": "fixDryRunResolution",
+  "completed_tasks": 1,
+  "created_at": "2026-07-25T17:02:43.116Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-25T18:39:13.741Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "a7a8a8893d37072f42f978aa8472f59727f7179f5ad1d523753eeae079fe6278",
+  "task_count": 1,
+  "title": "Fix dry-run resolution",
+  "version": "1"
+}
