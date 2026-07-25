@@ -177,7 +177,8 @@ export function changeSeedStateFromChange(
   change: Change,
 ): NonNullable<ChangeWorkflowInput["seedState"]> {
   const [normalizedChange] = normalizePersistedSubagentReportState(change);
-  const safeChange = normalizedChange as Change;
+  const safeChange = normalizedChange as Change &
+    Partial<Pick<ChangeWorkflowState, "workerBundleProvenance">>;
   // Legacy stored statuses ("active"/"pending") never reach workflow state:
   // they normalize to "draft" (the open status) at the seed boundary.
   const status = normalizeLegacyChangeStatus(safeChange.status) as ChangeStatus;
@@ -226,6 +227,8 @@ export function changeSeedStateFromChange(
     // workflow lifecycle boundaries.
     creation_request_hash: safeChange.creation_request_hash,
     worker_bundle_impact: safeChange.worker_bundle_impact,
+    workerBundleProvenance: safeChange.workerBundleProvenance,
+    testRuns: safeChange.test_runs as ChangeWorkflowState["testRuns"],
   };
 }
 

@@ -626,6 +626,80 @@ function deriveTaskRunSummaryFromState(state: ChangeWorkflowState): Array<{
   }));
 }
 
+/**
+ * Build the `ChangeWorkflowInput` seed used to continue-as-new the change
+ * workflow. Extracted to a pure function so unit tests can assert the exact
+ * set of `seedState` fields that survive rotation.
+ */
+export function buildChangeWorkflowContinueAsNewSeed(
+  input: ChangeWorkflowInput,
+  state: ChangeWorkflowState,
+): ChangeWorkflowInput {
+  const { changeId, projectId, initializedAt, title } = input;
+  return {
+    changeId,
+    projectId,
+    initializedAt,
+    title,
+    searchAttributesEnabled: input.searchAttributesEnabled,
+    projectionChangesDir: input.projectionChangesDir,
+    archiveProjects: input.archiveProjects,
+    seedState: {
+      status: state.status,
+      lifecycleState: state.lifecycleState,
+      tasks: state.tasks,
+      subagent_reports: state.subagent_reports,
+      deltas: state.deltas,
+      wisdom: state.wisdom,
+      gates: state.gates,
+      reentry_history: state.reentry_history,
+      artifacts: state.artifacts,
+      fast_follow_of: state.fast_follow_of,
+      affectedProjects: state.affectedProjects,
+      affectedPaths: state.affectedPaths,
+      lastSignalAt: state.lastSignalAt,
+      pendingCheckpoint: state.pendingCheckpoint,
+      terminated: state.terminated,
+      acceptanceCriteria: state.acceptanceCriteria,
+      contract: state.contract,
+      acceptanceReadinessRevision: state.acceptanceReadinessRevision,
+      acceptanceCriteriaSnapshot: state.acceptanceCriteriaSnapshot,
+      documents: state.documents,
+      reflections: state.reflections,
+      worktrees: state.worktrees,
+      conformance: state.conformance,
+      archiveRequest: state.archiveRequest,
+      phase9_status: state.phase9_status,
+      origin: state.origin,
+      cross_project_origin: state.cross_project_origin,
+      cross_project_links: state.cross_project_links,
+      external_dependencies: state.external_dependencies,
+      worktree_auto_managed: state.worktree_auto_managed,
+      target_worktree_path: state.target_worktree_path,
+      scope_worktrees: state.scope_worktrees,
+      seenReportIds: state.seenReportIds,
+      seenReportIdsTotal: state.seenReportIdsTotal,
+      design_concern_dispositions: state.design_concern_dispositions,
+      // Continue-as-new seed must persist every seedState Pick key as a
+      // single-line `key: state.key` entry (workflows.signal-handlers structural
+      // invariant). This key exceeds the 80-col wrap, so hold it on one line.
+      // prettier-ignore
+      verification_evidence_dispositions: state.verification_evidence_dispositions,
+      signal_rejections: state.signal_rejections,
+      signal_rejections_total: state.signal_rejections_total,
+      ops_followup: state.ops_followup,
+      ops_followup_links: state.ops_followup_links,
+      lightweight_profile: state.lightweight_profile,
+      creation_request_hash: state.creation_request_hash,
+      epic_membership: state.epic_membership,
+      same_project_dependencies: state.same_project_dependencies,
+      worker_bundle_impact: state.worker_bundle_impact,
+      workerBundleProvenance: state.workerBundleProvenance,
+      testRuns: state.testRuns,
+    },
+  };
+}
+
 export async function changeWorkflow(
   input: ChangeWorkflowInput,
 ): Promise<void> {
@@ -2010,68 +2084,7 @@ export async function changeWorkflow(
   }
 
   // Continue-as-new: pass current state as seed
-  const { changeId, projectId, initializedAt, title } = input;
-  const seed: ChangeWorkflowInput = {
-    changeId,
-    projectId,
-    initializedAt,
-    title,
-    searchAttributesEnabled: input.searchAttributesEnabled,
-    projectionChangesDir: input.projectionChangesDir,
-    archiveProjects: input.archiveProjects,
-    seedState: {
-      status: state.status,
-      lifecycleState: state.lifecycleState,
-      tasks: state.tasks,
-      subagent_reports: state.subagent_reports,
-      deltas: state.deltas,
-      wisdom: state.wisdom,
-      gates: state.gates,
-      reentry_history: state.reentry_history,
-      artifacts: state.artifacts,
-      fast_follow_of: state.fast_follow_of,
-      affectedProjects: state.affectedProjects,
-      affectedPaths: state.affectedPaths,
-      lastSignalAt: state.lastSignalAt,
-      pendingCheckpoint: state.pendingCheckpoint,
-      terminated: state.terminated,
-      acceptanceCriteria: state.acceptanceCriteria,
-      contract: state.contract,
-      acceptanceReadinessRevision: state.acceptanceReadinessRevision,
-      acceptanceCriteriaSnapshot: state.acceptanceCriteriaSnapshot,
-      documents: state.documents,
-      reflections: state.reflections,
-      worktrees: state.worktrees,
-      conformance: state.conformance,
-      archiveRequest: state.archiveRequest,
-      phase9_status: state.phase9_status,
-      origin: state.origin,
-      cross_project_origin: state.cross_project_origin,
-      cross_project_links: state.cross_project_links,
-      external_dependencies: state.external_dependencies,
-      worktree_auto_managed: state.worktree_auto_managed,
-      target_worktree_path: state.target_worktree_path,
-      scope_worktrees: state.scope_worktrees,
-      seenReportIds: state.seenReportIds,
-      seenReportIdsTotal: state.seenReportIdsTotal,
-      design_concern_dispositions: state.design_concern_dispositions,
-      // Continue-as-new seed must persist every seedState Pick key as a
-      // single-line `key: state.key` entry (workflows.signal-handlers structural
-      // invariant). This key exceeds the 80-col wrap, so hold it on one line.
-      // prettier-ignore
-      verification_evidence_dispositions: state.verification_evidence_dispositions,
-      signal_rejections: state.signal_rejections,
-      signal_rejections_total: state.signal_rejections_total,
-      ops_followup: state.ops_followup,
-      ops_followup_links: state.ops_followup_links,
-      lightweight_profile: state.lightweight_profile,
-      creation_request_hash: state.creation_request_hash,
-      epic_membership: state.epic_membership,
-      same_project_dependencies: state.same_project_dependencies,
-      worker_bundle_impact: state.worker_bundle_impact,
-      workerBundleProvenance: state.workerBundleProvenance,
-    },
-  };
+  const seed = buildChangeWorkflowContinueAsNewSeed(input, state);
   await wf.condition(wf.allHandlersFinished);
   await wf.continueAsNew<typeof changeWorkflow>(seed);
 }

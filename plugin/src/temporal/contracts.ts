@@ -321,6 +321,7 @@ export interface ChangeWorkflowInput {
       | "creation_request_hash"
       | "worker_bundle_impact"
       | "workerBundleProvenance"
+      | "testRuns"
     >
   >;
 }
