@@ -748,3 +748,101 @@ describe("Opportunity scout phase and schema anchors", () => {
     expect(ids).toContain("rq-designOpportunityScout01");
   });
 });
+
+// =============================================================================
+// 7. Reviewer Evidence Authority (rq-reviewerEvidenceAuthority01)
+// =============================================================================
+
+describe("Reviewer evidence authority requirement (rq-reviewerEvidenceAuthority01)", () => {
+  const specPath = join(REPO_ROOT, ".adv/specs/advance-workflow/spec.json");
+  const spec: {
+    requirements: Array<{
+      id: string;
+      title: string;
+      body: string;
+      priority: string;
+      tags: string[];
+      scenarios: Array<{
+        id: string;
+        title: string;
+        given: string[];
+        when: string;
+        then: string[];
+        warrant?: string;
+      }>;
+    }>;
+  } = JSON.parse(readAsset(specPath));
+  const req = spec.requirements.find(
+    (r) => r.id === "rq-reviewerEvidenceAuthority01",
+  );
+
+  test("requirement exists as a MUST", () => {
+    expect(req).toBeDefined();
+    expect(req?.priority).toBe("must");
+  });
+
+  test("tags include relevant neighboring tags", () => {
+    expect(req?.tags).toContain("workflow");
+    expect(req?.tags).toContain("verification");
+    expect(req?.tags).toContain("evidence");
+    expect(req?.tags).toContain("structural");
+    expect(req?.tags).toContain("review");
+  });
+
+  test("requirement has exactly four scenarios .1 through .4", () => {
+    const scenarioIds = req?.scenarios.map((s) => s.id);
+    expect(scenarioIds).toEqual([
+      "rq-reviewerEvidenceAuthority01.1",
+      "rq-reviewerEvidenceAuthority01.2",
+      "rq-reviewerEvidenceAuthority01.3",
+      "rq-reviewerEvidenceAuthority01.4",
+    ]);
+  });
+
+  test("scenario .1 warrants AC1 and describes review-policy no-block", () => {
+    const s = req?.scenarios.find(
+      (x) => x.id === "rq-reviewerEvidenceAuthority01.1",
+    );
+    expect(s).toBeDefined();
+    expect(s?.warrant).toBe("AC1");
+    expect(s?.title).toMatch(/review/i);
+    expect(s?.title).toMatch(/linked reviewer report|review_evidence_ref/i);
+    expect(s?.then.join(" ")).toMatch(/no VERIFICATION_EVIDENCE_MISSING/i);
+  });
+
+  test("scenario .2 warrants AC2 and preserves block for test/static_check policies", () => {
+    const s = req?.scenarios.find(
+      (x) => x.id === "rq-reviewerEvidenceAuthority01.2",
+    );
+    expect(s).toBeDefined();
+    expect(s?.warrant).toBe("AC2");
+    expect(s?.title).toMatch(/test|static_check/i);
+    expect(s?.title).toMatch(
+      /reviewer evidence|only reviewer|aggregate tests_run/i,
+    );
+    expect(s?.then.join(" ")).toMatch(
+      /VERIFICATION_EVIDENCE_MISSING blocker is emitted/i,
+    );
+  });
+
+  test("scenario .3 warrants AC5 and gates verification_missing warnings", () => {
+    const s = req?.scenarios.find(
+      (x) => x.id === "rq-reviewerEvidenceAuthority01.3",
+    );
+    expect(s).toBeDefined();
+    expect(s?.warrant).toBe("AC5");
+    expect(s?.title).toMatch(/emitter/i);
+    expect(s?.title).toMatch(/verification_missing/i);
+    expect(s?.then.join(" ")).toMatch(/no verification_missing warnings/i);
+  });
+
+  test("scenario .4 preserves same-task ownership", () => {
+    const s = req?.scenarios.find(
+      (x) => x.id === "rq-reviewerEvidenceAuthority01.4",
+    );
+    expect(s).toBeDefined();
+    expect(s?.title).toMatch(/same-task/i);
+    expect(s?.title).toMatch(/ownership|review_evidence_ref/i);
+    expect(s?.then.join(" ")).toMatch(/cannot satisfy|not satisfy/i);
+  });
+});

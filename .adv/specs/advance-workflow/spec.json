@@ -5680,6 +5680,71 @@
       ]
     },
     {
+      "id": "rq-reviewerEvidenceAuthority01",
+      "title": "Reviewer Evidence Authority Partitioned by Evidence Policy",
+      "body": "The stage-v2 evidence authority MUST partition verification requirements by evidence policy. For a completed task with evidence_policy \"review\", a persisted same-task adv-reviewer report IS the authoritative completion evidence; its aggregate tests_run command list neither creates nor substitutes for durable adv_run_test execution evidence, and the consumer_warning emitter MUST NOT emit verification_missing for it. For evidence_policy \"test\" or \"static_check\", reviewer aggregate command evidence MUST NOT satisfy the verification requirement; durable adv_run_test execution evidence remains required.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "verification",
+        "evidence",
+        "structural",
+        "review"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-reviewerEvidenceAuthority01.1",
+          "title": "Review-policy task with linked reviewer report — no verification block",
+          "given": [
+            "A completed stage-v2 task has evidence_policy \"review\"",
+            "A persisted same-task adv-reviewer report is linked as review_evidence_ref"
+          ],
+          "when": "Acceptance or release readiness evaluates verification evidence",
+          "then": [
+            "No VERIFICATION_EVIDENCE_MISSING blocker is emitted for the reviewer's tests_run"
+          ],
+          "warrant": "AC1"
+        },
+        {
+          "id": "rq-reviewerEvidenceAuthority01.2",
+          "title": "Test/static_check-policy task with only reviewer evidence — block remains",
+          "given": [
+            "A completed task has evidence_policy \"test\" or \"static_check\"",
+            "A persisted same-task adv-reviewer report carries aggregate tests_run",
+            "No durable adv_run_test run exists"
+          ],
+          "when": "Acceptance or release readiness evaluates verification evidence",
+          "then": [
+            "A VERIFICATION_EVIDENCE_MISSING blocker is emitted"
+          ],
+          "warrant": "AC2"
+        },
+        {
+          "id": "rq-reviewerEvidenceAuthority01.3",
+          "title": "Emitter policy-gates verification_missing for adv-reviewer reports",
+          "given": [
+            "A task has evidence_policy \"review\""
+          ],
+          "when": "An adv-reviewer report is submitted with aggregate tests_run",
+          "then": [
+            "The consumer_warning emitter produces no verification_missing warnings"
+          ],
+          "warrant": "AC5"
+        },
+        {
+          "id": "rq-reviewerEvidenceAuthority01.4",
+          "title": "Same-task ownership preserved — change-scoped reviewer report cannot satisfy task review_evidence_ref",
+          "given": [
+            "A change-scoped adv-reviewer report has no task_id anchor"
+          ],
+          "when": "Task completion validation runs",
+          "then": [
+            "The report cannot satisfy the task's review_evidence_ref"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-reviewBadTestCleanup01",
       "title": "Reviewer-Owned Safe Local Cleanup of Evidence-Backed Bad Tests",
       "body": "/adv-review and /adv-harden MUST remediate clearly bad tests (flaky, tautological, permanently skipped, or implementation-coupled) in the directly touched subsystem when the remediation is safe and local. The finding must be evidence-backed and the scope bounded to the change's touched subsystem; broader consumer-repository cleanup remains out of scope. Review and harden MUST NOT use a bad-test finding to bypass a valid non-test evidence route or create a repo-wide cleanup obligation.",
