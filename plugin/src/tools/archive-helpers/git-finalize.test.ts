@@ -4273,6 +4273,44 @@ describe("git-finalize helpers", () => {
       expect(mergeCalls).toHaveLength(1);
     });
 
+    it("conventional + allowed but non-releasing type returns PR_TITLE_POLICY_VIOLATION and does not arm", () => {
+      const { result, mergeCalls } = runArm(
+        {
+          format: "conventional",
+          allowed_types: ["feat", "fix", "perf", "chore"],
+          release_types: ["feat", "fix", "perf"],
+        },
+        {
+          prTitleType: "chore",
+          prTitle: "chore: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          "type 'chore' is not in release_types ['feat','fix','perf']; archive would merge without producing a release tag",
+        ],
+      });
+      expect(mergeCalls).toHaveLength(0);
+    });
+
+    it("conventional + releasing type in release_types arms", () => {
+      const { result, mergeCalls } = runArm(
+        {
+          format: "conventional",
+          allowed_types: ["feat", "fix", "perf", "chore"],
+          release_types: ["feat", "fix", "perf"],
+        },
+        {
+          prTitleType: "fix",
+          prTitle: "fix: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({ ok: true });
+      expect(mergeCalls).toHaveLength(1);
+    });
+
     it("conventional + missing type returns PR_TITLE_TYPE_UNRESOLVED and does not arm", () => {
       const { result, mergeCalls } = runArm(
         { format: "conventional" },

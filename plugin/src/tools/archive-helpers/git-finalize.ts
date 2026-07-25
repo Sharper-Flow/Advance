@@ -1689,6 +1689,22 @@ export function armPullRequestAutoMerge(
         ],
       };
     }
+
+    if (
+      policy.release_types !== undefined &&
+      policy.release_types.length > 0 &&
+      !policy.release_types.includes(prTitleType)
+    ) {
+      return {
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          `type '${prTitleType}' is not in release_types [${policy.release_types
+            .map((t) => `'${t}'`)
+            .join(",")}]; archive would merge without producing a release tag`,
+        ],
+      };
+    }
   }
 
   // Intentionally omits -d/--delete-branch. Merge-queue merges complete at PR
