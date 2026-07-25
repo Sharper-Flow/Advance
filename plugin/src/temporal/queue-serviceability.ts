@@ -55,6 +55,75 @@ export interface QueueServiceability {
   blockers: string[];
 }
 
+export interface QueueReadinessInput {
+  localRegistered: boolean;
+  localWorkerAlive: boolean;
+  localOwnership: LocalOwnership;
+  serverPollerStatus: ServerPollerProbeStatus;
+  staleRunningWorkflowCount: number;
+}
+
+export interface QueueReadiness {
+  ready: boolean;
+  blockers: string[];
+  probeKind: QueueServiceabilityConfidence;
+}
+
+export function evaluateQueueReadiness(
+  input: QueueReadinessInput,
+): QueueReadiness {
+  const localServiceable =
+    input.localRegistered &&
+    input.localWorkerAlive &&
+    input.localOwnership !== "peer";
+  const serverServiceable = input.serverPollerStatus === "fresh";
+
+  const blockers: string[] = [];
+  if (!input.localRegistered) blockers.push("local_queue_not_registered");
+  if (!input.localWorkerAlive) blockers.push("local_worker_not_alive");
+  if (input.localOwnership === "peer" && !serverServiceable) {
+    blockers.push("peer_owned_without_serviceability_evidence");
+  }
+  if (input.serverPollerStatus === "unavailable") {
+    blockers.push("server_poller_probe_unavailable");
+  }
+  if (input.serverPollerStatus === "stale") blockers.push("server_poller_stale");
+  if (input.serverPollerStatus === "none") blockers.push("server_poller_absent");
+  if (input.staleRunningWorkflowCount > 0) {
+    blockers.push("stale_running_workflows_without_poller");
+  }
+
+  let ready: boolean;
+  let probeKind: QueueServiceabilityConfidence;
+
+  if (localServiceable && serverServiceable) {
+    ready = true;
+    probeKind = "combined";
+  } else if (localServiceable) {
+    ready = true;
+    probeKind = "local";
+  } else if (serverServiceable) {
+    ready = true;
+    probeKind = "server";
+  } else if (
+    input.staleRunningWorkflowCount > 0 ||
+    input.serverPollerStatus === "stale" ||
+    input.serverPollerStatus === "none"
+  ) {
+    ready = false;
+    probeKind = "none";
+  } else {
+    ready = false;
+    probeKind = "none";
+  }
+
+  return {
+    ready,
+    blockers: ready ? [] : [...new Set(blockers)],
+    probeKind,
+  };
+}
+
 export function classifyQueueServiceability(
   input: QueueServiceabilityInput,
 ): QueueServiceability {
@@ -64,56 +133,32 @@ export function classifyQueueServiceability(
   };
   const staleRunningWorkflowCount = input.staleRunningWorkflowCount ?? 0;
 
-  const localServiceable =
-    input.localRegistered &&
-    input.localWorkerAlive &&
-    input.localOwnership !== "peer";
-  const serverServiceable = serverProbe.status === "fresh";
-
-  const blockers: string[] = [];
-  if (!input.localRegistered) blockers.push("local_queue_not_registered");
-  if (!input.localWorkerAlive) blockers.push("local_worker_not_alive");
-  if (input.localOwnership === "peer" && !serverServiceable) {
-    blockers.push("peer_owned_without_serviceability_evidence");
-  }
-  if (serverProbe.status === "unavailable") {
-    blockers.push("server_poller_probe_unavailable");
-  }
-  if (serverProbe.status === "stale") blockers.push("server_poller_stale");
-  if (serverProbe.status === "none") blockers.push("server_poller_absent");
-  if (staleRunningWorkflowCount > 0) {
-    blockers.push("stale_running_workflows_without_poller");
-  }
+  const readiness = evaluateQueueReadiness({
+    localRegistered: input.localRegistered,
+    localWorkerAlive: input.localWorkerAlive,
+    localOwnership: input.localOwnership,
+    serverPollerStatus: serverProbe.status,
+    staleRunningWorkflowCount,
+  });
 
   let status: QueueServiceabilityStatus;
-  let confidence: QueueServiceabilityConfidence;
-
-  if (localServiceable && serverServiceable) {
+  if (readiness.ready) {
     status = "serviceable";
-    confidence = "combined";
-  } else if (localServiceable) {
-    status = "serviceable";
-    confidence = "local";
-  } else if (serverServiceable) {
-    status = "serviceable";
-    confidence = "server";
   } else if (
     staleRunningWorkflowCount > 0 ||
     serverProbe.status === "stale" ||
     serverProbe.status === "none"
   ) {
     status = "not_serviceable";
-    confidence = "none";
   } else {
     status = "unknown";
-    confidence = "none";
   }
 
   return {
     projectId: input.projectId,
     expectedQueue: input.expectedQueue,
     status,
-    confidence,
+    confidence: readiness.probeKind,
     evidence: {
       localRegistered: input.localRegistered,
       localWorkerAlive: input.localWorkerAlive,
@@ -126,7 +171,7 @@ export function classifyQueueServiceability(
       staleRunningWorkflowCount,
       staleQueueProbe: input.staleQueueProbe,
     },
-    blockers: status === "serviceable" ? [] : [...new Set(blockers)],
+    blockers: readiness.blockers,
   };
 }
 

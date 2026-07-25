@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   classifyQueueServiceability,
+  evaluateQueueReadiness,
   probeTaskQueuePollers,
 } from "./queue-serviceability";
 
@@ -70,6 +71,81 @@ describe("classifyQueueServiceability", () => {
     expect(result.status).toBe("not_serviceable");
     expect(result.confidence).toBe("none");
     expect(result.blockers).toContain("stale_running_workflows_without_poller");
+  });
+});
+
+describe("evaluateQueueReadiness", () => {
+  it("returns ready/combined when both local and server signals are serviceable", () => {
+    const result = evaluateQueueReadiness({
+      localRegistered: true,
+      localWorkerAlive: true,
+      localOwnership: "owned",
+      serverPollerStatus: "fresh",
+      staleRunningWorkflowCount: 0,
+    });
+
+    expect(result.ready).toBe(true);
+    expect(result.blockers).toEqual([]);
+    expect(result.probeKind).toBe("combined");
+  });
+
+  it("returns ready/local when only the local worker signal is serviceable", () => {
+    const result = evaluateQueueReadiness({
+      localRegistered: true,
+      localWorkerAlive: true,
+      localOwnership: "owned",
+      serverPollerStatus: "unavailable",
+      staleRunningWorkflowCount: 0,
+    });
+
+    expect(result.ready).toBe(true);
+    expect(result.blockers).toEqual([]);
+    expect(result.probeKind).toBe("local");
+  });
+
+  it("returns ready/server when only a fresh server poller is present", () => {
+    const result = evaluateQueueReadiness({
+      localRegistered: false,
+      localWorkerAlive: false,
+      localOwnership: "peer",
+      serverPollerStatus: "fresh",
+      staleRunningWorkflowCount: 0,
+    });
+
+    expect(result.ready).toBe(true);
+    expect(result.blockers).toEqual([]);
+    expect(result.probeKind).toBe("server");
+  });
+
+  it("returns not ready when stale running workflows exist with stale server evidence", () => {
+    const result = evaluateQueueReadiness({
+      localRegistered: false,
+      localWorkerAlive: false,
+      localOwnership: "unknown",
+      serverPollerStatus: "stale",
+      staleRunningWorkflowCount: 6,
+    });
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContain("stale_running_workflows_without_poller");
+    expect(result.blockers).toContain("server_poller_stale");
+    expect(result.probeKind).toBe("none");
+  });
+
+  it("returns not ready/unknown when no serviceable signals are present", () => {
+    const result = evaluateQueueReadiness({
+      localRegistered: false,
+      localWorkerAlive: false,
+      localOwnership: "unknown",
+      serverPollerStatus: "unavailable",
+      staleRunningWorkflowCount: 0,
+    });
+
+    expect(result.ready).toBe(false);
+    expect(result.blockers).toContain("local_queue_not_registered");
+    expect(result.blockers).toContain("local_worker_not_alive");
+    expect(result.blockers).toContain("server_poller_probe_unavailable");
+    expect(result.probeKind).toBe("none");
   });
 });
 
