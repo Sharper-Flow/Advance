@@ -13,9 +13,24 @@
       "status": "done",
       "priority": 0,
       "created_at": "2026-07-09T00:10:45.190Z",
-      "metadata": {
-        "tdd_intent": "inline"
-      },
+      "completed_at": "2026-07-09T00:21:57.788Z",
+      "implementation_summary": "Updated `rq-epicCliList01` and docs mirror to require Epic CLI JSON entries with present `startTime` field, ISO UTC when Visibility startTime is valid and `null` when invalid/missing. Added/updated regression expectations across Epic list tests. During same checkpoint, implementation files were updated to satisfy the new tests and a missing citation for existing `rq-epicSearchAttributeRepair01` was repaired.",
+      "verification": "RED `bun test bin/lib/epic-list.test.ts` failed before implementation (`tr_mrcr9lk7_4edb67df`) on missing rich export after tests/spec expected timestamps. GREEN `bun test bin/lib/epic-list.test.ts` passed (`tr_mrcraqmw_2571e23e`). Spec citation/bridge verification later passed (`tr_mrcrhjnd_0aece7ba`).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-epics/spec.json",
+        "bin/adv",
+        "bin/lib/epic-list.test.ts",
+        "bin/lib/epic-list.ts",
+        "docs/specs/advance-epics.md",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/cli/temporal-boundary.ts",
+        "plugin/src/storage/store-temporal/epics.ts",
+        "plugin/src/temporal/list-epic-workflows.test.ts",
+        "plugin/src/temporal/list-epic-workflows.ts"
+      ],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:21:57.788Z",
       "contract_refs": {
         "implements": [
           "AC5"
@@ -43,21 +58,9 @@
         ]
       },
       "evidence_policy": "test",
-      "verification": "RED `bun test bin/lib/epic-list.test.ts` failed before implementation (`tr_mrcr9lk7_4edb67df`) on missing rich export after tests/spec expected timestamps. GREEN `bun test bin/lib/epic-list.test.ts` passed (`tr_mrcraqmw_2571e23e`). Spec citation/bridge verification later passed (`tr_mrcrhjnd_0aece7ba`).",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Updated `rq-epicCliList01` and docs mirror to require Epic CLI JSON entries with present `startTime` field, ISO UTC when Visibility startTime is valid and `null` when invalid/missing. Added/updated regression expectations across Epic list tests. During same checkpoint, implementation files were updated to satisfy the new tests and a missing citation for existing `rq-epicSearchAttributeRepair01` was repaired.",
-      "filesTouched": [
-        ".adv/specs/advance-epics/spec.json",
-        "bin/adv",
-        "bin/lib/epic-list.test.ts",
-        "bin/lib/epic-list.ts",
-        "docs/specs/advance-epics.md",
-        "plugin/src/cli-bridge-contract.test.ts",
-        "plugin/src/cli/temporal-boundary.ts",
-        "plugin/src/storage/store-temporal/epics.ts",
-        "plugin/src/temporal/list-epic-workflows.test.ts",
-        "plugin/src/temporal/list-epic-workflows.ts"
-      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
       "touched_files": [
         ".adv/specs/advance-epics/spec.json",
         "bin/adv",
@@ -70,9 +73,6 @@
         "plugin/src/temporal/list-epic-workflows.test.ts",
         "plugin/src/temporal/list-epic-workflows.ts"
       ],
-      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
-      "completedAt": "2026-07-09T00:21:57.788Z",
-      "completed_at": "2026-07-09T00:21:57.788Z",
       "notes": "Checkpoint 13302e3c7895d733aa85ad971eb64970e1a2a57a. RED `tr_mrcr9lk7_4edb67df`; GREEN `tr_mrcraqmw_2571e23e`; targeted spec/bridge verification `tr_mrcrhjnd_0aece7ba`.",
       "updatedAt": "2026-07-09T00:22:08.157Z"
     },
@@ -83,16 +83,20 @@
       "section": "Implementation",
       "status": "done",
       "priority": 1,
-      "created_at": "2026-07-09T00:11:02.592Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-69ad44262fa2"
         }
       ],
-      "metadata": {
-        "tdd_intent": "inline"
-      },
+      "created_at": "2026-07-09T00:11:02.592Z",
+      "completed_at": "2026-07-09T00:22:23.905Z",
+      "implementation_summary": "Implemented rich Epic Visibility listing via `listEpicWorkflows()` with `{ id, startTime }` entries, structural Date validation, null fallback, and existing query/prefix/limit behavior. Preserved `listEpicWorkflowIds()` as a compatibility wrapper for existing string-ID callers. Exported rich helper through the approved CLI Temporal boundary.",
+      "verification": "GREEN `pnpm --dir plugin exec vitest run src/temporal/list-epic-workflows.test.ts` passed 9 tests (`tr_mrcren5f_f08ba786`).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:22:23.905Z",
       "contract_refs": {
         "implements": [
           "AC1",
@@ -116,14 +120,10 @@
         ]
       },
       "evidence_policy": "test",
-      "verification": "GREEN `pnpm --dir plugin exec vitest run src/temporal/list-epic-workflows.test.ts` passed 9 tests (`tr_mrcren5f_f08ba786`).",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Implemented rich Epic Visibility listing via `listEpicWorkflows()` with `{ id, startTime }` entries, structural Date validation, null fallback, and existing query/prefix/limit behavior. Preserved `listEpicWorkflowIds()` as a compatibility wrapper for existing string-ID callers. Exported rich helper through the approved CLI Temporal boundary.",
-      "filesTouched": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
       "touched_files": [],
-      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
-      "completedAt": "2026-07-09T00:22:23.905Z",
-      "completed_at": "2026-07-09T00:22:23.905Z",
       "notes": "Checkpoint clean at 13302e3c7895d733aa85ad971eb64970e1a2a57a. GREEN `tr_mrcren5f_f08ba786` passed 9 targeted list-epic-workflows tests.",
       "updatedAt": "2026-07-09T00:22:32.127Z"
     },
@@ -134,16 +134,20 @@
       "section": "Implementation",
       "status": "done",
       "priority": 2,
-      "created_at": "2026-07-09T00:11:17.693Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-13c3905cafde"
         }
       ],
-      "metadata": {
-        "tdd_intent": "inline"
-      },
+      "created_at": "2026-07-09T00:11:17.693Z",
+      "completed_at": "2026-07-09T00:22:42.134Z",
+      "implementation_summary": "Updated CLI Epic list payload path to load rich Epic entries and emit `startTime` as ISO UTC string or `null`. Updated `bin/adv` to pass rich entries into the payload builder. Preserved fail-closed metadata for connection/list errors and root CLI source boundary through `plugin/src/cli/temporal-boundary.ts`.",
+      "verification": "GREEN `bun test bin/lib/epic-list.test.ts bin/adv.test.ts` passed 22 tests (`tr_mrcrevv9_b76cac3c`). Live `bin/adv epic list --json` emitted `startTime` for optimizeAdvPerformanceStructure (`tr_mrcrgp00_df64ddd3`).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:22:42.134Z",
       "contract_refs": {
         "implements": [
           "SC1",
@@ -172,14 +176,10 @@
         ]
       },
       "evidence_policy": "test",
-      "verification": "GREEN `bun test bin/lib/epic-list.test.ts bin/adv.test.ts` passed 22 tests (`tr_mrcrevv9_b76cac3c`). Live `bin/adv epic list --json` emitted `startTime` for optimizeAdvPerformanceStructure (`tr_mrcrgp00_df64ddd3`).",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Updated CLI Epic list payload path to load rich Epic entries and emit `startTime` as ISO UTC string or `null`. Updated `bin/adv` to pass rich entries into the payload builder. Preserved fail-closed metadata for connection/list errors and root CLI source boundary through `plugin/src/cli/temporal-boundary.ts`.",
-      "filesTouched": [],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
       "touched_files": [],
-      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
-      "completedAt": "2026-07-09T00:22:42.134Z",
-      "completed_at": "2026-07-09T00:22:42.134Z",
       "notes": "Checkpoint clean at 13302e3c7895d733aa85ad971eb64970e1a2a57a. GREEN `tr_mrcrevv9_b76cac3c` passed 22 Bun CLI tests; live command evidence `tr_mrcrgp00_df64ddd3` emitted startTime.",
       "updatedAt": "2026-07-09T00:22:54.502Z"
     },
@@ -190,16 +190,20 @@
       "section": "Verification",
       "status": "done",
       "priority": 3,
-      "created_at": "2026-07-09T00:11:34.195Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-615fc52d9a57"
         }
       ],
-      "metadata": {
-        "tdd_intent": "separate_verification"
-      },
+      "created_at": "2026-07-09T00:11:34.195Z",
+      "completed_at": "2026-07-09T00:23:11.788Z",
+      "implementation_summary": "Ran final compatibility verification across CLI payload tests, Epic Visibility helper tests, CLI source-boundary guard, spec citation invariant, schema check, format check, typecheck, git whitespace check, and live CLI output. Initial format check failed on `list-epic-workflows.test.ts`; ran Prettier and reran format check green.",
+      "verification": "Verification passed: `bin/oc-test targeted -- src/temporal/list-epic-workflows.test.ts src/cli-bridge-contract.test.ts src/__tests__/spec-citation-invariant.test.ts` (`tr_mrcrhjnd_0aece7ba`), `pnpm --dir plugin run schemas:check` (`tr_mrcrfa5a_cc0545ec`), `pnpm --dir plugin run format:check` (`tr_mrcrg5b2_c13d6dc4` after formatting), `pnpm --dir plugin run typecheck` (`tr_mrcrgie3_f7ded6cc`), `git diff --check` (`tr_mrcrhp6m_96accb23`), live CLI `bin/adv epic list --json` (`tr_mrcrgp00_df64ddd3`).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
+      "completedAt": "2026-07-09T00:23:11.788Z",
       "contract_refs": {
         "verifies": [
           "SC1",
@@ -228,14 +232,10 @@
         ]
       },
       "evidence_policy": "test",
-      "verification": "Verification passed: `bin/oc-test targeted -- src/temporal/list-epic-workflows.test.ts src/cli-bridge-contract.test.ts src/__tests__/spec-citation-invariant.test.ts` (`tr_mrcrhjnd_0aece7ba`), `pnpm --dir plugin run schemas:check` (`tr_mrcrfa5a_cc0545ec`), `pnpm --dir plugin run format:check` (`tr_mrcrg5b2_c13d6dc4` after formatting), `pnpm --dir plugin run typecheck` (`tr_mrcrgie3_f7ded6cc`), `git diff --check` (`tr_mrcrhp6m_96accb23`), live CLI `bin/adv epic list --json` (`tr_mrcrgp00_df64ddd3`).",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Ran final compatibility verification across CLI payload tests, Epic Visibility helper tests, CLI source-boundary guard, spec citation invariant, schema check, format check, typecheck, git whitespace check, and live CLI output. Initial format check failed on `list-epic-workflows.test.ts`; ran Prettier and reran format check green.",
-      "filesTouched": [],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
       "touched_files": [],
-      "checkpointSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a",
-      "completedAt": "2026-07-09T00:23:11.788Z",
-      "completed_at": "2026-07-09T00:23:11.788Z",
       "notes": "Checkpoint clean at 13302e3c7895d733aa85ad971eb64970e1a2a57a. Verification passed: targeted `tr_mrcrhjnd_0aece7ba`, schemas `tr_mrcrfa5a_cc0545ec`, format `tr_mrcrg5b2_c13d6dc4`, typecheck `tr_mrcrgie3_f7ded6cc`, diff check `tr_mrcrhp6m_96accb23`, live CLI `tr_mrcrgp00_df64ddd3`. Initial format failure `tr_mrcrfndo_675cd18a` fixed by formatting.",
       "updatedAt": "2026-07-09T00:23:23.695Z"
     }
@@ -593,11 +593,6 @@
       "status": "pending"
     }
   },
-  "reentry_history": [],
-  "origin": {
-    "kind": "roadmap",
-    "issue_number": 211
-  },
   "contract": {
     "version": 1,
     "rigor": "standard",
@@ -837,7 +832,6 @@
         "notRequiredReason": "Out-of-scope contract item"
       }
     ],
-    "amendments": [],
     "reviewMatrix": {
       "reviewedAt": "2026-07-09T00:28:14.804Z",
       "rows": [
@@ -989,7 +983,8 @@
           "evidence": "Dashboard/zellij launcher not changed."
         }
       ]
-    }
+    },
+    "amendments": []
   },
   "acceptanceCriteria": [
     "Given Temporal Visibility returns a running Epic workflow row with valid `startTime`, `adv epic list --json` emits that Epic as `{ id, startTime }` where `startTime` is ISO-8601 UTC.",
@@ -1038,7 +1033,20 @@
       "readable": false
     }
   },
-  "lastSignalAt": "2026-07-09T00:32:01.369Z",
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-09T00:44:47.955Z",
+  "origin": {
+    "kind": "roadmap",
+    "issue_number": 211
+  },
   "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
-  "worktree_auto_managed": true
+  "worktree_auto_managed": true,
+  "phase9_status": {
+    "status": "pending",
+    "startedAt": "2026-07-09T00:44:47.213Z",
+    "repo": "Sharper-Flow/Advance",
+    "route": "direct",
+    "changeTipSha": "13302e3c7895d733aa85ad971eb64970e1a2a57a"
+  }
 }

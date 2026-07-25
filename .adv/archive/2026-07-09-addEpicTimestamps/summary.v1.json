@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-25T19:28:57.141Z",
+  "capabilities": [],
+  "change_hash": "e61301983d28164f694c3a1c26be4ab7f9fe4a4bafe911c2e2722ef30884bfe8",
+  "change_id": "addEpicTimestamps",
+  "completed_tasks": 4,
+  "created_at": "2026-07-08T23:49:36.937Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-09T00:28:48.198Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "a4f8f2e339d5112b3c6869105e7b5c6275e12fab3919137e36c519e999912f85",
+  "task_count": 4,
+  "title": "Add Epic Timestamps",
+  "version": "1"
+}
