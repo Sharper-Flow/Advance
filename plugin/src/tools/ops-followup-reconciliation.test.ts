@@ -684,6 +684,31 @@ describe("resolveRequiredOpsLinks", () => {
     });
   });
 
+  test("fails closed when a same-project target identity cannot be resolved", async () => {
+    const parent = makeParent({
+      links: [
+        makeLink({
+          relationship: "blocks",
+          required_handoff: false,
+          target_project_id: "expected-project-id",
+        }),
+      ],
+    });
+    const store = makeStore({
+      parent,
+      children: { "child-1": makeChild("child-1", completeProfile()) },
+    });
+    const deps = makeDeps({ getProjectId: vi.fn(async () => undefined) });
+
+    const result = await resolveRequiredOpsLinks({ parent, store, deps });
+
+    expect(result.resolutionByLinkId.get("ofl-1")).toMatchObject({
+      source: "unreachable",
+      resolution_reason: "target_identity_mismatch",
+    });
+    expect(store.changes.get).not.toHaveBeenCalledWith("child-1");
+  });
+
   test("derives cross-project resolution through target_path store (AC4)", async () => {
     const childProfile = completeProfile();
     const targetStore = makeStore({

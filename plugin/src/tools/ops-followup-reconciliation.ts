@@ -341,16 +341,21 @@ async function readSameProjectChild(input: {
   const { link, store } = input;
   try {
     const canonicalProjectId = await input.getProjectIdFn(store.paths.root);
-    if (
-      link.target_project_id &&
-      canonicalProjectId &&
-      link.target_project_id !== canonicalProjectId
-    ) {
-      return {
-        ok: false,
-        reason: "target_identity_mismatch",
-        error: `target_project_id mismatch: expected ${link.target_project_id}, got ${canonicalProjectId}`,
-      };
+    if (link.target_project_id) {
+      if (!canonicalProjectId) {
+        return {
+          ok: false,
+          reason: "target_identity_mismatch",
+          error: `target_project_id could not be verified: expected ${link.target_project_id}, canonical project ID unavailable`,
+        };
+      }
+      if (link.target_project_id !== canonicalProjectId) {
+        return {
+          ok: false,
+          reason: "target_identity_mismatch",
+          error: `target_project_id mismatch: expected ${link.target_project_id}, got ${canonicalProjectId}`,
+        };
+      }
     }
     await store.changes.refresh(link.changeId);
     const childResult = await store.changes.get(link.changeId);
