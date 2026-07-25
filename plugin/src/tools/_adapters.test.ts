@@ -20,6 +20,28 @@ import {
   MutationApplicationUnconfirmedError,
   type ReachabilityDeps,
 } from "./_adapters";
+import { isAdvSessionNotReady } from "../temporal/readiness-types";
+import {
+  evaluateTargetReadiness,
+  resetReadinessState,
+} from "../temporal/session-readiness";
+import { changeStateQuery } from "../temporal/messages";
+
+vi.mock("../temporal/session-readiness", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("../temporal/session-readiness")>();
+  return {
+    ...original,
+    evaluateTargetReadiness: vi.fn(
+      (...args: Parameters<typeof original.evaluateTargetReadiness>) =>
+        original.evaluateTargetReadiness(...args),
+    ),
+  };
+});
+
+beforeEach(() => {
+  resetReadinessState();
+});
 
 describe("readiness mutation receipts", () => {
   test("waitForQueryPredicate returns first value satisfying predicate", async () => {
@@ -87,11 +109,15 @@ function createMockHandle(): {
   query: ReturnType<typeof vi.fn>;
   signal: ReturnType<typeof vi.fn>;
   executeUpdate: ReturnType<typeof vi.fn>;
+  describe: ReturnType<typeof vi.fn>;
+  workflowId: string;
 } {
   return {
-    query: vi.fn(),
+    query: vi.fn().mockResolvedValue({}),
     signal: vi.fn(),
     executeUpdate: vi.fn(),
+    describe: vi.fn().mockResolvedValue({ taskQueue: "advance-proj-mock" }),
+    workflowId: `adv/change/proj-mock/${Math.random().toString(36).slice(2)}`,
   };
 }
 
@@ -502,6 +528,185 @@ describe("_adapters", () => {
     });
   });
 
+  describe("fireSignalAndRefresh readiness gate (KD4)", () => {
+    function expectAdvSessionNotReady(thrown: unknown): void {
+      expect(isAdvSessionNotReady(thrown)).toBe(true);
+      const envelope = thrown as {
+        kind: string;
+        blockers: string[];
+        retryHint: string;
+      };
+      expect(envelope.kind).toBe("ADV_SESSION_NOT_READY");
+      expect(envelope.blockers).toContain("ADV_SESSION_NOT_READY");
+      expect(envelope.retryHint).toContain("heartbeat");
+      expect(envelope.retryHint).toContain("10s");
+    }
+
+    test("AC1: orphaned prior-session queue returns ADV_SESSION_NOT_READY and does not fire the signal", async () => {
+      const handle = createMockHandle();
+      handle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      handle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const store = createMockStore();
+
+      let caught: unknown;
+      try {
+        await fireSignalAndRefresh(
+          handle as never,
+          store as any,
+          "chg-orphan",
+          { name: "taskAdded" },
+          { taskId: "tk-orphan" },
+        );
+      } catch (e) {
+        caught = e;
+      }
+
+      expectAdvSessionNotReady(caught);
+      expect(handle.signal).not.toHaveBeenCalled();
+      expect(store.changes.refresh).not.toHaveBeenCalled();
+      // The gate performed a read-only Query as the decisive proof.
+      expect(handle.query).toHaveBeenCalledWith(changeStateQuery);
+    });
+
+    test("AC2: fresh own-queue mutation executes normally regardless of unrelated orphaned queue", async () => {
+      const ownHandle = createMockHandle();
+      ownHandle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-new",
+      });
+      ownHandle.query.mockResolvedValue({ status: "active" });
+      const ownStore = createMockStore();
+
+      await fireSignalAndRefresh(
+        ownHandle as never,
+        ownStore as any,
+        "chg-own",
+        { name: "taskAdded" },
+        { taskId: "tk-own" },
+      );
+
+      expect(ownHandle.signal).toHaveBeenCalledTimes(1);
+      expect(ownHandle.signal).toHaveBeenCalledWith(
+        { name: "taskAdded" },
+        { taskId: "tk-own" },
+      );
+      expect(ownStore.changes.refresh).toHaveBeenCalledWith("chg-own");
+
+      // The unrelated orphan queue is unproven, but it MUST NOT affect the own
+      // queue mutation. Each target queue is evaluated independently.
+      const orphanHandle = createMockHandle();
+      orphanHandle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      orphanHandle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const orphanStore = createMockStore();
+
+      let caught: unknown;
+      try {
+        await fireSignalAndRefresh(
+          orphanHandle as never,
+          orphanStore as any,
+          "chg-orphan",
+          { name: "taskAdded" },
+          { taskId: "tk-orphan" },
+        );
+      } catch (e) {
+        caught = e;
+      }
+
+      expectAdvSessionNotReady(caught);
+      expect(orphanHandle.signal).not.toHaveBeenCalled();
+      expect(orphanStore.changes.refresh).not.toHaveBeenCalled();
+    });
+
+    test("AC5: ADV_SESSION_READINESS_BYPASS=1 skips the readiness barrier and fires the signal", async () => {
+      const previousBypass = process.env.ADV_SESSION_READINESS_BYPASS;
+      process.env.ADV_SESSION_READINESS_BYPASS = "1";
+      vi.mocked(evaluateTargetReadiness).mockClear();
+
+      const handle = createMockHandle();
+      handle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      // Even though the query would prove the queue is not ready, the bypass
+      // must skip the readiness probe entirely and let the signal fire.
+      handle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const store = createMockStore();
+
+      try {
+        await fireSignalAndRefresh(
+          handle as never,
+          store as any,
+          "chg-bypass",
+          { name: "taskAdded" },
+          { taskId: "tk-bypass" },
+        );
+
+        // Bypass must short-circuit the probe, not just ignore the result.
+        expect(vi.mocked(evaluateTargetReadiness)).not.toHaveBeenCalled();
+        expect(handle.query).not.toHaveBeenCalled();
+        expect(handle.signal).toHaveBeenCalledTimes(1);
+        expect(handle.signal).toHaveBeenCalledWith(
+          { name: "taskAdded" },
+          { taskId: "tk-bypass" },
+        );
+        expect(store.changes.refresh).toHaveBeenCalledWith("chg-bypass");
+      } finally {
+        if (previousBypass === undefined) {
+          delete process.env.ADV_SESSION_READINESS_BYPASS;
+        } else {
+          process.env.ADV_SESSION_READINESS_BYPASS = previousBypass;
+        }
+      }
+    });
+
+    test("AC5.1: ADV_SESSION_READINESS_BYPASS=true is not accepted (only '1')", async () => {
+      const previousBypass = process.env.ADV_SESSION_READINESS_BYPASS;
+      process.env.ADV_SESSION_READINESS_BYPASS = "true";
+      vi.mocked(evaluateTargetReadiness).mockClear();
+
+      const handle = createMockHandle();
+      handle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      handle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const store = createMockStore();
+
+      let caught: unknown;
+      try {
+        await fireSignalAndRefresh(
+          handle as never,
+          store as any,
+          "chg-bypass-true",
+          { name: "taskAdded" },
+          { taskId: "tk-bypass-true" },
+        );
+      } catch (e) {
+        caught = e;
+      } finally {
+        if (previousBypass === undefined) {
+          delete process.env.ADV_SESSION_READINESS_BYPASS;
+        } else {
+          process.env.ADV_SESSION_READINESS_BYPASS = previousBypass;
+        }
+      }
+
+      expectAdvSessionNotReady(caught);
+      expect(vi.mocked(evaluateTargetReadiness)).toHaveBeenCalled();
+      expect(handle.signal).not.toHaveBeenCalled();
+      expect(store.changes.refresh).not.toHaveBeenCalled();
+    });
+  });
+
   describe("getChangeHandle", () => {
     test("builds correct workflowId and returns handle", () => {
       const handle = createMockHandle();
@@ -552,6 +757,26 @@ describe("_adapters", () => {
           initializedAt: "now",
         }),
       ).rejects.toThrow("does not expose workflow.start");
+    });
+
+    test("AC6: startChangeWorkflow does not await the readiness probe (barrier is post-init tool exposure)", async () => {
+      vi.mocked(evaluateTargetReadiness).mockClear();
+      const handle = createMockHandle();
+      const client = createMockClient(handle);
+      vi.mocked(ensureChangeWorkflowStarted).mockResolvedValue(handle);
+
+      await startChangeWorkflow(client, {
+        projectId: "proj-abc",
+        changeId: "chg-def",
+        title: "Test Change",
+        initializedAt: new Date().toISOString(),
+      });
+
+      // The session-readiness barrier is per-mutation, evaluated only inside
+      // fireSignalAndRefresh. Worker/change startup must remain non-blocking.
+      expect(vi.mocked(evaluateTargetReadiness)).not.toHaveBeenCalled();
+      expect(handle.query).not.toHaveBeenCalled();
+      expect(handle.describe).not.toHaveBeenCalled();
     });
   });
 });

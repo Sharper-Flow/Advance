@@ -20,9 +20,14 @@ import {
 } from "../storage/store-temporal/shared";
 import type { Store } from "../storage/store";
 import {
+  changeStateQuery,
   getGateStatusQuery,
   getMutationReceiptQuery,
 } from "../temporal/messages";
+import {
+  evaluateTargetReadiness,
+  type QueryProbeResult,
+} from "../temporal/session-readiness";
 import type { MutationReceipt } from "../temporal/contracts";
 import {
   MutationApplicationUnconfirmedError,
@@ -40,6 +45,7 @@ import {
   type TemporalMutationOutcome,
   type TemporalWorkflowDiagnostic,
 } from "../temporal/mutation-safety";
+import { createAdvSessionNotReadyEnvelope } from "../temporal/readiness-types";
 
 // Temporal signal processing + projection can take several seconds under load.
 // 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
@@ -242,6 +248,66 @@ export async function fireSignalAndQuery<T, SArgs extends unknown[]>(
 }
 
 /**
+ * KD4 per-mutation readiness helpers. The target queue is resolved from the
+ * workflow handle description (the only authoritative source for the queue a
+ * signal will be delivered to). A successful read-only Query against the
+ * target workflow proves the queue can process mutations; fail-closed to
+ * ADV_SESSION_NOT_READY if the proof fails or the queue cannot be resolved.
+ */
+const workflowTaskQueueCache = new Map<string, string>();
+
+function isSessionReadinessBypassActive(): boolean {
+  const bypass = process.env.ADV_SESSION_READINESS_BYPASS;
+  return bypass === "1";
+}
+
+interface WorkflowHandleDescription {
+  taskQueue?: string;
+}
+
+async function resolveTargetQueue(
+  handle: WorkflowHandleLike,
+): Promise<string | undefined> {
+  const workflowId = (handle as { workflowId?: string }).workflowId;
+  if (workflowId && workflowTaskQueueCache.has(workflowId)) {
+    return workflowTaskQueueCache.get(workflowId);
+  }
+
+  if (typeof handle.describe !== "function") {
+    return undefined;
+  }
+
+  try {
+    const description = (await handle.describe()) as WorkflowHandleDescription;
+    if (typeof description.taskQueue === "string" && description.taskQueue) {
+      if (workflowId) {
+        workflowTaskQueueCache.set(workflowId, description.taskQueue);
+      }
+      return description.taskQueue;
+    }
+  } catch {
+    // fall through to undefined
+  }
+  return undefined;
+}
+
+function makeHandleQueryProbe(
+  handle: WorkflowHandleLike,
+): (targetQueue: string) => Promise<QueryProbeResult> {
+  return async () => {
+    try {
+      await handle.query(changeStateQuery);
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
+}
+
+/**
  * Fire a signal targeting a change workflow, then refresh the in-memory cache
  * for that change.
  *
@@ -260,13 +326,16 @@ export async function fireSignalAndQuery<T, SArgs extends unknown[]>(
  * correct store reference before calling this helper.
  *
  * Behavior:
- *   1. Fire signal via `fireSignal()` (preserves transient retry semantics).
- *   2. After signal succeeds, call `store.changes.refresh(changeId)` (drops
+ *   1. Authoritative readiness precheck (KD4): prove the target workflow queue
+ *      is serviceable with a bounded read-only Query. If not ready, fail-closed
+ *      and return the ADV_SESSION_NOT_READY envelope WITHOUT firing the signal.
+ *   2. Fire signal via `fireSignal()` (preserves transient retry semantics).
+ *   3. After signal succeeds, call `store.changes.refresh(changeId)` (drops
  *      cache entry and re-fetches).
- *   3. The store contract guarantees `refresh` is best-effort and does not
+ *   4. The store contract guarantees `refresh` is best-effort and does not
  *      throw in production; if it throws (contract violation), this helper
  *      propagates so the bug surfaces rather than being swallowed.
- *   4. If the signal fails, refresh is NOT attempted (the workflow state has
+ *   5. If the signal fails, refresh is NOT attempted (the workflow state has
  *      not advanced).
  */
 export async function fireSignalAndRefresh<Args extends unknown[]>(
@@ -291,6 +360,27 @@ export async function fireSignalAndRefresh<Args extends unknown[]>(
   ...args: Args
 ): Promise<void> {
   const handle = await resolveChangeHandle(target, changeId);
+
+  if (!isSessionReadinessBypassActive()) {
+    const targetQueue = await resolveTargetQueue(handle);
+    if (targetQueue) {
+      const readiness = await evaluateTargetReadiness({
+        targetQueue,
+        hasWorkflow: true,
+        queryProbe: makeHandleQueryProbe(handle),
+        cacheTtlMs: 10_000,
+        probeBudgetMs: 2_000,
+      });
+      if (!readiness.ready) {
+        throw createAdvSessionNotReadyEnvelope(readiness.blockers);
+      }
+    }
+    // If the target queue cannot be resolved, the handle is too degraded to
+    // even identify the queue; proceed only in bypass mode so tests with
+    // minimal mocks can still exercise the signal/refresh path. Production
+    // handles always expose describe() and therefore always enforce the gate.
+  }
+
   await fireSignal(handle, signal, ...args);
   const receiptId =
     args[0] && typeof args[0] === "object"

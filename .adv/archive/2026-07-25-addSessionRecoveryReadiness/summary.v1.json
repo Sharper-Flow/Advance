@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-25T07:24:21.857Z",
+  "capabilities": [],
+  "change_hash": "51e3cd8b09af4c5591c450fbcd03269c9fd167b85457f15ecdf5c0fd1fb09d26",
+  "change_id": "addSessionRecoveryReadiness",
+  "completed_tasks": 8,
+  "created_at": "2026-07-25T01:53:32.515Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-25T07:20:58.742Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "9ed15bc6d9b9d9927efa90102b01a920d154f391056e8b6995041e2a0e8b13b5",
+  "task_count": 8,
+  "title": "Add session recovery readiness barrier",
+  "version": "1"
+}

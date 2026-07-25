@@ -18,6 +18,10 @@ import { ZodError } from "zod";
 import { formatToolOutput } from "./tool-output";
 import { appendProfileLog } from "./debug-log";
 import { recordToolDuration } from "./metrics";
+import {
+  isAdvSessionNotReady,
+  ADV_SESSION_NOT_READY_KIND,
+} from "../temporal/readiness-types";
 
 /**
  * Optional enrichment context. All fields are additive — no existing
@@ -172,6 +176,24 @@ export function formatErrorResponse(
   const redactedArgs =
     args === undefined ? undefined : redactSensitiveArgs(args);
   mergeDefinedContext(enrichment as ErrorContext, derived);
+
+  // Preserve the typed ADV_SESSION_NOT_READY envelope when the fail-closed
+  // session-readiness barrier throws it. This is distinct from
+  // ADV_PLUGIN_INIT_FAILED and no_poller diagnostics and must remain
+  // caller-discriminable at the tool-result boundary.
+  if (isAdvSessionNotReady(error)) {
+    enrichment.errorClass = "AdvSessionNotReady";
+    return formatToolOutput({
+      error: ADV_SESSION_NOT_READY_KIND,
+      kind: error.kind,
+      blockers: error.blockers,
+      retryHint: error.retryHint,
+      retryable: true,
+      tool: toolName,
+      ...(args !== undefined && { received_args: redactedArgs }),
+      ...enrichment,
+    });
+  }
 
   // Handle Zod schema validation errors specially
   if (error instanceof ZodError) {

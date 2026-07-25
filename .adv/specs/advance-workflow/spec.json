@@ -7276,6 +7276,114 @@
       }
     },
     {
+      "id": "rq-sessionReadinessBarrier01",
+      "title": "Session readiness barrier gates tool exposure and mutation execution",
+      "body": "Tool exposure and per-mutation execution in an ADV session MUST prove readiness before servicing a mutation, independent of non-blocking worker startup. A fail-closed `ADV_SESSION_NOT_READY` error is returned when readiness cannot be proven for the target queue or change workflow. Readiness proof is per-target-queue and per-session; an unrelated orphan queue does not block fresh own-queue mutations. When a target change workflow already exists, a bounded successful read-only Query against that workflow is required; a failed Query overrides fresh `DescribeTaskQueue` evidence. When no workflow exists yet, observed local-worker readiness for the session queue is required, with `DescribeTaskQueue` freshness advisory only. Mid-session worker death after initial readiness invalidates the proof until recovery, re-enforcing the barrier. `ADV_SESSION_READINESS_BYPASS=1` skips the barrier for tests and deterministic dev paths, default OFF. Worker startup MUST NOT await the readiness probe; the barrier is enforced in post-init tool exposure and per-mutation execution only, preserving `rq-isolSessionTaskQueue05` non-blocking startup semantics.",
+      "priority": "must",
+      "tags": [
+        "execution",
+        "readiness",
+        "session-queue",
+        "tool-exposure",
+        "fail-closed"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-sessionReadinessBarrier01.1",
+          "title": "Mutation against unproven/orphan prior-session queue fails closed without signal",
+          "given": [
+            "A mutation tool targets change workflow W on session task queue advance-{P}-{sessA}",
+            "No local worker currently polls advance-{P}-{sessA}",
+            "Readiness for advance-{P}-{sessA} has not been proven in this session"
+          ],
+          "when": "The mutation tool executes",
+          "then": [
+            "The call returns `ADV_SESSION_NOT_READY`",
+            "No signal is sent to W",
+            "The error clearly distinguishes startup (worker init) from tool exposure / execution readiness"
+          ],
+          "warrant": "AC1"
+        },
+        {
+          "id": "rq-sessionReadinessBarrier01.2",
+          "title": "Fresh own-queue mutation is not blocked by unrelated orphaned queue",
+          "given": [
+            "Session S1 is active with sessionId sessA and its own task queue advance-{P}-{sessA}",
+            "Worker readiness for advance-{P}-{sessA} has been proven",
+            "An unrelated orphan session queue advance-{P}-{sessB} exists and is not polled"
+          ],
+          "when": "S1 issues a mutation for its own change workflow",
+          "then": [
+            "The mutation proceeds against advance-{P}-{sessA}",
+            "The orphaned advance-{P}-{sessB} queue does not cause `ADV_SESSION_NOT_READY` for S1's own mutation"
+          ],
+          "warrant": "AC2"
+        },
+        {
+          "id": "rq-sessionReadinessBarrier01.3",
+          "title": "Proof truth table distinguishes existing workflow from new workflow",
+          "given": [
+            "Target change workflow W exists on advance-{P}-{sessA}",
+            "Session S1 has proven local-worker readiness for advance-{P}-{sessA}",
+            "`DescribeTaskQueue` reports the queue as healthy"
+          ],
+          "when": "Readiness is evaluated for a mutation targeting W",
+          "then": [
+            "A bounded successful read-only Query against W is required",
+            "If the Query fails, the mutation returns `ADV_SESSION_NOT_READY` even when `DescribeTaskQueue` is fresh",
+            "If no workflow exists yet, observed local-worker readiness for advance-{P}-{sessA} is sufficient",
+            "`DescribeTaskQueue` evidence is advisory and never the sole admission authority"
+          ],
+          "warrant": "AC1, C2"
+        },
+        {
+          "id": "rq-sessionReadinessBarrier01.4",
+          "title": "Mid-session worker death re-closes the readiness barrier until recovery",
+          "given": [
+            "Initial readiness for advance-{P}-{sessA} has been proven",
+            "The worker polling advance-{P}-{sessA} dies or loses connection mid-session",
+            "The readiness proof TTL expires and the worker-death hook fires"
+          ],
+          "when": "A mutation is attempted before recovery re-proves readiness",
+          "then": [
+            "The mutation returns `ADV_SESSION_NOT_READY`",
+            "Readiness remains unproven until a fresh bounded Query or local-worker observation re-establishes it",
+            "The ambiguous window does not silently re-open"
+          ],
+          "warrant": "AC4"
+        },
+        {
+          "id": "rq-sessionReadinessBarrier01.5",
+          "title": "Readiness bypass env flag skips barrier for tests and dev determinism",
+          "given": [
+            "`ADV_SESSION_READINESS_BYPASS=1` is set in the environment"
+          ],
+          "when": "A mutation is executed",
+          "then": [
+            "The readiness barrier is skipped",
+            "The mutation proceeds without proving readiness",
+            "Default behavior (flag unset or `0`) keeps the barrier enabled"
+          ],
+          "warrant": "AC5"
+        },
+        {
+          "id": "rq-sessionReadinessBarrier01.6",
+          "title": "Worker startup does not await readiness probe",
+          "given": [
+            "A worker process is initializing",
+            "Readiness proof for the session queue is not yet available"
+          ],
+          "when": "Worker startup completes",
+          "then": [
+            "Startup finishes without blocking on the readiness probe",
+            "The readiness barrier is enforced later during tool exposure / per-mutation execution",
+            "This preserves `rq-isolSessionTaskQueue05` non-blocking startup semantics"
+          ],
+          "warrant": "AC6, C1"
+        }
+      ]
+    },
+    {
       "id": "rq-launcherProjectionTruth01",
       "title": "Launcher read-projection provenance truthfulness",
       "body": "ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times — `source:\"disk_projection\"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain Temporal-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (Temporal is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) — NOT by adding a new activity invocation to the workflow — so in-flight workflow histories replay identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the signal.",
