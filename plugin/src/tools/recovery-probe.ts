@@ -146,10 +146,15 @@ export async function workflowPoisonedDescriptionEvidence(
  * Constraint: per agreement C2, recoveryEvidence must be precise poisoned/
  * completed evidence via isPreciseWorkflowRecoveryEvidence. This helper
  * enforces that — it does NOT accept vague evidence.
+ *
+ * approvedByUser and approvalEvidence are accepted for call-site symmetry
+ * with the tool-layer approval gates; they do not alter the boolean result.
  */
 export function shouldTakeRecoveryBranch(args: {
   recoveryMode?: "normal" | "poisoned_history";
   recoveryEvidence?: string;
+  approvedByUser?: true;
+  approvalEvidence?: string;
 }): boolean {
   return (
     args.recoveryMode === "poisoned_history" &&

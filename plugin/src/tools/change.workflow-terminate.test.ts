@@ -79,6 +79,8 @@ interface WorkflowTerminateToolDef {
       approvedByUser: true;
       approvalEvidence: string;
       dryRun?: boolean;
+      recoveryMode?: "normal" | "poisoned_history";
+      recoveryEvidence?: string;
     },
     store: Store,
   ) => Promise<string>;
@@ -619,6 +621,39 @@ describe("adv_change_workflow_terminate", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.workflowTerminated).toBe(true);
     expect(parsed.eligibilityClass).toBe("poisoned_history");
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+    expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+  });
+
+  test("poisoned_history recovery branch skips describe and succeeds when workflow is gone", async () => {
+    const store = createMockStore(wedgedChange());
+    mocks.describe.mockRejectedValue(
+      new Error("Failed to query Workflow ServiceError"),
+    );
+    mocks.terminate.mockRejectedValue(
+      Object.assign(new Error("workflow execution already completed"), {
+        name: "WorkflowExecutionAlreadyCompleted",
+      }),
+    );
+
+    const result = await tool().execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: TERMINATE_EVIDENCE,
+        recoveryMode: "poisoned_history",
+        recoveryEvidence:
+          "WorkflowNotFoundError: workflow execution already completed",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.workflowTerminated).toBe(true);
+    expect(parsed.alreadyTerminated).toBe(true);
+    expect(parsed.eligibilityClass).toBe("poisoned_history");
+    expect(mocks.describe).not.toHaveBeenCalled();
     expect(mocks.terminate).toHaveBeenCalledTimes(1);
     expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
   });
