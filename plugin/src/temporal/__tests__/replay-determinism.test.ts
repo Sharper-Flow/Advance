@@ -138,6 +138,23 @@ const replayFixtures: ReplayFixture[] = [
     coversIncludes:
       "ACCEPTANCE_READINESS_FENCE_PATCH (acceptance-readiness-revision-v1) (legacy)",
   },
+  {
+    // WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH (worker-bundle-freshness-v1):
+    // legacy history completing the release gate before the worker-bundle
+    // provenance patch existed. Current patched code skips the provenance check
+    // because the marker is absent, preserving replay determinism for pre-patch
+    // release histories.
+    metadataUrl: new URL(
+      "./replay/histories/addWorkerBundleFreshness.worker-bundle-freshness-legacy.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/addWorkerBundleFreshness.worker-bundle-freshness-legacy.history.json",
+      import.meta.url,
+    ),
+    coversIncludes:
+      "WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH (worker-bundle-freshness-v1) (legacy)",
+  },
   ...AFFECTED_POISONED_CHANGE_IDS.map((changeId) => ({
     metadataUrl: new URL(
       `./replay/histories/${changeId}.poisoned-production.metadata.json`,

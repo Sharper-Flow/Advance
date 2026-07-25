@@ -958,7 +958,7 @@ export function renderAcceptanceProjection(state: ChangeWorkflowState): string {
  * requirement. Reads only workflow state; no filesystem or runtime probes.
  *
  * - `worker_bundle_impact` absent -> declaration required blocker (AC4/KD1).
- * - `kind: "not_applicable"` -> ok, no blockers (AC3).
+ * - `kind: "not_applicable"` + a non-empty rationale -> ok, no blockers (AC3).
  * - `kind: "required"` -> require `state.workerBundleProvenance` with
  *   `{source_sha, build_run_id, replay_run_id}` AND both run IDs match typed,
  *   passing test runs in `state.testRuns` by `evidence_kind` (KD3).
@@ -982,8 +982,20 @@ export function evaluateWorkerBundleProvenance(state: ChangeWorkflowState): {
     return { ok: false, blockers };
   }
 
-  if (impact.kind === "not_applicable") {
+  if (impact.kind === "not_applicable" && impact.rationale?.trim()) {
     return { ok: true, blockers: [] };
+  }
+
+  if (impact.kind === "not_applicable") {
+    blockers.push({
+      code: "WORKER_BUNDLE_PROVENANCE_NOT_APPLICABLE_RATIONALE_REQUIRED",
+      gateId: "release",
+      message:
+        "worker_bundle_impact 'not_applicable' requires a non-empty typed rationale (rq-workerBundleReleaseProvenance01).",
+      remediation:
+        "Set worker_bundle_impact.rationale to explain why worker-bundle provenance is not applicable.",
+    });
+    return { ok: false, blockers };
   }
 
   const provenance = state.workerBundleProvenance;
@@ -995,6 +1007,18 @@ export function evaluateWorkerBundleProvenance(state: ChangeWorkflowState): {
         "Worker-bundle provenance is required because worker_bundle_impact is 'required' (rq-workerBundleReleaseProvenance01).",
       remediation:
         "Record workerBundleProvenance with source_sha, build_run_id, and replay_run_id.",
+    });
+    return { ok: false, blockers };
+  }
+
+  if (!provenance.source_sha?.trim()) {
+    blockers.push({
+      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
+      gateId: "release",
+      message:
+        "Worker-bundle provenance is missing source_sha (rq-workerBundleReleaseProvenance01).",
+      remediation:
+        "Record workerBundleProvenance with the source SHA used for the build_worker and replay_determinism runs.",
     });
     return { ok: false, blockers };
   }

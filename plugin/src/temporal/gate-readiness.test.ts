@@ -2003,6 +2003,18 @@ describe("evaluateWorkerBundleProvenance — worker-bundle release provenance (K
     expect(result.blockers).toEqual([]);
   });
 
+  it("AC3: not_applicable without a typed rationale blocks release", () => {
+    const state = workerBundleState({
+      worker_bundle_impact: { kind: "not_applicable" },
+    });
+    const result = evaluateWorkerBundleProvenance(state);
+    expect(result.ok).toBe(false);
+    expect(result.blockers).toHaveLength(1);
+    expect(result.blockers[0].code).toBe(
+      "WORKER_BUNDLE_PROVENANCE_NOT_APPLICABLE_RATIONALE_REQUIRED",
+    );
+  });
+
   it("AC1: required impact + no provenance -> missing blocker", () => {
     const state = workerBundleState({
       worker_bundle_impact: {
@@ -2039,6 +2051,31 @@ describe("evaluateWorkerBundleProvenance — worker-bundle release provenance (K
     const result = evaluateWorkerBundleProvenance(state);
     expect(result.ok).toBe(true);
     expect(result.blockers).toEqual([]);
+  });
+
+  it("AC1: blank provenance source_sha blocks release", () => {
+    const state = workerBundleState({
+      worker_bundle_impact: {
+        kind: "required",
+        rationale: "touches worker bundle",
+      },
+      workerBundleProvenance: {
+        source_sha: " ",
+        build_run_id: "run-build-1",
+        replay_run_id: "run-replay-1",
+        recorded_at: "2026-05-20T00:00:00.000Z",
+      },
+      testRuns: {
+        tk: [
+          passingRun("run-build-1", "build_worker"),
+          passingRun("run-replay-1", "replay_determinism"),
+        ],
+      },
+    });
+    const result = evaluateWorkerBundleProvenance(state);
+    expect(result.ok).toBe(false);
+    expect(result.blockers[0].code).toBe("WORKER_BUNDLE_PROVENANCE_MISSING");
+    expect(result.blockers[0].message).toContain("source_sha");
   });
 
   it("matches runs by typed evidence_kind, not command substring", () => {

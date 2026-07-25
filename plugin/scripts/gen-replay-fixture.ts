@@ -32,6 +32,7 @@
  *   acceptance-executive-summary -> ACCEPTANCE_EXECUTIVE_SUMMARY_PROOF_PATCH (legacy acceptance)
  *   acceptance-readiness-fence   -> ACCEPTANCE_READINESS_FENCE_PATCH (acceptance gate)
  *   acceptance-readiness-fence-legacy -> ACCEPTANCE_READINESS_FENCE_PATCH (legacy acceptance gate)
+ *   worker-bundle-freshness-legacy -> WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH (legacy release gate)
  */
 
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -53,7 +54,7 @@ import {
   writeChangeProjection,
 } from "../src/temporal/activities";
 
-const ADDRESS = "127.0.0.1:7233";
+const ADDRESS = process.env.REPLAY_FIXTURE_ADDRESS ?? "127.0.0.1:7233";
 const NAMESPACE = "default";
 const PROJECT_ID = "replay-fixture-project";
 const PROJECTION_ROOT = "/tmp/adv-replay-fixture";
@@ -67,7 +68,8 @@ type BranchId =
   | "state-backed-acceptance"
   | "acceptance-executive-summary"
   | "acceptance-readiness-fence"
-  | "acceptance-readiness-fence-legacy";
+  | "acceptance-readiness-fence-legacy"
+  | "worker-bundle-freshness-legacy";
 
 interface BranchConfig {
   gateId: "proposal" | "discovery" | "design" | "acceptance";
@@ -114,6 +116,13 @@ const BRANCHES: Record<BranchId, BranchConfig> = {
     label: "ACCEPTANCE_READINESS_FENCE_PATCH (legacy)",
     changeId: "replayFixtureAcceptanceReadinessFenceLegacy",
     needsProjection: true,
+  },
+  "worker-bundle-freshness-legacy": {
+    gateId: "release",
+    patchMarker: "worker-bundle-freshness-v1",
+    label: "WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH (legacy)",
+    changeId: "replayFixtureWorkerBundleFreshnessLegacy",
+    needsProjection: false,
   },
 };
 
@@ -207,6 +216,19 @@ function buildInput(
         source: "temporal",
       },
     };
+  } else if (config.gateId === "release") {
+    for (const gid of [
+      "proposal",
+      "discovery",
+      "design",
+      "planning",
+      "execution",
+      "acceptance",
+    ] as const) {
+      gates[gid] = { status: "done" };
+    }
+    gates.release = { status: "in_progress" };
+    baseSeed.gates = gates;
   } else {
     gates[config.gateId] = { status: "in_progress" };
     baseSeed.gates = gates;
@@ -272,6 +294,25 @@ async function buildLegacyFenceVariant(): Promise<string> {
   return variantPath;
 }
 
+async function buildLegacyWorkerBundleVariant(): Promise<string> {
+  const src = await readFile(workflowsPath, "utf8");
+  const marker = "wf.patched(WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH)";
+  if (!src.includes(marker)) {
+    throw new Error(
+      "Variant surgery failed: worker-bundle-freshness patch call not found",
+    );
+  }
+  const variant = src.replace(marker, "false");
+  const variantPath = fileURLToPath(
+    new URL(
+      "../src/temporal/workflows.gen-legacy-worker-bundle.ts",
+      import.meta.url,
+    ),
+  );
+  await writeFile(variantPath, variant, "utf8");
+  return variantPath;
+}
+
 async function main(): Promise<void> {
   const { branch } = parseArgs();
   const config = BRANCHES[branch];
@@ -305,6 +346,9 @@ async function main(): Promise<void> {
     activeWorkflowsPath = variantPath;
   } else if (branch === "acceptance-readiness-fence-legacy") {
     variantPath = await buildLegacyFenceVariant();
+    activeWorkflowsPath = variantPath;
+  } else if (branch === "worker-bundle-freshness-legacy") {
+    variantPath = await buildLegacyWorkerBundleVariant();
     activeWorkflowsPath = variantPath;
   }
 
