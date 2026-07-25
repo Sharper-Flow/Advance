@@ -1,7 +1,7 @@
 <h1 align="center">Advance</h1>
 
 <p align="center">
-  <strong>Spec-driven engineering infrastructure for AI-assisted development.</strong><br></em>
+  <strong>Spec-driven engineering infrastructure for AI-assisted development.</strong><br>
 </p>
 
 <p align="center">
@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/Sharper-Flow/Advance/actions"><img src="https://img.shields.io/github/actions/workflow/status/Sharper-Flow/Advance/ci.yml?label=CI" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
+  <a href="#license"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <a href="https://github.com/Sharper-Flow/Advance"><img src="https://img.shields.io/github/stars/Sharper-Flow/Advance?style=social" alt="GitHub stars"></a>
 </p>
 
@@ -141,10 +141,6 @@ Advance is intentionally unusual. It is not just commands around an LLM.
 
 This is why Advance is more than durable functions, more than a memory layer, more than a prompt pack, and more than a test wrapper.
 
-## Integration and extension surfaces
-
-Advance keeps the core workflow in this repository and exposes runtime-safe seams for developers who want to build their own operators, dashboards, or editor integrations:
-
 ## Core workflow
 
 
@@ -236,7 +232,6 @@ This also enables model comparison: run the same change on two models and compar
 | Command          | Description                                                                                          |
 | ---------------- | ---------------------------------------------------------------------------------------------------- |
 | `/adv-status`    | Show fast ADV status table                                                                           |
-| `/adv-roadmap`   | Show fast ADV roadmap table                                                                          |
 | `/adv-idea`      | Explore rough ideas before drafting a proposal                                                       |
 | `/adv-problem`   | Triage defects and unintended behavior before fixing or drafting a proposal                          |
 | `/adv-epic`      | Gather Epic goals before typed creation                                                             |
@@ -300,7 +295,7 @@ pnpm run check
 pnpm run build
 ```
 
-CI runs typecheck → lint → format check → tests → build on Node 20.x and 22.x.
+Requires Node.js 24+ and pnpm 11.9.0. CI runs SDK parity, schema-drift, type, lint, format, Temporal-backed test, Bun CLI test, and build checks on Node 24.x.
 
 ## Runtime model
 
@@ -361,4 +356,4 @@ scripts/             sync, migration, maintenance, blind-test helpers
 
 ## License
 
-MIT
+The package metadata declares the MIT license.
