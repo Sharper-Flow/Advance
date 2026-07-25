@@ -22,11 +22,15 @@ function makeHandle(
   overrides: {
     signal?: () => Promise<void>;
     query?: () => Promise<unknown>;
+    describe?: () => Promise<unknown>;
   } = {},
 ) {
   return {
     signal: overrides.signal ?? vi.fn(async () => {}),
     query: overrides.query ?? vi.fn(async () => ({})),
+    describe:
+      overrides.describe ??
+      vi.fn(async () => ({ taskQueue: "advance-proj-mock" })),
   } as unknown as import("../storage/store-temporal/shared").WorkflowHandleLike;
 }
 

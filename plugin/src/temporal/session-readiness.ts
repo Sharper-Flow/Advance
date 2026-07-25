@@ -25,7 +25,7 @@ export type ReadinessProbeKind =
 export interface EvaluateTargetReadinessInput {
   targetQueue: string;
   hasWorkflow: boolean;
-  localSignal: {
+  localSignal?: {
     localRegistered: boolean;
     localWorkerAlive: boolean;
     localOwnership: LocalOwnership;
@@ -179,6 +179,9 @@ async function runProbe(
   }
 
   // No workflow yet: required proof is observed local-worker readiness.
+  if (!input.localSignal) {
+    return notReady(["ADV_SESSION_NOT_READY", "local_signal_unavailable"]);
+  }
   const localReadiness = evaluateQueueReadiness({
     localRegistered: input.localSignal.localRegistered,
     localWorkerAlive: input.localSignal.localWorkerAlive,

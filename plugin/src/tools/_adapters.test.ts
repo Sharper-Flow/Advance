@@ -20,6 +20,13 @@ import {
   MutationApplicationUnconfirmedError,
   type ReachabilityDeps,
 } from "./_adapters";
+import { isAdvSessionNotReady } from "../temporal/readiness-types";
+import { resetReadinessState } from "../temporal/session-readiness";
+import { changeStateQuery } from "../temporal/messages";
+
+beforeEach(() => {
+  resetReadinessState();
+});
 
 describe("readiness mutation receipts", () => {
   test("waitForQueryPredicate returns first value satisfying predicate", async () => {
@@ -87,11 +94,15 @@ function createMockHandle(): {
   query: ReturnType<typeof vi.fn>;
   signal: ReturnType<typeof vi.fn>;
   executeUpdate: ReturnType<typeof vi.fn>;
+  describe: ReturnType<typeof vi.fn>;
+  workflowId: string;
 } {
   return {
-    query: vi.fn(),
+    query: vi.fn().mockResolvedValue({}),
     signal: vi.fn(),
     executeUpdate: vi.fn(),
+    describe: vi.fn().mockResolvedValue({ taskQueue: "advance-proj-mock" }),
+    workflowId: `adv/change/proj-mock/${Math.random().toString(36).slice(2)}`,
   };
 }
 
@@ -499,6 +510,103 @@ describe("_adapters", () => {
         { nested: true },
       );
       expect(store.changes.refresh).toHaveBeenCalledWith("chg-2");
+    });
+  });
+
+  describe("fireSignalAndRefresh readiness gate (KD4)", () => {
+    function expectAdvSessionNotReady(thrown: unknown): void {
+      expect(isAdvSessionNotReady(thrown)).toBe(true);
+      const envelope = thrown as {
+        kind: string;
+        blockers: string[];
+        retryHint: string;
+      };
+      expect(envelope.kind).toBe("ADV_SESSION_NOT_READY");
+      expect(envelope.blockers).toContain("ADV_SESSION_NOT_READY");
+      expect(envelope.retryHint).toContain("heartbeat");
+      expect(envelope.retryHint).toContain("10s");
+    }
+
+    test("AC1: orphaned prior-session queue returns ADV_SESSION_NOT_READY and does not fire the signal", async () => {
+      const handle = createMockHandle();
+      handle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      handle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const store = createMockStore();
+
+      let caught: unknown;
+      try {
+        await fireSignalAndRefresh(
+          handle as never,
+          store as any,
+          "chg-orphan",
+          { name: "taskAdded" },
+          { taskId: "tk-orphan" },
+        );
+      } catch (e) {
+        caught = e;
+      }
+
+      expectAdvSessionNotReady(caught);
+      expect(handle.signal).not.toHaveBeenCalled();
+      expect(store.changes.refresh).not.toHaveBeenCalled();
+      // The gate performed a read-only Query as the decisive proof.
+      expect(handle.query).toHaveBeenCalledWith(changeStateQuery);
+    });
+
+    test("AC2: fresh own-queue mutation executes normally regardless of unrelated orphaned queue", async () => {
+      const ownHandle = createMockHandle();
+      ownHandle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-new",
+      });
+      ownHandle.query.mockResolvedValue({ status: "active" });
+      const ownStore = createMockStore();
+
+      await fireSignalAndRefresh(
+        ownHandle as never,
+        ownStore as any,
+        "chg-own",
+        { name: "taskAdded" },
+        { taskId: "tk-own" },
+      );
+
+      expect(ownHandle.signal).toHaveBeenCalledTimes(1);
+      expect(ownHandle.signal).toHaveBeenCalledWith(
+        { name: "taskAdded" },
+        { taskId: "tk-own" },
+      );
+      expect(ownStore.changes.refresh).toHaveBeenCalledWith("chg-own");
+
+      // The unrelated orphan queue is unproven, but it MUST NOT affect the own
+      // queue mutation. Each target queue is evaluated independently.
+      const orphanHandle = createMockHandle();
+      orphanHandle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      orphanHandle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const orphanStore = createMockStore();
+
+      let caught: unknown;
+      try {
+        await fireSignalAndRefresh(
+          orphanHandle as never,
+          orphanStore as any,
+          "chg-orphan",
+          { name: "taskAdded" },
+          { taskId: "tk-orphan" },
+        );
+      } catch (e) {
+        caught = e;
+      }
+
+      expectAdvSessionNotReady(caught);
+      expect(orphanHandle.signal).not.toHaveBeenCalled();
+      expect(orphanStore.changes.refresh).not.toHaveBeenCalled();
     });
   });
 

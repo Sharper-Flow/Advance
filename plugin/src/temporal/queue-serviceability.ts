@@ -87,8 +87,10 @@ export function evaluateQueueReadiness(
   if (input.serverPollerStatus === "unavailable") {
     blockers.push("server_poller_probe_unavailable");
   }
-  if (input.serverPollerStatus === "stale") blockers.push("server_poller_stale");
-  if (input.serverPollerStatus === "none") blockers.push("server_poller_absent");
+  if (input.serverPollerStatus === "stale")
+    blockers.push("server_poller_stale");
+  if (input.serverPollerStatus === "none")
+    blockers.push("server_poller_absent");
   if (input.staleRunningWorkflowCount > 0) {
     blockers.push("stale_running_workflows_without_poller");
   }
