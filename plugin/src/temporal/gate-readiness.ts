@@ -46,6 +46,13 @@ export interface GateReadinessOptions {
   compatibilityReason?: string;
   enforceDiscoveryContract?: boolean;
   enforceWorkerBundleProvenance?: boolean;
+  /**
+   * When true (default), review-matrix rows whose contractId is not present in
+   * the contract are flagged as unknown. When false, rows for OOS/out-of-scope
+   * contract items (verificationRequired: false) are not flagged as unknown.
+   * This is replay-gated via the `review-matrix-oos-row-v1` patch marker.
+   */
+  strictReviewMatrixUnknownRows?: boolean;
 }
 
 export interface GateReadinessWarning {
@@ -347,6 +354,7 @@ function discoveryContractBlockers(
 function acceptanceContractBlockers(
   state: ChangeWorkflowState,
   gateId: GateId,
+  options?: Pick<GateReadinessOptions, "strictReviewMatrixUnknownRows">,
 ): GateReadinessBlocker[] {
   if (gateId !== "acceptance") return [];
   if (!state.contract) {
@@ -373,7 +381,9 @@ function acceptanceContractBlockers(
       }),
     ];
   }
-  const rowCoverage = validateReviewMatrixRowCoverage(state);
+  const rowCoverage = validateReviewMatrixRowCoverage(state, {
+    strictUnknownRows: options?.strictReviewMatrixUnknownRows,
+  });
   const rowCoverageBlockers = rowCoverage.valid
     ? []
     : [
@@ -1112,7 +1122,7 @@ export function evaluateGateReadiness(
         options.compatibilityReason,
       );
     } else {
-      blockers.push(...acceptanceContractBlockers(state, gateId));
+      blockers.push(...acceptanceContractBlockers(state, gateId, options));
     }
     blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
     blockers.push(...checkUnresolvedVerificationEvidence(state, gateId));
@@ -1157,6 +1167,7 @@ import { GATE_CRITERIA_DEFINITIONS } from "../types";
  */
 function validateReviewMatrixRowCoverage(
   state: ChangeWorkflowState,
+  { strictUnknownRows = true }: { strictUnknownRows?: boolean } = {},
 ):
   | { valid: true; rowCount: number; itemCount: number }
   | { valid: false; reason: string } {
@@ -1168,7 +1179,6 @@ function validateReviewMatrixRowCoverage(
   const expectedItems = contract.items.filter(
     (item) => item.verificationRequired !== false,
   );
-  const expectedIds = new Set(expectedItems.map((item) => item.id));
   const seen = new Set<string>();
   const duplicates: string[] = [];
   for (const row of contract.reviewMatrix.rows) {
@@ -1183,8 +1193,13 @@ function validateReviewMatrixRowCoverage(
   const missing = expectedItems
     .filter((item) => !seen.has(item.id))
     .map((item) => item.id);
+  // Check unknown rows against either required items only (legacy behavior,
+  // pre-review-matrix-oos-row-v1 patch) or all contract IDs (current behavior).
+  const knownIds = strictUnknownRows
+    ? new Set(contract.items.map((item) => item.id))
+    : new Set(expectedItems.map((item) => item.id));
   const unknown = contract.reviewMatrix.rows
-    .filter((row) => !expectedIds.has(row.contractId))
+    .filter((row) => !knownIds.has(row.contractId))
     .map((row) => row.contractId);
 
   if (duplicates.length > 0 || missing.length > 0 || unknown.length > 0) {

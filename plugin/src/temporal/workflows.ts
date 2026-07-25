@@ -1166,6 +1166,13 @@ export async function changeWorkflow(
   // replay the old no-provenance-check branch. New histories enforce the
   // worker_bundle_impact + provenance + typed test-run requirement.
   const WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH = "worker-bundle-freshness-v1";
+  // Patch rationale: review-matrix unknown-row validation previously flagged rows
+  // for out-of-scope (verificationRequired: false) contract items as unknown.
+  // Current behavior treats those rows as informational and checks unknown rows
+  // against all contract IDs. Gate this behind a patch so pre-change acceptance
+  // histories replay the legacy strictness and avoid branching into new activity
+  // commands.
+  const REVIEW_MATRIX_OOS_ROW_PATCH = "review-matrix-oos-row-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -1225,6 +1232,9 @@ export async function changeWorkflow(
     const stateBackedAcceptanceProofActive =
       payload.gateId === "acceptance" &&
       wf.patched(STATE_BACKED_ACCEPTANCE_PROOF_PATCH);
+    const strictReviewMatrixUnknownRows =
+      payload.gateId === "acceptance" &&
+      wf.patched(REVIEW_MATRIX_OOS_ROW_PATCH);
     const capturedAcceptanceReadinessRevision = acceptanceReadinessFenceActive
       ? (state.acceptanceReadinessRevision ?? 0)
       : undefined;
@@ -1237,6 +1247,7 @@ export async function changeWorkflow(
       enforceWorkerBundleProvenance:
         payload.gateId === "release" &&
         wf.patched(WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH),
+      strictReviewMatrixUnknownRows,
     });
     if (!readiness.ready) {
       markGateStuckForBlockers(payload, readiness.blockers);

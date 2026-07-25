@@ -299,6 +299,36 @@ function reviewerReport(
   return report;
 }
 
+function taskReviewerReport(
+  overrides: Partial<ReviewerSubagentReport> = {},
+): ReviewerSubagentReport {
+  const report: ReviewerSubagentReport = {
+    schema_version: "1.0",
+    change_id: "change-1",
+    task_id: "tk-1",
+    attempt: 1,
+    agent: "adv-reviewer",
+    scope: { kind: "task", task_id: "tk-1" },
+    workdir_used: "/repo",
+    phase: "review",
+    verdict: "READY",
+    blocking_findings: [],
+    nonblocking_findings: [],
+    changes_made: [],
+    wisdom_candidates: [],
+    verification: {
+      tests_run: ["pnpm test"],
+      results: "pass",
+      evidence: "exit code 0",
+    },
+    scope_drift: null,
+    risks: [],
+    required_main_agent_actions: [],
+    ...overrides,
+  };
+  return report;
+}
+
 function scannerBundleReport(
   overrides: Partial<ScannerBundleSubagentReport> = {},
 ): ScannerBundleSubagentReport {
@@ -1463,6 +1493,73 @@ describe("subagentReportTools", () => {
     );
     expect(mocks.fireSignalAndRefresh.mock.calls[0][4]).not.toHaveProperty(
       "taskId",
+    );
+  });
+
+  test("rq-reviewerEvidenceAuthority01: review-policy task suppresses verification_missing for adv-reviewer reports", async () => {
+    const store = storeFor(
+      change({
+        tasks: [
+          {
+            id: "tk-1",
+            title: "Task one",
+            status: "in_progress",
+            priority: 1,
+            created_at: "2026-05-23T00:00:00.000Z",
+            evidence_policy: "review",
+          },
+        ],
+      }),
+    );
+    const report = taskReviewerReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.consumerResults.verification.warnings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "verification_missing" }),
+      ]),
+    );
+  });
+
+  test("rq-reviewerEvidenceAuthority01: test-policy task preserves verification_missing for adv-reviewer reports", async () => {
+    const store = storeFor(
+      change({
+        tasks: [
+          {
+            id: "tk-1",
+            title: "Task one",
+            status: "in_progress",
+            priority: 1,
+            created_at: "2026-05-23T00:00:00.000Z",
+            evidence_policy: "test",
+          },
+        ],
+      }),
+    );
+    const report = taskReviewerReport();
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(output.consumerResults.verification.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "verification_missing",
+          message: expect.stringContaining("pnpm test"),
+        }),
+      ]),
     );
   });
 
