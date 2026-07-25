@@ -690,4 +690,59 @@ describe("release gate trunk-merge enforcement", () => {
       }),
     );
   });
+
+  test("fails closed when a required ops resolution cannot be reconciled", async () => {
+    mocks.verifyChangeBranchReachable.mockReturnValueOnce({
+      reachable: true,
+      unmergedCommits: [],
+    });
+    mocks.verifyDefaultBranchPushed.mockReturnValueOnce({ pushed: true });
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "origin_default",
+    });
+    mocks.fireSignalAndRefresh.mockImplementation(
+      async (_handle, _store, _changeId, signal) => {
+        if (signal === opsFollowupResolutionUpsertedSignal) {
+          throw new Error("Temporal service unavailable");
+        }
+      },
+    );
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "complete",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
+          resolution: {
+            status: "complete",
+            source: "child_profile",
+            resolution_reason: "verified",
+            verified_at: "2026-01-01T01:00:00Z",
+            completion_signal: "deploy finished",
+            health_verification: "smoke passed",
+            rollback_or_cleanup_disposition: "no rollback needed",
+          },
+        },
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({ status: "complete" }),
+        ),
+      },
+    });
+
+    const result = await gateTools.adv_gate_complete.execute(
+      { changeId: "example", gateId: "release", completedBy: "user:signoff" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.code).toBe("OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE");
+    expect(parsed.error).toContain("Cannot verify required ops follow-up");
+  });
 });

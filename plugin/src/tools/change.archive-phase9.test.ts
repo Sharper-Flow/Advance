@@ -496,6 +496,53 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
   });
 
+  test("fails closed when required ops reconciliation cannot replace stale proof", async () => {
+    mocks.fireSignalAndRefresh.mockImplementation(
+      async (_handle, _store, _changeId, signal) => {
+        if (signal === opsFollowupResolutionUpsertedSignal) {
+          throw new Error("Temporal service unavailable");
+        }
+      },
+    );
+    const store = createMockStore({
+      ops_followup_links: [
+        {
+          id: "ofl-1",
+          changeId: "child-1",
+          relationship: "blocks",
+          status: "complete",
+          required_handoff: false,
+          linked_at: "2026-01-01T00:00:00Z",
+          resolution: {
+            status: "complete",
+            source: "child_profile",
+            resolution_reason: "verified",
+            verified_at: "2026-01-01T01:00:00Z",
+            completion_signal: "deploy finished",
+            health_verification: "smoke passed",
+            rollback_or_cleanup_disposition: "no rollback needed",
+          },
+        },
+      ],
+      children: {
+        "child-1": makeChildChange(
+          "child-1",
+          makeOpsFollowupProfile({ status: "complete" }),
+        ),
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE");
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
+  });
+
   test("blocks archive when required handoff ops follow-up remains unresolved after reconciliation", async () => {
     const store = createMockStore({
       ops_followup_links: [

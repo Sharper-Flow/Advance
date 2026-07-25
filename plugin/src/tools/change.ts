@@ -937,7 +937,10 @@ import {
   getOpenOpsFollowupObligations,
   makeOpsResolutionBlocker,
 } from "../temporal/gate-readiness";
-import { reconcileOpsFollowupLinks } from "./ops-followup-reconciliation";
+import {
+  isRequiredOpsFollowupLink,
+  reconcileOpsFollowupLinks,
+} from "./ops-followup-reconciliation";
 import {
   detectArchiveMode,
   deleteChangeBranch,
@@ -3577,6 +3580,18 @@ export const changeTools = {
         // completed/poisoned workflow disk projection (signaling is unavailable)
         // or during dryRun (no writes). The blocker check still runs on the
         // current projection so unresolved required links remain fail-closed.
+        const hasRequiredOpsFollowup = change.ops_followup_links?.some(
+          isRequiredOpsFollowupLink,
+        );
+        if (readFromDisk && hasRequiredOpsFollowup) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Cannot archive: required ops follow-up obligations cannot be reconciled from a recovery disk projection",
+            changeId,
+            code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
+          });
+        }
         if (!readFromDisk && !dryRun) {
           try {
             const reconciled = await reconcileOpsFollowupLinks({
@@ -3588,6 +3603,15 @@ export const changeTools = {
             logger.warn(
               `Archive ops follow-up reconciliation failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
             );
+            if (hasRequiredOpsFollowup) {
+              return formatToolOutput({
+                success: false,
+                error:
+                  "Cannot archive: required ops follow-up obligations could not be reconciled",
+                changeId,
+                code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
+              });
+            }
           }
         }
         const requiredOpsBlockers = (change.ops_followup_links ?? []).flatMap(

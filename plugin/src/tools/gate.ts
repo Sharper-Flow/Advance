@@ -78,7 +78,10 @@ import {
   evaluateGateReadiness,
   renderAcceptanceProjection,
 } from "../temporal/gate-readiness";
-import { reconcileOpsFollowupLinks } from "./ops-followup-reconciliation";
+import {
+  isRequiredOpsFollowupLink,
+  reconcileOpsFollowupLinks,
+} from "./ops-followup-reconciliation";
 import {
   inspectArtifactActivity,
   writeArtifactActivity,
@@ -798,7 +801,28 @@ async function completeGateViaRecovery(input: {
         logger.warn(
           `Recovery release gate ops follow-up reconciliation failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
         );
+        if (
+          recoveryChange.ops_followup_links?.some(isRequiredOpsFollowupLink)
+        ) {
+          return formatToolOutput({
+            error:
+              "Cannot verify required ops follow-up obligations because reconciliation is unavailable",
+            code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
+            changeId: input.changeId,
+            gateId: input.gateId,
+          });
+        }
       }
+    } else if (
+      recoveryChange.ops_followup_links?.some(isRequiredOpsFollowupLink)
+    ) {
+      return formatToolOutput({
+        error:
+          "Cannot verify required ops follow-up obligations from a recovery disk projection",
+        code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
+        changeId: input.changeId,
+        gateId: input.gateId,
+      });
     }
     const blocker = getReleaseFinalizationBlocker({
       store: input.store,
@@ -1834,6 +1858,15 @@ export const gateTools = {
             logger.warn(
               `Release gate ops follow-up reconciliation failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
             );
+            if (change.ops_followup_links?.some(isRequiredOpsFollowupLink)) {
+              return formatToolOutput({
+                error:
+                  "Cannot verify required ops follow-up obligations because reconciliation is unavailable",
+                code: "OPS_FOLLOWUP_RECONCILIATION_UNAVAILABLE",
+                changeId,
+                gateId,
+              });
+            }
           }
           const blocker = getReleaseFinalizationBlocker({
             store: activeStore,
