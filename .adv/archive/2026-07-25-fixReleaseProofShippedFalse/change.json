@@ -1,0 +1,1552 @@
+{
+  "id": "fixReleaseProofShippedFalse",
+  "title": "Fix release-proof shipped false-negative",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-25T07:35:58.397Z",
+  "tasks": [
+    {
+      "id": "tk-8adfb8f14fc8",
+      "title": "Spec: strengthen `rq-releaseProjectionDurability01` + asset test",
+      "type": "code",
+      "section": "Foundation / Spec",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-25T07:42:25.184Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec-law artifact; validated by schema validity + scenario well-formedness + non-weakening of the strict guard. Non-code (rq-prepNonCodeEvidence01).",
+        "review_evidence_ref": {
+          "report_key": "fixReleaseProofShippedFalse|tk-8adfb8f14fc8|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReleaseProofShippedFalse",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+          "task_id": "tk-8adfb8f14fc8",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8adfb8f14fc8"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "plugin/src/adv-autonomy-quality-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "asset-test-rq-releaseProjectionDurability01",
+              "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "34 tests pass, including strengthened release-projection-durability scenario assertions"
+            },
+            {
+              "test_run_id": "static-check-pnpm-run-check",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all pass"
+            },
+            {
+              "test_run_id": "related-spec-citation-tests",
+              "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/command-requirement-citations.test.ts src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "39 tests pass across spec-citation invariant, command citations, and autonomy assets"
+            },
+            {
+              "test_run_id": "related-archive-gate-unit",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "20 tests pass; no implementation regressions from spec-only change"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added two scenarios (AC1 shipped acceptance, AC2 non-shipped strict-guard affirmation) to rq-releaseProjectionDurability01",
+              "why": "The prompt's preserve/affirm clause and the asset-test enforcement goal both require the non-shipped strict guard to be explicitly present as a scenario with its own warrant, not merely retained implicitly"
+            },
+            {
+              "what": "Bumped advance-workflow spec version to 1.38.0 and updated updated_at",
+              "why": "Spec-law convention requires version/date to reflect additive requirement changes"
+            },
+            {
+              "what": "Replaced the regex-only asset test with parsed spec assertions",
+              "why": "Regex could not enforce the new scenario IDs, warrant annotations, or strict-guard wording; structured assertions cover the strengthened shape and prevent silent weakening"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Ran related archive-gate unit tests and spec-citation tests; no same-pattern issues found. Existing code tests (shipped + disk-done, forge-guard) already cover the implementation; this task is spec-law only.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "rq-releaseProjectionDurability01 now has AC1/AC2 warrant scenarios: .4 (shipped git-authoritative acceptance when both store/disk projections lag) and .5 (non-shipped strict guard preserved). The asset test enforces scenario IDs, titles, warrants, and key wording. Static checks (pnpm run check) and targeted tests pass. This is a static_check deliverable; reviewer-owned sign-off is required before marking the task done.",
+            "suggested_next_action": "Schedule adv-reviewer to sign off on the static_check evidence and close the task"
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-8adfb8f14fc8_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: asset-test-rq-releaseProjectionDurability01"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: static-check-pnpm-run-check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: related-spec-citation-tests"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: related-archive-gate-unit"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReleaseProofShippedFalse",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+          "task_id": "tk-8adfb8f14fc8",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8adfb8f14fc8"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "plugin/src/adv-autonomy-quality-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "run_id": "tr_ms0hvfx5_d47929fd",
+              "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "34 tests pass, including strengthened release-projection-durability scenario assertions"
+            },
+            {
+              "run_id": "tr_ms0hxmab_0ede1a75",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all pass"
+            },
+            {
+              "run_id": "tr_ms0hxzfa_c6f7422b",
+              "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/command-requirement-citations.test.ts src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "39 tests pass across spec-citation invariant, command citations, and autonomy assets"
+            },
+            {
+              "run_id": "tr_ms0hy6rv_aa2ea2d5",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "20 tests pass; no implementation regressions from spec-only change"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added two scenarios (AC1 shipped acceptance, AC2 non-shipped strict-guard affirmation) to rq-releaseProjectionDurability01",
+              "why": "The prompt's preserve/affirm clause and the asset-test enforcement goal both require the non-shipped strict guard to be explicitly present as a scenario with its own warrant, not merely retained implicitly"
+            },
+            {
+              "what": "Bumped advance-workflow spec version to 1.38.0 and updated updated_at",
+              "why": "Spec-law convention requires version/date to reflect additive requirement changes"
+            },
+            {
+              "what": "Replaced the regex-only asset test with parsed spec assertions",
+              "why": "Regex could not enforce the new scenario IDs, warrant annotations, or strict-guard wording; structured assertions cover the strengthened shape and prevent silent weakening"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Ran related archive-gate unit tests and spec-citation tests; no same-pattern issues found. Existing code tests (shipped + disk-done, forge-guard) already cover the implementation; this task is spec-law only.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "rq-releaseProjectionDurability01 now has AC1/AC2 warrant scenarios: .4 (shipped git-authoritative acceptance when both store/disk projections lag) and .5 (non-shipped strict guard preserved). The asset test enforces scenario IDs, titles, warrants, and key wording. Durable evidence is recorded for the asset test, static check, spec-citation tests, and archive-gate unit tests. This is a static_check deliverable; reviewer-owned sign-off is still required before marking the task done.",
+            "suggested_next_action": "Schedule adv-reviewer to sign off on the static_check evidence and close the task"
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-8adfb8f14fc8_2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          }
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReleaseProofShippedFalse",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+          "task_id": "tk-8adfb8f14fc8",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8adfb8f14fc8"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Exit 0. Vitest: 2 files passed, 36 tests passed in 433ms. The asset test parses the JSON spec, asserts the requirement identity/tags and exact five-scenario sequence, then checks scenario .4/.5 Given/When/Then/warrant anchors."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Spec strengthen (static_check): added rq-releaseProjectionDurability01.4 (shipped-authoritative when both projections lag, warrant AC1) + .5 (non-shipped strict guard, warrant AC2); spec 1.37→1.38; asset test strengthened (parsed assertions). Additive, non-weakening. adv-reviewer READY (0 findings, report bound to tk-8adfb8f14fc8). Verify tr_ms0hzmcf_f7bf2424 (36 passed); pnpm run check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "checkpointSha": "2f099bc5dd900809b4aa3e993636390683c363f2",
+      "completedAt": "2026-07-25T15:04:25.432Z",
+      "completed_at": "2026-07-25T15:04:25.432Z"
+    },
+    {
+      "id": "tk-44703ae141e1",
+      "title": "Core fix: shipped-authoritative durable release-gate proof",
+      "type": "code",
+      "section": "Core Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-25T07:42:53.192Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-8adfb8f14fc8"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Core gating logic; behavior-critical. Red->green tests for shipped-accept + guard-preservation + evidence-capture.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReleaseProofShippedFalse",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+          "task_id": "tk-44703ae141e1",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-44703ae141e1"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/change/release-proof.ts",
+            "plugin/src/tools/change.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms0iqoc2_6d234cbb",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts (pre-correction)",
+              "exit_code": 1,
+              "summary": "1 failed (#305 expected shipped-finalization but code returned store due to missing route on finalization) — confirmed bug"
+            },
+            {
+              "test_run_id": "tr_ms0iwxlk_8b97f927",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "24/24 tests pass including #305 store-done, AC1/AC2/AC3 shipped rescue, existing disk/evidence tests"
+            },
+            {
+              "test_run_id": "tr_ms0itiio_c442bba7",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript clean"
+            },
+            {
+              "test_run_id": "tr_ms0iwohm_5c82db52",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, manifest check, test isolation, lockfile, lint, format all green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Restructured verifyReleaseGateDurableForArchive to check store-done FIRST, then shipped rescue only when store not done",
+              "why": "Preserves existing store-done behavior (source=store) and fixes the always-shipped false-negative by limiting rescue to lagging projections"
+            },
+            {
+              "what": "Expanded PR route combo to include pr_auto_merge, pr_manual, and merge_queue",
+              "why": "GitFinalizeOutcome ReleaseFinalizationRouteName includes all three PR workflow routes; shipped paths on each set pushStatus=pushed and mergeCommitSha is populated"
+            },
+            {
+              "what": "Reverted #305 expectation to source=store and also fixed the adjacent shippedBypass store-done test to source=store",
+              "why": "Both are store-done paths; the prior pass incorrectly asserted shipped-finalization"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "verifyReleaseGateDurableForArchive now returns source=store for done store gates unchanged, and only uses source=shipped-finalization when the store gate is NOT done and the finalization is structurally shipped (mergeCommitSha + valid route/push combo). Route combo confirmed against git-finalize.ts: no_remote+skipped, or (direct/pr_auto_merge/pr_manual/merge_queue)+pushed. All 24 archive-gate tests, typecheck, and full pnpm check are green. No commits or task checkpoints made.",
+            "suggested_next_action": "Review the uncommitted diff in the worktree and proceed to orchestrator validation / next task"
+          }
+        }
+      ],
+      "verification": "Core fix (rescue semantics): ReleaseGateProof type (release-proof.ts); verifyReleaseGateDurableForArchive widened to full GitFinalizeOutcome; shipped rescue fires ONLY when releaseGate.status !== \"done\" (store-done preserved → source \"store\"); valid route/push combo (no_remote+skipped | direct|pr_auto_merge|pr_manual|merge_queue +pushed) + mergeCommitSha required; non-shipped guard preserved. Fixed #305 + shippedBypass tests (source \"store\"). AC1/AC2/AC3 pass. TDD red tr_ms0iqoc2_6d234cbb → green tr_ms0iwxlk_8b97f927 (24/24); typecheck tr_ms0itiio clean; pnpm run check tr_ms0iwohm clean; orchestrator verify tr_ms0iydyr_32840608 (29 passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/release-proof.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/release-proof.ts"
+      ],
+      "checkpointSha": "58d34b65e1461258d77a85f480e67b1efdc8d5e5",
+      "completedAt": "2026-07-25T15:29:23.907Z",
+      "completed_at": "2026-07-25T15:29:23.907Z"
+    },
+    {
+      "id": "tk-a99c130dd6b9",
+      "title": "Verification: AC matrix + route/KD5 guards + regression",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-25T07:43:07.935Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-44703ae141e1"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC4",
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Integration/regression sweep across T1-T2 + route/KD5 matrix; separate_verification per rq-prep-synth1.2.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReleaseProofShippedFalse",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+          "task_id": "tk-a99c130dd6b9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a99c130dd6b9"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms0jcpl9_d698f39d",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "118 tests passed across 3 files"
+            },
+            {
+              "test_run_id": "tr_ms0jcf2x_e4cf0c1b",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, manifests:check, test-isolation, lockfile, lint, format:check all clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced stale finalizationStatus: string inputs in change.archive-phase9.test.ts with typed GitFinalizeOutcome objects",
+              "why": "T2 changed verifyReleaseGateDurableForArchive to derive shipped from finalization.status; the old string property no longer affected behavior and caused AC1/AC2/AC4 assertions to fail. Using the real finalization shape preserves the strict-guard test coverage."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated all 9 occurrences of finalizationStatus in change.archive-phase9.test.ts; no remaining stale usages in the two touched files.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Cross-cutting shipped-proof matrix (AC4 regression, KD5 guard, full route matrix, blocked/pending_merge guard preservation) added to archive-gate.test.ts. Stale test fixture in change.archive-phase9.test.ts fixed to use the new GitFinalizeOutcome shape. Targeted run (118 passed) and pnpm run check are green. No product-code defect in T1/T2; only the stale fixture.",
+            "suggested_next_action": "Review the diff and proceed to any matching-cycle designer validation or archive gate completion."
+          }
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixReleaseProofShippedFalse",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+          "task_id": "tk-a99c130dd6b9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-a99c130dd6b9"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [
+            {
+              "file": "plugin/src/tools/change.archive-phase9.test.ts",
+              "summary": "Added AC1 end-to-end archive regression: shipped direct finalization with a persistently pending store projection and no disk completion archives successfully, returns a done release gate, carries merge SHA/route evidence, and saves archived state.",
+              "verification": "`bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts` — 85 tests passed; `pnpm run check` passed."
+            }
+          ],
+          "wisdom_candidates": [
+            {
+              "type": "pattern",
+              "content": "Projection-lag rescue tests must exercise the archive caller, not only the durable-proof helper: assert archived persistence plus canonical done release-gate evidence under a persistently pending store projection."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+              "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+              "pnpm run check"
+            ],
+            "results": "pass",
+            "evidence": "Focused Phase 9 test passed (49 tests). Final focused suite passed (85 tests). `pnpm run check` passed schemas, TypeScript, generated manifests, isolation/lockfile checks, ESLint, and Prettier."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+            }
+          ]
+        }
+      ],
+      "verification": "Verification matrix (separate_verification): AC4 regression (shipped+disk-done, shipped+evidence-match, un-shipped strict — sources preserved); AC5 (spec strengthened, asset test passes); KD5 guard (shipped missing mergeCommitSha → reject); 5-route matrix (no_remote/direct/pr_auto_merge/pr_manual/merge_queue); blocked/pending_merge never-shipped guard. Fixed 9 stale fixtures in change.archive-phase9.test.ts (T2 signature change). No T1/T2 defects. Verify tr_ms0jela8_bc8ba617 (123 passed); pnpm run check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "checkpointSha": "347417c684aa2f31df297eb9a6af629516b9e3af",
+      "completedAt": "2026-07-25T15:42:00.910Z",
+      "completed_at": "2026-07-25T15:42:00.910Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseProofShippedFalse",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+      "task_id": "tk-8adfb8f14fc8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8adfb8f14fc8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "asset-test-rq-releaseProjectionDurability01",
+          "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "34 tests pass, including strengthened release-projection-durability scenario assertions"
+        },
+        {
+          "test_run_id": "static-check-pnpm-run-check",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all pass"
+        },
+        {
+          "test_run_id": "related-spec-citation-tests",
+          "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/command-requirement-citations.test.ts src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "39 tests pass across spec-citation invariant, command citations, and autonomy assets"
+        },
+        {
+          "test_run_id": "related-archive-gate-unit",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "20 tests pass; no implementation regressions from spec-only change"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added two scenarios (AC1 shipped acceptance, AC2 non-shipped strict-guard affirmation) to rq-releaseProjectionDurability01",
+          "why": "The prompt's preserve/affirm clause and the asset-test enforcement goal both require the non-shipped strict guard to be explicitly present as a scenario with its own warrant, not merely retained implicitly"
+        },
+        {
+          "what": "Bumped advance-workflow spec version to 1.38.0 and updated updated_at",
+          "why": "Spec-law convention requires version/date to reflect additive requirement changes"
+        },
+        {
+          "what": "Replaced the regex-only asset test with parsed spec assertions",
+          "why": "Regex could not enforce the new scenario IDs, warrant annotations, or strict-guard wording; structured assertions cover the strengthened shape and prevent silent weakening"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Ran related archive-gate unit tests and spec-citation tests; no same-pattern issues found. Existing code tests (shipped + disk-done, forge-guard) already cover the implementation; this task is spec-law only.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "rq-releaseProjectionDurability01 now has AC1/AC2 warrant scenarios: .4 (shipped git-authoritative acceptance when both store/disk projections lag) and .5 (non-shipped strict guard preserved). The asset test enforces scenario IDs, titles, warrants, and key wording. Static checks (pnpm run check) and targeted tests pass. This is a static_check deliverable; reviewer-owned sign-off is required before marking the task done.",
+        "suggested_next_action": "Schedule adv-reviewer to sign off on the static_check evidence and close the task"
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-8adfb8f14fc8_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: asset-test-rq-releaseProjectionDurability01"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: static-check-pnpm-run-check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: related-spec-citation-tests"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: related-archive-gate-unit"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseProofShippedFalse",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+      "task_id": "tk-8adfb8f14fc8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8adfb8f14fc8"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "tr_ms0hvfx5_d47929fd",
+          "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "34 tests pass, including strengthened release-projection-durability scenario assertions"
+        },
+        {
+          "run_id": "tr_ms0hxmab_0ede1a75",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all pass"
+        },
+        {
+          "run_id": "tr_ms0hxzfa_c6f7422b",
+          "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/command-requirement-citations.test.ts src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "39 tests pass across spec-citation invariant, command citations, and autonomy assets"
+        },
+        {
+          "run_id": "tr_ms0hy6rv_aa2ea2d5",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "20 tests pass; no implementation regressions from spec-only change"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added two scenarios (AC1 shipped acceptance, AC2 non-shipped strict-guard affirmation) to rq-releaseProjectionDurability01",
+          "why": "The prompt's preserve/affirm clause and the asset-test enforcement goal both require the non-shipped strict guard to be explicitly present as a scenario with its own warrant, not merely retained implicitly"
+        },
+        {
+          "what": "Bumped advance-workflow spec version to 1.38.0 and updated updated_at",
+          "why": "Spec-law convention requires version/date to reflect additive requirement changes"
+        },
+        {
+          "what": "Replaced the regex-only asset test with parsed spec assertions",
+          "why": "Regex could not enforce the new scenario IDs, warrant annotations, or strict-guard wording; structured assertions cover the strengthened shape and prevent silent weakening"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Ran related archive-gate unit tests and spec-citation tests; no same-pattern issues found. Existing code tests (shipped + disk-done, forge-guard) already cover the implementation; this task is spec-law only.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "rq-releaseProjectionDurability01 now has AC1/AC2 warrant scenarios: .4 (shipped git-authoritative acceptance when both store/disk projections lag) and .5 (non-shipped strict guard preserved). The asset test enforces scenario IDs, titles, warrants, and key wording. Durable evidence is recorded for the asset test, static check, spec-citation tests, and archive-gate unit tests. This is a static_check deliverable; reviewer-owned sign-off is still required before marking the task done.",
+        "suggested_next_action": "Schedule adv-reviewer to sign off on the static_check evidence and close the task"
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-8adfb8f14fc8_2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseProofShippedFalse",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+      "task_id": "tk-8adfb8f14fc8",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8adfb8f14fc8"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Exit 0. Vitest: 2 files passed, 36 tests passed in 433ms. The asset test parses the JSON spec, asserts the requirement identity/tags and exact five-scenario sequence, then checks scenario .4/.5 Given/When/Then/warrant anchors."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseProofShippedFalse",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+      "task_id": "tk-44703ae141e1",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-44703ae141e1"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/release-proof.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms0iqoc2_6d234cbb",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts (pre-correction)",
+          "exit_code": 1,
+          "summary": "1 failed (#305 expected shipped-finalization but code returned store due to missing route on finalization) — confirmed bug"
+        },
+        {
+          "test_run_id": "tr_ms0iwxlk_8b97f927",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "24/24 tests pass including #305 store-done, AC1/AC2/AC3 shipped rescue, existing disk/evidence tests"
+        },
+        {
+          "test_run_id": "tr_ms0itiio_c442bba7",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript clean"
+        },
+        {
+          "test_run_id": "tr_ms0iwohm_5c82db52",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, manifest check, test isolation, lockfile, lint, format all green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Restructured verifyReleaseGateDurableForArchive to check store-done FIRST, then shipped rescue only when store not done",
+          "why": "Preserves existing store-done behavior (source=store) and fixes the always-shipped false-negative by limiting rescue to lagging projections"
+        },
+        {
+          "what": "Expanded PR route combo to include pr_auto_merge, pr_manual, and merge_queue",
+          "why": "GitFinalizeOutcome ReleaseFinalizationRouteName includes all three PR workflow routes; shipped paths on each set pushStatus=pushed and mergeCommitSha is populated"
+        },
+        {
+          "what": "Reverted #305 expectation to source=store and also fixed the adjacent shippedBypass store-done test to source=store",
+          "why": "Both are store-done paths; the prior pass incorrectly asserted shipped-finalization"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "verifyReleaseGateDurableForArchive now returns source=store for done store gates unchanged, and only uses source=shipped-finalization when the store gate is NOT done and the finalization is structurally shipped (mergeCommitSha + valid route/push combo). Route combo confirmed against git-finalize.ts: no_remote+skipped, or (direct/pr_auto_merge/pr_manual/merge_queue)+pushed. All 24 archive-gate tests, typecheck, and full pnpm check are green. No commits or task checkpoints made.",
+        "suggested_next_action": "Review the uncommitted diff in the worktree and proceed to orchestrator validation / next task"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseProofShippedFalse",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+      "task_id": "tk-a99c130dd6b9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a99c130dd6b9"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms0jcpl9_d698f39d",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "118 tests passed across 3 files"
+        },
+        {
+          "test_run_id": "tr_ms0jcf2x_e4cf0c1b",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, manifests:check, test-isolation, lockfile, lint, format:check all clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced stale finalizationStatus: string inputs in change.archive-phase9.test.ts with typed GitFinalizeOutcome objects",
+          "why": "T2 changed verifyReleaseGateDurableForArchive to derive shipped from finalization.status; the old string property no longer affected behavior and caused AC1/AC2/AC4 assertions to fail. Using the real finalization shape preserves the strict-guard test coverage."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated all 9 occurrences of finalizationStatus in change.archive-phase9.test.ts; no remaining stale usages in the two touched files.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Cross-cutting shipped-proof matrix (AC4 regression, KD5 guard, full route matrix, blocked/pending_merge guard preservation) added to archive-gate.test.ts. Stale test fixture in change.archive-phase9.test.ts fixed to use the new GitFinalizeOutcome shape. Targeted run (118 passed) and pnpm run check are green. No product-code defect in T1/T2; only the stale fixture.",
+        "suggested_next_action": "Review the diff and proceed to any matching-cycle designer validation or archive gate completion."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixReleaseProofShippedFalse",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixReleaseProofShippedFalse",
+      "task_id": "tk-a99c130dd6b9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-a99c130dd6b9"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.archive-phase9.test.ts",
+          "summary": "Added AC1 end-to-end archive regression: shipped direct finalization with a persistently pending store projection and no disk completion archives successfully, returns a done release gate, carries merge SHA/route evidence, and saves archived state.",
+          "verification": "`bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts` — 85 tests passed; `pnpm run check` passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Projection-lag rescue tests must exercise the archive caller, not only the durable-proof helper: assert archived persistence plus canonical done release-gate evidence under a persistently pending store projection."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Focused Phase 9 test passed (49 tests). Final focused suite passed (85 tests). `pnpm run check` passed schemas, TypeScript, generated manifests, isolation/lockfile checks, ESLint, and Prettier."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-8adfb8f14fc8": [
+      {
+        "runId": "tr_ms0hvfx5_d47929fd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 1387.5207820013165,
+        "recordedAt": "2026-07-25T14:58:55.999Z"
+      },
+      {
+        "runId": "tr_ms0hw7ds_4db54f09",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm run check",
+        "durationMs": 30213.266334000975,
+        "recordedAt": "2026-07-25T14:59:31.619Z"
+      },
+      {
+        "runId": "tr_ms0hxmab_0ede1a75",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 57979.87935800105,
+        "recordedAt": "2026-07-25T15:00:37.596Z"
+      },
+      {
+        "runId": "tr_ms0hxzfa_c6f7422b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/__tests__/spec-citation-invariant.test.ts src/command-requirement-citations.test.ts src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 1850.6064920015633,
+        "recordedAt": "2026-07-25T15:00:54.632Z"
+      },
+      {
+        "runId": "tr_ms0hy6rv_aa2ea2d5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+        "durationMs": 4679.882960997522,
+        "recordedAt": "2026-07-25T15:01:04.178Z"
+      },
+      {
+        "runId": "tr_ms0hzmcf_f7bf2424",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 1629.2282090000808,
+        "recordedAt": "2026-07-25T15:02:11.000Z"
+      }
+    ],
+    "tk-44703ae141e1": [
+      {
+        "runId": "tr_ms0i7qmv_31aa3bc1",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 4118.618941999972,
+        "recordedAt": "2026-07-25T15:08:29.773Z"
+      },
+      {
+        "runId": "tr_ms0ie4pr_725461fa",
+        "phase": "red",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run typecheck",
+        "durationMs": 7588.4421559982,
+        "recordedAt": "2026-07-25T15:13:27.944Z"
+      },
+      {
+        "runId": "tr_ms0iewgs_550af8af",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 7983.659716997296,
+        "recordedAt": "2026-07-25T15:14:03.908Z"
+      },
+      {
+        "runId": "tr_ms0if68e_b0fe753b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 3681.871882997453,
+        "recordedAt": "2026-07-25T15:14:16.557Z"
+      },
+      {
+        "runId": "tr_ms0ih2ia_5fbbb35a",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 1218.2270320020616,
+        "recordedAt": "2026-07-25T15:15:45.044Z"
+      },
+      {
+        "runId": "tr_ms0ihrx3_8f90e437",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 3757.8928189985454,
+        "recordedAt": "2026-07-25T15:16:17.987Z"
+      },
+      {
+        "runId": "tr_ms0ij4t8_e99d93a4",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 3633.5656129978597,
+        "recordedAt": "2026-07-25T15:17:21.337Z"
+      },
+      {
+        "runId": "tr_ms0ik5la_25df836c",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 3589.051819000393,
+        "recordedAt": "2026-07-25T15:18:09.004Z"
+      },
+      {
+        "runId": "tr_ms0iqb4c_9c0f1cd3",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+        "durationMs": 2.876775000244379,
+        "recordedAt": "2026-07-25T15:22:56.133Z"
+      },
+      {
+        "runId": "tr_ms0iqoc2_6d234cbb",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+        "durationMs": 4030.1722359992564,
+        "recordedAt": "2026-07-25T15:23:13.245Z"
+      },
+      {
+        "runId": "tr_ms0it4ug_d931fbdd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+        "durationMs": 5947.331732999533,
+        "recordedAt": "2026-07-25T15:25:07.982Z"
+      },
+      {
+        "runId": "tr_ms0itiio_c442bba7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 10894.238057997078,
+        "recordedAt": "2026-07-25T15:25:25.770Z"
+      },
+      {
+        "runId": "tr_ms0iuwpr_34629040",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 58795.741170000285,
+        "recordedAt": "2026-07-25T15:26:30.795Z"
+      },
+      {
+        "runId": "tr_ms0iwohm_5c82db52",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 50199.777228001505,
+        "recordedAt": "2026-07-25T15:27:53.369Z"
+      },
+      {
+        "runId": "tr_ms0iwxlk_8b97f927",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts",
+        "durationMs": 4082.1490299999714,
+        "recordedAt": "2026-07-25T15:28:05.214Z"
+      },
+      {
+        "runId": "tr_ms0iydyr_32840608",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change/archive-gate.test.ts src/archive/delta-idempotency.test.ts",
+        "durationMs": 3981.8917069993913,
+        "recordedAt": "2026-07-25T15:29:13.040Z"
+      }
+    ],
+    "tk-a99c130dd6b9": [
+      {
+        "runId": "tr_ms0j35oj_f28fc114",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 4316.6838239990175,
+        "recordedAt": "2026-07-25T15:32:55.587Z"
+      },
+      {
+        "runId": "tr_ms0j6yvw_6739705d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 4427.700192000717,
+        "recordedAt": "2026-07-25T15:35:53.403Z"
+      },
+      {
+        "runId": "tr_ms0j9rxd_03014f0b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 4787.79061999917,
+        "recordedAt": "2026-07-25T15:38:04.351Z"
+      },
+      {
+        "runId": "tr_ms0jayk7_fe47a927",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 48774.20068500191,
+        "recordedAt": "2026-07-25T15:38:59.605Z"
+      },
+      {
+        "runId": "tr_ms0jcf2x_e4cf0c1b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 54728.35975300148,
+        "recordedAt": "2026-07-25T15:40:07.691Z"
+      },
+      {
+        "runId": "tr_ms0jcpl9_d698f39d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/adv-autonomy-quality-assets.test.ts",
+        "durationMs": 5351.000723000616,
+        "recordedAt": "2026-07-25T15:40:21.302Z"
+      },
+      {
+        "runId": "tr_ms0jela8_bc8ba617",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/adv-autonomy-quality-assets.test.ts src/archive/delta-idempotency.test.ts",
+        "durationMs": 4906.117612998933,
+        "recordedAt": "2026-07-25T15:41:49.055Z"
+      },
+      {
+        "runId": "tr_ms0jg7wu_82c29845",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 52347.015654001385,
+        "recordedAt": "2026-07-25T15:43:05.018Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-25T07:38:15.652Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved proposal (Tier A \"approve\"). Defect-origin change with RCA in problem-statement.md. Direction: shipped-authoritative short-circuit in verifyReleaseGateDurableForArchive.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "non_whitespace_chars": 953,
+        "checked_at": "2026-07-25T07:35:58.495Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-25T07:41:32.649Z",
+      "completed_at": "2026-07-25T07:41:48.185Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted (14 items: AC1-5, C1-4, DONT1-3, OOS1-2). Agreement + RCA populated.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "non_whitespace_chars": 1833,
+        "checked_at": "2026-07-25T07:35:58.496Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-25T07:41:55.696Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher (NEEDS_WORK → adopted): KD1 un-forgeability confirmed (git-finalize.ts reachable-merge-only); KD2 placement confirmed; KD5 revised to typed ReleaseGateProof + widened GitFinalizeOutcome input (GateCompletion has no SHA/push/route fields). Revisions adopted faithfully.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "85c03b07333031f7a93822a8c39e5c830025405b482343c595afb8c80f0dca30",
+        "non_whitespace_chars": 4362,
+        "checked_at": "2026-07-25T07:35:58.497Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-25T14:49:08.713Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep approved. 3-task DAG (spec → core fix → verification); AC1-AC5 covered; design validator-revised."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-25T15:43:20.710Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 3 tasks done. T1 spec strengthen rq-releaseProjectionDurability01.4/.5 (reviewer READY); T2 core fix rescue-semantics shipped proof (ReleaseGateProof + GitFinalizeOutcome input + 5-route combo + mergeCommitSha guard); T3 verification matrix (AC4 regression, KD5 guard, route matrix, guard preservation). pnpm run check clean (tr_ms0jg7wu); 123 unit tests green. AC1-AC5 covered."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-25T15:50:43.631Z",
+      "completed_at": "2026-07-25T15:51:52.660Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted. Readiness confirmed via direct workflow query: matrix 12 rows/0 OOS/0 failing; executive summary contentHash af0ece73 + 3324-char doc; verification dispositions for tk-8adfb8f14fc8 + tk-a99c130dd6b9 present (fixed). Prior retries read stale Temporal state. adv-reviewer READY.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "af0ece7328d63e1ac9b51da6e32d19a5e4df3e009d315b66f5e2db5410ce5310",
+        "non_whitespace_chars": 2904,
+        "checked_at": "2026-07-25T07:35:58.499Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session 2026-07-25: addSessionRecoveryReadiness archive false-negative — first adv_change_archive attempt failed \"Store-backed durable release gate proof did not observe release done\" despite phase9 finalization.status=shipped (mergeCommitSha 05b73b40, pushStatus=pushed); retry reconciled (releaseGateAlreadyDone, _recoveryMutation). Recurred per backlog entry 7."
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+      "approvedAt": "2026-07-25T07:41:40.904Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** `adv_change_archive` with `finalizationStatus=\"shipped\"` + store release-gate `pending` + disk release-gate `pending` → archive **succeeds** (durable proof accepts via `shipped`), and the release gate is reconciled to `done`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** `adv_change_archive` with `finalizationStatus` ≠ `\"shipped\"` + release-gate `pending` → still **rejected** with the existing error (guard preserved).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** The `shipped`-accepted proof records/links the git reachability evidence (`mergeCommitSha`, `pushStatus`, route) in the proof result / release-gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Existing paths preserved: `shipped` + disk-gate-`done`; `shipped` + evidence-match; un-shipped strict evidence-match.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** `rq-releaseProjectionDurability01` semantics strengthened (not weakened); asset/citation test updated.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** `shipped` derived ONLY from `finalization.status === \"shipped\"` (structural, inside the verifier).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** No caller-trusted boolean / no new forgeable input.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Preserve the strict guard for non-`shipped` (evidence-match + recovery-audit unchanged).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** No regression of the existing shipped/disk/evidence-match tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** MUST NOT accept an un-shipped change under any lag scenario.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** MUST NOT remove the recovery-audit requirement for un-shipped disk fallbacks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** MUST NOT introduce a caller-supplied \"trust me\" flag.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Broad rework of gate-projection propagation speed (covered by the separate \"serialize concurrent disk-projection writes\" follow-up #3).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Worker-bundle freshness gating (follow-up #2).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-25T15:50:15.255Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-gate.test.ts AC1: shipped + store-pending + disk-pending -> rescue accept (source shipped-finalization), gate reconciled done. tr_ms0iwxlk."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "archive-gate.test.ts AC2: non-shipped (pending_merge/blocked) + pending -> rejected, strict guard preserved."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "accepted ReleaseGateProof carries mergeCommitSha/pushStatus/route; AC3 test."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "regression matrix: shipped+disk-done, shipped+evidence-match, un-shipped strict -> sources/behavior preserved (AC4 tests)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "rq-releaseProjectionDurability01.4/.5 added (spec 1.38); asset test strengthened + passes."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "shipped derived ONLY from finalization.status === 'shipped' inside verifier (archive-gate.ts L1042); no caller-trusted boolean."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "no caller-trusted boolean; full GitFinalizeOutcome passed, status derived structurally."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "non-shipped guard preserved (evidence-match + recovery-audit unchanged); KD3."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "no regression: 123 unit tests + pnpm run check clean; existing store/disk/evidence-match paths unchanged."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "un-shipped never accepted under lag (blocked/pending_merge guard tests)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "recovery-audit requirement for un-shipped disk fallbacks unchanged."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "no caller-supplied trust flag introduced."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** `adv_change_archive` with `finalizationStatus=\"shipped\"` + store release-gate `pending` + disk release-gate `pending` → archive **succeeds** (durable proof accepts via `shipped`), and the release gate is reconciled to `done`.",
+    "**AC2:** `adv_change_archive` with `finalizationStatus` ≠ `\"shipped\"` + release-gate `pending` → still **rejected** with the existing error (guard preserved).",
+    "**AC3:** The `shipped`-accepted proof records/links the git reachability evidence (`mergeCommitSha`, `pushStatus`, route) in the proof result / release-gate completion.",
+    "**AC4:** Existing paths preserved: `shipped` + disk-gate-`done`; `shipped` + evidence-match; un-shipped strict evidence-match.",
+    "**AC5:** `rq-releaseProjectionDurability01` semantics strengthened (not weakened); asset/citation test updated."
+  ],
+  "documents": {
+    "proposal": "# Fix release-proof shipped false-negative\n\n## Why\n\n<!-- What problem does this change solve? Why is it needed now? -->\n\n## What Changes\n\n<!-- Describe the specific modifications: new files, modified APIs, changed behavior -->\n\n## User Outcomes\n\n<!-- What user-perspective outcomes should this change deliver? Keep these implementation-free; discovery firms AC/SC. -->\n\n- [ ] User outcome 1\n- [ ] User outcome 2\n- [ ] Discovery will firm acceptance criteria and success criteria\n\n## Affected Code\n\n<!-- List files, modules, or subsystems that will be modified -->\n\n- `path/to/file.ts` — description of change\n- `path/to/other.ts` — description of change\n\n## Constraints\n\n<!-- Technical, time, or resource constraints that shape the solution -->\n\n## Impact\n\n<!-- Who/what is affected? Breaking changes? Migration needed? -->\n\n## Risks\n\n<!-- What could go wrong? Dependencies on external systems? -->\n\n## Validation Plan\n\n<!-- How will correctness be verified? TDD: write tests first (red → green → refactor) -->\n\n- Write failing tests for new behavior (red phase)\n- Implement to make tests pass (green phase)\n- Run full test suite to verify no regressions\n",
+    "problemStatement": "## Problem\n\n`adv_change_archive` false-negatives the durable release-gate proof: it fails with **\"Store-backed durable release gate proof did not observe release done\"** (`rq-releaseProjectionDurability01`) even when the change IS released — merged to the default branch + pushed, with `finalization.status === \"shipped\"`.\n\n## Root Cause Analysis (defect-origin, firsthand evidence)\n\n**Symptom (reproduced this session):** archiving `addSessionRecoveryReadiness` — phase9 git-finalization returned `status: \"shipped\"`, `mergeCommitSha: 05b73b40`, `pushStatus: \"pushed\"`, route `direct` — but the archive rejected with `Store-backed durable release gate proof did not observe release done; releaseGateStatus: pending`. A retry returned `releaseGateAlreadyDone: true, _recoveryMutation: true` (propagation had caught up).\n\n**Root cause (code):** `verifyReleaseGateDurableForArchive` (`plugin/src/tools/change/archive-gate.ts` ~L1014-1085) and its disk fallback `loadAuditedDiskReleaseGate` (~L983-1012) require the release **gate projection** (`gate.status === \"done\"`) even when `shipped` is true. `shipped` is derived **structurally** from `input.finalizationStatus === \"shipped\"`, which git-finalize sets **only** on confirmed default-branch reachability/merge (PR `pr_merged`, `no_remote` local merge, or direct merge+push) — un-forgeable without a real merge. The existing `shipped` reconciliation (L998, L1008) only applies **after** `gate.status === \"done\"`, so it never rescues a shipped change whose projection hasn't caught up.\n\n**Why both projections lag:** under heavy concurrent Temporal load, the `gateCompletedSignal` (release) propagation to the store-backed read (`store.gates.get`) AND the disk projection can both trail the git-verified merge. The proof then finds no \"done\" gate in either source and rejects — even though `shipped` is already authoritative.\n\n**Why it recurred (entry 7):** the prior `fixDurableProofFallback` added `shipped`-reconciliation but preserved the `gate.status === \"done\"` prerequisite, so it covers only \"store-lag + disk-done\" (test at archive-gate.test.ts ~L972). It does NOT cover \"shipped + both-projections-lagging\" — exactly the case that recurred.\n\n**Impact:** archive false-negatives under propagation lag, forcing manual retries; erodes trust in the unattended release gate; worst at exactly the moments it matters most (busy multi-session releases).\n\n## Direction\n\nWhen `finalizationStatus === \"shipped\"` (git-authoritative, un-forgeable default-branch reachability), accept the durable release-gate proof **without** requiring the store/disk gate projection to be `done`. The archive's own finalization already proved the release; the gate recording is reconciled by the archive's existing `_recoveryMutation` path. The strict evidence-match guard is fully preserved for every non-`shipped` case.",
+    "agreement": "## Objectives\n- **O1:** A `shipped` (git-verified merge/reachability) change archives successfully even when the release-gate projection (store-backed AND disk) lags `pending`.\n- **O2:** Non-`shipped` changes remain strictly guarded — no weakening of the evidence-match / recovery-audit requirement.\n- **O3:** No forgeable path: `shipped` continues to be derived only from `finalization.status === \"shipped\"` (no caller-trusted boolean).\n\n## Acceptance Criteria\n- **AC1:** `adv_change_archive` with `finalizationStatus=\"shipped\"` + store release-gate `pending` + disk release-gate `pending` → archive **succeeds** (durable proof accepts via `shipped`), and the release gate is reconciled to `done`.\n- **AC2:** `adv_change_archive` with `finalizationStatus` ≠ `\"shipped\"` + release-gate `pending` → still **rejected** with the existing error (guard preserved).\n- **AC3:** The `shipped`-accepted proof records/links the git reachability evidence (`mergeCommitSha`, `pushStatus`, route) in the proof result / release-gate completion.\n- **AC4:** Existing paths preserved: `shipped` + disk-gate-`done`; `shipped` + evidence-match; un-shipped strict evidence-match.\n- **AC5:** `rq-releaseProjectionDurability01` semantics strengthened (not weakened); asset/citation test updated.\n\n## Constraints\n- **C1:** `shipped` derived ONLY from `finalization.status === \"shipped\"` (structural, inside the verifier).\n- **C2:** No caller-trusted boolean / no new forgeable input.\n- **C3:** Preserve the strict guard for non-`shipped` (evidence-match + recovery-audit unchanged).\n- **C4:** No regression of the existing shipped/disk/evidence-match tests.\n\n## Avoidances\n- **DONT1:** MUST NOT accept an un-shipped change under any lag scenario.\n- **DONT2:** MUST NOT remove the recovery-audit requirement for un-shipped disk fallbacks.\n- **DONT3:** MUST NOT introduce a caller-supplied \"trust me\" flag.\n\n## Out of Scope\n- OOS1: Broad rework of gate-projection propagation speed (covered by the separate \"serialize concurrent disk-projection writes\" follow-up #3).\n- OOS2: Worker-bundle freshness gating (follow-up #2).",
+    "design": "## Architecture\n\nAdd a `shipped`-authoritative short-circuit to the durable release-gate proof, ahead of the gate-projection `done` checks. `shipped` is git-authoritative (un-forgeable default-branch reachability), so it is sufficient durable proof on its own; the gate recording is reconciled downstream by the archive. **Revised per independent design validation (verdict NEEDS_WORK → adopted):** the proof must carry real reachability evidence via a typed object, not by overloading `GateCompletion`.\n\n## Key Design Decisions\n- **KD1 — shipped is authoritative durable proof (validated).** `finalization.status === \"shipped\"` is produced exclusively by git-finalize on confirmed reachability/merge (PR `pr_merged` requires GitHub `MERGED`+`mergedAt`; `no_remote` requires local merge to default; `direct` requires merge + successful `git push`). Validator confirmed un-forgeable for all archive call paths (git-finalize.ts:1729-1752, 2353-2375, 3129-3207, 2543-2572).\n- **KD2 — short-circuit placement (validated).** In `verifyReleaseGateDurableForArchive`, BEFORE the `releaseGate?.status !== \"done\"` rejection (~archive-gate.ts:1050), accept when `shipped`. Non-shipped disk fallback stays strict (`done` + recovery-audit/evidence).\n- **KD3 — guard preservation (validated).** Short-circuit gated on `shipped` only; `pending_merge`/`blocked` cannot satisfy it. Every non-shipped path untouched.\n- **KD4 — reconcile, don't bypass.** Archive convergence materializes a canonical `status: \"done\"` release gate (with schema-supported finalization evidence in existing gate fields) after a shipped-accept. The proof accepts; the gate recording still happens — no silent/invented state.\n- **KD5 — typed release-proof object (REVISED).** The verifier does NOT overload `GateCompletion` (its schema has no merge-SHA/push/route fields — validator finding). Instead:\n  - **Widen verifier input** from `finalizationStatus: string` to the full internally-produced `GitFinalizeOutcome` (callers already have it: change.ts:4007-4042, archive-gate.ts:486-539).\n  - **Return a separate typed `ReleaseGateProof`** (`{ accepted, source, mergeCommitSha?, pushStatus?, route?, finalizationStatus }`) alongside the existing `gate` — not a synthesized `GateCompletion` with invented properties.\n  - **Short-circuit conditions** (all required): `status === \"shipped\"` AND valid route/push combo (`no_remote`+skipped OR `direct`/`pr_merged`+pushed) AND `mergeCommitSha` present (required for archive paths with immutable projection proof / deltas — change.ts:4080-4103).\n\n## Implementation Strategy (sequencing for /adv-prep)\n1. **Spec:** strengthen `rq-releaseProjectionDurability01` (additive scenario: shipped accepts despite both projections lagging, gated on full reachability evidence) + update asset/citation test.\n2. **Core fix:** widen `verifyReleaseGateDurableForArchive` input to `GitFinalizeOutcome`; add the `ReleaseGateProof` typed result; add the shipped short-circuit with KD5 conditions; update callers to pass the full outcome.\n3. **Convergence:** archive convergence materializes the canonical `done` release gate from the proof (schema-supported fields only).\n4. **Tests (validator matrix):** shipped + both-projections-pending → accept (AC1); un-shipped + pending → reject (AC2); `mergeCommitSha` captured in proof (AC3); existing shipped+disk-done / shipped+evidence-match / un-shipped strict paths unchanged (AC4); shipped missing SHA where deltas exist → rejected (KD5 guard); retry re-verification for local/direct/PR routes.\n\n## Affected Components\n- `plugin/src/tools/change/archive-gate.ts` — `verifyReleaseGateDurableForArchive` (input widened + typed proof + short-circuit); call sites updated.\n- `plugin/src/tools/change.ts` — pass full `GitFinalizeOutcome` to the verifier (change.ts:4007-4042, 4080-4103, 4193-4210).\n- `plugin/src/tools/change/archive-gate.test.ts` — AC1-AC4 + KD5 guard + route matrix.\n- `plugin/src/types/gates.ts` (or a new `release-proof.ts`) — `ReleaseGateProof` type.\n- spec (`rq-releaseProjectionDurability01`) + asset test.\n\n## Risks\n- R1: Over-acceptance — mitigated by KD1 (structural derivation) + KD5 conditions (status+route/push+SHA) + tests.\n- R2: Caller-trusted `finalizationStatus` API boundary (validator caveat) — mitigated: callers restricted to git-finalization results (no exposed archive caller can forge it); document the invariant.\n- R3: Convergence materializing a synthetic gate — mitigated by KD4 (canonical `done` gate, schema-supported fields only, no invented properties).\n\n## Validator evidence\nIndependent adv-researcher validation (NEEDS_WORK → adopted): confirmed un-forgeability (git-finalize.ts:1729-1752, 2353-2375, 3129-3207, 2543-2572); confirmed KD2 placement; identified KD5 contract gap (GateCompletion has no SHA/push/route fields; verifier receives only finalizationStatus); prescribed typed proof + widened input + short-circuit conditions + test matrix — all adopted above.",
+    "executiveSummary": "# Executive Summary — Fix release-proof shipped false-negative\n\n## Outcome\n`adv_change_archive` no longer false-negatives the durable release-gate proof when a change IS released. A `shipped` change (git-verified default-branch reachability/merge) now archives successfully even when **both** the store-backed gate read and the disk projection lag `pending` — the precise propagation-lag false-negative that recurred through backlog entry 7 and was hit firsthand this session.\n\n## Why it matters\nThe release gate is the last line of defense before a change is declared shipped. A false-negative there (\"did not observe release done\" despite a confirmed merge+push) forces manual retries and erodes trust in unattended releases — worst exactly when it matters most (busy multi-session releases where propagation lag is most likely). This fix makes `shipped` (git-authoritative, un-forgeable) sufficient durable proof, eliminating the lag-dependent retry without weakening the guard for genuinely un-released changes.\n\n## How it works (rescue semantics)\n- **Rescue, not shadow:** the shipped short-circuit fires ONLY when the release-gate projection is NOT `done`. When the store gate IS `done`, the normal `\"store\"`/evidence-match path is unchanged — existing behavior preserved exactly.\n- **Structural authority:** `shipped` is derived INSIDE the verifier from `finalization.status === \"shipped\"`, which git-finalize sets exclusively on confirmed reachability/merge (PR `pr_merged`/`pr_auto_merge`/`pr_manual`/`merge_queue` + pushed, `direct` + pushed, or `no_remote` local merge). No caller-trusted boolean.\n- **Reachability evidence captured:** a new typed `ReleaseGateProof` carries `mergeCommitSha`, `pushStatus`, and `route` (not overloading `GateCompletion`, which has no such fields — validator finding). The rescue requires `mergeCommitSha` + a valid route/push combo, so it cannot accept a shipped outcome lacking immutable reachability proof.\n- **Guard preserved:** `pending_merge`/`blocked` never satisfy `shipped`; the strict evidence-match + recovery-audit guard for non-shipped changes is untouched.\n\n## Verification\n- `pnpm run check` clean (schemas/typecheck/manifests/isolation/lockfile/lint/format).\n- 123 unit tests green across archive-gate, archive-phase9, asset, and delta-idempotency suites.\n- Independent `adv-reviewer` acceptance review: **READY** (0 findings; fixed 1 scoped test gap; security confirmed — rescue accepts only shipped+SHA+valid route/push, blocked/pending_merge rejected).\n- Design independently validated by `adv-researcher` (NEEDS_WORK → adopted: typed `ReleaseGateProof` + widened `GitFinalizeOutcome` input).\n\n## Risks / Follow-ups\n- The fix addresses the false-negative; propagation lag itself (why projections trail the merge) is the subject of follow-up #3 (serialize concurrent disk-projection writes).\n- Caller API note: `verifyReleaseGateDurableForArchive` now takes the full `GitFinalizeOutcome`; callers restricted to git-finalization results (documented invariant — the verifier is not itself a security boundary).\n\n## Supporting evidence\nCommits on `change/fixReleaseProofShippedFalse`: `2f099bc5` (spec), `58d34b65` (core fix), `347417c6` (verification). Durable TDD evidence via `adv_run_test` for the core task; reviewer-owned static-check report for the spec task.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-25T15:50:15.255Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1:** `adv_change_archive` with `finalizationStatus=\"shipped\"` + store release-gate `pending` + disk release-gate `pending` → archive **succeeds** (durable proof accepts via `shipped`), and the release gate is reconciled to `done`. | pass | archive-gate.test.ts AC1: shipped + store-pending + disk-pending -> rescue accept (source shipped-finalization), gate reconciled done. tr_ms0iwxlk. |\n| AC2 | acceptance_criterion | **AC2:** `adv_change_archive` with `finalizationStatus` ≠ `\"shipped\"` + release-gate `pending` → still **rejected** with the existing error (guard preserved). | pass | archive-gate.test.ts AC2: non-shipped (pending_merge/blocked) + pending -> rejected, strict guard preserved. |\n| AC3 | acceptance_criterion | **AC3:** The `shipped`-accepted proof records/links the git reachability evidence (`mergeCommitSha`, `pushStatus`, route) in the proof result / release-gate completion. | pass | accepted ReleaseGateProof carries mergeCommitSha/pushStatus/route; AC3 test. |\n| AC4 | acceptance_criterion | **AC4:** Existing paths preserved: `shipped` + disk-gate-`done`; `shipped` + evidence-match; un-shipped strict evidence-match. | pass | regression matrix: shipped+disk-done, shipped+evidence-match, un-shipped strict -> sources/behavior preserved (AC4 tests). |\n| AC5 | acceptance_criterion | **AC5:** `rq-releaseProjectionDurability01` semantics strengthened (not weakened); asset/citation test updated. | pass | rq-releaseProjectionDurability01.4/.5 added (spec 1.38); asset test strengthened + passes. |\n| C1 | constraint | **C1:** `shipped` derived ONLY from `finalization.status === \"shipped\"` (structural, inside the verifier). | respected | shipped derived ONLY from finalization.status === 'shipped' inside verifier (archive-gate.ts L1042); no caller-trusted boolean. |\n| C2 | constraint | **C2:** No caller-trusted boolean / no new forgeable input. | respected | no caller-trusted boolean; full GitFinalizeOutcome passed, status derived structurally. |\n| C3 | constraint | **C3:** Preserve the strict guard for non-`shipped` (evidence-match + recovery-audit unchanged). | respected | non-shipped guard preserved (evidence-match + recovery-audit unchanged); KD3. |\n| C4 | constraint | **C4:** No regression of the existing shipped/disk/evidence-match tests. | respected | no regression: 123 unit tests + pnpm run check clean; existing store/disk/evidence-match paths unchanged. |\n| DONT1 | avoidance | **DONT1:** MUST NOT accept an un-shipped change under any lag scenario. | respected | un-shipped never accepted under lag (blocked/pending_merge guard tests). |\n| DONT2 | avoidance | **DONT2:** MUST NOT remove the recovery-audit requirement for un-shipped disk fallbacks. | respected | recovery-audit requirement for un-shipped disk fallbacks unchanged. |\n| DONT3 | avoidance | **DONT3:** MUST NOT introduce a caller-supplied \"trust me\" flag. | respected | no caller-supplied trust flag introduced. |\n| OOS1 | out_of_scope | Broad rework of gate-projection propagation speed (covered by the separate \"serialize concurrent disk-projection writes\" follow-up #3). | missing |  |\n| OOS2 | out_of_scope | Worker-bundle freshness gating (follow-up #2). | missing |  |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-25T07:35:58.621Z",
+      "contentHash": "f47028aebd2f6d44f18823590a6e436bb9ce1566f5a736c47b10266dcfdc3fec",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-25T07:35:58.621Z",
+      "contentHash": "531878660c121e1478b157e7eda1071d236e6730cabcb96a9826845812bc4b4c",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-25T07:41:19.807Z",
+      "contentHash": "85c03b07333031f7a93822a8c39e5c830025405b482343c595afb8c80f0dca30",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-25T15:50:15.335Z",
+      "contentHash": "af0ece7328d63e1ac9b51da6e32d19a5e4df3e009d315b66f5e2db5410ce5310",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-25T15:51:52.660Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "worktree_auto_managed": true
+}
