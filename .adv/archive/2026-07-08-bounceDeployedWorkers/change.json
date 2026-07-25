@@ -13,10 +13,18 @@
       "status": "done",
       "priority": 0,
       "created_at": "2026-07-08T21:25:35.244Z",
-      "metadata": {
-        "tdd_intent": "not_applicable",
-        "delegation_hint": "delegate_allowed"
-      },
+      "started_at": "2026-07-08T21:33:51.570Z",
+      "completed_at": "2026-07-08T21:35:36.862Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Static check passed: node parsed .adv/specs/advance-meta/spec.json and confirmed rq-deployWorkerBounce01/rq-deployWorkerBounce02 exist in spec JSON and docs/specs/advance-meta.md (adv_run_test tr_mrcljr2y_a4ee4bd6).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-meta/spec.json",
+        "docs/specs/advance-meta.md"
+      ],
+      "checkpointSha": "e2f3e00d5ed5416700c35fc42302252e8f9c1f33",
+      "completedAt": "2026-07-08T21:35:36.862Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC5"
@@ -39,22 +47,14 @@
         ]
       },
       "evidence_policy": "static_check",
-      "assignedTo": "agent",
-      "started_at": "2026-07-08T21:33:51.570Z",
-      "verification": "Static check passed: node parsed .adv/specs/advance-meta/spec.json and confirmed rq-deployWorkerBounce01/rq-deployWorkerBounce02 exist in spec JSON and docs/specs/advance-meta.md (adv_run_test tr_mrcljr2y_a4ee4bd6).",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        ".adv/specs/advance-meta/spec.json",
-        "docs/specs/advance-meta.md"
-      ],
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
       "touched_files": [
         ".adv/specs/advance-meta/spec.json",
         "docs/specs/advance-meta.md"
-      ],
-      "checkpointSha": "e2f3e00d5ed5416700c35fc42302252e8f9c1f33",
-      "completedAt": "2026-07-08T21:35:36.862Z",
-      "completed_at": "2026-07-08T21:35:36.862Z"
+      ]
     },
     {
       "id": "tk-9661a4bc8ea5",
@@ -64,10 +64,18 @@
       "status": "done",
       "priority": 1,
       "created_at": "2026-07-08T21:25:50.910Z",
-      "metadata": {
-        "tdd_intent": "inline",
-        "delegation_hint": "delegate_allowed"
-      },
+      "started_at": "2026-07-08T21:36:30.812Z",
+      "completed_at": "2026-07-08T21:42:18.424Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "TDD evidence: RED adv_run_test tr_mrclouwv_ab764af3 failed as expected before implementation (missing refresh_deployed_temporal_workers); GREEN adv_run_test tr_mrclrnb1_d465049a passed after implementation. Additional verify runs passed: deploy worker refresh asset tests tr_mrclrtro_ecb1071e, read-only mode asset test tr_mrcls1hr_45f37242, bash syntax check tr_mrcls994_815245e2.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "7155ba04841ebc2a60c64cb5e6ac37bd3f2230b2",
+      "completedAt": "2026-07-08T21:42:18.424Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "SC1",
@@ -100,22 +108,14 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-08T21:36:30.812Z",
-      "verification": "TDD evidence: RED adv_run_test tr_mrclouwv_ab764af3 failed as expected before implementation (missing refresh_deployed_temporal_workers); GREEN adv_run_test tr_mrclrnb1_d465049a passed after implementation. Additional verify runs passed: deploy worker refresh asset tests tr_mrclrtro_ecb1071e, read-only mode asset test tr_mrcls1hr_45f37242, bash syntax check tr_mrcls994_815245e2.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        "plugin/src/deploy-local.test.ts",
-        "scripts/deploy-local.sh"
-      ],
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
       "touched_files": [
         "plugin/src/deploy-local.test.ts",
         "scripts/deploy-local.sh"
-      ],
-      "checkpointSha": "7155ba04841ebc2a60c64cb5e6ac37bd3f2230b2",
-      "completedAt": "2026-07-08T21:42:18.424Z",
-      "completed_at": "2026-07-08T21:42:18.424Z"
+      ]
     },
     {
       "id": "tk-2f777ace9318",
@@ -124,7 +124,6 @@
       "section": "Verification",
       "status": "done",
       "priority": 2,
-      "created_at": "2026-07-08T21:26:09.344Z",
       "deps": [
         {
           "type": "blocked_by",
@@ -135,10 +134,22 @@
           "target": "tk-9661a4bc8ea5"
         }
       ],
-      "metadata": {
-        "tdd_intent": "separate_verification",
-        "delegation_hint": "delegate_allowed"
-      },
+      "created_at": "2026-07-08T21:26:09.344Z",
+      "started_at": "2026-07-08T21:42:32.036Z",
+      "completed_at": "2026-07-08T22:19:19.880Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Harden remediation verification passed: bash -n scripts/deploy-local.sh && bash -n .githooks/post-commit && bash -n .githooks/pre-push (tr_mrcn3klv_b9c9c71d); bin/oc-test targeted -- src/deploy-local.test.ts 72/72 passed (tr_mrcn3m7n_5bccd34c); pnpm run format:check passed (tr_mrcn3tgz_458eb781); pnpm run schemas:check passed (tr_mrcn442d_ca1904e7); strict ADV validation passed with expected NO_DELTAS warning.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".githooks/post-commit",
+        ".githooks/pre-push",
+        "SETUP.md",
+        "plugin/src/deploy-local.test.ts",
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "5fa76cd7a330abf099bbabb1cf4386183336e61d",
+      "completedAt": "2026-07-08T22:19:19.880Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "verifies": [
           "SC1",
@@ -166,28 +177,17 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-08T21:42:32.036Z",
-      "verification": "Harden remediation verification passed: bash -n scripts/deploy-local.sh && bash -n .githooks/post-commit && bash -n .githooks/pre-push (tr_mrcn3klv_b9c9c71d); bin/oc-test targeted -- src/deploy-local.test.ts 72/72 passed (tr_mrcn3m7n_5bccd34c); pnpm run format:check passed (tr_mrcn3tgz_458eb781); pnpm run schemas:check passed (tr_mrcn442d_ca1904e7); strict ADV validation passed with expected NO_DELTAS warning.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        ".githooks/post-commit",
-        ".githooks/pre-push",
-        "SETUP.md",
-        "plugin/src/deploy-local.test.ts",
-        "scripts/deploy-local.sh"
-      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
       "touched_files": [
         ".githooks/post-commit",
         ".githooks/pre-push",
         "SETUP.md",
         "plugin/src/deploy-local.test.ts",
         "scripts/deploy-local.sh"
-      ],
-      "checkpointSha": "5fa76cd7a330abf099bbabb1cf4386183336e61d",
-      "completedAt": "2026-07-08T22:19:19.880Z",
-      "completed_at": "2026-07-08T22:19:19.880Z"
+      ]
     }
   ],
   "subagent_reports": [
@@ -469,7 +469,6 @@
       "status": "pending"
     }
   },
-  "reentry_history": [],
   "contract": {
     "version": 1,
     "rigor": "standard",
@@ -683,7 +682,6 @@
         "notRequiredReason": "Out-of-scope contract item"
       }
     ],
-    "amendments": [],
     "reviewMatrix": {
       "reviewedAt": "2026-07-08T21:48:48.792Z",
       "rows": [
@@ -828,7 +826,8 @@
           "evidence": "adv_temporal_worker_restart not replaced; it remains operator recovery tooling."
         }
       ]
-    }
+    },
+    "amendments": []
   },
   "acceptanceCriteria": [
     "After successful runtime plugin sync, exact-path matching running `dist/temporal/worker.js` processes receive `SIGTERM` by default.",
@@ -877,8 +876,6 @@
       "readable": false
     }
   },
-  "lastSignalAt": "2026-07-08T22:22:53.014Z",
-  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
   "clarify_findings": [
     {
       "code": "CLARIFY_MISSING_ERROR_HANDLING",
@@ -889,5 +886,16 @@
       "resolved_at": "2026-07-08T20:54:50.523Z"
     }
   ],
-  "worktree_auto_managed": true
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-08T23:23:26.070Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "phase9_status": {
+    "status": "pending",
+    "startedAt": "2026-07-08T23:23:25.335Z",
+    "repo": "Sharper-Flow/Advance",
+    "route": "direct",
+    "changeTipSha": "5fa76cd7a330abf099bbabb1cf4386183336e61d"
+  }
 }
