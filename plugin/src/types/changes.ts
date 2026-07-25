@@ -32,6 +32,14 @@ export {
   type ContractEvidencePolicy,
 } from "./evidence-policy";
 
+const WorkerBundleImpactSchema = z.object({
+  kind: z.enum(["required", "not_applicable"]),
+  rationale: z.string().optional(),
+  confirmed_at: z.string().optional(),
+});
+
+export type WorkerBundleImpact = z.infer<typeof WorkerBundleImpactSchema>;
+
 // =============================================================================
 // Validation Result (private — used only by ChangeSchema)
 // =============================================================================
@@ -1159,6 +1167,13 @@ export const ChangeSchema = z
      * loading and Visibility lookup via AdvEpicId search attribute.
      */
     epic_membership: EpicMembershipSchema.optional(),
+
+    /**
+     * Worker-bundle impact classification for release-readiness gating.
+     * Optional additive/backward-compatible; "required" means this change
+     * affects the Temporal worker bundle and needs provenance before release.
+     */
+    worker_bundle_impact: WorkerBundleImpactSchema.optional(),
 
     /**
      * rq-creationRequestHash01 (tk-74c358188ffb, design D2 / AC4 / AC11):

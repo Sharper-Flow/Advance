@@ -65,6 +65,7 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
+  WorkerBundleProvenanceRecordedSignalPayload,
 } from "../types";
 import {
   createDefaultGates,
@@ -224,6 +225,7 @@ export function changeSeedStateFromChange(
     // re-seed / Continue-As-New so the idempotency invariant survives
     // workflow lifecycle boundaries.
     creation_request_hash: safeChange.creation_request_hash,
+    worker_bundle_impact: safeChange.worker_bundle_impact,
   };
 }
 
@@ -1086,6 +1088,23 @@ export function applyTestRunRecordedToState(
     [taskId]: updated,
   };
   setLastSignalAt(state, payload.recordedAt);
+  return state;
+}
+
+export function applyWorkerBundleProvenanceRecordedToState(
+  state: ChangeWorkflowState,
+  payload: WorkerBundleProvenanceRecordedSignalPayload,
+): ChangeWorkflowState {
+  state.workerBundleProvenance = {
+    source_sha: payload.source_sha,
+    build_run_id: payload.build_run_id,
+    replay_run_id: payload.replay_run_id,
+    ...(payload.worker_manifest_generation !== undefined && {
+      worker_manifest_generation: payload.worker_manifest_generation,
+    }),
+    recorded_at: payload.recorded_at,
+  };
+  setLastSignalAt(state, payload.recorded_at);
   return state;
 }
 

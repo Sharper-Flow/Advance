@@ -99,6 +99,7 @@ import {
   listTasksFromChangeState,
   normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
+  applyWorkerBundleProvenanceRecordedToState,
 } from "./change-state";
 import {
   applyChangeLinkedToState,
@@ -345,6 +346,9 @@ const taskCompletedSignal = wf.defineSignal<
 const testRunRecordedSignal = wf.defineSignal<
   [import("../types").TestRunRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.testRunRecorded);
+const workerBundleProvenanceRecordedSignal = wf.defineSignal<
+  [import("../types").WorkerBundleProvenanceRecordedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleProvenanceRecorded);
 const subagentReportSubmittedSignal = wf.defineSignal<
   [import("../types").SubagentReportSubmittedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
@@ -1499,6 +1503,12 @@ export async function changeWorkflow(
     ),
   );
   wf.setHandler(
+    workerBundleProvenanceRecordedSignal,
+    signalMutation("workerBundleProvenanceRecorded", (payload) =>
+      applyWorkerBundleProvenanceRecordedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
     subagentReportSubmittedSignal,
     signalMutation("subagentReportSubmitted", (payload) =>
       applySubagentReportSubmittedToState(state, payload),
@@ -2058,6 +2068,8 @@ export async function changeWorkflow(
       creation_request_hash: state.creation_request_hash,
       epic_membership: state.epic_membership,
       same_project_dependencies: state.same_project_dependencies,
+      worker_bundle_impact: state.worker_bundle_impact,
+      workerBundleProvenance: state.workerBundleProvenance,
     },
   };
   await wf.condition(wf.allHandlersFinished);

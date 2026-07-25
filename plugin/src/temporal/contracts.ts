@@ -136,6 +136,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   epicMembershipCleared: "adv.change.epicMembershipCleared",
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
   originRepaired: "adv.change.originRepaired",
+  workerBundleProvenanceRecorded: "adv.change.workerBundleProvenanceRecorded",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
 } as const;
@@ -318,6 +319,8 @@ export interface ChangeWorkflowInput {
       | "lightweight_profile"
       | "epic_membership"
       | "creation_request_hash"
+      | "worker_bundle_impact"
+      | "workerBundleProvenance"
     >
   >;
 }
@@ -631,6 +634,23 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * creation request.
    */
   creation_request_hash?: string;
+  /**
+   * Worker-bundle impact classification, mirroring
+   * `ChangeSchema.worker_bundle_impact`. Optional for backward compatibility.
+   */
+  worker_bundle_impact?: Change["worker_bundle_impact"];
+  /**
+   * Worker-bundle provenance receipt recorded by
+   * workerBundleProvenanceRecordedSignal. Mirrors the signal payload shape.
+   * Additive optional — replay-safe for histories predating this extension.
+   */
+  workerBundleProvenance?: {
+    source_sha: string;
+    build_run_id: string;
+    replay_run_id: string;
+    worker_manifest_generation?: number;
+    recorded_at: string;
+  };
   /**
    * Per-gate criteria evaluated at completion time.
    * Advisory audit trail — criteria are not blocking.

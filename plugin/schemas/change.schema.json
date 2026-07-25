@@ -9035,6 +9035,28 @@
       },
       "type": "array"
     },
+    "worker_bundle_impact": {
+      "additionalProperties": false,
+      "properties": {
+        "confirmed_at": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "required",
+            "not_applicable"
+          ],
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
     "worktree_auto_managed": {
       "type": "boolean"
     }

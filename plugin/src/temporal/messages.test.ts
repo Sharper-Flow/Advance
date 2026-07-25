@@ -61,6 +61,7 @@ import {
   OpsRunUpsertedSignalPayloadSchema,
   LightweightProfileRequestedSignalPayloadSchema,
   LightweightProfileEvaluatedSignalPayloadSchema,
+  WorkerBundleProvenanceRecordedSignalPayloadSchema,
 } from "../types";
 
 const designSignalKeys = [
@@ -124,6 +125,7 @@ const designSignalKeys = [
   "epicMembershipCleared",
   "updateArtifactMetadata",
   "originRepaired",
+  "workerBundleProvenanceRecorded",
   "archiveChange",
   "closeChange",
 ] as const;
@@ -140,11 +142,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 62 signal surface", () => {
+  it("defines the 63 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(62);
+    expect(surfacedKeys).toHaveLength(63);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -669,6 +671,16 @@ describe("change workflow message contract", () => {
         {
           expected: { epic_id: "productAuthEpic", entry_id: "en-001" },
           clearedAt: timestamp,
+        },
+      ],
+      [
+        WorkerBundleProvenanceRecordedSignalPayloadSchema,
+        {
+          source_sha: "sha-abc",
+          build_run_id: "build-1",
+          replay_run_id: "replay-1",
+          worker_manifest_generation: 3,
+          recorded_at: timestamp,
         },
       ],
       [

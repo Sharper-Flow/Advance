@@ -383,6 +383,12 @@ export const testTools = {
         .describe(
           "Optional descriptive TDD phase metadata. Does not gate task completion; use 'red', 'green', or 'verify'.",
         ),
+      evidence_kind: z
+        .enum(["build_worker", "replay_determinism", "unit", "other"])
+        .optional()
+        .describe(
+          "Optional typed classification for the test evidence (build_worker, replay_determinism, unit, other).",
+        ),
       workdir: z
         .string()
         .optional()
@@ -412,6 +418,11 @@ export const testTools = {
         phase?: AdvRunTestPhase;
         workdir?: string;
         timeoutMs?: number;
+        evidence_kind?:
+          | "build_worker"
+          | "replay_determinism"
+          | "unit"
+          | "other";
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -520,6 +531,9 @@ export const testTools = {
                   classification,
                   command: args.command,
                   durationMs,
+                  ...(args.evidence_kind && {
+                    evidence_kind: args.evidence_kind,
+                  }),
                   ...(qualitySignals && {
                     assertionDensity: qualitySignals.assertionDensity,
                     mockSurface: qualitySignals.mockSurface,
