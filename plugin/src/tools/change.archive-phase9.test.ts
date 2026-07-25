@@ -1834,6 +1834,41 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(store.changes.save).not.toHaveBeenCalled();
   });
 
+  test("AC1: archives a shipped change when store and disk release projections remain pending", async () => {
+    // Model the release projection race: Phase 9 has structurally reached the
+    // default branch, but the post-signal store read still returns pending and
+    // no disk release completion exists. The archive must use the shipped
+    // finalization proof and persist a canonical done release gate.
+    mocks.finalizeRelease.mockResolvedValueOnce({
+      status: "shipped",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      route: "direct",
+      pushStatus: "pushed",
+      mergeCommitSha: "abc123",
+    });
+    const store = createMockStore({ durableReleasePending: true });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
+    expect(parsed.releaseGate.approval_evidence).toContain(
+      "mergeCommitSha=abc123",
+    );
+    expect(parsed.releaseGate.approval_evidence).toContain("route=direct");
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
+  });
+
   // rq-releaseFinalization01 AC3: archive retry reconciles stale release
   // metadata after completed workflow without manual worktree recreation.
   // When the change is already archived and the release gate is pending,
