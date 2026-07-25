@@ -17,3 +17,12 @@ export {
   resolveChangeId,
   type ProjectPaths,
 } from "./json";
+export {
+  commitChangeProjection,
+  PROJECTION_COMMIT_MAX_AUDIT_ENTRIES,
+  type ProjectionCommitAuthority,
+  type ProjectionCommitOutcome,
+  type ProjectionCommitVerifyContext,
+  type ProjectionCommitVerifyResult,
+  type CommitChangeProjectionOptions,
+} from "./change-projection-transaction";

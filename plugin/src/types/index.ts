@@ -447,6 +447,8 @@ export {
   type Change,
   WorkerBundleImpactSchema,
   type WorkerBundleImpact,
+  ProjectionCommitAuditEntrySchema,
+  type ProjectionCommitAuditEntry,
   OpsFollowupKindSchema,
   type OpsFollowupKind,
   OpsRelationshipSchema,
