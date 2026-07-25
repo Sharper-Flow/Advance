@@ -48,6 +48,7 @@ import {
   OpsEvidenceEntrySchema,
   OpsFollowupLinkSchema,
   OpsFollowupProfileSchema,
+  OpsFollowupResolutionSchema,
   OpsFollowupStatusSchema,
   OpsRunEvidenceEntrySchema,
   OpsRunSchema,
@@ -638,6 +639,15 @@ export const OpsFollowupLinkAddedSignalPayloadSchema = z.object({
 });
 export type OpsFollowupLinkAddedSignalPayload = z.infer<
   typeof OpsFollowupLinkAddedSignalPayloadSchema
+>;
+
+export const OpsFollowupResolutionUpsertedSignalPayloadSchema = z.object({
+  linkId: z.string().min(1),
+  resolution: OpsFollowupResolutionSchema,
+  upsertedAt: IsoTimestampSchema,
+});
+export type OpsFollowupResolutionUpsertedSignalPayload = z.infer<
+  typeof OpsFollowupResolutionUpsertedSignalPayloadSchema
 >;
 
 export const OpsEvidenceAppendedSignalPayloadSchema = z.object({

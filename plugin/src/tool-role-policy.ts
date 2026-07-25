@@ -332,6 +332,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Ops follow-up evidence append.",
   },
+  adv_ops_followup_resolution_upsert: {
+    class: "orchestrator",
+    rationale: "Ops follow-up link resolution upsert.",
+  },
   adv_ops_run_evidence_add: {
     class: "orchestrator",
     rationale: "Run-step evidence append; prod execute steps approval-gated.",

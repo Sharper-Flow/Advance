@@ -630,6 +630,7 @@ const advancePluginImpl: Plugin = async (input) => {
     "adv_contract_review_matrix_set",
     "adv_subagent_report_submit",
     "adv_ops_evidence_add",
+    "adv_ops_followup_resolution_upsert",
   ]);
 
   const shouldRepointActiveChange = (

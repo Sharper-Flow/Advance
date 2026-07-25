@@ -30,6 +30,7 @@ import type {
   EpicMembershipSetSignalPayload,
   OpsEvidenceAppendedSignalPayload,
   OpsFollowupLinkAddedSignalPayload,
+  OpsFollowupResolutionUpsertedSignalPayload,
   OpsFollowupSeededSignalPayload,
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
@@ -408,6 +409,24 @@ export function applyOpsFollowupLinkAddedToState(
       : [...existing, payload.link];
   state.ops_followup_links = next;
   setLastSignalAt(state, payload.addedAt);
+  return state;
+}
+
+export function applyOpsFollowupResolutionUpsertedToState(
+  state: ChangeWorkflowState,
+  payload: OpsFollowupResolutionUpsertedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.ops_followup_links ?? [];
+  const index = existing.findIndex((link) => link.id === payload.linkId);
+  if (index < 0) {
+    throw new Error(
+      `Cannot upsert ops follow-up resolution: link not found ${payload.linkId}`,
+    );
+  }
+  state.ops_followup_links = existing.map((link, i) =>
+    i === index ? { ...link, resolution: payload.resolution } : link,
+  );
+  setLastSignalAt(state, payload.upsertedAt);
   return state;
 }
 

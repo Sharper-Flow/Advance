@@ -15,6 +15,7 @@ import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import {
   opsEvidenceAppendedSignal,
+  opsFollowupResolutionUpsertedSignal,
   opsRunEvidenceAppendedSignal,
   opsRunUpsertedSignal,
 } from "../temporal/messages";
@@ -31,6 +32,9 @@ import {
   OpsRunStatusSchema,
   OpsRunStepKindSchema,
   OpsRunStepStatusSchema,
+  OpsFollowupResolutionReasonSchema,
+  OpsFollowupStatusSchema,
+  type OpsFollowupResolution,
 } from "../types";
 
 const OPS_EVIDENCE_TOOL_STATUS = [
@@ -76,6 +80,22 @@ interface AddEvidenceInput {
   batch?: string;
   next_step?: string;
   completion_signal?: string;
+  dryRun?: boolean;
+}
+
+interface UpsertResolutionInput {
+  changeId: string;
+  linkId: string;
+  status: OpsFollowupResolution["status"];
+  verifiedAt: string;
+  childUpdatedAt?: string;
+  resolutionReason?: OpsFollowupResolution["resolution_reason"];
+  source: OpsFollowupResolution["source"];
+  completionSignal?: string;
+  healthVerification?: string;
+  rollbackOrCleanupDisposition?: string;
+  evidenceSummary?: string;
+  error?: string;
   dryRun?: boolean;
 }
 
@@ -335,6 +355,147 @@ export const opsEvidenceTools = {
         entry,
         status: profileStatus,
         evidence_count: priorCount + 1,
+      });
+    },
+  },
+  adv_ops_followup_resolution_upsert: {
+    description:
+      "Upsert a bounded resolution proof onto an outbound ops follow-up link. " +
+      "Only updates the matching link's resolution field; other link edge fields are untouched.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID that owns the outbound ops_followup_links."),
+      linkId: z
+        .string()
+        .min(1)
+        .describe("Stable link ID whose resolution should be upserted."),
+      status: OpsFollowupStatusSchema.describe(
+        "Verified child-profile status projected onto the link.",
+      ),
+      verifiedAt: z
+        .string()
+        .min(1)
+        .describe("ISO timestamp when the resolution was verified."),
+      childUpdatedAt: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional ISO timestamp of the last child profile update."),
+      resolutionReason: OpsFollowupResolutionReasonSchema.optional().describe(
+        "Why this resolution was recorded.",
+      ),
+      source: z
+        .enum(["child_profile", "unreachable"])
+        .describe(
+          "Whether the resolution came from the child profile or an unreachable fallback.",
+        ),
+      completionSignal: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional signal that indicates completion."),
+      healthVerification: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional health verification summary."),
+      rollbackOrCleanupDisposition: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional rollback or cleanup disposition."),
+      evidenceSummary: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional bounded summary of supporting evidence."),
+      error: z
+        .string()
+        .min(1)
+        .optional()
+        .describe("Optional error message when source is unreachable."),
+      dryRun: z.boolean().optional().describe("Preview without signaling."),
+    },
+    execute: async (
+      input: UpsertResolutionInput,
+      store: Store,
+    ): Promise<string> => {
+      const load = await store.changes.get(input.changeId);
+      if (!load.success || !load.data) {
+        return formatToolOutput({
+          error: `Change not found: ${input.changeId}`,
+        });
+      }
+
+      const change = load.data as Change;
+      const links = change.ops_followup_links ?? [];
+      const link = links.find((candidate) => candidate.id === input.linkId);
+      if (!link) {
+        return formatToolOutput({
+          error: `Ops follow-up link not found on ${input.changeId}: ${input.linkId}`,
+          code: "OPS_FOLLOWUP_LINK_NOT_FOUND",
+        });
+      }
+
+      const recordedAt = new Date().toISOString();
+      const resolution: OpsFollowupResolution = {
+        status: input.status,
+        verified_at: input.verifiedAt,
+        source: input.source,
+        ...(input.childUpdatedAt
+          ? { child_updated_at: input.childUpdatedAt }
+          : {}),
+        ...(input.resolutionReason
+          ? { resolution_reason: input.resolutionReason }
+          : {}),
+        ...(input.completionSignal
+          ? { completion_signal: input.completionSignal }
+          : {}),
+        ...(input.healthVerification
+          ? { health_verification: input.healthVerification }
+          : {}),
+        ...(input.rollbackOrCleanupDisposition
+          ? {
+              rollback_or_cleanup_disposition:
+                input.rollbackOrCleanupDisposition,
+            }
+          : {}),
+        ...(input.evidenceSummary
+          ? { evidence_summary: input.evidenceSummary }
+          : {}),
+        ...(input.error ? { error: input.error } : {}),
+      };
+
+      if (input.dryRun) {
+        return formatToolOutput({
+          success: true,
+          dryRun: true,
+          changeId: input.changeId,
+          linkId: input.linkId,
+          resolution,
+        });
+      }
+
+      const handle = await getChangeHandleForChangeId(store, input.changeId);
+      await fireSignalAndRefresh(
+        handle,
+        store,
+        input.changeId,
+        opsFollowupResolutionUpsertedSignal,
+        {
+          linkId: input.linkId,
+          resolution,
+          upsertedAt: recordedAt,
+        },
+      );
+
+      return formatToolOutput({
+        success: true,
+        changeId: input.changeId,
+        linkId: input.linkId,
+        resolution,
       });
     },
   },

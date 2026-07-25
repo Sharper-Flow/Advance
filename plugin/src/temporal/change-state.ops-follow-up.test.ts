@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
+  applyOpsFollowupResolutionUpsertedToState,
   applyOpsFollowupSeededToState,
   applyOpsRunEvidenceAppendedToState,
   applyOpsRunUpsertedToState,
@@ -99,6 +100,173 @@ describe("ops follow-up state reducers", () => {
 
     expect(state.ops_followup_links).toHaveLength(1);
     expect(state.ops_followup_links?.[0]?.status).toBe("running");
+  });
+
+  it("upserts resolution on a matching outbound ops follow-up link", () => {
+    const state = createChangeWorkflowState({
+      changeId: "parent-1",
+      title: "Parent change",
+      createdAt: timestamp,
+    });
+
+    applyOpsFollowupLinkAddedToState(state, {
+      link: {
+        id: "ofl-1",
+        changeId: "child-1",
+        relationship: "blocks",
+        status: "running",
+        linked_at: timestamp,
+      },
+      addedAt: timestamp,
+    });
+
+    applyOpsFollowupResolutionUpsertedToState(state, {
+      linkId: "ofl-1",
+      resolution: {
+        status: "complete",
+        verified_at: "2026-06-20T04:05:00.000Z",
+        child_updated_at: "2026-06-20T04:04:00.000Z",
+        resolution_reason: "verified",
+        source: "child_profile",
+        completion_signal: "deploy finished",
+        health_verification: "smoke passed",
+        rollback_or_cleanup_disposition: "no rollback needed",
+      },
+      upsertedAt: "2026-06-20T04:05:00.000Z",
+    });
+
+    expect(state.ops_followup_links).toHaveLength(1);
+    expect(state.ops_followup_links?.[0]?.resolution).toMatchObject({
+      status: "complete",
+      child_updated_at: "2026-06-20T04:04:00.000Z",
+      resolution_reason: "verified",
+      completion_signal: "deploy finished",
+    });
+    expect(state.lastSignalAt).toBe("2026-06-20T04:05:00.000Z");
+  });
+
+  it("idempotently replaces resolution on repeated upserts for the same link", () => {
+    const state = createChangeWorkflowState({
+      changeId: "parent-1",
+      title: "Parent change",
+      createdAt: timestamp,
+    });
+
+    applyOpsFollowupLinkAddedToState(state, {
+      link: {
+        id: "ofl-1",
+        changeId: "child-1",
+        relationship: "blocks",
+        status: "running",
+        linked_at: timestamp,
+      },
+      addedAt: timestamp,
+    });
+
+    const firstResolution = {
+      status: "running" as const,
+      verified_at: "2026-06-20T04:01:00.000Z",
+      resolution_reason: "verified" as const,
+      source: "child_profile" as const,
+    };
+    const secondResolution = {
+      status: "complete" as const,
+      verified_at: "2026-06-20T04:02:00.000Z",
+      child_updated_at: "2026-06-20T04:01:30.000Z",
+      resolution_reason: "verified" as const,
+      source: "child_profile" as const,
+      completion_signal: "done",
+    };
+
+    applyOpsFollowupResolutionUpsertedToState(state, {
+      linkId: "ofl-1",
+      resolution: firstResolution,
+      upsertedAt: "2026-06-20T04:01:00.000Z",
+    });
+    applyOpsFollowupResolutionUpsertedToState(state, {
+      linkId: "ofl-1",
+      resolution: secondResolution,
+      upsertedAt: "2026-06-20T04:02:00.000Z",
+    });
+
+    expect(state.ops_followup_links).toHaveLength(1);
+    expect(state.ops_followup_links?.[0]?.resolution).toMatchObject(
+      secondResolution,
+    );
+  });
+
+  it("does not alter unrelated edge fields when upserting resolution", () => {
+    const state = createChangeWorkflowState({
+      changeId: "parent-1",
+      title: "Parent change",
+      createdAt: timestamp,
+    });
+
+    applyOpsFollowupLinkAddedToState(state, {
+      link: {
+        id: "ofl-1",
+        changeId: "child-1",
+        relationship: "blocks",
+        status: "running",
+        required_handoff: true,
+        linked_at: timestamp,
+        source_contract_id: "AC5",
+      },
+      addedAt: timestamp,
+    });
+    applyOpsFollowupLinkAddedToState(state, {
+      link: {
+        id: "ofl-2",
+        changeId: "child-2",
+        relationship: "monitors",
+        status: "not_started",
+        linked_at: timestamp,
+      },
+      addedAt: timestamp,
+    });
+
+    applyOpsFollowupResolutionUpsertedToState(state, {
+      linkId: "ofl-1",
+      resolution: {
+        status: "complete",
+        verified_at: "2026-06-20T04:05:00.000Z",
+        resolution_reason: "verified",
+        source: "child_profile",
+        completion_signal: "deploy finished",
+        health_verification: "smoke passed",
+        rollback_or_cleanup_disposition: "no rollback needed",
+      },
+      upsertedAt: "2026-06-20T04:05:00.000Z",
+    });
+
+    expect(state.ops_followup_links).toHaveLength(2);
+    const link1 = state.ops_followup_links?.[0];
+    expect(link1?.status).toBe("running");
+    expect(link1?.required_handoff).toBe(true);
+    expect(link1?.source_contract_id).toBe("AC5");
+    expect(link1?.resolution?.status).toBe("complete");
+    const link2 = state.ops_followup_links?.[1];
+    expect(link2?.resolution).toBeUndefined();
+  });
+
+  it("throws when upserting resolution for an unknown link", () => {
+    const state = createChangeWorkflowState({
+      changeId: "parent-1",
+      title: "Parent change",
+      createdAt: timestamp,
+    });
+
+    expect(() =>
+      applyOpsFollowupResolutionUpsertedToState(state, {
+        linkId: "missing",
+        resolution: {
+          status: "complete",
+          verified_at: timestamp,
+          source: "unreachable",
+        },
+        upsertedAt: timestamp,
+      }),
+    ).toThrow(/link not found/);
   });
 
   it("appends evidence and updates profile status", () => {

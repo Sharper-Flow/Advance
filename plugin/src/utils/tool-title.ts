@@ -133,6 +133,10 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
     write(`Promote report follow-up${suffix(args, "source_change_id")}`),
   adv_ops_evidence_add: (args) =>
     write(`Add ops evidence${suffix(args, "changeId")}`),
+  adv_ops_followup_resolution_upsert: (args) =>
+    write(
+      `Upsert ops follow-up resolution${suffix(args, "changeId", "linkId")}`,
+    ),
   adv_ops_run_upsert: (args) =>
     write(`Upsert ops run${suffix(args, "changeId", "runId")}`),
   adv_ops_run_evidence_add: (args) =>

@@ -477,6 +477,8 @@ export {
   type OpsFollowupProfile,
   OpsFollowupResolutionSchema,
   type OpsFollowupResolution,
+  OpsFollowupResolutionReasonSchema,
+  type OpsFollowupResolutionReason,
   OpsFollowupLinkSchema,
   type OpsFollowupLink,
 } from "./changes";

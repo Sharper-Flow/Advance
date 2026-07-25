@@ -3,11 +3,12 @@ import { opsEvidenceTools } from "./ops-evidence";
 import { parseToolOutput } from "../__tests__/setup";
 import {
   opsEvidenceAppendedSignal,
+  opsFollowupResolutionUpsertedSignal,
   opsRunEvidenceAppendedSignal,
   opsRunUpsertedSignal,
 } from "../temporal/messages";
 import type { Store } from "../storage/store";
-import type { Change, OpsFollowupProfile } from "../types";
+import type { Change, OpsFollowupLink, OpsFollowupProfile } from "../types";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -85,6 +86,17 @@ function makeChange(overrides?: Partial<Change>): Change {
     }),
     ...overrides,
   } as Change;
+}
+
+function makeLink(overrides?: Partial<OpsFollowupLink>): OpsFollowupLink {
+  return {
+    id: "ofl-1",
+    changeId: "childChange",
+    relationship: "blocks",
+    status: "running",
+    linked_at: "2026-06-20T04:00:00.000Z",
+    ...overrides,
+  } as OpsFollowupLink;
 }
 
 function makeStore(change?: Change): Store {
@@ -565,5 +577,132 @@ describe("ops runbook tools", () => {
 
     expect(result.code).toBe("UNSAFE_OPS_EVIDENCE");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+});
+
+describe("adv_ops_followup_resolution_upsert", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  test("upserts resolution onto a matching outbound link", async () => {
+    const store = makeStore(
+      makeChange({
+        ops_followup_links: [makeLink()],
+      }),
+    );
+
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_followup_resolution_upsert.execute(
+        {
+          changeId: "parentChange",
+          linkId: "ofl-1",
+          status: "complete",
+          verifiedAt: "2026-06-20T04:05:00.000Z",
+          childUpdatedAt: "2026-06-20T04:04:00.000Z",
+          resolutionReason: "verified",
+          source: "child_profile",
+          completionSignal: "deploy finished",
+          healthVerification: "smoke passed",
+          rollbackOrCleanupDisposition: "no rollback needed",
+          evidenceSummary: "child profile shows complete",
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.resolution.status).toBe("complete");
+    expect(result.resolution.resolution_reason).toBe("verified");
+    expect(result.resolution.child_updated_at).toBe("2026-06-20T04:04:00.000Z");
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
+      opsFollowupResolutionUpsertedSignal,
+    );
+    const payload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
+      linkId: string;
+      resolution: Record<string, unknown>;
+    };
+    expect(payload.linkId).toBe("ofl-1");
+    expect(payload.resolution.status).toBe("complete");
+  });
+
+  test("returns dry-run preview without signaling", async () => {
+    const store = makeStore(
+      makeChange({
+        ops_followup_links: [makeLink()],
+      }),
+    );
+
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_followup_resolution_upsert.execute(
+        {
+          changeId: "parentChange",
+          linkId: "ofl-1",
+          status: "unreachable",
+          verifiedAt: "2026-06-20T04:05:00.000Z",
+          resolutionReason: "child_missing",
+          source: "unreachable",
+          dryRun: true,
+        },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.dryRun).toBe(true);
+    expect(result.resolution.source).toBe("unreachable");
+    expect(result.resolution.resolution_reason).toBe("child_missing");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("rejects when change has no matching link", async () => {
+    const store = makeStore(makeChange());
+
+    const result = parseToolOutput(
+      await opsEvidenceTools.adv_ops_followup_resolution_upsert.execute(
+        {
+          changeId: "parentChange",
+          linkId: "missing",
+          status: "complete",
+          verifiedAt: "2026-06-20T04:05:00.000Z",
+          resolutionReason: "verified",
+          source: "child_profile",
+        },
+        store,
+      ),
+    );
+
+    expect(result.error).toMatch(/link not found/);
+    expect(result.code).toBe("OPS_FOLLOWUP_LINK_NOT_FOUND");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+  });
+
+  test("accepts resolution upsert without optional resolutionReason", async () => {
+    const schema =
+      opsEvidenceTools.adv_ops_followup_resolution_upsert.args.resolutionReason;
+    const parsed = (
+      schema as { safeParse: (v: unknown) => { success: boolean } }
+    ).safeParse(undefined);
+    expect(parsed.success).toBe(true);
+  });
+
+  test("rejects blank required fields", () => {
+    for (const field of [
+      "changeId",
+      "linkId",
+      "status",
+      "verifiedAt",
+      "source",
+    ]) {
+      const schema =
+        opsEvidenceTools.adv_ops_followup_resolution_upsert.args[
+          field as keyof typeof opsEvidenceTools.adv_ops_followup_resolution_upsert.args
+        ];
+      const parsed = (
+        schema as { safeParse: (v: unknown) => { success: boolean } }
+      ).safeParse("");
+      expect(parsed.success, field).toBe(false);
+    }
   });
 });

@@ -122,6 +122,9 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // addAdvLauncherReadProjection added the launcher projection rebuild MCP
   // tool (plugin-only; never exposed via bin/adv).
   "adv_launcher_projection_rebuild",
+  // fixOpsResolutionProjection adds the ops follow-up link resolution upsert
+  // tool for bounded child-profile resolution projection.
+  "adv_ops_followup_resolution_upsert",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;

@@ -57,6 +57,7 @@ import {
   applyLightweightProfileRequestedToState,
   applyOpsEvidenceAppendedToState,
   applyOpsFollowupLinkAddedToState,
+  applyOpsFollowupResolutionUpsertedToState,
   applyOpsRunEvidenceAppendedToState,
   applyOpsRunUpsertedToState,
   applyOriginRepairedToState,
@@ -454,6 +455,9 @@ const opsFollowupSeededSignal = wf.defineSignal<
 const opsFollowupLinkAddedSignal = wf.defineSignal<
   [import("../types").OpsFollowupLinkAddedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupLinkAdded);
+const opsFollowupResolutionUpsertedSignal = wf.defineSignal<
+  [import("../types").OpsFollowupResolutionUpsertedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.opsFollowupResolutionUpserted);
 const opsEvidenceAppendedSignal = wf.defineSignal<
   [import("../types").OpsEvidenceAppendedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.opsEvidenceAppended);
@@ -1855,6 +1859,12 @@ export async function changeWorkflow(
     opsFollowupLinkAddedSignal,
     signalMutation("opsFollowupLinkAdded", (payload) =>
       applyOpsFollowupLinkAddedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    opsFollowupResolutionUpsertedSignal,
+    signalMutation("opsFollowupResolutionUpserted", (payload) =>
+      applyOpsFollowupResolutionUpsertedToState(state, payload),
     ),
   );
   wf.setHandler(
