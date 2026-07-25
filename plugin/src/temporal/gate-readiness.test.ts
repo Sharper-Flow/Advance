@@ -1528,6 +1528,56 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
     };
   }
 
+  function reviewerReport(
+    overrides: {
+      attempt?: number;
+      taskId?: string;
+      testsRun?: string[];
+      scope?: "task" | "change";
+      scopeKey?: string;
+      consumerWarnings?: { kind: string; message: string }[];
+    } = {},
+  ) {
+    const taskId = overrides.taskId ?? "tk-ver-1";
+    const scope =
+      overrides.scope === "change"
+        ? {
+            kind: "change" as const,
+            scope_key: overrides.scopeKey ?? "review:acceptance",
+          }
+        : { kind: "task" as const, task_id: taskId };
+    return {
+      schema_version: "1.0" as const,
+      change_id: "strengthenAgentEvidence",
+      ...(scope.kind === "task" ? { task_id: taskId } : {}),
+      scope,
+      attempt: overrides.attempt ?? 1,
+      agent: "adv-reviewer" as const,
+      phase: "review" as const,
+      verdict: "READY" as const,
+      blocking_findings: [],
+      nonblocking_findings: [],
+      changes_made: [],
+      wisdom_candidates: [],
+      verification: {
+        tests_run: overrides.testsRun ?? ["pnpm test"],
+        results: "pass" as const,
+        evidence: "review" as const,
+      },
+      scope_drift: null,
+      risks: [],
+      required_main_agent_actions: [],
+      workdir_used: "/tmp/worktree",
+      context_update_for_adv: {
+        what_ads_needs_to_know: "x",
+        suggested_next_action: "y",
+      },
+      ...(overrides.consumerWarnings
+        ? { consumer_warnings: overrides.consumerWarnings }
+        : {}),
+    };
+  }
+
   const missingWarning = {
     kind: "verification_missing" as const,
     message: "No adv_run_test evidence found for reported command: pnpm test",
@@ -1681,6 +1731,67 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
       [],
     );
   });
+
+  it("AC1: review-policy task with linked task-scoped adv-reviewer report -> no VERIFICATION_EVIDENCE_MISSING block", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "review" })],
+      subagent_reports: [
+        reviewerReport({
+          testsRun: ["pnpm test"],
+          consumerWarnings: [],
+        }),
+      ],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
+  });
+
+  it("AC2: test-policy task with only adv-reviewer evidence -> still blocks", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [
+        reviewerReport({
+          testsRun: ["pnpm test"],
+          consumerWarnings: [
+            {
+              kind: "verification_missing",
+              message:
+                "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm test",
+            },
+          ],
+        }),
+      ],
+    });
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (b) => b.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it.each(["source_audit", "rubric_review"] as const)(
+    "AC3: warn-first policy %s with warnings -> no VERIFICATION_EVIDENCE_MISSING block",
+    (policy) => {
+      const state = makeState({
+        tasks: [doneTask({ evidence_policy: policy })],
+        subagent_reports: [
+          reviewerReport({
+            testsRun: ["pnpm test"],
+            consumerWarnings: [
+              {
+                kind: "verification_missing",
+                message: "No adv_run_test evidence found",
+              },
+            ],
+          }),
+        ],
+      });
+      expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+        [],
+      );
+    },
+  );
 
   it("is wired into evaluateGateReadiness for acceptance", () => {
     const state = makeState({
@@ -1917,6 +2028,61 @@ describe("checkCompletedTaskEvidencePlan — resolved plan readiness (C2/C4/C5)"
     ).toBe(false);
     expect(
       result.blockers.some((b) => b.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(false);
+  });
+
+  it("AC4: change-scoped adv-reviewer report cannot satisfy review_evidence_ref", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [
+        doneTask({
+          evidence_policy: "review",
+          evidence_plan: {
+            policy: "review",
+            proof_target: "Structured review conclusion",
+            rationale: "Peer review is sufficient.",
+            review_evidence_ref: {
+              report_key: "change-1|change:review:acceptance|adv-reviewer|1",
+            },
+            provenance: "new",
+            stage: "stage-v2",
+          },
+        }),
+      ],
+    });
+    state.subagent_reports = [
+      {
+        schema_version: "1.0",
+        change_id: "change-1",
+        attempt: 1,
+        workdir_used: "/tmp/test",
+        agent: "adv-reviewer",
+        scope: { kind: "change", scope_key: "review:acceptance" },
+        phase: "review",
+        verdict: "READY",
+        blocking_findings: [],
+        nonblocking_findings: [],
+        changes_made: [],
+        wisdom_candidates: [],
+        verification: { tests_run: [], results: "n/a", evidence: "review" },
+        scope_drift: null,
+        risks: [],
+        required_main_agent_actions: [],
+      },
+    ] as any;
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some((b) => b.code === "EVIDENCE_PLAN_INVALID"),
+    ).toBe(true);
+    expect(
+      result.blockers.some(
+        (b) => b.code === "EVIDENCE_PLAN_REVIEW_PROOF_MISSING",
+      ),
     ).toBe(false);
   });
 
