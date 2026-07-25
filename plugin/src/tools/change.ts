@@ -92,6 +92,7 @@ import {
   verifyReleaseGateDurableForArchive,
   completeReleaseGateAfterFinalization,
 } from "./change/archive-gate";
+import { releaseGateProofToCompletion } from "./change/release-proof";
 import {
   getGateDivergenceHint,
   ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
@@ -4102,7 +4103,7 @@ export const changeTools = {
             store,
             changeId,
             evidence: releaseEvidence,
-            finalizationStatus: finalization.status,
+            finalization,
           });
           if (!durableProof.ok) {
             return formatToolOutput({
@@ -4129,7 +4130,13 @@ export const changeTools = {
           }
           releaseGateCompletion = {
             ...releaseResult,
-            gate: durableProof.gate,
+            gate:
+              durableProof.gate ??
+              releaseGateProofToCompletion(
+                durableProof as Parameters<
+                  typeof releaseGateProofToCompletion
+                >[0],
+              ),
           };
         }
         const hasAcceptedDeltas = Object.values(change.deltas).some(

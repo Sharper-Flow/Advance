@@ -890,7 +890,7 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
       store,
       changeId: "issue305CachePoison",
       evidence: buildReleaseCompletionEvidence(shippedFinalization),
-      finalizationStatus: "shipped",
+      finalization: shippedFinalization,
     });
 
     expect(durableProof).toMatchObject({
@@ -907,6 +907,14 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
 });
 
 describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", () => {
+  const shippedFinalization: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    route: "direct",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-shipped",
+  };
   it("rejects a non-shipped change whose release gate carries a forged recovery_audit reason", async () => {
     const forgedGate = {
       status: "done",
@@ -930,7 +938,12 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
       store,
       changeId: "forgeGuard",
       evidence: "legitimate-finalization-evidence",
-      finalizationStatus: "pending_merge",
+      finalization: {
+        status: "pending_merge",
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        pushStatus: "not_attempted",
+      },
     });
 
     expect(durableProof).toMatchObject({
@@ -963,7 +976,7 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
       store,
       changeId: "shippedBypass",
       evidence: "structured-phase9-evidence",
-      finalizationStatus: "shipped",
+      finalization: shippedFinalization,
     });
 
     expect(durableProof).toMatchObject({ ok: true, source: "store" });
@@ -1004,9 +1017,158 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
       store,
       changeId: "staleStoreShippedDiskDone",
       evidence: "structured-phase9-evidence",
-      finalizationStatus: "shipped",
+      finalization: shippedFinalization,
     });
 
-    expect(durableProof).toMatchObject({ ok: true, source: "disk" });
+    expect(durableProof).toMatchObject({
+      ok: true,
+      source: "shipped-finalization",
+    });
+  });
+});
+
+describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fixReleaseProofShippedFalse)", () => {
+  const shippedFinalization: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    route: "direct",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-123",
+  };
+
+  function makeBothPendingStore(): Store {
+    return {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "pending" },
+        })),
+      },
+    } as unknown as Store;
+  }
+
+  it("AC1: shipped + store pending + disk pending → accepts and reconciles a done gate", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: { status: "pending" } } },
+    });
+    const store = makeBothPendingStore();
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "shippedNoDoneGate",
+      evidence: buildReleaseCompletionEvidence(shippedFinalization),
+      finalization: shippedFinalization,
+    });
+
+    expect(proof).toMatchObject({
+      ok: true,
+      accepted: true,
+      source: "shipped-finalization",
+      mergeCommitSha: shippedFinalization.mergeCommitSha,
+      pushStatus: shippedFinalization.pushStatus,
+      route: shippedFinalization.route,
+      finalizationStatus: "shipped",
+    });
+    expect(proof.gate).toBeDefined();
+    expect(proof.gate?.status).toBe("done");
+    expect(proof.gate?.approval_evidence).toContain("merge-sha-123");
+    expect(proof.gate?.approval_evidence).toContain("direct");
+  });
+
+  it("AC2: non-shipped (pending_merge) + store pending + disk pending → rejects, guard preserved", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: { status: "pending" } } },
+    });
+    const store = makeBothPendingStore();
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "notShippedNoDoneGate",
+      evidence: "irrelevant",
+      finalization: {
+        status: "pending_merge",
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        pushStatus: "pushed",
+        mergeCommitSha: "merge-sha-123",
+      },
+    });
+
+    expect(proof).toMatchObject({
+      ok: false,
+      accepted: false,
+      error: expect.stringContaining(
+        "Store-backed durable release gate proof did not observe release done",
+      ),
+    });
+  });
+
+  it("AC3: shipped proof missing mergeCommitSha → does not short-circuit", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: { status: "pending" } } },
+    });
+    const store = makeBothPendingStore();
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "shippedMissingMergeSha",
+      evidence: "irrelevant",
+      finalization: {
+        status: "shipped",
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        route: "direct",
+        pushStatus: "pushed",
+      },
+    });
+
+    expect(proof).toMatchObject({
+      ok: false,
+      accepted: false,
+      error: expect.stringContaining(
+        "Store-backed durable release gate proof did not observe release done",
+      ),
+    });
+  });
+
+  it("AC3: shipped no_remote route with skipped push accepts without mergeCommitSha requirement being the only blocker", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: { status: "pending" } } },
+    });
+    const store = makeBothPendingStore();
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "shippedNoRemote",
+      evidence: "irrelevant",
+      finalization: {
+        status: "shipped",
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        route: "no_remote",
+        pushStatus: "skipped",
+        mergeCommitSha: "local-merge-sha",
+      },
+    });
+
+    expect(proof).toMatchObject({
+      ok: true,
+      accepted: true,
+      source: "shipped-finalization",
+      route: "no_remote",
+      pushStatus: "skipped",
+      mergeCommitSha: "local-merge-sha",
+    });
   });
 });

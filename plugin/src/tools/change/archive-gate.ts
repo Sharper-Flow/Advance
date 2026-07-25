@@ -49,6 +49,11 @@ import {
   type GitFinalizeDeps,
 } from "../archive-helpers/git-finalize";
 import { hasGateRecoveryAudit } from "../recovery-audit";
+import {
+  releaseGateProofToCompletion,
+  type ReleaseGateProof,
+  type DurableReleaseGateProofResult,
+} from "./release-proof";
 const logger = createLogger("change");
 export function getArchiveTaskPreflightError(change: {
   tasks: {
@@ -493,7 +498,7 @@ export async function reconcileArchivedBundleRetry(input: {
     store: input.store,
     changeId: input.changeId,
     evidence: releaseEvidence,
-    finalizationStatus: finalization.status,
+    finalization,
   });
   let releaseResult: Extract<
     ArchiveReleaseGateResult,
@@ -504,7 +509,11 @@ export async function reconcileArchivedBundleRetry(input: {
   if (durableProof.ok) {
     releaseResult = {
       ok: true,
-      gate: durableProof.gate,
+      gate:
+        durableProof.gate ??
+        releaseGateProofToCompletion(
+          durableProof as Extract<ReleaseGateProof, { accepted: true }>,
+        ),
       alreadyDone: true,
       ...(durableProof.source === "disk" ? { recoveryMutation: true } : {}),
     };
@@ -535,7 +544,7 @@ export async function reconcileArchivedBundleRetry(input: {
       store: input.store,
       changeId: input.changeId,
       evidence: releaseEvidence,
-      finalizationStatus: finalization.status,
+      finalization,
     });
     if (!durableProof.ok) {
       return formatToolOutput({
@@ -553,7 +562,14 @@ export async function reconcileArchivedBundleRetry(input: {
         readinessBlockers: durableProof.readinessBlockers,
       });
     }
-    releaseResult = { ...completionResult, gate: durableProof.gate };
+    releaseResult = {
+      ...completionResult,
+      gate:
+        durableProof.gate ??
+        releaseGateProofToCompletion(
+          durableProof as Extract<ReleaseGateProof, { accepted: true }>,
+        ),
+    };
   }
   // rq-archiveRetryIdempotence01 / AC3 split-brain recovery: reconcile Phase 9
   // metadata to done whenever it is not already done — INCLUDING when it is
@@ -942,19 +958,6 @@ export async function recoverReleaseGateIfWorkflowCompleted(
   }
   throw error;
 }
-export type DurableReleaseGateProofResult =
-  | {
-      ok: true;
-      gate: GateCompletion;
-      source: "store" | "disk";
-    }
-  | {
-      ok: false;
-      error: string;
-      releaseGateStatus?: GateCompletion["status"];
-      readinessBlockers?: GateCompletion["readiness_blockers"];
-      stuckReason?: GateCompletion["stuck_reason"];
-    };
 export function releaseGateEvidenceMatches(
   gate: GateCompletion | undefined,
   evidence: string,
@@ -1016,8 +1019,8 @@ export async function verifyReleaseGateDurableForArchive(input: {
   changeId: string;
   evidence: string;
   /**
-   * The archive's fresh Phase 9 git-finalization outcome status. `shipped` is
-   * derived from `finalizationStatus === "shipped"` INSIDE this verifier
+   * The archive's fresh Phase 9 git-finalization outcome. `shipped` is derived
+   * from `finalization.status === "shipped"` INSIDE this verifier
    * (fixDurableProofFallback structural-authority hardening — no caller-trusted
    * boolean). git-finalize returns `shipped` only on confirmed reachability/
    * merge (PR pr_merged, no_remote local merge, or direct merge+push), so it is
@@ -1030,58 +1033,118 @@ export async function verifyReleaseGateDurableForArchive(input: {
    * The evidence-string path is preserved for archive-completed gates (backward
    * compatible). Non-`shipped` status preserves the strict evidence-match guard.
    */
-  finalizationStatus?: GitFinalizeOutcome["status"];
+  finalization?: GitFinalizeOutcome;
 }): Promise<DurableReleaseGateProofResult> {
   // Structural authority (fixDurableProofFallback design-validation hardening):
   // `shipped` is derived INSIDE the verifier from the finalization outcome
   // status, replacing a caller-supplied boolean. git-finalize sets
   // status === "shipped" only on confirmed default-branch reachability/merge.
-  const shipped = input.finalizationStatus === "shipped";
+  const shipped = input.finalization?.status === "shipped";
   let gates: Gates | null;
   try {
     gates = await input.store.gates.get(input.changeId);
   } catch (error) {
     return {
+      accepted: false,
       ok: false,
       error: `Store-backed release gate read failed: ${collectErrorText(error)}`,
     };
   }
   const releaseGate = gates?.release;
-  if (releaseGate?.status !== "done") {
-    const diskReleaseGate = await loadAuditedDiskReleaseGate({
-      ...input,
-      shipped,
-    });
-    if (diskReleaseGate) {
-      return { ok: true, gate: diskReleaseGate, source: "disk" };
+
+  // Normal store path (rq-releaseProjectionDurability01): if the store-backed
+  // release gate is already done, reconcile evidence as before. This path is
+  // unchanged; shipped only bypasses the evidence-match guard, not the source.
+  if (releaseGate?.status === "done") {
+    if (!releaseGateEvidenceMatches(releaseGate, input.evidence) && !shipped) {
+      return {
+        accepted: false,
+        ok: false,
+        error:
+          "Store-backed durable release gate proof lacks matching Phase 9 evidence",
+        releaseGateStatus: releaseGate.status,
+        readinessBlockers: releaseGate.readiness_blockers,
+        stuckReason: releaseGate.stuck_reason,
+      };
     }
     return {
-      ok: false,
-      error:
-        "Store-backed durable release gate proof did not observe release done",
-      releaseGateStatus: releaseGate?.status,
-      readinessBlockers: releaseGate?.readiness_blockers,
-      stuckReason: releaseGate?.stuck_reason,
+      accepted: true,
+      ok: true,
+      source: "store",
+      finalizationStatus: input.finalization?.status ?? "unknown",
+      mergeCommitSha: input.finalization?.mergeCommitSha,
+      pushStatus: input.finalization?.pushStatus,
+      route: input.finalization?.route,
+      gate: releaseGate,
     };
   }
-  // rq-releaseProjectionDurability01 reconciliation: accept the durable proof
-  // when the stored gate evidence corroborates finalization OR the archive's
-  // fresh finalization is authoritatively shipped. `shipped` is derived only
-  // from finalization.status === "shipped", which git-finalize returns
-  // exclusively on confirmed reachability/merge — so this cannot accept an
-  // unshipped change (guard preserved: unshipped → blocked/pending_merge →
-  // shipped false → strict evidence match still required).
-  if (!releaseGateEvidenceMatches(releaseGate, input.evidence) && !shipped) {
+
+  // Shipped rescue (KD2/KD5): git-verified `shipped` is unforgeable proof the
+  // change reached the default branch. Accept the durable proof without
+  // requiring the store/disk projection to already show done, but require the
+  // immutable merge SHA and a valid route/push combination so the proof remains
+  // structural. If shipped is missing reachability fields, fall through to the
+  // strict non-shipped disk fallback below.
+  if (shipped && input.finalization) {
+    const { route, pushStatus, mergeCommitSha } = input.finalization;
+    const prRoute =
+      route === "pr_auto_merge" ||
+      route === "pr_manual" ||
+      route === "merge_queue";
+    const validRoutePushCombo =
+      (route === "no_remote" && pushStatus === "skipped") ||
+      ((route === "direct" || prRoute) && pushStatus === "pushed");
+    if (mergeCommitSha && validRoutePushCombo) {
+      let gate: GateCompletion | undefined;
+      const diskReleaseGate = await loadAuditedDiskReleaseGate({
+        ...input,
+        shipped,
+      });
+      gate = diskReleaseGate ?? undefined;
+      if (!gate) {
+        gate = {
+          status: "done",
+          completed_at: new Date().toISOString(),
+          completed_by: "adv-archive",
+          approval_evidence: input.evidence,
+        };
+      }
+      return {
+        accepted: true,
+        ok: true,
+        source: "shipped-finalization",
+        finalizationStatus: input.finalization.status,
+        mergeCommitSha,
+        pushStatus,
+        route,
+        gate,
+      };
+    }
+  }
+
+  // Non-shipped / non-rescuable disk fallback.
+  const diskReleaseGate = await loadAuditedDiskReleaseGate({
+    ...input,
+    shipped,
+  });
+  if (diskReleaseGate) {
     return {
-      ok: false,
-      error:
-        "Store-backed durable release gate proof lacks matching Phase 9 evidence",
-      releaseGateStatus: releaseGate.status,
-      readinessBlockers: releaseGate.readiness_blockers,
-      stuckReason: releaseGate.stuck_reason,
+      accepted: true,
+      ok: true,
+      source: "disk",
+      finalizationStatus: input.finalization?.status ?? "unknown",
+      gate: diskReleaseGate,
     };
   }
-  return { ok: true, gate: releaseGate, source: "store" };
+  return {
+    accepted: false,
+    ok: false,
+    error:
+      "Store-backed durable release gate proof did not observe release done",
+    releaseGateStatus: releaseGate?.status,
+    readinessBlockers: releaseGate?.readiness_blockers,
+    stuckReason: releaseGate?.stuck_reason,
+  };
 }
 /**
  * rq-reapOrphanAdvWorkers T3 (SC3/AC3): a gateCompletedSignal failure is
