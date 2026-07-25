@@ -126,4 +126,34 @@ describe("ProjectConfigSchema archive.pr_title_policy", () => {
       pr_title_policy: { format: "plain" },
     });
   });
+
+  test("rejects empty release_types array", () => {
+    expect(() =>
+      ProjectConfigSchema.parse({
+        ...baseConfig,
+        archive: {
+          pr_title_policy: {
+            format: "conventional",
+            release_types: [],
+            allowed_types: ["fix"],
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  test("rejects empty allowed_types array", () => {
+    expect(() =>
+      ProjectConfigSchema.parse({
+        ...baseConfig,
+        archive: {
+          pr_title_policy: {
+            format: "conventional",
+            release_types: ["fix"],
+            allowed_types: [],
+          },
+        },
+      }),
+    ).toThrow();
+  });
 });

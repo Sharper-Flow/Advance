@@ -4200,12 +4200,12 @@ describe("git-finalize helpers", () => {
           mergeCalls.push(args);
           return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
         }
-      if (
-        args[0] === "pr" &&
-        args[1] === "view" &&
-        args[2] === "42" &&
-        args.some((a) => a.includes("state"))
-      ) {
+        if (
+          args[0] === "pr" &&
+          args[1] === "view" &&
+          args[2] === "42" &&
+          args.some((a) => a.includes("state"))
+        ) {
           titleFetchCalls.push(args);
           return {
             status: 0,
@@ -4309,6 +4309,28 @@ describe("git-finalize helpers", () => {
       );
       expect(result).toEqual({ ok: true });
       expect(mergeCalls).toHaveLength(1);
+    });
+
+    it("conventional + empty release_types blocks defensively", () => {
+      const { result, mergeCalls } = runArm(
+        {
+          format: "conventional",
+          allowed_types: ["fix"],
+          release_types: [],
+        },
+        {
+          prTitleType: "fix",
+          prTitle: "fix: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          "type 'fix' is not in release_types []; archive would merge without producing a release tag",
+        ],
+      });
+      expect(mergeCalls).toHaveLength(0);
     });
 
     it("conventional + missing type returns PR_TITLE_TYPE_UNRESOLVED and does not arm", () => {
@@ -5089,10 +5111,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
 
     const runGit = (_cwd: string, args: string[]) => {
       gitCalls.push(args);
-      if (
-        args[0] === "ls-remote" &&
-        args.includes(`refs/heads/${branch}`)
-      ) {
+      if (args[0] === "ls-remote" && args.includes(`refs/heads/${branch}`)) {
         return {
           status: 0,
           stdout: `abc123\trefs/heads/${branch}\n`,

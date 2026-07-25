@@ -24,6 +24,7 @@
               "items": {
                 "type": "string"
               },
+              "minItems": 1,
               "type": "array"
             },
             "format": {
@@ -38,6 +39,7 @@
               "items": {
                 "type": "string"
               },
+              "minItems": 1,
               "type": "array"
             }
           },

@@ -1692,7 +1692,6 @@ export function armPullRequestAutoMerge(
 
     if (
       policy.release_types !== undefined &&
-      policy.release_types.length > 0 &&
       !policy.release_types.includes(prTitleType)
     ) {
       return {

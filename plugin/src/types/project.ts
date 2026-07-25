@@ -212,9 +212,9 @@ export const PrTitlePolicySchema = z
     /** PR title format policy for archive finalization. */
     format: z.enum(["conventional", "plain"]).default("plain"),
     /** Commit types that trigger a release when using conventional format. */
-    release_types: z.array(z.string()).optional(),
+    release_types: z.array(z.string()).min(1).optional(),
     /** Full allowed conventional-commit type set. */
-    allowed_types: z.array(z.string()).optional(),
+    allowed_types: z.array(z.string()).min(1).optional(),
   })
   .passthrough(); // Forward compatibility: unknown keys pass through
 
