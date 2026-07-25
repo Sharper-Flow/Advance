@@ -18,6 +18,7 @@ import type {
   OpsFollowupLink,
   OpsFollowupProfile,
 } from "../types";
+import type { GitFinalizeOutcome } from "./archive-helpers/git-finalize";
 import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import * as storageJson from "../storage/json";
 
@@ -726,6 +727,21 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const structuredEvidence =
       "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=NEWBUNDLE999";
 
+    const shippedFinalization: GitFinalizeOutcome = {
+      status: "shipped",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      mergeCommitSha: "NEWBUNDLE999",
+      route: "direct",
+    };
+    const blockedFinalization: GitFinalizeOutcome = {
+      status: "blocked",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "not_attempted",
+    };
+
     async function makeDiskFallbackStore(input: {
       releaseGate: Gates["release"];
     }): Promise<{ store: Store; cleanup: () => Promise<void> }> {
@@ -800,7 +816,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
           store,
           changeId: "example",
           evidence: structuredEvidence,
-          finalizationStatus: "shipped",
+          finalization: shippedFinalization,
         });
         expect(proof.ok).toBe(true);
       } finally {
@@ -827,7 +843,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
           store,
           changeId: "example",
           evidence: structuredEvidence,
-          finalizationStatus: "blocked",
+          finalization: blockedFinalization,
         });
         expect(proof.ok).toBe(false);
       } finally {
@@ -858,7 +874,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
           store,
           changeId: "example",
           evidence: structuredEvidence,
-          finalizationStatus: "shipped",
+          finalization: shippedFinalization,
         });
         expect(proof.ok).toBe(true);
       } finally {
@@ -884,7 +900,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
           store,
           changeId: "example",
           evidence: structuredEvidence,
-          finalizationStatus: "shipped",
+          finalization: shippedFinalization,
         });
         expect(proof.ok).toBe(true);
       } finally {
@@ -910,7 +926,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
           store,
           changeId: "example",
           evidence: structuredEvidence,
-          finalizationStatus: "shipped",
+          finalization: shippedFinalization,
         });
         // rq-releaseProjectionDurability01: `shipped` is git-verified proof
         // (finalization.status === "shipped" = confirmed default-branch
@@ -928,6 +944,21 @@ describe("adv_change_archive Phase 9 behavior", () => {
   describe("finalizationShipped reconciliation (fixReleaseDurabilityFalse)", () => {
     const structuredEvidence =
       "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
+
+    const shippedFinalization: GitFinalizeOutcome = {
+      status: "shipped",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      mergeCommitSha: "abc123",
+      route: "direct",
+    };
+    const blockedFinalization: GitFinalizeOutcome = {
+      status: "blocked",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "not_attempted",
+    };
 
     const makeReleaseDoneStore = (approvalEvidence: string): Store =>
       ({
@@ -960,7 +991,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         store,
         changeId: "example",
         evidence: structuredEvidence,
-        finalizationStatus: "shipped",
+        finalization: shippedFinalization,
       });
       expect(proof.ok).toBe(true);
     });
@@ -973,7 +1004,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         store,
         changeId: "example",
         evidence: structuredEvidence,
-        finalizationStatus: "blocked",
+        finalization: blockedFinalization,
       });
       expect(proof.ok).toBe(false);
       expect(proof).toMatchObject({
@@ -989,7 +1020,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         store,
         changeId: "example",
         evidence: structuredEvidence,
-        finalizationStatus: "blocked",
+        finalization: blockedFinalization,
       });
       expect(proof.ok).toBe(true);
     });
@@ -1003,7 +1034,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
         changeId: "example",
         evidence:
           "Phase 9 finalization shipped; mergeCommitSha=NEWBUNDLEMERGE222",
-        finalizationStatus: "shipped",
+        finalization: shippedFinalization,
       });
       expect(proof.ok).toBe(true);
     });

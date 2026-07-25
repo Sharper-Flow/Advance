@@ -25,6 +25,7 @@ import type { Change, Store } from "../../types";
 import type {
   GitFinalizeDeps,
   GitFinalizeOutcome,
+  ReleaseFinalizationRouteName,
 } from "../archive-helpers/git-finalize";
 
 vi.mock("../../temporal/service", () => ({
@@ -1171,4 +1172,269 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
       mergeCommitSha: "local-merge-sha",
     });
   });
+});
+
+describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof matrix (fixReleaseProofShippedFalse)", () => {
+  function makeStoreWithReleaseGate(releaseGate: unknown): Store {
+    return {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: releaseGate,
+        })),
+      },
+    } as unknown as Store;
+  }
+
+  function makeBothPendingStore(): Store {
+    return {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "pending" },
+        })),
+      },
+    } as unknown as Store;
+  }
+
+  const shippedBase: GitFinalizeOutcome = {
+    status: "shipped",
+    mainCheckout: "/repo",
+    defaultBranch: "trunk",
+    pushStatus: "pushed",
+    mergeCommitSha: "merge-sha-matrix",
+    route: "direct",
+  };
+
+  it("AC4 regression: shipped + store release done accepts with source 'store' (rescue short-circuits)", async () => {
+    const store = makeStoreWithReleaseGate({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+      approval_evidence: "free-text-manual-notes",
+    });
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "shippedStoreDone",
+      evidence: "does-not-match",
+      finalization: shippedBase,
+    });
+
+    expect(proof).toMatchObject({
+      ok: true,
+      accepted: true,
+      source: "store",
+      finalizationStatus: "shipped",
+    });
+    expect(proof).not.toMatchObject({ source: "shipped-finalization" });
+  });
+
+  it("AC4 regression: shipped + store pending + disk release done accepts with source 'shipped-finalization'", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: {
+        gates: {
+          release: {
+            status: "done",
+            completed_at: "2026-01-01T00:00:00Z",
+            completed_by: "agent",
+            approval_evidence: "free-text-manual-notes",
+          },
+        },
+      },
+    });
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store: makeBothPendingStore(),
+      changeId: "shippedDiskDone",
+      evidence: "does-not-match",
+      finalization: shippedBase,
+    });
+
+    expect(proof).toMatchObject({
+      ok: true,
+      accepted: true,
+      source: "shipped-finalization",
+      finalizationStatus: "shipped",
+    });
+  });
+
+  it("AC4 regression: un-shipped + store release done with matching evidence accepts", async () => {
+    const finalization: GitFinalizeOutcome = {
+      status: "blocked",
+      mainCheckout: "/repo",
+      defaultBranch: "trunk",
+      pushStatus: "not_attempted",
+    };
+    const evidence = buildReleaseCompletionEvidence(finalization);
+    const store = makeStoreWithReleaseGate({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+      approval_evidence: `release done; ${evidence}`,
+    });
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "unshippedEvidenceMatch",
+      evidence,
+      finalization,
+    });
+
+    expect(proof).toMatchObject({
+      ok: true,
+      accepted: true,
+      source: "store",
+      finalizationStatus: "blocked",
+    });
+  });
+
+  it("AC4 regression: un-shipped + store release done with mismatched evidence rejects", async () => {
+    const store = makeStoreWithReleaseGate({
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "agent",
+      approval_evidence: "old-evidence",
+    });
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "unshippedMismatch",
+      evidence: "new-evidence",
+      finalization: {
+        status: "pending_merge",
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        pushStatus: "pushed",
+        mergeCommitSha: "abc",
+      },
+    });
+
+    expect(proof.ok).toBe(false);
+    expect(proof.error).toContain(
+      "Store-backed durable release gate proof lacks matching Phase 9 evidence",
+    );
+  });
+
+  it("KD5 guard: shipped + valid route/push but missing mergeCommitSha + store-pending + disk-pending rejects", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: { status: "pending" } } },
+    });
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store: makeBothPendingStore(),
+      changeId: "shippedMissingMergeShaKD5",
+      evidence: "irrelevant",
+      finalization: {
+        status: "shipped",
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        route: "direct",
+        pushStatus: "pushed",
+      },
+    });
+
+    expect(proof.ok).toBe(false);
+    expect(proof.error).toContain(
+      "Store-backed durable release gate proof did not observe release done",
+    );
+  });
+
+  const shippedRouteCases: Array<{
+    route: ReleaseFinalizationRouteName;
+    pushStatus: "pushed" | "skipped";
+    label: string;
+  }> = [
+    { route: "no_remote", pushStatus: "skipped", label: "no_remote + skipped" },
+    { route: "direct", pushStatus: "pushed", label: "direct + pushed" },
+    {
+      route: "pr_auto_merge",
+      pushStatus: "pushed",
+      label: "pr_auto_merge + pushed",
+    },
+    { route: "pr_manual", pushStatus: "pushed", label: "pr_manual + pushed" },
+    {
+      route: "merge_queue",
+      pushStatus: "pushed",
+      label: "merge_queue + pushed",
+    },
+  ];
+
+  it.each(shippedRouteCases)(
+    "route matrix: %s shipped + mergeCommitSha + pending/pending accepts via shipped-finalization",
+    async ({ route, pushStatus }) => {
+      diskLoadMocks.loadChange.mockResolvedValue({
+        success: true,
+        data: { gates: { release: { status: "pending" } } },
+      });
+      const finalization: GitFinalizeOutcome = {
+        ...shippedBase,
+        route,
+        pushStatus,
+        mergeCommitSha: `${route}-merge-sha`,
+      };
+
+      const proof = await verifyReleaseGateDurableForArchive({
+        store: makeBothPendingStore(),
+        changeId: `shippedRoute-${route}`,
+        evidence: buildReleaseCompletionEvidence(finalization),
+        finalization,
+      });
+
+      expect(proof).toMatchObject({
+        ok: true,
+        accepted: true,
+        source: "shipped-finalization",
+        finalizationStatus: "shipped",
+        route,
+        pushStatus,
+        mergeCommitSha: `${route}-merge-sha`,
+      });
+      expect(proof.gate).toBeDefined();
+      expect(proof.gate?.status).toBe("done");
+    },
+  );
+
+  it.each(["blocked", "pending_merge"] as const)(
+    "guard preservation: %s finalizationStatus never satisfies shipped",
+    async (status) => {
+      diskLoadMocks.loadChange.mockResolvedValue({
+        success: true,
+        data: { gates: { release: { status: "pending" } } },
+      });
+
+      const proof = await verifyReleaseGateDurableForArchive({
+        store: makeBothPendingStore(),
+        changeId: `notShipped-${status}`,
+        evidence: "irrelevant",
+        finalization: {
+          status,
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          route: "direct",
+          pushStatus: "pushed",
+          mergeCommitSha: "abc",
+        },
+      });
+
+      expect(proof.ok).toBe(false);
+      expect(proof.error).toContain(
+        "Store-backed durable release gate proof did not observe release done",
+      );
+    },
+  );
 });
