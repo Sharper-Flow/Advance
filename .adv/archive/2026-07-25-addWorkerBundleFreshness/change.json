@@ -1,0 +1,2672 @@
+{
+  "id": "addWorkerBundleFreshness",
+  "title": "Add worker-bundle freshness release gate",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-25T16:17:13.822Z",
+  "tasks": [
+    {
+      "id": "tk-50e16e7530b0",
+      "title": "Spec: add `rq-workerBundleReleaseProvenance01` requirement + asset test",
+      "type": "code",
+      "section": "Foundation / Spec",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-25T16:22:37.454Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec-law artifact; schema validity + scenario well-formedness. Non-code (rq-prepNonCodeEvidence01).",
+        "review_evidence_ref": {
+          "report_key": "addWorkerBundleFreshness|tk-50e16e7530b0|adv-reviewer|2"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-50e16e7530b0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-50e16e7530b0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "plugin/src/adv-autonomy-quality-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "manual-oc-test-targeted-asset-test",
+              "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "All 35 tests pass, including new worker bundle release provenance assertions"
+            },
+            {
+              "test_run_id": "manual-pnpm-run-check",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Inserted rq-workerBundleReleaseProvenance01 between rq-releaseProjectionDurability01 and rq-archiveRecoveryConsistency01",
+              "why": "Keeps the new archive/release-gate requirement adjacent to existing release projection durability requirements in the advance-workflow capability spec"
+            },
+            {
+              "what": "Used exact array comparison for scenario IDs in the asset test instead of arrayContaining",
+              "why": "Matches the existing releaseProjectionDurability01 assertion style in the same file"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [
+            "Schedule adv-reviewer to sign off on static_check evidence"
+          ],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added additive MUST requirement rq-workerBundleReleaseProvenance01 to advance-workflow spec with 5 Given/When/Then scenarios and AC1-AC5 warrants. Extended adv-autonomy-quality-assets.test.ts with presence/structure assertions for the new requirement and its scenarios. Asset test passes; pnpm run check clean.",
+            "suggested_next_action": "Schedule adv-reviewer for static_check sign-off; no further engineering work required for this task"
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_addWorkerBundleFreshness_tk-50e16e7530b0_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-50e16e7530b0_attempt_1"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-oc-test-targeted-asset-test"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: manual-pnpm-run-check"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-50e16e7530b0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-50e16e7530b0"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "NEEDS_WORK",
+          "blocking_findings": [
+            {
+              "id": "review-issue-1",
+              "label": "issue",
+              "file": ".adv/specs/advance-workflow/spec.json",
+              "line": 1015,
+              "what": "Scenario `.5` warrants AC5 but only asserts post-deploy runtime freshness is out of scope.",
+              "why": "AC5 requires hard placement in `evaluateGateReadiness`, not advisory `CRITERION_EVALUATORS`; KD2 has no scenario coverage. The paired asset test repeats this mismatch, so it cannot prevent a future regression from moving the check to an advisory evaluator.",
+              "fix": "Revise scenario `.5` to name `evaluateGateReadiness` hard readiness and exclusion from `CRITERION_EVALUATORS` while retaining the KD5 runtime-out-of-scope boundary; extend the asset test with structural assertions for both statements."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+              "git diff --check"
+            ],
+            "results": "pass",
+            "evidence": "Targeted suite: 2 files / 37 tests passed, exit 0. `git diff --check` passed. The asset test parses JSON and checks requirement existence, exact five scenario IDs, tags, warrants, and scenario content; it is not a no-op, but it omits AC5/KD2 hard-readiness assertions."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Release-gate placement can drift into advisory `CRITERION_EVALUATORS` without this spec scenario or asset test detecting it."
+          ],
+          "required_main_agent_actions": [
+            "Remediate review-issue-1 within this task's existing spec/test scope, then rerun the targeted test command before task completion."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-50e16e7530b0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-50e16e7530b0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            ".adv/specs/advance-workflow/spec.json",
+            "plugin/src/adv-autonomy-quality-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "oc-test-targeted-tk-50e16e7530b0",
+              "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+              "exit_code": 0,
+              "summary": "37 tests pass across 2 files"
+            },
+            {
+              "test_run_id": "pnpm-check-tk-50e16e7530b0",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, manifest check, test-isolation, lockfile policy, lint, and format:check all clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Re-warranted rq-workerBundleReleaseProvenance01.5 from AC5 to no warrant",
+              "why": "Scenario .5 is a scope clarification (post-deploy runtime freshness out of scope), not the acceptance criterion. Removing the warrant matches the repo convention for out-of-scope scenarios (e.g., rq-reviewBadTestCleanup01.2)."
+            },
+            {
+              "what": "Added rq-workerBundleReleaseProvenance01.6 for AC5",
+              "why": "The actual AC5 is that the provenance check is a hard blocking release-readiness gate in evaluateGateReadiness, not an advisory CRITERION_EVALUATORS criterion. This needed its own scenario."
+            },
+            {
+              "what": "Updated asset test to assert 6 scenarios and the new warrant mapping",
+              "why": "Keeps the non-behavioral asset test in sync with the spec change and prevents regression of the warrant placement."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Spec correction complete: rq-workerBundleReleaseProvenance01 now has 6 scenarios. .5 is an un-warranted scope-clarification scenario; .6 carries the AC5 warrant for the blocking release-readiness gate. Asset test updated and green.",
+            "suggested_next_action": "Designer can proceed to review the updated scenario/AC5 placement; no further engineering action needed for this task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: oc-test-targeted-tk-50e16e7530b0"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: pnpm-check-tk-50e16e7530b0"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-50e16e7530b0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-50e16e7530b0"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+              "git diff --check"
+            ],
+            "results": "pass",
+            "evidence": "Targeted suite passed: 2 test files / 37 tests, exit 0. `git diff --check` passed. rq-workerBundleReleaseProvenance01 now has exact scenarios .1-.6; .5 has no warrant and remains the runtime out-of-scope boundary; .6 warrants AC5 and explicitly requires evaluateGateReadiness/GateReadinessBlocker placement outside advisory CRITERION_EVALUATORS. Asset assertions lock the six IDs and .5/.6 warrant mapping."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+            }
+          ]
+        }
+      ],
+      "error_recovery": {
+        "last_error": ".adv/specs/advance-workflow/spec.json :1015 Scenario `.5` warrants AC5 but only asserts post-deploy runtime freshness is out of scope.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": ".adv/specs/advance-workflow/spec.json :1015 Scenario `.5` warrants AC5 but only asserts post-deploy runtime freshness is out of scope.",
+            "diagnosis": "AC5 requires hard placement in `evaluateGateReadiness`, not advisory `CRITERION_EVALUATORS`; KD2 has no scenario coverage. The paired asset test repeats this mismatch, so it cannot prevent a future regression from moving the check to an advisory evaluator.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-07-25T16:36:41.600Z"
+          }
+        ]
+      },
+      "verification": "Spec rq-workerBundleReleaseProvenance01 [MUST] + 6 scenarios (.1 AC1 block, .2 AC2 pass, .3 AC3 skip, .4 AC4 typed-authority, .5 post-deploy scope, .6 AC5 hard-readiness placement); asset test asserts 6 scenarios + warrant mapping. Additive/non-weakening. adv-reviewer READY (attempt 2, AC5 resolved, 0 findings). Verify tr_ms0la4xu (37 passed); pnpm run check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "checkpointSha": "eb95dfacc09030690ef3bb6ecdcbc58eaa2b6f1c",
+      "completedAt": "2026-07-25T16:43:01.803Z",
+      "completed_at": "2026-07-25T16:43:01.803Z"
+    },
+    {
+      "id": "tk-b462f7475ec6",
+      "title": "Model + signals: worker_bundle_impact field + provenance receipt signal + typed evidence identity",
+      "type": "code",
+      "section": "Core Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-25T16:22:54.412Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-50e16e7530b0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT1"
+        ],
+        "verifies": [
+          "AC4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Type/schema + signal/reducer logic; tests for field presence, signal reduction, evidence_kind tagging.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-b462f7475ec6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-b462f7475ec6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/types/signals.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/messages.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/tools/test.ts",
+            "plugin/src/temporal/messages.test.ts",
+            "plugin/src/temporal/contracts.test.ts",
+            "plugin/schemas/change.schema.json"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms0lr6hj_2771a3ea",
+              "command": "../bin/oc-test targeted -- src/temporal/contracts.test.ts",
+              "exit_code": 1,
+              "summary": "RED: new tests fail before implementation (missing applyWorkerBundleProvenanceRecordedToState and evidence_kind field)"
+            },
+            {
+              "test_run_id": "tr_ms0m3x6m_e21505bf",
+              "command": "../bin/oc-test targeted -- src/temporal/messages.test.ts src/temporal/change-state.test.ts src/temporal/contracts.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 91 tests pass after implementation including new worker-bundle and evidence_kind tests"
+            },
+            {
+              "test_run_id": "tr_ms0lyt6g_c3a7492a",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck clean"
+            },
+            {
+              "test_run_id": "tr_ms0m57a7_038a43f3",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Full check clean (schemas:check, typecheck, manifests:check, test isolation, lockfile policy, lint, format:check)"
+            },
+            {
+              "test_run_id": "tr_ms0m7774_67734207",
+              "command": "../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.itest.ts",
+              "exit_code": 0,
+              "summary": "Signal-handler integration test suite passes with new signal wired"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Defined WorkerBundleProvenance shape inline in contracts.ts ChangeWorkflowState rather than importing a shared type",
+              "why": "Keeps the workflow-state contract self-describing; the payload schema in types/signals.ts is the authoritative validation boundary, and the inline interface mirrors it exactly"
+            },
+            {
+              "what": "Added worker_bundle_impact to ChangeWorkflowState/seedState in addition to ChangeSchema",
+              "why": "The field is on-disk in Change; preserving it through continue-as-new requires it on workflow state and in the seed allowlist"
+            },
+            {
+              "what": "Added workerBundleProvenance only to workflow state and continue-as-new seed, not to Change (disk) seed helper",
+              "why": "It is a workflow-provenance receipt, not a disk Change field; it survives rotation via continue-as-new seedState"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Added corresponding test case in messages.test.ts for the new signal surface and schema; updated signal count from 62 to 63. No same-pattern issues found elsewhere.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Additive worker-bundle model changes implemented and verified: ChangeSchema.worker_bundle_impact, WorkerBundleProvenanceRecordedSignal + handler/reducer/state, optional evidence_kind on test-run records, and adv_run_test support for evidence_kind. All fields are carried through continue-as-new seedState. No wf.patched introduced (release-readiness behavior is T4 scope).",
+            "suggested_next_action": "Proceed to T3/T4 tasks; consider a full temporal integration run before merge if T3's seed additions overlap."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-b462f7475ec6_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "worker-bundle-model-typed-evidence"
+            }
+          }
+        }
+      ],
+      "verification": "Model+signals: Change.worker_bundle_impact field (KD1/AC4); workerBundleProvenanceRecordedSignal + state.workerBundleProvenance reducer (KD4); TestRunRecord.evidence_kind typed enum (KD3). Additive/backward-compatible; both new fields in seedState allowlist + continueAsNew seed. No wf.patched (T4 scope). TDD red tr_ms0lr6hj_2771a3ea -> green tr_ms0m3x6m_e21505bf (91 tests); typecheck tr_ms0lyt6g clean; pnpm run check tr_ms0m57a7 clean; signal-handlers itest tr_ms0m7774 clean; orchestrator verify tr_ms0m8ryt (91 passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "8c97ed49f8d5b9c9013dbed8521a9e49ba89627b",
+      "completedAt": "2026-07-25T17:01:28.329Z",
+      "completed_at": "2026-07-25T17:01:28.329Z"
+    },
+    {
+      "id": "tk-409ae138e9ba",
+      "title": "Durability fix (KD6): preserve testRuns + worker_bundle_impact + provenance across workflow rotation",
+      "type": "code",
+      "section": "Core Implementation",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-25T16:23:11.303Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b462f7475ec6"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C4"
+        ],
+        "verifies": [
+          "AC2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Durability regression test proves evidence survives workflow rotation; behavior-critical for the release gate.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Durability fix (KD6): testRuns added to seedState allowlist (contracts.ts:324), continueAsNew (workflows.ts:698, new buildChangeWorkflowContinueAsNewSeed helper), disk reseed (change-state.ts:231). Campsite: workerBundleProvenance also added to disk reseed (was missing). 2 regression tests (continueAsNew + disk reseed preserve testRuns+provenance+worker_bundle_impact). TDD red tr_ms0mj5bz_c9386c2a -> green tr_ms0mklwl_602ce6bd; verify tr_ms0moq90 (89 passed); typecheck + pnpm run check clean.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "421827043963ec57e3fad5433a4717c576698fc7",
+      "completedAt": "2026-07-25T17:13:49.740Z",
+      "completed_at": "2026-07-25T17:13:49.740Z"
+    },
+    {
+      "id": "tk-6cccd5c24647",
+      "title": "Gate check (KD2/KD7): worker-bundle-release-provenance blocker in evaluateGateReadiness",
+      "type": "code",
+      "section": "Core Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-25T16:23:29.987Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b462f7475ec6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-409ae138e9ba"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Core gating behavior; behavior-critical. Red->green for required-blocks / required-passes / not_applicable-skips / lives-in-evaluateGateReadiness.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-6cccd5c24647",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6cccd5c24647"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/gate-readiness.ts",
+            "plugin/src/temporal/gate-readiness.test.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/workflows.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms0mxcts_f45aab71",
+              "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+              "exit_code": 1,
+              "summary": "RED phase: 4 new worker-bundle provenance tests fail against stub helper (expected missing/failing blockers not returned)"
+            },
+            {
+              "test_run_id": "tr_ms0my3kg_fbc89c13",
+              "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN phase: 89 tests pass, including new KD2/KD7 provenance coverage"
+            },
+            {
+              "test_run_id": "tr_ms0myi2i_f613f726",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript clean across plugin/"
+            },
+            {
+              "test_run_id": "tr_ms0n3qth_07238221",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Schemas, typecheck, manifest sync, test isolation, lint, and format all clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added `enforceWorkerBundleProvenance` option to `evaluateGateReadiness` rather than making the provenance check unconditional",
+              "why": "KD7 requires guarding the new readiness rule with `wf.patched`; the pure evaluator has no access to Temporal APIs, so the workflow passes the flag via options. This preserves pre-patch behavior when the flag is false (default)."
+            },
+            {
+              "what": "Matched provenance run IDs to `state.testRuns` by typed `evidence_kind` instead of command substring",
+              "why": "KD3 mandates typed matching; command strings vary and are not reliable."
+            },
+            {
+              "what": "Updated `TestRunRecord` interface to include `evidence_kind`",
+              "why": "The signal payload already carries the field and stores it in state, but the record type was missing it, so the helper could not type-safely match by evidence kind."
+            },
+            {
+              "what": "Removed unused `checkCompletedTaskEvidencePlan` import from gate-readiness.test.ts while adding the new helper import",
+              "why": "Existing lint violation surfaced by `pnpm run check`; fixed as part of the touched test file."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Removed unused import in gate-readiness.test.ts; no other same-pattern issues found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented `evaluateWorkerBundleProvenance` in `plugin/src/temporal/gate-readiness.ts` and wired it into `evaluateGateReadiness` for the release gate behind `wf.patched('worker-bundle-freshness-v1')` in `workflows.ts`. Added 6 unit tests covering AC1/AC2/AC3/AC5, typed evidence_kind matching, and pre-patch (KD7) behavior. `pnpm run check` passes.",
+            "suggested_next_action": "Run the Temporal integration smoke (`bin/oc-test smoke`) to confirm release-gate completion still replays cleanly with the new patch marker, then proceed to the next task."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-6cccd5c24647",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "ENGINEER_REPORT"
+            }
+          }
+        }
+      ],
+      "verification": "Gate check (KD2/KD7): evaluateWorkerBundleProvenance helper in gate-readiness.ts (reads worker_bundle_impact + workerBundleProvenance, matches run IDs by typed evidence_kind build_worker/replay_determinism); wired into evaluateGateReadiness for release gate gated by wf.patched(\"worker-bundle-freshness-v1\") via enforceWorkerBundleProvenance option. AC1 (required+missing->WORKER_BUNDLE_PROVENANCE_MISSING), AC2 (required+valid->pass), AC3 (not_applicable->skip), AC4 (absent->DECLARATION_REQUIRED, no heuristic bypass), AC5 (in evaluateGateReadiness not CRITERION_EVALUATORS). Old-history pre-patch preserves prior behavior. TDD red tr_ms0mxcts_f45aab71 -> green tr_ms0my3kg_fbc89c13 (89 tests); typecheck tr_ms0myi2i clean; pnpm run check tr_ms0n3qth clean; orchestrator verify tr_ms0n63g3 (89 passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "5fa9835633399016b5308824c0c61a6d20644b34",
+      "completedAt": "2026-07-25T17:27:23.980Z",
+      "completed_at": "2026-07-25T17:27:23.980Z"
+    },
+    {
+      "id": "tk-917239b20fa0",
+      "title": "Evidence recording surface + prep/planning applicability",
+      "type": "code",
+      "section": "Core Implementation",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-25T16:23:50.676Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b462f7475ec6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6cccd5c24647"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "respects": [
+          "C2",
+          "C3",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Recording + applicability surface; tests prove provenance can be recorded and applicability set/confirmed.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "Recording surface: adv_worker_bundle_provenance_record tool (fires workerBundleProvenanceRecordedSignal with {source_sha, build_run_id, replay_run_id, worker_manifest_generation?}); adv_change_set_worker_bundle_impact tool (persists worker_bundle_impact to change.json + fires workerBundleImpactSetSignal). Both Tier-3 host tools registered (changeTools + tool-registry + TOOL_ROLE_POLICY). New workerBundleImpactSetSignal + reducer (replay-safe). TDD red tr_ms0nre5q_4b6c4d08 -> green tr_ms0nyjv3_fa60c89a (7 tests); pnpm run check tr_ms0o52bx clean; build:worker tr_ms0o7egn clean; smoke tr_ms0o6vjx clean; orchestrator verify tr_ms0oap84 (39 passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.worker-bundle.test.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.worker-bundle.test.ts",
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "checkpointSha": "36fdc17af833796418ef6b26b9a5aec4606e52f8",
+      "completedAt": "2026-07-25T17:58:58.315Z",
+      "completed_at": "2026-07-25T17:58:58.315Z"
+    },
+    {
+      "id": "tk-4386e3fa9090",
+      "title": "Verification: AC matrix + replay-determinism legacy branch + end-to-end",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-25T16:24:12.167Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6cccd5c24647"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-917239b20fa0"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C4"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Integration/regression sweep across T1-T5 + replay legacy branch + durability; separate_verification per rq-prep-synth1.2.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-4386e3fa9090",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4386e3fa9090"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/gate-readiness.test.ts",
+            "plugin/src/temporal/contracts.test.ts",
+            "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+            "plugin/src/temporal/workflows.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms0p1bud_598301f1",
+              "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts src/temporal/__tests__/replay-determinism.test.ts src/tools/change.worker-bundle.test.ts src/temporal/__tests__/continue-as-new.itest.ts",
+              "exit_code": 0,
+              "summary": "128 tests passed across 5 files (gate-readiness, contracts, replay-determinism, change.worker-bundle, continue-as-new)"
+            },
+            {
+              "test_run_id": "tr_ms0p0fp7_dd12c9fe",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, manifest check, test-isolation, lockfile, lint, format all green"
+            },
+            {
+              "test_run_id": "tr_ms0p2n26_172b60af",
+              "command": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.itest.ts",
+              "exit_code": 0,
+              "summary": "Workflow signal-handlers integration tests pass after workflows.ts seedState fix"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Fixed workflows.ts to copy worker_bundle_impact, workerBundleProvenance, and testRuns from input.seedState",
+              "why": "Verification revealed these fields were written into continueAsNew/disk-reseed seed by buildChangeWorkflowContinueAsNewSeed/changeSeedStateFromChange but never read back at workflow start, so release-gate evidence was lost after rotation"
+            },
+            {
+              "what": "Covered the KD7 replay patch-marker requirement with a continue-as-new replay test instead of a new replay fixture",
+              "why": "The deliverable explicitly allowed 'a replay fixture or a continue-as-new replay test covering the patch marker'; the continue-as-new test exercises real workflow rotation with the patched code and verifies the new run still enforces provenance"
+            },
+            {
+              "what": "Added AC matrix tests through evaluateGateReadiness rather than only the helper",
+              "why": "AC5 requires the check to live in hard readiness; end-to-end tests through evaluateGateReadiness with enforceWorkerBundleProvenance prove the blocker surfaces at the release gate and disappears when not enforced"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes beyond the seedState durability gap; existing replay-determinism fixtures still replay green with the patched workflow",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Cross-cutting verification complete. Added AC matrix end-to-end, evidence-identity negative tests, no-heuristic-bypass, and continue-as-new durability/replay tests. Found and fixed a real T3/T5 defect: workflows.ts seedState handling dropped worker_bundle_impact/workerBundleProvenance/testRuns after continueAsNew/disk-reseed. pnpm run check and targeted test suites are green.",
+            "suggested_next_action": "Review the diff; optionally run bin/oc-test smoke/full for broader regression confidence before acceptance gate"
+          }
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-4386e3fa9090",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4386e3fa9090"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "replay-1",
+              "label": "blocker",
+              "file": "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+              "line": 43,
+              "what": "No committed legacy release-gate history exercises the new worker-bundle patch with its VersionMarker absent.",
+              "why": "`wf.patched(\"worker-bundle-freshness-v1\")` correctly selects old behavior in source, but none of `replayFixtures` covers this marker or a pre-marker release completion. The existing KD7 unit test only passes `enforceWorkerBundleProvenance: false` directly and cannot prove Temporal command-history replay safety.",
+              "fix": "Add a sanitized pre-patch release-completion replay fixture to `replayFixtures` (no worker-bundle VersionMarker), assert it replays with current workflow code, and retain it until the patch is deprecated."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [
+            {
+              "file": "plugin/src/temporal/gate-readiness.ts",
+              "summary": "Fail closed when `not_applicable` lacks a non-empty rationale or provenance has a blank `source_sha`, preserving typed applicability and valid durable provenance requirements.",
+              "verification": "`bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts` passed: 106 tests."
+            },
+            {
+              "file": "plugin/src/temporal/gate-readiness.test.ts",
+              "summary": "Added negative AC coverage for a rationale-free not-applicable declaration and blank provenance source SHA.",
+              "verification": "`bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts` passed: 106 tests."
+            }
+          ],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "A `wf.patched` branch needs a committed replay fixture for both its marker-present and marker-absent history behavior; unit-testing an options flag does not verify Temporal command-history replay."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts",
+              "pnpm run check",
+              "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts",
+              "pnpm run build:worker",
+              "bin/oc-test targeted -- src/temporal/__tests__/continue-as-new.itest.ts"
+            ],
+            "results": "pass",
+            "evidence": "Targeted gate/contracts tests passed (106 tests); `pnpm run check` passed; committed replay suite passed (13 tests); worker build passed; continue-as-new integration passed (4 tests). A first integration invocation used `bin/oc-test` from plugin/ and failed because that path does not exist; rerun from worktree root passed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Release replay safety remains unproven for the new worker-bundle patch until a legacy release-gate fixture is committed.",
+            "Context packet named missing `plugin/src/temporal/signals.ts`; actual inspected signal schema is `plugin/src/types/signals.ts`."
+          ],
+          "required_main_agent_actions": [
+            "Add and verify a committed legacy release-gate replay fixture for `worker-bundle-freshness-v1` before acceptance/release.",
+            "Do not revisit unrelated worker manifest/runtime freshness behavior; evaluator intentionally remains state-only and does not claim post-deploy freshness."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run build:worker"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/__tests__/continue-as-new.itest.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-4386e3fa9090",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4386e3fa9090"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/scripts/gen-replay-fixture.ts",
+            "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+            "plugin/src/temporal/__tests__/replay/histories/addWorkerBundleFreshness.worker-bundle-freshness-legacy.metadata.json",
+            "plugin/src/temporal/__tests__/replay/histories/addWorkerBundleFreshness.worker-bundle-freshness-legacy.history.json"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms0ps184_2e36da4b",
+              "command": "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts",
+              "exit_code": 1,
+              "summary": "RED: new legacy fixture entry fails because fixture files do not exist yet (ENOENT on metadata)"
+            },
+            {
+              "test_run_id": "tr_ms0pulpq_5c1aaefe",
+              "command": "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 112 tests pass, including the new legacy replay fixture and the worker-bundle provenance validation fixes"
+            },
+            {
+              "test_run_id": "tr_ms0pxrf3_1befe143",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, manifest check, test-isolation, lockfile policy, lint, and format:check all clean (run from plugin/)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added a legacy worker-bundle-freshness replay fixture generated from a controlled variant of changeWorkflow that disables the WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH `wf.patched` call",
+              "why": "KD7 requires a committed replay history proving the pre-patch release-gate branch remains deterministic through the patched code; the only way to produce a history without the marker is to run the same workflow with `wf.patched(...)` replaced by `false`"
+            },
+            {
+              "what": "Extended the existing replay-fixture generator script to support the new worker-bundle-freshness-legacy branch and release-gate inputs",
+              "why": "Keeps fixture generation reproducible and aligned with the existing generator pattern; the release gate needed all prior gates marked done and no artifact materialization"
+            },
+            {
+              "what": "Used a non-default Temporal dev-server port (127.0.0.1:17234) for fixture generation to avoid colliding with the existing server on 127.0.0.1:7233",
+              "why": "Port 7233 was already in use; a dedicated port isolates the controlled fixture run from other workflows"
+            },
+            {
+              "what": "Sanitized only the `identity` fields in the exported history and kept the original workflow/run IDs",
+              "why": "Matches the existing fixture sanitization policy (identity only); run IDs are required for Temporal history replay"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed the two reviewer fail-closed validation fixes (rationale-free not_applicable and blank source_sha) are already present in plugin/src/temporal/gate-readiness.ts and covered by gate-readiness.test.ts tests; no additional same-pattern fixes needed",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Committed legacy replay fixture for worker-bundle-freshness-v1 is now in place. The pre-patch release-gate history has no WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH marker, no worker_bundle_impact, and no workerBundleProvenance; it replays deterministically through the current patched code and the release gate completes. The rationale-free not_applicable and blank source_sha blockers are present and tested. Targeted tests (112 pass) and pnpm run check are green.",
+            "suggested_next_action": "Proceed to acceptance gate / reviewer re-validation; the acceptance-review blocker is resolved"
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-4386e3fa9090_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-4386e3fa9090_attempt_1"
+            }
+          }
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addWorkerBundleFreshness",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+          "task_id": "tk-4386e3fa9090",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4386e3fa9090"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "success",
+              "content": "A committed pre-patch Temporal replay fixture that omits the new wf.patched marker provides deterministic regression coverage for release-gate compatibility paths."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts",
+              "pnpm --dir plugin run check",
+              "git diff --check 5687a5a6^ 5687a5a6"
+            ],
+            "results": "pass",
+            "evidence": "Targeted suite passed: 2 files, 112 tests, exit 0. The committed legacy metadata/history pair exists and replay-determinism.test.ts registers it in replayFixtures; its generic replay assertion resolves. gate-readiness.ts blocks blank/absent not_applicable rationale and blank source_sha; gate-readiness.test.ts covers both. Plugin check completed schemas, typecheck, manifest, isolation, lockfile, lint, and formatting checks successfully. Commit diff check passed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "oc-fresh reports this worktree is 6 commits behind origin/trunk; normal orchestrator-managed integration freshness remains required before release."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check 5687a5a6^ 5687a5a6"
+            }
+          ]
+        }
+      ],
+      "verification": "Verification matrix (separate_verification): AC1-AC5 end-to-end through evaluateGateReadiness; no-heuristic-bypass (absent->DECLARATION_REQUIRED); evidence-identity negatives (wrong evidence_kind does not satisfy); AC5 placement (hard readiness not CRITERION_EVALUATORS); KD6 durability (continueAsNew + disk reseed + real-workflow continue-as-new.itest.ts preserve worker_bundle_impact+provenance+testRuns). DEFECT CAUGHT+FIXED: workflows.ts was not reading the 3 fields from seedState at workflow start (only continueAsNew) -> evidence dropped on rotation; added input.seedState.* copies. Combined tr_ms0p1bud (128 passed, 5 files); pnpm run check tr_ms0p0fp7 clean; signal-handlers regression tr_ms0p2n26 passed; orchestrator verify tr_ms0p409o (111 passed).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "touched_files": [
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "120e3e62b112afe18813614bc5d161d28c09c4a5",
+      "completedAt": "2026-07-25T18:21:42.111Z",
+      "completed_at": "2026-07-25T18:21:42.111Z",
+      "error_recovery": {
+        "last_error": "plugin/src/temporal/__tests__/replay-determinism.test.ts :43 No committed legacy release-gate history exercises the new worker-bundle patch with its VersionMarker absent.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "plugin/src/temporal/__tests__/replay-determinism.test.ts :43 No committed legacy release-gate history exercises the new worker-bundle patch with its VersionMarker absent.",
+            "diagnosis": "`wf.patched(\"worker-bundle-freshness-v1\")` correctly selects old behavior in source, but none of `replayFixtures` covers this marker or a pre-marker release completion. The existing KD7 unit test only passes `enforceWorkerBundleProvenance: false` directly and cannot prove Temporal command-history replay safety.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-07-25T18:34:35.178Z"
+          }
+        ]
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-50e16e7530b0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-50e16e7530b0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "manual-oc-test-targeted-asset-test",
+          "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "All 35 tests pass, including new worker bundle release provenance assertions"
+        },
+        {
+          "test_run_id": "manual-pnpm-run-check",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check all clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Inserted rq-workerBundleReleaseProvenance01 between rq-releaseProjectionDurability01 and rq-archiveRecoveryConsistency01",
+          "why": "Keeps the new archive/release-gate requirement adjacent to existing release projection durability requirements in the advance-workflow capability spec"
+        },
+        {
+          "what": "Used exact array comparison for scenario IDs in the asset test instead of arrayContaining",
+          "why": "Matches the existing releaseProjectionDurability01 assertion style in the same file"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [
+        "Schedule adv-reviewer to sign off on static_check evidence"
+      ],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added additive MUST requirement rq-workerBundleReleaseProvenance01 to advance-workflow spec with 5 Given/When/Then scenarios and AC1-AC5 warrants. Extended adv-autonomy-quality-assets.test.ts with presence/structure assertions for the new requirement and its scenarios. Asset test passes; pnpm run check clean.",
+        "suggested_next_action": "Schedule adv-reviewer for static_check sign-off; no further engineering work required for this task"
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_addWorkerBundleFreshness_tk-50e16e7530b0_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-50e16e7530b0_attempt_1"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-oc-test-targeted-asset-test"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: manual-pnpm-run-check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-50e16e7530b0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-50e16e7530b0"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "review-issue-1",
+          "label": "issue",
+          "file": ".adv/specs/advance-workflow/spec.json",
+          "line": 1015,
+          "what": "Scenario `.5` warrants AC5 but only asserts post-deploy runtime freshness is out of scope.",
+          "why": "AC5 requires hard placement in `evaluateGateReadiness`, not advisory `CRITERION_EVALUATORS`; KD2 has no scenario coverage. The paired asset test repeats this mismatch, so it cannot prevent a future regression from moving the check to an advisory evaluator.",
+          "fix": "Revise scenario `.5` to name `evaluateGateReadiness` hard readiness and exclusion from `CRITERION_EVALUATORS` while retaining the KD5 runtime-out-of-scope boundary; extend the asset test with structural assertions for both statements."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 2 files / 37 tests passed, exit 0. `git diff --check` passed. The asset test parses JSON and checks requirement existence, exact five scenario IDs, tags, warrants, and scenario content; it is not a no-op, but it omits AC5/KD2 hard-readiness assertions."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Release-gate placement can drift into advisory `CRITERION_EVALUATORS` without this spec scenario or asset test detecting it."
+      ],
+      "required_main_agent_actions": [
+        "Remediate review-issue-1 within this task's existing spec/test scope, then rerun the targeted test command before task completion."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-50e16e7530b0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-50e16e7530b0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".adv/specs/advance-workflow/spec.json",
+        "plugin/src/adv-autonomy-quality-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "oc-test-targeted-tk-50e16e7530b0",
+          "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "exit_code": 0,
+          "summary": "37 tests pass across 2 files"
+        },
+        {
+          "test_run_id": "pnpm-check-tk-50e16e7530b0",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, manifest check, test-isolation, lockfile policy, lint, and format:check all clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Re-warranted rq-workerBundleReleaseProvenance01.5 from AC5 to no warrant",
+          "why": "Scenario .5 is a scope clarification (post-deploy runtime freshness out of scope), not the acceptance criterion. Removing the warrant matches the repo convention for out-of-scope scenarios (e.g., rq-reviewBadTestCleanup01.2)."
+        },
+        {
+          "what": "Added rq-workerBundleReleaseProvenance01.6 for AC5",
+          "why": "The actual AC5 is that the provenance check is a hard blocking release-readiness gate in evaluateGateReadiness, not an advisory CRITERION_EVALUATORS criterion. This needed its own scenario."
+        },
+        {
+          "what": "Updated asset test to assert 6 scenarios and the new warrant mapping",
+          "why": "Keeps the non-behavioral asset test in sync with the spec change and prevents regression of the warrant placement."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Spec correction complete: rq-workerBundleReleaseProvenance01 now has 6 scenarios. .5 is an un-warranted scope-clarification scenario; .6 carries the AC5 warrant for the blocking release-readiness gate. Asset test updated and green.",
+        "suggested_next_action": "Designer can proceed to review the updated scenario/AC5 placement; no further engineering action needed for this task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: oc-test-targeted-tk-50e16e7530b0"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: pnpm-check-tk-50e16e7530b0"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-50e16e7530b0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-50e16e7530b0"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite passed: 2 test files / 37 tests, exit 0. `git diff --check` passed. rq-workerBundleReleaseProvenance01 now has exact scenarios .1-.6; .5 has no warrant and remains the runtime out-of-scope boundary; .6 warrants AC5 and explicitly requires evaluateGateReadiness/GateReadinessBlocker placement outside advisory CRITERION_EVALUATORS. Asset assertions lock the six IDs and .5/.6 warrant mapping."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-b462f7475ec6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-b462f7475ec6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/tools/test.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/schemas/change.schema.json"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms0lr6hj_2771a3ea",
+          "command": "../bin/oc-test targeted -- src/temporal/contracts.test.ts",
+          "exit_code": 1,
+          "summary": "RED: new tests fail before implementation (missing applyWorkerBundleProvenanceRecordedToState and evidence_kind field)"
+        },
+        {
+          "test_run_id": "tr_ms0m3x6m_e21505bf",
+          "command": "../bin/oc-test targeted -- src/temporal/messages.test.ts src/temporal/change-state.test.ts src/temporal/contracts.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 91 tests pass after implementation including new worker-bundle and evidence_kind tests"
+        },
+        {
+          "test_run_id": "tr_ms0lyt6g_c3a7492a",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck clean"
+        },
+        {
+          "test_run_id": "tr_ms0m57a7_038a43f3",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Full check clean (schemas:check, typecheck, manifests:check, test isolation, lockfile policy, lint, format:check)"
+        },
+        {
+          "test_run_id": "tr_ms0m7774_67734207",
+          "command": "../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.itest.ts",
+          "exit_code": 0,
+          "summary": "Signal-handler integration test suite passes with new signal wired"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Defined WorkerBundleProvenance shape inline in contracts.ts ChangeWorkflowState rather than importing a shared type",
+          "why": "Keeps the workflow-state contract self-describing; the payload schema in types/signals.ts is the authoritative validation boundary, and the inline interface mirrors it exactly"
+        },
+        {
+          "what": "Added worker_bundle_impact to ChangeWorkflowState/seedState in addition to ChangeSchema",
+          "why": "The field is on-disk in Change; preserving it through continue-as-new requires it on workflow state and in the seed allowlist"
+        },
+        {
+          "what": "Added workerBundleProvenance only to workflow state and continue-as-new seed, not to Change (disk) seed helper",
+          "why": "It is a workflow-provenance receipt, not a disk Change field; it survives rotation via continue-as-new seedState"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Added corresponding test case in messages.test.ts for the new signal surface and schema; updated signal count from 62 to 63. No same-pattern issues found elsewhere.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Additive worker-bundle model changes implemented and verified: ChangeSchema.worker_bundle_impact, WorkerBundleProvenanceRecordedSignal + handler/reducer/state, optional evidence_kind on test-run records, and adv_run_test support for evidence_kind. All fields are carried through continue-as-new seedState. No wf.patched introduced (release-readiness behavior is T4 scope).",
+        "suggested_next_action": "Proceed to T3/T4 tasks; consider a full temporal integration run before merge if T3's seed additions overlap."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-b462f7475ec6_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "worker-bundle-model-typed-evidence"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-6cccd5c24647",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6cccd5c24647"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms0mxcts_f45aab71",
+          "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+          "exit_code": 1,
+          "summary": "RED phase: 4 new worker-bundle provenance tests fail against stub helper (expected missing/failing blockers not returned)"
+        },
+        {
+          "test_run_id": "tr_ms0my3kg_fbc89c13",
+          "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN phase: 89 tests pass, including new KD2/KD7 provenance coverage"
+        },
+        {
+          "test_run_id": "tr_ms0myi2i_f613f726",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript clean across plugin/"
+        },
+        {
+          "test_run_id": "tr_ms0n3qth_07238221",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Schemas, typecheck, manifest sync, test isolation, lint, and format all clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added `enforceWorkerBundleProvenance` option to `evaluateGateReadiness` rather than making the provenance check unconditional",
+          "why": "KD7 requires guarding the new readiness rule with `wf.patched`; the pure evaluator has no access to Temporal APIs, so the workflow passes the flag via options. This preserves pre-patch behavior when the flag is false (default)."
+        },
+        {
+          "what": "Matched provenance run IDs to `state.testRuns` by typed `evidence_kind` instead of command substring",
+          "why": "KD3 mandates typed matching; command strings vary and are not reliable."
+        },
+        {
+          "what": "Updated `TestRunRecord` interface to include `evidence_kind`",
+          "why": "The signal payload already carries the field and stores it in state, but the record type was missing it, so the helper could not type-safely match by evidence kind."
+        },
+        {
+          "what": "Removed unused `checkCompletedTaskEvidencePlan` import from gate-readiness.test.ts while adding the new helper import",
+          "why": "Existing lint violation surfaced by `pnpm run check`; fixed as part of the touched test file."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Removed unused import in gate-readiness.test.ts; no other same-pattern issues found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented `evaluateWorkerBundleProvenance` in `plugin/src/temporal/gate-readiness.ts` and wired it into `evaluateGateReadiness` for the release gate behind `wf.patched('worker-bundle-freshness-v1')` in `workflows.ts`. Added 6 unit tests covering AC1/AC2/AC3/AC5, typed evidence_kind matching, and pre-patch (KD7) behavior. `pnpm run check` passes.",
+        "suggested_next_action": "Run the Temporal integration smoke (`bin/oc-test smoke`) to confirm release-gate completion still replays cleanly with the new patch marker, then proceed to the next task."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-6cccd5c24647",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "ENGINEER_REPORT"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-4386e3fa9090",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4386e3fa9090"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/contracts.test.ts",
+        "plugin/src/temporal/__tests__/continue-as-new.itest.ts",
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms0p1bud_598301f1",
+          "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts src/temporal/__tests__/replay-determinism.test.ts src/tools/change.worker-bundle.test.ts src/temporal/__tests__/continue-as-new.itest.ts",
+          "exit_code": 0,
+          "summary": "128 tests passed across 5 files (gate-readiness, contracts, replay-determinism, change.worker-bundle, continue-as-new)"
+        },
+        {
+          "test_run_id": "tr_ms0p0fp7_dd12c9fe",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, manifest check, test-isolation, lockfile, lint, format all green"
+        },
+        {
+          "test_run_id": "tr_ms0p2n26_172b60af",
+          "command": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.itest.ts",
+          "exit_code": 0,
+          "summary": "Workflow signal-handlers integration tests pass after workflows.ts seedState fix"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Fixed workflows.ts to copy worker_bundle_impact, workerBundleProvenance, and testRuns from input.seedState",
+          "why": "Verification revealed these fields were written into continueAsNew/disk-reseed seed by buildChangeWorkflowContinueAsNewSeed/changeSeedStateFromChange but never read back at workflow start, so release-gate evidence was lost after rotation"
+        },
+        {
+          "what": "Covered the KD7 replay patch-marker requirement with a continue-as-new replay test instead of a new replay fixture",
+          "why": "The deliverable explicitly allowed 'a replay fixture or a continue-as-new replay test covering the patch marker'; the continue-as-new test exercises real workflow rotation with the patched code and verifies the new run still enforces provenance"
+        },
+        {
+          "what": "Added AC matrix tests through evaluateGateReadiness rather than only the helper",
+          "why": "AC5 requires the check to live in hard readiness; end-to-end tests through evaluateGateReadiness with enforceWorkerBundleProvenance prove the blocker surfaces at the release gate and disappears when not enforced"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes beyond the seedState durability gap; existing replay-determinism fixtures still replay green with the patched workflow",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Cross-cutting verification complete. Added AC matrix end-to-end, evidence-identity negative tests, no-heuristic-bypass, and continue-as-new durability/replay tests. Found and fixed a real T3/T5 defect: workflows.ts seedState handling dropped worker_bundle_impact/workerBundleProvenance/testRuns after continueAsNew/disk-reseed. pnpm run check and targeted test suites are green.",
+        "suggested_next_action": "Review the diff; optionally run bin/oc-test smoke/full for broader regression confidence before acceptance gate"
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-4386e3fa9090",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4386e3fa9090"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "replay-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+          "line": 43,
+          "what": "No committed legacy release-gate history exercises the new worker-bundle patch with its VersionMarker absent.",
+          "why": "`wf.patched(\"worker-bundle-freshness-v1\")` correctly selects old behavior in source, but none of `replayFixtures` covers this marker or a pre-marker release completion. The existing KD7 unit test only passes `enforceWorkerBundleProvenance: false` directly and cannot prove Temporal command-history replay safety.",
+          "fix": "Add a sanitized pre-patch release-completion replay fixture to `replayFixtures` (no worker-bundle VersionMarker), assert it replays with current workflow code, and retain it until the patch is deprecated."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "summary": "Fail closed when `not_applicable` lacks a non-empty rationale or provenance has a blank `source_sha`, preserving typed applicability and valid durable provenance requirements.",
+          "verification": "`bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts` passed: 106 tests."
+        },
+        {
+          "file": "plugin/src/temporal/gate-readiness.test.ts",
+          "summary": "Added negative AC coverage for a rationale-free not-applicable declaration and blank provenance source SHA.",
+          "verification": "`bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts` passed: 106 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A `wf.patched` branch needs a committed replay fixture for both its marker-present and marker-absent history behavior; unit-testing an options flag does not verify Temporal command-history replay."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts",
+          "pnpm run check",
+          "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts",
+          "pnpm run build:worker",
+          "bin/oc-test targeted -- src/temporal/__tests__/continue-as-new.itest.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted gate/contracts tests passed (106 tests); `pnpm run check` passed; committed replay suite passed (13 tests); worker build passed; continue-as-new integration passed (4 tests). A first integration invocation used `bin/oc-test` from plugin/ and failed because that path does not exist; rerun from worktree root passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Release replay safety remains unproven for the new worker-bundle patch until a legacy release-gate fixture is committed.",
+        "Context packet named missing `plugin/src/temporal/signals.ts`; actual inspected signal schema is `plugin/src/types/signals.ts`."
+      ],
+      "required_main_agent_actions": [
+        "Add and verify a committed legacy release-gate replay fixture for `worker-bundle-freshness-v1` before acceptance/release.",
+        "Do not revisit unrelated worker manifest/runtime freshness behavior; evaluator intentionally remains state-only and does not claim post-deploy freshness."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run build:worker"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/__tests__/continue-as-new.itest.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-4386e3fa9090",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4386e3fa9090"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/scripts/gen-replay-fixture.ts",
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts",
+        "plugin/src/temporal/__tests__/replay/histories/addWorkerBundleFreshness.worker-bundle-freshness-legacy.metadata.json",
+        "plugin/src/temporal/__tests__/replay/histories/addWorkerBundleFreshness.worker-bundle-freshness-legacy.history.json"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms0ps184_2e36da4b",
+          "command": "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts",
+          "exit_code": 1,
+          "summary": "RED: new legacy fixture entry fails because fixture files do not exist yet (ENOENT on metadata)"
+        },
+        {
+          "test_run_id": "tr_ms0pulpq_5c1aaefe",
+          "command": "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 112 tests pass, including the new legacy replay fixture and the worker-bundle provenance validation fixes"
+        },
+        {
+          "test_run_id": "tr_ms0pxrf3_1befe143",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, manifest check, test-isolation, lockfile policy, lint, and format:check all clean (run from plugin/)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added a legacy worker-bundle-freshness replay fixture generated from a controlled variant of changeWorkflow that disables the WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH `wf.patched` call",
+          "why": "KD7 requires a committed replay history proving the pre-patch release-gate branch remains deterministic through the patched code; the only way to produce a history without the marker is to run the same workflow with `wf.patched(...)` replaced by `false`"
+        },
+        {
+          "what": "Extended the existing replay-fixture generator script to support the new worker-bundle-freshness-legacy branch and release-gate inputs",
+          "why": "Keeps fixture generation reproducible and aligned with the existing generator pattern; the release gate needed all prior gates marked done and no artifact materialization"
+        },
+        {
+          "what": "Used a non-default Temporal dev-server port (127.0.0.1:17234) for fixture generation to avoid colliding with the existing server on 127.0.0.1:7233",
+          "why": "Port 7233 was already in use; a dedicated port isolates the controlled fixture run from other workflows"
+        },
+        {
+          "what": "Sanitized only the `identity` fields in the exported history and kept the original workflow/run IDs",
+          "why": "Matches the existing fixture sanitization policy (identity only); run IDs are required for Temporal history replay"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed the two reviewer fail-closed validation fixes (rationale-free not_applicable and blank source_sha) are already present in plugin/src/temporal/gate-readiness.ts and covered by gate-readiness.test.ts tests; no additional same-pattern fixes needed",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Committed legacy replay fixture for worker-bundle-freshness-v1 is now in place. The pre-patch release-gate history has no WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH marker, no worker_bundle_impact, and no workerBundleProvenance; it replays deterministically through the current patched code and the release gate completes. The rationale-free not_applicable and blank source_sha blockers are present and tested. Targeted tests (112 pass) and pnpm run check are green.",
+        "suggested_next_action": "Proceed to acceptance gate / reviewer re-validation; the acceptance-review blocker is resolved"
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-4386e3fa9090_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-4386e3fa9090_attempt_1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addWorkerBundleFreshness",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addWorkerBundleFreshness",
+      "task_id": "tk-4386e3fa9090",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4386e3fa9090"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "A committed pre-patch Temporal replay fixture that omits the new wf.patched marker provides deterministic regression coverage for release-gate compatibility paths."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts",
+          "pnpm --dir plugin run check",
+          "git diff --check 5687a5a6^ 5687a5a6"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite passed: 2 files, 112 tests, exit 0. The committed legacy metadata/history pair exists and replay-determinism.test.ts registers it in replayFixtures; its generic replay assertion resolves. gate-readiness.ts blocks blank/absent not_applicable rationale and blank source_sha; gate-readiness.test.ts covers both. Plugin check completed schemas, typecheck, manifest, isolation, lockfile, lint, and formatting checks successfully. Commit diff check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "oc-fresh reports this worktree is 6 commits behind origin/trunk; normal orchestrator-managed integration freshness remains required before release."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check 5687a5a6^ 5687a5a6"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-50e16e7530b0": [
+      {
+        "runId": "tr_ms0la4xu_fa13f26d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-autonomy-quality-assets.test.ts src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 1618.2342250011861,
+        "recordedAt": "2026-07-25T16:34:20.500Z"
+      }
+    ],
+    "tk-b462f7475ec6": [
+      {
+        "runId": "tr_ms0lr6hj_2771a3ea",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/temporal/contracts.test.ts",
+        "durationMs": 2637.2641899995506,
+        "recordedAt": "2026-07-25T16:47:35.626Z"
+      },
+      {
+        "runId": "tr_ms0ly3u4_542b749c",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run typecheck",
+        "durationMs": 2917.7760659977794,
+        "recordedAt": "2026-07-25T16:52:58.787Z"
+      },
+      {
+        "runId": "tr_ms0lyt6g_c3a7492a",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 10156.75053999573,
+        "recordedAt": "2026-07-25T16:53:31.637Z"
+      },
+      {
+        "runId": "tr_ms0lz04v_f5faad54",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/contracts.test.ts",
+        "durationMs": 2011.9507929980755,
+        "recordedAt": "2026-07-25T16:53:40.665Z"
+      },
+      {
+        "runId": "tr_ms0lz6vs_077ff0b0",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 1805.7191950008273,
+        "recordedAt": "2026-07-25T16:53:49.370Z"
+      },
+      {
+        "runId": "tr_ms0lze6m_b50cbe53",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run schemas:generate",
+        "durationMs": 1222.786731004715,
+        "recordedAt": "2026-07-25T16:53:58.831Z"
+      },
+      {
+        "runId": "tr_ms0m0nny_7604efff",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 52552.39165800065,
+        "recordedAt": "2026-07-25T16:54:57.790Z"
+      },
+      {
+        "runId": "tr_ms0m212o_cea7eda4",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 50654.276877999306,
+        "recordedAt": "2026-07-25T16:56:01.819Z"
+      },
+      {
+        "runId": "tr_ms0m3kuq_1987e17a",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/temporal/messages.test.ts src/temporal/change-state.test.ts src/temporal/contracts.test.ts",
+        "durationMs": 2298.1203029975295,
+        "recordedAt": "2026-07-25T16:57:14.136Z"
+      },
+      {
+        "runId": "tr_ms0m3x6m_e21505bf",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/messages.test.ts src/temporal/change-state.test.ts src/temporal/contracts.test.ts",
+        "durationMs": 1816.182828001678,
+        "recordedAt": "2026-07-25T16:57:30.084Z"
+      },
+      {
+        "runId": "tr_ms0m57a7_038a43f3",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 52959.412416003644,
+        "recordedAt": "2026-07-25T16:58:29.850Z"
+      },
+      {
+        "runId": "tr_ms0m7774_67734207",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/workflows.signal-handlers.itest.ts",
+        "durationMs": 37637.38734199852,
+        "recordedAt": "2026-07-25T17:00:03.043Z"
+      },
+      {
+        "runId": "tr_ms0m8ryt_34b41593",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.test.ts src/temporal/contracts.test.ts src/temporal/messages.test.ts",
+        "durationMs": 1922.1493320018053,
+        "recordedAt": "2026-07-25T17:01:16.618Z"
+      }
+    ],
+    "tk-409ae138e9ba": [
+      {
+        "runId": "tr_ms0migrn_671cead3",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "cd plugin && bin/oc-test targeted -- src/temporal/contracts.test.ts",
+        "durationMs": 26.327055998146534,
+        "recordedAt": "2026-07-25T17:08:48.677Z"
+      },
+      {
+        "runId": "tr_ms0miy2g_5a181ffb",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/temporal/contracts.test.ts",
+        "durationMs": 1460.0522769987583,
+        "recordedAt": "2026-07-25T17:09:11.101Z"
+      },
+      {
+        "runId": "tr_ms0mj5bz_c9386c2a",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/contracts.test.ts",
+        "durationMs": 2877.3719130009413,
+        "recordedAt": "2026-07-25T17:09:20.488Z"
+      },
+      {
+        "runId": "tr_ms0mklwl_602ce6bd",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/contracts.test.ts",
+        "durationMs": 2228.475072994828,
+        "recordedAt": "2026-07-25T17:10:28.643Z"
+      },
+      {
+        "runId": "tr_ms0mkuwr_39cb4f31",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/temporal/contracts.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 2580.2668769955635,
+        "recordedAt": "2026-07-25T17:10:40.357Z"
+      },
+      {
+        "runId": "tr_ms0ml1vt_739164aa",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck",
+        "durationMs": 10925.47298900038,
+        "recordedAt": "2026-07-25T17:10:49.331Z"
+      },
+      {
+        "runId": "tr_ms0mmg38_48933a82",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run check",
+        "durationMs": 58455.950866006315,
+        "recordedAt": "2026-07-25T17:11:54.397Z"
+      },
+      {
+        "runId": "tr_ms0moq90_d2173eaf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/contracts.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 2320.8465669974685,
+        "recordedAt": "2026-07-25T17:13:40.898Z"
+      }
+    ],
+    "tk-6cccd5c24647": [
+      {
+        "runId": "tr_ms0mxcts_f45aab71",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2442.5857369974256,
+        "recordedAt": "2026-07-25T17:20:23.401Z"
+      },
+      {
+        "runId": "tr_ms0my3kg_fbc89c13",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2153.340204998851,
+        "recordedAt": "2026-07-25T17:20:58.052Z"
+      },
+      {
+        "runId": "tr_ms0myi2i_f613f726",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 11851.170969001949,
+        "recordedAt": "2026-07-25T17:21:16.839Z"
+      },
+      {
+        "runId": "tr_ms0mz2k4_264c54ac",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 37639.44302500039,
+        "recordedAt": "2026-07-25T17:21:43.378Z"
+      },
+      {
+        "runId": "tr_ms0n0zwl_af3bd72b",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 69574.32051699609,
+        "recordedAt": "2026-07-25T17:23:13.364Z"
+      },
+      {
+        "runId": "tr_ms0n3qth_07238221",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 79670.13917399943,
+        "recordedAt": "2026-07-25T17:25:21.514Z"
+      },
+      {
+        "runId": "tr_ms0n63g3_78245488",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2008.5622759982944,
+        "recordedAt": "2026-07-25T17:27:11.149Z"
+      }
+    ],
+    "tk-917239b20fa0": [
+      {
+        "runId": "tr_ms0nqz8o_809e4063",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/tools/change.worker-bundle.test.ts",
+        "durationMs": 180108.60879199952,
+        "recordedAt": "2026-07-25T17:43:25.544Z"
+      },
+      {
+        "runId": "tr_ms0nre5q_4b6c4d08",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts",
+        "durationMs": 9719.193256996572,
+        "recordedAt": "2026-07-25T17:43:44.863Z"
+      },
+      {
+        "runId": "tr_ms0nv4b9_aa50d23b",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts",
+        "durationMs": 5780.254454001784,
+        "recordedAt": "2026-07-25T17:46:38.656Z"
+      },
+      {
+        "runId": "tr_ms0nxa0x_122dce13",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts",
+        "durationMs": 8761.946376994252,
+        "recordedAt": "2026-07-25T17:48:19.483Z"
+      },
+      {
+        "runId": "tr_ms0nyjv3_fa60c89a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts",
+        "durationMs": 5913.169666998088,
+        "recordedAt": "2026-07-25T17:49:18.862Z"
+      },
+      {
+        "runId": "tr_ms0nzaqx_3955e65a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/contracts.test.ts src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog.test.ts src/tool-catalog-entries.test.ts",
+        "durationMs": 6476.8460440039635,
+        "recordedAt": "2026-07-25T17:49:53.658Z"
+      },
+      {
+        "runId": "tr_ms0o023x_cf7e3d88",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/contracts.test.ts src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/tool-catalog.test.ts src/tool-catalog-entries.test.ts src/utils/tool-title.test.ts",
+        "durationMs": 5721.268665000796,
+        "recordedAt": "2026-07-25T17:50:29.073Z"
+      },
+      {
+        "runId": "tr_ms0o0b5c_194ca033",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run schemas:check",
+        "durationMs": 1418.8660710006952,
+        "recordedAt": "2026-07-25T17:50:40.817Z"
+      },
+      {
+        "runId": "tr_ms0o0ptz_d9a15ffe",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9321.371159002185,
+        "recordedAt": "2026-07-25T17:50:59.831Z"
+      },
+      {
+        "runId": "tr_ms0o20yb_8653ba74",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 9852.121326997876,
+        "recordedAt": "2026-07-25T17:52:00.883Z"
+      },
+      {
+        "runId": "tr_ms0o28u5_5da498e4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run generate:manifests",
+        "durationMs": 2035.6595449969172,
+        "recordedAt": "2026-07-25T17:52:11.149Z"
+      },
+      {
+        "runId": "tr_ms0o3kgo_eb3befe3",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 53374.74938099831,
+        "recordedAt": "2026-07-25T17:53:12.847Z"
+      },
+      {
+        "runId": "tr_ms0o3qkm_e58bca94",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec prettier --write src/tools/change.ts src/tools/change.worker-bundle.test.ts",
+        "durationMs": 1380.754050001502,
+        "recordedAt": "2026-07-25T17:53:20.774Z"
+      },
+      {
+        "runId": "tr_ms0o52bx_3674d6cb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 55664.80494000018,
+        "recordedAt": "2026-07-25T17:54:22.648Z"
+      },
+      {
+        "runId": "tr_ms0o6vjx_0efce728",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 73288.39712700248,
+        "recordedAt": "2026-07-25T17:55:47.175Z"
+      },
+      {
+        "runId": "tr_ms0o7egn_814ea076",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build:worker",
+        "durationMs": 10213.776735000312,
+        "recordedAt": "2026-07-25T17:56:11.707Z"
+      },
+      {
+        "runId": "tr_ms0o83wx_c1b29b82",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tool-role-firewall.test.ts src/tool-registry.test.ts src/tool-arg-preflight.test.ts src/tool-title.test.ts",
+        "durationMs": 7970.669957995415,
+        "recordedAt": "2026-07-25T17:56:44.704Z"
+      },
+      {
+        "runId": "tr_ms0o8t39_e48d199e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2239.198380999267,
+        "recordedAt": "2026-07-25T17:57:17.286Z"
+      },
+      {
+        "runId": "tr_ms0oap84_cbd5ae45",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts src/tool-registry.inventory.test.ts src/temporal/contracts.test.ts",
+        "durationMs": 4993.047531999648,
+        "recordedAt": "2026-07-25T17:58:45.604Z"
+      }
+    ],
+    "tk-4386e3fa9090": [
+      {
+        "runId": "tr_ms0p0fp7_dd12c9fe",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 51341.72570500523,
+        "recordedAt": "2026-07-25T18:18:46.303Z"
+      },
+      {
+        "runId": "tr_ms0p1bud_598301f1",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts src/temporal/__tests__/replay-determinism.test.ts src/tools/change.worker-bundle.test.ts src/temporal/__tests__/continue-as-new.itest.ts",
+        "durationMs": 32596.567898996174,
+        "recordedAt": "2026-07-25T18:19:27.964Z"
+      },
+      {
+        "runId": "tr_ms0p2n26_172b60af",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/workflows.signal-handlers.itest.ts",
+        "durationMs": 36493.05355100334,
+        "recordedAt": "2026-07-25T18:20:29.151Z"
+      },
+      {
+        "runId": "tr_ms0p409o_50d047cf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/contracts.test.ts src/tools/change.worker-bundle.test.ts",
+        "durationMs": 3906.30245000124,
+        "recordedAt": "2026-07-25T18:21:32.923Z"
+      },
+      {
+        "runId": "tr_ms0p5fs9_7875e875",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 48072.72262900323,
+        "recordedAt": "2026-07-25T18:22:39.690Z"
+      },
+      {
+        "runId": "tr_ms0ps184_2e36da4b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 19258.65479300171,
+        "recordedAt": "2026-07-25T18:40:13.914Z"
+      },
+      {
+        "runId": "tr_ms0pulpq_5c1aaefe",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts",
+        "durationMs": 28853.920340001583,
+        "recordedAt": "2026-07-25T18:42:13.836Z"
+      },
+      {
+        "runId": "tr_ms0put4n_77dccc7a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 1471.4086280018091,
+        "recordedAt": "2026-07-25T18:42:23.426Z"
+      },
+      {
+        "runId": "tr_ms0pwa20_62ed3fc1",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 52512.65034100413,
+        "recordedAt": "2026-07-25T18:43:31.978Z"
+      },
+      {
+        "runId": "tr_ms0pxrf3_1befe143",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 50940.351256005466,
+        "recordedAt": "2026-07-25T18:44:41.173Z"
+      },
+      {
+        "runId": "tr_ms0pzw3p_25f03989",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/gate-readiness.test.ts",
+        "durationMs": 18228.178782001138,
+        "recordedAt": "2026-07-25T18:46:20.525Z"
+      },
+      {
+        "runId": "tr_ms0qoaph_b4fa4a9d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 50613.15165299922,
+        "recordedAt": "2026-07-25T19:05:19.212Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-25T16:18:04.151Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved. Researcher-scoped: archive-time commit-bound provenance (build:worker + replay-determinism) for worker-impacting changes; typed applicability; post-deploy runtime health out of scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "non_whitespace_chars": 952,
+        "checked_at": "2026-07-25T16:17:13.880Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-25T16:18:42.207Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement populated (O1-O3, AC1-AC5, C1-C4, DONT1-3, OOS1-3). Researcher due-diligence done (current gate criteria, freshness mechanisms, replay surface, enforceable scope). Contract minted (15 items).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "non_whitespace_chars": 2147,
+        "checked_at": "2026-07-25T16:17:13.881Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-25T16:21:58.562Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by independent adv-researcher (NEEDS_WORK -> adopted): KD2 placement confirmed; state.testRuns replay-safe but omitted from seedState/continueAsNew (KD6 fix adopted); KD4 recency unimplementable -> typed provenance receipt (KD4 adopted); command-substring weak -> typed identities (KD3); replay behavior-change -> wf.patched branch (KD7).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "ed1dd1f50286d91cbbd79b9f7764eb353f44074dd3c2441427f258ed85bd3aa5",
+        "non_whitespace_chars": 5597,
+        "checked_at": "2026-07-25T16:17:13.882Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-25T16:27:32.332Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep approved. 6-task DAG; AC1-AC5 covered; validator-revised (KD4/KD6/KD3/KD7)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-25T18:25:43.712Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 6 tasks done. T1 spec rq-workerBundleReleaseProvenance01 (6 scenarios, reviewer READY); T2 model+signals (worker_bundle_impact, workerBundleProvenance, evidence_kind); T3 testRuns durability (seed+continueAsNew+reseed); T4 gate evaluateWorkerBundleProvenance in evaluateGateReadiness under wf.patched(worker-bundle-freshness-v1); T5 recording tools (adv_worker_bundle_provenance_record, adv_change_set_worker_bundle_impact); T6 verification (caught+fixed a seedState-read defect at workflow start). pnpm run check clean; 48 workflow itests green (replay-determinism/signal-handlers/continue-as-new). AC1-AC5 covered."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-25T18:56:45.624Z",
+      "completed_at": "2026-07-25T18:57:30.566Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted. Readiness confirmed via direct workflow query: dispositions for tk-50e16e7530b0 + tk-4386e3fa9090 present; matrix 12 rows/0 OOS; executive summary hash 0628c43c + 3991-char doc. adv-reviewer READY.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "0628c43cccc5900e6ae0b581bcd979367c72bf069112805698ebab280c30dee2",
+        "non_whitespace_chars": 3497,
+        "checked_at": "2026-07-25T16:17:13.884Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "session 2026-07-25: addSessionRecoveryReadiness deployed with stale loaded bundle (PLUGIN_BUNDLE_STALE) until manual restart — no release-gate check that worker-impacting changes have proven build+replay evidence. Plus /adv-status backlog entry \"Gate deploys on worker-bundle freshness + replay-determinism as a release gate\" (ready_to_promote)."
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+      "approvedAt": "2026-07-25T16:18:17.108Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** A change declared `worker_bundle_impact: required` is BLOCKED at the release gate when durable evidence (adv_run_test runs) for `build:worker` + replay-determinism is missing or failing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** A change declared `worker_bundle_impact: required` with green build:worker + replay-determinism evidence PASSES the release gate.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** A change declared `worker_bundle_impact: not_applicable` (with rationale) is NOT blocked by the freshness/replay gate (skipped).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** `worker_bundle_impact` is a typed field on the change (set at planning), not derived from path heuristics; the gate reads it structurally.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** The check lives in `evaluateGateReadiness` (hard readiness), NOT the advisory `CRITERION_EVALUATORS` (which is synchronous/deterministic/advisory and cannot probe evidence).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1:** Gate check is state-only/deterministic (reads workflow state + durable test-run records); no async filesystem/runtime probes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2:** Applicability is typed/declared, not a path heuristic.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3:** Evidence is durable (adv_run_test runs bound to the change), not a caller-trusted boolean.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4:** No regression of existing release-gate checks (obligations, routing, verification evidence, etc.).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1:** MUST NOT probe the live filesystem/runtime from the gate evaluator (breaks determinism).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2:** MUST NOT use a path heuristic as the release authority for applicability.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3:** MUST NOT claim archive-time evidence proves the operator deployed + restarted (that's post-deploy/runtime — out of scope).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1:** Post-deploy / post-restart health check (deployed build-identity == loaded plugin generation == worker generation). Separate lifecycle (runtime), tracked as a follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2:** Replaying production histories (needs credentials/retention/privacy design).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3:** CI pipeline integration to auto-record evidence (this change consumes adv_run_test evidence already produced during execution).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-25T18:50:08.229Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness.test.ts AC1: required + missing/failing provenance -> WORKER_BUNDLE_PROVENANCE_MISSING blocker. tr_ms0my3kg, tr_ms0pzw3p."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness.test.ts AC2: required + valid provenance (source_sha + passing build_worker/replay_determinism runs) -> pass."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gate-readiness.test.ts AC3: not_applicable (typed rationale) -> skipped; rationale-free -> WORKER_BUNDLE_PROVENANCE_NOT_APPLICABLE_RATIONALE_REQUIRED."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "typed worker_bundle_impact field (set via adv_change_set_worker_bundle_impact); absent -> WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED (no heuristic bypass)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "evaluateWorkerBundleProvenance invoked from evaluateGateReadiness (hard readiness, blocking) under enforceWorkerBundleProvenance; NOT CRITERION_EVALUATORS."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Gate evaluator reads workflow state only (testRuns/workerBundleProvenance/worker_bundle_impact); no async filesystem/runtime probes."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Applicability is typed (worker_bundle_impact field), not a path heuristic; authority = typed declaration."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Evidence is durable (testRuns via adv_run_test + provenance receipt via signal); no caller-trusted boolean."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No regression: pnpm run check clean; 48 workflow itests green; existing release-gate tests pass; wf.patched preserves old-history behavior."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No runtime/filesystem probes from evaluator (state-only)."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No path-heuristic authority; typed declaration only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No claim of post-deploy freshness; rq-workerBundleReleaseProvenance01.5 affirms out-of-scope."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1:** A change declared `worker_bundle_impact: required` is BLOCKED at the release gate when durable evidence (adv_run_test runs) for `build:worker` + replay-determinism is missing or failing.",
+    "**AC2:** A change declared `worker_bundle_impact: required` with green build:worker + replay-determinism evidence PASSES the release gate.",
+    "**AC3:** A change declared `worker_bundle_impact: not_applicable` (with rationale) is NOT blocked by the freshness/replay gate (skipped).",
+    "**AC4:** `worker_bundle_impact` is a typed field on the change (set at planning), not derived from path heuristics; the gate reads it structurally.",
+    "**AC5:** The check lives in `evaluateGateReadiness` (hard readiness), NOT the advisory `CRITERION_EVALUATORS` (which is synchronous/deterministic/advisory and cannot probe evidence)."
+  ],
+  "documents": {
+    "proposal": "# Add worker-bundle freshness release gate\n\n## Why\n\n<!-- What problem does this change solve? Why is it needed now? -->\n\n## What Changes\n\n<!-- Describe the specific modifications: new files, modified APIs, changed behavior -->\n\n## User Outcomes\n\n<!-- What user-perspective outcomes should this change deliver? Keep these implementation-free; discovery firms AC/SC. -->\n\n- [ ] User outcome 1\n- [ ] User outcome 2\n- [ ] Discovery will firm acceptance criteria and success criteria\n\n## Affected Code\n\n<!-- List files, modules, or subsystems that will be modified -->\n\n- `path/to/file.ts` — description of change\n- `path/to/other.ts` — description of change\n\n## Constraints\n\n<!-- Technical, time, or resource constraints that shape the solution -->\n\n## Impact\n\n<!-- Who/what is affected? Breaking changes? Migration needed? -->\n\n## Risks\n\n<!-- What could go wrong? Dependencies on external systems? -->\n\n## Validation Plan\n\n<!-- How will correctness be verified? TDD: write tests first (red → green → refactor) -->\n\n- Write failing tests for new behavior (red phase)\n- Implement to make tests pass (green phase)\n- Run full test suite to verify no regressions\n",
+    "problemStatement": "## Problem\nThe ADV release gate does not verify that a **worker-impacting** change has a proven, replay-deterministic worker bundle before release. A change can modify `workflows.ts`/`worker.ts` (workflow-reachable code) and be archived+released without durable evidence that `build:worker` succeeded and the replay-determinism suite passes for that source.\n\n## Why it matters (concrete)\nThis session, a worker-impacting change (`addSessionRecoveryReadiness` — touched `fireSignalAndRefresh`/mutation path) was released+deployed; the loaded plugin then ran a STALE bundle until a manual OpenCode restart (`PLUGIN_BUNDLE_STALE`). The deeper archive-time gap: nothing at release time proved the worker bundle was rebuilt + replay-safe for the released source. A change that silently breaks workflow replay determinism (e.g., non-deterministic workflow code) could ship and only surface as production workflow failures after deploy.\n\n## Direction (researcher-scoped)\nThe release gate CANNOT verify post-deploy/runtime freshness at archive time (whether the operator deployed + restarted is a runtime fact). What it CAN enforce is **commit-bound provenance**: for changes declared to impact the worker bundle, block release unless durable evidence shows `build:worker` succeeded, the worker manifest is valid, and the replay-determinism suite passed — bound to the change. Non-worker changes get a typed `not_applicable` disposition (not a path heuristic) so they aren't false-negatively blocked. Post-deploy/runtime health (loaded-plugin generation == deployed) is a SEPARATE lifecycle (out of scope; tracked as a follow-up).\n\n## Root Cause (gap, not a defect)\nThe release gate's hard readiness (`evaluateGateReadiness`, gate-readiness.ts:951-1009) enforces obligations/routing/ops/verification-evidence but has NO criterion for worker-bundle build+replay provenance. The freshness mechanisms that exist (`comparePluginBundleGenerations`, `verifyWorkerArtifactPolicy`, worker-roll) are RUNTIME/post-deploy, not archive-time. There is no durable, change-bound record that build:worker + replay-determinism passed for a released change.",
+    "agreement": "## Objectives\n- **O1:** A worker-impacting change cannot be released without durable, change-bound evidence that `build:worker` succeeded, the worker manifest is valid, and the replay-determinism suite passed.\n- **O2:** Non-worker changes are not false-negatively blocked (typed applicability, not path heuristics).\n- **O3:** The check is structural (state-only, deterministic) — no async filesystem/runtime probes in the gate evaluator.\n\n## Acceptance Criteria\n- **AC1:** A change declared `worker_bundle_impact: required` is BLOCKED at the release gate when durable evidence (adv_run_test runs) for `build:worker` + replay-determinism is missing or failing.\n- **AC2:** A change declared `worker_bundle_impact: required` with green build:worker + replay-determinism evidence PASSES the release gate.\n- **AC3:** A change declared `worker_bundle_impact: not_applicable` (with rationale) is NOT blocked by the freshness/replay gate (skipped).\n- **AC4:** `worker_bundle_impact` is a typed field on the change (set at planning), not derived from path heuristics; the gate reads it structurally.\n- **AC5:** The check lives in `evaluateGateReadiness` (hard readiness), NOT the advisory `CRITERION_EVALUATORS` (which is synchronous/deterministic/advisory and cannot probe evidence).\n\n## Constraints\n- **C1:** Gate check is state-only/deterministic (reads workflow state + durable test-run records); no async filesystem/runtime probes.\n- **C2:** Applicability is typed/declared, not a path heuristic.\n- **C3:** Evidence is durable (adv_run_test runs bound to the change), not a caller-trusted boolean.\n- **C4:** No regression of existing release-gate checks (obligations, routing, verification evidence, etc.).\n\n## Avoidances\n- **DONT1:** MUST NOT probe the live filesystem/runtime from the gate evaluator (breaks determinism).\n- **DONT2:** MUST NOT use a path heuristic as the release authority for applicability.\n- **DONT3:** MUST NOT claim archive-time evidence proves the operator deployed + restarted (that's post-deploy/runtime — out of scope).\n\n## Out of Scope\n- **OOS1:** Post-deploy / post-restart health check (deployed build-identity == loaded plugin generation == worker generation). Separate lifecycle (runtime), tracked as a follow-up.\n- **OOS2:** Replaying production histories (needs credentials/retention/privacy design).\n- **OOS3:** CI pipeline integration to auto-record evidence (this change consumes adv_run_test evidence already produced during execution).",
+    "design": "## Architecture\nHard release-gate readiness check enforcing worker-bundle freshness + replay-determinism PROVENANCE for worker-impacting changes, gated by a typed `worker_bundle_impact` declaration. Evidence is a durable typed provenance receipt (source SHA + build/replay run IDs) captured via a signal. **Revised per independent design validation (NEEDS_WORK → adopted):** fixes the `testRuns` durability gap, replaces recency-binding with a typed provenance receipt, uses typed evidence identities, and adds a `wf.patched` replay-safety branch.\n\n## Key Design Decisions\n- **KD1 — typed applicability (revised).** `worker_bundle_impact: { kind: \"required\" | \"not_applicable\"; rationale?: string }` on the change model. The typed declaration (set/confirmed at prep) is the authority — NOT a path heuristic. **Legacy/open-change policy:** `not_applicable` only via a typed confirmed declaration; absence → block (or deliberate migration), NEVER a heuristic bypass. Default at creation: `required` for advance-plugin changes touching worker-reachable sources, else `not_applicable` — overridable at prep.\n- **KD2 — hard readiness (validated).** Check in `evaluateGateReadiness` (gate-readiness.ts:951-1009), NOT `CRITERION_EVALUATORS` (advisory, can't probe evidence).\n- **KD3 — typed evidence identities (revised).** The gate matches evidence by TYPED identity/kind, not command substring. `adv_run_test` records carry command/exit/classification/recordedAt (change-state.ts:1066-1089); the gate identifies build:worker + replay-determinism runs via a typed `evidence_kind` tag on the run (added) or a normalized command identity — not free-text substring.\n- **KD4 — durable typed provenance receipt (REVISED, replaces recency-binding).** Recency-vs-last-commit is unimplementable (no source SHA in state; git access is nondeterministic — validator finding). Instead: a new `workerBundleProvenanceRecordedSignal` carries `{ source_sha, build_run_id, replay_run_id, worker_manifest_generation }`, recorded AFTER build:worker + replay-determinism pass for a captured source SHA. The gate reads this typed receipt from workflow state. The source SHA is captured in the payload (deterministic, auditable), not derived at gate time.\n- **KD5 — out-of-scope clarity (unchanged).** Post-deploy/runtime freshness (loaded vs deployed generation) is a separate lifecycle (OOS1).\n- **KD6 — durability fix (NEW, validator-critical).** `testRuns` is currently OMITTED from `seedState` allowlist (contracts.ts:274-321) AND `continueAsNew` seed (workflows.ts:2002-2064) → durable evidence is lost after workflow rotation/reseed. FIX: add `testRuns` (and `worker_bundle_impact` + the provenance receipt) to `seedState`, the `continueAsNew` seed, and disk-reseed paths so release-gate evidence survives workflow rotation.\n- **KD7 — replay safety (NEW, validator).** The release-readiness behavior change is guarded by `wf.patched(\"worker-bundle-freshness-v1\")`: OLD histories (pre-patch) retain prior release-readiness behavior; NEW histories enforce provenance. Follows the existing gate-migration `wf.patched` pattern (workflows.ts:1026-1072).\n\n## Implementation Strategy (sequencing for /adv-prep)\n1. **Spec:** new `rq-workerBundleReleaseProvenance01` [MUST] + asset test.\n2. **Model + signals:** add `worker_bundle_impact` to Change type; add `workerBundleProvenanceRecordedSignal` (+ state reduction) carrying the typed receipt; add typed `evidence_kind` to test-run records (or normalized identity).\n3. **Durability (KD6):** add `testRuns` + `worker_bundle_impact` + provenance to `seedState` allowlist, `continueAsNew` seed, disk-reseed — with a regression test that evidence survives rotation.\n4. **Gate check (KD2/KD7):** in `evaluateGateReadiness`, add the worker-bundle-release-provenance blocker under `wf.patched(\"worker-bundle-freshness-v1\")`: for `worker_bundle_impact: required`, require a provenance receipt with matching source_sha + passing build/replay run IDs; else block with typed remediation. Old histories: prior behavior.\n5. **Evidence recording surface:** a way to record the provenance receipt during execution (after build:worker + replay-determinism pass) — e.g., a tool/helper that captures source_sha + the two run IDs + fires the signal.\n6. **Tests:** AC1-AC5 + the validator matrix (required/not-applicable, missing/failed evidence, provenance after source SHA, continue-as-new retention, legacy replay branch, no heuristic bypass).\n\n## Affected Components\n- `plugin/src/temporal/gate-readiness.ts` — new blocker (KD2/KD7) + provenance evidence helper.\n- `plugin/src/temporal/contracts.ts` — `seedState` allowlist + continueAsNew seed (KD6).\n- `plugin/src/temporal/workflows.ts` — `workerBundleProvenanceRecordedSignal` handler + `wf.patched` branch + continueAsNew seed.\n- `plugin/src/temporal/change-state.ts` — reduce provenance into state; typed evidence_kind on test runs.\n- `plugin/src/types/changes.ts` (+ signals.ts) — `worker_bundle_impact` field + provenance type + signal.\n- `plugin/src/tools/...` — prep/planning surface for `worker_bundle_impact`; execution surface to record provenance.\n- `.adv/specs/...` — `rq-workerBundleReleaseProvenance01` + asset test.\n- tests: gate-readiness, change-state, contracts (seed/continueAsNew), replay-determinism (legacy branch).\n\n## Risks\n- R1: testRuns durability fix changes seed/continueAsNew — replay-tested (KD6 regression test).\n- R2: `wf.patched` migration — old workflows keep old behavior; new enforce (KD7).\n- R3: provenance receipt must be recorded by the change's execution (capture source_sha after build:worker+replay pass) — documented responsibility.\n- R4: false-negative on non-worker changes — mitigated by KD1 typed declaration (not heuristic).\n\n## Validator evidence\nIndependent adv-researcher design validation (NEEDS_WORK → adopted): KD2 placement confirmed; `state.testRuns` replay-safe (test.ts:491-544 → testRunRecordedSignal → change-state.ts:1066-1089); CRITICAL — testRuns omitted from seedState (contracts.ts:274-321) + continueAsNew (workflows.ts:2002-2064) → adopted KD6; KD4 recency unimplementable (no source SHA in state) → adopted KD4 typed provenance receipt; command-substring weak → adopted KD3 typed identities; replay behavior-change → adopted KD7 wf.patched. Recommended typed provenance `{source_sha, buildRunId, replayRunId}` adopted.",
+    "executiveSummary": "# Executive Summary — Add worker-bundle freshness release gate\n\n## Outcome\nThe ADV release gate now enforces **worker-bundle freshness + replay-determinism provenance** for worker-impacting changes. A change declared `worker_bundle_impact: required` is blocked at release unless durable, change-bound evidence shows `build:worker` succeeded and the replay-determinism suite passed (a typed provenance receipt: `source_sha` + `build_run_id` + `replay_run_id`). Non-worker changes get a typed `not_applicable` disposition (not a path heuristic). The check is hard/blocking, lives in `evaluateGateReadiness`, and is replay-safe under a `wf.patched(\"worker-bundle-freshness-v1\")` branch.\n\n## Why it matters\nPreviously, a change modifying workflow-reachable code (`workflows.ts`/`worker.ts`) could be archived+released without durable proof that the worker bundle was rebuilt and replay-deterministic for the released source. A silently non-deterministic workflow change would surface only as production workflow failures after deploy. This gate closes that gap at archive time with commit-bound provenance — exactly the class of gap observed this session when a worker-impacting change shipped and the loaded plugin ran a stale bundle until a manual restart.\n\n## How it works (KD decisions)\n- **Typed applicability (KD1):** `worker_bundle_impact: { kind: \"required\"|\"not_applicable\"; rationale? }` on the change, set/confirmed at planning via `adv_change_set_worker_bundle_impact`. Authority is the typed declaration — never a path heuristic; absent → block.\n- **Hard readiness (KD2):** `evaluateWorkerBundleProvenance` in `evaluateGateReadiness` (blocking), not the advisory `CRITERION_EVALUATORS`.\n- **Typed evidence (KD3):** matches `build:worker` + `replay-determinism` runs by typed `evidence_kind`, not command substring.\n- **Provenance receipt (KD4):** `adv_worker_bundle_provenance_record` fires `workerBundleProvenanceRecordedSignal` with `{ source_sha, build_run_id, replay_run_id }` — source SHA captured in the payload (deterministic), not derived via git at gate time.\n- **Durability (KD6):** `testRuns` + `worker_bundle_impact` + `workerBundleProvenance` now survive `continueAsNew` + disk reseed (fixed a real defect where the seed wasn't read at workflow start — caught in verification).\n- **Replay safety (KD7):** `wf.patched(\"worker-bundle-freshness-v1\")` — old histories keep prior release-readiness behavior; new histories enforce. Legacy replay fixture committed.\n- **Out of scope (KD5):** post-deploy/runtime freshness (loaded vs deployed generation) is a separate lifecycle.\n\n## Verification\n- `pnpm run check` clean (schemas/typecheck/manifests/isolation/lockfile/lint/format).\n- 128+ targeted tests green; 48 workflow itests green (replay-determinism, signal-handlers, continue-as-new).\n- Independent `adv-reviewer` acceptance review: **READY** (initial BLOCKED on missing legacy replay fixture + 2 validation gaps, all remediated in `5687a5a6`, re-reviewed 0 findings).\n- Design independently validated by `adv-researcher` (NEEDS_WORK → adopted: KD4 typed provenance receipt, KD6 durability fix, KD3 typed identities, KD7 wf.patched).\n\n## Risks / Follow-ups\n- **Post-deploy runtime health** (loaded plugin generation == deployed == worker generation after restart) is OOS1 — a separate follow-up (the archive gate enforces provenance, not runtime freshness).\n- The gate depends on the change recording its provenance during execution (build:worker + replay pass → `adv_worker_bundle_provenance_record`); this is the change's documented responsibility.\n- Worktree was 6 commits behind trunk at acceptance — rebase before release.\n\n## Supporting evidence\nCommits on `change/addWorkerBundleFreshness`: `eb95dfac` (spec) → `8c97ed49` (model/signals) → `42182704` (durability) → `5fa98356` (gate) → `36fdc17a` (recording surface) → `120e3e62` (verification) → `5687a5a6` (remediation). Durable TDD via `adv_run_test` for code tasks; reviewer-owned static-check for the spec.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-25T18:50:08.229Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1:** A change declared `worker_bundle_impact: required` is BLOCKED at the release gate when durable evidence (adv_run_test runs) for `build:worker` + replay-determinism is missing or failing. | pass | gate-readiness.test.ts AC1: required + missing/failing provenance -> WORKER_BUNDLE_PROVENANCE_MISSING blocker. tr_ms0my3kg, tr_ms0pzw3p. |\n| AC2 | acceptance_criterion | **AC2:** A change declared `worker_bundle_impact: required` with green build:worker + replay-determinism evidence PASSES the release gate. | pass | gate-readiness.test.ts AC2: required + valid provenance (source_sha + passing build_worker/replay_determinism runs) -> pass. |\n| AC3 | acceptance_criterion | **AC3:** A change declared `worker_bundle_impact: not_applicable` (with rationale) is NOT blocked by the freshness/replay gate (skipped). | pass | gate-readiness.test.ts AC3: not_applicable (typed rationale) -> skipped; rationale-free -> WORKER_BUNDLE_PROVENANCE_NOT_APPLICABLE_RATIONALE_REQUIRED. |\n| AC4 | acceptance_criterion | **AC4:** `worker_bundle_impact` is a typed field on the change (set at planning), not derived from path heuristics; the gate reads it structurally. | pass | typed worker_bundle_impact field (set via adv_change_set_worker_bundle_impact); absent -> WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED (no heuristic bypass). |\n| AC5 | acceptance_criterion | **AC5:** The check lives in `evaluateGateReadiness` (hard readiness), NOT the advisory `CRITERION_EVALUATORS` (which is synchronous/deterministic/advisory and cannot probe evidence). | pass | evaluateWorkerBundleProvenance invoked from evaluateGateReadiness (hard readiness, blocking) under enforceWorkerBundleProvenance; NOT CRITERION_EVALUATORS. |\n| C1 | constraint | **C1:** Gate check is state-only/deterministic (reads workflow state + durable test-run records); no async filesystem/runtime probes. | respected | Gate evaluator reads workflow state only (testRuns/workerBundleProvenance/worker_bundle_impact); no async filesystem/runtime probes. |\n| C2 | constraint | **C2:** Applicability is typed/declared, not a path heuristic. | respected | Applicability is typed (worker_bundle_impact field), not a path heuristic; authority = typed declaration. |\n| C3 | constraint | **C3:** Evidence is durable (adv_run_test runs bound to the change), not a caller-trusted boolean. | respected | Evidence is durable (testRuns via adv_run_test + provenance receipt via signal); no caller-trusted boolean. |\n| C4 | constraint | **C4:** No regression of existing release-gate checks (obligations, routing, verification evidence, etc.). | respected | No regression: pnpm run check clean; 48 workflow itests green; existing release-gate tests pass; wf.patched preserves old-history behavior. |\n| DONT1 | avoidance | **DONT1:** MUST NOT probe the live filesystem/runtime from the gate evaluator (breaks determinism). | respected | No runtime/filesystem probes from evaluator (state-only). |\n| DONT2 | avoidance | **DONT2:** MUST NOT use a path heuristic as the release authority for applicability. | respected | No path-heuristic authority; typed declaration only. |\n| DONT3 | avoidance | **DONT3:** MUST NOT claim archive-time evidence proves the operator deployed + restarted (that's post-deploy/runtime — out of scope). | respected | No claim of post-deploy freshness; rq-workerBundleReleaseProvenance01.5 affirms out-of-scope. |\n| OOS1 | out_of_scope | **OOS1:** Post-deploy / post-restart health check (deployed build-identity == loaded plugin generation == worker generation). Separate lifecycle (runtime), tracked as a follow-up. | missing |  |\n| OOS2 | out_of_scope | **OOS2:** Replaying production histories (needs credentials/retention/privacy design). | missing |  |\n| OOS3 | out_of_scope | **OOS3:** CI pipeline integration to auto-record evidence (this change consumes adv_run_test evidence already produced during execution). | missing |  |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-07-25T16:17:14.001Z",
+      "contentHash": "236b623c4b3d234c29591090cc380d6fc915631a8b54c0cfb8f15d170fa1a46b",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-25T16:17:14.001Z",
+      "contentHash": "da9fa29c595f06829c115509216d246cf0a1211f0b7bbc2c73292c009cc15d63",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-25T16:21:45.380Z",
+      "contentHash": "ed1dd1f50286d91cbbd79b9f7764eb353f44074dd3c2441427f258ed85bd3aa5",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-25T18:50:08.526Z",
+      "contentHash": "0628c43cccc5900e6ae0b581bcd979367c72bf069112805698ebab280c30dee2",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-25T19:05:19.212Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "worktree_auto_managed": true
+}

@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-25T19:06:48.144Z",
+  "capabilities": [],
+  "change_hash": "86aaa98e934e54ba6165dec28e8e1f617ef2252c09278a04d3d04ab5242e3784",
+  "change_id": "addWorkerBundleFreshness",
+  "completed_tasks": 6,
+  "created_at": "2026-07-25T16:17:13.822Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-25T18:57:30.566Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "b4058f06581a6f3d256639ecce7989dbd374ffc9277fe8f1848107e8b3c07d06",
+  "task_count": 6,
+  "title": "Add worker-bundle freshness release gate",
+  "version": "1"
+}
