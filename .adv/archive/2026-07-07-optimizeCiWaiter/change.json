@@ -12,9 +12,18 @@
       "status": "done",
       "priority": 0,
       "created_at": "2026-07-07T03:45:37.675Z",
-      "metadata": {
-        "tdd_intent": "inline"
-      },
+      "started_at": "2026-07-07T03:50:54.202Z",
+      "completed_at": "2026-07-07T03:56:07.017Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "asset test red (exitCode 1, 11 failed) -> green (exitCode 0, 11 passed); runIds red=tr_mra44b6s_24dd53db green=tr_mra493bm_552668b6",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/agents/adv-ci-waiter.md",
+        "plugin/src/adv-ci-waiter-assets.test.ts"
+      ],
+      "checkpointSha": "09f7c7140698a18562a5397f3e14caecaa0adcda",
+      "completedAt": "2026-07-07T03:56:07.017Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC5"
@@ -32,22 +41,13 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-07T03:50:54.202Z",
-      "verification": "asset test red (exitCode 1, 11 failed) -> green (exitCode 0, 11 passed); runIds red=tr_mra44b6s_24dd53db green=tr_mra493bm_552668b6",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        ".opencode/agents/adv-ci-waiter.md",
-        "plugin/src/adv-ci-waiter-assets.test.ts"
-      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
       "touched_files": [
         ".opencode/agents/adv-ci-waiter.md",
         "plugin/src/adv-ci-waiter-assets.test.ts"
-      ],
-      "checkpointSha": "09f7c7140698a18562a5397f3e14caecaa0adcda",
-      "completedAt": "2026-07-07T03:56:07.017Z",
-      "completed_at": "2026-07-07T03:56:07.017Z"
+      ]
     },
     {
       "id": "tk-e4d9be105e1f",
@@ -55,16 +55,22 @@
       "type": "code",
       "status": "done",
       "priority": 1,
-      "created_at": "2026-07-07T03:45:48.898Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-3552ac793bff"
         }
       ],
-      "metadata": {
-        "tdd_intent": "inline"
-      },
+      "created_at": "2026-07-07T03:45:48.898Z",
+      "started_at": "2026-07-07T03:56:21.193Z",
+      "completed_at": "2026-07-07T03:56:36.674Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Repo-owned adv-ci-waiter.md present; mode subagent; oc-ci-wait owns polling/backoff; one watch per target; sample 20-30s; --watch-id result args; CI success != PR MERGED; gh watch prohibited; bounded output; final response shape with conclusion, checks, URL, watch ID, next action, PR state. All assertions pass in green asset test.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "09f7c7140698a18562a5397f3e14caecaa0adcda",
+      "completedAt": "2026-07-07T03:56:36.674Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC1",
@@ -83,16 +89,10 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-07T03:56:21.193Z",
-      "verification": "Repo-owned adv-ci-waiter.md present; mode subagent; oc-ci-wait owns polling/backoff; one watch per target; sample 20-30s; --watch-id result args; CI success != PR MERGED; gh watch prohibited; bounded output; final response shape with conclusion, checks, URL, watch ID, next action, PR state. All assertions pass in green asset test.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [],
-      "touched_files": [],
-      "checkpointSha": "09f7c7140698a18562a5397f3e14caecaa0adcda",
-      "completedAt": "2026-07-07T03:56:36.674Z",
-      "completed_at": "2026-07-07T03:56:36.674Z"
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": []
     },
     {
       "id": "tk-0821c3d14313",
@@ -100,16 +100,25 @@
       "type": "code",
       "status": "done",
       "priority": 2,
-      "created_at": "2026-07-07T03:45:59.940Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-3552ac793bff"
         }
       ],
-      "metadata": {
-        "tdd_intent": "inline"
-      },
+      "created_at": "2026-07-07T03:45:59.940Z",
+      "started_at": "2026-07-07T03:56:21.195Z",
+      "completed_at": "2026-07-07T03:58:17.316Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Spec body for rq-releaseFinalization02 and rq-releaseFinalization04 updated to encode CI success != PR MERGED and 20-30s sampling ownership; archive command Phase 9.5 splits CI success/PR MERGED into distinct terminal branches. Asset tests pass (15/15), autonomy-quality assets pass (31/31).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json",
+        ".opencode/command/adv-archive.md"
+      ],
+      "checkpointSha": "ea4b0a3bf727eb21d76bfd1e9ba9ae705b133c60",
+      "completedAt": "2026-07-07T03:58:17.316Z",
+      "assignedTo": "agent",
       "contract_refs": {
         "implements": [
           "AC3",
@@ -126,22 +135,13 @@
         ]
       },
       "evidence_policy": "test",
-      "assignedTo": "agent",
-      "started_at": "2026-07-07T03:56:21.195Z",
-      "verification": "Spec body for rq-releaseFinalization02 and rq-releaseFinalization04 updated to encode CI success != PR MERGED and 20-30s sampling ownership; archive command Phase 9.5 splits CI success/PR MERGED into distinct terminal branches. Asset tests pass (15/15), autonomy-quality assets pass (31/31).",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        ".adv/specs/advance-workflow/spec.json",
-        ".opencode/command/adv-archive.md"
-      ],
+      "metadata": {
+        "tdd_intent": "inline"
+      },
       "touched_files": [
         ".adv/specs/advance-workflow/spec.json",
         ".opencode/command/adv-archive.md"
-      ],
-      "checkpointSha": "ea4b0a3bf727eb21d76bfd1e9ba9ae705b133c60",
-      "completedAt": "2026-07-07T03:58:17.316Z",
-      "completed_at": "2026-07-07T03:58:17.316Z"
+      ]
     },
     {
       "id": "tk-a53e8943a3c7",
@@ -149,7 +149,6 @@
       "type": "docs",
       "status": "done",
       "priority": 3,
-      "created_at": "2026-07-07T03:46:11.085Z",
       "deps": [
         {
           "type": "blocked_by",
@@ -160,9 +159,14 @@
           "target": "tk-0821c3d14313"
         }
       ],
-      "metadata": {
-        "tdd_intent": "not_applicable"
-      },
+      "created_at": "2026-07-07T03:46:11.085Z",
+      "completed_at": "2026-07-07T03:59:25.475Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Routing instruction surface updated: oc-ci-wait owns polling/backoff; waiter samples 20-30s; CI success != PR MERGED explicit; bounded output preserved; gh watch prohibited. Live /home/jon/.config/opencode/instructions/oc-ci-wait.md synced to /home/jon/toolbox/backups/dotfiles/opencode/instructions/oc-ci-wait.md. Backup /home/jon/toolbox/backups/dotfiles/opencode/agents/adv-ci-waiter.md refreshed from repo-owned source.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "ea4b0a3bf727eb21d76bfd1e9ba9ae705b133c60",
+      "completedAt": "2026-07-07T03:59:25.475Z",
       "contract_refs": {
         "implements": [
           "AC1",
@@ -182,14 +186,10 @@
         ]
       },
       "evidence_policy": "review",
-      "verification": "Routing instruction surface updated: oc-ci-wait owns polling/backoff; waiter samples 20-30s; CI success != PR MERGED explicit; bounded output preserved; gh watch prohibited. Live /home/jon/.config/opencode/instructions/oc-ci-wait.md synced to /home/jon/toolbox/backups/dotfiles/opencode/instructions/oc-ci-wait.md. Backup /home/jon/toolbox/backups/dotfiles/opencode/agents/adv-ci-waiter.md refreshed from repo-owned source.",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [],
-      "touched_files": [],
-      "checkpointSha": "ea4b0a3bf727eb21d76bfd1e9ba9ae705b133c60",
-      "completedAt": "2026-07-07T03:59:25.475Z",
-      "completed_at": "2026-07-07T03:59:25.475Z"
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "touched_files": []
     },
     {
       "id": "tk-9c739dd31cee",
@@ -197,16 +197,22 @@
       "type": "verification",
       "status": "done",
       "priority": 4,
-      "created_at": "2026-07-07T03:46:21.015Z",
       "deps": [
         {
           "type": "blocked_by",
           "target": "tk-a53e8943a3c7"
         }
       ],
-      "metadata": {
-        "tdd_intent": "separate_verification"
-      },
+      "created_at": "2026-07-07T03:46:21.015Z",
+      "completed_at": "2026-07-07T04:03:31.090Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "bin/oc-test smoke passes: schemas:check, typecheck, lint, format:check, targeted tests, test.test.ts, subagent-report.test.ts. Targeted tests: adv-ci-waiter-assets (11/11), archive-release-finalization-assets (4/4), adv-autonomy-quality-assets (31/31). adv_change_validate passes with one warning (no spec deltas defined — implementation chose Modify semantics via direct spec text update).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-ci-waiter-assets.test.ts"
+      ],
+      "checkpointSha": "e9dc5f36b28c233b4bbe090647016fdd3db426af",
+      "completedAt": "2026-07-07T04:03:31.090Z",
       "contract_refs": {
         "implements": [
           "AC5"
@@ -226,18 +232,12 @@
         ]
       },
       "evidence_policy": "test",
-      "verification": "bin/oc-test smoke passes: schemas:check, typecheck, lint, format:check, targeted tests, test.test.ts, subagent-report.test.ts. Targeted tests: adv-ci-waiter-assets (11/11), archive-release-finalization-assets (4/4), adv-autonomy-quality-assets (31/31). adv_change_validate passes with one warning (no spec deltas defined — implementation chose Modify semantics via direct spec text update).",
-      "summary": "Task checkpoint completed",
-      "implementation_summary": "Task checkpoint completed",
-      "filesTouched": [
-        "plugin/src/adv-ci-waiter-assets.test.ts"
-      ],
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
       "touched_files": [
         "plugin/src/adv-ci-waiter-assets.test.ts"
-      ],
-      "checkpointSha": "e9dc5f36b28c233b4bbe090647016fdd3db426af",
-      "completedAt": "2026-07-07T04:03:31.090Z",
-      "completed_at": "2026-07-07T04:03:31.090Z"
+      ]
     }
   ],
   "subagent_reports": [
@@ -372,10 +372,10 @@
     },
     "discovery": {
       "status": "done",
-      "started_at": "2026-07-07T03:43:59.262Z",
       "completed_at": "2026-07-07T03:44:14.749Z",
       "completed_by": "adv",
       "approval_evidence": "Project context, spec-law assessment, local scope scan, and researcher validation completed. Typed contract minted from agreement. Spec-law impact classified as Modify and persisted.",
+      "started_at": "2026-07-07T03:43:59.262Z",
       "artifact_evidence": {
         "kind": "agreement",
         "content_hash": "18ff92daa1637726497c90a95e6ac07c4a152277e684e1eadd244fd58681268a",
@@ -420,7 +420,15 @@
       }
     },
     "release": {
-      "status": "pending"
+      "status": "done",
+      "completed_at": "2026-07-07T04:38:46.589Z",
+      "completed_by": "adv",
+      "approval_evidence": "Shipped. Local trunk and origin/trunk both at b1b53992. 5ec9f13c IS ancestor of origin/trunk; 6b87f52c IS ancestor of origin/trunk. Archive bundle written; local deploy ran; worktree cleaned.",
+      "recovery_audit": {
+        "reason": "Phase 9 finalization completed end-to-end before any later change advanced origin/trunk. Archive commit 5ec9f13c is reachable from origin/trunk at b1b53992. Local trunk advanced to b1b53992 by subsequent merges. Disk-projection recovery is appropriate: shipped proof is real; only the workflow projection is wedged by stale SHA expectation after concurrent merges.",
+        "evidence": "Phase 9 returned phase9: pending before terminal proof. WorkflowExecutionAlreadyCompleted equivalent: gate-recording signal is wedged after durable disk evidence. Verifier: `git -C \"$MAIN\" merge-base --is-ancestor 5ec9f13c origin/trunk` returns 0. Worktree cleanup completed. This matches WorkflowNotFoundError-equivalent stale temporal projection after durable disk evidence; recovery flips release gate to done via disk projection only.",
+        "recovered_at": "2026-07-07T04:38:46.589Z"
+      }
     }
   },
   "reentry_history": [],
@@ -527,7 +535,6 @@
         "status": "approved"
       }
     ],
-    "amendments": [],
     "reviewMatrix": {
       "reviewedAt": "2026-07-07T04:11:33.068Z",
       "rows": [
@@ -595,7 +602,8 @@
           "evidence": "adv-ci-waiter.md: 'Do not dump raw logs unless needed for failing-check summary'; bounded output preserved in final response shape."
         }
       ]
-    }
+    },
+    "amendments": []
   },
   "acceptanceCriteria": [
     "Given `adv-ci-waiter` starts a new `oc-ci-wait` watch, when it waits for status, then instructions say to start exactly one watch and sample `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds until `completed`, `timeout`, `cancelled`, or `error`.",
@@ -637,7 +645,7 @@
       "readable": false
     }
   },
-  "lastSignalAt": "2026-07-07T04:25:36.311Z",
+  "lastSignalAt": "2026-07-25T19:25:44.690Z",
   "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
-  "worktree_auto_managed": true
+  "same_project_dependencies": []
 }
