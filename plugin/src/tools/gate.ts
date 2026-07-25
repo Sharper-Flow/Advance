@@ -78,6 +78,7 @@ import {
   evaluateGateReadiness,
   renderAcceptanceProjection,
 } from "../temporal/gate-readiness";
+import { reconcileOpsFollowupLinks } from "./ops-followup-reconciliation";
 import {
   inspectArtifactActivity,
   writeArtifactActivity,
@@ -786,6 +787,19 @@ async function completeGateViaRecovery(input: {
   }
 
   if (input.gateId === "release") {
+    if (!input.diskDirect) {
+      try {
+        const reconciled = await reconcileOpsFollowupLinks({
+          parent: recoveryChange,
+          store: input.store,
+        });
+        recoveryChange = reconciled.parent;
+      } catch (error) {
+        logger.warn(
+          `Recovery release gate ops follow-up reconciliation failed for ${input.changeId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
     const blocker = getReleaseFinalizationBlocker({
       store: input.store,
       change: recoveryChange,
@@ -1810,6 +1824,17 @@ export const gateTools = {
         }
 
         if (gateId === "release") {
+          try {
+            const reconciled = await reconcileOpsFollowupLinks({
+              parent: change,
+              store: activeStore,
+            });
+            change = reconciled.parent;
+          } catch (error) {
+            logger.warn(
+              `Release gate ops follow-up reconciliation failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
           const blocker = getReleaseFinalizationBlocker({
             store: activeStore,
             change,

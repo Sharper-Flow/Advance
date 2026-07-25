@@ -114,6 +114,7 @@
 | `adv_followup_promote` | `no-cli-dangerous` | Promotes a linked ops follow-up change; mutation |
 | `adv_report_followup_promote` | `no-cli-dangerous` | Promotes a report follow-up into a task or fast-follow child; mutation |
 | `adv_ops_evidence_add` | `no-cli-dangerous` | Appends ops evidence and updates follow-up status; mutation |
+| `adv_ops_followup_resolution_upsert` | `no-cli-dangerous` | Persists verified child-state proof onto a parent ops follow-up link; release/archive authority mutation |
 | `adv_change_bulk_close` | `no-cli-dangerous` | Change mutation |
 | `adv_change_archive` | `no-cli-dangerous` | Archive mutation + spec delta |
 | `adv_archive_purge` | `no-cli-dangerous` | Operator-only archived-change purge; terminates workflow, opt-in disk-bundle removal |

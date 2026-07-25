@@ -779,7 +779,7 @@ function hasCompleteOpsProof(link: OpsFollowupLink): boolean {
   );
 }
 
-function makeOpsResolutionBlocker(
+export function makeOpsResolutionBlocker(
   link: OpsFollowupLink,
   gateId: GateId,
 ): GateReadinessBlocker | null {

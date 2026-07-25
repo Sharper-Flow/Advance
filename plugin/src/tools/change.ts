@@ -933,7 +933,11 @@ import {
   gateReenteredSignal,
   originRepairedSignal,
 } from "../temporal/messages";
-import { getOpenOpsFollowupObligations } from "../temporal/gate-readiness";
+import {
+  getOpenOpsFollowupObligations,
+  makeOpsResolutionBlocker,
+} from "../temporal/gate-readiness";
+import { reconcileOpsFollowupLinks } from "./ops-followup-reconciliation";
 import {
   detectArchiveMode,
   deleteChangeBranch,
@@ -3568,6 +3572,30 @@ export const changeTools = {
           }
           change = result.data;
         }
+        // Reconcile required ops follow-up resolutions from authoritative child
+        // state before any archive authority decision. Skip when reading from a
+        // completed/poisoned workflow disk projection (signaling is unavailable)
+        // or during dryRun (no writes). The blocker check still runs on the
+        // current projection so unresolved required links remain fail-closed.
+        if (!readFromDisk && !dryRun) {
+          try {
+            const reconciled = await reconcileOpsFollowupLinks({
+              parent: change,
+              store,
+            });
+            change = reconciled.parent;
+          } catch (error) {
+            logger.warn(
+              `Archive ops follow-up reconciliation failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+            );
+          }
+        }
+        const requiredOpsBlockers = (change.ops_followup_links ?? []).flatMap(
+          (link) => {
+            const blocker = makeOpsResolutionBlocker(link, "release");
+            return blocker ? [blocker] : [];
+          },
+        );
         const openOpsObligations = getOpenOpsFollowupObligations(
           change.ops_followup_links,
         );
@@ -3575,6 +3603,18 @@ export const changeTools = {
           openOpsObligations.length > 0
             ? { openOpsObligations }
             : ({} as Record<string, unknown>);
+        if (requiredOpsBlockers.length > 0) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Cannot archive: unresolved required ops follow-up obligations",
+            changeId,
+            code: "OPS_FOLLOWUP_ARCHIVE_BLOCKED",
+            requirement: "rq-releaseFinalization01",
+            readinessBlockers: requiredOpsBlockers,
+            ...openOpsObligationsPayload,
+          });
+        }
         const taskPreflightError = getArchiveTaskPreflightError(change);
         if (taskPreflightError) {
           return taskPreflightError;
