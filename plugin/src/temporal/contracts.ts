@@ -411,6 +411,7 @@ export interface TestRunRecord {
   assertionDensity?: number;
   mockSurface?: MockSurfaceEntry[];
   behaviorSurface?: "small" | "medium" | "large";
+  evidence_kind?: "build_worker" | "replay_determinism" | "unit" | "other";
   recordedAt: string;
 }
 

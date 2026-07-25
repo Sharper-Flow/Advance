@@ -1148,6 +1148,11 @@ export async function changeWorkflow(
   // Histories that processed these as three separate signals replay the old
   // handlers; new histories record this marker inside the converged handler.
   const ARCHIVE_CONVERGED_PATCH = "archive-converged-v1";
+  // Patch rationale: worker-bundle release provenance gating is new; histories
+  // that already completed the release gate without checking provenance must
+  // replay the old no-provenance-check branch. New histories enforce the
+  // worker_bundle_impact + provenance + typed test-run requirement.
+  const WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH = "worker-bundle-freshness-v1";
 
   const blockerText = (blockers: GateReadinessBlocker[]): string =>
     blockers.map((b) => `${b.code}: ${b.message}`).join("; ");
@@ -1216,6 +1221,9 @@ export async function changeWorkflow(
         payload.gateId === "discovery"
           ? wf.patched(DISCOVERY_CONTRACT_READINESS_PATCH)
           : true,
+      enforceWorkerBundleProvenance:
+        payload.gateId === "release" &&
+        wf.patched(WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH),
     });
     if (!readiness.ready) {
       markGateStuckForBlockers(payload, readiness.blockers);
