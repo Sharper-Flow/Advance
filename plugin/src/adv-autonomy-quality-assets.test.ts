@@ -416,6 +416,76 @@ describe("Archive and spec assets", () => {
   test("advance-workflow spec encodes release projection durability", () => {
     const content = readAsset(ADVANCE_WORKFLOW_SPEC);
     expect(content).toMatch(/rq-releaseProjectionDurability01/);
+
+    const spec = JSON.parse(content) as {
+      requirements: Array<{
+        id: string;
+        title: string;
+        tags: string[];
+        scenarios: Array<{
+          id: string;
+          title: string;
+          given?: string[];
+          when?: string;
+          then?: string[];
+          warrant?: string;
+        }>;
+      }>;
+    };
+    const requirement = spec.requirements.find(
+      (r) => r.id === "rq-releaseProjectionDurability01",
+    );
+    expect(
+      requirement,
+      "rq-releaseProjectionDurability01 must exist",
+    ).toBeDefined();
+    expect(requirement!.title).toBe(
+      "Archive Success Requires Durable Release Projection",
+    );
+    expect(requirement!.tags).toEqual(
+      expect.arrayContaining([
+        "archive",
+        "release",
+        "projection",
+        "durability",
+      ]),
+    );
+    expect(requirement!.scenarios.map((s) => s.id)).toEqual([
+      "rq-releaseProjectionDurability01.1",
+      "rq-releaseProjectionDurability01.2",
+      "rq-releaseProjectionDurability01.3",
+      "rq-releaseProjectionDurability01.4",
+      "rq-releaseProjectionDurability01.5",
+    ]);
+
+    const shipped = requirement!.scenarios.find(
+      (s) => s.id === "rq-releaseProjectionDurability01.4",
+    );
+    expect(shipped?.title).toMatch(/shipped/i);
+    expect(shipped?.given?.join("\n")).toMatch(
+      /both.*store-backed.*disk.*lag.*pending/i,
+    );
+    expect(shipped?.when).toMatch(/adv_change_archive/i);
+    expect(shipped?.then?.join("\n")).toMatch(/ACCEPTS via `shipped`/i);
+    expect(shipped?.then?.join("\n")).toMatch(/archive succeeds/i);
+    expect(shipped?.then?.join("\n")).toMatch(
+      /release gate is reconciled to `done`/i,
+    );
+    expect(shipped?.warrant).toBe("AC1");
+
+    const nonShipped = requirement!.scenarios.find(
+      (s) => s.id === "rq-releaseProjectionDurability01.5",
+    );
+    expect(nonShipped?.title).toMatch(/Non-shipped/i);
+    expect(nonShipped?.given?.join("\n")).toMatch(/NOT `shipped`/i);
+    expect(nonShipped?.when).toMatch(/adv_change_archive/i);
+    expect(nonShipped?.then?.join("\n")).toMatch(/REJECTS.*strict guard/i);
+    expect(nonShipped?.then?.join("\n")).toMatch(
+      /Evidence-match \+ recovery-audit requirements remain unchanged/i,
+    );
+    expect(nonShipped?.warrant).toBe("AC2");
+
+    // Legacy surface assertions preserved from the original regex check.
     expect(content).toMatch(/adv_gate_status/);
     expect(content).toMatch(/store-backed gate read/i);
   });

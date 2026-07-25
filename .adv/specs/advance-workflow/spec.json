@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.37.0",
-  "updated_at": "2026-07-23T23:50:00.000Z",
+  "version": "1.38.0",
+  "updated_at": "2026-07-25T00:00:00.000Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -906,6 +906,35 @@
             "PR archive mode re-verifies the change branch was pushed for PR handoff before repair",
             "If finalization evidence is missing or invalid, repair is rejected and release remains not done"
           ]
+        },
+        {
+          "id": "rq-releaseProjectionDurability01.4",
+          "title": "Shipped finalization is git-authoritative when both release-gate projections lag",
+          "given": [
+            "A change whose Phase 9 finalization is `shipped` (git-verified default-branch reachability/merge — `finalization.status === \"shipped\"`, derived only from confirmed reachability, un-forgeable)",
+            "Both the store-backed release-gate read and the disk release-gate projection lag `pending` (propagation lag)"
+          ],
+          "when": "adv_change_archive runs the durable release-gate proof",
+          "then": [
+            "The proof ACCEPTS via `shipped` (authoritative reachability)",
+            "The archive succeeds",
+            "The release gate is reconciled to `done`"
+          ],
+          "warrant": "AC1"
+        },
+        {
+          "id": "rq-releaseProjectionDurability01.5",
+          "title": "Non-shipped finalization keeps the strict guard when release-gate projections lag",
+          "given": [
+            "A change whose finalization is NOT `shipped` (`pending_merge`/`blocked`/etc.)",
+            "The release-gate projection is `pending`"
+          ],
+          "when": "adv_change_archive evaluates the durable release-gate proof",
+          "then": [
+            "The durable proof REJECTS with the existing strict guard",
+            "Evidence-match + recovery-audit requirements remain unchanged"
+          ],
+          "warrant": "AC2"
         }
       ]
     },
