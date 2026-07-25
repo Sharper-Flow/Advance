@@ -25,6 +25,7 @@ import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { saveRecoveredSubagentReport } from "./_recovery-writers";
+import { resolveTaskEvidence } from "../validator/task-classifier";
 import { isWorkflowCompletedError } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
@@ -473,6 +474,15 @@ function verificationWarnings(
   durableRecords?: readonly DurableTestRunLike[],
 ): ConsumerWarning[] {
   if (report.agent === "adv-reviewer") {
+    // rq-reviewerEvidenceAuthority01: for review-policy tasks, the persisted
+    // same-task adv-reviewer report IS the authoritative completion evidence.
+    // Its aggregate tests_run list neither creates nor substitutes for durable
+    // execution evidence. Suppress verification_missing for review policy only;
+    // test/static_check still require durable adv_run_test evidence.
+    const policy = task ? resolveTaskEvidence(task).policy : undefined;
+    if (policy === "review") {
+      return [];
+    }
     return report.verification.tests_run.map((command) => ({
       kind: "verification_missing" as const,
       message: `Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: ${command}`,
