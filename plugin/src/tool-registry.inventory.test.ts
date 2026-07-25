@@ -125,6 +125,10 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // fixOpsResolutionProjection adds the ops follow-up link resolution upsert
   // tool for bounded child-profile resolution projection.
   "adv_ops_followup_resolution_upsert",
+  // addWorkerBundleFreshness adds the planning applicability setter and the
+  // execution-time provenance recording tool.
+  "adv_change_set_worker_bundle_impact",
+  "adv_worker_bundle_provenance_record",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -332,8 +336,11 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // adv_doctor; the staged-delta write/read vocabulary + adv_tool_invoke
     // landed as additions; and resume-projection Phase E added
     // adv_resume_projection; addAdvLauncherReadProjection added
-    // adv_launcher_projection_rebuild. Net tracked totals: 10 named removals +
-    // 1 unnamed (roadmap) removal, 16 additions => 85 = 80 - 10 - 1 + 16.
+    // adv_launcher_projection_rebuild; fixOpsResolutionProjection added
+    // adv_ops_followup_resolution_upsert; addWorkerBundleFreshness added the
+    // worker-bundle impact setter and provenance recorder. Net tracked totals:
+    // 10 named removals + 1 unnamed (roadmap) removal, 18 additions
+    // => 87 = 80 - 10 - 1 + 18.
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) -
         landedRemovals -

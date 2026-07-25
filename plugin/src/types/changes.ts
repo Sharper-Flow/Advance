@@ -32,7 +32,7 @@ export {
   type ContractEvidencePolicy,
 } from "./evidence-policy";
 
-const WorkerBundleImpactSchema = z.object({
+export const WorkerBundleImpactSchema = z.object({
   kind: z.enum(["required", "not_applicable"]),
   rationale: z.string().optional(),
   confirmed_at: z.string().optional(),

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   TestRunRecordedSignalPayloadSchema,
+  WorkerBundleImpactSetSignalPayloadSchema,
   WorkerBundleProvenanceRecordedSignalPayloadSchema,
   ChangeSchema,
 } from "../types";
 import {
   applyTestRunRecordedToState,
   applyWorkerBundleProvenanceRecordedToState,
+  applyWorkerBundleImpactSetToState,
   changeSeedStateFromChange,
   createChangeWorkflowState,
 } from "./change-state";
@@ -61,6 +63,32 @@ describe("worker bundle provenance + evidence_kind typed additions", () => {
       recorded_at: "2026-07-25T00:00:01.000Z",
     });
     expect(state.lastSignalAt).toBe("2026-07-25T00:00:01.000Z");
+  });
+
+  it("workerBundleImpactSetSignal reduces into state.worker_bundle_impact", () => {
+    const payload = WorkerBundleImpactSetSignalPayloadSchema.parse({
+      worker_bundle_impact: {
+        kind: "required",
+        rationale: "Touches workflow-reachable code",
+        confirmed_at: "2026-07-25T00:00:02.000Z",
+      },
+      set_at: "2026-07-25T00:00:02.000Z",
+    });
+
+    const state = createChangeWorkflowState({
+      changeId: "c-wbp",
+      title: "WBP test",
+      createdAt: "2026-07-25T00:00:00.000Z",
+    });
+
+    applyWorkerBundleImpactSetToState(state, payload);
+
+    expect(state.worker_bundle_impact).toMatchObject({
+      kind: "required",
+      rationale: "Touches workflow-reachable code",
+      confirmed_at: "2026-07-25T00:00:02.000Z",
+    });
+    expect(state.lastSignalAt).toBe("2026-07-25T00:00:02.000Z");
   });
 
   it("TestRunRecord signal payload accepts evidence_kind", () => {

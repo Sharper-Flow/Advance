@@ -209,6 +209,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Change update.",
   },
+  adv_change_set_worker_bundle_impact: {
+    class: "orchestrator",
+    rationale: "Typed worker-bundle impact declaration at planning.",
+  },
   adv_change_update_issues: {
     class: "orchestrator",
     rationale: "Issue linkage update.",
@@ -363,6 +367,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
   adv_run_test: {
     class: "orchestrator",
     rationale: "Bounded test-run evidence.",
+  },
+  adv_worker_bundle_provenance_record: {
+    class: "orchestrator",
+    rationale:
+      "Record worker-bundle build+replay provenance on a change after both runs pass; execution-time evidence receipt.",
   },
   adv_spec: {
     class: "orchestrator",

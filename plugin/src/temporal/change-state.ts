@@ -65,6 +65,7 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
+  WorkerBundleImpactSetSignalPayload,
   WorkerBundleProvenanceRecordedSignalPayload,
 } from "../types";
 import {
@@ -1108,6 +1109,15 @@ export function applyWorkerBundleProvenanceRecordedToState(
     recorded_at: payload.recorded_at,
   };
   setLastSignalAt(state, payload.recorded_at);
+  return state;
+}
+
+export function applyWorkerBundleImpactSetToState(
+  state: ChangeWorkflowState,
+  payload: WorkerBundleImpactSetSignalPayload,
+): ChangeWorkflowState {
+  state.worker_bundle_impact = payload.worker_bundle_impact;
+  setLastSignalAt(state, payload.set_at);
   return state;
 }
 

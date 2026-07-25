@@ -100,6 +100,7 @@ import {
   normalizeChangeLifecycleState,
   updateArtifactMetadataInChangeState,
   applyWorkerBundleProvenanceRecordedToState,
+  applyWorkerBundleImpactSetToState,
 } from "./change-state";
 import {
   applyChangeLinkedToState,
@@ -349,6 +350,9 @@ const testRunRecordedSignal = wf.defineSignal<
 const workerBundleProvenanceRecordedSignal = wf.defineSignal<
   [import("../types").WorkerBundleProvenanceRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleProvenanceRecorded);
+const workerBundleImpactSetSignal = wf.defineSignal<
+  [import("../types").WorkerBundleImpactSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleImpactSet);
 const subagentReportSubmittedSignal = wf.defineSignal<
   [import("../types").SubagentReportSubmittedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
@@ -1588,6 +1592,12 @@ export async function changeWorkflow(
     workerBundleProvenanceRecordedSignal,
     signalMutation("workerBundleProvenanceRecorded", (payload) =>
       applyWorkerBundleProvenanceRecordedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    workerBundleImpactSetSignal,
+    signalMutation("workerBundleImpactSet", (payload) =>
+      applyWorkerBundleImpactSetToState(state, payload),
     ),
   );
   wf.setHandler(

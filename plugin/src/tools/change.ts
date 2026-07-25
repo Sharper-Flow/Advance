@@ -27,6 +27,7 @@ import {
   type ScopedSubagentReport,
   type BriefingPacketLane,
   type GateCompletion,
+  type WorkerBundleImpact,
 } from "../types";
 import { ChangeSchema } from "../types/changes";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
@@ -933,6 +934,8 @@ import {
   changeCancelledSignal,
   gateReenteredSignal,
   originRepairedSignal,
+  workerBundleProvenanceRecordedSignal,
+  workerBundleImpactSetSignal,
 } from "../temporal/messages";
 import {
   getOpenOpsFollowupObligations,
@@ -2573,6 +2576,187 @@ export const changeTools = {
       return runUpdate(store);
     },
   },
+
+  adv_worker_bundle_provenance_record: {
+    description:
+      "Record durable worker-bundle release provenance for a change. Fires workerBundleProvenanceRecordedSignal with the source SHA, the build:worker run ID, and the replay-determinism run ID. Intended to be called after both runs have passed for the source SHA being released.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID to record provenance for."),
+      source_sha: z
+        .string()
+        .min(1)
+        .describe(
+          "Source commit SHA the worker bundle was built and replay-tested from.",
+        ),
+      build_run_id: z
+        .string()
+        .min(1)
+        .describe(
+          "Durable run ID of the passing build:worker adv_run_test invocation.",
+        ),
+      replay_run_id: z
+        .string()
+        .min(1)
+        .describe(
+          "Durable run ID of the passing replay-determinism adv_run_test invocation.",
+        ),
+      worker_manifest_generation: z
+        .number()
+        .int()
+        .nonnegative()
+        .optional()
+        .describe("Optional worker-bundle manifest generation at build time."),
+    },
+    execute: async (
+      {
+        changeId,
+        source_sha,
+        build_run_id,
+        replay_run_id,
+        worker_manifest_generation,
+      }: {
+        changeId: string;
+        source_sha: string;
+        build_run_id: string;
+        replay_run_id: string;
+        worker_manifest_generation?: number;
+      },
+      store: Store,
+    ) => {
+      const existing = await store.changes.get(changeId);
+      if (!existing.success || !existing.data) {
+        return formatToolOutput({
+          success: false,
+          error: existing.success
+            ? `Change '${changeId}' not found.`
+            : existing.error,
+          hint: "Use adv_change_list to find valid change IDs.",
+        });
+      }
+
+      const projectId = await getProjectId(store.paths.root);
+      if (!projectId) {
+        return formatToolOutput({ error: "Could not resolve project ID" });
+      }
+      const bundle = getService();
+      if (!bundle) {
+        return formatToolOutput({ error: "Temporal service not available" });
+      }
+
+      const handle = getChangeHandle(bundle.client, projectId, changeId);
+      const recordedAt = new Date().toISOString();
+      await fireSignalAndRefresh(
+        handle,
+        store,
+        changeId,
+        workerBundleProvenanceRecordedSignal,
+        {
+          source_sha,
+          build_run_id,
+          replay_run_id,
+          ...(worker_manifest_generation !== undefined && {
+            worker_manifest_generation,
+          }),
+          recorded_at: recordedAt,
+        },
+      );
+
+      return formatToolOutput({
+        success: true,
+        changeId,
+        source_sha,
+        build_run_id,
+        replay_run_id,
+        ...(worker_manifest_generation !== undefined && {
+          worker_manifest_generation,
+        }),
+        recorded_at: recordedAt,
+      });
+    },
+  },
+
+  adv_change_set_worker_bundle_impact: {
+    description:
+      "Set or confirm the worker-bundle impact classification for a change. Use at planning to declare whether this change requires worker-bundle build+replay provenance before release (kind='required') or does not (kind='not_applicable'). The declaration is typed, not a path heuristic, and is the authority for the release gate.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID to set worker-bundle impact on."),
+      kind: z
+        .enum(["required", "not_applicable"])
+        .describe(
+          "Whether worker-bundle provenance is required for release or not applicable.",
+        ),
+      rationale: z
+        .string()
+        .min(1)
+        .describe("Human-readable rationale for the classification."),
+    },
+    execute: async (
+      {
+        changeId,
+        kind,
+        rationale,
+      }: {
+        changeId: string;
+        kind: "required" | "not_applicable";
+        rationale: string;
+      },
+      store: Store,
+    ) => {
+      const existing = await store.changes.get(changeId);
+      if (!existing.success || !existing.data) {
+        return formatToolOutput({
+          success: false,
+          error: existing.success
+            ? `Change '${changeId}' not found.`
+            : existing.error,
+          hint: "Use adv_change_list to find valid change IDs.",
+        });
+      }
+
+      const change = existing.data;
+      const confirmedAt = new Date().toISOString();
+      const worker_bundle_impact: WorkerBundleImpact = {
+        kind,
+        rationale,
+        confirmed_at: confirmedAt,
+      };
+      const updated = { ...change, worker_bundle_impact };
+      await store.changes.save(updated);
+
+      const projectId = await getProjectId(store.paths.root);
+      if (!projectId) {
+        return formatToolOutput({ error: "Could not resolve project ID" });
+      }
+      const bundle = getService();
+      if (!bundle) {
+        return formatToolOutput({ error: "Temporal service not available" });
+      }
+      const handle = getChangeHandle(bundle.client, projectId, changeId);
+      await fireSignalAndRefresh(
+        handle,
+        store,
+        changeId,
+        workerBundleImpactSetSignal,
+        {
+          worker_bundle_impact,
+          set_at: confirmedAt,
+        },
+      );
+
+      return formatToolOutput({
+        success: true,
+        changeId,
+        worker_bundle_impact,
+      });
+    },
+  },
+
   adv_change_close: {
     description:
       "Close an active change with required user approval and audit metadata",

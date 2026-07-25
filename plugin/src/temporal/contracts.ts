@@ -137,6 +137,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   updateArtifactMetadata: "adv.change.updateArtifactMetadata",
   originRepaired: "adv.change.originRepaired",
   workerBundleProvenanceRecorded: "adv.change.workerBundleProvenanceRecorded",
+  workerBundleImpactSet: "adv.change.workerBundleImpactSet",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
 } as const;

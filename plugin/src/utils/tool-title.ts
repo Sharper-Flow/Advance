@@ -95,6 +95,10 @@ const TITLE_BUILDERS: Record<string, TitleBuilder> = {
   adv_change_create: (args) => write(`Create change${suffix(args, "summary")}`),
   adv_change_update: (args) =>
     write(`Update change${suffix(args, "changeId")}`),
+  adv_change_set_worker_bundle_impact: (args) =>
+    write(`Set worker-bundle impact${suffix(args, "changeId")}`),
+  adv_worker_bundle_provenance_record: (args) =>
+    write(`Record worker-bundle provenance${suffix(args, "changeId")}`),
   adv_change_close: (args) => write(`Close change${suffix(args, "changeId")}`),
   adv_change_bulk_close: () => write("Bulk close changes"),
   adv_change_validate: (args) =>

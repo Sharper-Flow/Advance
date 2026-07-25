@@ -89,6 +89,7 @@ import type {
   WorktreeDeletedSignalPayload,
   WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
+  WorkerBundleImpactSetSignalPayload,
   WorkerBundleProvenanceRecordedSignalPayload,
 } from "../types";
 import type { MutationReceipt } from "./contracts";
@@ -378,6 +379,10 @@ export const closeChangeSignal = wf.defineSignal<
 export const workerBundleProvenanceRecordedSignal = wf.defineSignal<
   [WorkerBundleProvenanceRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleProvenanceRecorded);
+
+export const workerBundleImpactSetSignal = wf.defineSignal<
+  [WorkerBundleImpactSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleImpactSet);
 
 // Epic workflow bindings
 export const getEpicStateQuery = wf.defineQuery<EpicWorkflowState>(

@@ -477,6 +477,16 @@ export function createToolMap(
       "adv_change_update",
       store,
     ),
+    adv_worker_bundle_provenance_record: bindTool(
+      changeTools.adv_worker_bundle_provenance_record,
+      "adv_worker_bundle_provenance_record",
+      store,
+    ),
+    adv_change_set_worker_bundle_impact: bindTool(
+      changeTools.adv_change_set_worker_bundle_impact,
+      "adv_change_set_worker_bundle_impact",
+      store,
+    ),
     adv_change_close: bindTool(
       changeTools.adv_change_close,
       "adv_change_close",

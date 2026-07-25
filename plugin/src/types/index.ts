@@ -445,6 +445,8 @@ export {
   type ChangeContract,
   ChangeSchema,
   type Change,
+  WorkerBundleImpactSchema,
+  type WorkerBundleImpact,
   OpsFollowupKindSchema,
   type OpsFollowupKind,
   OpsRelationshipSchema,
