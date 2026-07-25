@@ -75,3 +75,85 @@ describe("ProjectConfigSchema archive finalization defaults", () => {
     ).toThrow();
   });
 });
+
+describe("ProjectConfigSchema archive.pr_title_policy", () => {
+  const baseConfig = {
+    name: "advance-test",
+  };
+
+  test("no archive field validates and defaults format to plain", () => {
+    const parsed = ProjectConfigSchema.parse(baseConfig);
+    expect(parsed.archive).toMatchObject({
+      pr_title_policy: { format: "plain" },
+    });
+  });
+
+  test("valid conventional pr_title_policy with type arrays validates", () => {
+    const parsed = ProjectConfigSchema.parse({
+      ...baseConfig,
+      archive: {
+        pr_title_policy: {
+          format: "conventional",
+          release_types: ["feat", "fix", "perf"],
+          allowed_types: ["feat", "fix", "perf", "chore"],
+        },
+      },
+    });
+    expect(parsed.archive).toMatchObject({
+      pr_title_policy: {
+        format: "conventional",
+        release_types: ["feat", "fix", "perf"],
+        allowed_types: ["feat", "fix", "perf", "chore"],
+      },
+    });
+  });
+
+  test("rejects bogus pr_title_policy format", () => {
+    expect(() =>
+      ProjectConfigSchema.parse({
+        ...baseConfig,
+        archive: { pr_title_policy: { format: "bogus" } },
+      }),
+    ).toThrow();
+  });
+
+  test("explicit plain pr_title_policy validates", () => {
+    const parsed = ProjectConfigSchema.parse({
+      ...baseConfig,
+      archive: { pr_title_policy: { format: "plain" } },
+    });
+    expect(parsed.archive).toMatchObject({
+      pr_title_policy: { format: "plain" },
+    });
+  });
+
+  test("rejects empty release_types array", () => {
+    expect(() =>
+      ProjectConfigSchema.parse({
+        ...baseConfig,
+        archive: {
+          pr_title_policy: {
+            format: "conventional",
+            release_types: [],
+            allowed_types: ["fix"],
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  test("rejects empty allowed_types array", () => {
+    expect(() =>
+      ProjectConfigSchema.parse({
+        ...baseConfig,
+        archive: {
+          pr_title_policy: {
+            format: "conventional",
+            release_types: ["fix"],
+            allowed_types: [],
+          },
+        },
+      }),
+    ).toThrow();
+  });
+});

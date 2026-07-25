@@ -186,6 +186,7 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
   adv_change_archive: {
     worktreePath: { blank: "omit" },
     target_path: { blank: "omit" },
+    prTitleType: { blank: "omit" },
     // Contextually-validated: handler checks only when target_path present.
     confirmationEvidence: { blank: "omit" },
   },

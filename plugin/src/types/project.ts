@@ -204,6 +204,32 @@ export const ProductLinkSchema = z.object({
 export type ProductLink = z.infer<typeof ProductLinkSchema>;
 
 // =============================================================================
+// Archive Configuration
+// =============================================================================
+
+export const PrTitlePolicySchema = z
+  .object({
+    /** PR title format policy for archive finalization. */
+    format: z.enum(["conventional", "plain"]).default("plain"),
+    /** Commit types that trigger a release when using conventional format. */
+    release_types: z.array(z.string()).min(1).optional(),
+    /** Full allowed conventional-commit type set. */
+    allowed_types: z.array(z.string()).min(1).optional(),
+  })
+  .passthrough(); // Forward compatibility: unknown keys pass through
+
+export type PrTitlePolicy = z.infer<typeof PrTitlePolicySchema>;
+
+const ArchiveConfigSchema = z
+  .object({
+    /** Policy governing generated archive PR titles. */
+    pr_title_policy: PrTitlePolicySchema.default(() =>
+      PrTitlePolicySchema.parse({}),
+    ),
+  })
+  .passthrough(); // Forward compatibility: unknown keys pass through
+
+// =============================================================================
 // Project Configuration
 // =============================================================================
 
@@ -232,6 +258,8 @@ export const ProjectConfigSchema = z
     archive_mode: z.enum(["direct", "pr"]).default("direct"),
     /** Whether archive finalization attempts `git push origin {default}`. */
     auto_push: z.boolean().default(true),
+    /** Archive finalization sub-configuration (e.g., PR title policy). */
+    archive: ArchiveConfigSchema.default(() => ArchiveConfigSchema.parse({})),
     /** Per-project feature flag overrides. All flags default to current ADV behavior. */
     features: FeatureFlagsSchema.default(() => FeatureFlagsSchema.parse({})),
   })

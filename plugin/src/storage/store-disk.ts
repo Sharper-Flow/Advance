@@ -159,6 +159,7 @@ export async function createDiskStore(
           project_file: "project.md",
           archive_mode: "direct",
           auto_push: true,
+          archive: { pr_title_policy: { format: "plain" } },
           features: {
             tdd_enforcement: "strict",
             worktree_auto_create: true,

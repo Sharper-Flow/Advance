@@ -427,6 +427,57 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
   });
 
+  test("threads explicit prTitleType into finalizeRelease context for conventional target", async () => {
+    const store = createMockStore();
+    store.config = {
+      name: "test",
+      features: {},
+      archive: { pr_title_policy: { format: "conventional" } },
+    } as Store["config"];
+
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        prTitleType: "fix",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(mocks.finalizeRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workdir: "/tmp/worktree",
+        prTitleType: "fix",
+        prTitlePolicy: { format: "conventional" },
+      }),
+    );
+  });
+
+  test("ignores prTitleType on plain target (no effect)", async () => {
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        prTitleType: "fix",
+      },
+      store,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(mocks.finalizeRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workdir: "/tmp/worktree",
+        prTitleType: "fix",
+        prTitlePolicy: undefined,
+      }),
+    );
+  });
+
   test("projects terminal summary to parent Epic after durable archive proof", async () => {
     const store = createMockStore({
       epicMembership: {

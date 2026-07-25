@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-07-25T19:13:20.693Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "9fd942872aa8def5adca2a52517b46f53b3afa4d9d5575c98d6e2c13d13d1106",
+  "change_id": "fixArchivePrTitles",
+  "completed_tasks": 6,
+  "created_at": "2026-07-25T15:24:08.384Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-25T19:07:08.723Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "3a34a9332851ef0422dc85926f47a3a87bc48f33d5e2babc4e1e0ef4b4c041fc",
+  "task_count": 6,
+  "title": "Fix archive PR titles",
+  "version": "1"
+}

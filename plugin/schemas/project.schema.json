@@ -6,6 +6,54 @@
     "$schema": {
       "type": "string"
     },
+    "archive": {
+      "additionalProperties": {},
+      "default": {
+        "pr_title_policy": {
+          "format": "plain"
+        }
+      },
+      "properties": {
+        "pr_title_policy": {
+          "additionalProperties": {},
+          "default": {
+            "format": "plain"
+          },
+          "properties": {
+            "allowed_types": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "format": {
+              "default": "plain",
+              "enum": [
+                "conventional",
+                "plain"
+              ],
+              "type": "string"
+            },
+            "release_types": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "format"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "pr_title_policy"
+      ],
+      "type": "object"
+    },
     "archive_dir": {
       "default": ".adv/archive",
       "type": "string"
@@ -251,6 +299,7 @@
     "project_file",
     "archive_mode",
     "auto_push",
+    "archive",
     "features"
   ],
   "title": "ADV Project Configuration",

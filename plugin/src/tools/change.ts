@@ -31,6 +31,7 @@ import {
 } from "../types";
 import { ChangeSchema } from "../types/changes";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
+import type { ProjectConfig } from "../types/project";
 import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
 import { loadChange, saveChange } from "../storage/json";
@@ -3676,6 +3677,24 @@ export const changeTools = {
         .describe(
           "Phase 9 git finalization mode. Defaults to run. 'skip' is a compatibility/manual-recovery escape hatch; release gate completion must happen only after reachability/push evidence exists.",
         ),
+      prTitleType: z
+        .enum([
+          "feat",
+          "fix",
+          "perf",
+          "chore",
+          "docs",
+          "refactor",
+          "test",
+          "build",
+          "ci",
+          "style",
+          "revert",
+        ])
+        .optional()
+        .describe(
+          "Optional Conventional Commit type for the archive PR title. Used when the project's archive.pr_title_policy.format is 'conventional' and the change metadata does not provide a type. Operator explicit choice overrides any metadata-derived type.",
+        ),
       ...targetPathSchema.shape,
     },
     execute: async (
@@ -3686,6 +3705,7 @@ export const changeTools = {
         noCloseIssue,
         closeIssue: _closeIssue,
         phase9,
+        prTitleType,
         target_path,
         target_confirmed,
         confirmationEvidence,
@@ -3696,6 +3716,18 @@ export const changeTools = {
         noCloseIssue?: boolean;
         closeIssue?: boolean;
         phase9?: "run" | "skip";
+        prTitleType?:
+          | "feat"
+          | "fix"
+          | "perf"
+          | "chore"
+          | "docs"
+          | "refactor"
+          | "test"
+          | "build"
+          | "ci"
+          | "style"
+          | "revert";
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -4165,6 +4197,10 @@ export const changeTools = {
                   artifactPaths: (archiveResult.commitPaths ?? []).map((path) =>
                     relative(worktreePath, path),
                   ),
+                  changeTitle: change.title,
+                  prTitleType,
+                  prTitlePolicy: (store.config as ProjectConfig | undefined)
+                    ?.archive?.pr_title_policy,
                 })
               : verifyReleaseEvidenceFromMain({
                   store,
