@@ -158,6 +158,12 @@ function makeChangeInput(
       gates: makeSeedGates(),
       contract: fixtureContract,
       reentry_history: [],
+      // Worker-bundle provenance is enforced for new release-gate completions;
+      // declare it not_applicable so the phase9 recovery path is not blocked.
+      worker_bundle_impact: {
+        kind: "not_applicable",
+        rationale: "Integration fixture bypasses worker-bundle provenance.",
+      },
     },
   };
 }

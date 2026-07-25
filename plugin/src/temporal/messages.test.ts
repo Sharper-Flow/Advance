@@ -62,6 +62,7 @@ import {
   LightweightProfileRequestedSignalPayloadSchema,
   LightweightProfileEvaluatedSignalPayloadSchema,
   WorkerBundleProvenanceRecordedSignalPayloadSchema,
+  WorkerBundleImpactSetSignalPayloadSchema,
 } from "../types";
 
 const designSignalKeys = [
@@ -126,6 +127,7 @@ const designSignalKeys = [
   "updateArtifactMetadata",
   "originRepaired",
   "workerBundleProvenanceRecorded",
+  "workerBundleImpactSet",
   "archiveChange",
   "closeChange",
 ] as const;
@@ -146,7 +148,7 @@ describe("change workflow message contract", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(63);
+    expect(surfacedKeys).toHaveLength(64);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -681,6 +683,16 @@ describe("change workflow message contract", () => {
           replay_run_id: "replay-1",
           worker_manifest_generation: 3,
           recorded_at: timestamp,
+        },
+      ],
+      [
+        WorkerBundleImpactSetSignalPayloadSchema,
+        {
+          worker_bundle_impact: {
+            kind: "required",
+            rationale: "workflow code changed",
+          },
+          set_at: timestamp,
         },
       ],
       [

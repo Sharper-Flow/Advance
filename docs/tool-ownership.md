@@ -104,6 +104,7 @@ class rather than operator-only.
 | `adv_change_archive` | orchestrator | Release-gate archive workflow |
 | `adv_change_update_issues` | orchestrator | Issue linkage update |
 | `adv_change_reenter` | orchestrator | Gate re-entry |
+| `adv_change_set_worker_bundle_impact` | orchestrator | Typed worker-bundle impact declaration at planning |
 
 ### Lightweight change profile
 
@@ -186,6 +187,7 @@ class rather than operator-only.
 | `adv_tool_catalog` | orchestrator | Bounded read-only catalog of canonical ADV tools with descriptive visibility metadata |
 | `adv_tool_describe` | orchestrator | Read-only single-tool schema/metadata projection; no handler invocation |
 | `adv_tool_invoke` | orchestrator | Strict in-process dispatcher through the canonical wrapped `ToolDefinition.execute`; preserves ToolContext, validation, authorization, approvals, recovery restrictions, and timeouts. Recursion-exclusion (`adv_tool_invoke`, `adv_tool_catalog`, `adv_tool_describe`, `execute`) is enforced before any lookup or dispatch (`addProviderToolSearch` AC1–AC4) |
+| `adv_worker_bundle_provenance_record` | orchestrator | Record worker-bundle build+replay provenance on a change after both runs pass; execution-time evidence receipt |
 
 ## Removed Tools and Replacements
 
