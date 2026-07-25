@@ -1,0 +1,513 @@
+{
+  "id": "fixPoisonedClosePathPrecheck",
+  "title": "Fix poisoned close path precheck",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-21T23:03:14.775Z",
+  "tasks": [
+    {
+      "id": "tk-829b2d23f731",
+      "title": "## Apply shouldTakeRecoveryBranch to close-path tools (AC1-AC4)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-24T23:38:37.898Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixPoisonedClosePathPrecheck",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPoisonedClosePathPrecheck",
+          "task_id": "tk-829b2d23f731",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-829b2d23f731"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/recovery-probe.ts",
+            "plugin/src/tools/change.test.ts",
+            "plugin/src/tools/change.workflow-terminate.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "vitest-close-path-2026-07-24",
+              "command": "npx vitest run src/tools/change.test.ts src/tools/change.workflow-terminate.test.ts src/tools/recovery-probe.test.ts src/tools/change/",
+              "exit_code": 0,
+              "summary": "256 tests pass across close-path and recovery-probe suites"
+            },
+            {
+              "test_run_id": "tsc-noemit-2026-07-24",
+              "command": "npx tsc --noEmit",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes"
+            },
+            {
+              "test_run_id": "pnpm-run-check-2026-07-24",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas, manifests, test isolation, lockfile policy, lint, and format checks pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extended shouldTakeRecoveryBranch signature to accept approvedByUser/approvalEvidence for call-site symmetry",
+              "why": "Task instructions specify calling with those args; accepting them as optional no-ops preserves the existing contract while allowing the exact call shape."
+            },
+            {
+              "what": "Used unpinned handle terminate in adv_change_workflow_terminate recovery branch",
+              "why": "The recovery branch skips describe() so no runId is available; the unpinned handle terminates the current workflow run, consistent with the operator-authorised recovery escape hatch."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern issues found beyond the three close-path tools; no additional files touched.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Applied shouldTakeRecoveryBranch to adv_change_close, adv_change_bulk_close, and adv_change_workflow_terminate. Each tool now skips the workflow describe() precheck when recoveryMode: poisoned_history + precise recoveryEvidence are provided, attempts the signal, and falls back to the disk-projection close/terminate on signal failure. Added 3 tests covering the new branch; all targeted tests, typecheck, and pnpm run check pass.",
+            "suggested_next_action": "Run the full test suite (bin/oc-test full) and advance execution/acceptance gates."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-829b2d23f731_a1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer-fixPoisonedClosePathPrecheck-tk-829b2d23f731-a1"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: vitest-close-path-2026-07-24"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tsc-noemit-2026-07-24"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: pnpm-run-check-2026-07-24"
+            }
+          ]
+        }
+      ],
+      "verification": "191 tests pass (change.test 170 + workflow-terminate 14 + recovery-probe 7). pnpm run check clean. shouldTakeRecoveryBranch applied to adv_change_close, adv_change_bulk_close, adv_change_workflow_terminate (poisoned_history class only). Healthy workflow path unchanged.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts",
+        "plugin/src/tools/recovery-probe.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts",
+        "plugin/src/tools/recovery-probe.ts"
+      ],
+      "checkpointSha": "6c8be4aa978670116d2eb4b61951b4ee7db46cc1",
+      "completedAt": "2026-07-25T00:01:01.616Z",
+      "completed_at": "2026-07-25T00:01:01.616Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixPoisonedClosePathPrecheck",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixPoisonedClosePathPrecheck",
+      "task_id": "tk-829b2d23f731",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-829b2d23f731"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/recovery-probe.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.workflow-terminate.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "vitest-close-path-2026-07-24",
+          "command": "npx vitest run src/tools/change.test.ts src/tools/change.workflow-terminate.test.ts src/tools/recovery-probe.test.ts src/tools/change/",
+          "exit_code": 0,
+          "summary": "256 tests pass across close-path and recovery-probe suites"
+        },
+        {
+          "test_run_id": "tsc-noemit-2026-07-24",
+          "command": "npx tsc --noEmit",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes"
+        },
+        {
+          "test_run_id": "pnpm-run-check-2026-07-24",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas, manifests, test isolation, lockfile policy, lint, and format checks pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extended shouldTakeRecoveryBranch signature to accept approvedByUser/approvalEvidence for call-site symmetry",
+          "why": "Task instructions specify calling with those args; accepting them as optional no-ops preserves the existing contract while allowing the exact call shape."
+        },
+        {
+          "what": "Used unpinned handle terminate in adv_change_workflow_terminate recovery branch",
+          "why": "The recovery branch skips describe() so no runId is available; the unpinned handle terminates the current workflow run, consistent with the operator-authorised recovery escape hatch."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern issues found beyond the three close-path tools; no additional files touched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Applied shouldTakeRecoveryBranch to adv_change_close, adv_change_bulk_close, and adv_change_workflow_terminate. Each tool now skips the workflow describe() precheck when recoveryMode: poisoned_history + precise recoveryEvidence are provided, attempts the signal, and falls back to the disk-projection close/terminate on signal failure. Added 3 tests covering the new branch; all targeted tests, typecheck, and pnpm run check pass.",
+        "suggested_next_action": "Run the full test suite (bin/oc-test full) and advance execution/acceptance gates."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-829b2d23f731_a1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer-fixPoisonedClosePathPrecheck-tk-829b2d23f731-a1"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: vitest-close-path-2026-07-24"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tsc-noemit-2026-07-24"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: pnpm-run-check-2026-07-24"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-829b2d23f731": [
+      {
+        "runId": "tr_mrzlshgk_ec629559",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/change.test.ts src/tools/change.workflow-terminate.test.ts src/tools/recovery-probe.test.ts",
+        "durationMs": 5054.509701000527,
+        "recordedAt": "2026-07-25T00:00:50.364Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:37:25.003Z",
+      "completed_by": "agent",
+      "approval_evidence": "Cross-project follow-up from toolbox. Proposal has 3 concrete failure cases, clear scope (3 tools), references existing shouldTakeRecoveryBranch helper. Predecessor fixPoisonedRecovery archived f8e8578.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "49736ef472f6787dc7e84e004918139b74632e4cced71056e09b20b1c931d41c",
+        "non_whitespace_chars": 4024,
+        "checked_at": "2026-07-22T17:33:21.886Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:37:48.316Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted (8 items). Discovery confirmed: shouldTakeRecoveryBranch exists in recovery-probe.ts, applied to 6 tools in fixPoisonedRecovery. Close-path tools (close, bulk_close, workflow_terminate) are the gap.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "non_whitespace_chars": 1085,
+        "checked_at": "2026-07-22T17:33:21.887Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "started_at": "2026-07-24T23:38:00.406Z",
+      "completed_at": "2026-07-24T23:38:24.883Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design persisted. Pattern: shouldTakeRecoveryBranch before precheck query on 3 close-path tools. References fixPoisonedRecovery T2-T9.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "dd1c4a990ff78084756b213e20b5297016b92cae3b63e085d42860a386e4a5f4",
+        "non_whitespace_chars": 919,
+        "checked_at": "2026-07-22T17:33:21.889Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-24T23:38:47.757Z",
+      "completed_by": "user",
+      "approval_evidence": "User directed. 1 task, 4 ACs. Mechanical fix applying existing shouldTakeRecoveryBranch pattern to 3 close-path tools."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-25T00:01:10.972Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task complete. 191 tests pass. pnpm run check clean. shouldTakeRecoveryBranch applied to 3 close-path tools."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-25T00:03:26.866Z",
+      "completed_at": "2026-07-25T00:03:47.430Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "PR #320 admin-merged. Review matrix 8/8. Verification evidence dispositioned. 191 tests pass."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "source_change_id": "optimizeBunTsDevToolingV4",
+    "linked_at": "2026-07-21T23:03:05.306Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+      "approvedAt": "2026-07-24T23:37:37.490Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — `adv_change_close recoveryMode: poisoned_history` succeeds for Terminated/zombie workflows (no precheck query failure)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — `adv_change_bulk_close recoveryMode: poisoned_history` succeeds per-change in selector loop",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — `adv_change_workflow_terminate dryRun: true` returns useful pin assessment for Terminated/Completed workflows with poisoned_history mode",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — No regression for healthy workflows (normal close path unchanged when recoveryMode absent)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Apply existing `shouldTakeRecoveryBranch` helper from `plugin/src/tools/recovery-probe.ts` — do not reinvent",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "`shipped_terminal` eligibility class for `adv_change_workflow_terminate` keeps shipped-proof requirement (out of scope)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do NOT change `validateReviewMatrixRowCoverage` (separate bug)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do NOT build a batch sweep tool (separate backlog item)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-25T00:03:15.156Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_change_close with recoveryMode succeeds on Terminated workflow"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv_change_bulk_close with recoveryMode succeeds per-change"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "workflow_terminate dryRun returns assessment for Terminated with poisoned_history"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Healthy workflow path unchanged when recoveryMode absent"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Uses existing shouldTakeRecoveryBranch, no reinvention"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "shipped_terminal proof requirement unchanged"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No batch sweep tool"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No validateReviewMatrixRowCoverage changes"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "**AC1** — `adv_change_close recoveryMode: poisoned_history` succeeds for Terminated/zombie workflows (no precheck query failure)",
+    "**AC2** — `adv_change_bulk_close recoveryMode: poisoned_history` succeeds per-change in selector loop",
+    "**AC3** — `adv_change_workflow_terminate dryRun: true` returns useful pin assessment for Terminated/Completed workflows with poisoned_history mode",
+    "**AC4** — No regression for healthy workflows (normal close path unchanged when recoveryMode absent)"
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n| Source change | optimizeBunTsDevToolingV4 |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Fix poisoned-workflow close-path precheck bypass\n\n## Follow-up to `fixPoisonedRecovery` (archived 2026-07-21, merge f8e8578)\n\n`fixPoisonedRecovery` shipped poisoned-history recovery for 6 tools (`adv_verification_evidence_disposition`, `adv_task_update`/`adv_task_add`, `adv_design_concern_disposition`, `adv_contract_mint`/`adv_contract_review_matrix_set`, `adv_change_archive`) using the new `shouldTakeRecoveryBranch` helper. **The close-path tools were not in scope** and still hit the precheck-then-fail pattern.\n\n## Problem\n\n`adv_change_close`, `adv_change_bulk_close`, and `adv_change_workflow_terminate` unconditionally query the change workflow BEFORE checking `recoveryMode: poisoned_history`. For Terminated/zombie workflows where the query handler cannot respond, the precheck throws `Failed to query Workflow ServiceError` and `recoveryMode` never gets a chance to execute its disk-projection fallback.\n\n## Concrete cases observed (2026-07-21, optimizeBunTsDevToolingV4 archive flow)\n\n| Change ID | Workflow state | Close result |\n|---|---|---|\n| `optimizeBunTsDevTooling3` (toolbox project) | Terminated 4h prior | precheck ServiceError; close fails |\n| `addCacheUsageMeterPlugin2` (toolbox project) | Running zombie (terminated via temporal CLI mid-session) | precheck ServiceError; close fails |\n| `extendProviderHintsAggregator2` (toolbox project) | Completed (projection drift) | ✅ close SUCCEEDED (Completed workflows still serve queries) |\n\nThe `extendProviderHintsAggregator2` success confirms `recoveryMode: poisoned_history` works when the precheck query succeeds. The fix is to make the precheck take the recovery branch when `recoveryMode` + evidence are present, regardless of query outcome.\n\n## Proposed direction\n\nApply the existing `shouldTakeRecoveryBranch` helper (shipped via `fixPoisonedRecovery`, `plugin/src/tools/recovery-probe.ts`) to the close-path tool wrappers. Pattern matches T2–T9 of `fixPoisonedRecovery`:\n\n1. Probe workflow with `shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence, approvalEvidence, approvedByUser })`\n2. If recovery branch is authorized → skip precheck query, attempt signal, fall through to disk-projection close on signal failure\n3. If not authorized → existing precheck behavior unchanged\n\n## Scope\n\n**In scope:**\n- `adv_change_close` — add recovery-probe bypass\n- `adv_change_bulk_close` — add recovery-probe bypass (per-change in selector loop)\n- `adv_change_workflow_terminate` — add recovery-probe bypass for `poisoned_history` eligibility class (currently fails precheck for Terminated workflows)\n\n**Out of scope:**\n- The `shipped_terminal` eligibility class for `adv_change_workflow_terminate` — keep shipped-proof requirement\n- Any change to `validateReviewMatrixRowCoverage` (separate observed bug — OOS rows always \"unknown\"; tracks via different issue)\n- Sweep/operator tool for batch cleanup (`advance-poisoned-workflow-sweep` backlog item remains active for that broader scope)\n\n## Acceptance criteria (placeholder — refined in /adv-discover)\n\n- `adv_change_close recoveryMode: poisoned_history` succeeds for Terminated/zombie workflows (no precheck query failure)\n- `adv_change_bulk_close recoveryMode: poisoned_history` succeeds for the same (per-change in selector)\n- `adv_change_workflow_terminate dryRun: true` returns useful pin assessment for Terminated/Completed workflows\n- No regression for healthy workflows (normal close path unchanged when recoveryMode absent)\n- Tests cover: Terminated, Completed, Running-zombie, NotFound workflow states with recoveryMode\n- Live proof: `optimizeBunTsDevTooling3` and `addCacheUsageMeterPlugin2` (toolbox project) close successfully via the fixed path\n\n## Sourced validation\n\nNone needed — internal ADV plugin fix. Reference: `fixPoisonedRecovery` design.md and `plugin/src/tools/recovery-probe.ts` (existing `shouldTakeRecoveryBranch` helper).\n\n## Refs\n\n- Predecessor: `fixPoisonedRecovery` (this project, archived 2026-07-21, merge f8e8578)\n- Backlog: `advance-poisoned-workflow-sweep` (active; broader sweep scope remains)\n- Origin session: `optimizeBunTsDevToolingV4` (toolbox project, archived 2026-07-21)\n- Source: 3 concrete failure cases observed 2026-07-21 during toolbox session archive flow",
+    "agreement": "## Objectives\n\n1. **Close-path tools must bypass precheck query for poisoned workflows** — `adv_change_close`, `adv_change_bulk_close`, and `adv_change_workflow_terminate` must use `shouldTakeRecoveryBranch` to skip the workflow query when `recoveryMode: poisoned_history` is authorized, falling through to disk-projection close.\n\n## Acceptance Criteria\n\n- **AC1** — `adv_change_close recoveryMode: poisoned_history` succeeds for Terminated/zombie workflows (no precheck query failure)\n- **AC2** — `adv_change_bulk_close recoveryMode: poisoned_history` succeeds per-change in selector loop\n- **AC3** — `adv_change_workflow_terminate dryRun: true` returns useful pin assessment for Terminated/Completed workflows with poisoned_history mode\n- **AC4** — No regression for healthy workflows (normal close path unchanged when recoveryMode absent)\n\n## Constraints\n\n- Apply existing `shouldTakeRecoveryBranch` helper from `plugin/src/tools/recovery-probe.ts` — do not reinvent\n- `shipped_terminal` eligibility class for `adv_change_workflow_terminate` keeps shipped-proof requirement (out of scope)\n\n## Avoidances\n\n- Do NOT change `validateReviewMatrixRowCoverage` (separate bug)\n- Do NOT build a batch sweep tool (separate backlog item)",
+    "design": "## Design\n\nApply the existing `shouldTakeRecoveryBranch` helper from `plugin/src/tools/recovery-probe.ts` to 3 close-path tool wrappers, following the exact pattern shipped in `fixPoisonedRecovery` (T2-T9).\n\n### Pattern (per tool)\n1. Before the precheck workflow query, call `shouldTakeRecoveryBranch({ recoveryMode, recoveryEvidence, approvalEvidence, approvedByUser })`\n2. If recovery branch authorized → skip precheck query, attempt signal, fall through to disk-projection close on signal failure\n3. If not authorized → existing precheck behavior unchanged\n\n### Tools to modify\n- `adv_change_close` — add recovery-probe bypass before precheck\n- `adv_change_bulk_close` — add recovery-probe bypass per-change in selector loop\n- `adv_change_workflow_terminate` — add recovery-probe bypass for `poisoned_history` eligibility class only (keep `shipped_terminal` proof requirement)\n\n### Reference\n- `plugin/src/tools/recovery-probe.ts` — `shouldTakeRecoveryBranch` helper\n- `fixPoisonedRecovery` archived merge f8e8578 — T2-T9 pattern for 6 tools",
+    "executiveSummary": "## Executive Summary\n\nApplied the existing `shouldTakeRecoveryBranch` helper to 3 close-path tools (`adv_change_close`, `adv_change_bulk_close`, `adv_change_workflow_terminate`). Terminated/zombie workflows with `recoveryMode: poisoned_history` can now be closed/terminated via disk-projection fallback instead of failing at the precheck query.\n\nPR #320 merged to trunk (a5804e13). 191 tests pass, pnpm run check clean.\n\nThis completes the `hardenTemporalReliability` epic — all 13 entries archived."
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-21T23:03:14.876Z",
+      "contentHash": "49736ef472f6787dc7e84e004918139b74632e4cced71056e09b20b1c931d41c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-24T23:37:07.235Z",
+      "contentHash": "51109db175d7db6df6bfde5be37d80956698a054d407bbb1f07045adbb52dd24",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-24T23:38:12.851Z",
+      "contentHash": "dd1c4a990ff78084756b213e20b5297016b92cae3b63e085d42860a386e4a5f4",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-25T00:02:56.151Z",
+      "contentHash": "c1694f947ac651934584912efa3c4789151037638734e939d0856330f16bf42f",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-25T00:03:47.430Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "epic_membership": {
+    "epic_id": "hardenTemporalReliability",
+    "entry_id": "change-1784822191433-2nr1yi",
+    "order": 17,
+    "title": "Fix poisoned close path precheck",
+    "linked_at": "2026-07-23T15:56:31.433Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  }
+}

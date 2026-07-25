@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-07-25T00:04:46.729Z",
+  "capabilities": [],
+  "change_hash": "64e7c0becf95971661b27ff7e122c159b2b698b4723e27955b0b834d9d6f3c3a",
+  "change_id": "fixPoisonedClosePathPrecheck",
+  "completed_tasks": 1,
+  "created_at": "2026-07-21T23:03:14.775Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1784822191433-2nr1yi",
+    "epic_id": "hardenTemporalReliability",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-23T15:56:31.433Z",
+    "order": 17,
+    "source": "link_existing",
+    "title": "Fix poisoned close path precheck"
+  },
+  "last_activity_at": "2026-07-25T00:03:47.430Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "eb446ccd98dafb79bd236516a23207437bacef145896d4a15bf5ced73dd41242",
+  "task_count": 1,
+  "title": "Fix poisoned close path precheck",
+  "version": "1"
+}
