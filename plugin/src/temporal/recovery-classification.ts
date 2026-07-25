@@ -12,7 +12,7 @@ const POISONED_HISTORY_EVIDENCE_RE =
   /TMPRL1100|Nondeterminism|NonDeterministic|No command scheduled|WorkflowExecutionUpdateAccepted/i;
 
 const COMPLETED_WORKFLOW_EVIDENCE_RE =
-  /WorkflowNotFoundError|WorkflowExecutionAlreadyCompleted|workflow execution already completed|already completed|workflow is not running|cannot signal a completed/i;
+  /WorkflowNotFoundError|WorkflowExecutionAlreadyCompleted|workflow execution already completed|already completed|workflow is not running|cannot signal a completed|workflow not found|workflow execution not found/i;
 
 export const RECOVERY_RECONCILIATION_WARNING =
   "Poisoned-history recovery wrote the disk projection only; the Temporal workflow is not healed and stale workflow state may diverge if it becomes queryable later. Complete recovery in this session and archive or close promptly.";
