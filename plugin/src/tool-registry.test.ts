@@ -102,10 +102,7 @@ describe("createDegradedToolMap parity with createToolMap", () => {
   });
 
   test("degraded tool map stubs include an informational session-readiness hint (not a gate)", async () => {
-    const map = createDegradedToolMap(
-      new Error("test init failure"),
-      "/tmp/x",
-    );
+    const map = createDegradedToolMap(new Error("test init failure"), "/tmp/x");
     const tool = map.adv_change_show;
     expect(tool).toBeDefined();
 
