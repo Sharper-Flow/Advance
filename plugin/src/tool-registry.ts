@@ -1320,6 +1320,8 @@ export function createDegradedToolMap(
         "Check the ADV external state dir (~/.local/share/opencode/plugins/advance/{project-id}/) for malformed change/spec JSON; repair the artifact, then restart OpenCode",
         "Set ADV_DEBUG=1 in your shell and restart OpenCode to capture init errors in $ADV_CACHE_DIR/adv-debug.log",
       ],
+      readinessHint:
+        "When initialized, ADV mutation tools are gated per-target by a session-readiness probe. If the target queue is not yet adopted, mutations return ADV_SESSION_NOT_READY. Set ADV_SESSION_READINESS_BYPASS=1 to skip this gate (tests/dev only). This degraded stub is not a readiness authority and cannot know the per-target queue state.",
     },
     null,
     2,
@@ -1330,7 +1332,7 @@ export function createDegradedToolMap(
   const map: Record<string, ReturnType<typeof registerTool>> = {};
   for (const name of ADV_TOOL_NAMES) {
     map[name] = registerTool(
-      `[ADV plugin init failed — ${name} stub] ${initError.message.slice(0, 160)}`,
+      `[ADV plugin init failed — ${name} stub] ${initError.message.slice(0, 160)} (readiness hint: when initialized, mutation tools may be gated by session readiness; set ADV_SESSION_READINESS_BYPASS=1 to skip)`,
       {} as ToolArgsSchema,
       namedExecute(name, stubExecute),
     );

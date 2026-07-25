@@ -101,6 +101,32 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     expect(Object.keys(map).length).toBe(ADV_TOOL_NAMES.length);
   });
 
+  test("degraded tool map stubs include an informational session-readiness hint (not a gate)", async () => {
+    const map = createDegradedToolMap(
+      new Error("test init failure"),
+      "/tmp/x",
+    );
+    const tool = map.adv_change_show;
+    expect(tool).toBeDefined();
+
+    const result = (await tool.execute({})) as {
+      output: string;
+    };
+    const parsed = JSON.parse(result.output) as {
+      status: string;
+      readinessHint?: string;
+    };
+
+    expect(parsed.status).toBe("ADV_PLUGIN_INIT_FAILED");
+    expect(parsed.readinessHint).toEqual(expect.any(String));
+    expect(parsed.readinessHint).toMatch(/session[- ]readiness/i);
+    expect(parsed.readinessHint).toMatch(/ADV_SESSION_READINESS_BYPASS/);
+    // The degraded stub is informational only and cannot perform per-target
+    // queue gating — that authority lives in the per-mutation fireSignalAndRefresh
+    // precheck (KD4). It must not introduce a second eligibility gate.
+    expect(parsed.readinessHint).toMatch(/not a readiness authority/i);
+  });
+
   test("every registered ADV tool name has a display title", () => {
     for (const name of ADV_TOOL_NAMES) {
       expect(hasExplicitAdvToolTitle(name), `explicit title for ${name}`).toBe(

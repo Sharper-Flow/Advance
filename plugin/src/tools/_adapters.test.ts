@@ -21,8 +21,23 @@ import {
   type ReachabilityDeps,
 } from "./_adapters";
 import { isAdvSessionNotReady } from "../temporal/readiness-types";
-import { resetReadinessState } from "../temporal/session-readiness";
+import {
+  evaluateTargetReadiness,
+  resetReadinessState,
+} from "../temporal/session-readiness";
 import { changeStateQuery } from "../temporal/messages";
+
+vi.mock("../temporal/session-readiness", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("../temporal/session-readiness")>();
+  return {
+    ...original,
+    evaluateTargetReadiness: vi.fn(
+      (...args: Parameters<typeof original.evaluateTargetReadiness>) =>
+        original.evaluateTargetReadiness(...args),
+    ),
+  };
+});
 
 beforeEach(() => {
   resetReadinessState();
@@ -608,6 +623,49 @@ describe("_adapters", () => {
       expect(orphanHandle.signal).not.toHaveBeenCalled();
       expect(orphanStore.changes.refresh).not.toHaveBeenCalled();
     });
+
+    test("AC5: ADV_SESSION_READINESS_BYPASS=1 skips the readiness barrier and fires the signal", async () => {
+      const previousBypass = process.env.ADV_SESSION_READINESS_BYPASS;
+      process.env.ADV_SESSION_READINESS_BYPASS = "1";
+      vi.mocked(evaluateTargetReadiness).mockClear();
+
+      const handle = createMockHandle();
+      handle.describe.mockResolvedValue({
+        taskQueue: "advance-proj-sess-prior",
+      });
+      // Even though the query would prove the queue is not ready, the bypass
+      // must skip the readiness probe entirely and let the signal fire.
+      handle.query.mockRejectedValue(
+        new Error("no poller is currently polling this task queue"),
+      );
+      const store = createMockStore();
+
+      try {
+        await fireSignalAndRefresh(
+          handle as never,
+          store as any,
+          "chg-bypass",
+          { name: "taskAdded" },
+          { taskId: "tk-bypass" },
+        );
+
+        // Bypass must short-circuit the probe, not just ignore the result.
+        expect(vi.mocked(evaluateTargetReadiness)).not.toHaveBeenCalled();
+        expect(handle.query).not.toHaveBeenCalled();
+        expect(handle.signal).toHaveBeenCalledTimes(1);
+        expect(handle.signal).toHaveBeenCalledWith(
+          { name: "taskAdded" },
+          { taskId: "tk-bypass" },
+        );
+        expect(store.changes.refresh).toHaveBeenCalledWith("chg-bypass");
+      } finally {
+        if (previousBypass === undefined) {
+          delete process.env.ADV_SESSION_READINESS_BYPASS;
+        } else {
+          process.env.ADV_SESSION_READINESS_BYPASS = previousBypass;
+        }
+      }
+    });
   });
 
   describe("getChangeHandle", () => {
@@ -660,6 +718,26 @@ describe("_adapters", () => {
           initializedAt: "now",
         }),
       ).rejects.toThrow("does not expose workflow.start");
+    });
+
+    test("AC6: startChangeWorkflow does not await the readiness probe (barrier is post-init tool exposure)", async () => {
+      vi.mocked(evaluateTargetReadiness).mockClear();
+      const handle = createMockHandle();
+      const client = createMockClient(handle);
+      vi.mocked(ensureChangeWorkflowStarted).mockResolvedValue(handle);
+
+      await startChangeWorkflow(client, {
+        projectId: "proj-abc",
+        changeId: "chg-def",
+        title: "Test Change",
+        initializedAt: new Date().toISOString(),
+      });
+
+      // The session-readiness barrier is per-mutation, evaluated only inside
+      // fireSignalAndRefresh. Worker/change startup must remain non-blocking.
+      expect(vi.mocked(evaluateTargetReadiness)).not.toHaveBeenCalled();
+      expect(handle.query).not.toHaveBeenCalled();
+      expect(handle.describe).not.toHaveBeenCalled();
     });
   });
 });
