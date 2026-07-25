@@ -15,6 +15,7 @@ import {
   classifyFinalizationRoute,
   coercePrWorkflowRoute,
   completeMergeQueueHandoff,
+  createArchivePullRequest,
   detectArchiveMode,
   detectDefaultBranch,
   deleteChangeBranch,
@@ -51,6 +52,7 @@ import {
   getRoute,
   ensureOriginDefaultFetched,
 } from "./git-finalize";
+import type { PrTitlePolicy } from "../../types/project";
 
 function git(cwd: string, args: string[]): string {
   const result = spawnSync("git", args, {
@@ -4584,5 +4586,99 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
     } finally {
       await rm(tempRoot, { recursive: true, force: true });
     }
+  });
+
+  describe("createArchivePullRequest title construction", () => {
+    function runCreate(
+      policy: PrTitlePolicy | undefined,
+      prTitleType: string | undefined,
+    ): {
+      result: ReturnType<typeof createArchivePullRequest>;
+      title: string | undefined;
+      calls: string[][];
+    } {
+      const calls: string[][] = [];
+      const runGh = (_cwd: string, args: string[]) => {
+        calls.push(args);
+        if (args[0] === "pr" && args[1] === "create") {
+          return {
+            status: 0,
+            stdout: "https://github.com/Sharper-Flow/Advance/pull/42\n",
+            stderr: "",
+          };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected gh call" };
+      };
+      const result = createArchivePullRequest(
+        {
+          mainCheckout: "/main",
+          repo: "Sharper-Flow/Advance",
+          branch: "change/example",
+          defaultBranch: "trunk",
+          changeId: "example",
+          changeTitle: "Remove external artist resolvers",
+          prTitleType,
+          prTitlePolicy: policy,
+        },
+        { runGh },
+      );
+      const createCall = calls.find(
+        (args) => args[0] === "pr" && args[1] === "create",
+      );
+      const titleIndex = createCall?.indexOf("--title") ?? -1;
+      const title =
+        titleIndex >= 0 ? createCall?.[titleIndex + 1] : undefined;
+      return { result, title, calls };
+    }
+
+    it("plain/absent policy keeps byte-for-byte 'Archive {changeId}' title", () => {
+      const { result, title } = runCreate(undefined, undefined);
+      expect(result).toEqual({
+        ok: true,
+        url: "https://github.com/Sharper-Flow/Advance/pull/42",
+      });
+      expect(title).toBe("Archive example");
+    });
+
+    it("explicit plain policy also keeps 'Archive {changeId}' title", () => {
+      const { result, title } = runCreate(
+        { format: "plain" },
+        "fix",
+      );
+      expect(result).toEqual({
+        ok: true,
+        url: "https://github.com/Sharper-Flow/Advance/pull/42",
+      });
+      expect(title).toBe("Archive example");
+    });
+
+    it("conventional policy + prTitleType produces '{type}: {changeTitle}'", () => {
+      const { result, title } = runCreate(
+        { format: "conventional" },
+        "fix",
+      );
+      expect(result).toEqual({
+        ok: true,
+        url: "https://github.com/Sharper-Flow/Advance/pull/42",
+      });
+      expect(title).toBe("fix: Remove external artist resolvers");
+    });
+
+    it("conventional policy without prTitleType returns unresolved-title signal", () => {
+      const { result, title, calls } = runCreate(
+        { format: "conventional" },
+        undefined,
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "UNRESOLVED_PR_TITLE",
+        details: [
+          "Conventional PR title policy requires a prTitleType, but none was provided.",
+        ],
+      });
+      expect(title).toBeUndefined();
+      // No pr create should be emitted for the unresolved case.
+      expect(calls).toHaveLength(0);
+    });
   });
 });

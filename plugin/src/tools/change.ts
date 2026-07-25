@@ -30,6 +30,7 @@ import {
 } from "../types";
 import { ChangeSchema } from "../types/changes";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
+import type { ProjectConfig } from "../types/project";
 import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
 import { loadChange, saveChange } from "../storage/json";
@@ -3969,6 +3970,9 @@ export const changeTools = {
                   artifactPaths: (archiveResult.commitPaths ?? []).map((path) =>
                     relative(worktreePath, path),
                   ),
+                  changeTitle: change.title,
+                  prTitlePolicy: (store.config as ProjectConfig | undefined)
+                    ?.archive?.pr_title_policy,
                 })
               : verifyReleaseEvidenceFromMain({
                   store,

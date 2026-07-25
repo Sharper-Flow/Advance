@@ -4,6 +4,7 @@ import { dirname, isAbsolute, normalize, sep as pathSeparator } from "path";
 import { spawnSyncGit } from "../../utils/git-binary";
 import { parseWorktreeListPorcelain } from "../worktree/porcelain-parser";
 import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
+import type { PrTitlePolicy } from "../../types/project";
 
 export type ArchiveMode = "direct" | "pr";
 
@@ -1494,19 +1495,41 @@ function readPullRequestByBranch(
     : summary;
 }
 
-function createArchivePullRequest(
+export function createArchivePullRequest(
   input: {
     mainCheckout: string;
     repo: string;
     branch: string;
     defaultBranch: string;
     changeId: string;
+    changeTitle?: string;
+    prTitleType?: string;
+    prTitlePolicy?: PrTitlePolicy;
   },
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ):
   | { ok: true; url?: string }
   | { ok: false; reason: string; details?: string[] } {
   const runGh = deps.runGh ?? defaultRunGh;
+
+  const policy = input.prTitlePolicy;
+  const useConventional = policy?.format === "conventional";
+  let title: string;
+  if (useConventional) {
+    if (input.prTitleType === undefined) {
+      return {
+        ok: false,
+        reason: "UNRESOLVED_PR_TITLE",
+        details: [
+          "Conventional PR title policy requires a prTitleType, but none was provided.",
+        ],
+      };
+    }
+    title = `${input.prTitleType}: ${input.changeTitle}`;
+  } else {
+    title = `Archive ${input.changeId}`;
+  }
+
   const result = runGh(input.mainCheckout, [
     "pr",
     "create",
@@ -1517,7 +1540,7 @@ function createArchivePullRequest(
     "--base",
     input.defaultBranch,
     "--title",
-    `Archive ${input.changeId}`,
+    title,
     "--body",
     `ADV Phase 9 archive finalization for ${input.branch}.`,
   ]);
@@ -1538,6 +1561,9 @@ function ensureArchivePullRequest(
     branch: string;
     defaultBranch: string;
     changeId: string;
+    changeTitle?: string;
+    prTitleType?: string;
+    prTitlePolicy?: PrTitlePolicy;
   },
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ): PullRequestSummary | { error: string; details?: string[] } {
@@ -1647,6 +1673,9 @@ export function executePullRequestHandoff(
     changeId: string;
     route: FinalizationRoute;
     pushFailureReason: string;
+    changeTitle: string;
+    prTitleType?: string;
+    prTitlePolicy?: PrTitlePolicy;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -1681,6 +1710,9 @@ export function executePullRequestHandoff(
       branch: input.branch,
       defaultBranch: input.defaultBranch,
       changeId: input.changeId,
+      changeTitle: input.changeTitle,
+      prTitleType: input.prTitleType,
+      prTitlePolicy: input.prTitlePolicy,
     },
     deps,
   );
@@ -1792,6 +1824,9 @@ export function completeMergeQueueHandoff(
     defaultBranch: string;
     changeId: string;
     route: FinalizationRoute;
+    changeTitle: string;
+    prTitleType?: string;
+    prTitlePolicy?: PrTitlePolicy;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -1845,6 +1880,9 @@ export function completeMergeQueueHandoff(
       changeId: input.changeId,
       route: input.route,
       pushFailureReason: "merge_queue_required",
+      changeTitle: input.changeTitle,
+      prTitleType: input.prTitleType,
+      prTitlePolicy: input.prTitlePolicy,
     },
     deps,
   );
@@ -1858,6 +1896,9 @@ function completeProtectedBranchViaPullRequest(
     defaultBranch: string;
     route: FinalizationRoute;
     pushFailureReason: string;
+    changeTitle: string;
+    prTitleType?: string;
+    prTitlePolicy?: PrTitlePolicy;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -1935,6 +1976,9 @@ function completeProtectedBranchViaPullRequest(
       changeId: input.changeId,
       route: input.route,
       pushFailureReason: input.pushFailureReason,
+      changeTitle: input.changeTitle,
+      prTitleType: input.prTitleType,
+      prTitlePolicy: input.prTitlePolicy,
     },
     deps,
   );
@@ -2797,6 +2841,12 @@ export interface GitFinalizeContext {
   skipPush?: boolean;
   /** Exact worktree-relative bundle/spec/doc paths owned by archive. */
   artifactPaths?: string[];
+  /** Human-readable change title, used when constructing archive PR titles. */
+  changeTitle: string;
+  /** Optional explicit conventional-commit type override (added by tk-1c560667391b). */
+  prTitleType?: string;
+  /** Archive PR title policy; absent or plain format falls back to legacy title. */
+  prTitlePolicy?: PrTitlePolicy;
 }
 
 /**
@@ -3033,6 +3083,9 @@ export async function finalizeRelease(
           defaultBranch,
           changeId: ctx.changeId,
           route,
+          changeTitle: ctx.changeTitle,
+          prTitleType: ctx.prTitleType,
+          prTitlePolicy: ctx.prTitlePolicy,
         },
         deps,
       );
@@ -3046,6 +3099,9 @@ export async function finalizeRelease(
         changeId: ctx.changeId,
         route,
         pushFailureReason: "archive_mode_pr",
+        changeTitle: ctx.changeTitle,
+        prTitleType: ctx.prTitleType,
+        prTitlePolicy: ctx.prTitlePolicy,
       },
       deps,
     );
@@ -3235,6 +3291,9 @@ export async function finalizeRelease(
           changeId: ctx.changeId,
           defaultBranch,
           route,
+          changeTitle: ctx.changeTitle,
+          prTitleType: ctx.prTitleType,
+          prTitlePolicy: ctx.prTitlePolicy,
         },
         deps,
       );
@@ -3266,6 +3325,9 @@ export async function finalizeRelease(
           defaultBranch,
           route,
           pushFailureReason: push.reason,
+          changeTitle: ctx.changeTitle,
+          prTitleType: ctx.prTitleType,
+          prTitlePolicy: ctx.prTitlePolicy,
         },
         deps,
       );

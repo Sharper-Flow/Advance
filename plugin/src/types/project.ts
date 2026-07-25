@@ -207,7 +207,7 @@ export type ProductLink = z.infer<typeof ProductLinkSchema>;
 // Archive Configuration
 // =============================================================================
 
-const PrTitlePolicySchema = z
+export const PrTitlePolicySchema = z
   .object({
     /** PR title format policy for archive finalization. */
     format: z.enum(["conventional", "plain"]).default("plain"),
@@ -217,6 +217,8 @@ const PrTitlePolicySchema = z
     allowed_types: z.array(z.string()).optional(),
   })
   .passthrough(); // Forward compatibility: unknown keys pass through
+
+export type PrTitlePolicy = z.infer<typeof PrTitlePolicySchema>;
 
 const ArchiveConfigSchema = z
   .object({
