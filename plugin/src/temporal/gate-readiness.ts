@@ -1168,7 +1168,6 @@ function validateReviewMatrixRowCoverage(
   const expectedItems = contract.items.filter(
     (item) => item.verificationRequired !== false,
   );
-  const expectedIds = new Set(expectedItems.map((item) => item.id));
   const seen = new Set<string>();
   const duplicates: string[] = [];
   for (const row of contract.reviewMatrix.rows) {
@@ -1183,8 +1182,13 @@ function validateReviewMatrixRowCoverage(
   const missing = expectedItems
     .filter((item) => !seen.has(item.id))
     .map((item) => item.id);
+  // Check unknown rows against ALL contract item IDs, not just required ones.
+  // OOS items (verificationRequired: false) exist in the contract but are
+  // excluded from expectedIds; their review matrix rows are informational,
+  // not required, and must not be flagged as unknown.
+  const allContractIds = new Set(contract.items.map((item) => item.id));
   const unknown = contract.reviewMatrix.rows
-    .filter((row) => !expectedIds.has(row.contractId))
+    .filter((row) => !allContractIds.has(row.contractId))
     .map((row) => row.contractId);
 
   if (duplicates.length > 0 || missing.length > 0 || unknown.length > 0) {
