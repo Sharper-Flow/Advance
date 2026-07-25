@@ -322,6 +322,7 @@ interface PullRequestSummary {
   url: string;
   state: string;
   autoMergeArmed: boolean;
+  title?: string;
 }
 
 export interface ReleaseReachabilityInput {
@@ -1448,6 +1449,7 @@ function parsePullRequestSummary(
     number?: unknown;
     url?: unknown;
     state?: unknown;
+    title?: unknown;
     autoMergeRequest?: unknown;
   };
   if (typeof payload.number !== "number" || !Number.isInteger(payload.number)) {
@@ -1460,6 +1462,7 @@ function parsePullRequestSummary(
     number: payload.number,
     url: payload.url,
     state: typeof payload.state === "string" ? payload.state : "UNKNOWN",
+    title: typeof payload.title === "string" ? payload.title : undefined,
     autoMergeArmed:
       payload.autoMergeRequest !== null &&
       payload.autoMergeRequest !== undefined,
@@ -1480,7 +1483,7 @@ function readPullRequestByBranch(
     "--repo",
     repo,
     "--json",
-    "number,url,state,autoMergeRequest",
+    "number,url,state,title,autoMergeRequest",
   ]);
   if (result.status !== 0) {
     return {
@@ -1606,13 +1609,88 @@ function ensureArchivePullRequest(
   return afterCreate;
 }
 
-function armPullRequestAutoMerge(
+export function armPullRequestAutoMerge(
   mainCheckout: string,
   repo: string,
   prNumber: number,
+  changeTitle: string,
+  prTitle?: string,
+  prTitleType?: string,
+  prTitlePolicy?: PrTitlePolicy,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ): { ok: true } | { ok: false; reason: string; details?: string[] } {
   const runGh = deps.runGh ?? defaultRunGh;
+
+  const policy = prTitlePolicy;
+  if (policy?.format === "conventional") {
+    if (prTitleType === undefined) {
+      return {
+        ok: false,
+        reason: "PR_TITLE_TYPE_UNRESOLVED",
+        details: [
+          "Conventional PR title policy requires a prTitleType, but none was provided.",
+        ],
+      };
+    }
+
+    let liveTitle = prTitle;
+    if (liveTitle === undefined) {
+      const titleResult = runGh(mainCheckout, [
+        "pr",
+        "view",
+        String(prNumber),
+        "--repo",
+        repo,
+        "--json",
+        "title",
+      ]);
+      if (titleResult.status !== 0) {
+        return {
+          ok: false,
+          reason: "PR_TITLE_LOOKUP_FAILED",
+          details: splitLines(titleResult.stderr || titleResult.stdout),
+        };
+      }
+      const parsed = parseJson(titleResult.stdout);
+      if (
+        !parsed ||
+        typeof parsed !== "object" ||
+        typeof (parsed as { title?: unknown }).title !== "string"
+      ) {
+        return {
+          ok: false,
+          reason: "PR_TITLE_LOOKUP_FAILED",
+          details: ["gh pr view did not return a parseable title."],
+        };
+      }
+      liveTitle = (parsed as { title: string }).title;
+    }
+
+    const expectedPrefix = `${prTitleType}:`;
+    if (!liveTitle.startsWith(expectedPrefix)) {
+      return {
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          `Live PR title '${liveTitle}' does not conform to policy: must start with '${expectedPrefix}'.`,
+        ],
+      };
+    }
+
+    if (
+      policy.allowed_types !== undefined &&
+      !policy.allowed_types.includes(prTitleType)
+    ) {
+      return {
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          `Live PR title '${liveTitle}' does not conform to policy: type '${prTitleType}' is not in allowed_types.`,
+        ],
+      };
+    }
+  }
+
   // Intentionally omits -d/--delete-branch. Merge-queue merges complete at PR
   // state MERGED and cli/cli rejects --auto combined with --delete-branch.
   const result = runGh(mainCheckout, [
@@ -1737,6 +1815,10 @@ export function executePullRequestHandoff(
     input.mainCheckout,
     input.repo,
     pr.number,
+    input.changeTitle,
+    pr.title,
+    input.prTitleType,
+    input.prTitlePolicy,
     deps,
   );
   if (!armed.ok) {
@@ -2297,6 +2379,9 @@ export function redriveArchivedUnmergedBranch(
     mainCheckout: string;
     defaultBranch: string;
     changeId: string;
+    changeTitle: string;
+    prTitleType?: string;
+    prTitlePolicy?: PrTitlePolicy;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -2351,6 +2436,9 @@ export function redriveArchivedUnmergedBranch(
       branch,
       defaultBranch: input.defaultBranch,
       changeId: input.changeId,
+      changeTitle: input.changeTitle,
+      prTitleType: input.prTitleType,
+      prTitlePolicy: input.prTitlePolicy,
     },
     deps,
   );
@@ -2374,6 +2462,10 @@ export function redriveArchivedUnmergedBranch(
     input.mainCheckout,
     route.repo,
     pr.number,
+    input.changeTitle,
+    pr.title,
+    input.prTitleType,
+    input.prTitlePolicy,
     deps,
   );
   if (!armed.ok) {

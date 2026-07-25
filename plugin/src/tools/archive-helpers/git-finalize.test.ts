@@ -46,6 +46,7 @@ import {
   listLocalChangeBranchEntries,
   getCheckedOutChangeBranches,
   syncDefaultBranchAfterMerge,
+  armPullRequestAutoMerge,
   // rq-optimizePhase9GitCalls AC7 — internal accumulator exports for direct matrix testing.
   createState,
   invalidate,
@@ -1945,6 +1946,7 @@ describe("git-finalize helpers", () => {
         mainCheckout: "/repo",
         defaultBranch: "trunk",
         changeId: "archived-one",
+        changeTitle: "Archived work",
       },
       {
         runGit: (_cwd, args) => {
@@ -4175,6 +4177,189 @@ describe("git-finalize helpers", () => {
       }
     });
   });
+
+  describe("armPullRequestAutoMerge PR title policy guard", () => {
+    function runArm(
+      policy: PrTitlePolicy | undefined,
+      options: {
+        prTitleType?: string;
+        prTitle?: string;
+      } = {},
+    ): {
+      result: ReturnType<typeof armPullRequestAutoMerge>;
+      mergeCalls: string[][];
+      titleFetchCalls: string[][];
+      allCalls: string[][];
+    } {
+      const mergeCalls: string[][] = [];
+      const titleFetchCalls: string[][] = [];
+      const allCalls: string[][] = [];
+      const runGh = (_cwd: string, args: string[]) => {
+        allCalls.push(args);
+        if (args[0] === "pr" && args[1] === "merge") {
+          mergeCalls.push(args);
+          return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+        }
+        if (
+          args[0] === "pr" &&
+          args[1] === "view" &&
+          args[2] === "42" &&
+          args.includes("title")
+        ) {
+          titleFetchCalls.push(args);
+          return {
+            status: 0,
+            stdout: JSON.stringify({ title: options.prTitle ?? "" }),
+            stderr: "",
+          };
+        }
+        return {
+          status: 1,
+          stdout: "",
+          stderr: `unexpected gh ${args.join(" ")}`,
+        };
+      };
+      const result = armPullRequestAutoMerge(
+        "/main",
+        "Sharper-Flow/Advance",
+        42,
+        "Remove external artist resolvers",
+        options.prTitle,
+        options.prTitleType,
+        policy,
+        { runGh },
+      );
+      return { result, mergeCalls, titleFetchCalls, allCalls };
+    }
+
+    it("plain/absent policy arms without fetching the live PR title", () => {
+      const { result, mergeCalls, titleFetchCalls } = runArm(undefined);
+      expect(result).toEqual({ ok: true });
+      expect(mergeCalls).toHaveLength(1);
+      expect(mergeCalls[0]).toEqual([
+        "pr",
+        "merge",
+        "42",
+        "--repo",
+        "Sharper-Flow/Advance",
+        "--squash",
+        "--auto",
+      ]);
+      expect(titleFetchCalls).toHaveLength(0);
+    });
+
+    it("explicit plain policy arms without fetching the live PR title", () => {
+      const { result, mergeCalls, titleFetchCalls } = runArm(
+        { format: "plain" },
+        {
+          prTitleType: "fix",
+          prTitle: "fix: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({ ok: true });
+      expect(mergeCalls).toHaveLength(1);
+      expect(titleFetchCalls).toHaveLength(0);
+    });
+
+    it("conventional + valid live title + type in allowed_types arms", () => {
+      const { result, mergeCalls } = runArm(
+        { format: "conventional", allowed_types: ["fix", "feat"] },
+        {
+          prTitleType: "fix",
+          prTitle: "fix: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({ ok: true });
+      expect(mergeCalls).toHaveLength(1);
+    });
+
+    it("conventional + missing type returns PR_TITLE_TYPE_UNRESOLVED and does not arm", () => {
+      const { result, mergeCalls } = runArm(
+        { format: "conventional" },
+        {
+          prTitle: "fix: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_TYPE_UNRESOLVED",
+        details: [
+          "Conventional PR title policy requires a prTitleType, but none was provided.",
+        ],
+      });
+      expect(mergeCalls).toHaveLength(0);
+    });
+
+    it("conventional + live title violating allowed_types returns PR_TITLE_POLICY_VIOLATION and does not arm", () => {
+      const { result, mergeCalls } = runArm(
+        { format: "conventional", allowed_types: ["feat"] },
+        {
+          prTitleType: "fix",
+          prTitle: "fix: Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          "Live PR title 'fix: Remove external artist resolvers' does not conform to policy: type 'fix' is not in allowed_types.",
+        ],
+      });
+      expect(mergeCalls).toHaveLength(0);
+    });
+
+    it("conventional + live title not starting with type prefix returns PR_TITLE_POLICY_VIOLATION", () => {
+      const { result, mergeCalls } = runArm(
+        { format: "conventional" },
+        {
+          prTitleType: "fix",
+          prTitle: "Remove external artist resolvers",
+        },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_POLICY_VIOLATION",
+        details: [
+          "Live PR title 'Remove external artist resolvers' does not conform to policy: must start with 'fix:'.",
+        ],
+      });
+      expect(mergeCalls).toHaveLength(0);
+    });
+
+    it("conventional + gh pr view title lookup failure returns PR_TITLE_LOOKUP_FAILED and does not arm", () => {
+      const mergeCalls: string[][] = [];
+      const runGh = (_cwd: string, args: string[]) => {
+        if (args[0] === "pr" && args[1] === "merge") {
+          mergeCalls.push(args);
+          return { status: 0, stdout: "Auto-merge enabled", stderr: "" };
+        }
+        if (args[0] === "pr" && args[1] === "view" && args[2] === "42") {
+          return { status: 1, stdout: "", stderr: "GH PR lookup failed" };
+        }
+        return {
+          status: 1,
+          stdout: "",
+          stderr: `unexpected gh ${args.join(" ")}`,
+        };
+      };
+      const result = armPullRequestAutoMerge(
+        "/main",
+        "Sharper-Flow/Advance",
+        42,
+        "Remove external artist resolvers",
+        undefined,
+        "fix",
+        { format: "conventional" },
+        { runGh },
+      );
+      expect(result).toEqual({
+        ok: false,
+        reason: "PR_TITLE_LOOKUP_FAILED",
+        details: ["GH PR lookup failed"],
+      });
+      expect(mergeCalls).toHaveLength(0);
+    });
+  });
 });
 
 function defaultRunGit(cwd: string, args: string[]) {
@@ -4626,8 +4811,7 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
         (args) => args[0] === "pr" && args[1] === "create",
       );
       const titleIndex = createCall?.indexOf("--title") ?? -1;
-      const title =
-        titleIndex >= 0 ? createCall?.[titleIndex + 1] : undefined;
+      const title = titleIndex >= 0 ? createCall?.[titleIndex + 1] : undefined;
       return { result, title, calls };
     }
 
@@ -4641,10 +4825,7 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
     });
 
     it("explicit plain policy also keeps 'Archive {changeId}' title", () => {
-      const { result, title } = runCreate(
-        { format: "plain" },
-        "fix",
-      );
+      const { result, title } = runCreate({ format: "plain" }, "fix");
       expect(result).toEqual({
         ok: true,
         url: "https://github.com/Sharper-Flow/Advance/pull/42",
@@ -4653,10 +4834,7 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
     });
 
     it("conventional policy + prTitleType produces '{type}: {changeTitle}'", () => {
-      const { result, title } = runCreate(
-        { format: "conventional" },
-        "fix",
-      );
+      const { result, title } = runCreate({ format: "conventional" }, "fix");
       expect(result).toEqual({
         ok: true,
         url: "https://github.com/Sharper-Flow/Advance/pull/42",
