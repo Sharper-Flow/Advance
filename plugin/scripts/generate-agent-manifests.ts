@@ -28,7 +28,8 @@ export const ADV_TOOLS_BLOCK_END = "  # <<< ADV-GENERATED adv_* tools <<<";
  * reachable through Code Mode as `tools.adv.*` even when the host-plugin
  * manifest denies `adv_*`.
  */
-const TIER_4_INVOKE_ROUTING_NOTE = " Tier-4 reads also via `tools.adv.*`.";
+const TIER_4_INVOKE_ROUTING_NOTE =
+  " Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.";
 
 const ADV_TOOL_ENTRY_RE = /^\s+(adv_[A-Za-z0-9_*]+):\s*(true|false)\s*$/;
 
