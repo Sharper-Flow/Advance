@@ -69,11 +69,81 @@ export interface ReconcileOpsFollowupLinksResult {
   skipped: string[];
 }
 
+export interface ResolveRequiredOpsLinksInput {
+  parent: Change;
+  store: Store;
+  deps?: ReconcileOpsFollowupLinksDeps;
+}
+
+export interface ResolveRequiredOpsLinksResult {
+  /** Freshly derived authoritative resolution keyed by link id. */
+  resolutionByLinkId: Map<string, OpsFollowupResolution>;
+  /** Links that were not required obligations and were skipped. */
+  skipped: string[];
+}
+
 export function isRequiredOpsFollowupLink(link: OpsFollowupLink): boolean {
   if (link.relationship === "blocks") return true;
   return (
     HANDOFF_RELATIONSHIPS.includes(link.relationship) && link.required_handoff
   );
+}
+
+export async function resolveRequiredOpsLinks(
+  input: ResolveRequiredOpsLinksInput,
+): Promise<ResolveRequiredOpsLinksResult> {
+  const { parent, store } = input;
+  const deps = input.deps ?? {};
+  const now = deps.now ? deps.now() : new Date().toISOString();
+  const resolutionByLinkId = new Map<string, OpsFollowupResolution>();
+  const skipped: string[] = [];
+
+  for (const link of parent.ops_followup_links ?? []) {
+    if (!isRequiredOpsFollowupLink(link)) {
+      skipped.push(link.id);
+      continue;
+    }
+
+    const readResult = await readAuthoritativeChildOpsProfile({
+      link,
+      store,
+      deps,
+    });
+    const resolution = readResult.ok
+      ? deriveOpsFollowupResolution(link, readResult.profile, now)
+      : makeUnreachableResolution(
+          link,
+          now,
+          readResult.reason,
+          readResult.error,
+        );
+
+    resolutionByLinkId.set(link.id, resolution);
+  }
+
+  return { resolutionByLinkId, skipped };
+}
+
+function cloneChange(change: Change): Change {
+  return structuredClone(change);
+}
+
+export function overlayOpsResolutionsForRead(
+  parent: Change,
+  resolutionByLinkId: Map<string, OpsFollowupResolution>,
+): Change {
+  if (!parent.ops_followup_links || parent.ops_followup_links.length === 0) {
+    return cloneChange(parent);
+  }
+
+  const overlaid = cloneChange(parent);
+  for (const link of overlaid.ops_followup_links!) {
+    const resolution = resolutionByLinkId.get(link.id);
+    if (resolution !== undefined) {
+      link.resolution = resolution;
+    }
+  }
+  return overlaid;
 }
 
 interface ProofFields {
@@ -408,41 +478,26 @@ export async function reconcileOpsFollowupLinks(
   const { parent, store } = input;
   const deps = input.deps ?? {};
   const now = deps.now ? deps.now() : new Date().toISOString();
+  const { resolutionByLinkId, skipped } = await resolveRequiredOpsLinks({
+    parent,
+    store,
+    deps: { ...deps, now: () => now },
+  });
   const reconciled: ReconcileOpsFollowupResolutionResult[] = [];
-  const skipped: string[] = [];
 
-  for (const link of parent.ops_followup_links ?? []) {
-    if (!isRequiredOpsFollowupLink(link)) {
-      skipped.push(link.id);
-      continue;
-    }
-
-    const readResult = await readAuthoritativeChildOpsProfile({
-      link,
-      store,
-      deps,
-    });
-    const resolution = readResult.ok
-      ? deriveOpsFollowupResolution(link, readResult.profile, now)
-      : makeUnreachableResolution(
-          link,
-          now,
-          readResult.reason,
-          readResult.error,
-        );
-
-    if (!resolutionsEqual(link.resolution, resolution)) {
+  for (const [linkId, resolution] of resolutionByLinkId) {
+    const link = parent.ops_followup_links?.find((l) => l.id === linkId);
+    if (!resolutionsEqual(link?.resolution, resolution)) {
       await persistResolutionUpsert({
         store,
         changeId: parent.id,
-        linkId: link.id,
+        linkId,
         resolution,
         upsertedAt: now,
         deps,
       });
     }
-
-    reconciled.push({ linkId: link.id, resolution });
+    reconciled.push({ linkId, resolution });
   }
 
   const refreshed = await store.changes.get(parent.id);

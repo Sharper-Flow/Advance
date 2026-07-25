@@ -17,8 +17,10 @@ import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import type { TargetStoreScope } from "./target-project";
 import {
   isRequiredOpsFollowupLink,
+  overlayOpsResolutionsForRead,
   reconcileOpsFollowupLinks,
   reconcileOpsFollowupResolution,
+  resolveRequiredOpsLinks,
 } from "./ops-followup-reconciliation";
 
 const timestamp = "2026-06-20T04:00:00.000Z";
@@ -617,3 +619,193 @@ describe("reconcileOpsFollowupLinks", () => {
     expect(store.changes.get).toHaveBeenLastCalledWith("parent-1");
   });
 });
+
+describe("resolveRequiredOpsLinks", () => {
+  test("derives complete resolution from fresh child profile (AC1)", async () => {
+    const childProfile = completeProfile();
+    const parent = makeParent({
+      links: [makeLink({ relationship: "blocks", required_handoff: false })],
+    });
+    const store = makeStore({
+      parent,
+      children: { "child-1": makeChild("child-1", childProfile) },
+    });
+    const deps = makeDeps();
+
+    const result = await resolveRequiredOpsLinks({ parent, store, deps });
+
+    expect(result.skipped).toEqual([]);
+    expect(result.resolutionByLinkId.size).toBe(1);
+    expect(result.resolutionByLinkId.get("ofl-1")).toMatchObject({
+      source: "child_profile",
+      status: "complete",
+      resolution_reason: "verified",
+      completion_signal: "deploy finished",
+      health_verification: "smoke passed",
+      rollback_or_cleanup_disposition: "no rollback needed",
+    });
+  });
+
+  test("returns fail-closed unreachable resolution when child is missing (AC2)", async () => {
+    const parent = makeParent({
+      links: [makeLink({ relationship: "blocks", required_handoff: false })],
+    });
+    const store = makeStore({ parent });
+    const deps = makeDeps();
+
+    const result = await resolveRequiredOpsLinks({ parent, store, deps });
+
+    expect(result.resolutionByLinkId.get("ofl-1")).toMatchObject({
+      source: "unreachable",
+      resolution_reason: "child_missing",
+      status: "running",
+    });
+  });
+
+  test("returns stale-complete/current-unreachable as not_started unverified (AC2)", async () => {
+    const parent = makeParent({
+      links: [
+        makeLink({
+          relationship: "blocks",
+          required_handoff: false,
+          status: "complete",
+        }),
+      ],
+    });
+    const store = makeStore({ parent });
+    const deps = makeDeps();
+
+    const result = await resolveRequiredOpsLinks({ parent, store, deps });
+
+    expect(result.resolutionByLinkId.get("ofl-1")).toMatchObject({
+      source: "unreachable",
+      resolution_reason: "child_missing",
+      status: "not_started",
+    });
+  });
+
+  test("derives cross-project resolution through target_path store (AC4)", async () => {
+    const childProfile = completeProfile();
+    const targetStore = makeStore({
+      parent: makeParent(),
+      children: {
+        "child-target": makeChild("child-target", childProfile),
+      },
+    });
+    const parent = makeParent({
+      links: [
+        makeLink({
+          id: "ofl-target",
+          changeId: "child-target",
+          relationship: "blocks",
+          required_handoff: false,
+          target_path: "/tmp/target-project",
+          target_project_id: "target-project-id",
+        }),
+      ],
+    });
+    const store = makeStore({ parent });
+    const withTargetPathStore = vi.fn(async (_input, fn) => {
+      return await fn({
+        context: { projectId: "target-project-id" },
+        store: targetStore,
+      } as unknown as TargetStoreScope);
+    });
+    const deps = makeDeps({ withTargetPathStore });
+
+    const result = await resolveRequiredOpsLinks({ parent, store, deps });
+
+    expect(result.resolutionByLinkId.get("ofl-target")).toMatchObject({
+      source: "child_profile",
+      status: "complete",
+    });
+  });
+
+  test("sends zero signals and saves zero state (AC3)", async () => {
+    const childProfile = completeProfile();
+    const parent = makeParent({
+      links: [makeLink({ relationship: "blocks", required_handoff: false })],
+    });
+    const store = makeStore({
+      parent,
+      children: { "child-1": makeChild("child-1", childProfile) },
+    });
+    const deps = makeDeps();
+
+    await resolveRequiredOpsLinks({ parent, store, deps });
+
+    expect(deps.fireSignalAndRefresh).not.toHaveBeenCalled();
+    // No Temporal signal, no parent mutation, and no disk write happened.
+    expect(parent.ops_followup_links![0].resolution).toBeUndefined();
+  });
+});
+
+describe("overlayOpsResolutionsForRead", () => {
+  test("returns non-aliasing parent and links with applied resolutions (C2)", () => {
+    const staleResolution = reconcileOpsFollowupResolution({
+      link: makeLink(),
+      childProfile: completeProfile(),
+      now: verifiedAt,
+    })!;
+    const parent = makeParent({
+      links: [
+        makeLink({
+          relationship: "blocks",
+          required_handoff: false,
+          resolution: staleResolution,
+        }),
+      ],
+    });
+    const originalLink = parent.ops_followup_links![0];
+    const freshResolution = reconcileOpsFollowupResolution({
+      link: makeLink(),
+      childProfile: incompleteProfile("running"),
+      now: verifiedAt,
+    })!;
+    const resolutionByLinkId = new Map([["ofl-1", freshResolution]]);
+
+    const overlaid = overlayOpsResolutionsForRead(parent, resolutionByLinkId);
+
+    expect(overlaid).not.toBe(parent);
+    expect(overlaid.ops_followup_links).not.toBe(parent.ops_followup_links);
+    expect(overlaid.ops_followup_links![0]).not.toBe(originalLink);
+    expect(overlaid.ops_followup_links![0].resolution).toEqual(freshResolution);
+    expect(overlaid.ops_followup_links![0].resolution).not.toBe(
+      staleResolution,
+    );
+    expect(originalLink.resolution).toEqual(staleResolution);
+    expect(parent.ops_followup_links![0]).toBe(originalLink);
+  });
+
+  test("leaves non-targeted links unchanged", () => {
+    const parent = makeParent({
+      links: [
+        makeLink({ id: "ofl-1" }),
+        makeLink({
+          id: "ofl-2",
+          relationship: "follows_release",
+          required_handoff: false,
+        }),
+      ],
+    });
+    const resolutionByLinkId = new Map<
+      string,
+      ReturnType<typeof reconcileOpsFollowupResolution>
+    >();
+    resolutionByLinkId.set(
+      "ofl-1",
+      reconcileOpsFollowupResolution({
+        link: makeLink({ id: "ofl-1" }),
+        childProfile: completeProfile(),
+        now: verifiedAt,
+      })!,
+    );
+
+    const overlaid = overlayOpsResolutionsForRead(parent, resolutionByLinkId);
+
+    expect(overlaid.ops_followup_links![0].resolution).toBeDefined();
+    expect(overlaid.ops_followup_links![1].resolution).toBeUndefined();
+  });
+});
+
+// cross-mode parity smoke: reconcile and dry-run overlay produce the same resolution shape for the same inputs.

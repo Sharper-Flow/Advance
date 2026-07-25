@@ -15,7 +15,13 @@ import {
   closeLinkedIssue,
 } from "./change";
 import type { Store } from "../storage/store";
-import type { Change, Spec } from "../types";
+import type {
+  Change,
+  OpsFollowupLink,
+  OpsFollowupProfile,
+  OpsFollowupResolution,
+  Spec,
+} from "../types";
 import { derivePhasePlanSafe, parsePhasePlan } from "../utils/phase-plan";
 import {
   PARITY_ROWS,
@@ -26,6 +32,7 @@ import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import * as gitFinalize from "./archive-helpers/git-finalize";
 import * as worktree from "./worktree";
 import { gateTools } from "./gate";
+import { overlayOpsResolutionsForRead } from "./ops-followup-reconciliation";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -4435,6 +4442,672 @@ describe("change tools — signal-driven lifecycle", () => {
           mutation: false,
         }),
         expect.any(Function),
+      );
+    });
+
+    test("dryRun derives fresh child resolution and clears stale parent obligation without signals or persistence", async () => {
+      const childProfile: OpsFollowupProfile = {
+        kind: "migration",
+        source: {
+          source_change_id: "test-change",
+          source_kind: "required_follow_up",
+        },
+        relationship: "blocks",
+        status: "complete",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:01:00Z",
+        completion_signal: "deploy finished",
+        evidence: [],
+        runs: [
+          {
+            id: "run-1",
+            title: "Deploy run",
+            status: "complete",
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:01:00Z",
+            plan: {
+              env: "prod",
+              action: "deploy",
+              bounds: ["low-risk"],
+              evidence_policy: "manual",
+              rollback_or_cleanup_plan: "rollback to previous version",
+            },
+            steps: [],
+            evidence: [
+              {
+                id: "ore-1",
+                recorded_at: "2026-01-01T00:01:00Z",
+                step_kind: "execute",
+                env: "prod",
+                status: "complete",
+                summary: "Deployment completed",
+                artifact: {
+                  kind: "pointer",
+                  uri: "s3://ops-bucket/deploy.log",
+                },
+                next_status: "complete",
+                completion_signal: "deploy finished",
+                health_verification: "smoke passed",
+                rollback_or_cleanup_disposition: "no rollback needed",
+              },
+            ],
+          },
+        ],
+      };
+      const childChange: Change = {
+        id: "child-1",
+        title: "Child ops change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        ops_followup: childProfile,
+      };
+      const link: OpsFollowupLink = {
+        id: "ofl-1",
+        changeId: "child-1",
+        relationship: "blocks",
+        status: "not_started",
+        required_handoff: false,
+        linked_at: "2026-01-01T00:00:00Z",
+      };
+      const parent: Change = {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: allDoneGates,
+        ops_followup_links: [link],
+      };
+      const store = createMockStore(parent);
+      const getMock = store.changes.get as ReturnType<typeof vi.fn>;
+      getMock.mockImplementation(async (id: string) => {
+        if (id === "test-change") return { success: true, data: parent };
+        if (id === "child-1") return { success: true, data: childChange };
+        return { success: true, data: null };
+      });
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
+
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.error ?? "").not.toContain("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(parsed.error ?? "").not.toContain(
+        "unresolved required ops follow-up obligations",
+      );
+      expect(parsed.openOpsObligations ?? []).toEqual([]);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+    });
+
+    function makeCompleteOpsProfile(): OpsFollowupProfile {
+      return {
+        kind: "migration",
+        source: {
+          source_change_id: "test-change",
+          source_kind: "required_follow_up",
+        },
+        relationship: "blocks",
+        status: "complete",
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:01:00Z",
+        completion_signal: "deploy finished",
+        evidence: [],
+        runs: [
+          {
+            id: "run-1",
+            title: "Deploy run",
+            status: "complete",
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:01:00Z",
+            plan: {
+              env: "prod",
+              action: "deploy",
+              bounds: ["low-risk"],
+              evidence_policy: "manual",
+              rollback_or_cleanup_plan: "rollback to previous version",
+            },
+            steps: [],
+            evidence: [
+              {
+                id: "ore-1",
+                recorded_at: "2026-01-01T00:01:00Z",
+                step_kind: "execute",
+                env: "prod",
+                run_id: "run-1",
+                status: "complete",
+                summary: "Deployment completed",
+                artifact: {
+                  kind: "pointer",
+                  uri: "s3://ops-bucket/deploy.log",
+                },
+                next_status: "complete",
+                completion_signal: "deploy finished",
+                health_verification: "smoke passed",
+                rollback_or_cleanup_disposition: "no rollback needed",
+              },
+            ],
+          },
+        ],
+      };
+    }
+
+    function makeIncompleteOpsProfile(
+      status: OpsFollowupProfile["status"] = "running",
+    ): OpsFollowupProfile {
+      return {
+        kind: "migration",
+        source: {
+          source_change_id: "test-change",
+          source_kind: "required_follow_up",
+        },
+        relationship: "blocks",
+        status,
+        created_at: "2026-01-01T00:00:00Z",
+        updated_at: "2026-01-01T00:01:00Z",
+        evidence: [],
+        runs: [],
+      };
+    }
+
+    function makeCompleteButProofMissingProfile(): OpsFollowupProfile {
+      return {
+        ...makeCompleteOpsProfile(),
+        runs: [],
+      };
+    }
+
+    function makeOpsChild(
+      changeId: string,
+      profile?: OpsFollowupProfile,
+    ): Change {
+      return {
+        id: changeId,
+        title: "Ops child",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        ...(profile ? { ops_followup: profile } : {}),
+      };
+    }
+
+    function makeParentWithOpsLink(
+      linkOverrides: Partial<OpsFollowupLink> = {},
+    ): Change {
+      return {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates: allDoneGates,
+        ops_followup_links: [
+          {
+            id: "ofl-1",
+            changeId: "child-1",
+            relationship: "blocks",
+            status: "not_started",
+            required_handoff: false,
+            linked_at: "2026-01-01T00:00:00Z",
+            ...linkOverrides,
+          },
+        ],
+      };
+    }
+
+    function configureStore(
+      parent: Change,
+      child: Change | null | "unreachable",
+    ): Store {
+      const store = createMockStore(parent);
+      const getMock = store.changes.get as ReturnType<typeof vi.fn>;
+      getMock.mockImplementation(async (id: string) => {
+        if (id === "test-change") return { success: true, data: parent };
+        if (id === "child-1") {
+          if (child === "unreachable") {
+            throw new Error("child workflow unreachable");
+          }
+          return { success: true, data: child };
+        }
+        return { success: true, data: null };
+      });
+      return store;
+    }
+
+    async function runArchive(changeId: string, dryRun: boolean, store: Store) {
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId, dryRun },
+        store,
+      );
+      return JSON.parse(result);
+    }
+
+    function installSignalMutation(parent: Change) {
+      vi.mocked(mocks.fireSignalAndRefresh).mockImplementation(
+        async (_handle, _store, _changeId, _signal, payload) => {
+          const p = payload as {
+            linkId: string;
+            resolution: OpsFollowupResolution;
+          };
+          const link = parent.ops_followup_links?.find(
+            (l) => l.id === p.linkId,
+          );
+          if (link) {
+            link.resolution = p.resolution;
+          }
+        },
+      );
+    }
+
+    function expectParentSnapshot(
+      parent: Change,
+      beforeParent: string,
+      beforeLink: string,
+      originalLink: OpsFollowupLink,
+      originalResolution: OpsFollowupResolution | undefined,
+    ) {
+      expect(JSON.stringify(parent)).toBe(beforeParent);
+      expect(parent.ops_followup_links![0]).toBe(originalLink);
+      expect(JSON.stringify(parent.ops_followup_links![0])).toBe(beforeLink);
+      if (originalResolution === undefined) {
+        expect(parent.ops_followup_links![0].resolution).toBeUndefined();
+      } else {
+        expect(parent.ops_followup_links![0].resolution).toBe(
+          originalResolution,
+        );
+      }
+    }
+
+    test("AC2/AC4 same-project: incomplete child status blocks with the same code in dry and wet", async () => {
+      const parent = makeParentWithOpsLink();
+      const child = makeOpsChild(
+        "child-1",
+        makeIncompleteOpsProfile("running"),
+      );
+      const store = configureStore(parent, child);
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC2: complete child missing required proof fields blocks with the same code in dry and wet", async () => {
+      const parent = makeParentWithOpsLink();
+      const child = makeOpsChild(
+        "child-1",
+        makeCompleteButProofMissingProfile(),
+      );
+      const store = configureStore(parent, child);
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_COMPLETION_PROOF_INCOMPLETE",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_COMPLETION_PROOF_INCOMPLETE",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC2: missing child change blocks with the same code in dry and wet", async () => {
+      const parent = makeParentWithOpsLink();
+      const store = configureStore(parent, null);
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC2: missing child profile blocks with the same code in dry and wet", async () => {
+      const parent = makeParentWithOpsLink();
+      const child = makeOpsChild("child-1");
+      const store = configureStore(parent, child);
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC2: unreachable child change blocks with the same code in dry and wet", async () => {
+      const parent = makeParentWithOpsLink();
+      const store = configureStore(parent, "unreachable");
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC2/AC4 same-project: target identity mismatch blocks with the same code in dry and wet", async () => {
+      const parent = makeParentWithOpsLink({
+        target_project_id: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      });
+      const child = makeOpsChild("child-1", makeCompleteOpsProfile());
+      const store = configureStore(parent, child);
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC2: stale-complete/current-unreachable blocks with OPS_FOLLOWUP_STATUS_UNVERIFIED", async () => {
+      const parent = makeParentWithOpsLink({
+        status: "complete",
+        resolution: {
+          status: "complete",
+          verified_at: "2026-01-01T00:00:00Z",
+          source: "child_profile",
+          resolution_reason: "verified",
+          completion_signal: "deploy finished",
+          health_verification: "smoke passed",
+          rollback_or_cleanup_disposition: "no rollback needed",
+          evidence_summary: "done",
+        },
+      });
+      const store = configureStore(parent, null);
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_STATUS_UNVERIFIED",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC4 cross-project: complete child clears stale parent obligation in dry-run", async () => {
+      const child = makeOpsChild("child-target", makeCompleteOpsProfile());
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: child,
+      });
+      const parent = makeParentWithOpsLink({
+        id: "ofl-target",
+        changeId: "child-target",
+        target_path: "/tmp/target",
+        target_project_id: "target-project-id",
+      });
+      const store = createMockStore(parent);
+      const getMock = store.changes.get as ReturnType<typeof vi.fn>;
+      getMock.mockImplementation(async (id: string) => {
+        if (id === "test-change") return { success: true, data: parent };
+        return { success: true, data: null };
+      });
+
+      mocks.queryMock.mockResolvedValueOnce(allDoneGates);
+
+      const result = await runArchive("test-change", true, store);
+      expect(result.error ?? "").not.toContain("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(result.error ?? "").not.toContain(
+        "unresolved required ops follow-up obligations",
+      );
+      expect(result.openOpsObligations ?? []).toEqual([]);
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+    });
+
+    test("AC4 cross-project: incomplete child blocks with the same code in dry and wet", async () => {
+      const child = makeOpsChild(
+        "child-target",
+        makeIncompleteOpsProfile("running"),
+      );
+      vi.mocked(mocks.targetStore.changes.get).mockResolvedValue({
+        success: true,
+        data: child,
+      });
+      const parent = makeParentWithOpsLink({
+        id: "ofl-target",
+        changeId: "child-target",
+        target_path: "/tmp/target",
+        target_project_id: "target-project-id",
+      });
+      const store = createMockStore(parent);
+      const getMock = store.changes.get as ReturnType<typeof vi.fn>;
+      getMock.mockImplementation(async (id: string) => {
+        if (id === "test-change") return { success: true, data: parent };
+        return { success: true, data: null };
+      });
+      const beforeParent = JSON.stringify(parent);
+      const beforeLink = JSON.stringify(parent.ops_followup_links![0]);
+      const originalLink = parent.ops_followup_links![0];
+      const originalResolution = originalLink.resolution;
+
+      const dry = await runArchive("test-change", true, store);
+      expect(dry.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+      );
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(store.changes.save).not.toHaveBeenCalled();
+      expectParentSnapshot(
+        parent,
+        beforeParent,
+        beforeLink,
+        originalLink,
+        originalResolution,
+      );
+
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+      expect(wet.code).toBe("OPS_FOLLOWUP_ARCHIVE_BLOCKED");
+      expect(wet.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
+      );
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalled();
+    });
+
+    test("AC3/C2: dry-run overlay is non-aliasing and mutating the returned change does not affect the input parent", () => {
+      const parent = makeParentWithOpsLink();
+      const resolution: OpsFollowupResolution = {
+        status: "complete",
+        verified_at: "2026-01-01T00:02:00Z",
+        source: "child_profile",
+        resolution_reason: "verified",
+        completion_signal: "deploy finished",
+        health_verification: "smoke passed",
+        rollback_or_cleanup_disposition: "no rollback needed",
+        evidence_summary: "done",
+      };
+      const resolutionByLinkId = new Map([["ofl-1", resolution]]);
+
+      const overlaid = overlayOpsResolutionsForRead(parent, resolutionByLinkId);
+
+      expect(overlaid).not.toBe(parent);
+      expect(overlaid.ops_followup_links).not.toBe(parent.ops_followup_links);
+      expect(overlaid.ops_followup_links![0]).not.toBe(
+        parent.ops_followup_links![0],
+      );
+      expect(overlaid.ops_followup_links![0].resolution).toEqual(resolution);
+
+      overlaid.ops_followup_links![0].status = "complete";
+      overlaid.ops_followup_links![0].resolution!.status = "failed";
+
+      expect(parent.ops_followup_links![0].status).toBe("not_started");
+      expect(parent.ops_followup_links![0].resolution).toBeUndefined();
+    });
+
+    test("parity: dry and wet produce identical blocker codes for the same incomplete fixture", async () => {
+      const parent = makeParentWithOpsLink();
+      const child = makeOpsChild(
+        "child-1",
+        makeIncompleteOpsProfile("running"),
+      );
+      const store = configureStore(parent, child);
+
+      const dry = await runArchive("test-change", true, store);
+      installSignalMutation(parent);
+      const wet = await runArchive("test-change", false, store);
+
+      expect(dry.code).toBe(wet.code);
+      expect(dry.readinessBlockers[0].code).toBe(wet.readinessBlockers[0].code);
+      expect(dry.readinessBlockers[0].code).toBe(
+        "OPS_FOLLOWUP_BLOCKS_INCOMPLETE",
       );
     });
 
