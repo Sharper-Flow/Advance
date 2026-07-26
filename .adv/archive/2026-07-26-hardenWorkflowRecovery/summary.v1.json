@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-07-26T04:10:51.040Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "57c3ba50b7fe96f774c27f0a5c61dd6742f4a3519820b704ef7552fb5c2adce1",
+  "change_id": "hardenWorkflowRecovery",
+  "completed_tasks": 6,
+  "created_at": "2026-07-25T21:14:58.848Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-26T04:02:13.489Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "1094cc15a7af78030314a23f98bcfc3726f6fc77b840693fed4466fca180f421",
+  "task_count": 6,
+  "title": "Harden workflow recovery architecture",
+  "version": "1"
+}

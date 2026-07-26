@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.38.1
-> **Updated:** 2026-07-25
+> **Version:** 1.39.0
+> **Updated:** 2026-07-26
 
 ## Purpose
 
@@ -860,6 +860,94 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 **Then:**
 - The durable proof REJECTS with the existing strict guard
 - Evidence-match + recovery-audit requirements remain unchanged
+
+---
+
+### Worker Bundle Release Requires Freshness and Replay-Determinism Provenance
+
+**ID:** `rq-workerBundleReleaseProvenance01` | **Priority:** **[MUST]**
+
+When a change is declared `worker_bundle_impact: required`, ADV MUST enforce worker-bundle freshness and replay-determinism provenance before release completion. The release gate MUST require a provenance receipt containing `source_sha`, `build_run_id`, and `replay_run_id`, and MUST verify that the referenced build:worker and replay-determinism runs passed. If the receipt is missing, incomplete, or references failing runs, release MUST be blocked and MUST NOT report shipped success. A change declared `worker_bundle_impact: not_applicable` with a typed rationale MAY skip this gate. The applicability authority is the typed declaration set or confirmed at planning; an absent declaration MUST NOT be bypassed by path heuristics or file inspection. Post-deployment or runtime freshness (loaded vs deployed generation) is out of scope for this archive-time gate; it enforces provenance evidence only.
+
+**Tags:** `workflow`, `archive`, `release`, `worker-bundle`, `provenance`, `replay-determinism`
+
+#### Scenarios
+
+**Required impact with missing or failing provenance blocks release** (`rq-workerBundleReleaseProvenance01.1`)
+
+**Given:**
+- A change is declared `worker_bundle_impact: required`
+- The provenance receipt is missing, lacks `source_sha`/`build_run_id`/`replay_run_id`, or references failing runs
+
+**When:** The release gate evaluates worker-bundle provenance
+
+**Then:**
+- Release is BLOCKED
+- The gate cites `rq-workerBundleReleaseProvenance01`
+- Archive does not report shipped success or run retirement side effects
+
+**Required impact with valid provenance passes release** (`rq-workerBundleReleaseProvenance01.2`)
+
+**Given:**
+- A change is declared `worker_bundle_impact: required`
+- The provenance receipt contains `source_sha`, `build_run_id`, and `replay_run_id`
+- Both referenced runs passed
+
+**When:** The release gate evaluates worker-bundle provenance
+
+**Then:**
+- Release PASSES
+- The provenance receipt is recorded in the release completion evidence
+- Archive may proceed to finalization
+
+**Not applicable impact skips the gate** (`rq-workerBundleReleaseProvenance01.3`)
+
+**Given:**
+- A change is declared `worker_bundle_impact: not_applicable` with a typed rationale
+
+**When:** The release gate evaluates worker-bundle provenance
+
+**Then:**
+- The gate is SKIPPED
+- The gate is not BLOCKED
+- The typed rationale is recorded
+
+**Applicability authority is the typed declaration, not a heuristic** (`rq-workerBundleReleaseProvenance01.4`)
+
+**Given:**
+- A change lacks a typed `worker_bundle_impact` declaration, or the declaration is unset
+
+**When:** Applicability is evaluated
+
+**Then:**
+- The gate either blocks release or routes through a deliberate migration to a typed declaration
+- Path heuristics, file inspection, or implicit defaults never bypass the requirement
+- The blocker cites `rq-workerBundleReleaseProvenance01`
+
+**Runtime freshness is out of scope for the archive-time gate** (`rq-workerBundleReleaseProvenance01.5`)
+
+**Given:**
+- A change has already archived with valid provenance
+- The deployed worker bundle generation differs from the currently loaded generation at runtime
+
+**When:** Post-deployment runtime freshness is evaluated
+
+**Then:**
+- The archive-time gate does not enforce loaded-vs-deployed freshness (out of scope for this requirement)
+- Runtime freshness is handled outside this requirement
+- The provenance evidence recorded at archive time remains the authoritative release artifact
+
+**Provenance check is a hard blocking release-readiness gate, not advisory** (`rq-workerBundleReleaseProvenance01.6`)
+
+**Given:**
+- The worker-bundle provenance check is evaluated
+
+**When:** Release readiness is computed
+
+**Then:**
+- The check is a BLOCKING release-readiness gate (lives in evaluateGateReadiness, emits a GateReadinessBlocker)
+- The check is NOT an advisory CRITERION_EVALUATORS criterion
+- CRITERION_EVALUATORS criteria cannot probe evidence and are non-blocking
 
 ---
 
@@ -5011,6 +5099,61 @@ Verification-evidence warnings surfaced on typed worker reports MUST be enforced
 
 ---
 
+### Reviewer Evidence Authority Partitioned by Evidence Policy
+
+**ID:** `rq-reviewerEvidenceAuthority01` | **Priority:** **[MUST]**
+
+The stage-v2 evidence authority MUST partition verification requirements by evidence policy. For a completed task with evidence_policy "review", a persisted same-task adv-reviewer report IS the authoritative completion evidence; its aggregate tests_run command list neither creates nor substitutes for durable adv_run_test execution evidence, and the consumer_warning emitter MUST NOT emit verification_missing for it. For evidence_policy "test" or "static_check", reviewer aggregate command evidence MUST NOT satisfy the verification requirement; durable adv_run_test execution evidence remains required.
+
+**Tags:** `workflow`, `verification`, `evidence`, `structural`, `review`
+
+#### Scenarios
+
+**Review-policy task with linked reviewer report — no verification block** (`rq-reviewerEvidenceAuthority01.1`)
+
+**Given:**
+- A completed stage-v2 task has evidence_policy "review"
+- A persisted same-task adv-reviewer report is linked as review_evidence_ref
+
+**When:** Acceptance or release readiness evaluates verification evidence
+
+**Then:**
+- No VERIFICATION_EVIDENCE_MISSING blocker is emitted for the reviewer's tests_run
+
+**Test/static_check-policy task with only reviewer evidence — block remains** (`rq-reviewerEvidenceAuthority01.2`)
+
+**Given:**
+- A completed task has evidence_policy "test" or "static_check"
+- A persisted same-task adv-reviewer report carries aggregate tests_run
+- No durable adv_run_test run exists
+
+**When:** Acceptance or release readiness evaluates verification evidence
+
+**Then:**
+- A VERIFICATION_EVIDENCE_MISSING blocker is emitted
+
+**Emitter policy-gates verification_missing for adv-reviewer reports** (`rq-reviewerEvidenceAuthority01.3`)
+
+**Given:**
+- A task has evidence_policy "review"
+
+**When:** An adv-reviewer report is submitted with aggregate tests_run
+
+**Then:**
+- The consumer_warning emitter produces no verification_missing warnings
+
+**Same-task ownership preserved — change-scoped reviewer report cannot satisfy task review_evidence_ref** (`rq-reviewerEvidenceAuthority01.4`)
+
+**Given:**
+- A change-scoped adv-reviewer report has no task_id anchor
+
+**When:** Task completion validation runs
+
+**Then:**
+- The report cannot satisfy the task's review_evidence_ref
+
+---
+
 ### Reviewer-Owned Safe Local Cleanup of Evidence-Backed Bad Tests
 
 **ID:** `rq-reviewBadTestCleanup01` | **Priority:** **[MUST]**
@@ -6736,5 +6879,103 @@ ADV maintains a durable, launcher-consumable active-state disk projection (`acti
 - epics_available is false (never fabricated as live)
 - source is always disk_projection (never temporal/live:true)
 - freshness is the max lastSignalAt across active summaries and degraded reflects the documented threshold
+
+---
+
+### Workflow Worker Evolution Preserves Replay Compatibility
+
+**ID:** `rq-workerEvolutionSafety01` | **Priority:** **[MUST]**
+
+ADV MUST prevent ordinary plugin or worker deployment from replaying active workflow histories against incompatible workflow code. Until ADV operates managed simultaneous old/new workers with deployment-version routing and drain-aware retirement, workflow-reachable behavior changes MUST use Temporal patching and candidate worker bundles MUST pass replay-determinism evidence against representative committed histories before release. Temporal Worker Deployments MUST remain disabled until a typed readiness assessment proves all operational prerequisites.
+
+**Tags:** `workflow`, `temporal`, `worker`, `deployment`, `replay`, `versioning`
+
+#### Scenarios
+
+**Candidate worker bundle replays supported histories** (`rq-workerEvolutionSafety01.1`)
+
+**Given:**
+- A change modifies workflow-reachable code
+- Representative committed histories exist
+
+**When:** The candidate worker bundle is evaluated before release
+
+**Then:**
+- Replay-determinism tests pass for every supported history
+- A deliberately incompatible fixture fails with TMPRL1100-class evidence
+- Release remains blocked without passing replay provenance
+
+**Pinned deployment routing is prerequisite-gated** (`rq-workerEvolutionSafety01.2`)
+
+**Given:**
+- ADV currently replaces one worker process on bundle drift
+
+**When:** Worker Deployment enablement is evaluated
+
+**Then:**
+- Readiness remains false until server capability, stable deployment identity, immutable Build ID, simultaneous old/new pollers, ramp controls, drain retirement, legacy migration, and operator rollback are all proven
+- Pinned routing is not enabled while any prerequisite is absent
+
+**Compatible workflow changes retain patches** (`rq-workerEvolutionSafety01.3`)
+
+**Given:**
+- Historical executions may replay code that predates a workflow behavior change
+
+**When:** The behavior change is implemented
+
+**Then:**
+- A stable Temporal patch marker preserves old-history behavior
+- Patch deprecation occurs only after supported old histories and workers no longer require it
+- Replay fixtures verify both legacy and current paths
+
+---
+
+### Recovery Projection Mutations Are Conditional and Verified
+
+**ID:** `rq-recoveryProjectionTransaction01` | **Priority:** **[MUST]**
+
+ADV recovery mutations against a completed, missing, poisoned, or otherwise non-signalable change workflow MUST commit through one storage-owned conditional projection transaction. The transaction MUST serialize per change, read the latest projection inside the critical section, compare the expected projection revision, apply the field-level mutation to that latest state, increment revision, persist atomically, read back, and verify the mutation-specific postcondition before reporting success. All mutable active change-projection writers MUST route through this boundary or a mechanically validated terminal/bootstrap exception. Plain success is forbidden when readback cannot prove convergence.
+
+**Tags:** `workflow`, `recovery`, `projection`, `concurrency`, `cas`, `verification`
+
+#### Scenarios
+
+**Concurrent disjoint recovery mutations both survive** (`rq-recoveryProjectionTransaction01.1`)
+
+**Given:**
+- A completed or poisoned change workflow requires disk-projection recovery
+- Two disjoint recovery mutations start from the same projection revision
+
+**When:** The mutations execute concurrently
+
+**Then:**
+- Both mutations are present in the persisted projection
+- Projection revision advances once per committed mutation
+- Neither mutation silently overwrites the other
+
+**Conflicting recovery mutation fails explicitly** (`rq-recoveryProjectionTransaction01.2`)
+
+**Given:**
+- Two recovery mutations target the same logical field
+- Both carry the same expected projection revision
+
+**When:** They race to commit
+
+**Then:**
+- Exactly one mutation succeeds
+- The other returns typed stale-revision or lost-update evidence
+- No last-writer-wins success is reported
+
+**Recovery success requires downstream-visible readback** (`rq-recoveryProjectionTransaction01.3`)
+
+**Given:**
+- A recovery mutation has written a change projection
+
+**When:** The coordinator evaluates completion
+
+**Then:**
+- It reads the persisted projection from the same authority downstream readiness will consume
+- It verifies the mutation-specific postcondition
+- Unverifiable convergence returns a blocking recovered-unverified outcome instead of success
 
 ---
