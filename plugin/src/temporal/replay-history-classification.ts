@@ -233,6 +233,31 @@ export function auditSanitizedHistory(history: unknown): SanitizationAudit {
 }
 
 /**
+ * Evidence pattern for the TMPRL1100 nondeterminism class. Matches both the
+ * Temporal SDK error names and the ADV-layer wrappers that carry the same
+ * failure message (e.g., `No command scheduled for event`).
+ */
+export const TMPRL1100_CLASS_EVIDENCE_PATTERN =
+  /WorkflowTaskFailedCauseNonDeterministicError|Nondeterminism|TMPRL1100|No command scheduled/i;
+
+/**
+ * Classify a replay error as the TMPRL1100 nondeterminism class when the
+ * evidence matches the expected SDK/ADV error signatures.
+ *
+ * Returns `null` for non-nondeterminism errors so callers can distinguish
+ * replay infrastructure failures from behavior-change incompatibilities.
+ */
+export function classifyReplayNondeterminismError(
+  error: unknown,
+): { kind: "TMPRL1100"; evidence: string } | null {
+  const message = error instanceof Error ? error.message : String(error);
+  if (TMPRL1100_CLASS_EVIDENCE_PATTERN.test(message)) {
+    return { kind: "TMPRL1100", evidence: message.slice(0, 500) };
+  }
+  return null;
+}
+
+/**
  * Deterministically redact sensitive JSON payloads while preserving all
  * non-sensitive payload bytes (including Temporal core_patch marker ids).
  * Callers must replay the result before promoting it to a committed fixture.

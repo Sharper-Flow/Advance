@@ -5,6 +5,7 @@ import {
   PoisonedHistoryClassificationSchema,
   assertCompletePoisonedHistoryClassifications,
   auditSanitizedHistory,
+  classifyReplayNondeterminismError,
   sanitizeHistoryForFixture,
 } from "./replay-history-classification";
 
@@ -201,5 +202,51 @@ describe("sanitized history audit", () => {
       safe: false,
       findings: ["$.events[0].input.payloads[0].data"],
     });
+  });
+});
+
+describe("classifyReplayNondeterminismError", () => {
+  it("classifies a TMPRL1100 message as TMPRL1100 evidence", () => {
+    const error = new Error(
+      "[TMPRL1100] Nondeterminism error: Activity machine does not handle this event: HistoryEvent(id: 479, UpsertWorkflowSearchAttributes)",
+    );
+    expect(classifyReplayNondeterminismError(error)).toEqual({
+      kind: "TMPRL1100",
+      evidence: error.message,
+    });
+  });
+
+  it("classifies a plain Nondeterminism error as TMPRL1100 evidence", () => {
+    const error = new Error(
+      "Workflow activation completion failed: Nondeterminism: Timer machine does not handle this event",
+    );
+    expect(classifyReplayNondeterminismError(error)).toEqual({
+      kind: "TMPRL1100",
+      evidence: error.message,
+    });
+  });
+
+  it("classifies an ADV-layer 'No command scheduled' text as TMPRL1100 evidence", () => {
+    const error = new Error(
+      "No command scheduled for event HistoryEvent(id: 42, WorkflowExecutionUpdateAccepted)",
+    );
+    expect(classifyReplayNondeterminismError(error)).toEqual({
+      kind: "TMPRL1100",
+      evidence: error.message,
+    });
+  });
+
+  it("returns null for unrelated errors", () => {
+    expect(
+      classifyReplayNondeterminismError(new Error("network timeout")),
+    ).toBeNull();
+    expect(classifyReplayNondeterminismError("not an error")).toBeNull();
+  });
+
+  it("caps evidence at 500 characters", () => {
+    const error = new Error(`[TMPRL1100] ${"x".repeat(1000)}`);
+    const result = classifyReplayNondeterminismError(error);
+    expect(result).not.toBeNull();
+    expect(result!.evidence).toHaveLength(500);
   });
 });
