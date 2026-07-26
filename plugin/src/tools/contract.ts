@@ -1,7 +1,6 @@
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { readArtifact } from "./change/artifacts";
-import { saveChange } from "../storage/json";
 import {
   ContractEvidencePolicySchema,
   ContractEvidenceStatusSchema,
@@ -157,18 +156,6 @@ async function healthySignalHandle(store: Store, changeId: string) {
   return getChangeHandle(bundle.client, projectId, changeId);
 }
 
-async function bestEffortRefresh(
-  store: Store,
-  changeId: string,
-): Promise<void> {
-  try {
-    await store.changes.refresh(changeId);
-  } catch {
-    // Recovery writes are disk-projection repairs. A poisoned workflow may
-    // still make refresh fail; the disk save above is the important effect.
-  }
-}
-
 async function saveRecoveredContract(input: {
   store: Store;
   change: Change;
@@ -178,16 +165,54 @@ async function saveRecoveredContract(input: {
   if (!input.contract) {
     throw new Error("Cannot recover contract: no contract is set");
   }
-  const updated = {
-    ...input.change,
-    contract: input.contract,
-    acceptanceCriteria: acceptanceCriteriaFromContract(input.contract),
-  } as Change;
-  if (input.diskDirect) {
-    await saveChange(input.store.paths.changes, updated);
-  } else {
-    await input.store.changes.save(updated);
-    await bestEffortRefresh(input.store, input.change.id);
+  const contract = input.contract;
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      kind: input.diskDirect ? "workflow_completed" : "workflow_poisoned",
+      evidence: {
+        reason: input.diskDirect ? "missing_workflow" : "poisoned_history",
+        evidence: "contract recovery after signal classification",
+      },
+    },
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "contract_set",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        contract,
+        acceptanceCriteria: acceptanceCriteriaFromContract(contract),
+      }),
+      verifyProjection: (readback) =>
+        readback.contract?.version === contract.version &&
+        readback.contract?.items.length === contract.items.length,
+    },
+  });
+  switch (outcome.kind) {
+    case "recovered_verified":
+    case "applied_temporal":
+      return;
+    case "recovered_unverified":
+      throw new Error(
+        `Contract recovery for ${input.change.id} wrote the projection but the postcondition could not be verified: ${outcome.reason}`,
+      );
+    case "stale_revision":
+      throw new Error(
+        `Contract recovery for ${input.change.id} encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
+      );
+    case "operator_required":
+      throw new Error(
+        `Cannot recover contract for ${input.change.id}: ${outcome.reason}`,
+      );
+    default: {
+      const _exhaustive: never = outcome;
+      throw new Error(
+        `Unexpected contract recovery outcome: ${String(_exhaustive)}`,
+      );
+    }
   }
 }
 

@@ -2562,12 +2562,19 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
     await rm(tempRoot, { recursive: true, force: true });
   });
 
-  function activeStoreWithDirs(baseChange: Change): {
+  async function activeStoreWithDirs(baseChange: Change): Promise<{
     store: Store;
     changesDir: string;
-  } {
+  }> {
     const changesDir = join(tempRoot, "changes");
     const archiveDir = join(tempRoot, "archive");
+    const changeDir = join(changesDir, baseChange.id);
+    await mkdir(changeDir, { recursive: true });
+    await writeFile(
+      join(changeDir, "change.json"),
+      JSON.stringify(baseChange, null, 2),
+      "utf-8",
+    );
     const store = {
       paths: {
         root: tempRoot,
@@ -2590,7 +2597,7 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
 
   test("authorized: err.name=WorkflowNotFoundError (message without marker) writes one authorized disk projection", async () => {
     const baseChange = change({ status: "active", subagent_reports: [] });
-    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    const { store, changesDir } = await activeStoreWithDirs(baseChange);
     const err = new Error("unreachable");
     err.name = "WorkflowNotFoundError";
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(err);
@@ -2621,7 +2628,7 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
 
   test("authorized: message cites completed-workflow phrasing writes one authorized disk projection", async () => {
     const baseChange = change({ status: "active", subagent_reports: [] });
-    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    const { store, changesDir } = await activeStoreWithDirs(baseChange);
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(
       new Error("workflow execution already completed"),
     );
@@ -2645,7 +2652,7 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
 
   test("unauthorized: message contains 'WorkflowNotFound' substring but is not a completed-workflow error → typed failure, no disk write", async () => {
     const baseChange = change({ status: "active", subagent_reports: [] });
-    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    const { store, changesDir } = await activeStoreWithDirs(baseChange);
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(
       new Error("WorkflowNotFound is a placeholder"),
     );
@@ -2659,14 +2666,15 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
 
     expect(output.error).toBeDefined();
     expect(output.code).toBe("SUBMIT_SIGNAL_FAILED");
-    await expect(
-      readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
-    ).rejects.toThrow();
+    const noWrite = JSON.parse(
+      await readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    );
+    expect(noWrite.subagent_reports).toHaveLength(0);
   });
 
   test("unauthorized: transient error → typed failure with failureRecord, no disk write", async () => {
     const baseChange = change({ status: "active", subagent_reports: [] });
-    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    const { store, changesDir } = await activeStoreWithDirs(baseChange);
     mocks.fireSignalAndRefresh
       .mockRejectedValueOnce(new Error("network timeout"))
       .mockResolvedValueOnce(undefined);
@@ -2681,14 +2689,15 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
     expect(output.error).toBe("network timeout");
     expect(output.code).toBe("SUBMIT_SIGNAL_FAILED");
     expect(output.failureRecord).toEqual({ recorded: true });
-    await expect(
-      readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
-    ).rejects.toThrow();
+    const noWrite = JSON.parse(
+      await readFile(join(changesDir, "change-1", "change.json"), "utf-8"),
+    );
+    expect(noWrite.subagent_reports).toHaveLength(0);
   });
 
   test("does not re-signal the same unreachable workflow on authorized recovery", async () => {
     const baseChange = change({ status: "active", subagent_reports: [] });
-    const { store } = activeStoreWithDirs(baseChange);
+    const { store } = await activeStoreWithDirs(baseChange);
     const err = new Error("unreachable");
     err.name = "WorkflowNotFoundError";
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(err);
@@ -2706,7 +2715,7 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
 
   test("dedupe: second submission with same report key returns success without re-write", async () => {
     const baseChange = change({ status: "active", subagent_reports: [] });
-    const { store, changesDir } = activeStoreWithDirs(baseChange);
+    const { store, changesDir } = await activeStoreWithDirs(baseChange);
     const err = new Error("workflow execution already completed");
     mocks.fireSignalAndRefresh.mockRejectedValue(err);
 
@@ -2743,8 +2752,10 @@ describe("adv_subagent_report_submit — non-terminal WorkflowNotFound recovery 
 
   test("projection write failure returns typed actionable failure", async () => {
     const baseChange = change({ status: "active", subagent_reports: [] });
-    const { store, changesDir } = activeStoreWithDirs(baseChange);
-    await writeFile(changesDir, "not a dir");
+    const { store, changesDir } = await activeStoreWithDirs(baseChange);
+    const changeJsonPath = join(changesDir, "change-1", "change.json");
+    await rm(changeJsonPath, { force: true });
+    await mkdir(changeJsonPath);
     const err = new Error("workflow execution already completed");
     mocks.fireSignalAndRefresh.mockRejectedValueOnce(err);
 

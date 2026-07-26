@@ -696,7 +696,9 @@ describe("contractTools", () => {
 
   test("D4: adv_contract_mint recovers via disk when describe() confirms poisoned history", async () => {
     const changesDir = await writeAgreement("contractRecovery");
-    const store = createStore(baseChange(), changesDir);
+    const change = baseChange();
+    await seedProjection(changesDir, change);
+    const store = createStore(change, changesDir);
     workflowHandle.describe.mockResolvedValueOnce(poisonedDescription());
     fireSignalAndRefresh.mockResolvedValueOnce(undefined);
 
@@ -715,12 +717,17 @@ describe("contractTools", () => {
     expect(output.reconciliationWarning).toContain("not healed");
     expect(output.note).toContain("workflow_poisoned_describe");
     expect(output.itemCount).toBe(2);
-    expect(store.changes.save).toHaveBeenCalled();
+    const disk = await loadChange(changesDir, "contractRecovery");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.contract).toBeTruthy();
+    expect(disk.data?.projection_revision).toBe(1);
   });
 
   test("D4: adv_contract_mint recovers via disk-direct when signal error indicates completed workflow", async () => {
     const changesDir = await writeAgreement("contractRecovery");
-    const store = createStore(baseChange(), changesDir);
+    const change = baseChange();
+    await seedProjection(changesDir, change);
+    const store = createStore(change, changesDir);
     workflowHandle.describe.mockResolvedValueOnce({});
     fireSignalAndRefresh.mockRejectedValueOnce(
       new Error("workflow execution already completed"),

@@ -5,9 +5,23 @@
  */
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { taskTools } from "./task";
 import type { Store } from "../storage/store";
 import { ContractEvidencePolicySchema, TaskTypeSchema } from "../types";
+
+async function seedProjection(
+  change: import("../types").Change,
+): Promise<void> {
+  const dir = "/tmp/test/.adv/changes/test-change";
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    join(dir, "change.json"),
+    JSON.stringify(change, null, 2),
+    "utf-8",
+  );
+}
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -40,12 +54,14 @@ const mocks = vi.hoisted(() => {
     getChangeHandle: vi.fn(() => handleMock),
     fetchChangeContextTicker: vi.fn(async () => null),
     saveRecoveredTaskMutation: vi.fn(async (input) => {
+      await seedProjection(input.change);
       const actual = await vi.importActual<
         typeof import("./_recovery-writers")
       >("./_recovery-writers");
       return actual.saveRecoveredTaskMutation(input);
     }),
     saveRecoveredTaskAdd: vi.fn(async (input) => {
+      await seedProjection(input.change);
       const actual = await vi.importActual<
         typeof import("./_recovery-writers")
       >("./_recovery-writers");
@@ -1034,7 +1050,6 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.success).toBe(true);
       expect(parsed._recoveryMutation).toBe(true);
       expect(parsed.reconciliationWarning).toContain("not healed");
-      expect(store.changes.save).toHaveBeenCalled();
     });
 
     // rq-extend-poisoned-recovery AC9: no disk-only recovery in normal mode.
@@ -2148,7 +2163,6 @@ describe("task tools — signal/query adapters", () => {
           task: expect.objectContaining({ title: "Probe-first task" }),
         }),
       );
-      expect(store.changes.save).toHaveBeenCalled();
       delete (mocks.handleMock as { describe?: unknown }).describe;
     });
   });
@@ -2383,7 +2397,6 @@ describe("task tools — signal/query adapters", () => {
           taskId: "tk-abc",
         }),
       );
-      expect(store.changes.save).toHaveBeenCalled();
       delete (mocks.handleMock as { describe?: unknown }).describe;
     });
   });

@@ -2,30 +2,24 @@
  * Disk-projection recovery writers for poisoned-history fallback.
  *
  * These helpers write poisoned/completed-workflow recovery mutations to the
- * disk projection. Task mutation writers route through `store.changes.save`;
- * gate-completion and status-transition writers use disk-direct `saveChange`
- * because the Temporal-backed store path can re-invoke a completed workflow.
+ * disk projection through the shared typed mutation coordinator and the
+ * storage-owned conditional commit primitive. Every active-projection write
+ * now acquires the per-change lock, re-reads the latest projection, applies
+ * a family-specific field-local mutation, increments the projection revision,
+ * and verifies the postcondition before returning.
+ *
  * Every recovery write must be authorized by an explicit
  * `recoveryMode: "poisoned_history"` (with evidence), completed-workflow
  * evidence, or `compatibilityReason` at the calling tool.
  *
  * The disk-direct writers structurally require an authorization reason and
  * evidence. Callers remain responsible for proving that evidence before
- * invoking the writer; the writers ensure the disk write is atomic.
+ * invoking the writer; the writers ensure the disk write is conditional,
+ * audited, and postcondition-verified.
  *
- * Cache refresh policy:
- * - Task writers (mutation/add) use `store.changes.save` + `bestEffortRefresh`.
- *   `store.changes.save` already routes through Temporal on the regular path.
- * - Gate completion (`saveRecoveredGateCompletion`) and artifact metadata
- *   (`saveRecoveredArtifactMetadata`) use disk-direct `saveChange` WITHOUT
- *   `bestEffortRefresh`. These target workflows that may still be actively
- *   processing; refreshing could pull in an intermediate state that overwrites
- *   the disk repair.
- * - Status transition (`saveRecoveredChangeStatus`) uses disk-direct
- *   `saveChange` only. `store.changes.refresh()` re-queries Temporal, which can
- *   still contain stale non-terminal state for a wedged release workflow and
- *   overwrite the disk repair. The Temporal read path treats archive bundles as
- *   terminal/dominant and invalidates stale active cache entries there.
+ * Terminal/archive bundle writes (sub-agent reports for archived changes)
+ * remain direct atomic writes to the bundle manifest; they are enumerated in
+ * the active-projection saveChange exception inventory.
  */
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -44,6 +38,11 @@ import {
 } from "../types/subagent-reports";
 import { findArchiveBundle, bundleJsonStringify } from "../archive/archive";
 import { atomicWriteFile } from "../utils/fs";
+import {
+  coordinateChangeMutation,
+  type ChangeAuthority,
+  type MutationOutcome,
+} from "./change-mutation-coordinator";
 
 interface RecoveryWriteAuthorization {
   reason: string;
@@ -57,6 +56,70 @@ function assertRecoveryAuthorization(
     throw new Error(
       "disk-projection recovery authorization with reason and evidence is required",
     );
+  }
+}
+
+function recoveryAuthority(
+  authorization: RecoveryWriteAuthorization,
+): Extract<
+  ChangeAuthority,
+  { kind: "workflow_completed" | "workflow_missing" | "workflow_poisoned" }
+> {
+  const reasonLower = authorization.reason.toLowerCase();
+  const evidence = authorization.evidence;
+  if (
+    reasonLower.includes("poisoned") ||
+    reasonLower.includes("tmprl1100") ||
+    reasonLower.includes("nondetermin")
+  ) {
+    return {
+      kind: "workflow_poisoned",
+      evidence: { reason: "poisoned_history", evidence },
+    };
+  }
+  if (
+    reasonLower.includes("missing") ||
+    reasonLower.includes("not_found") ||
+    reasonLower.includes("not found")
+  ) {
+    return {
+      kind: "workflow_missing",
+      evidence: { reason: "missing_workflow", evidence },
+    };
+  }
+  return {
+    kind: "workflow_completed",
+    evidence: { reason: "missing_workflow", evidence },
+  };
+}
+
+function requireRecoveredChange(
+  mutationKind: string,
+  changeId: string,
+  outcome: MutationOutcome<Change>,
+): Change {
+  switch (outcome.kind) {
+    case "recovered_verified":
+    case "applied_temporal":
+      return outcome.value;
+    case "recovered_unverified":
+      throw new Error(
+        `${mutationKind} recovery for ${changeId} wrote the projection but the postcondition could not be verified: ${outcome.reason}`,
+      );
+    case "stale_revision":
+      throw new Error(
+        `${mutationKind} recovery for ${changeId} encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
+      );
+    case "operator_required":
+      throw new Error(
+        `${mutationKind} recovery for ${changeId} requires operator intervention: ${outcome.reason}`,
+      );
+    default: {
+      const _exhaustive: never = outcome;
+      throw new Error(
+        `Unexpected ${mutationKind} outcome for ${changeId}: ${String(_exhaustive)}`,
+      );
+    }
   }
 }
 
@@ -74,7 +137,8 @@ async function bestEffortRefresh(
 
 /**
  * Replace a task's fields in-place inside `change.tasks` and persist the
- * change to disk. Throws if the task is not present in the change.
+ * change through the conditional projection commit. Throws if the task is not
+ * present in the change.
  */
 export async function saveRecoveredTaskMutation(input: {
   store: Store;
@@ -88,16 +152,51 @@ export async function saveRecoveredTaskMutation(input: {
       `Cannot recover task ${input.taskId}: not present in change ${input.change.id}`,
     );
   }
-  const updatedTasks = [...input.change.tasks];
-  updatedTasks[idx] = input.mutate(updatedTasks[idx]);
-  const updated = { ...input.change, tasks: updatedTasks } as Change;
-  await input.store.changes.save(updated);
+  const mutate = input.mutate;
+  const taskId = input.taskId;
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      kind: "workflow_completed",
+      evidence: { reason: "missing_workflow", evidence: "task recovery" },
+    },
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "task_mutation",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => {
+        const taskIdx = latest.tasks.findIndex((t) => t.id === taskId);
+        if (taskIdx < 0) {
+          throw new Error(
+            `Cannot recover task ${taskId}: not present in change ${latest.id}`,
+          );
+        }
+        const updatedTasks = [...latest.tasks];
+        updatedTasks[taskIdx] = mutate(updatedTasks[taskIdx]);
+        return { ...latest, tasks: updatedTasks };
+      },
+      verifyProjection: (readback) => {
+        const task = readback.tasks.find((t) => t.id === taskId);
+        if (!task) return false;
+        const expected = mutate(task);
+        return JSON.stringify(task) === JSON.stringify(expected);
+      },
+    },
+  });
+  const updated = requireRecoveredChange(
+    "task_mutation",
+    input.change.id,
+    outcome,
+  );
   await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }
 
 /**
- * Append a new task to `change.tasks` and persist the change to disk.
+ * Append a new task to `change.tasks` and persist through the conditional
+ * projection commit.
  */
 export async function saveRecoveredTaskAdd(input: {
   store: Store;
@@ -109,27 +208,45 @@ export async function saveRecoveredTaskAdd(input: {
       `Cannot recover-add task ${input.task.id}: already present in change ${input.change.id}`,
     );
   }
-  const updated = {
-    ...input.change,
-    tasks: [...input.change.tasks, input.task],
-  } as Change;
-  await input.store.changes.save(updated);
+  const task = input.task;
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      kind: "workflow_completed",
+      evidence: { reason: "missing_workflow", evidence: "task add recovery" },
+    },
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "task_add",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => {
+        if (latest.tasks.some((t) => t.id === task.id)) {
+          throw new Error(
+            `Cannot recover-add task ${task.id}: already present in change ${latest.id}`,
+          );
+        }
+        return { ...latest, tasks: [...latest.tasks, task] };
+      },
+      verifyProjection: (readback) =>
+        readback.tasks.some((t) => t.id === task.id),
+    },
+  });
+  const updated = requireRecoveredChange("task_add", input.change.id, outcome);
   await bestEffortRefresh(input.store, input.change.id);
   return updated;
 }
 
 /**
  * Replace the gate completion fields for a specific gate and persist through
- * disk-direct saveChange. This bypasses store.changes.save because archived
- * workflow recovery often happens after the workflow has already completed;
- * calling store.changes.save would route through Temporal again.
+ * the conditional projection commit.
  *
  * A recovery authorization object is required so future call sites cannot use
  * this bypass without structurally carrying the recovery reason/evidence.
  * The caller supplies the full completion record (status + completed_at +
  * completed_by + approval_evidence + optional artifact_evidence).
  */
-// rq-releaseRepairRecovery01: disk-direct gate completion write with audited recovery authorization.
 export async function saveRecoveredGateCompletion(input: {
   store: Store;
   change: Change;
@@ -138,19 +255,46 @@ export async function saveRecoveredGateCompletion(input: {
   completion: Gates[keyof Gates];
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
-  const gates = (input.change.gates ?? {}) as Gates;
+  const gateId = input.gateId;
+  const completion = input.completion;
+  const completedAt = new Date().toISOString();
   const auditedCompletion = {
-    ...input.completion,
+    ...completion,
     recovery_audit: {
       reason: input.authorization.reason,
       evidence: input.authorization.evidence,
-      recovered_at: new Date().toISOString(),
+      recovered_at: completedAt,
     },
   } as Gates[keyof Gates];
-  const updatedGates = { ...gates, [input.gateId]: auditedCompletion } as Gates;
-  const updated = { ...input.change, gates: updatedGates } as Change;
-  await saveChange(input.store.paths.changes, updated);
-  return updated;
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: recoveryAuthority(input.authorization),
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "gate_completion",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        gates: {
+          ...(latest.gates ?? {}),
+          [gateId]: auditedCompletion,
+        } as Gates,
+      }),
+      verifyProjection: (readback) => {
+        const actual = readback.gates?.[gateId];
+        if (!actual) return false;
+        return (
+          actual.status === auditedCompletion.status &&
+          actual.completed_at === auditedCompletion.completed_at &&
+          actual.completed_by === auditedCompletion.completed_by &&
+          actual.approval_evidence === auditedCompletion.approval_evidence
+        );
+      },
+    },
+  });
+  return requireRecoveredChange("gate_completion", input.change.id, outcome);
 }
 
 /**
@@ -165,37 +309,36 @@ export async function saveRecoveredArtifactMetadata(input: {
   metadata: ArtifactMetadata;
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
-  const updated = {
-    ...input.change,
-    artifacts: {
-      ...(input.change.artifacts ?? {}),
-      [input.kind]: input.metadata,
+  const kind = input.kind;
+  const metadata = input.metadata;
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: recoveryAuthority(input.authorization),
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "artifact_metadata",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        artifacts: { ...(latest.artifacts ?? {}), [kind]: metadata },
+      }),
+      verifyProjection: (readback) => {
+        const actual = readback.artifacts?.[kind] as
+          | ArtifactMetadata
+          | undefined;
+        if (!actual) return false;
+        return actual.contentHash === metadata.contentHash;
+      },
     },
-  } as Change;
-  await saveChange(input.store.paths.changes, updated);
-  return updated;
+  });
+  return requireRecoveredChange("artifact_metadata", input.change.id, outcome);
 }
 
 /**
  * Transition the change's `status` field (typically draft → archived) on
- * disk projection when the terminating workflow signal cannot be processed.
- *
- * rq-fix-archive-recovery-disk-write: bypass `store.changes.save` because
- * for `status: "archived"` the temporal store routes through
- * `archiveChangeSignal` on the workflow — which is exactly what we are
- * recovering from. Write the disk projection directly via `saveChange`
- * without refreshing stale workflow state back over the disk repair.
- *
- * rq-shippedWorkflowTermination01 D5: when the recovery path converges
- * terminal authority (e.g. adv_change_workflow_terminate after a pinned
- * run is terminated), the caller MUST also pass `lifecycleState` so the
- * disk projection carries an authoritative terminal lifecycle value.
- * Without this, a stale literal `lifecycleState:"open"` on disk would
- * survive `status:"archived"` writes because `normalizeChangeLifecycleState`
- * trusts the stored literal before deriving from status. Existing status-only
- * callers (internal recovery writers) continue to omit `lifecycleState` and
- * remain compatible; their recovery does not converge live-workflow
- * authority.
+ * disk projection through the conditional commit.
  */
 export async function saveRecoveredChangeStatus(input: {
   store: Store;
@@ -206,14 +349,35 @@ export async function saveRecoveredChangeStatus(input: {
   closure?: Change["closure"];
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
-  const updated = {
-    ...input.change,
-    status: input.status,
-    ...(input.lifecycleState ? { lifecycleState: input.lifecycleState } : {}),
-    ...(input.closure ? { closure: input.closure } : {}),
-  } as Change;
-  await saveChange(input.store.paths.changes, updated);
-  return updated;
+  const status = input.status;
+  const lifecycleState = input.lifecycleState;
+  const closure = input.closure;
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: recoveryAuthority(input.authorization),
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "status_transition",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        status,
+        ...(lifecycleState ? { lifecycleState } : {}),
+        ...(closure ? { closure } : {}),
+      }),
+      verifyProjection: (readback) => {
+        if (readback.status !== status) return false;
+        if (lifecycleState && readback.lifecycleState !== lifecycleState) {
+          return false;
+        }
+        if (closure && readback.closure !== closure) return false;
+        return true;
+      },
+    },
+  });
+  return requireRecoveredChange("status_transition", input.change.id, outcome);
 }
 
 /**
@@ -222,9 +386,7 @@ export async function saveRecoveredChangeStatus(input: {
  * `designConcernDispositionedSignal`.
  *
  * The same latest-wins semantics as `applyDesignConcernDispositionedToState`
- * are preserved for `(taskId, concernKey)`. This is intentionally disk-direct:
- * completed-workflow recovery must not call `store.changes.save` because that
- * can route back through the workflow being recovered.
+ * are preserved for `(taskId, concernKey)`.
  */
 export async function saveRecoveredDesignConcernDisposition(input: {
   store: Store;
@@ -233,30 +395,53 @@ export async function saveRecoveredDesignConcernDisposition(input: {
   disposition: DesignConcernDisposition;
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
-  const existing = input.change.design_concern_dispositions ?? [];
-  const next = existing.filter(
-    (d) =>
-      !(
-        d.taskId === input.disposition.taskId &&
-        d.concernKey === input.disposition.concernKey
-      ),
-  );
-  const updated = {
-    ...input.change,
-    design_concern_dispositions: [
-      ...next,
-      {
-        ...input.disposition,
-        recovery_audit: {
-          reason: input.authorization.reason,
-          evidence: input.authorization.evidence,
-          recovered_at: new Date().toISOString(),
-        },
+  const disposition = {
+    ...input.disposition,
+    recovery_audit: {
+      reason: input.authorization.reason,
+      evidence: input.authorization.evidence,
+      recovered_at: new Date().toISOString(),
+    },
+  };
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: recoveryAuthority(input.authorization),
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "design_concern_disposition",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => {
+        const existing = latest.design_concern_dispositions ?? [];
+        const next = existing.filter(
+          (d) =>
+            !(
+              d.taskId === disposition.taskId &&
+              d.concernKey === disposition.concernKey
+            ),
+        );
+        return {
+          ...latest,
+          design_concern_dispositions: [...next, disposition],
+        };
       },
-    ],
-  } as Change;
-  await saveChange(input.store.paths.changes, updated);
-  return updated;
+      verifyProjection: (readback) => {
+        const found = readback.design_concern_dispositions?.find(
+          (d) =>
+            d.taskId === disposition.taskId &&
+            d.concernKey === disposition.concernKey,
+        );
+        if (!found) return false;
+        return found.disposition === disposition.disposition;
+      },
+    },
+  });
+  return requireRecoveredChange(
+    "design_concern_disposition",
+    input.change.id,
+    outcome,
+  );
 }
 
 /**
@@ -266,9 +451,7 @@ export async function saveRecoveredDesignConcernDisposition(input: {
  *
  * The same latest-wins semantics as
  * `applyVerificationEvidenceDispositionedToState` are preserved for
- * `(taskId, concernKey)`. This is intentionally disk-direct: completed-workflow
- * recovery must not call `store.changes.save` because that can route back
- * through the workflow being recovered.
+ * `(taskId, concernKey)`.
  */
 export async function saveRecoveredVerificationEvidenceDisposition(input: {
   store: Store;
@@ -277,30 +460,53 @@ export async function saveRecoveredVerificationEvidenceDisposition(input: {
   disposition: VerificationEvidenceDisposition;
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
-  const existing = input.change.verification_evidence_dispositions ?? [];
-  const next = existing.filter(
-    (d) =>
-      !(
-        d.taskId === input.disposition.taskId &&
-        d.concernKey === input.disposition.concernKey
-      ),
-  );
-  const updated = {
-    ...input.change,
-    verification_evidence_dispositions: [
-      ...next,
-      {
-        ...input.disposition,
-        recovery_audit: {
-          reason: input.authorization.reason,
-          evidence: input.authorization.evidence,
-          recovered_at: new Date().toISOString(),
-        },
+  const disposition = {
+    ...input.disposition,
+    recovery_audit: {
+      reason: input.authorization.reason,
+      evidence: input.authorization.evidence,
+      recovered_at: new Date().toISOString(),
+    },
+  };
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: recoveryAuthority(input.authorization),
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "verification_evidence_disposition",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => {
+        const existing = latest.verification_evidence_dispositions ?? [];
+        const next = existing.filter(
+          (d) =>
+            !(
+              d.taskId === disposition.taskId &&
+              d.concernKey === disposition.concernKey
+            ),
+        );
+        return {
+          ...latest,
+          verification_evidence_dispositions: [...next, disposition],
+        };
       },
-    ],
-  } as Change;
-  await saveChange(input.store.paths.changes, updated);
-  return updated;
+      verifyProjection: (readback) => {
+        const found = readback.verification_evidence_dispositions?.find(
+          (d) =>
+            d.taskId === disposition.taskId &&
+            d.concernKey === disposition.concernKey,
+        );
+        if (!found) return false;
+        return found.disposition === disposition.disposition;
+      },
+    },
+  });
+  return requireRecoveredChange(
+    "verification_evidence_disposition",
+    input.change.id,
+    outcome,
+  );
 }
 
 /**
@@ -444,8 +650,8 @@ async function loadAuthoritativeBundleProjection(
  *   `findArchiveBundle`). The active-changes-dir write used by sibling writers
  *   is INVISIBLE for archived changes because the read path
  *   (`loadArchiveBundleDominantProjection`) reads the bundle, not the active dir.
- * - CLOSED → `saveChange(paths.changes, …)` (what `loadDiskTerminalProjection`
- *   reads).
+ * - CLOSED → route through the conditional projection commit so concurrent
+ *   recovery writes remain safe.
  *
  * No `store.changes.refresh()` — `getTemporalChange` calls
  * `loadTerminalProjection` FIRST (re-reads disk every call), so a stale cache
@@ -480,13 +686,6 @@ export async function saveRecoveredSubagentReport(input: {
     : null;
   const persistedVia = bundleDir ? "archive-sidecar" : "active-projection";
 
-  // Mutate from the AUTHORITATIVE projection for the resolved write target.
-  // With a bundle on disk, that is the bundle manifest (terminal record);
-  // otherwise it is the caller's change (active/closed changes-dir path).
-  const base = bundleDir
-    ? await loadAuthoritativeBundleProjection(bundleDir, input.change.id)
-    : input.change;
-
   const taskId = recoveryReportTaskId(input.report);
   const key = subagentReportKey({
     changeId: input.report.change_id,
@@ -509,6 +708,81 @@ export async function saveRecoveredSubagentReport(input: {
       recovered_at: new Date().toISOString(),
     },
   };
+
+  // Active/closed changes route through the conditional projection commit.
+  if (!bundleDir) {
+    const outcome = await coordinateChangeMutation<Change>({
+      authority: recoveryAuthority(input.authorization),
+      changesDir: input.store.paths.changes,
+      intent: {
+        changeId: input.change.id,
+        mutationKind: "subagent_report",
+        sendSignal: async () => {},
+        refresh: async () => ({}) as never,
+        verifyTemporal: () => true,
+        mutateLatestProjection: (latest) => {
+          if (taskId) {
+            const idx = latest.tasks.findIndex((t) => t.id === taskId);
+            if (idx < 0) {
+              throw new Error(
+                `Cannot persist task-scoped report: task ${taskId} not in change ${latest.id}`,
+              );
+            }
+            const existing = latest.tasks[idx].subagent_reports ?? [];
+            if (
+              existing.some(
+                (r) => recoveryReportKey(r, input.report.change_id) === key,
+              )
+            ) {
+              return latest;
+            }
+            const updatedTasks = [...latest.tasks];
+            updatedTasks[idx] = {
+              ...updatedTasks[idx],
+              subagent_reports: [...existing, auditedReport] as never,
+            };
+            return { ...latest, tasks: updatedTasks };
+          }
+          const existingSidecar = latest.subagent_reports ?? [];
+          if (
+            existingSidecar.some(
+              (r) => recoveryReportKey(r, input.report.change_id) === key,
+            )
+          ) {
+            return latest;
+          }
+          return {
+            ...latest,
+            subagent_reports: [...existingSidecar, auditedReport] as never,
+          };
+        },
+        verifyProjection: (readback) => {
+          if (taskId) {
+            const task = readback.tasks.find((t) => t.id === taskId);
+            return (
+              task?.subagent_reports?.some(
+                (r) => recoveryReportKey(r, input.report.change_id) === key,
+              ) ?? false
+            );
+          }
+          return (
+            readback.subagent_reports?.some(
+              (r) => recoveryReportKey(r, input.report.change_id) === key,
+            ) ?? false
+          );
+        },
+      },
+    });
+    return requireRecoveredChange("subagent_report", input.change.id, outcome);
+  }
+
+  // Mutate from the AUTHORITATIVE projection for the resolved write target.
+  // With a bundle on disk, that is the bundle manifest (terminal record);
+  // otherwise it is the caller's change (active/closed changes-dir path).
+  const base = await loadAuthoritativeBundleProjection(
+    bundleDir,
+    input.change.id,
+  );
 
   // Resolve target array + dedupe
   if (taskId) {
@@ -577,6 +851,9 @@ function recoveryReportKey(
  * Uses the pre-resolved bundleDir (filesystem truth) rather than the
  * possibly-stale change.status to select the write target. Archived changes
  * (bundle exists) → bundle change.json; closed (no bundle) → active changes dir.
+ *
+ * Active writes are no longer reachable through this helper; they route
+ * through the conditional projection commit above.
  */
 async function persistTerminalProjection(
   input: { store: Store; change: Change },

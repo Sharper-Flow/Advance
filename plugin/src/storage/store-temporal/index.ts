@@ -69,6 +69,7 @@ import {
   composeTypedMutationResult,
 } from "../../temporal/mutation-safety";
 import { assertDurablePersist, type DiskPersistOutcome } from "./disk-persist";
+import { commitChangeProjection } from "../change-projection-transaction";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
@@ -242,7 +243,24 @@ export function createTemporalStoreBackend(
         reentry_history: state.reentry_history,
         fast_follow_of: state.fast_follow_of,
       };
-      await legacy.changes.save(mapped);
+      const commit = await commitChangeProjection({
+        changesDir: legacy.paths.changes,
+        changeId,
+        authority: { kind: "temporal", mutationReceiptId: state.changeId },
+        mutationKind: "temporal_dual_write_projection",
+        mutateLatest: () => mapped,
+        verify: ({ readback }) =>
+          readback.status === mapped.status &&
+          readback.lifecycleState === mapped.lifecycleState,
+      });
+      if (commit.kind !== "committed") {
+        return {
+          kind: "failed",
+          error: new Error(
+            `Dual-write commit failed for ${changeId}: ${commit.kind}`,
+          ),
+        };
+      }
       return { kind: "persisted" };
     } catch (err) {
       logger.debug(
