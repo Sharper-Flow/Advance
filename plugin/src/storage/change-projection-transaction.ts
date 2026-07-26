@@ -41,6 +41,33 @@ export interface ProjectionCommitVerifyContext {
   newRevision: number;
 }
 
+/**
+ * Optional callback invoked while the per-change projection lock is still held,
+ * after the full snapshot has been written and read back successfully.
+ *
+ * Used by the summary-shard wrapper to publish the immutable summary shard and
+ * current pointer atomically with the full snapshot, without releasing the
+ * per-change lock between the two writes.
+ */
+export interface ProjectionCommitAfterCommitContext {
+  latest: Change;
+  value: Change;
+  readback: Change;
+  audit: ProjectionCommitAuditEntry;
+  priorRevision: number;
+  newRevision: number;
+}
+
+export type ProjectionCommitAfterCommitResult =
+  | void
+  | undefined
+  | { ok: true }
+  | { ok: false; error: string };
+
+export type ProjectionCommitAfterCommit = (
+  ctx: ProjectionCommitAfterCommitContext,
+) => Promise<ProjectionCommitAfterCommitResult>;
+
 export type ProjectionCommitOutcome =
   | {
       kind: "committed";
@@ -120,6 +147,13 @@ export interface CommitChangeProjectionOptions {
    * which downstream authority treats as a blocker.
    */
   verify: (ctx: ProjectionCommitVerifyContext) => ProjectionCommitVerifyResult;
+  /**
+   * Optional follow-up work invoked while the per-change lock is still held,
+   * after the snapshot has been written, read back, and verified. This lets
+   * callers publish dependent durable artifacts (e.g. per-change summary
+   * pointers) atomically with the full snapshot.
+   */
+  afterCommit?: ProjectionCommitAfterCommit;
   lockTimeoutMs?: number;
 }
 
@@ -152,6 +186,7 @@ export async function commitChangeProjection(
     mutationKind,
     mutateLatest,
     verify,
+    afterCommit,
     lockTimeoutMs,
   } = options;
 
@@ -437,6 +472,28 @@ export async function commitChangeProjection(
         postconditionError:
           postconditionError ?? "Mutation-specific postcondition failed.",
       };
+    }
+
+    if (afterCommit) {
+      const afterResult = await afterCommit({
+        latest,
+        value,
+        readback,
+        audit,
+        priorRevision,
+        newRevision,
+      });
+      if (afterResult && "ok" in afterResult && afterResult.ok === false) {
+        return {
+          kind: "committed_unverified",
+          value,
+          revision: newRevision,
+          readback,
+          audit,
+          postconditionError:
+            afterResult.error ?? "afterCommit failed after committed snapshot.",
+        };
+      }
     }
 
     return {

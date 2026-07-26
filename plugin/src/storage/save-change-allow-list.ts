@@ -80,6 +80,13 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
       "RED-phase test intentionally exercises raw saveCall to reproduce the lost-update defect that commitChangeProjection fixes.",
   },
   {
+    file: "plugin/src/storage/change-summary-shard.test.ts",
+    context: null,
+    category: "test_raw_primitive",
+    rationale:
+      "RED/GREEN tests for the per-change summary shard wrapper seed fixtures directly via raw saveChange.",
+  },
+  {
     file: "plugin/src/storage/json.test.ts",
     context: null,
     category: "test_raw_primitive",
