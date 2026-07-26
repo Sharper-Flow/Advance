@@ -68,6 +68,7 @@ const mocks = vi.hoisted(() => {
         status: "shipped",
         mainCheckout: "/tmp/main",
         defaultBranch: "trunk",
+        releasedCommitSha: "abc123",
         mergeCommitSha: "abc123",
         pushStatus: "pushed",
       }),
@@ -1896,6 +1897,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
       defaultBranch: "trunk",
       route: "direct",
       pushStatus: "pushed",
+      releasedCommitSha: "abc123",
       mergeCommitSha: "abc123",
     });
     const store = createMockStore({ durableReleasePending: true });
@@ -1911,6 +1913,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
       status: "done",
       completed_by: "adv-archive",
     });
+    expect(parsed.releaseGate.approval_evidence).toContain(
+      "releasedCommitSha=abc123",
+    );
     expect(parsed.releaseGate.approval_evidence).toContain(
       "mergeCommitSha=abc123",
     );

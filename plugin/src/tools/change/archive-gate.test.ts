@@ -232,6 +232,7 @@ describe("verifyReleaseEvidenceFromMain", () => {
     vi.spyOn(gitFinalize, "resolveReleaseReachability").mockReturnValue({
       reachable: true,
       proof: "local_merge",
+      releasedCommitSha: "local-trunk-sha",
     });
 
     const result = verifyReleaseEvidenceFromMain({
@@ -242,6 +243,8 @@ describe("verifyReleaseEvidenceFromMain", () => {
 
     expect(result.status).toBe("shipped");
     expect(result.route).toBe("no_remote");
+    expect(result.releasedCommitSha).toBe("local-trunk-sha");
+    expect(result.mergeCommitSha).toBeUndefined();
   });
 
   it("preserves pr_manual route semantics through coercePrWorkflowRoute in PR mode", () => {
@@ -267,6 +270,54 @@ describe("verifyReleaseEvidenceFromMain", () => {
 
     expect(result.status).toBe("blocked");
     expect(result.route).toBe("pr_manual");
+  });
+
+  // rq-archiveRetryIdempotence01 AC1 regression: direct default-branch
+  // reachability must expose a route-neutral releasedCommitSha so archived
+  // delta-projection proof can proceed without a PR merge commit.
+  it("regression: direct origin_default shipped evidence carries releasedCommitSha", () => {
+    vi.spyOn(gitFinalize, "detectDefaultBranch").mockReturnValue({
+      branch: "trunk",
+      source: "test",
+    });
+    vi.spyOn(gitFinalize, "classifyFinalizationRoute").mockReturnValue({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+    vi.spyOn(gitFinalize, "resolveReleaseReachability").mockReturnValue({
+      reachable: true,
+      proof: "origin_default",
+      releasedCommitSha: "origin-trunk-sha",
+    });
+
+    const runGit: GitFinalizeDeps["runGit"] = (_cwd, args) => {
+      if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+      if (args[0] === "rev-parse" && args[1] === "HEAD")
+        return { status: 0, stdout: "origin-trunk-sha\n", stderr: "" };
+      if (args[0] === "ls-remote")
+        return {
+          status: 0,
+          stdout: "origin-trunk-sha\trefs/heads/trunk\n",
+          stderr: "",
+        };
+      return {
+        status: 1,
+        stdout: "",
+        stderr: `unexpected git ${args.join(" ")}`,
+      };
+    };
+
+    const result = verifyReleaseEvidenceFromMain({
+      store: createStore("/repo"),
+      changeId: "fixDirectArchiveRetry",
+      archiveMode: "direct",
+      deps: { runGit },
+    });
+
+    expect(result.status).toBe("shipped");
+    expect(result.route).toBe("direct");
+    expect(result.releasedCommitSha).toBe("origin-trunk-sha");
+    expect(result.mergeCommitSha).toBeUndefined();
   });
 });
 
@@ -817,6 +868,7 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
     mainCheckout: "/repo",
     defaultBranch: "trunk",
     pushStatus: "pushed",
+    releasedCommitSha: "merge-sha-1",
     mergeCommitSha: "merge-sha-1",
   };
 
@@ -914,6 +966,7 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
     defaultBranch: "trunk",
     route: "direct",
     pushStatus: "pushed",
+    releasedCommitSha: "merge-sha-shipped",
     mergeCommitSha: "merge-sha-shipped",
   };
   it("rejects a non-shipped change whose release gate carries a forged recovery_audit reason", async () => {
@@ -1035,6 +1088,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
     defaultBranch: "trunk",
     route: "direct",
     pushStatus: "pushed",
+    releasedCommitSha: "merge-sha-123",
     mergeCommitSha: "merge-sha-123",
   };
 
@@ -1073,6 +1127,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
       ok: true,
       accepted: true,
       source: "shipped-finalization",
+      releasedCommitSha: shippedFinalization.releasedCommitSha,
       mergeCommitSha: shippedFinalization.mergeCommitSha,
       pushStatus: shippedFinalization.pushStatus,
       route: shippedFinalization.route,
@@ -1113,7 +1168,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
     });
   });
 
-  it("AC3: shipped proof missing mergeCommitSha → does not short-circuit", async () => {
+  it("AC3: shipped proof missing releasedCommitSha → does not short-circuit", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
       data: { gates: { release: { status: "pending" } } },
@@ -1159,6 +1214,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
         defaultBranch: "trunk",
         route: "no_remote",
         pushStatus: "skipped",
+        releasedCommitSha: "local-merge-sha",
         mergeCommitSha: "local-merge-sha",
       },
     });
@@ -1169,6 +1225,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
       source: "shipped-finalization",
       route: "no_remote",
       pushStatus: "skipped",
+      releasedCommitSha: "local-merge-sha",
       mergeCommitSha: "local-merge-sha",
     });
   });
@@ -1214,6 +1271,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
     mainCheckout: "/repo",
     defaultBranch: "trunk",
     pushStatus: "pushed",
+    releasedCommitSha: "merge-sha-matrix",
     mergeCommitSha: "merge-sha-matrix",
     route: "direct",
   };
@@ -1329,7 +1387,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
     );
   });
 
-  it("KD5 guard: shipped + valid route/push but missing mergeCommitSha + store-pending + disk-pending rejects", async () => {
+  it("KD5 guard: shipped + valid route/push but missing releasedCommitSha + store-pending + disk-pending rejects", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
       data: { gates: { release: { status: "pending" } } },
@@ -1375,7 +1433,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
   ];
 
   it.each(shippedRouteCases)(
-    "route matrix: %s shipped + mergeCommitSha + pending/pending accepts via shipped-finalization",
+    "route matrix: %s shipped + releasedCommitSha + pending/pending accepts via shipped-finalization",
     async ({ route, pushStatus }) => {
       diskLoadMocks.loadChange.mockResolvedValue({
         success: true,
@@ -1385,6 +1443,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
         ...shippedBase,
         route,
         pushStatus,
+        releasedCommitSha: `${route}-merge-sha`,
         mergeCommitSha: `${route}-merge-sha`,
       };
 
@@ -1402,6 +1461,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
         finalizationStatus: "shipped",
         route,
         pushStatus,
+        releasedCommitSha: `${route}-merge-sha`,
         mergeCommitSha: `${route}-merge-sha`,
       });
       expect(proof.gate).toBeDefined();

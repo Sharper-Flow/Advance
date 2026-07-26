@@ -321,6 +321,9 @@ export function buildReleaseCompletionEvidence(
     `defaultBranch=${finalization.defaultBranch}`,
     `mainCheckout=${finalization.mainCheckout}`,
     `pushStatus=${finalization.pushStatus}`,
+    finalization.releasedCommitSha
+      ? `releasedCommitSha=${finalization.releasedCommitSha}`
+      : null,
     finalization.mergeCommitSha
       ? `mergeCommitSha=${finalization.mergeCommitSha}`
       : null,
@@ -775,6 +778,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       mainCheckout,
       defaultBranch,
       route: route.route,
+      releasedCommitSha: reachability.releasedCommitSha,
       mergeCommitSha:
         reachability.proof === "pr_merged"
           ? reachability.mergeCommitOid
@@ -1072,6 +1076,7 @@ export async function verifyReleaseGateDurableForArchive(input: {
       ok: true,
       source: "store",
       finalizationStatus: input.finalization?.status ?? "unknown",
+      releasedCommitSha: input.finalization?.releasedCommitSha,
       mergeCommitSha: input.finalization?.mergeCommitSha,
       pushStatus: input.finalization?.pushStatus,
       route: input.finalization?.route,
@@ -1082,11 +1087,11 @@ export async function verifyReleaseGateDurableForArchive(input: {
   // Shipped rescue (KD2/KD5): git-verified `shipped` is unforgeable proof the
   // change reached the default branch. Accept the durable proof without
   // requiring the store/disk projection to already show done, but require the
-  // immutable merge SHA and a valid route/push combination so the proof remains
-  // structural. If shipped is missing reachability fields, fall through to the
-  // strict non-shipped disk fallback below.
+  // immutable released commit SHA and a valid route/push combination so the
+  // proof remains structural. If shipped is missing reachability fields, fall
+  // through to the strict non-shipped disk fallback below.
   if (shipped && input.finalization) {
-    const { route, pushStatus, mergeCommitSha } = input.finalization;
+    const { route, pushStatus, releasedCommitSha } = input.finalization;
     const prRoute =
       route === "pr_auto_merge" ||
       route === "pr_manual" ||
@@ -1094,7 +1099,7 @@ export async function verifyReleaseGateDurableForArchive(input: {
     const validRoutePushCombo =
       (route === "no_remote" && pushStatus === "skipped") ||
       ((route === "direct" || prRoute) && pushStatus === "pushed");
-    if (mergeCommitSha && validRoutePushCombo) {
+    if (releasedCommitSha && validRoutePushCombo) {
       let gate: GateCompletion | undefined;
       const diskReleaseGate = await loadAuditedDiskReleaseGate({
         ...input,
@@ -1114,7 +1119,8 @@ export async function verifyReleaseGateDurableForArchive(input: {
         ok: true,
         source: "shipped-finalization",
         finalizationStatus: input.finalization.status,
-        mergeCommitSha,
+        releasedCommitSha,
+        mergeCommitSha: input.finalization.mergeCommitSha,
         pushStatus,
         route,
         gate,

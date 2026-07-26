@@ -848,8 +848,64 @@ describe("git-finalize helpers", () => {
       reachable: true,
       proof: "pr_merged",
       prNumber: 200,
+      releasedCommitSha: "discovered-sha",
       mergeCommitOid: "discovered-sha",
     });
+  });
+
+  it("direct route + merged PR without mergeCommitOid fails closed", () => {
+    const result = resolveReleaseReachability(
+      {
+        mainCheckout: "/repo",
+        defaultBranch: "trunk",
+        changeId: "fixSquashMergeRelease",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        prNumber: 200,
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "HEAD")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "origin/trunk")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (
+            args[0] === "log" &&
+            args[2] === "origin/trunk..change/fixSquashMergeRelease"
+          )
+            return {
+              status: 0,
+              stdout: "def456 squash orphan commit\n",
+              stderr: "",
+            };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "view") {
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                state: "MERGED",
+                mergedAt: "2026-06-09T00:00:00Z",
+                mergeCommit: null,
+                autoMergeRequest: null,
+              }),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result.reachable).toBe(false);
+    expect(result.proof).not.toBe("pr_merged");
   });
 
   it("direct route + tree fallback returns pr_merged when ancestry and PR discovery fail", () => {
@@ -974,6 +1030,8 @@ describe("git-finalize helpers", () => {
             args[2] === "trunk..change/fixSquashMergeRelease"
           )
             return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "HEAD")
+            return { status: 0, stdout: "local-head-sha\n", stderr: "" };
           return { status: 1, stdout: "", stderr: "unexpected" };
         },
       },
@@ -982,6 +1040,7 @@ describe("git-finalize helpers", () => {
     expect(result).toMatchObject({
       reachable: true,
       proof: "local_merge",
+      releasedCommitSha: "local-head-sha",
     });
   });
 
@@ -2742,7 +2801,7 @@ describe("git-finalize helpers", () => {
           return { status: 1, stdout: "", stderr: "unexpected" };
         },
       }),
-    ).toEqual({ pushed: true });
+    ).toEqual({ pushed: true, sha: "abc" });
   });
 
   it("verifyChangeBranchPushed rejects stale remote branch refs", () => {

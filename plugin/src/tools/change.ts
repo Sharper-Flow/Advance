@@ -4060,7 +4060,7 @@ export const changeTools = {
             if (
               !manifest ||
               release.status !== "shipped" ||
-              !release.mergeCommitSha
+              !release.releasedCommitSha
             ) {
               return formatToolOutput({
                 success: false,
@@ -4074,7 +4074,7 @@ export const changeTools = {
             const proof = await verifyProjectionAtGitCommit({
               manifest,
               repo: release.mainCheckout,
-              releasedCommitSha: release.mergeCommitSha,
+              releasedCommitSha: release.releasedCommitSha,
               manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
               expectedChangeId: change.id,
               expectedDeltaSetSha256: canonicalSha256(change.deltas),
@@ -4390,7 +4390,7 @@ export const changeTools = {
             });
           if (
             proofOutcome.status !== "shipped" ||
-            !proofOutcome.mergeCommitSha ||
+            !proofOutcome.releasedCommitSha ||
             !archiveResult.projectionManifest ||
             !committedBundlePath
           ) {
@@ -4407,7 +4407,7 @@ export const changeTools = {
           const projectionProof = await verifyProjectionAtGitCommit({
             manifest: archiveResult.projectionManifest,
             repo: proofOutcome.mainCheckout,
-            releasedCommitSha: proofOutcome.mergeCommitSha,
+            releasedCommitSha: proofOutcome.releasedCommitSha,
             manifestGitPath: `${relative(inRepoBase, committedBundlePath).replaceAll("\\", "/")}/spec-projection.json`,
             expectedChangeId: change.id,
             expectedDeltaSetSha256: canonicalSha256(change.deltas),

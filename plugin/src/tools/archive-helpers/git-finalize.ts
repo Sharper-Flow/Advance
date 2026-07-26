@@ -14,6 +14,10 @@ export interface GitFinalizeOutcome {
   defaultBranch: string;
   route?: ReleaseFinalizationRouteName;
   mergeCommitSha?: string;
+  /** Route-neutral SHA that projection proof uses to read released specs/docs.
+   *  For direct/no_remote routes this is the verified default-branch HEAD;
+   *  for PR routes it is the merged PR commit OID. */
+  releasedCommitSha?: string;
   /** SHA of the dirty-main checkpoint commit, set when ADV committed pre-existing
    *  main checkout changes before merge (rq-releaseFinalization01.7). */
   mainCheckpointCommitSha?: string;
@@ -344,6 +348,8 @@ export type ReleaseReachabilityProof =
   | {
       reachable: true;
       proof: "local_merge" | "origin_default" | "pr_merged";
+      /** Route-neutral SHA from the authority that proved release (required). */
+      releasedCommitSha: string;
       prNumber?: number;
       mergeCommitOid?: string;
       details?: string[];
@@ -1260,7 +1266,7 @@ export function verifyDefaultBranchPushed(
   mainCheckout: string,
   defaultBranch: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
-): { pushed: boolean; reason?: string } {
+): { pushed: true; sha: string } | { pushed: false; reason: string } {
   const runGit = deps.runGit ?? defaultRunGit;
   runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
   const localHead = runGit(mainCheckout, ["rev-parse", "HEAD"]);
@@ -1292,7 +1298,7 @@ export function verifyDefaultBranchPushed(
   const remoteSha = remoteHead.stdout.trim().split(/\s+/)[0];
   const localSha = localHead.stdout.trim();
   return remoteSha === localSha
-    ? { pushed: true }
+    ? { pushed: true, sha: remoteSha }
     : {
         pushed: false,
         reason: `origin/${defaultBranch} is at ${remoteSha}, local ${defaultBranch} is at ${localSha}`,
@@ -1871,6 +1877,7 @@ export function executePullRequestHandoff(
       mainCheckout: input.mainCheckout,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
+      releasedCommitSha: reachability.mergeCommitOid,
       mergeCommitSha: reachability.mergeCommitOid,
       pushStatus: "pushed",
       pushFailureReason: input.pushFailureReason,
@@ -2517,6 +2524,7 @@ export function redriveArchivedUnmergedBranch(
       mainCheckout: input.mainCheckout,
       defaultBranch: input.defaultBranch,
       route: route.route,
+      releasedCommitSha: reachability.mergeCommitOid,
       mergeCommitSha: reachability.mergeCommitOid,
       pushStatus: "pushed",
       prBranch: branch,
@@ -2580,13 +2588,23 @@ export function resolveReleaseReachability(
       input.changeId,
       deps,
     );
-    return local.reachable
-      ? { reachable: true, proof: "local_merge" }
-      : {
-          reachable: false,
-          proof: "local_unmerged",
-          details: local.unmergedCommits,
-        };
+    if (!local.reachable) {
+      return {
+        reachable: false,
+        proof: "local_unmerged",
+        details: local.unmergedCommits,
+      };
+    }
+    const localHead = runGitOrThrow(
+      input.mainCheckout,
+      ["rev-parse", "HEAD"],
+      deps,
+    );
+    return {
+      reachable: true,
+      proof: "local_merge",
+      releasedCommitSha: localHead,
+    };
   }
 
   if (route.route === "direct") {
@@ -2609,7 +2627,11 @@ export function resolveReleaseReachability(
       deps,
     );
     if (originReachability.reachable) {
-      return { reachable: true, proof: "origin_default" };
+      return {
+        reachable: true,
+        proof: "origin_default",
+        releasedCommitSha: pushed.sha,
+      };
     }
 
     // NEW: Auto-discover PR if prNumber missing
@@ -2638,11 +2660,13 @@ export function resolveReleaseReachability(
       if (
         !("error" in prState) &&
         prState.state === "MERGED" &&
-        prState.mergedAt
+        prState.mergedAt &&
+        prState.mergeCommitOid
       ) {
         return {
           reachable: true,
           proof: "pr_merged",
+          releasedCommitSha: prState.mergeCommitOid,
           prNumber: effectivePrNumber,
           mergeCommitOid: prState.mergeCommitOid,
         };
@@ -2657,10 +2681,11 @@ export function resolveReleaseReachability(
       input.changeId,
       { ...deps, changeTipSha: input.changeTipSha },
     );
-    if (treeMatch.reachable) {
+    if (treeMatch.reachable && treeMatch.mergeCommitOid) {
       return {
         reachable: true,
         proof: "pr_merged",
+        releasedCommitSha: treeMatch.mergeCommitOid,
         mergeCommitOid: treeMatch.mergeCommitOid,
       };
     }
@@ -2706,10 +2731,15 @@ export function resolveReleaseReachability(
         details: [prState.error, ...(prState.details ?? [])],
       };
     }
-    if (prState.state === "MERGED" && prState.mergedAt) {
+    if (
+      prState.state === "MERGED" &&
+      prState.mergedAt &&
+      prState.mergeCommitOid
+    ) {
       return {
         reachable: true,
         proof: "pr_merged",
+        releasedCommitSha: prState.mergeCommitOid,
         prNumber: effectivePrNumber,
         mergeCommitOid: prState.mergeCommitOid,
       };
@@ -2732,10 +2762,11 @@ export function resolveReleaseReachability(
       input.changeId,
       { ...deps, changeTipSha: input.changeTipSha },
     );
-    if (treeMatch.reachable) {
+    if (treeMatch.reachable && treeMatch.mergeCommitOid) {
       return {
         reachable: true,
         proof: "pr_merged",
+        releasedCommitSha: treeMatch.mergeCommitOid,
         mergeCommitOid: treeMatch.mergeCommitOid,
       };
     }
@@ -3343,6 +3374,7 @@ export async function finalizeRelease(
       mainCheckout,
       defaultBranch,
       route: "no_remote",
+      releasedCommitSha: mergeCommitSha,
       mergeCommitSha,
       mainCheckpointCommitSha,
       pushStatus: "skipped",
@@ -3364,6 +3396,7 @@ export async function finalizeRelease(
       mainCheckout,
       defaultBranch,
       route: "direct",
+      releasedCommitSha: mergeCommitSha,
       mergeCommitSha,
       mainCheckpointCommitSha,
       pushStatus: "pushed",
