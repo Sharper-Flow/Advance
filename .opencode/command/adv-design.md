@@ -58,6 +58,12 @@ Criteria boundary:
 
 > **ADR rubric (sparingly):** When recording a key decision, check the 3-criteria rubric: (1) hard-to-reverse, (2) surprising-without-context, (3) result-of-real-tradeoff. If all three are met, draft an ADR at `docs/adr/NNNN-slug.md` (numbering sequential, slug 3-5 hyphenated words). See `.adv/specs/domain-context/ADR-FORMAT.md` for format and `.adv/specs/domain-context/spec.json` (`rq-domainContextADR01`) for consumer contract. ADR drafts are advisory; they don't gate-block.
 
+### Lever citation (precondition)
+
+For every mechanism this design proposes to change, cite the **call site** where that mechanism takes effect — not where it is declared. A design that cites only a configuration file, constant, or schema declaration has not located its lever and is not ready for validation. Where the lever is a scoring, ranking, or policy input, additionally confirm no earlier stage preempts it (fixed bands, short circuits, hard filters, or empty inputs that render the weight inert).
+
+This obligation operationalizes P38 (`declaration-is-not-behavior`) at the design gate: a declaration is not behavior, and a design that has not traced its proposed lever from declaration through loader to consuming call site is building on an unverified premise. The validator (Phase 3.5) may confirm presence of these citations; it must not be the first reader to notice their absence.
+
 Keep the design actionable for `/adv-prep`; it should explain why the plan is correct, not what files exist.
 
 ---
