@@ -69,6 +69,12 @@ const DocumentUpdateBaseSchema = z.object({
   updatedBy: z.string().optional(),
   updatedAt: IsoTimestampSchema,
   mutationReceiptId: z.string().min(1).optional(),
+  /**
+   * Caller-stable operation identity. Survives Temporal retries and
+   * continue-as-new so the workflow reducer can deduplicate the same logical
+   * command and detect payload conflicts (AC3).
+   */
+  operation_id: z.string().min(1).optional(),
 });
 
 export const ProposalUpdatedSignalPayloadSchema = DocumentUpdateBaseSchema;

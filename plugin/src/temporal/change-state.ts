@@ -91,17 +91,21 @@ import {
   resolveTaskEvidence,
   validateTaskEvidenceForStage,
 } from "../validator/task-classifier";
-import { describePayloadDigest } from "./digest";
+import { describePayloadDigest, fnv1a32, stableStringify } from "./digest";
 import type {
   ArtifactKind,
   ArtifactMetadata,
   ChangeWorkflowInput,
   ChangeWorkflowState,
   MutationReceipt,
+  OperationLedgerEntry,
   SignalRejection,
   TestRunRecord,
 } from "./contracts";
-import { MUTATION_RECEIPTS_FIFO_LIMIT } from "./contracts";
+import {
+  MUTATION_RECEIPTS_FIFO_LIMIT,
+  OPERATION_LEDGER_LIMIT,
+} from "./contracts";
 
 export interface UpdateTaskInput {
   status: Task["status"];
@@ -170,6 +174,8 @@ export function createChangeWorkflowState(input: {
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
     acceptanceReadinessRevision: 0,
+    state_revision: 0,
+    operation_ledger: {},
     same_project_dependencies: [],
   };
 }
@@ -179,7 +185,12 @@ export function changeSeedStateFromChange(
 ): NonNullable<ChangeWorkflowInput["seedState"]> {
   const [normalizedChange] = normalizePersistedSubagentReportState(change);
   const safeChange = normalizedChange as Change &
-    Partial<Pick<ChangeWorkflowState, "workerBundleProvenance">>;
+    Partial<
+      Pick<
+        ChangeWorkflowState,
+        "workerBundleProvenance" | "state_revision" | "operation_ledger"
+      >
+    >;
   // Legacy stored statuses ("active"/"pending") never reach workflow state:
   // they normalize to "draft" (the open status) at the seed boundary.
   const status = normalizeLegacyChangeStatus(safeChange.status) as ChangeStatus;
@@ -202,6 +213,8 @@ export function changeSeedStateFromChange(
     acceptanceCriteria: safeChange.acceptanceCriteria,
     contract: safeChange.contract,
     acceptanceReadinessRevision: safeChange.acceptanceReadinessRevision,
+    state_revision: safeChange.state_revision ?? 0,
+    operation_ledger: safeChange.operation_ledger ?? {},
     acceptanceCriteriaSnapshot: safeChange.acceptanceCriteriaSnapshot,
     documents: safeChange.documents,
     origin: safeChange.origin,
@@ -330,6 +343,57 @@ export function findMutationReceipt(
 ): MutationReceipt | undefined {
   const receipts = state.mutationReceipts ?? [];
   return receipts.find((r) => r.id === mutationReceiptId);
+}
+
+function advanceStateRevision(state: ChangeWorkflowState): void {
+  state.state_revision = (state.state_revision ?? 0) + 1;
+}
+
+function computeDocumentPayloadHash(text: string): string {
+  return fnv1a32(stableStringify({ text }));
+}
+
+function trimOperationLedger(
+  ledger: Record<string, OperationLedgerEntry>,
+): Record<string, OperationLedgerEntry> {
+  const entries = Object.entries(ledger);
+  if (entries.length <= OPERATION_LEDGER_LIMIT) return ledger;
+  const sorted = entries.sort((a, b) => {
+    const ta = a[1].accepted_at;
+    const tb = b[1].accepted_at;
+    if (ta !== tb) return ta.localeCompare(tb);
+    return a[0].localeCompare(b[0]);
+  });
+  const trimmed = sorted.slice(entries.length - OPERATION_LEDGER_LIMIT);
+  return Object.fromEntries(trimmed);
+}
+
+function recordOperationLedger(
+  state: ChangeWorkflowState,
+  entry: OperationLedgerEntry,
+): void {
+  const next = {
+    ...(state.operation_ledger ?? {}),
+    [entry.operation_id]: entry,
+  };
+  state.operation_ledger = trimOperationLedger(next);
+}
+
+function recordOperationAccepted(
+  state: ChangeWorkflowState,
+  operation_id: string,
+  command_kind: string,
+  payload_hash: string,
+  at: string,
+): void {
+  recordOperationLedger(state, {
+    operation_id,
+    command_kind,
+    payload_hash,
+    outcome: "accepted",
+    accepted_at: at,
+    last_seen_at: at,
+  });
 }
 
 export function applyCrossProjectCoordinationUpdatedToState(
@@ -766,7 +830,48 @@ function applyContentWithSizeGuard(
   kind: ArtifactKind,
   text: string,
   at: string,
+  options?: {
+    operation_id?: string;
+    command_kind?: string;
+  },
 ): { state: ChangeWorkflowState; applied: boolean } {
+  const operation_id = options?.operation_id;
+  const command_kind = options?.command_kind;
+  let ledgerHash: string | undefined;
+
+  // AC3: before mutating, resolve operation identity. Same operation_id with
+  // the same payload is an idempotent replay; same operation_id with a different
+  // payload is a typed conflict.
+  if (operation_id && command_kind) {
+    ledgerHash = computeDocumentPayloadHash(text);
+    const existing = state.operation_ledger?.[operation_id];
+    if (existing) {
+      if (existing.payload_hash === ledgerHash) {
+        const replay: OperationLedgerEntry = {
+          ...existing,
+          outcome: "idempotent_replay",
+          last_seen_at: at,
+        };
+        recordOperationLedger(state, replay);
+        setLastSignalAt(state, at);
+        return { state, applied: false };
+      }
+      // Typed conflict: do not overwrite the accepted operation ledger entry.
+      // Record the rejection in the bounded signal_rejection audit channel so
+      // the conflict is observable without destroying stable idempotency.
+      applySignalRejectionToState(state, {
+        signalName: command_kind,
+        error: new Error(
+          `OPERATION_PAYLOAD_CONFLICT: operation_id ${operation_id} received conflicting payload (expected hash ${existing.payload_hash}, got ${ledgerHash})`,
+        ),
+        payload: { operation_id, command_kind, text },
+        rejectedAt: at,
+      });
+      setLastSignalAt(state, at);
+      return { state, applied: false };
+    }
+  }
+
   // Active content is Temporal-first; metadata intentionally omits active
   // filesystem paths until an archive/recovery/materialization step creates one.
   const temporalOnlyMetadata = (): ArtifactMetadata => ({
@@ -813,6 +918,13 @@ function applyContentWithSizeGuard(
   state.documents = { ...(state.documents ?? {}), [kind]: text };
   state.artifacts = { ...state.artifacts, [kind]: nextArtifact };
   setLastSignalAt(state, at);
+
+  // AC3: count exactly one accepted behavior-changing transition.
+  advanceStateRevision(state);
+  if (operation_id && command_kind && ledgerHash) {
+    recordOperationAccepted(state, operation_id, command_kind, ledgerHash, at);
+  }
+
   return { state, applied: true };
 }
 
@@ -825,6 +937,10 @@ export function applyProposalUpdatedToState(
     "proposal",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "proposalUpdated",
+    },
   ).state;
 }
 
@@ -837,6 +953,10 @@ export function applyProblemStatementUpdatedToState(
     "problemStatement",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "problemStatementUpdated",
+    },
   ).state;
 }
 
@@ -849,6 +969,10 @@ export function applyAgreementUpdatedToState(
     "agreement",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "agreementUpdated",
+    },
   ).state;
 }
 
@@ -861,6 +985,10 @@ export function applyDesignUpdatedToState(
     "design",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "designUpdated",
+    },
   );
   // rq-readinessMutationReceipt01: design content affects acceptance
   // readiness (the design gate artifact backs acceptance review). Record
@@ -884,6 +1012,10 @@ export function applyExecutiveSummaryUpdatedToState(
     "executiveSummary",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "executiveSummaryUpdated",
+    },
   );
   // rq-readinessMutationReceipt01: executive summary content gates
   // acceptance readiness; record only on successful content application.
@@ -906,6 +1038,10 @@ export function applyAcceptanceUpdatedToState(
     "acceptance",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "acceptanceUpdated",
+    },
   );
   // rq-readinessMutationReceipt01: acceptance proof content gates
   // release readiness; record only on successful content application.

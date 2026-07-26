@@ -294,6 +294,8 @@ export interface ChangeWorkflowInput {
       | "acceptanceCriteria"
       | "contract"
       | "acceptanceReadinessRevision"
+      | "state_revision"
+      | "operation_ledger"
       | "acceptanceCriteriaSnapshot"
       | "documents"
       | "reflections"
@@ -392,6 +394,23 @@ export interface SignalRejection {
   rejectedAt: string;
 }
 
+/**
+ * Operation ledger entry for stable command identity (AC3).
+ *
+ * Records the authoritative outcome of a behavior-changing command keyed by
+ * `operation_id`. The ledger survives continue-as-new via seedState so retries
+ * of the same logical command do not reapply or silently overwrite state.
+ */
+export interface OperationLedgerEntry {
+  operation_id: string;
+  command_kind: string;
+  /** Stable digest of the behavior-changing payload that was accepted. */
+  payload_hash: string;
+  outcome: "accepted" | "rejected" | "idempotent_replay";
+  accepted_at: string;
+  last_seen_at: string;
+}
+
 export interface MockSurfaceEntry {
   pattern: string;
   count: number;
@@ -467,8 +486,20 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * replay cleanly with it undefined; legacy state defaults to 0.
    */
   acceptanceReadinessRevision?: number;
+  /**
+   * Monotonic workflow state revision incremented exactly once per accepted
+   * behavior-changing reducer transition (AC3). Distinct from the storage-owned
+   * projection_revision; this is the reducer's internal ordering token.
+   */
+  state_revision?: number;
   /** Bounded proof that readiness-affecting signals were applied by reducer. */
   mutationReceipts?: MutationReceipt[];
+  /**
+   * Stable operation ledger keyed by operation_id. Prevents duplicate application
+   * and detects payload conflicts across retries and continue-as-new rotations
+   * (AC3, AC12).
+   */
+  operation_ledger?: Record<string, OperationLedgerEntry>;
   /**
    * Authoritative artifact content for the change, keyed by canonical
    * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/
@@ -680,6 +711,13 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
 }
 
 export const MUTATION_RECEIPTS_FIFO_LIMIT = 100;
+
+/**
+ * Bound the in-workflow operation ledger so continue-as-new seed state stays
+ * deterministic and bounded. Trimming keeps the most recent entries by
+ * `accepted_at`; ties break by `operation_id` lexicographically.
+ */
+export const OPERATION_LEDGER_LIMIT = 1000;
 
 export interface MutationReceipt {
   id: string;
