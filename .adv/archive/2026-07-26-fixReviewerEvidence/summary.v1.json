@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-26T17:57:14.503Z",
+  "capabilities": [],
+  "change_hash": "a6edd1ca83f0b787c0253c234820dd2ad684418490f097c50e96956b41cfc227",
+  "change_id": "fixReviewerEvidence",
+  "completed_tasks": 3,
+  "created_at": "2026-07-25T20:13:01.723Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-25T21:18:14.781Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "54cef0c39e5a5137734f34eae7695abc1ec12d71c55c2a436cf135b7a11c00fe",
+  "task_count": 3,
+  "title": "Fix reviewer evidence verification",
+  "version": "1"
+}
