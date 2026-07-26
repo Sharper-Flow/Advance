@@ -3391,12 +3391,37 @@ export async function finalizeRelease(
   invalidate(state, "push-to-origin");
 
   if (push.status === "pushed") {
+    // A successful push process is not itself release proof: refresh and
+    // compare the remote default branch before allowing Phase 9 to ship or
+    // use this SHA for immutable projection verification.
+    const remoteDefault = verifyDefaultBranchPushed(
+      mainCheckout,
+      defaultBranch,
+      deps,
+    );
+    if (!remoteDefault.pushed) {
+      return {
+        status: "blocked",
+        mainCheckout,
+        defaultBranch,
+        route: "direct",
+        mergeCommitSha,
+        mainCheckpointCommitSha,
+        pushStatus: "failed",
+        pushFailureReason: remoteDefault.reason,
+        blocked: {
+          reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
+          remediation: `Default branch ${defaultBranch} must be fetched and match origin/${defaultBranch} before release completion (rq-releaseFinalization01).`,
+          details: remoteDefault.reason ? [remoteDefault.reason] : undefined,
+        },
+      };
+    }
     return {
       status: "shipped",
       mainCheckout,
       defaultBranch,
       route: "direct",
-      releasedCommitSha: mergeCommitSha,
+      releasedCommitSha: remoteDefault.sha,
       mergeCommitSha,
       mainCheckpointCommitSha,
       pushStatus: "pushed",

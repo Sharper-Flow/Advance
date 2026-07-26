@@ -2367,8 +2367,12 @@ describe("git-finalize helpers", () => {
   it("finalizeRelease commits archive artifacts before merge", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
+    const remote = join(tempRoot, "remote.git");
     await mkdir(main);
     await initRepo(main);
+    git(tempRoot, ["init", "--bare", remote]);
+    git(main, ["remote", "add", "origin", remote]);
+    git(main, ["push", "-u", "origin", "trunk"]);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
     await mkdir(join(worktree, ".adv", "archive"), { recursive: true });
     await writeFile(
@@ -2376,25 +2380,18 @@ describe("git-finalize helpers", () => {
       "bundle\n",
     );
 
-    const result = await finalizeRelease(
-      {
-        changeId: "example",
-        workdir: worktree,
-        archiveMode: "direct",
-        autoPush: true,
-      },
-      {
-        runGit: (cwd, args) => {
-          if (args[0] === "push" && args.includes("trunk")) {
-            return { status: 0, stdout: "pushed", stderr: "" };
-          }
-          return defaultRunGit(cwd, args);
-        },
-      },
-    );
+    const result = await finalizeRelease({
+      changeId: "example",
+      workdir: worktree,
+      archiveMode: "direct",
+      autoPush: true,
+    });
 
     expect(result.status).toBe("shipped");
     expect(result.mergeCommitSha).toBeDefined();
+    expect(result.releasedCommitSha).toBe(
+      git(main, ["rev-parse", "origin/trunk"]),
+    );
     expect(git(main, ["show", "HEAD:.adv/archive/bundle.txt"])).toBe("bundle");
   });
 
