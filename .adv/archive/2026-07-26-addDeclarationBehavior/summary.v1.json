@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-26T22:18:04.218Z",
+  "capabilities": [],
+  "change_hash": "6deda141ffc265f68cfffebfd86dfeb7d3f580d6979b8df2458700070257088a",
+  "change_id": "addDeclarationBehavior",
+  "completed_tasks": 3,
+  "created_at": "2026-07-26T20:21:55.516Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-26T22:16:41.299Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "67e9c827c117d33c6064585e7381823af31437909cd8ac5b07ceb7637c0bc4a1",
+  "task_count": 4,
+  "title": "Add declaration-behavior verification rules",
+  "version": "1"
+}

@@ -704,6 +704,58 @@ Restart OpenCode after editing.
 
 ---
 
+## Worktree-Isolation Rule (P32)
+
+ADV recommends a priority-8 worktree-isolation rule that keeps the
+main/trunk checkout of any repository on its default branch. All branch
+work — ADV changes AND ad-hoc fixes — happens in a **git worktree**, never
+by switching the trunk checkout to a feature branch. Deploy, rebuild,
+release, install, and publish operations run only against the merged
+default branch, never from a worktree.
+
+Like P29-P31, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P32 recommended):
+
+```yaml
+P32:
+  name: worktree-isolation
+  rule: Do not intentionally write implementation changes into a trunk/default
+    checkout when an isolated worktree is required or available for the work.
+    Use the correct worktree/workdir, keep git operations scoped, and never
+    bypass worktree isolation with manual file shuffling. Deploy, rebuild,
+    release, install, and publish operations are the inverse: run them only
+    against the merged default branch, never from a worktree; if a worktree
+    contains work that needs deploying, merge it to default first.
+  tags: [git, worktree, isolation, safety, deploy]
+  hint: worktree_isolation
+  priority: 8
+```
+
+**Rationale for priority 8:** parity with `P07 verify`, `P25 related-scan`,
+and `P35 architecture-over-hacks`. Worktree isolation is a safety-critical
+workflow discipline that must consistently win against "just edit it in the
+trunk checkout" convenience, but it is not at the priority-9
+agent-reasoning tier or the priority-10 absolute-constraint tier.
+
+**Why this rule exists:** on multi-agent repositories (10+ agents shipping
+concurrently), the default branch advances every few minutes. A feature
+branch checked out in the shared trunk directory is inherited by every
+other session pointed at that directory, causing cross-agent collisions,
+stale-branch confusion, and lost work. Worktree isolation moves every
+branch into its own filesystem path so sessions don't collide. The inverse
+rule — deploy/rebuild from merged trunk — keeps the deployed artifact
+reproducible from the source of truth and CI-gated; worktree deploys bypass
+this silently. This rule is paired with the ADV plugin's trunk-write
+firewall and the `oc-worktree` helper; full rationale, the canonical
+worktree location convention, and the deploy/rebuild-from-trunk protocol
+live in `~/.config/opencode/instructions/trunk-worktree-isolation.md`.
+
+Restart OpenCode after editing.
+
+---
+
 ## Structural Correctness Rule (P33)
 
 ADV recommends a priority-9 structural-correctness rule that counters the
@@ -752,6 +804,126 @@ Restart OpenCode after editing.
 
 ---
 
+## No-Unverified-Knowledge Rule (P34)
+
+ADV recommends a priority-9 evidence rule that sets the default stance for
+all factual claims about **external** surfaces — libraries, frameworks, APIs,
+versions, syntax, behavior, configuration, file formats, CLI flags, protocol
+details, vendor capabilities, service limits. Training recall is not
+evidence; lookup is.
+
+Like P29-P33, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P34 recommended):
+
+```yaml
+P34:
+  name: no-unverified-knowledge
+  scope: >-
+    Default evidence stance for ALL factual claims about external surfaces.
+    Sits underneath P16/P27/P30 — when those rules don't trigger by their
+    narrower scope, P34 still applies.
+  rule: >-
+    Default position is "I do not know." Training recall is not
+    evidence. Never assert, recommend, decide, or design based on
+    remembered knowledge of external surfaces — libraries, frameworks,
+    APIs, versions, syntax, behavior, configuration, file formats, CLI
+    flags, protocol details, vendor capabilities, service limits — when
+    lookup is possible. Look it up first. Use Context7 for library and
+    framework docs. Use Exa for current information, vendor docs, news,
+    and discovery. Use official docs, source code, or runnable probes
+    when the above do not cover the surface. Trigger phrases for STOP-
+    and-look-up: "I think", "should be", "typically", "usually", "from
+    memory", "as I recall", "probably", and any unhedged confident claim
+    about external behavior. Applies to answering questions, making
+    recommendations, designing solutions, writing code against external
+    APIs, choosing dependencies, and diagnosing failures — not only to
+    implementation tasks. Brevity or quick-answer requests change
+    response length, never the evidence bar. If lookup is blocked or
+    tools unavailable, say so explicitly. Never fill the gap with
+    plausible-sounding recall presented as fact.
+  tags: [evidence, research, external-knowledge, anti-hallucination, context7, exa, lookup]
+  hint: no_unverified_knowledge
+  priority: 9
+```
+
+**Rationale for priority 9:** parity with `P05 ship-complete`, `P24
+tdd-first`, `P27 due-diligence`, `P31 thoroughness`, and `P33
+structural-correctness`. The default evidence stance for all factual claims
+about external surfaces is a foundational agent-reasoning rule; not at the
+priority-10 tier reserved for absolute constraints (security, collaboration,
+timeouts).
+
+**Why this rule exists:** agents pattern-match on confident recall and
+present it as fact, especially under "quick answer" or brevity pressure.
+The cost of an unhedged confident claim about a library version, API flag,
+or vendor limit is a wrong recommendation, a wrong dependency choice, or a
+wrong diagnosis — and the user often cannot tell the difference between
+verified and recalled output without re-doing the lookup themselves. P34
+makes the default stance explicit ("I do not know"), names the trigger
+phrases that should cause stop-and-look-up, and routes lookups to the right
+tool per surface (Context7 for library/framework docs, Exa for current
+information and discovery, official docs/source/probes for the rest). It is
+the external-surfaces twin of P38 declaration-is-not-behavior.
+
+Restart OpenCode after editing.
+
+---
+
+## Architecture-Over-Hacks Rule (P35)
+
+ADV recommends a priority-8 architecture rule that counters the agent failure
+mode of reaching for workarounds — symlinks, env-var overrides, shell
+aliases, wrapper scripts, manual file shuffling, chmod/chown overrides,
+sed/awk rewrites of generated files, hand-edits to deployed artifacts —
+before identifying the architectural fix that would make the workaround
+unnecessary.
+
+Like P29-P34, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P35 recommended):
+
+```yaml
+P35:
+  name: architecture-over-hacks
+  rule: Before proposing symlinks, env-var overrides, shell aliases, wrapper
+    scripts, manual file shuffling, chmod/chown overrides, sed/awk rewrites of
+    generated files, or hand-editing deployed artifacts, identify the
+    architectural fix that would make the workaround unnecessary. Prefer that
+    fix. If too expensive now, state that and present both the proper fix and
+    temporary workaround. Legitimate symlinks are allowed only when produced
+    and repaired by the owning build/package/system.
+  tags: [architecture, maintainability, source-of-truth, anti-hack]
+  hint: architecture_over_hacks
+  priority: 8
+```
+
+**Rationale for priority 8:** parity with `P07 verify`, `P08 clarify`, `P25
+related-scan`, and `P32 worktree-isolation`. Architecture-over-hacks is a
+design discipline that must consistently win against convenience and
+expediency heuristics, but it is not at the priority-9 stop-and-research
+tier (P27/P31/P33/P36/P37/P38) or the priority-10 absolute-constraint tier.
+
+**Why this rule exists:** agents under time pressure default to the fastest
+mechanical change that resolves the immediate symptom. A symlink here, an
+env-var override there, a sed rewrite of a generated file — each looks small
+in isolation, and each silently diverges the deployed state from the source
+of truth. Six months later, the symlink is canonical, the env-var override
+is load-bearing, and no one remembers why. P35 directs the agent to first
+identify the architectural fix (the change to the build, package, or system
+that produces and repairs the artifact) and prefer it. If the architectural
+fix is too expensive for the current change, the agent must say so
+explicitly and present both the proper fix and the temporary workaround —
+never silently apply the workaround alone. Legitimate symlinks remain
+allowed when they are produced and repaired by the owning system (e.g.,
+`pnpm`'s `node_modules/.bin/` links, `pyenv`'s shims).
+
+Restart OpenCode after editing.
+
+---
+
 ## Docs-Before-Code-Change Rule (P36)
 
 ADV recommends a priority-9 documentation-evidence rule that counters the
@@ -789,6 +961,181 @@ small, familiar, or obvious. P36 removes that escape hatch: before changing
 code, cite relevant docs first. Context7 is the default for dependency and API
 surfaces; repo docs cover repo-owned behavior; authoritative fallbacks cover
 undocumented surfaces.
+
+Restart OpenCode after editing.
+
+---
+
+## No-Polling-Loops Rule (P37)
+
+ADV recommends a priority-9 anti-polling rule that forbids agents from
+looping on external-state checks (CI, PR checks, deployments, build status)
+from normal agent context. Dedicated wait sub-agents such as `adv-ci-waiter`
+are the bounded exception.
+
+Like P29-P36, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P37 recommended):
+
+```yaml
+P37:
+  name: no-polling-loops
+  rule: >-
+    Never poll external state (CI, PR checks, deployments, build status,
+    long-running processes) in a loop from normal agent context. Run one check,
+    report the result, and hand back to the user. If external work is
+    incomplete, tell the user the current status and that they should re-engage
+    or re-run when ready. Do not sleep, wait, or re-check in the same agent
+    turn or across sequential turns. Exception: dedicated wait agents such as
+    adv-ci-waiter may poll with bounded sleeps when the user explicitly asks to
+    wait, or when a parent release/archive workflow needs terminal CI/PR status
+    to complete the requested ship/archive end-state. This is not in tension
+    with P31 (thoroughness) — normal-agent polling produces no new
+    information and wastes tokens without advancing the task. One-shot
+    verification satisfies P05 (ship-complete) and P07 (verify); waiting for a
+    change is the user's decision, not the normal agent's.
+  tags: [efficiency, tokens, ci, anti-pattern, verification]
+  hint: no_polling
+  priority: 9
+```
+
+**Rationale for priority 9:** parity with `P05 ship-complete`, `P24 tdd-first`,
+`P27 due-diligence`, `P31 thoroughness`, `P33 structural-correctness`, and `P36
+docs-before-code-change`. Polling loops are an agent-reasoning failure mode
+with material cost (tokens, wall time, context pollution); not at the
+priority-10 tier reserved for absolute constraints.
+
+**Why this rule exists:** agents naturally default to "check again in a few
+seconds" when an external system is in an indeterminate state. Across many
+turns this produces no new information (the external state has not changed)
+yet burns tokens and context. A dedicated wait sub-agent (`adv-ci-waiter`) is
+the legitimate exception because it owns the polling primitive, rate-limit
+backoff, and bounded sleep semantics. Normal agent context must run one check,
+report, and hand back. This rule is paired with the `adv-ci-waiter` routing
+policy in `~/.config/opencode/instructions/oc-ci-wait.md`.
+
+Restart OpenCode after editing.
+
+---
+
+## Declaration-Is-Not-Behavior Rule (P38)
+
+ADV recommends a priority-9 declaration-vs-behavior rule that counters the
+agent failure mode of asserting what a project's own configuration, schema,
+or policy table DOES based only on reading the declaration, without tracing
+the value through its loader to its consuming call site to an observable
+effect. It is the internal-surfaces twin of P34.
+
+Like P29-P37, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P38 recommended):
+
+```yaml
+P38:
+  name: declaration-is-not-behavior
+  scope: >-
+    Internal surfaces owned by the current project — config files, schema
+    declarations, feature flags, registries, constants, and policy tables.
+    Complements P34, which covers external surfaces. Where P34 says "look it
+    up", P38 says "a declaration is not the behavior".
+  rule: >-
+    A declared value is not evidence of runtime effect. Before asserting what
+    a configuration, flag, constant, registry entry, or policy table DOES —
+    and before designing any change to it — trace it from declaration through
+    its loader to its consuming call site to an observable effect. If you can
+    only cite where a value is DECLARED, you have not found the mechanism and
+    must not describe its behavior, attribute an outcome to it, or design
+    against it. Pay specific attention to the join between declared keys and
+    runtime values: a lookup with a silent default (`.get(key, default)`,
+    `getattr(obj, name, fallback)`, `dict[key] if key in dict else ...`)
+    against externally-authored keys is an unvalidated join and may be
+    matching nothing at all. Treat "the config says X" and "the system does X"
+    as two separate claims requiring two separate pieces of evidence.
+  tags: [evidence, config, verification, internal-surfaces, anti-hallucination]
+  hint: declaration_is_not_behavior
+  priority: 9
+```
+
+**Rationale for priority 9:** parity with `P34 no-unverified-knowledge`. P38
+is the internal twin of P34 and carries the same consequence class: a
+confidently-asserted falsehood that propagates into downstream decisions. It
+outranks `P19 simplicity` (5) and `P23 campsite` (7) so "just read the config,
+it's obviously what it says" cannot win. It sits level with `P24 tdd-first`,
+`P27 due-diligence`, `P31 thoroughness`, `P33 structural-correctness`, `P36
+docs-before-code-change`, and `P37 no-polling-loops`.
+
+**Why this rule exists:** in a production incident on a separate project, an
+orchestrating agent read a priority-scoring YAML and confidently reported to
+the user that English cards were being deliberately deprioritized (key `en`
+mapped to `0` while other languages mapped to `+4`). The consuming code read
+this as `language_bonuses.get(candidate.language.lower(), 0)`, and the
+candidate's language came from a database column holding `ENGLISH`,
+`JAPANESE`, `CHINESE_SIMPLIFIED` — lowercased, matching **no declared key**.
+Every card had silently scored a zero bonus for the entire life of the
+feature. The config was not deprioritising English; the config was dead code.
+A second failure on the same incident designed a suppression against a weight
+that was already set to an empty tuple and never consulted, because the
+priority driver was a fixed band applied before the matrix score. Both
+failures passed P07 verify (the agent cited sources) and P31 thoroughness
+(effort was high). Only a specifically-named rule covering the
+declaration-to-effect join can catch this class of failure before it
+propagates into design.
+
+Restart OpenCode after editing.
+
+---
+
+## Population-Identity Rule (P39)
+
+ADV recommends a priority-8 statistics-evidence rule that counters the agent
+failure mode of asserting per-entity rates or ratios whose numerator and
+denominator are drawn from different populations.
+
+Like P29-P38, `rules.yaml` is **user-managed** so this change must be applied
+manually.
+
+Add the following entry in the `rules:` map (P39 recommended):
+
+```yaml
+P39:
+  name: population-identity
+  scope: >-
+    Any derived statistic, rate, ratio, or per-entity claim, whether from a
+    database query, log aggregation, metrics system, or test output.
+  rule: >-
+    A ratio is only meaningful when its numerator and denominator are drawn
+    from the same verified population. Before asserting any per-entity rate —
+    "N passes per card", "X% of requests", "each item retried Y times" —
+    establish that both terms describe the same entity set. Compute
+    COUNT(DISTINCT entity) alongside COUNT(*) whenever claiming a per-entity
+    rate, and state the population explicitly when reporting the figure.
+    Where a denominator is filtered (for example "rows WHERE id IS NOT NULL")
+    but the numerator is not, the ratio is invalid regardless of how
+    reasonable the result looks. A plausible-looking ratio derived from
+    mismatched populations is more dangerous than an obviously wrong one,
+    because it survives review.
+  tags: [evidence, statistics, verification, data-analysis, anti-hallucination]
+  hint: population_identity
+  priority: 8
+```
+
+**Rationale for priority 8:** parity with `P07 verify` and `P25 related-scan`.
+This is an evidence-quality rule rather than a stop-and-research rule. It
+sits below `P38 declaration-is-not-behavior` (9) because a bad ratio is
+usually caught by the next person who looks at the data, whereas a wrong
+mechanism can survive into an implemented design.
+
+**Why this rule exists:** in the same production incident that motivated
+P38, the agent computed "Chinese cards are being processed roughly 3 times
+each" by dividing 12,280 completed work items by 4,225 Chinese cards carrying
+a provider ID. The work items actually covered 12,056 **distinct** cards,
+most of which had no provider ID at all because they were identity-discovery
+work, not price-refresh work. Real rate: 1.01 passes per card. The agent had
+the data needed to disprove this and never ran `COUNT(DISTINCT)`. A
+plausible-looking ratio (3×) derived from mismatched populations is more
+dangerous than an obviously wrong one because it survives review.
 
 Restart OpenCode after editing.
 

@@ -1,0 +1,680 @@
+{
+  "id": "addDeclarationBehavior",
+  "title": "Add declaration-behavior verification rules",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-26T20:21:55.516Z",
+  "tasks": [
+    {
+      "id": "tk-8f58db69a0c5",
+      "title": "Add six SETUP.md rule sections in numeric order, each following the established P29/P30/P31 pattern (heading, intro paragraph framing the failure mode, copy-paste YAML block matching deployed rules.yaml verbatim, priority-calibration rationale, \"why this rule exists\" prose, \"Restart OpenCode after editing\" closer).",
+      "type": "docs",
+      "section": "SETUP.md sections",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-26T21:02:44.857Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT4",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Documentation-only; verification by reading the rendered SETUP.md sections and diffing YAML blocks against deployed rules.yaml. No executable test applies.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-26T21:03:25.456Z",
+      "verification": "6 SETUP.md sections added in numeric order (P32, P34, P35, P37, P38, P39). Section ordering confirmed P29-P39 contiguous. Each section follows the established pattern (heading, intro, user-managed note, YAML block, priority rationale, why-it-exists prose, restart closer). YAML blocks copied verbatim from ~/.config/opencode/instructions/rules.yaml. Total SETUP.md grew 1474→1821 (+347 lines). Existing P29/P30/P31/P33/P36 sections unchanged.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "SETUP.md"
+      ],
+      "touched_files": [
+        "SETUP.md"
+      ],
+      "checkpointSha": "d9365f968bf970ecf4a179884c1c24f946586d9a",
+      "completedAt": "2026-07-26T21:06:13.638Z",
+      "completed_at": "2026-07-26T21:06:13.638Z"
+    },
+    {
+      "id": "tk-a662a465245c",
+      "title": "Add six CHANGELOG.md bullets, one per new/backfilled SETUP.md section, following the existing P29/P30/P31 entry style. Each bullet: rule name + priority + one-line summary of the failure mode it counters + note that rules.yaml stays user-managed. Order: P32, P34, P35, P37, P38, P39.",
+      "type": "docs",
+      "section": "CHANGELOG",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-26T21:02:44.881Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Documentation-only; verification by reading the rendered CHANGELOG entries.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-26T21:06:48.259Z",
+      "verification": "7 CHANGELOG.md bullets added under Unreleased > Added: 6 Recommended-rule bullets (P32, P34, P35 backfilled; P37, P38, P39 newly documented) + 1 Design-gate lever-citation precondition bullet. Each follows the established P29/P30/P31 entry style. Existing CHANGELOG entries unchanged. Commit 8ec95218.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8ec952181d171f8212c18c2fa7c3729a67ab7833",
+      "completedAt": "2026-07-26T21:09:50.344Z",
+      "completed_at": "2026-07-26T21:09:50.344Z"
+    },
+    {
+      "id": "tk-ec959ce96265",
+      "title": "Add the \"Lever citation\" precondition to .opencode/command/adv-design.md. Insertion point: under the existing methodology section, near the preconditions a design author must satisfy before validation. Read the file's current section structure first to pick the precise anchor.",
+      "type": "docs",
+      "section": "Design-gate obligation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-26T21:02:44.883Z",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "respects": [
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Documentation-only; verification by reading the rendered adv-design.md and confirming the obligation appears in a design-author-visible location.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-26T21:06:13.344Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-26T21:07:18.315Z",
+      "verification": "Lever-citation precondition added to adv-design.md Phase 2 at line 61 as a subsection between ADR rubric and Keep-the-design-actionable closer. Text matches proposal verbatim plus operationalization paragraph linking to P38. Commit 34d38a48.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "8ec952181d171f8212c18c2fa7c3729a67ab7833",
+      "completedAt": "2026-07-26T21:09:48.474Z",
+      "completed_at": "2026-07-26T21:09:48.474Z"
+    },
+    {
+      "id": "tk-aeb400b08901",
+      "title": "Verification pass:",
+      "type": "verification",
+      "section": "Verification",
+      "status": "cancelled",
+      "priority": 0,
+      "created_at": "2026-07-26T21:02:44.882Z",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "C4"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Mixed review/static-check verification. YAML fidelity by diff; structure by reading; format:check by oc-test smoke if applicable.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-26T21:08:24.706Z",
+      "cancelApproval": "User approved via inline prompt: 'cancel task 4' (response to the options block presenting the cancellation with per-task reason).",
+      "cancelledAt": "2026-07-26T21:23:47.982Z",
+      "completed_at": "2026-07-26T21:23:47.982Z",
+      "cancellation": {
+        "reason": "Verification scope already covered by per-task checkpoint evidence (tasks 1-3 verifications) + change-scoped adv-verifier report (status:pass, confidence:high, report ID addDeclarationBehavior|change:verifier:add-declaration-behavior-docs-sync|adv-verification-triage-bundle|1, 6 checks all pass) + format:check exit 0 (runId tr_ms2ajbs6). Standalone verification task redundant for docs-only change; review evidence policy requires reviewer-owned task-scoped report that adv-verifier cannot produce (change-scope only).",
+        "approved_by_user": true,
+        "approval_evidence": "User approved via inline prompt: 'cancel task 4' (response to the options block presenting the cancellation with per-task reason).",
+        "approved_at": "2026-07-26T21:23:47.982Z"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addDeclarationBehavior",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDeclarationBehavior",
+      "scope": {
+        "kind": "change",
+        "scope_key": "verifier:add-declaration-behavior-docs-sync"
+      },
+      "agent": "adv-verification-triage-bundle",
+      "phase": "local_verify",
+      "targets": [
+        {
+          "kind": "command",
+          "command": "git diff --check trunk",
+          "exit_code": 0,
+          "duration_ms": 0
+        },
+        {
+          "kind": "command",
+          "command": "Python YAML block comparison",
+          "exit_code": 0,
+          "duration_ms": 0
+        },
+        {
+          "kind": "command",
+          "command": "git diff --numstat trunk",
+          "exit_code": 0,
+          "duration_ms": 0
+        }
+      ],
+      "status": "pass",
+      "error_class": "UNKNOWN",
+      "confidence": "high",
+      "evidence_basis": "All scoped read-only checks passed. format:check intentionally not rerun; prior evidence runId tr_ms2ajbs6 exited 0 in 17245ms.",
+      "findings": [
+        {
+          "id": "verify-001",
+          "severity": "info",
+          "summary": "YAML fidelity passed for all six new rules.",
+          "evidence": [
+            {
+              "label": "comparison output",
+              "locator": "SETUP.md new sections vs ~/.config/opencode/instructions/rules.yaml",
+              "summary": "P32, P34, P35, P37, P38, and P39 all reported match after SETUP.md top-level blocks were normalized with two-space indentation."
+            }
+          ]
+        },
+        {
+          "id": "verify-002",
+          "severity": "info",
+          "summary": "SETUP.md rule sections are contiguous and numerically ordered.",
+          "evidence": [
+            {
+              "label": "section headings",
+              "locator": "SETUP.md:518,563,630,707,759,807,874,927,969,1022,1090",
+              "summary": "P29 to P30 to P31 to P32 to P33 to P34 to P35 to P36 to P37 to P38 to P39."
+            }
+          ]
+        },
+        {
+          "id": "verify-003",
+          "severity": "info",
+          "summary": "Scoped diff contains additions only.",
+          "evidence": [
+            {
+              "label": "numstat",
+              "locator": "git diff --numstat trunk",
+              "summary": "adv-design.md 6/0; CHANGELOG.md 7/0; SETUP.md 347/0 additions/deletions."
+            }
+          ]
+        },
+        {
+          "id": "verify-004",
+          "severity": "info",
+          "summary": "Lever-citation precondition is encountered within Phase 2 before design completion guidance.",
+          "evidence": [
+            {
+              "label": "placement",
+              "locator": ".opencode/command/adv-design.md:40-67",
+              "summary": "Section follows Phase 2 criteria and ADR rubric, precedes Keep-the-design-actionable and Phase 2.5."
+            }
+          ]
+        },
+        {
+          "id": "verify-005",
+          "severity": "info",
+          "summary": "CHANGELOG additions follow established recommended-rule style.",
+          "evidence": [
+            {
+              "label": "changelog",
+              "locator": "CHANGELOG.md:5-11",
+              "summary": "Six rule bullets use Recommended rule Pxx backfilled-or-added targeted-failure-mode pattern; seventh documents design-gate obligation."
+            }
+          ]
+        },
+        {
+          "id": "verify-006",
+          "severity": "info",
+          "summary": "Diff whitespace sanity passed; format check not rerun by instruction.",
+          "evidence": [
+            {
+              "label": "diff check",
+              "locator": "git diff --check trunk",
+              "summary": "Exited 0."
+            },
+            {
+              "label": "prior verification",
+              "locator": "runId tr_ms2ajbs6",
+              "summary": "format:check exit 0, 17245ms; not rerun."
+            }
+          ]
+        }
+      ],
+      "recommended_next_action": "continue",
+      "scope_risk": false,
+      "required_main_agent_actions": [],
+      "follow_ups": []
+    }
+  ],
+  "test_runs": {
+    "tk-aeb400b08901": [
+      {
+        "runId": "tr_ms2ajbs6_297fbeeb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDeclarationBehavior/plugin && pnpm run format:check 2>&1 | tail -20",
+        "durationMs": 17245.224410000024,
+        "recordedAt": "2026-07-26T21:09:05.818Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-26T20:45:49.494Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved problem statement and three-pronged direction (P38 + P39 + design-gate lever citation). Validation clean. Cross-project follow-up from pokeedge fixPricechartingRefresh RCA. Proposal artifact already persisted at hash bb741090.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "bb74109051bb5b71fbc8fcba3b9c3fd7bb46d7951e706ae70d21921356c3ed33",
+        "non_whitespace_chars": 11296,
+        "checked_at": "2026-07-26T20:40:17.098Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-26T21:00:58.615Z",
+      "completed_at": "2026-07-26T21:01:18.312Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted (14 items: 4 constraints, 6 avoidances, 4 OOS). Lite-task docs-sync; no research needed.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "non_whitespace_chars": 4405,
+        "checked_at": "2026-07-26T20:40:17.100Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-26T21:01:59.111Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design artifact persisted. Lite-task docs-sync; no architectural decisions. Structure mirrors existing SETUP.md P29/P30/P31 pattern. Cross-route mapping: only one route (SETUP.md adoption sections + adv-design.md obligation + CHANGELOG entries). No worker-bundle impact. No spec deltas.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "48f5e2d6a82c04f9c205f6a1589c2180070af0024d678a34978774c21e9a3e92",
+        "non_whitespace_chars": 4178,
+        "checked_at": "2026-07-26T20:40:17.101Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-26T21:03:25.630Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved task graph (4 tasks: 3 docs + 1 verification). Worker-bundle impact not_applicable. Contract 14 items. Worktree materialized at /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addDeclarationBehavior"
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-26T21:25:04.817Z",
+      "completed_by": "agent",
+      "approval_evidence": "3 docs tasks done (SETUP.md 6 sections via d9365f96, adv-design.md lever-citation via 34d38a48, CHANGELOG 7 bullets via 8ec95218); 1 verification task cancelled (scope covered by per-task checkpoints + change-scoped adv-verifier report pass + format:check exit 0). All tasks terminal. format:check exit 0 (runId tr_ms2ajbs6). No code changes; pure docs."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-26T22:16:41.299Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved acceptance. Contract review matrix complete: 14 rows, 0 failing. Executive summary persisted. Independent adv-verifier verdict pass (6/6 checks). All deliverables committed on change/addDeclarationBehavior (d9365f96, 34d38a48, 8ec95218).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "e520486f2aba05c6a20df88684abf3d43e66839b544cfac5b1709a07b1bddc45",
+        "non_whitespace_chars": 4925,
+        "checked_at": "2026-07-26T20:40:17.104Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge",
+    "source_path": "/home/jon/dev/pokeedge",
+    "linked_at": "2026-07-26T20:21:53.702Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+      "approvedAt": "2026-07-26T21:01:10.249Z"
+    },
+    "items": [
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1 — rules.yaml is user-managed.** This change does not write to",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2 — No canonicalization.** This change does not introduce a canonical",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3 — Documented pattern only.** All new SETUP.md sections mirror the",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4 — Verbatim rule text.** YAML blocks in SETUP.md sections match the",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1 — Don't merge P34 and P38.** The external/internal split is the",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2 — Don't add a \"be more careful\" rule.** The failure occurred while",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3 — Don't make rules language-specific.** The failure modes apply to",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4 — Don't backfill older ADV-cited rules (P04-P08, P16, P19,",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5 — Don't fix the pre-existing P32 YAML strict-parse defect**",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "**DONT6 — Don't touch runtime code, specs, or schemas.** Documentation-only",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "**OOS1 — Canonicalization architecture.** A canonical `advance/rules.yaml`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "**OOS2 — Older ADV-cited rules documentation.** P04-P08, P16, P19, P23-P27",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "**OOS3 — P32 YAML strict-parse fix.** See DONT5.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "**OOS4 — Adopting the new rules in any downstream user's rules.yaml.** The",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-26T21:25:30Z",
+      "rows": [
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "No writes to ~/.config/opencode/instructions/rules.yaml from this change. P38/P39 were manually pre-adopted by operator before execution; SETUP.md sections document that adoption, do not redo it.",
+          "notes": "rules.yaml stays user-managed"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "No advance/rules.yaml file created (fd empty). No sync script added. No CI check enforcing SETUP.md↔rules.yaml consistency. Canonicalization deferred per OOS1.",
+          "notes": "Architectural question deferred"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All 6 new SETUP.md sections follow established P29/P30/P31 pattern: heading, intro paragraph, user-managed note, copy-paste YAML block, priority-calibration rationale, why-this-rule-exists prose, restart closer. Verified by reading each section.",
+          "notes": "Pattern match confirmed"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "YAML fidelity verified by adv-verifier (report ID ...|verifier:add-declaration-behavior-docs-sync|...|1): all 6 new sections' YAML blocks character-for-character match deployed rules.yaml after 2-space indent normalization. P32:12L P34:28L P35:12L P37:19L P38:23L P39:20L.",
+          "notes": "Machine-verified"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "P34 and P38 have distinct SETUP.md sections. P34 framed as external-surfaces rule, P38 framed as internal-surfaces twin. P38 section text explicitly cross-references: 'It is the internal-surfaces twin of P34.'",
+          "notes": "External/internal split preserved"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "P38 names the declaration-to-effect join failure mode specifically (silent-default .get(key, default), getattr(obj, name, fallback) patterns). P39 names the mismatched-population ratio failure mode specifically (COUNT(DISTINCT) vs COUNT(*)). Neither is a generic 'be more careful' rule.",
+          "notes": "Failure modes specifically named"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Rule text in P38/P39 sections is language-agnostic. Python patterns appear only as examples in P38 (.get, getattr, dict[key] if key in dict). P39 examples use SQL COUNT(DISTINCT) which is also language-agnostic. The rule applies to any declaration-to-effect join in any language.",
+          "notes": "Generic over languages"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "git diff numstat on SETUP.md: 347 additions, 0 deletions. No sections added for P04, P05, P07, P08, P16, P19, P23, P24, P25, P26, P27. Backfill scope limited to P32, P34, P35, P37 per agreement.",
+          "notes": "Older ADV-cited rules untouched"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "P32 SETUP.md section YAML block uses plain multiline scalar matching deployed rules.yaml entry verbatim, including the 'the inverse: run them only' colon-space text. Not converted to >- folded style. Pre-existing strict-parse defect remains out of scope.",
+          "notes": "Latent defect untouched"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "source_citation",
+          "evidence": "git diff numstat: adv-design.md 6/0, CHANGELOG.md 7/0, SETUP.md 347/0. No changes under plugin/src/, bin/, scripts/, or other .opencode/command/adv-*.md files except adv-design.md. Documentation-only confirmed.",
+          "notes": "No runtime changes"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Canonicalization architecture (advance/rules.yaml + sync enforcement) explicitly deferred per agreement OOS1. Not pursued."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Older ADV-cited rule documentation (P04-P08, P16, P19, P23-P27 SETUP.md sections) explicitly out of scope per agreement OOS2 and DONT4. Not pursued."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "P32 YAML strict-parse defect (colon-space at line 179 'the inverse: run them only') explicitly out of scope per agreement OOS3 and DONT5. Not pursued."
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No downstream user rules.yaml modified. Operator's own rules.yaml was manually updated as pre-execution work (P38/P39 added); that adoption is captured as evidence in the proposal, not redone by the change."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **pokeedge**.\n\n| Field | Value |\n|-------|-------|\n| Source project | pokeedge |\n| Source path | `/home/jon/dev/pokeedge` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Add declaration-vs-behavior verification rules to the core rule set\n\n## Problem Statement\n\nThe current priority-rule set demands evidence rigorously for **external**\nsurfaces — libraries, APIs, vendor behaviour, versions — but has no rule\ncovering the equivalent failure for **internal** surfaces. An agent can read a\nproject's own configuration file, assert what it does, design a change around\nthat assertion, and satisfy every existing evidence rule while being\ncompletely wrong.\n\nThis is not hypothetical. It happened three times in a single session on a\nproduction incident, and each instance had to be caught downstream by an\nindependent validator or a fresh-eyed sub-agent rather than by the agent\nholding the context.\n\nThe gap has a precise shape:\n\n> Citing a **declaration** is not citing a **behaviour**, but the existing\n> rules treat \"cited from source\" as sufficient evidence.\n\n## Root Cause Analysis\n\n### Trigger\n\nDuring a spec-driven change in a separate project (`pokeedge`,\n`fixPricechartingRefresh`), the orchestrating agent produced three materially\nwrong conclusions across the discovery and design gates. All three passed the\nagent's own verification standards at the time they were made.\n\n### The three failures, concretely\n\n**Failure 1 — a derived ratio with mismatched populations.**\n\nThe agent computed \"Chinese cards are being processed roughly 3 times each\" by\ndividing 12,280 completed work items by 4,225 Chinese cards carrying a provider\nID. The work items actually covered 12,056 **distinct** cards, most of which had\nno provider ID at all because they were identity-discovery work, not\nprice-refresh work. Real rate: 1.01 passes per card. The agent had the data\nneeded to disprove this and never ran `COUNT(DISTINCT)`.\n\nThis conclusion was presented to the user as a finding, and shaped the initial\nframing of the change.\n\n**Failure 2 — designing a fix against the wrong mechanism.**\n\nThe agent read a priority-scoring YAML file, observed that 30 of 100 available\npoints were allocated to \"data absence\" weights, and designed a suppression\nmechanism targeting those weights.\n\nAn independent validator then read the *producer* that consumes the config and\nfound two disqualifying facts: one of the two weights was already set to an\nempty tuple for the relevant candidate type and therefore contributed zero, and\nthe actual priority driver was a **fixed band applied before the matrix score\nwas consulted at all**. The designed suppression would have changed almost\nnothing.\n\nThe agent had read the config file. It had never read the call site.\n\n**Failure 3 — asserting behaviour from config keys that never matched.**\n\nThe same YAML declared `language_bonuses` with keys `en`, `ja`, `jp`, `zh-cn`,\n`cn`. The agent reported to the user that English was being deliberately\ndeprioritised, since English mapped to `0` while other languages received `+4`.\n\nThe consuming code read this as\n`language_bonuses.get(candidate.language.lower(), 0)`, and the candidate's\nlanguage came from a database column holding `ENGLISH`, `JAPANESE`,\n`CHINESE_SIMPLIFIED`. Lowercased, those are `english`, `japanese`,\n`chinese_simplified` — **matching no declared key**. Every card had silently\nscored a zero bonus for the entire life of the feature.\n\nThe config was not deprioritising English. The config was dead code. And because\nthe agent had derived a plausible narrative from it, the false conclusion\npropagated into the discovery record and then into a design task built on that\npremise.\n\n### Why the existing rules did not catch this\n\nEach relevant rule was either out of scope or technically satisfied.\n\n| Rule | Why it did not fire |\n| --- | --- |\n| P34 no-unverified-knowledge | Scope is explicitly **external** surfaces: libraries, frameworks, APIs, vendor capabilities. A project's own YAML is not covered. |\n| P07 verify | **Technically satisfied.** The agent used tools, read source, and cited file paths. It verified that the config *said* X. It never verified that X *did* anything. |\n| P30 docs-before-probing | Concerns ordering when consulting external documentation. Silent on internal declaration-to-effect tracing. |\n| P16 docs-first | Directs consulting internal documentation before changing behaviour. The agent did consult internal artifacts — the wrong kind, treated as authoritative. |\n| P31 thoroughness | **Satisfied.** The agent ran many production queries, read many files, and spawned validators. Effort was not the failure. |\n| P33 structural-correctness | Describes the *fix* for this class of bug once found. Does not direct the agent to look for it during diagnosis. |\n\nThe uncomfortable conclusion: the agent performed a **large volume of\nwell-executed verification aimed at the wrong artifact**. General exhortations\nto be thorough cannot catch that, because thoroughness was present. Only a\nspecific rule naming the failure mode can.\n\n### Why the safety net was too late\n\nBoth design-stage failures were eventually caught, by an independent design\nvalidator with fresh eyes and no stake in the prior conclusion. That mechanism\nworked exactly as intended.\n\nBut it fired **after a complete design had been written on a false premise**,\nforcing a full design revision. The cost of catching a wrong mechanism at\ndesign-validation time is an entire discarded draft. The cost of catching it\nbefore drafting is one file read.\n\n## Originally Proposed Direction (now expanded — see Scope Update)\n\nAdd two priority rules and one design-gate obligation: P38 declaration-is-not-behavior,\nP39 population-identity, and a lever-citation precondition in adv-design.md.\n\n## Scope Update (lite-task expansion)\n\nInitial proposal framed this as \"add P38/P39 sections following the existing\nP29/P30/P31 pattern.\" Investigation during proposal-gate discovery surfaced\nthat the framing was technically correct but misleading:\n\n- **Advance is not the canonical rule source.** No `rules.yaml` exists in the\n  advance repo. `~/.config/opencode/instructions/rules.yaml` (user-managed)\n  is canonical for the user; SETUP.md only *documents* a subset of recommended\n  rules with copy-paste YAML for adoption.\n- **Coverage is already drifted.** Of 20 rules deployed in the user's\n  `rules.yaml`, only 5 have SETUP.md sections (P29, P30, P31, P33, P36).\n  15 deployed rules — including recent additions P32, P34, P35, P37 — have no\n  SETUP.md section. P37 broke the documented-adoption precedent silently.\n- **No sync enforcement exists.** No CI test, lint, or sync step checks\n  SETUP.md ↔ rules.yaml consistency. Drift is structural, not accidental.\n\nPer operator direction, this change expands scope to:\n\n1. **Document P38 + P39 in SETUP.md** (sections following the P29/P30/P31\n   pattern). P38 and P39 are already deployed in the user's rules.yaml as of\n   this change; SETUP.md now reflects that.\n2. **Backfill SETUP.md sections for P32, P34, P35, P37** — the recent\n   additions that lack sections. This eliminates the precedent-breaking gap\n   and brings documented coverage from 5/20 to 11/22 (P38 + P39 added).\n3. **Design-gate lever-citation obligation** in `.opencode/command/adv-design.md`\n   — unchanged from original proposal.\n4. **CHANGELOG.md entries** for the new sections, matching the existing\n   pattern (one bullet per rule section, including backfilled ones).\n\nRules P04, P05, P07, P08, P16, P19, P23, P24, P25, P26, P27 (the older\n\"ADV-cited campsite/write-in/locality rules\") remain undocumented by name\nin SETUP.md. They predate the \"ADV recommends rule\" documentation pattern\nand are out of scope for this change; backfilling them would be a separate\nhistorical-docs change.\n\n## Draft Acceptance Signals\n\nTo be firmed at agreement.\n\n- P38, P39, P32, P34, P35, P37 each have a SETUP.md section following the\n  established pattern: heading, intro paragraph, copy-paste YAML block,\n  priority-calibration rationale, \"why this rule exists\" prose.\n- The design gate contract carries the lever-citation obligation in a form a\n  design author can act on and a validator can check.\n- Existing documented rules (P29, P30, P31, P33, P36) are not modified unless\n  text drift is being corrected; the P30 `scope:` field present in deployed\n  rules.yaml but absent from SETUP.md's YAML example may be added for\n  consistency.\n- CHANGELOG.md gains one bullet per new/backfilled rule section.\n- Existing rules are not duplicated or contradicted; P34's external scope and\n  P38's internal scope are explicitly distinguished so neither is read as\n  superseding the other.\n\n## Constraints\n\n- `rules.yaml` is user-managed. Advance documents and recommends; it must not\n  silently write to a user's rule file. (P38 and P39 have already been\n  manually adopted by the operator into the deployed rules.yaml as part of\n  this change's pre-execution work; that adoption is captured here as\n  evidence, not redone by the change.)\n- Rule numbering must not collide with existing entries; current set runs to\n  P37, this change adds P38 and P39.\n- Priority values must be justified relative to neighbours rather than asserted,\n  matching how P29, P30 and P31 were introduced.\n\n## Avoidances\n\n- Do not restate P34 with wider scope. The external/internal split is the point;\n  merging them loses the specific trigger that makes each actionable.\n- Do not add a general \"be more careful\" rule. The failure occurred while the\n  agent was being careful; only a specifically-named failure mode helps.\n- Do not make this Python-specific or config-format-specific. The failure mode\n  applies to any declaration-to-effect join in any language.\n- Do not backfill SETUP.md sections for the older ADV-cited rules (P04-P08,\n  P16, P19, P23-P27). They predate the documentation pattern and warrant a\n  separate historical-docs change if pursued.\n\n## Evidence Index\n\n- Originating incident: `pokeedge` change `fixPricechartingRefresh`, discovery\n  and design gate records, plus four promoted project-level wisdom entries\n  covering enum widening, mocked-SQL blindness, activity-versus-outcome\n  measurement, and the silent config-default join.\n- Existing rule set and priorities: `~/.config/opencode/instructions/rules.yaml`\n  (now P04 through P39 after this change's pre-execution adoption of P38/P39).\n- Existing adoption pattern for user-managed rules: `SETUP.md` sections for P29\n  clean-not-minimal, P30 docs-before-probing, P31 thoroughness.\n- Pre-execution adoption: operator manually appended P38 and P39 (YAML folded\n  scalar style matching P37) to deployed `rules.yaml` and synced\n  `~/toolbox/backups/dotfiles/opencode/instructions/rules.yaml`. YAML strict\n  parse remains broken by pre-existing P32 colon-space (\"the inverse: run\n  them only\"); unrelated latent defect, out of scope here.\n- Design gate contract: `.opencode/command/adv-design.md`.",
+    "agreement": "# Agreement — addDeclarationBehavior\n\n## Objectives\n\nDocument the two newly-deployed rules (P38 declaration-is-not-behavior, P39\npopulation-identity) plus four backfilled recent additions (P32, P34, P35, P37)\nin `SETUP.md`, following the established P29/P30/P31 documentation pattern.\nAdd a lever-citation precondition to the design gate contract. Record the new\nand backfilled sections in `CHANGELOG.md`.\n\n## Acceptance Criteria\n\n**AC1 — Documented rule sections.** `SETUP.md` contains one section per rule\nfor: P32 (worktree-isolation), P34 (no-unverified-knowledge), P35\n(architecture-over-hacks), P37 (no-polling-loops), P38\n(declaration-is-not-behavior), P39 (population-identity). Each section follows\nthe established pattern: heading, intro paragraph framing the agent failure\nmode, copy-paste YAML block matching the deployed `rules.yaml` entry,\npriority-calibration rationale, \"why this rule exists\" prose, \"Restart OpenCode\nafter editing\" closer.\n\n**AC2 — YAML fidelity.** Each section's copy-paste YAML block matches the\ncorresponding deployed `rules.yaml` entry verbatim (same `name`, `scope` if\npresent, `rule` text, `tags`, `hint`, `priority`). Folded-scalar style (`>-`)\nis used where the deployed entry uses it (P37, P38, P39) so the YAML remains\nstrict-parse-safe for those entries.\n\n**AC3 — Ordering.** Sections are added in numeric order. P32 inserts between\nthe existing P31 section and P33 section. P34 and P35 insert between P33 and\nP36. P37 inserts after P36. P38 and P39 append after P37.\n\n**AC4 — Lever-citation obligation.** `.opencode/command/adv-design.md` gains\nthe \"Lever citation\" precondition: for every mechanism a design proposes to\nchange, cite the call site where that mechanism takes effect — not where it is\ndeclared. The obligation is checkable at design drafting, not only by a\ndownstream validator. The exact text from the proposal is used verbatim.\n\n**AC5 — CHANGELOG entries.** `CHANGELOG.md` gains one bullet per rule section\nadded or backfilled, following the existing P29/P30/P31 entry style (rule name,\npriority, one-line summary of the failure mode it counters, note that\n`rules.yaml` stays user-managed).\n\n**AC6 — No regressions.** Existing SETUP.md sections (P29, P30, P31, P33, P36)\nare not modified except optionally to add the `scope:` field where the deployed\nentry has one and the SETUP.md YAML example lacks it (P30 is the documented\ncase). Other content is untouched.\n\n**AC7 — No spec deltas, no runtime changes.** No `adv_delta_*` calls. No\nchanges under `plugin/src/`. No changes to `bin/`. No changes to other\n`.opencode/command/adv-*.md` files except `adv-design.md` for AC4.\n\n## Constraints\n\n- **C1 — rules.yaml is user-managed.** This change does not write to\n  `~/.config/opencode/instructions/rules.yaml`. The operator has already\n  manually adopted P38 and P39 as pre-execution work; that adoption is\n  referenced as evidence in the proposal, not redone.\n- **C2 — No canonicalization.** This change does not introduce a canonical\n  `advance/rules.yaml`, a sync script, or a CI check enforcing SETUP.md ↔\n  rules.yaml consistency. That architectural question is explicitly deferred\n  to a separate change.\n- **C3 — Documented pattern only.** All new SETUP.md sections mirror the\n  established P29/P30/P31 shape (heading, intro, YAML block, priority\n  rationale, \"why this rule exists\", restart closer). No new documentation\n  format is invented.\n- **C4 — Verbatim rule text.** YAML blocks in SETUP.md sections match the\n  deployed rules.yaml entries verbatim. The documentation surface must not\n  silently diverge from the canonical deployed text.\n\n## Avoidances\n\n- **DONT1 — Don't merge P34 and P38.** The external/internal split is the\n  point. Merging them loses the specific trigger that makes each actionable.\n- **DONT2 — Don't add a \"be more careful\" rule.** The failure occurred while\n  the agent was being careful; only a specifically-named failure mode helps.\n- **DONT3 — Don't make rules language-specific.** The failure modes apply to\n  any declaration-to-effect join in any language; examples may reference\n  Python patterns but the rule text must stay generic.\n- **DONT4 — Don't backfill older ADV-cited rules (P04-P08, P16, P19,\n  P23-P27).** They predate the documentation pattern and warrant a separate\n  historical-docs change if pursued. Scope creep here would inflate review\n  surface without improving correctness.\n- **DONT5 — Don't fix the pre-existing P32 YAML strict-parse defect**\n  (`\"the inverse: run them only\"` colon-space). It is a related-scan finding,\n  not in scope. Track separately.\n- **DONT6 — Don't touch runtime code, specs, or schemas.** Documentation-only\n  change.\n\n## Out of Scope\n\n- **OOS1 — Canonicalization architecture.** A canonical `advance/rules.yaml`\n  with sync enforcement is a separate architectural change.\n- **OOS2 — Older ADV-cited rules documentation.** P04-P08, P16, P19, P23-P27\n  SETUP.md sections are out of scope (see DONT4).\n- **OOS3 — P32 YAML strict-parse fix.** See DONT5.\n- **OOS4 — Adopting the new rules in any downstream user's rules.yaml.** The\n  operator's deployed `rules.yaml` already has P38 and P39; other users adopt\n  manually per the documented pattern.",
+    "design": "# Design — addDeclarationBehavior (lite-task docs-sync)\n\n## Architecture\n\nNo new architecture. Documentation-only change touching two surfaces:\n\n| Surface | File | Change |\n|---|---|---|\n| Adoption docs | `SETUP.md` | +6 sections (P32, P34, P35, P37, P38, P39), each following the established P29/P30/P31 pattern |\n| Design-gate contract | `.opencode/command/adv-design.md` | +Lever-citation precondition |\n| Release notes | `CHANGELOG.md` | +6 bullets (one per new/backfilled section) |\n\n## SETUP.md section template (mechanical)\n\nEach new section is structurally identical to P29/P30/P31:\n\n```markdown\n## <Rule Name> Rule (P<NN>)\n\nADV recommends a priority-<N> <one-line description of the rule>. <2-3 sentence\nframing of the agent failure mode it counters.>\n\nLike P28-P36, `rules.yaml` is **user-managed** so this change must be applied\nmanually.\n\nAdd the following entry in the `rules:` map (P<NN> recommended):\n\n<yaml block matching deployed rules.yaml entry verbatim>\n\n**Rationale for priority <N>:** parity with <neighbouring rules>. <one-line\ncalibration vs priority-10 tier boundary>.\n\n**Why this rule exists:** <prose explaining the concrete failure mode and why\ngeneral exhortations cannot catch it>.\n\nRestart OpenCode after editing.\n```\n\n## Insertion plan (in numeric order)\n\nCurrent SETUP.md rule-section order: P29 → P30 → P31 → P33 → P36.\n\nAfter this change: P29 → P30 → P31 → **P32** → P33 → **P34** → **P35** → P36 → **P37** → **P38** → **P39**.\n\n| New section | Insertion point |\n|---|---|\n| P32 | After P31 section (currently line ~703, before existing P33 at line 707) |\n| P34 | After P33 section (currently line ~752, before existing P36 at line 755) |\n| P35 | Immediately after P34 |\n| P37 | After P36 section (currently line ~793, before \"## Project Initialization\" at line 797) |\n| P38 | Immediately after P37 |\n| P39 | Immediately after P38 |\n\n## Per-section source mapping (YAML fidelity)\n\nEach section's copy-paste YAML block is copied verbatim from\n`~/.config/opencode/instructions/rules.yaml` after the pre-execution P38/P39\nadoption. Source line ranges:\n\n| Rule | rules.yaml source lines (approx) |\n|---|---|\n| P32 | 173-184 |\n| P34 | 202-229 |\n| P35 | 231-243 |\n| P37 | 257-275 |\n| P38 | new (priority 9, declaration-is-not-behavior, scope + rule, `>-` folded) |\n| P39 | new (priority 8, population-identity, scope + rule, `>-` folded) |\n\nFolded-scalar style (`>-`) is preserved where the deployed entry uses it (P37,\nP38, P39) so the YAML remains strict-parse-safe for those entries. P32, P34,\nP35 use plain multiline scalars in the deployed file; their SETUP.md YAML\nblocks mirror that.\n\n## Lever-citation obligation — placement\n\n`.opencode/command/adv-design.md` (366 lines). Insertion point: under the\nexisting methodology section, near the preconditions a design author must\nsatisfy before validation. The exact text (from proposal, verbatim):\n\n> **Lever citation.** For every mechanism this design proposes to change, cite\n> the call site where that mechanism takes effect — not where it is declared. A\n> design that cites only a configuration file, constant, or schema declaration\n> has not located its lever and is not ready for validation. Where the lever is\n> a scoring, ranking, or policy input, additionally confirm no earlier stage\n> preempts it (fixed bands, short circuits, hard filters, or empty inputs that\n> render the weight inert).\n\nSpecific heading/anchor placement TBD at execution time after reading the\nfile's current section structure.\n\n## Cross-cutting concerns\n\n- **No spec deltas.** Pure documentation. `adv_delta_*` is not invoked.\n- **No runtime code.** Nothing under `plugin/src/`, `bin/`, or `scripts/` is\n  modified.\n- **No worker-bundle impact.** No workflow code touched.\n  `adv_change_set_worker_bundle_impact` should classify as `not_applicable`.\n- **Cross-route mapping.** Only one route through the docs surface: SETUP.md\n  adoption-pattern sections. No conditional/branching behavior across multiple\n  locations.\n\n## Verification\n\n- `pnpm run check` will not catch documentation-only changes; primary\n  verification is human review of the rendered SETUP.md sections and the\n  adv-design.md insertion.\n- Optional: `python3 -c \"import yaml; yaml.safe_load(...)\"` against an\n  extracted aggregate of the new SETUP.md YAML blocks, to confirm strict-parse\n  safety for the new sections specifically. (Pre-existing P32 colon-space\n  defect in deployed rules.yaml is out of scope per DONT5.)\n- `bin/oc-test smoke` covers format/lint checks if the change touches any\n  format-enforced surface.\n\n## Decisions deferred / not made here\n\n- Whether to add a `scope:` field to the existing SETUP.md P30 YAML example\n  (deployed has it, SETUP.md doesn't). Left as a same-pattern campsite fix;\n  will be applied inline if it fits the diff naturally, otherwise tracked.\n- Whether to convert P32's plain scalar to `>-` folded style. Out of scope\n  (DONT5).\n- Whether to canonicalize advance/rules.yaml. Out of scope (OOS1).",
+    "executiveSummary": "# Executive Summary — addDeclarationBehavior\n\n## Outcome\n\nThe Advance rule set now has internal-surface evidence coverage parity with its external-surface coverage. Two new priority rules close the gap that let three confidently-wrong conclusions propagate through a pokeedge production incident, and four previously-undocumented recent additions now have SETUP.md adoption sections matching the established pattern.\n\n## Value / Why It Matters\n\nBefore this change, Advance's P34 (no-unverified-knowledge) demanded rigorous evidence for **external** surfaces — libraries, APIs, vendor behavior — but had no equivalent for **internal** surfaces. An agent could read a project's own config file, assert what it does, design a change around that assertion, and pass every existing evidence rule while being completely wrong. The pokeedge `fixPricechartingRefresh` incident proved this three times in one session: dead config keys confidently described as policy, a suppression designed against an inert weight, and a \"3 passes per card\" ratio derived from mismatched populations.\n\nP38 (declaration-is-not-behavior, priority 9) closes that gap as the internal twin of P34. P39 (population-identity, priority 8) catches the statistics-evidence failure mode. The design-gate lever-citation obligation in `adv-design.md` operationalizes P38 at drafting time, so the gap is caught before validation rather than by a downstream validator.\n\nAs a side effect, four previously-undocumented recent rules (P32 worktree-isolation, P34 no-unverified-knowledge, P35 architecture-over-hacks, P37 no-polling-loops) now have SETUP.md sections matching the established P29/P30/P31 adoption pattern. This eliminates the silent precedent-break that began when P37 was added to the deployed rules.yaml without a SETUP.md backfill.\n\n## What Was Built\n\n- **`~/.config/opencode/instructions/rules.yaml`** (pre-execution, operator-applied): P38 and P39 added with folded-scalar style matching P37; backup synced to `~/toolbox/backups/dotfiles/opencode/instructions/rules.yaml`. 20 → 22 rules total.\n- **`SETUP.md`**: 6 new sections in numeric order (P32, P34, P35 backfilled; P37, P38, P39 documented). Each follows the established P29/P30/P31 pattern: heading, intro, copy-paste YAML block matching deployed rules.yaml verbatim, priority-calibration rationale, why-this-rule-exists prose. +347 lines, 0 deletions.\n- **`.opencode/command/adv-design.md`**: Phase 2 gained a \"Lever citation (precondition)\" subsection between the ADR rubric and the Keep-the-design-actionable closer, operationalizing P38 at design drafting.\n- **`CHANGELOG.md`**: 7 new bullets under Unreleased > Added (6 rule sections + 1 design-gate obligation).\n\n## Verification\n\n- **YAML fidelity**: machine-verified by adv-verifier — all 6 new SETUP.md YAML blocks character-for-character match deployed rules.yaml entries after 2-space indent normalization (report ID `addDeclarationBehavior|change:verifier:add-declaration-behavior-docs-sync|adv-verification-triage-bundle|1`, status:pass, confidence:high).\n- **Section ordering**: P29 → P30 → P31 → P32 → P33 → P34 → P35 → P36 → P37 → P38 → P39 contiguous.\n- **No regressions**: `git diff numstat` confirms additions only (adv-design.md 6/0, CHANGELOG.md 7/0, SETUP.md 347/0). Existing P29/P30/P31/P33/P36 sections unchanged.\n- **format:check**: `pnpm run format:check` exit 0 (runId `tr_ms2ajbs6`, 17245ms).\n- **Contract**: 14 contract items reviewed — 4 constraints respected, 6 avoidances respected, 4 OOS not-applicable. 0 failing rows.\n\n## Risks / Follow-ups\n\n- **P32 latent YAML strict-parse defect** (pre-existing): the deployed `rules.yaml` fails strict YAML parsing at line 179 (`\"the inverse: run them only\"` colon-space). OpenCode loads instructions as plain text so runtime is unaffected, but any future tooling that machine-parses rules.yaml would choke. Out of scope (DONT5); warrants a separate small fix converting P32 to `>-` folded style.\n- **Coverage gap remains**: 9 of 22 deployed rules (P04, P05, P07, P08, P16, P19, P23-P27) still have no SETUP.md section. They predate the documentation pattern. Backfilling them is out of scope (DONT4) and warrants a separate historical-docs change if pursued.\n- **No canonicalization**: this change does not introduce `advance/rules.yaml`, sync script, or CI check enforcing SETUP.md ↔ rules.yaml consistency. That architectural question is explicitly deferred (OOS1). Drift between SETUP.md and deployed rules.yaml will continue to be possible unless canonicalization is addressed.\n- **Optional P30 campsite fix deferred**: deployed rules.yaml has a `scope:` field on P30 that the SETUP.md YAML example lacks. Adding it would have modified an existing section, which AC6 prohibits. Deferred.\n\n## Originating Incident Recap\n\nThis change originated as a cross-project follow-up from the pokeedge change `fixPricechartingRefresh`. Three concrete failures during discovery and design gates demonstrated the gap:\n\n1. A \"3 passes per card\" ratio (12,280 work items / 4,225 cards with provider IDs) was actually 1.01 passes per distinct card — the work items covered 12,056 distinct cards, most without provider IDs. → P39.\n2. A suppression designed against priority-scoring weights that were already empty tuples or preempted by a fixed band applied before the matrix score. → P38.\n3. A claim that English cards were being deliberately deprioritized, when the `language_bonuses` config keys matched no runtime value (candidate languages came from a database column with different naming). → P38.\n\nThe full RCA with the three failures, the table of why each existing rule did not catch them, and the proposal-direction rationale lives in the proposal artifact.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-26T21:25:30Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| C1 | constraint | **C1 — rules.yaml is user-managed.** This change does not write to | respected | No writes to ~/.config/opencode/instructions/rules.yaml from this change. P38/P39 were manually pre-adopted by operator before execution; SETUP.md sections document that adoption, do not redo it. |\n| C2 | constraint | **C2 — No canonicalization.** This change does not introduce a canonical | respected | No advance/rules.yaml file created (fd empty). No sync script added. No CI check enforcing SETUP.md↔rules.yaml consistency. Canonicalization deferred per OOS1. |\n| C3 | constraint | **C3 — Documented pattern only.** All new SETUP.md sections mirror the | respected | All 6 new SETUP.md sections follow established P29/P30/P31 pattern: heading, intro paragraph, user-managed note, copy-paste YAML block, priority-calibration rationale, why-this-rule-exists prose, restart closer. Verified by reading each section. |\n| C4 | constraint | **C4 — Verbatim rule text.** YAML blocks in SETUP.md sections match the | respected | YAML fidelity verified by adv-verifier (report ID ...|verifier:add-declaration-behavior-docs-sync|...|1): all 6 new sections' YAML blocks character-for-character match deployed rules.yaml after 2-space indent normalization. P32:12L P34:28L P35:12L P37:19L P38:23L P39:20L. |\n| DONT1 | avoidance | **DONT1 — Don't merge P34 and P38.** The external/internal split is the | respected | P34 and P38 have distinct SETUP.md sections. P34 framed as external-surfaces rule, P38 framed as internal-surfaces twin. P38 section text explicitly cross-references: 'It is the internal-surfaces twin of P34.' |\n| DONT2 | avoidance | **DONT2 — Don't add a \"be more careful\" rule.** The failure occurred while | respected | P38 names the declaration-to-effect join failure mode specifically (silent-default .get(key, default), getattr(obj, name, fallback) patterns). P39 names the mismatched-population ratio failure mode specifically (COUNT(DISTINCT) vs COUNT(*)). Neither is a generic 'be more careful' rule. |\n| DONT3 | avoidance | **DONT3 — Don't make rules language-specific.** The failure modes apply to | respected | Rule text in P38/P39 sections is language-agnostic. Python patterns appear only as examples in P38 (.get, getattr, dict[key] if key in dict). P39 examples use SQL COUNT(DISTINCT) which is also language-agnostic. The rule applies to any declaration-to-effect join in any language. |\n| DONT4 | avoidance | **DONT4 — Don't backfill older ADV-cited rules (P04-P08, P16, P19, | respected | git diff numstat on SETUP.md: 347 additions, 0 deletions. No sections added for P04, P05, P07, P08, P16, P19, P23, P24, P25, P26, P27. Backfill scope limited to P32, P34, P35, P37 per agreement. |\n| DONT5 | avoidance | **DONT5 — Don't fix the pre-existing P32 YAML strict-parse defect** | respected | P32 SETUP.md section YAML block uses plain multiline scalar matching deployed rules.yaml entry verbatim, including the 'the inverse: run them only' colon-space text. Not converted to >- folded style. Pre-existing strict-parse defect remains out of scope. |\n| DONT6 | avoidance | **DONT6 — Don't touch runtime code, specs, or schemas.** Documentation-only | respected | git diff numstat: adv-design.md 6/0, CHANGELOG.md 7/0, SETUP.md 347/0. No changes under plugin/src/, bin/, scripts/, or other .opencode/command/adv-*.md files except adv-design.md. Documentation-only confirmed. |\n| OOS1 | out_of_scope | **OOS1 — Canonicalization architecture.** A canonical `advance/rules.yaml` | not_applicable | Canonicalization architecture (advance/rules.yaml + sync enforcement) explicitly deferred per agreement OOS1. Not pursued. |\n| OOS2 | out_of_scope | **OOS2 — Older ADV-cited rules documentation.** P04-P08, P16, P19, P23-P27 | not_applicable | Older ADV-cited rule documentation (P04-P08, P16, P19, P23-P27 SETUP.md sections) explicitly out of scope per agreement OOS2 and DONT4. Not pursued. |\n| OOS3 | out_of_scope | **OOS3 — P32 YAML strict-parse fix.** See DONT5. | not_applicable | P32 YAML strict-parse defect (colon-space at line 179 'the inverse: run them only') explicitly out of scope per agreement OOS3 and DONT5. Not pursued. |\n| OOS4 | out_of_scope | **OOS4 — Adopting the new rules in any downstream user's rules.yaml.** The | not_applicable | No downstream user rules.yaml modified. Operator's own rules.yaml was manually updated as pre-execution work (P38/P39 added); that adoption is captured as evidence in the proposal, not redone by the change. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-26T21:00:05.782Z",
+      "contentHash": "31f3b3d36f06df105a48c96a76411c0db6703a06a297ac950b3990b78ddf8a84",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-26T21:00:49.805Z",
+      "contentHash": "c41c83098dfe98655599cbb1ec0638206282ee87f579f3f8631e3e19928354c2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-26T21:01:47.449Z",
+      "contentHash": "48f5e2d6a82c04f9c205f6a1589c2180070af0024d678a34978774c21e9a3e92",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-26T21:25:46.710Z",
+      "contentHash": "e520486f2aba05c6a20df88684abf3d43e66839b544cfac5b1709a07b1bddc45",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-26T22:16:41.299Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}

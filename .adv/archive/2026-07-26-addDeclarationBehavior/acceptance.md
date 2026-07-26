@@ -1,0 +1,23 @@
+# Acceptance
+
+Reviewed at: 2026-07-26T21:25:30Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| C1 | constraint | **C1 — rules.yaml is user-managed.** This change does not write to | respected | No writes to ~/.config/opencode/instructions/rules.yaml from this change. P38/P39 were manually pre-adopted by operator before execution; SETUP.md sections document that adoption, do not redo it. |
+| C2 | constraint | **C2 — No canonicalization.** This change does not introduce a canonical | respected | No advance/rules.yaml file created (fd empty). No sync script added. No CI check enforcing SETUP.md↔rules.yaml consistency. Canonicalization deferred per OOS1. |
+| C3 | constraint | **C3 — Documented pattern only.** All new SETUP.md sections mirror the | respected | All 6 new SETUP.md sections follow established P29/P30/P31 pattern: heading, intro paragraph, user-managed note, copy-paste YAML block, priority-calibration rationale, why-this-rule-exists prose, restart closer. Verified by reading each section. |
+| C4 | constraint | **C4 — Verbatim rule text.** YAML blocks in SETUP.md sections match the | respected | YAML fidelity verified by adv-verifier (report ID ...|verifier:add-declaration-behavior-docs-sync|...|1): all 6 new sections' YAML blocks character-for-character match deployed rules.yaml after 2-space indent normalization. P32:12L P34:28L P35:12L P37:19L P38:23L P39:20L. |
+| DONT1 | avoidance | **DONT1 — Don't merge P34 and P38.** The external/internal split is the | respected | P34 and P38 have distinct SETUP.md sections. P34 framed as external-surfaces rule, P38 framed as internal-surfaces twin. P38 section text explicitly cross-references: 'It is the internal-surfaces twin of P34.' |
+| DONT2 | avoidance | **DONT2 — Don't add a "be more careful" rule.** The failure occurred while | respected | P38 names the declaration-to-effect join failure mode specifically (silent-default .get(key, default), getattr(obj, name, fallback) patterns). P39 names the mismatched-population ratio failure mode specifically (COUNT(DISTINCT) vs COUNT(*)). Neither is a generic 'be more careful' rule. |
+| DONT3 | avoidance | **DONT3 — Don't make rules language-specific.** The failure modes apply to | respected | Rule text in P38/P39 sections is language-agnostic. Python patterns appear only as examples in P38 (.get, getattr, dict[key] if key in dict). P39 examples use SQL COUNT(DISTINCT) which is also language-agnostic. The rule applies to any declaration-to-effect join in any language. |
+| DONT4 | avoidance | **DONT4 — Don't backfill older ADV-cited rules (P04-P08, P16, P19, | respected | git diff numstat on SETUP.md: 347 additions, 0 deletions. No sections added for P04, P05, P07, P08, P16, P19, P23, P24, P25, P26, P27. Backfill scope limited to P32, P34, P35, P37 per agreement. |
+| DONT5 | avoidance | **DONT5 — Don't fix the pre-existing P32 YAML strict-parse defect** | respected | P32 SETUP.md section YAML block uses plain multiline scalar matching deployed rules.yaml entry verbatim, including the 'the inverse: run them only' colon-space text. Not converted to >- folded style. Pre-existing strict-parse defect remains out of scope. |
+| DONT6 | avoidance | **DONT6 — Don't touch runtime code, specs, or schemas.** Documentation-only | respected | git diff numstat: adv-design.md 6/0, CHANGELOG.md 7/0, SETUP.md 347/0. No changes under plugin/src/, bin/, scripts/, or other .opencode/command/adv-*.md files except adv-design.md. Documentation-only confirmed. |
+| OOS1 | out_of_scope | **OOS1 — Canonicalization architecture.** A canonical `advance/rules.yaml` | not_applicable | Canonicalization architecture (advance/rules.yaml + sync enforcement) explicitly deferred per agreement OOS1. Not pursued. |
+| OOS2 | out_of_scope | **OOS2 — Older ADV-cited rules documentation.** P04-P08, P16, P19, P23-P27 | not_applicable | Older ADV-cited rule documentation (P04-P08, P16, P19, P23-P27 SETUP.md sections) explicitly out of scope per agreement OOS2 and DONT4. Not pursued. |
+| OOS3 | out_of_scope | **OOS3 — P32 YAML strict-parse fix.** See DONT5. | not_applicable | P32 YAML strict-parse defect (colon-space at line 179 'the inverse: run them only') explicitly out of scope per agreement OOS3 and DONT5. Not pursued. |
+| OOS4 | out_of_scope | **OOS4 — Adopting the new rules in any downstream user's rules.yaml.** The | not_applicable | No downstream user rules.yaml modified. Operator's own rules.yaml was manually updated as pre-execution work (P38/P39 added); that adoption is captured as evidence in the proposal, not redone by the change. |
+
