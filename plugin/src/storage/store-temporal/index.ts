@@ -39,6 +39,7 @@ import {
   type WorkflowHandleLike,
   type StoreDeps,
   mapTemporalChangeStateToChange,
+  projectTemporalStateOntoLatest,
   getGuardedChangeHandle,
   classifyTemporalReadFailure,
   createTemporalReadDeadline,
@@ -233,25 +234,15 @@ export function createTemporalStoreBackend(
       return { kind: "skipped", reason: "archived" };
     }
     try {
-      const overlay = changeOverlayCache.get(changeId);
-      const mapped: Change = {
-        ...mapTemporalChangeStateToChange(state),
-        ...(overlay ?? {}),
-        tasks: state.tasks,
-        wisdom: state.wisdom,
-        gates: state.gates,
-        reentry_history: state.reentry_history,
-        fast_follow_of: state.fast_follow_of,
-      };
       const commit = await commitChangeProjection({
         changesDir: legacy.paths.changes,
         changeId,
         authority: { kind: "temporal", mutationReceiptId: state.changeId },
         mutationKind: "temporal_dual_write_projection",
-        mutateLatest: () => mapped,
+        mutateLatest: (latest) => projectTemporalStateOntoLatest(latest, state),
         verify: ({ readback }) =>
-          readback.status === mapped.status &&
-          readback.lifecycleState === mapped.lifecycleState,
+          readback.status === state.status &&
+          readback.lifecycleState === state.lifecycleState,
       });
       if (commit.kind !== "committed") {
         return {

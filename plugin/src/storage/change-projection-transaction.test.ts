@@ -13,7 +13,9 @@ import { join } from "path";
 import { mkdir, writeFile, readFile } from "fs/promises";
 import { loadChange, saveChange } from "./json";
 import { commitChangeProjection } from "./change-projection-transaction";
+import { projectTemporalStateOntoLatest } from "./store-temporal/shared";
 import { ChangeSchema } from "../types";
+import { changeToWorkflowState } from "../temporal/change-state";
 import {
   createTempDir,
   cleanupTempDir,
@@ -382,6 +384,66 @@ describe("commitChangeProjection", () => {
       expect(stale[0].expected).toBe(0);
       expect(stale[0].actual).toBe(1);
     });
+  });
+
+  it("preserves a disjoint recovery repair when a Temporal dual-write commits second", async () => {
+    const changeId = "temporal-recovery-race";
+    const base = makeChange(changeId);
+    await seedChange(changesDir, base);
+    const temporalState = changeToWorkflowState({
+      projectId: "project-1",
+      change: { ...base, title: "Temporal authoritative title" },
+    });
+
+    const [recovery, temporal] = await Promise.all([
+      commitChangeProjection({
+        changesDir,
+        changeId,
+        authority: RECOVERY_AUTHORITY,
+        mutationKind: "recovery:verification-evidence",
+        mutateLatest: (latest) => ({
+          ...latest,
+          verification_evidence_dispositions: [
+            {
+              taskId: "tk-recovery",
+              concernKey: "readback",
+              disposition: "fixed",
+              evidence: "completed workflow recovery",
+              dispositionedAt: "2026-07-25T00:00:00.000Z",
+            },
+          ],
+        }),
+        verify: ({ readback }) =>
+          readback.verification_evidence_dispositions?.[0]?.taskId ===
+          "tk-recovery",
+      }),
+      commitChangeProjection({
+        changesDir,
+        changeId,
+        authority: { kind: "temporal", mutationReceiptId: changeId },
+        mutationKind: "temporal_dual_write_projection",
+        mutateLatest: (latest) =>
+          projectTemporalStateOntoLatest(latest, temporalState),
+        verify: ({ readback }) =>
+          readback.title === "Temporal authoritative title",
+      }),
+    ]);
+
+    expect(recovery.kind).toBe("committed");
+    expect(temporal.kind).toBe("committed");
+
+    const final = await loadChange(changesDir, changeId);
+    expect(final.success).toBe(true);
+    if (!final.success || !final.data) return;
+    expect(final.data.title).toBe("Temporal authoritative title");
+    expect(final.data.verification_evidence_dispositions?.[0]?.taskId).toBe(
+      "tk-recovery",
+    );
+    expect(final.data.projection_revision).toBe(2);
+    expect(final.data.projection_commits).toHaveLength(2);
+    expect(
+      final.data.projection_commits?.map((entry) => entry.authority_kind),
+    ).toEqual(expect.arrayContaining(["recovery", "temporal"]));
   });
 
   it("records bounded audit metadata per commit", async () => {
