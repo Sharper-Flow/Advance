@@ -43,14 +43,8 @@ export interface RecoveryEvidence {
  */
 export interface WorkflowHandleLike {
   describe?: () => Promise<unknown>;
-  query<Ret, Args extends unknown[]>(
-    queryName: string,
-    ...args: Args
-  ): Promise<Ret>;
-  signal<Args extends unknown[]>(
-    signalName: string,
-    ...args: Args
-  ): Promise<void>;
+  query(definition: unknown, ...args: unknown[]): Promise<unknown>;
+  signal(definition: unknown, ...args: unknown[]): Promise<void>;
 }
 
 export type ChangeAuthority =

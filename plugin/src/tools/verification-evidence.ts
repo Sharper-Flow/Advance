@@ -1,20 +1,25 @@
 import { z } from "zod";
-import { randomUUID } from "node:crypto";
 import type { Store } from "../storage/store-types";
 import { getService } from "../temporal/service";
-import { verificationEvidenceDispositionedSignal } from "../temporal/messages";
-import { VerificationEvidenceDispositionSchema, type Change } from "../types";
+import {
+  changeStateQuery,
+  verificationEvidenceDispositionedSignal,
+} from "../temporal/messages";
+import {
+  VerificationEvidenceDispositionSchema,
+  type Change,
+  type VerificationEvidenceDisposition,
+} from "../types";
 import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
+import { getChangeHandle } from "./_adapters";
+import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
-  fireSignalAndRefresh,
-  getChangeHandle,
-  MutationApplicationUnconfirmedError,
-} from "./_adapters";
-import { saveRecoveredVerificationEvidenceDisposition } from "./_recovery-writers";
+  coordinateChangeMutation,
+  resolveChangeAuthority,
+} from "./change-mutation-coordinator";
 import { logRecoveryProbeDiagnostics } from "./recovery-probe";
-import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -81,6 +86,35 @@ async function loadChange(store: Store, changeId: string): Promise<Change> {
   return result.data;
 }
 
+function upsertVerificationEvidenceDisposition(
+  existing: VerificationEvidenceDisposition[] | undefined,
+  disposition: VerificationEvidenceDisposition,
+): VerificationEvidenceDisposition[] {
+  const next = (existing ?? []).filter(
+    (d) =>
+      !(
+        d.taskId === disposition.taskId &&
+        d.concernKey === disposition.concernKey
+      ),
+  );
+  next.push(disposition);
+  return next;
+}
+
+function dispositionPostcondition(
+  list: VerificationEvidenceDisposition[] | undefined,
+  expected: VerificationEvidenceDisposition,
+): boolean {
+  const found = (list ?? []).find(
+    (d) => d.taskId === expected.taskId && d.concernKey === expected.concernKey,
+  );
+  if (!found) return false;
+  return (
+    found.disposition === expected.disposition &&
+    found.evidence === expected.evidence
+  );
+}
+
 async function executeDisposition(
   args: DispositionArgs,
   store: Store,
@@ -129,110 +163,105 @@ async function executeDisposition(
   }
 
   const handle = await getChangeHandleForChangeId(store, args.changeId);
-
-  // D4 internal classification (rq-internalMonotonicRecovery01): probe
-  // describe() to auto-detect poisoned/completed workflows without operator
-  // evidence-copy ceremony (AC5/SC3).
-  {
-    const internalDecision = await classifyMutationRecoveryDecision({ handle });
-    if (internalDecision.kind === "recover_via_disk") {
-      await logRecoveryProbeDiagnostics(handle, args.changeId);
-      await saveRecoveredVerificationEvidenceDisposition({
-        store,
-        change,
-        authorization: {
-          reason: internalDecision.reason,
-          evidence: internalDecision.evidence,
-        },
-        disposition,
-      });
-      return formatToolOutput({
-        success: true,
-        changeId: args.changeId,
-        disposition,
-        _recoveryMutation: true,
-        recovered: true,
-        recoveryMode: "poisoned_history",
-        reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-        note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
-        ...proj,
-      });
-    }
-    if (internalDecision.kind === "operator_required") {
-      return formatToolOutput({
-        error: `Cannot safely record verification evidence disposition: ${internalDecision.detail}`,
-        code: "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
-        cause: internalDecision.cause,
-        changeId: args.changeId,
-      });
-    }
-  }
-
-  const mutationReceiptId = `mrec_${randomUUID()}`;
-  try {
-    await fireSignalAndRefresh(
-      handle,
-      store,
-      args.changeId,
-      verificationEvidenceDispositionedSignal,
-      { ...disposition, mutationReceiptId },
-    );
-  } catch (signalError) {
-    if (signalError instanceof MutationApplicationUnconfirmedError) {
-      return formatToolOutput({
-        error: signalError.message,
-        code: signalError.code,
-        changeId: args.changeId,
-        mutationReceiptId,
-      });
-    }
-    // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
-    // signal-error recovery is classified internally from the signal error +
-    // describe() evidence via the unified classifier — no operator-supplied
-    // recovery args.
-    const decision = await classifyMutationRecoveryDecision({
-      signalError,
-      handle,
-    });
-    if (decision.kind === "recover_via_disk") {
-      await saveRecoveredVerificationEvidenceDisposition({
-        store,
-        change,
-        authorization: {
-          reason: decision.reason,
-          evidence: decision.evidence,
-        },
-        disposition,
-      });
-      return formatToolOutput({
-        success: true,
-        changeId: args.changeId,
-        disposition,
-        _recoveryMutation: true,
-        recovered: true,
-        recoveryMode: "poisoned_history",
-        reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-        note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
-        ...proj,
-      });
-    }
-    if (decision.kind === "operator_required") {
-      return formatToolOutput({
-        error: `Cannot safely record verification evidence disposition: ${decision.detail}`,
-        code: "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
-        cause: decision.cause,
-        changeId: args.changeId,
-      });
-    }
-    throw signalError;
-  }
-
-  return formatToolOutput({
-    success: true,
+  const authority = await resolveChangeAuthority({
     changeId: args.changeId,
-    disposition,
-    ...proj,
+    handle,
   });
+  if (authority.kind === "operator_required") {
+    return formatToolOutput({
+      error: `Cannot safely record verification evidence disposition: ${authority.reason}`,
+      code: "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
+      changeId: args.changeId,
+      ...proj,
+    });
+  }
+  if (authority.kind !== "temporal_live") {
+    await logRecoveryProbeDiagnostics(handle, args.changeId);
+  }
+
+  const outcome = await coordinateChangeMutation<ChangeWorkflowState>({
+    authority,
+    changesDir: store.paths.changes,
+    intent: {
+      changeId: args.changeId,
+      mutationKind: "verification_evidence_disposition",
+      sendSignal: async (h, mutationReceiptId) => {
+        await h.signal(verificationEvidenceDispositionedSignal, {
+          ...disposition,
+          mutationReceiptId,
+        });
+      },
+      refresh: async (h) =>
+        h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
+      verifyTemporal: (state) =>
+        dispositionPostcondition(
+          state.verification_evidence_dispositions,
+          disposition,
+        ),
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        verification_evidence_dispositions:
+          upsertVerificationEvidenceDisposition(
+            latest.verification_evidence_dispositions,
+            disposition,
+          ),
+      }),
+      verifyProjection: (readback) =>
+        dispositionPostcondition(
+          readback.verification_evidence_dispositions,
+          disposition,
+        ),
+    },
+  });
+
+  switch (outcome.kind) {
+    case "applied_temporal":
+    case "recovered_verified": {
+      const recovered = outcome.kind === "recovered_verified";
+      return formatToolOutput({
+        success: true,
+        changeId: args.changeId,
+        disposition,
+        ...(recovered
+          ? {
+              _recoveryMutation: true,
+              recovered: true,
+              recoveryMode: "poisoned_history",
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              note: `Disk-direct recovery after signal error (coordinator, authority=${authority.kind})`,
+            }
+          : {}),
+        ...proj,
+      });
+    }
+    case "recovered_unverified":
+      return formatToolOutput({
+        error: `Verification-evidence disposition recovery wrote the disk projection but the postcondition could not be verified: ${outcome.reason}`,
+        code: "VERIFICATION_EVIDENCE_DISPOSITION_RECOVERY_UNVERIFIED",
+        changeId: args.changeId,
+        ...proj,
+      });
+    case "stale_revision":
+      return formatToolOutput({
+        error: `Verification-evidence disposition recovery encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
+        code: "VERIFICATION_EVIDENCE_DISPOSITION_STALE_REVISION",
+        changeId: args.changeId,
+        ...proj,
+      });
+    case "operator_required":
+      return formatToolOutput({
+        error: `Cannot safely record verification evidence disposition: ${outcome.reason}`,
+        code: "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
+        changeId: args.changeId,
+        ...proj,
+      });
+    default: {
+      const _exhaustive: never = outcome;
+      throw new Error(
+        `Unexpected verification evidence disposition mutation outcome: ${String(_exhaustive)}`,
+      );
+    }
+  }
 }
 
 export const verificationEvidenceTools = {

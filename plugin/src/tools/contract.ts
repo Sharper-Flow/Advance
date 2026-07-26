@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { randomUUID } from "node:crypto";
 import type { Store } from "../storage/store";
 import { readArtifact } from "./change/artifacts";
 import { saveChange } from "../storage/json";
@@ -13,10 +12,16 @@ import {
   type ContractReviewMatrix,
 } from "../types";
 import {
+  changeStateQuery,
   contractReviewMatrixSetSignal,
   contractSetSignal,
 } from "../temporal/messages";
+import type { ChangeWorkflowState } from "../temporal/contracts";
 import { acceptanceCriteriaFromContract } from "../temporal/change-state";
+import {
+  coordinateChangeMutation,
+  resolveChangeAuthority,
+} from "./change-mutation-coordinator";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
@@ -26,11 +31,7 @@ import {
   RECOVERY_RECONCILIATION_WARNING,
   isFailingContractReviewStatus,
 } from "../temporal/recovery-classification";
-import {
-  fireSignalAndRefresh,
-  getChangeHandle,
-  MutationApplicationUnconfirmedError,
-} from "./_adapters";
+import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { logRecoveryProbeDiagnostics } from "./recovery-probe";
 import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import {
@@ -190,38 +191,6 @@ async function saveRecoveredContract(input: {
   }
 }
 
-async function saveRecoveredReviewMatrix(input: {
-  store: Store;
-  change: Change;
-  reviewMatrix: ContractReviewMatrix;
-  authorization: { reason: string; evidence: string };
-  diskDirect?: boolean;
-}): Promise<void> {
-  if (
-    !input.authorization.reason.trim() ||
-    !input.authorization.evidence.trim()
-  ) {
-    throw new Error(
-      "contract review matrix recovery requires reason and evidence",
-    );
-  }
-  if (!input.change.contract) {
-    throw new Error(
-      "Cannot recover contract review matrix: no contract is set",
-    );
-  }
-  const updated = {
-    ...input.change,
-    contract: { ...input.change.contract, reviewMatrix: input.reviewMatrix },
-  } as Change;
-  if (input.diskDirect) {
-    await saveChange(input.store.paths.changes, updated);
-  } else {
-    await input.store.changes.save(updated);
-    await bestEffortRefresh(input.store, input.change.id);
-  }
-}
-
 const reviewMatrixRowSchema = z.object({
   contractId: z.string(),
   kind: ContractItemKindSchema,
@@ -260,6 +229,29 @@ function hasSuppliedReviewMatrix(
     Boolean(reviewMatrix?.reviewedAt?.trim()) &&
     Boolean(reviewMatrix?.rows?.length)
   );
+}
+
+function reviewMatrixPostcondition(
+  actual: ContractReviewMatrix | undefined,
+  expected: ContractReviewMatrix,
+): boolean {
+  if (!actual) return false;
+  if (actual.reviewedAt !== expected.reviewedAt) return false;
+  if (actual.rows.length !== expected.rows.length) return false;
+  const expectedById = new Map(
+    expected.rows.map((row) => [row.contractId, row]),
+  );
+  return actual.rows.every((row) => {
+    const exp = expectedById.get(row.contractId);
+    if (!exp) return false;
+    return (
+      row.kind === exp.kind &&
+      row.status === exp.status &&
+      row.evidencePolicy === exp.evidencePolicy &&
+      row.evidence === exp.evidence &&
+      row.notes === exp.notes
+    );
+  });
 }
 
 export const contractTools = {
@@ -507,7 +499,10 @@ export const contractTools = {
             hasReviewMatrix
               ? args.reviewMatrix
               : {
-                  reviewedAt: args.reviewedAt ?? new Date().toISOString(),
+                  reviewedAt:
+                    args.reviewedAt ??
+                    args.reviewMatrix?.reviewedAt ??
+                    new Date().toISOString(),
                   rows: args.rows,
                 },
           );
@@ -529,122 +524,110 @@ export const contractTools = {
             });
           }
           const handle = await healthySignalHandle(activeStore, args.changeId);
-          const mutationReceiptId = `mrec_${randomUUID()}`;
-          // D4 internal classification (rq-internalMonotonicRecovery01).
-          {
-            const internalDecision = await classifyMutationRecoveryDecision({
-              handle,
-            });
-            if (internalDecision.kind === "recover_via_disk") {
-              await logRecoveryProbeDiagnostics(handle, args.changeId);
-              await saveRecoveredReviewMatrix({
-                store: activeStore,
-                change,
-                reviewMatrix,
-                authorization: {
-                  reason: internalDecision.reason,
-                  evidence: internalDecision.evidence,
-                },
-                diskDirect: internalDecision.authority === "workflow_completed",
-              });
-              return formatToolOutput({
-                success: true,
-                changeId: args.changeId,
-                rowCount: reviewMatrix.rows.length,
-                failingRows: reviewMatrix.rows.filter((row) =>
-                  isFailingContractReviewStatus(row.status),
-                ).length,
-                _recoveryMutation: true,
-                recovered: true,
-                recoveryMode: "poisoned_history",
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
-                ...(projectContext ? { _projectContext: projectContext } : {}),
-              });
-            }
-            if (internalDecision.kind === "operator_required") {
-              return formatToolOutput({
-                error: `Cannot safely set review matrix: ${internalDecision.detail}`,
-                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
-                cause: internalDecision.cause,
-                changeId: args.changeId,
-              });
-            }
-          }
-          try {
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              args.changeId,
-              contractReviewMatrixSetSignal,
-              {
-                reviewMatrix,
-                updatedAt: new Date().toISOString(),
-                mutationReceiptId,
-              },
-            );
-          } catch (signalError) {
-            if (signalError instanceof MutationApplicationUnconfirmedError) {
-              return formatToolOutput({
-                error: signalError.message,
-                code: signalError.code,
-                changeId: args.changeId,
-                mutationReceiptId,
-                ...(projectContext ? { _projectContext: projectContext } : {}),
-              });
-            }
-            // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
-            // signal-error recovery is classified internally from the signal
-            // error + describe() evidence via the unified classifier.
-            const decision = await classifyMutationRecoveryDecision({
-              signalError,
-              handle,
-            });
-            if (decision.kind === "recover_via_disk") {
-              await saveRecoveredReviewMatrix({
-                store: activeStore,
-                change,
-                reviewMatrix,
-                authorization: {
-                  reason: decision.reason,
-                  evidence: decision.evidence,
-                },
-                diskDirect: decision.authority === "workflow_completed",
-              });
-              return formatToolOutput({
-                success: true,
-                changeId: args.changeId,
-                rowCount: reviewMatrix.rows.length,
-                failingRows: reviewMatrix.rows.filter((row) =>
-                  isFailingContractReviewStatus(row.status),
-                ).length,
-                _recoveryMutation: true,
-                recovered: true,
-                recoveryMode: "poisoned_history",
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
-                ...(projectContext ? { _projectContext: projectContext } : {}),
-              });
-            }
-            if (decision.kind === "operator_required") {
-              return formatToolOutput({
-                error: `Cannot safely set review matrix: ${decision.detail}`,
-                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
-                cause: decision.cause,
-                changeId: args.changeId,
-              });
-            }
-            throw signalError;
-          }
-          return formatToolOutput({
-            success: true,
+          const authority = await resolveChangeAuthority({
             changeId: args.changeId,
-            rowCount: reviewMatrix.rows.length,
-            failingRows: reviewMatrix.rows.filter((row) =>
-              isFailingContractReviewStatus(row.status),
-            ).length,
-            ...(projectContext ? { _projectContext: projectContext } : {}),
+            handle,
           });
+          if (authority.kind === "operator_required") {
+            return formatToolOutput({
+              error: `Cannot safely set review matrix: ${authority.reason}`,
+              code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
+              changeId: args.changeId,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          if (authority.kind !== "temporal_live") {
+            await logRecoveryProbeDiagnostics(handle, args.changeId);
+          }
+          const updatedAt = new Date().toISOString();
+          const outcome = await coordinateChangeMutation<ChangeWorkflowState>({
+            authority,
+            changesDir: activeStore.paths.changes,
+            intent: {
+              changeId: args.changeId,
+              mutationKind: "contract_review_matrix_set",
+              sendSignal: async (h, mutationReceiptId) => {
+                await h.signal(contractReviewMatrixSetSignal, {
+                  reviewMatrix,
+                  updatedAt,
+                  mutationReceiptId,
+                });
+              },
+              refresh: async (h) =>
+                h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
+              verifyTemporal: (state) =>
+                reviewMatrixPostcondition(
+                  state.contract?.reviewMatrix,
+                  reviewMatrix,
+                ),
+              mutateLatestProjection: (latest) => ({
+                ...latest,
+                contract: latest.contract
+                  ? { ...latest.contract, reviewMatrix }
+                  : undefined,
+              }),
+              verifyProjection: (readback) =>
+                reviewMatrixPostcondition(
+                  readback.contract?.reviewMatrix,
+                  reviewMatrix,
+                ),
+            },
+          });
+
+          const rowCount = reviewMatrix.rows.length;
+          const failingRows = reviewMatrix.rows.filter((row) =>
+            isFailingContractReviewStatus(row.status),
+          ).length;
+
+          switch (outcome.kind) {
+            case "applied_temporal":
+            case "recovered_verified": {
+              const recovered = outcome.kind === "recovered_verified";
+              return formatToolOutput({
+                success: true,
+                changeId: args.changeId,
+                rowCount,
+                failingRows,
+                ...(recovered
+                  ? {
+                      _recoveryMutation: true,
+                      recovered: true,
+                      recoveryMode: "poisoned_history",
+                      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                      note: `Disk-direct recovery after signal error (coordinator, authority=${authority.kind})`,
+                    }
+                  : {}),
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            }
+            case "recovered_unverified":
+              return formatToolOutput({
+                error: `Review matrix recovery wrote the disk projection but the postcondition could not be verified: ${outcome.reason}`,
+                code: "CONTRACT_REVIEW_MATRIX_RECOVERY_UNVERIFIED",
+                changeId: args.changeId,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            case "stale_revision":
+              return formatToolOutput({
+                error: `Review matrix recovery encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
+                code: "CONTRACT_REVIEW_MATRIX_STALE_REVISION",
+                changeId: args.changeId,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            case "operator_required":
+              return formatToolOutput({
+                error: `Cannot safely set review matrix: ${outcome.reason}`,
+                code: "CONTRACT_REVIEW_MATRIX_OPERATOR_REQUIRED",
+                changeId: args.changeId,
+                ...(projectContext ? { _projectContext: projectContext } : {}),
+              });
+            default: {
+              const _exhaustive: never = outcome;
+              throw new Error(
+                `Unexpected review matrix mutation outcome: ${String(_exhaustive)}`,
+              );
+            }
+          }
         } catch (error) {
           return formatToolOutput({
             error: error instanceof Error ? error.message : String(error),

@@ -8,6 +8,8 @@ import {
   contractSetSignal,
   contractReviewMatrixSetSignal,
 } from "../temporal/messages";
+import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
+import { loadChange } from "../storage/json";
 
 const fireSignalAndRefresh = vi.hoisted(() => vi.fn());
 const workflowHandle = vi.hoisted(() => ({
@@ -76,12 +78,44 @@ function createStore(change: Change, changesDir: string): Store {
   } as unknown as Store;
 }
 
+async function seedProjection(
+  changesDir: string,
+  change: Change,
+): Promise<void> {
+  const changeDir = join(changesDir, change.id);
+  await mkdir(changeDir, { recursive: true });
+  await writeFile(
+    join(changeDir, "change.json"),
+    JSON.stringify(change, null, 2),
+    "utf-8",
+  );
+}
+
+function matrixState(
+  reviewMatrix: NonNullable<Change["contract"]>["reviewMatrix"],
+): Record<string, unknown> {
+  return {
+    contract: { reviewMatrix },
+    verification_evidence_dispositions: [],
+  };
+}
+
 describe("contractTools", () => {
   let tempDir: string | undefined;
 
   beforeEach(() => {
     fireSignalAndRefresh.mockReset();
     workflowHandle.describe.mockReset();
+    workflowHandle.signal.mockReset();
+    workflowHandle.query.mockReset();
+    workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve({});
+      },
+    );
   });
 
   afterEach(async () => {
@@ -339,100 +373,37 @@ describe("contractTools", () => {
     expect(fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("adv_contract_review_matrix_set fires contractReviewMatrixSetSignal", async () => {
-    const store = createStore(
-      baseChange({
-        contract: {
-          version: 1,
-          rigor: "standard",
-          source: { artifact: "agreement", approvedAt },
-          items: [
-            {
-              id: "AC1",
-              kind: "acceptance_criterion",
-              text: "Contract minting fires a production signal.",
-              sourceArtifact: "agreement",
-              verificationRequired: true,
-              evidencePolicy: "test",
-              status: "approved",
-            },
-          ],
-          amendments: [],
+  test("adv_contract_review_matrix_set fires contractReviewMatrixSetSignal and commits projection on the healthy path", async () => {
+    tempDir = await createTempDir("adv-contract-matrix-");
+    const change = baseChange({ contract: reviewMatrixContract });
+    await seedProjection(tempDir, change);
+    const store = createStore(change, tempDir);
+    const expectedMatrix = {
+      reviewedAt: "2026-05-21T06:00:00.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "pass",
+          evidencePolicy: "test",
+          evidence: "passing test",
         },
-      }),
-      "/tmp/unused",
+      ],
+    };
+    workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve(matrixState(expectedMatrix));
+      },
     );
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
         {
           changeId: "contractRecovery",
-          rows: [
-            {
-              contractId: "AC1",
-              kind: "acceptance_criterion",
-              status: "pass",
-              evidencePolicy: "test",
-              evidence: "passing test",
-            },
-          ],
-        },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(fireSignalAndRefresh).toHaveBeenCalledWith(
-      expect.anything(),
-      store,
-      "contractRecovery",
-      contractReviewMatrixSetSignal,
-      expect.objectContaining({
-        reviewMatrix: expect.objectContaining({ rows: expect.any(Array) }),
-      }),
-    );
-  });
-
-  test("adv_contract_review_matrix_set accepts a complete reviewMatrix", async () => {
-    const store = createStore(
-      baseChange({
-        contract: {
-          version: 1,
-          rigor: "standard",
-          source: { artifact: "agreement", approvedAt },
-          items: [
-            {
-              id: "AC1",
-              kind: "acceptance_criterion",
-              text: "Contract minting fires a production signal.",
-              sourceArtifact: "agreement",
-              verificationRequired: true,
-              evidencePolicy: "test",
-              status: "approved",
-            },
-          ],
-          amendments: [],
-        },
-      }),
-      "/tmp/unused",
-    );
-
-    const output = parse(
-      await contractTools.adv_contract_review_matrix_set.execute(
-        {
-          changeId: "contractRecovery",
-          reviewMatrix: {
-            reviewedAt: "2026-05-21T06:00:00.000Z",
-            rows: [
-              {
-                contractId: "AC1",
-                kind: "acceptance_criterion",
-                status: "pass",
-                evidencePolicy: "test",
-                evidence: "passing test",
-              },
-            ],
-          },
+          reviewMatrix: expectedMatrix,
         },
         store,
       ),
@@ -440,57 +411,109 @@ describe("contractTools", () => {
 
     expect(output.success).toBe(true);
     expect(output.rowCount).toBe(1);
-    expect(fireSignalAndRefresh).toHaveBeenCalledWith(
-      expect.anything(),
-      store,
-      "contractRecovery",
+    expect(workflowHandle.signal).toHaveBeenCalledWith(
       contractReviewMatrixSetSignal,
       expect.objectContaining({
-        reviewMatrix: expect.objectContaining({
-          reviewedAt: "2026-05-21T06:00:00.000Z",
-        }),
+        reviewMatrix: expect.objectContaining({ rows: expect.any(Array) }),
+        mutationReceiptId: expect.stringMatching(/^mrec_/),
       }),
     );
+    expect(workflowHandle.query).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: CHANGE_WORKFLOW_QUERY_NAMES.getState,
+      }),
+    );
+    const disk = await loadChange(tempDir, "contractRecovery");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.contract?.reviewMatrix).toEqual(expectedMatrix);
+    expect(disk.data?.projection_revision).toBe(1);
   });
 
-  test("adv_contract_review_matrix_set ignores empty default reviewMatrix when rows are supplied", async () => {
-    const store = createStore(
-      baseChange({
-        contract: {
-          version: 1,
-          rigor: "standard",
-          source: { artifact: "agreement", approvedAt },
-          items: [
-            {
-              id: "AC1",
-              kind: "acceptance_criterion",
-              text: "Contract minting fires a production signal.",
-              sourceArtifact: "agreement",
-              verificationRequired: true,
-              evidencePolicy: "test",
-              status: "approved",
-            },
-          ],
-          amendments: [],
+  test("adv_contract_review_matrix_set accepts rows and defaults reviewedAt", async () => {
+    tempDir = await createTempDir("adv-contract-matrix-");
+    const change = baseChange({ contract: reviewMatrixContract });
+    await seedProjection(tempDir, change);
+    const store = createStore(change, tempDir);
+    const expectedMatrix = {
+      reviewedAt: "2026-05-21T06:00:00.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "pass",
+          evidencePolicy: "test",
+          evidence: "passing test",
         },
-      }),
-      "/tmp/unused",
+      ],
+    };
+    workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve(matrixState(expectedMatrix));
+      },
     );
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
         {
           changeId: "contractRecovery",
-          reviewedAt: "2026-05-21T06:00:00.000Z",
-          rows: [
-            {
-              contractId: "AC1",
-              kind: "acceptance_criterion",
-              status: "pass",
-              evidencePolicy: "test",
-              evidence: "passing test",
-            },
-          ],
+          rows: expectedMatrix.rows,
+          reviewMatrix: {
+            reviewedAt: expectedMatrix.reviewedAt,
+            rows: [],
+          },
+        },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(workflowHandle.signal).toHaveBeenCalledWith(
+      contractReviewMatrixSetSignal,
+      expect.objectContaining({
+        reviewMatrix: expect.objectContaining({
+          reviewedAt: expectedMatrix.reviewedAt,
+          rows: [expect.objectContaining({ contractId: "AC1" })],
+        }),
+        mutationReceiptId: expect.stringMatching(/^mrec_/),
+      }),
+    );
+  });
+
+  test("adv_contract_review_matrix_set ignores empty default reviewMatrix when rows are supplied", async () => {
+    tempDir = await createTempDir("adv-contract-matrix-");
+    const change = baseChange({ contract: reviewMatrixContract });
+    await seedProjection(tempDir, change);
+    const store = createStore(change, tempDir);
+    const expectedMatrix = {
+      reviewedAt: "2026-05-21T06:00:00.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "pass",
+          evidencePolicy: "test",
+          evidence: "passing test",
+        },
+      ],
+    };
+    workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve(matrixState(expectedMatrix));
+      },
+    );
+
+    const output = parse(
+      await contractTools.adv_contract_review_matrix_set.execute(
+        {
+          changeId: "contractRecovery",
+          reviewedAt: expectedMatrix.reviewedAt,
+          rows: expectedMatrix.rows,
           reviewMatrix: { reviewedAt: "", rows: [] },
         },
         store,
@@ -498,37 +521,19 @@ describe("contractTools", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(fireSignalAndRefresh.mock.calls[0][4]).toMatchObject({
+    expect(workflowHandle.signal.mock.calls[0][1]).toMatchObject({
       reviewMatrix: expect.objectContaining({
-        reviewedAt: "2026-05-21T06:00:00.000Z",
+        reviewedAt: expectedMatrix.reviewedAt,
         rows: [expect.objectContaining({ contractId: "AC1" })],
       }),
     });
   });
 
   test("adv_contract_review_matrix_set rejects both rows and complete reviewMatrix", async () => {
-    const store = createStore(
-      baseChange({
-        contract: {
-          version: 1,
-          rigor: "standard",
-          source: { artifact: "agreement", approvedAt },
-          items: [
-            {
-              id: "AC1",
-              kind: "acceptance_criterion",
-              text: "Contract minting fires a production signal.",
-              sourceArtifact: "agreement",
-              verificationRequired: true,
-              evidencePolicy: "test",
-              status: "approved",
-            },
-          ],
-          amendments: [],
-        },
-      }),
-      "/tmp/unused",
-    );
+    tempDir = await createTempDir("adv-contract-matrix-");
+    const change = baseChange({ contract: reviewMatrixContract });
+    await seedProjection(tempDir, change);
+    const store = createStore(change, tempDir);
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
@@ -561,32 +566,14 @@ describe("contractTools", () => {
     );
 
     expect(output.error).toContain("either rows or reviewMatrix, not both");
-    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("adv_contract_review_matrix_set rejects empty complete reviewMatrix rows", async () => {
-    const store = createStore(
-      baseChange({
-        contract: {
-          version: 1,
-          rigor: "standard",
-          source: { artifact: "agreement", approvedAt },
-          items: [
-            {
-              id: "AC1",
-              kind: "acceptance_criterion",
-              text: "Contract minting fires a production signal.",
-              sourceArtifact: "agreement",
-              verificationRequired: true,
-              evidencePolicy: "test",
-              status: "approved",
-            },
-          ],
-          amendments: [],
-        },
-      }),
-      "/tmp/unused",
-    );
+    tempDir = await createTempDir("adv-contract-matrix-");
+    const change = baseChange({ contract: reviewMatrixContract });
+    await seedProjection(tempDir, change);
+    const store = createStore(change, tempDir);
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
@@ -604,32 +591,14 @@ describe("contractTools", () => {
     expect(output.error).toContain(
       "requires either rows or reviewMatrix with at least one row",
     );
-    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("adv_contract_review_matrix_set rejects empty evidence in complete reviewMatrix", async () => {
-    const store = createStore(
-      baseChange({
-        contract: {
-          version: 1,
-          rigor: "standard",
-          source: { artifact: "agreement", approvedAt },
-          items: [
-            {
-              id: "AC1",
-              kind: "acceptance_criterion",
-              text: "Contract minting fires a production signal.",
-              sourceArtifact: "agreement",
-              verificationRequired: true,
-              evidencePolicy: "test",
-              status: "approved",
-            },
-          ],
-          amendments: [],
-        },
-      }),
-      "/tmp/unused",
-    );
+    tempDir = await createTempDir("adv-contract-matrix-");
+    const change = baseChange({ contract: reviewMatrixContract });
+    await seedProjection(tempDir, change);
+    const store = createStore(change, tempDir);
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
@@ -653,22 +622,22 @@ describe("contractTools", () => {
     );
 
     expect(output.error).toContain("evidence");
-    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("adv_contract_review_matrix_set rejects unknown contract ids", async () => {
-    const store = createStore(
-      baseChange({
-        contract: {
-          version: 1,
-          rigor: "standard",
-          source: { artifact: "agreement", approvedAt },
-          items: [],
-          amendments: [],
-        },
-      }),
-      "/tmp/unused",
-    );
+    tempDir = await createTempDir("adv-contract-matrix-");
+    const change = baseChange({
+      contract: {
+        version: 1,
+        rigor: "standard",
+        source: { artifact: "agreement", approvedAt },
+        items: [],
+        amendments: [],
+      },
+    });
+    await seedProjection(tempDir, change);
+    const store = createStore(change, tempDir);
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
@@ -689,7 +658,7 @@ describe("contractTools", () => {
     );
 
     expect(output.error).toContain("unknown contract item");
-    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   function poisonedDescription() {
@@ -791,14 +760,14 @@ describe("contractTools", () => {
     expect(fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
-  test("D4: adv_contract_review_matrix_set recovers via disk when describe() confirms poisoned history", async () => {
-    tempDir = await createTempDir("adv-contract-tool-");
+  test("D4: adv_contract_review_matrix_set recovers via commitChangeProjection when describe() confirms poisoned history", async () => {
+    tempDir = await createTempDir("adv-contract-matrix-");
     const change = baseChange({
       contract: reviewMatrixContract,
     } as Partial<Change>);
+    await seedProjection(tempDir, change);
     const store = createStore(change, tempDir);
     workflowHandle.describe.mockResolvedValueOnce(poisonedDescription());
-    fireSignalAndRefresh.mockResolvedValueOnce(undefined);
 
     const output = parse(
       await contractTools.adv_contract_review_matrix_set.execute(
@@ -818,23 +787,28 @@ describe("contractTools", () => {
       ),
     );
 
-    expect(fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(workflowHandle.signal).not.toHaveBeenCalled();
     expect(output.success).toBe(true);
     expect(output._recoveryMutation).toBe(true);
     expect(output.recovered).toBe(true);
     expect(output.recoveryMode).toBe("poisoned_history");
     expect(output.rowCount).toBe(1);
-    expect(store.changes.save).toHaveBeenCalled();
+    const disk = await loadChange(tempDir, "contractRecovery");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.contract?.reviewMatrix?.rows).toHaveLength(1);
+    expect(disk.data?.projection_revision).toBe(1);
+    expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
   });
 
-  test("D4: adv_contract_review_matrix_set recovers via disk-direct when signal error indicates completed workflow", async () => {
-    tempDir = await createTempDir("adv-contract-tool-");
+  test("D4: adv_contract_review_matrix_set recovers via commitChangeProjection when signal error indicates completed workflow", async () => {
+    tempDir = await createTempDir("adv-contract-matrix-");
     const change = baseChange({
       contract: reviewMatrixContract,
     } as Partial<Change>);
+    await seedProjection(tempDir, change);
     const store = createStore(change, tempDir);
     workflowHandle.describe.mockResolvedValueOnce({});
-    fireSignalAndRefresh.mockRejectedValueOnce(
+    workflowHandle.signal.mockRejectedValueOnce(
       new Error("workflow execution already completed"),
     );
 
@@ -856,11 +830,15 @@ describe("contractTools", () => {
       ),
     );
 
-    expect(fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    expect(workflowHandle.signal).toHaveBeenCalledTimes(1);
     expect(output.success).toBe(true);
     expect(output._recoveryMutation).toBe(true);
     expect(output.recovered).toBe(true);
     expect(output.recoveryMode).toBe("poisoned_history");
     expect(output.rowCount).toBe(1);
+    const disk = await loadChange(tempDir, "contractRecovery");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.contract?.reviewMatrix?.rows).toHaveLength(1);
+    expect(disk.data?.projection_revision).toBe(1);
   });
 });

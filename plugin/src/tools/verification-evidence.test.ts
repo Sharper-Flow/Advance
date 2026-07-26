@@ -1,20 +1,19 @@
+import { mkdir, writeFile } from "node:fs/promises";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Change } from "../types";
 import type { Store } from "../storage/store-types";
+import { createTempDir } from "../__tests__/setup";
+import { loadChange } from "../storage/json";
+import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
+import { verificationEvidenceDispositionedSignal } from "../temporal/messages";
 
 const mocks = vi.hoisted(() => {
-  const fireSignalAndRefresh = vi.fn(async () => undefined);
-  const saveRecoveredVerificationEvidenceDisposition = vi.fn(
-    async () => undefined,
-  );
   const describe = vi.fn(async () => ({ searchAttributes: {} }));
   const workflowHandle = { signal: vi.fn(), query: vi.fn(), describe };
   const withTargetPathStore = vi.fn(async (_input: unknown, _fn: unknown) => {
     throw new Error("withTargetPathStore not configured for this test");
   });
   return {
-    fireSignalAndRefresh,
-    saveRecoveredVerificationEvidenceDisposition,
     workflowHandle,
     withTargetPathStore,
   };
@@ -22,7 +21,6 @@ const mocks = vi.hoisted(() => {
 
 vi.mock("./_adapters", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./_adapters")>()),
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   getChangeHandle: () => mocks.workflowHandle,
 }));
 
@@ -32,11 +30,6 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: async () => "project-1",
-}));
-
-vi.mock("./_recovery-writers", () => ({
-  saveRecoveredVerificationEvidenceDisposition:
-    mocks.saveRecoveredVerificationEvidenceDisposition,
 }));
 
 vi.mock("./target-project", async (importOriginal) => {
@@ -76,15 +69,37 @@ function change(overrides: Partial<Change> = {}): Change {
   } as Change;
 }
 
-function storeFor(baseChange: Change): Store {
+async function seedProjection(
+  changesDir: string,
+  baseChange: Change,
+): Promise<void> {
+  const changeDir = `${changesDir}/${baseChange.id}`;
+  await mkdir(changeDir, { recursive: true });
+  await writeFile(
+    `${changeDir}/change.json`,
+    JSON.stringify(baseChange, null, 2),
+    "utf-8",
+  );
+}
+
+function storeFor(
+  baseChange: Change,
+  changesDir = "/tmp/unused-verification",
+): Store {
   return {
-    paths: { root: "/repo", agenda: "/state/agenda.jsonl" } as Store["paths"],
+    paths: { root: "/repo", changes: changesDir } as Store["paths"],
     config: null,
     changes: {
       get: vi.fn(async () => ({ success: true, data: baseChange })),
       refresh: vi.fn(async () => undefined),
     },
   } as unknown as Store;
+}
+
+function dispositionState(disposition: Record<string, unknown>) {
+  return {
+    verification_evidence_dispositions: [disposition],
+  };
 }
 
 const validArgs = {
@@ -105,28 +120,51 @@ const poisonedDescription = () => ({
 });
 
 describe("adv_verification_evidence_disposition", () => {
+  let tempDir: string | undefined;
+
   beforeEach(() => {
-    // mockReset (not mockClear) clears one-time implementations set via
-    // mockRejectedValueOnce/mockResolvedValueOnce from prior tests; under the
-    // probe-first pattern some tests no longer consume their once-queue entries.
-    mocks.fireSignalAndRefresh.mockReset();
-    mocks.fireSignalAndRefresh.mockImplementation(async () => undefined);
-    mocks.saveRecoveredVerificationEvidenceDisposition.mockReset();
-    mocks.saveRecoveredVerificationEvidenceDisposition.mockImplementation(
-      async () => undefined,
+    mocks.workflowHandle.signal.mockReset();
+    mocks.workflowHandle.signal.mockResolvedValue(undefined);
+    mocks.workflowHandle.query.mockReset();
+    mocks.workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve({});
+      },
     );
+    mocks.workflowHandle.describe.mockReset();
+    mocks.workflowHandle.describe.mockResolvedValue({ searchAttributes: {} });
     mocks.withTargetPathStore.mockReset();
     mocks.withTargetPathStore.mockImplementation(
       async (_input: unknown, _fn: unknown) => {
         throw new Error("withTargetPathStore not configured for this test");
       },
     );
-    mocks.workflowHandle.describe.mockReset();
-    mocks.workflowHandle.describe.mockResolvedValue({ searchAttributes: {} });
   });
 
-  test("fires verificationEvidenceDispositionedSignal with the typed disposition", async () => {
-    const store = storeFor(change());
+  test("fires verificationEvidenceDispositionedSignal with the typed disposition and commits projection", async () => {
+    tempDir = await createTempDir("adv-verification-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
+    const expectedDisposition = {
+      taskId: "tk-1",
+      concernKey: "verification",
+      disposition: "rejected_with_evidence",
+      evidence: "adv_run_test evidence captured under run id tr_abc123.",
+      dispositionedAt: expect.any(String),
+    };
+    mocks.workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve(dispositionState(expectedDisposition));
+      },
+    );
+
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         validArgs,
@@ -135,21 +173,30 @@ describe("adv_verification_evidence_disposition", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const signalArgs = mocks.fireSignalAndRefresh.mock.calls[0];
-    // (handle, store, changeId, signal, payload)
-    expect(signalArgs[2]).toBe("change-1");
-    expect(signalArgs[4]).toMatchObject({
+    expect(mocks.workflowHandle.signal).toHaveBeenCalledTimes(1);
+    const signalArgs = mocks.workflowHandle.signal.mock.calls[0];
+    expect(signalArgs[0]).toBe(verificationEvidenceDispositionedSignal);
+    expect(signalArgs[1]).toMatchObject({
       taskId: "tk-1",
       concernKey: "verification",
       disposition: "rejected_with_evidence",
       evidence: "adv_run_test evidence captured under run id tr_abc123.",
+      mutationReceiptId: expect.stringMatching(/^mrec_/),
     });
-    expect(typeof signalArgs[4].dispositionedAt).toBe("string");
+    expect(mocks.workflowHandle.query).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: CHANGE_WORKFLOW_QUERY_NAMES.getState,
+      }),
+    );
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.verification_evidence_dispositions).toHaveLength(1);
+    expect(disk.data?.projection_revision).toBe(1);
   });
 
   test("rejects blank evidence", async () => {
     const store = storeFor(change());
+
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         { ...validArgs, evidence: "   " },
@@ -158,11 +205,12 @@ describe("adv_verification_evidence_disposition", () => {
     );
 
     expect(output.error).toBeTruthy();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("rejects an unknown disposition verb (no accepted_debt)", async () => {
     const store = storeFor(change());
+
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         { ...validArgs, disposition: "accepted_debt" as never },
@@ -171,11 +219,12 @@ describe("adv_verification_evidence_disposition", () => {
     );
 
     expect(output.error).toBeTruthy();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("rejects an unknown taskId", async () => {
     const store = storeFor(change());
+
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         { ...validArgs, taskId: "tk-missing" },
@@ -184,11 +233,12 @@ describe("adv_verification_evidence_disposition", () => {
     );
 
     expect(output.error).toBeTruthy();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("dryRun previews without firing the signal", async () => {
     const store = storeFor(change());
+
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         { ...validArgs, dryRun: true },
@@ -198,14 +248,16 @@ describe("adv_verification_evidence_disposition", () => {
 
     expect(output.success).toBe(true);
     expect(output.dryRun).toBe(true);
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
-  test("recovers via disk projection when signal fails with completed workflow", async () => {
-    const store = storeFor(change());
+  test("recovers via commitChangeProjection when signal fails with completed workflow", async () => {
+    tempDir = await createTempDir("adv-verification-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
     const completedError = new Error("workflow execution already completed");
-    completedError.name = "WorkflowNotFoundError";
-    mocks.fireSignalAndRefresh.mockRejectedValueOnce(completedError);
+    mocks.workflowHandle.signal.mockRejectedValueOnce(completedError);
 
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
@@ -225,32 +277,25 @@ describe("adv_verification_evidence_disposition", () => {
     expect(output.reconciliationWarning).toContain(
       "Poisoned-history recovery wrote the disk projection only",
     );
-    expect(
-      mocks.saveRecoveredVerificationEvidenceDisposition,
-    ).toHaveBeenCalledWith({
-      store,
-      change: expect.objectContaining({ id: "change-1" }),
-      authorization: {
-        reason: "missing_workflow",
-        evidence: expect.stringContaining(
-          "workflow execution already completed",
-        ),
-      },
-      disposition: expect.objectContaining({
-        taskId: "tk-1",
-        concernKey: "verification",
-        disposition: "fixed",
-        evidence: "verification re-run and captured in commit abc123",
-      }),
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.verification_evidence_dispositions?.[0]).toMatchObject({
+      taskId: "tk-1",
+      concernKey: "verification",
+      disposition: "fixed",
+      evidence: "verification re-run and captured in commit abc123",
     });
+    expect(disk.data?.projection_revision).toBe(1);
+    expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
   });
 
   test("recovers via D4 internal classification when describe shows poisoned", async () => {
-    // Probe-first path: no signal is fired; the disk-direct writer saves the
-    // disposition based on machine-confirmed poisoned-history evidence.
+    tempDir = await createTempDir("adv-verification-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
     mocks.workflowHandle.describe.mockResolvedValue(poisonedDescription());
 
-    const store = storeFor(change());
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         {
@@ -262,37 +307,44 @@ describe("adv_verification_evidence_disposition", () => {
       ),
     );
 
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(
-      mocks.saveRecoveredVerificationEvidenceDisposition,
-    ).toHaveBeenCalledTimes(1);
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
     expect(output.success).toBe(true);
     expect(output.recoveryMode).toBe("poisoned_history");
-    expect(
-      mocks.saveRecoveredVerificationEvidenceDisposition,
-    ).toHaveBeenCalledWith({
-      store,
-      change: expect.objectContaining({ id: "change-1" }),
-      authorization: {
-        reason: "poisoned_history",
-        evidence: expect.stringContaining(
-          "WorkflowTaskFailedCauseNonDeterministicError",
-        ),
-      },
-      disposition: expect.objectContaining({
-        taskId: "tk-1",
-        concernKey: "verification",
-        disposition: "fixed",
-        evidence: "verification re-run and captured in commit abc123",
-      }),
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.verification_evidence_dispositions?.[0]).toMatchObject({
+      taskId: "tk-1",
+      concernKey: "verification",
+      disposition: "fixed",
+      evidence: "verification re-run and captured in commit abc123",
     });
+    expect(disk.data?.projection_revision).toBe(1);
   });
 
   test("proceeds with signal when describe is healthy", async () => {
-    const store = storeFor(change());
+    tempDir = await createTempDir("adv-verification-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
     mocks.workflowHandle.describe.mockResolvedValue({
       searchAttributes: { TemporalReportedProblems: [] },
     });
+    mocks.workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve(
+          dispositionState({
+            taskId: "tk-1",
+            concernKey: "verification",
+            disposition: "rejected_with_evidence",
+            evidence: "adv_run_test evidence captured under run id tr_abc123.",
+            dispositionedAt: "2026-05-23T00:00:00.000Z",
+          }),
+        );
+      },
+    );
 
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
@@ -302,15 +354,15 @@ describe("adv_verification_evidence_disposition", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    expect(
-      mocks.saveRecoveredVerificationEvidenceDisposition,
-    ).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).toHaveBeenCalledTimes(1);
   });
 
   test("does not recover generic signal failures", async () => {
-    const store = storeFor(change());
-    mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+    tempDir = await createTempDir("adv-verification-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
+    mocks.workflowHandle.signal.mockRejectedValueOnce(
       new Error("task queue unavailable"),
     );
 
@@ -324,20 +376,19 @@ describe("adv_verification_evidence_disposition", () => {
     expect(output.code).toBe(
       "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
     );
-    expect(output.cause).toBe("query_failed");
-    expect(
-      mocks.saveRecoveredVerificationEvidenceDisposition,
-    ).not.toHaveBeenCalled();
   });
 
-  test("requires operator review when poisoned signal error is not confirmed by describe", async () => {
-    const store = storeFor(change());
-    const poisonedError = new Error("Nondeterminism error detected");
-    mocks.fireSignalAndRefresh.mockRejectedValueOnce(poisonedError);
-    // describe() returns a healthy workflow — two authorities disagree.
+  test("recovers when signal error indicates poisoned history even if describe is clean", async () => {
+    tempDir = await createTempDir("adv-verification-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
     mocks.workflowHandle.describe.mockResolvedValue({
       searchAttributes: { TemporalReportedProblems: [] },
     });
+    mocks.workflowHandle.signal.mockRejectedValueOnce(
+      new Error("Nondeterminism error detected"),
+    );
 
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
@@ -346,32 +397,26 @@ describe("adv_verification_evidence_disposition", () => {
       ),
     );
 
-    expect(output.error).toContain("operator review");
-    expect(output.code).toBe(
-      "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
-    );
-    expect(output.cause).toBe("reachable_authority_disagrees");
-    expect(
-      mocks.saveRecoveredVerificationEvidenceDisposition,
-    ).not.toHaveBeenCalled();
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.data?.verification_evidence_dispositions).toHaveLength(1);
   });
 
   test("AC3: target_path routes D4 recovery write to the target disk projection", async () => {
-    mocks.workflowHandle.describe.mockResolvedValue(poisonedDescription());
-
-    const drivingStore = storeFor(change());
+    tempDir = await createTempDir("adv-verification-");
+    const drivingStore = storeFor(change(), tempDir);
+    const targetDir = await createTempDir("adv-verification-target-");
     const targetChange = change();
-    const targetStore = storeFor(targetChange);
-    targetStore.paths = {
-      ...targetStore.paths,
-      root: "/target-project",
-      changes: "/target-project/.adv/changes",
-    } as Store["paths"];
+    await seedProjection(targetDir, targetChange);
+    const targetStore = storeFor(targetChange, targetDir);
 
+    mocks.workflowHandle.describe.mockResolvedValue(poisonedDescription());
     mocks.withTargetPathStore.mockImplementationOnce(async (_input, fn) =>
       fn({
         context: {
-          root: "/target-project",
+          root: targetDir,
           projectId: "target-project-id",
           trusted: true,
           trustSource: "explicit",
@@ -381,19 +426,11 @@ describe("adv_verification_evidence_disposition", () => {
       }),
     );
 
-    let capturedStore: Store | undefined;
-    mocks.saveRecoveredVerificationEvidenceDisposition.mockImplementationOnce(
-      async (input: { store: Store }) => {
-        capturedStore = input.store;
-        return undefined;
-      },
-    );
-
     const output = parse(
       await verificationEvidenceTools.adv_verification_evidence_disposition.execute(
         {
           ...validArgs,
-          target_path: "/target-project",
+          target_path: targetDir,
           target_confirmed: true,
           confirmationEvidence:
             "User approved target mutation via question tool",
@@ -405,16 +442,16 @@ describe("adv_verification_evidence_disposition", () => {
     expect(output.success).toBe(true);
     expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
       expect.objectContaining({
-        target_path: "/target-project",
+        target_path: targetDir,
         target_confirmed: true,
         confirmationEvidence: "User approved target mutation via question tool",
         stateRequirement: "temporal-required",
       }),
       expect.any(Function),
     );
-    expect(capturedStore).toBe(targetStore);
-    expect(capturedStore).not.toBe(drivingStore);
-    expect(capturedStore?.paths.root).toBe("/target-project");
-    expect(capturedStore?.paths.changes).toBe("/target-project/.adv/changes");
+    const disk = await loadChange(targetDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.verification_evidence_dispositions).toHaveLength(1);
+    expect(disk.data?.projection_revision).toBe(1);
   });
 });
