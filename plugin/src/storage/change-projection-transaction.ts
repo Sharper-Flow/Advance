@@ -1,6 +1,11 @@
 /**
  * Storage-Owned Conditional Change-Projection Transaction
  *
+ * Implements rq-recoveryProjectionTransaction01 (and sub-requirements
+ * rq-recoveryProjectionTransaction01.1, .2, .3): concurrent disjoint mutations
+ * survive, conflicting mutations fail with typed evidence, and success is
+ * proven only after a durable readback.
+ *
  * Central primitive for every active change-projection write. The primitive
  * — not its caller — owns the lock, latest read, expected-revision compare,
  * mutation, revision increment, atomic write, in-lock readback, and
@@ -43,6 +48,8 @@ export type ProjectionCommitOutcome =
       revision: number;
       readback: Change;
       audit: ProjectionCommitAuditEntry;
+      /** True when the transaction returned a prior accepted result without mutation. */
+      idempotent?: boolean;
     }
   | {
       kind: "committed_unverified";
@@ -53,6 +60,18 @@ export type ProjectionCommitOutcome =
       postconditionError: string;
     }
   | { kind: "stale_revision"; expected: number; actual: number }
+  | { kind: "state_regression"; expected: number; actual: number }
+  | {
+      kind: "state_revision_conflict";
+      stateRevision: number;
+      reason: string;
+    }
+  | {
+      kind: "operation_conflict";
+      operationId: string;
+      expectedPayloadHash: string;
+      actualPayloadHash: string;
+    }
   | { kind: "lock_timeout"; lockPath: string; timeoutMs: number }
   | { kind: "schema_error"; error: string }
   | { kind: "write_error"; error: string }
@@ -69,6 +88,23 @@ export interface CommitChangeProjectionOptions {
    * the caller's field-local mutation to that latest state.
    */
   expectedRevision?: number;
+  /**
+   * Stable caller-generated operation identity. Reused across retries and
+   * recovery attempts so the transaction can return a prior success without
+   * reapplying the mutation.
+   */
+  operationId?: string;
+  /**
+   * Canonical hash of the command payload. Combined with `operationId` for
+   * idempotent replay detection and typed payload conflicts.
+   */
+  payloadHash?: string;
+  /**
+   * Monotonic workflow state revision being projected. A lower value than the
+   * stored projection's state revision is rejected as a regression; an equal
+   * value with a different operation/content is a conflict.
+   */
+  stateRevision?: number;
   authority: ProjectionCommitAuthority;
   mutationKind: string;
   /**
@@ -109,6 +145,9 @@ export async function commitChangeProjection(
     changesDir,
     changeId,
     expectedRevision,
+    operationId,
+    payloadHash,
+    stateRevision,
     authority,
     mutationKind,
     mutateLatest,
@@ -173,7 +212,35 @@ export async function commitChangeProjection(
     // 2. Normalize missing legacy projection_revision to 0.
     const priorRevision = latest.projection_revision ?? 0;
 
-    // 3. Compare expected revision when supplied.
+    // 3. Resolve operation identity: idempotent replay or typed conflict.
+    //    Legacy callers omit operationId; they skip this fence and keep prior behavior.
+    if (operationId) {
+      const existingAudit = latest.projection_commits?.find(
+        (entry) => entry.operation_id === operationId,
+      );
+      if (existingAudit) {
+        const payloadMatches = payloadHash === existingAudit.payload_hash;
+        const stateMatches = stateRevision === existingAudit.state_revision;
+        if (payloadMatches && stateMatches) {
+          return {
+            kind: "committed",
+            value: latest,
+            revision: existingAudit.new_revision,
+            readback: latest,
+            audit: existingAudit,
+            idempotent: true,
+          };
+        }
+        return {
+          kind: "operation_conflict",
+          operationId,
+          expectedPayloadHash: existingAudit.payload_hash ?? "",
+          actualPayloadHash: payloadHash ?? "",
+        };
+      }
+    }
+
+    // 4. Compare expected revision when supplied.
     if (expectedRevision !== undefined && priorRevision !== expectedRevision) {
       return {
         kind: "stale_revision",
@@ -182,7 +249,36 @@ export async function commitChangeProjection(
       };
     }
 
-    // 4. Apply caller mutation to the just-read latest projection.
+    // 5. Enforce monotonic state revision and equal-state conflict fence.
+    const storedStateRevision = latest.state_revision ?? 0;
+    if (stateRevision !== undefined) {
+      if (stateRevision < storedStateRevision) {
+        return {
+          kind: "state_regression",
+          expected: storedStateRevision,
+          actual: stateRevision,
+        };
+      }
+      if (stateRevision === storedStateRevision && operationId) {
+        const conflictingAudit = latest.projection_commits?.find(
+          (entry) => entry.state_revision === stateRevision,
+        );
+        if (
+          conflictingAudit &&
+          (conflictingAudit.operation_id !== operationId ||
+            (payloadHash !== undefined &&
+              conflictingAudit.payload_hash !== payloadHash))
+        ) {
+          return {
+            kind: "state_revision_conflict",
+            stateRevision,
+            reason: `State revision ${stateRevision} was already projected by operation ${conflictingAudit.operation_id ?? "<unknown>"} with payload hash ${conflictingAudit.payload_hash ?? "<unknown>"}.`,
+          };
+        }
+      }
+    }
+
+    // 6. Apply caller mutation to the just-read latest projection.
     const newRevision = priorRevision + 1;
     let candidate: Change;
     try {
@@ -194,7 +290,7 @@ export async function commitChangeProjection(
       };
     }
 
-    // 5. Increment revision exactly once and append bounded audit metadata.
+    // 7. Increment revision exactly once and append bounded audit metadata.
     const committedAt = new Date().toISOString();
     const audit: ProjectionCommitAuditEntry = {
       mutation_kind: mutationKind,
@@ -205,6 +301,9 @@ export async function commitChangeProjection(
             recovery_reason: authority.reason,
             recovery_evidence: authority.evidence,
           }),
+      operation_id: operationId,
+      payload_hash: payloadHash,
+      state_revision: stateRevision,
       prior_revision: priorRevision,
       new_revision: newRevision,
       committed_at: committedAt,
@@ -220,9 +319,10 @@ export async function commitChangeProjection(
       ...candidate,
       projection_revision: newRevision,
       projection_commits,
+      state_revision: stateRevision ?? latest.state_revision,
     };
 
-    // 6. Atomically persist while holding the lock.
+    // 8. Atomically persist while holding the lock.
     if (isSyntheticValidationDraftPattern(value.id)) {
       return {
         kind: "operator_required",
@@ -239,7 +339,7 @@ export async function commitChangeProjection(
       };
     }
 
-    // 7. Re-read while still holding the lock.
+    // 9. Re-read while still holding the lock.
     const readbackResult = await loadChange(changesDir, changeId);
     if (!readbackResult.success) {
       if (readbackResult.type === "schema_error") {
@@ -259,7 +359,7 @@ export async function commitChangeProjection(
       };
     }
 
-    // 8. Verify revision increment as a generic readback proof.
+    // 10. Verify revision increment and stored operation identity/state revision as a generic readback proof.
     if ((readback.projection_revision ?? 0) !== newRevision) {
       return {
         kind: "committed_unverified",
@@ -271,7 +371,42 @@ export async function commitChangeProjection(
       };
     }
 
-    // 9. Verify mutation-specific postcondition.
+    if (
+      operationId &&
+      (readback.projection_commits?.[readback.projection_commits.length - 1]
+        ?.operation_id !== operationId ||
+        (payloadHash !== undefined &&
+          readback.projection_commits?.[readback.projection_commits.length - 1]
+            ?.payload_hash !== payloadHash) ||
+        (stateRevision !== undefined &&
+          readback.projection_commits?.[readback.projection_commits.length - 1]
+            ?.state_revision !== stateRevision))
+    ) {
+      return {
+        kind: "committed_unverified",
+        value,
+        revision: newRevision,
+        readback,
+        audit,
+        postconditionError: `Readback audit entry does not prove committed operation identity (operationId=${operationId}, payloadHash=${payloadHash}, stateRevision=${stateRevision}).`,
+      };
+    }
+
+    if (
+      stateRevision !== undefined &&
+      (readback.state_revision ?? 0) !== stateRevision
+    ) {
+      return {
+        kind: "committed_unverified",
+        value,
+        revision: newRevision,
+        readback,
+        audit,
+        postconditionError: `Readback state_revision ${readback.state_revision ?? 0} does not match committed state_revision ${stateRevision}.`,
+      };
+    }
+
+    // 11. Verify mutation-specific postcondition.
     const verifyResult = verify({
       latest,
       readback,
@@ -304,7 +439,14 @@ export async function commitChangeProjection(
       };
     }
 
-    return { kind: "committed", value, revision: newRevision, readback, audit };
+    return {
+      kind: "committed",
+      value,
+      revision: newRevision,
+      readback,
+      audit,
+      idempotent: false,
+    };
   } finally {
     if (releaseLock) {
       await releaseLock();

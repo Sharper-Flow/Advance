@@ -700,6 +700,8 @@ export function buildChangeWorkflowContinueAsNewSeed(
       worker_bundle_impact: state.worker_bundle_impact,
       workerBundleProvenance: state.workerBundleProvenance,
       testRuns: state.testRuns,
+      state_revision: state.state_revision,
+      operation_ledger: state.operation_ledger,
     },
   };
 }

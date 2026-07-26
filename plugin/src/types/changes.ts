@@ -947,6 +947,12 @@ export const ProjectionCommitAuditEntrySchema = z.object({
   mutation_receipt_id: z.string().optional(),
   recovery_reason: z.string().optional(),
   recovery_evidence: z.string().optional(),
+  /** Stable operation identity supplied by the caller at the command boundary. */
+  operation_id: z.string().min(1).optional(),
+  /** Canonical hash of the command payload for idempotency/conflict detection. */
+  payload_hash: z.string().min(1).optional(),
+  /** Workflow state revision that was projected by this commit. */
+  state_revision: z.number().int().nonnegative().optional(),
   prior_revision: z.number().int().nonnegative(),
   new_revision: z.number().int().nonnegative(),
   committed_at: z.string(),
@@ -1224,6 +1230,12 @@ export const ChangeSchema = z
      * entries at write time so the projection does not grow unbounded.
      */
     projection_commits: z.array(ProjectionCommitAuditEntrySchema).optional(),
+
+    /**
+     * Monotonic workflow state revision mirrored into the disk projection.
+     * Legacy/absent = 0. Used to fence out-of-order projection commits.
+     */
+    state_revision: z.number().int().nonnegative().optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

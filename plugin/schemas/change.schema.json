@@ -3441,6 +3441,14 @@
             "minimum": 0,
             "type": "integer"
           },
+          "operation_id": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "payload_hash": {
+            "minLength": 1,
+            "type": "string"
+          },
           "prior_revision": {
             "maximum": 9007199254740991,
             "minimum": 0,
@@ -3451,6 +3459,11 @@
           },
           "recovery_reason": {
             "type": "string"
+          },
+          "state_revision": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
           }
         },
         "required": [
@@ -3691,6 +3704,11 @@
     },
     "signal_rejections_total": {
       "type": "number"
+    },
+    "state_revision": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
     },
     "status": {
       "enum": [
