@@ -3993,6 +3993,7 @@ export const changeTools = {
         if (!dryRun) {
           if (
             !worktreePath &&
+            !(change.status === "archived" && existingBundlePath !== null) &&
             Object.values(change.deltas).some((deltas) => deltas.length > 0)
           ) {
             return formatToolOutput({

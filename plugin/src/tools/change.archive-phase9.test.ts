@@ -99,6 +99,14 @@ const mocks = vi.hoisted(() => {
     ),
     validateChange: vi.fn(() => Promise.resolve({ errors: [], warnings: [] })),
     getArchiveContractProofErrors: vi.fn(() => []),
+    readProjectionManifest: vi.fn(() => Promise.resolve(null)),
+    verifyProjectionAtGitCommit: vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+        code: "MANIFEST_UNREADABLE",
+        message: "unconfigured projection proof",
+      }),
+    ),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
     fireSignalAndRefresh: vi.fn(async () => {}),
@@ -138,6 +146,8 @@ vi.mock("../archive", async () => {
     archiveChange: mocks.archiveChange,
     findArchiveBundle: mocks.findArchiveBundle,
     getArchiveContractProofErrors: mocks.getArchiveContractProofErrors,
+    readProjectionManifest: mocks.readProjectionManifest,
+    verifyProjectionAtGitCommit: mocks.verifyProjectionAtGitCommit,
     reconcileInRepoArchive: vi.fn(),
   };
 });
@@ -200,6 +210,7 @@ function createMockStore(
     ops_followup_links?: OpsFollowupLink[];
     children?: Record<string, Change>;
     epicMembership?: NonNullable<Change["epic_membership"]>;
+    deltas?: Change["deltas"];
   } = {},
 ): Store {
   const gates: Gates = {
@@ -225,7 +236,7 @@ function createMockStore(
         created_at: "2026-01-01T00:00:00Z",
       },
     ],
-    deltas: {},
+    deltas: options.deltas ?? {},
     wisdom: [],
     gates,
     phase9_status: options.phase9_status,
@@ -1968,6 +1979,44 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.resolveReleaseReachability).toHaveBeenCalled();
     // Status should remain archived (no redundant save)
     expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
+  test("AC1: direct archived retry proves matching projection at the verified default-branch SHA", async () => {
+    mocks.findArchiveBundle.mockResolvedValueOnce("/tmp/archive/example");
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "origin_default",
+      releasedCommitSha: "verified-origin-trunk-sha",
+    });
+    mocks.readProjectionManifest.mockResolvedValueOnce({ version: 1 });
+    mocks.verifyProjectionAtGitCommit.mockResolvedValueOnce({
+      ok: true,
+      receipt: { verified: true },
+    });
+    const store = createMockStore({
+      status: "archived",
+      releaseDone: true,
+      deltas: {
+        "advance-workflow": [
+          { id: "delta-1", kind: "modify", description: "test delta" },
+        ],
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed).toMatchObject({ success: true, noOp: true });
+    expect(mocks.verifyProjectionAtGitCommit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        repo: "/tmp/main",
+        releasedCommitSha: "verified-origin-trunk-sha",
+      }),
+    );
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
   });
 
   // AC3: phase9=run finalizes synchronously (no detached async dispatch).
