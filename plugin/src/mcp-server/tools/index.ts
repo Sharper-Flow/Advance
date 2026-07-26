@@ -12,7 +12,9 @@ import { wrapTier4Tool, type DegradationOptions } from "../degradation.js";
 export type ToolClassification =
   | "pure"
   | "needs-context"
+  | "needs-read-model"
   | "needs-temporal"
+  | "needs-temporal-diagnostics"
   | "needs-host-git"
   | "needs-host-probe";
 
@@ -21,15 +23,15 @@ export type ToolClassification =
  * per-tool runtime degradation wrapper added in task tk-951c84c42397.
  */
 export const TOOL_CLASSIFICATIONS = {
-  status: ["needs-temporal", "needs-host-probe"],
+  status: ["needs-read-model", "needs-host-probe"],
   spec: ["needs-context"],
   wisdom_list: ["needs-context"],
   reflection_list: ["needs-context"],
   backlog_list: ["needs-context"],
   backlog_show: ["needs-context"],
-  epic_list: ["needs-temporal"],
-  epic_show: ["needs-temporal"],
-  wip_state: ["needs-temporal"],
+  epic_list: ["needs-read-model"],
+  epic_show: ["needs-read-model"],
+  wip_state: ["needs-read-model"],
   worktree_triage: ["needs-host-git"],
   tool_catalog: ["pure"],
   tool_describe: ["pure"],

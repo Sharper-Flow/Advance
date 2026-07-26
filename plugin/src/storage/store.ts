@@ -21,6 +21,10 @@ import { createDiskStore } from "./store-disk";
 // Re-export public types and helpers
 export {
   type Store,
+  type ReadStore,
+  type CommandStore,
+  type ReadSnapshot,
+  ReadSnapshotSchema,
   type ChangeCreateInitialMetadata,
   type ChangeCreateOptions,
   type ProductOriginTags,
