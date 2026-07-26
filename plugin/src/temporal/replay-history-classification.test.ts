@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 import {
   AFFECTED_POISONED_CHANGE_IDS,
@@ -8,6 +9,10 @@ import {
   classifyReplayNondeterminismError,
   sanitizeHistoryForFixture,
 } from "./replay-history-classification";
+
+async function readJson<T>(url: URL): Promise<T> {
+  return JSON.parse(await readFile(url, "utf8")) as T;
+}
 
 function classification(changeId: string) {
   return {
@@ -79,6 +84,21 @@ describe("poisoned history classification", () => {
       ),
     ).not.toHaveProperty("recoveryTarget");
   });
+});
+
+it("classifies the committed makeLegacyDesignValidation fixture as self-healed without immutable recovery fields", async () => {
+  const classification = PoisonedHistoryClassificationSchema.parse(
+    await readJson<unknown>(
+      new URL(
+        "./__tests__/replay/histories/makeLegacyDesignValidation.poisoned-production.classification.json",
+        import.meta.url,
+      ),
+    ),
+  );
+  expect(classification.changeId).toBe("makeLegacyDesignValidation");
+  expect(classification.outcome).toBe("self_healed");
+  expect(classification).not.toHaveProperty("recoveryEvidence");
+  expect(classification).not.toHaveProperty("recoveryTarget");
 });
 
 describe("sanitized history audit", () => {

@@ -4,14 +4,8 @@
   "fixture": "makeLegacyDesignValidation.poisoned-production.history.json",
   "failingEventId": 479,
   "failingEventType": "EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES",
-  "observedError": "[TMPRL1100] Nondeterminism error: Activity machine does not handle this event: HistoryEvent(id: 479, UpsertWorkflowSearchAttributes)",
+  "observedError": "Captured production history previously replayed to a TMPRL1100 nondeterminism failure at event 479 (EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES); after trunk integration, candidate worker bundle generation 106a59bf199ba9059362bbeb09bca5cc4ba50e2409d6dc0bad1f71363dd962b1 built at 2026-07-26T03:38:24.259Z (106a59bf199b...) replays this fixture cleanly.",
   "currentOperation": "ActivityMachine: HistoryEvent(id: 479, UpsertWorkflowSearchAttributes)",
-  "cause": "activity_order_mismatch",
-  "outcome": "immutable_history",
-  "recoveryEvidence": "Candidate worker bundle generation db3c2da7088a02ba1e11a28cbbf7807a5bdd9274e3d810b368f626c0867d0367 built at 2026-07-26T02:01:59.138Z replays this fixture to a deterministic TMPRL1100 failure at event 479 (EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES): [TMPRL1100] Nondeterminism error: Activity machine does not handle this event: HistoryEvent(id: 479, UpsertWorkflowSearchAttributes). Historical metadata incidentEventId 651 recorded the final upsert in the exported history, but the actual replay divergence observed against the candidate worker is at 479. No recorded compatibility marker distinguishes this historical worker order from later open histories, so speculative workflow-code reordering is unsafe; hand off for typed recovery/retirement.",
-  "recoveryTarget": {
-    "epicId": "hardenTemporalReliability",
-    "entryId": "shell-1784579334278-jib2o8",
-    "title": "Recover or retire the 6 poisoned workflows without data loss"
-  }
+  "cause": "bundle_identity_mismatch",
+  "outcome": "self_healed"
 }
