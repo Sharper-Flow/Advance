@@ -2714,13 +2714,126 @@ export function updateArtifactMetadataInChangeState(
   state.artifacts[kind] = normalized;
 }
 
+function computeClosurePayloadHash(closure: ChangeClosure): string {
+  return fnv1a32(stableStringify(closure));
+}
+
+function isCloseEligible(
+  state: ChangeWorkflowState,
+): { eligible: true } | { eligible: false; reason: string } {
+  if (state.lifecycleState !== "open") {
+    return {
+      eligible: false,
+      reason: `lifecycleState is ${state.lifecycleState}`,
+    };
+  }
+  if (state.status !== "draft") {
+    return {
+      eligible: false,
+      reason: `status is ${state.status}`,
+    };
+  }
+  return { eligible: true };
+}
+
 export function closeChangeInChangeState(
   state: ChangeWorkflowState,
   closure: ChangeClosure,
 ): ChangeWorkflowState {
+  const at = closure.approved_at;
+  const operation_id = closure.operation_id;
+  const command_kind = "closeChange";
+
+  // AC3/AC5: resolve operation identity before mutating. Same operation_id with
+  // the same payload is an idempotent replay; same operation_id with a different
+  // payload is a typed conflict that must not overwrite the accepted result.
+  let ledgerHash: string | undefined;
+  if (operation_id) {
+    ledgerHash = computeClosurePayloadHash(closure);
+    const existing = state.operation_ledger?.[operation_id];
+    if (existing) {
+      if (existing.payload_hash === ledgerHash) {
+        const replay: OperationLedgerEntry = {
+          ...existing,
+          outcome: "idempotent_replay",
+          last_seen_at: at,
+        };
+        recordOperationLedger(state, replay);
+        setLastSignalAt(state, at);
+        return state;
+      }
+      applySignalRejectionToState(state, {
+        signalName: command_kind,
+        error: new Error(
+          `OPERATION_PAYLOAD_CONFLICT: operation_id ${operation_id} received conflicting payload (expected hash ${existing.payload_hash}, got ${ledgerHash})`,
+        ),
+        payload: { operation_id, command_kind, closure },
+        rejectedAt: at,
+      });
+      setLastSignalAt(state, at);
+      return state;
+    }
+  }
+
+  // AC5: lifecycle authority lives in the reducer, not in host preflight.
+  // Only open, non-terminal changes are eligible to be closed.
+  const eligibility = isCloseEligible(state);
+  if (!eligibility.eligible) {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        `LIFECYCLE_INELIGIBLE: closeChange rejected because change is not in an eligible state (${eligibility.reason})`,
+      ),
+      payload: { operation_id, command_kind, closure },
+      rejectedAt: at,
+    });
+    if (operation_id && ledgerHash) {
+      recordOperationLedger(state, {
+        operation_id,
+        command_kind,
+        payload_hash: ledgerHash,
+        outcome: "rejected",
+        accepted_at: at,
+        last_seen_at: at,
+      });
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  // Explicit approval contract: closure must carry approval truth and evidence.
+  if (!closure.approved_by_user || closure.approval_evidence.trim() === "") {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        `APPROVAL_MISSING: closeChange requires explicit approval with evidence`,
+      ),
+      payload: { operation_id, command_kind, closure },
+      rejectedAt: at,
+    });
+    if (operation_id && ledgerHash) {
+      recordOperationLedger(state, {
+        operation_id,
+        command_kind,
+        payload_hash: ledgerHash,
+        outcome: "rejected",
+        accepted_at: at,
+        last_seen_at: at,
+      });
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
   state.status = "closed";
   state.lifecycleState = "closed";
   state.closure = closure;
+  advanceStateRevision(state);
+  setLastSignalAt(state, at);
+
+  if (operation_id && ledgerHash) {
+    recordOperationAccepted(state, operation_id, command_kind, ledgerHash, at);
+  }
   return state;
 }
 

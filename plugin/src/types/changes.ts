@@ -149,6 +149,7 @@ export const ChangeClosureSchema = z.object({
   approval_evidence: z.string(),
   superseded_by: z.string().optional(),
   approved_at: z.string(),
+  operation_id: z.string().min(1).optional(),
 });
 
 export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;

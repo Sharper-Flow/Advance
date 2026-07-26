@@ -248,6 +248,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     listResolvedChanges,
     getTemporalWorkflowClient,
     dualWriteAfterMutation,
+    persistStateToDiskDurable,
     memo,
     changeCache,
   } = deps;
@@ -792,17 +793,10 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       return change;
     },
     close: async (changeId: string, closure: ChangeClosure) => {
-      // Layer C1 (rq-archiveRetirement01-followon for closed class):
-      // disk-first safety-net write. Without this, close() updates the
-      // in-memory overlay only — disk change.json retains stale draft
-      // status. On process restart, listResolvedChanges disk fallback
-      // returns the stale draft as a zombie. Closed changes have NO
-      // archive bundle, so Layer A1 cannot detect them.
-      //
-      // Disk-first ordering: if disk write fails, propagate the error
-      // and DO NOT execute the Temporal transition (no half-state).
-      // The current state is fetched from Temporal/disk and merged with
-      // the closed status + closure to write a complete change.json.
+      // AC5: host preflight is advisory only. It loads the current change so we
+      // can give a clear UX refusal for already-terminal targets and so the
+      // caller can distinguish not-found from ineligible, but the workflow
+      // reducer is the sole authority for the lifecycle transition.
       const current = await getTemporalChange(changeId);
       if (!current.success || !current.data) {
         throw new Error(
@@ -811,55 +805,62 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             : `Change ${changeId} not found`,
         );
       }
-      const updated: Change = {
-        ...current.data,
-        status: "closed",
-        closure,
-      };
-      await legacy.changes.save(updated);
+      if (
+        current.data.lifecycleState === "closed" ||
+        current.data.lifecycleState === "archived" ||
+        current.data.status === "closed" ||
+        current.data.status === "archived"
+      ) {
+        throw new Error(
+          `Change ${changeId} is already ${current.data.lifecycleState ?? current.data.status}; close rejected.`,
+        );
+      }
 
       invalidateChange(changeId);
 
-      // Try Temporal signal; if workflow is already completed/terminated,
-      // the disk write already succeeded — return disk-backed close result.
-      //
-      // SC4 + SC6: the SC4 guard raises TemporalMutationIneligibleError on
-      // mutation-ineligible classes (`not_found`/`poisoned_history` pass
-      // through). The post-signal readback classification surfaces an
-      // ambiguous `outcome_unknown_readback_unavailable` as a typed error
-      // rather than letting the caller claim a successful close.
-      try {
-        const outcome = await fireSignalWithMutationGuard(
-          input,
-          changeId,
-          closeChangeSignal,
-          [closure],
+      // SC4 + SC6: signal dispatch and post-signal readback are classified so
+      // ambiguous mutations are not silently confirmed.
+      const outcome = await fireSignalWithMutationGuard(
+        input,
+        changeId,
+        closeChangeSignal,
+        [closure],
+      );
+      if (outcome === "outcome_unknown_readback_unavailable") {
+        throw new Error(
+          `changes.close(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
         );
-        if (outcome === "outcome_unknown_readback_unavailable") {
-          throw new Error(
-            `changes.close(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-          );
-        }
-        const result = (await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).query(
-            changeStateQuery,
-          ),
-        )) as import("../../temporal/contracts").ChangeWorkflowState;
-        indexTasksFromState(result);
-        updateOverlay(changeId, { status: "closed", closure });
-        const change = setCachedChange(result);
-        emitChangeSummarySignal(changeId, result);
-        return change;
-      } catch (err) {
-        if (!isWorkflowCompletedError(err)) throw err;
-        // Workflow already terminated — disk save succeeded, return
-        // the disk-backed closed change. Log for observability.
-        logger.info(
-          `Change ${changeId} workflow already completed; closed on disk only.`,
-        );
-        updateOverlay(changeId, { status: "closed", closure });
-        return updated;
       }
+      const result = (await runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      )) as import("../../temporal/contracts").ChangeWorkflowState;
+
+      // Confirm the reducer outcome before persisting the projection. A rejected
+      // close leaves the change in its open state; it must not be promoted to
+      // a durable closed projection.
+      const rejection = latestSignalRejection(
+        result,
+        "closeChange",
+        closure.approved_at,
+      );
+      if (rejection) {
+        throw new Error(rejection.errorMessage);
+      }
+      if (result.status !== "closed" || result.lifecycleState !== "closed") {
+        throw new Error(
+          `changes.close(${changeId}): reducer did not transition to closed (status=${result.status}, lifecycleState=${result.lifecycleState})`,
+        );
+      }
+
+      indexTasksFromState(result);
+      updateOverlay(changeId, { status: "closed", closure: result.closure });
+      const change = setCachedChange(result);
+      emitChangeSummarySignal(changeId, result);
+
+      // AC2/AC5: durability-critical close is not successful until the disk
+      // projection is durably written via the canonical awaited path.
+      await persistStateToDiskDurable(changeId, result);
+      return change;
     },
 
     closeBatch: async (

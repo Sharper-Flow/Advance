@@ -2075,7 +2075,13 @@ export async function changeWorkflow(
         title: state.title?.slice(0, 80),
       });
       closeChangeInChangeState(state, closure);
-      if (input.searchAttributesEnabled !== false) {
+      // Only upsert the terminal "closed" search attribute if the reducer
+      // actually accepted the transition; a rejected close leaves the change
+      // in its open lifecycle state and stale attributes must not claim otherwise.
+      if (
+        state.status === "closed" &&
+        input.searchAttributesEnabled !== false
+      ) {
         try {
           wf.upsertSearchAttributes({
             [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
@@ -2092,6 +2098,7 @@ export async function changeWorkflow(
         op: "closeChangeSignal",
         changeId: state.changeId,
         closureReason: closure.reason,
+        accepted: state.status === "closed",
       });
       return state;
     }),

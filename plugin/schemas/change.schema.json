@@ -179,6 +179,10 @@
           "const": true,
           "type": "boolean"
         },
+        "operation_id": {
+          "minLength": 1,
+          "type": "string"
+        },
         "reason": {
           "enum": [
             "cancelled",
