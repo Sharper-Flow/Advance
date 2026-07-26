@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-26T14:23:07.297Z",
+  "capabilities": [],
+  "change_hash": "0e548381bf05f60e286b1d8b0bf3ee964238c18d09d4091be604fd7d25c578a8",
+  "change_id": "fixDirectArchiveRetry",
+  "completed_tasks": 1,
+  "created_at": "2026-07-26T04:19:51.072Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-26T05:42:24.990Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "50f619092722e2926aba36ca720a9d325c37aacd4eb236cacf79524e95499674",
+  "task_count": 1,
+  "title": "Fix direct archive retry",
+  "version": "1"
+}
