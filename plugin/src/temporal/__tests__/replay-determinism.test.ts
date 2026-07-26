@@ -224,6 +224,41 @@ describe("changeWorkflow replay determinism", () => {
     ).toHaveLength(AFFECTED_POISONED_CHANGE_IDS.length);
   });
 
+  it("makeLegacyDesignValidation poisoned production history is self-healed and replays cleanly", async () => {
+    const metadata = await readJson<ReplayFixtureMetadata>(
+      new URL(
+        "./replay/histories/makeLegacyDesignValidation.poisoned-production.metadata.json",
+        import.meta.url,
+      ),
+    );
+    const history = await readJson<{ events: ReplayHistoryEvent[] }>(
+      new URL(
+        "./replay/histories/makeLegacyDesignValidation.poisoned-production.history.json",
+        import.meta.url,
+      ),
+    );
+    const classification = PoisonedHistoryClassificationSchema.parse(
+      await readJson<unknown>(
+        new URL(
+          "./replay/histories/makeLegacyDesignValidation.poisoned-production.classification.json",
+          import.meta.url,
+        ),
+      ),
+    );
+
+    expect(classification.outcome).toBe("self_healed");
+    expect(classification).not.toHaveProperty("recoveryEvidence");
+    expect(classification).not.toHaveProperty("recoveryTarget");
+    expect(metadata.covers.join("\n")).toContain(classification.observedError);
+    await expect(
+      Worker.runReplayHistory(
+        { workflowsPath, replayName: metadata.name },
+        history,
+        metadata.workflowId,
+      ),
+    ).resolves.toBeUndefined();
+  }, 30_000);
+
   it.each(replayFixtures)(
     "replays committed history fixture %#",
     async ({

@@ -1,0 +1,1053 @@
+{
+  "id": "fixDirectArchiveRetry",
+  "title": "Fix direct archive retry",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-26T04:19:51.072Z",
+  "tasks": [
+    {
+      "id": "tk-ee9b2b8ece08",
+      "title": "Propagate route-neutral released commit proof through archive finalization and retry",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-26T04:24:39.389Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred",
+        "frontend": "false"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-26T04:25:08.876Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDirectArchiveRetry",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveRetry",
+          "task_id": "tk-ee9b2b8ece08",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ee9b2b8ece08"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/change/release-proof.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "shell-archive-gate-2026-07-26",
+              "command": "cd plugin && npx vitest run src/tools/change/archive-gate.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "37 tests passed"
+            },
+            {
+              "test_run_id": "shell-git-finalize-2026-07-26",
+              "command": "cd plugin && npx vitest run src/tools/archive-helpers/git-finalize.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "144 tests passed"
+            },
+            {
+              "test_run_id": "shell-archive-phase9-2026-07-26",
+              "command": "cd plugin && npx vitest run src/tools/change.archive-phase9.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "54 tests passed"
+            },
+            {
+              "test_run_id": "shell-static-check-2026-07-26",
+              "command": "cd plugin && pnpm run check",
+              "exit_code": 0,
+              "summary": "All schema, type, manifest, isolation, lockfile, lint, and format checks green"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Made releasedCommitSha required on every reachable ReleaseReachabilityProof",
+              "why": "Every successful reachability proof must carry exact released commit identity."
+            },
+            {
+              "what": "Populated releasedCommitSha within all successful reachability branches",
+              "why": "Reachability authority owns local HEAD, verified remote SHA, or PR merge OID."
+            },
+            {
+              "what": "Consumed reachability.releasedCommitSha directly in archive evidence verification",
+              "why": "Prevents route/status inference and keeps proof structural."
+            },
+            {
+              "what": "Kept mergeCommitSha PR-specific",
+              "why": "Preserves compatibility while route-neutral SHA drives projection proof."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [
+            "Record durable RED/GREEN/VERIFY evidence with adv_run_test before task completion."
+          ],
+          "related_scan": "All shipped finalization/reachability outcomes and both projection-proof consumers updated; missing PR merge SHA now fails closed.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Route-neutral releasedCommitSha is required and propagated through all successful release proofs; focused suites and static checks pass.",
+            "suggested_next_action": "Bind durable test evidence, review diff, checkpoint task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: shell-archive-gate-2026-07-26"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: shell-git-finalize-2026-07-26"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: shell-archive-phase9-2026-07-26"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: shell-static-check-2026-07-26"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDirectArchiveRetry",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveRetry",
+          "task_id": "tk-ee9b2b8ece08",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ee9b2b8ece08"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/change/release-proof.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms1c99gc_6917a42d",
+              "command": "baseline releasedCommitSha reproduction",
+              "exit_code": 1,
+              "summary": "RED: baseline shipped reachability evidence lacks route-neutral releasedCommitSha."
+            },
+            {
+              "test_run_id": "tr_ms1cihqj_af1d1ce0",
+              "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: 236 focused archive and finalization tests pass after acceptance remediation."
+            },
+            {
+              "test_run_id": "tr_ms1cjmt9_a1bba352",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "VERIFY: schemas, typecheck, manifests, isolation, lockfile, lint, and format all pass."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Require releasedCommitSha on every reachable release proof",
+              "why": "Release authority and immutable commit identity remain structurally coupled."
+            },
+            {
+              "what": "Allow archived existing-bundle retry without worktreePath",
+              "why": "Retry performs read-only projection verification and bounded metadata reconciliation; original worktree may already be deleted."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "All successful local/direct/PR reachability branches and both projection-proof consumers covered; missing SHA remains fail-closed.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Final implementation and acceptance remediation are bound to durable RED/VERIFY evidence; reviewer verdict READY.",
+            "suggested_next_action": "Retry acceptance gate using preserved user approval evidence."
+          }
+        }
+      ],
+      "verification": "Release hardening remediation verifies direct post-push proof against fetched origin/default and uses exact remote SHA. tr_ms1de9b1_fbd05f42: 236 tests pass; tr_ms1dfgte_5c8b3bcf: pnpm run check passes; harden reviewer READY.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "adbd35b9650af31b373a23dd00ded319ba35e386",
+      "completedAt": "2026-07-26T05:42:24.990Z",
+      "completed_at": "2026-07-26T05:42:24.990Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveRetry",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Direct archive retry release-SHA design validation",
+      "sources": [
+        {
+          "label": "Git finalization types and reachability",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/archive-helpers/git-finalize.ts#L11-L27",
+          "summary": "GitFinalizeOutcome currently has only mergeCommitSha; reachability's direct proof carries no commit SHA."
+        },
+        {
+          "label": "Direct reachability implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/archive-helpers/git-finalize.ts#L1259-L1300",
+          "summary": "Direct release proof establishes local HEAD equals remote default SHA, but discards that SHA."
+        },
+        {
+          "label": "Archived retry guard",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/change.ts#L4041-L4087",
+          "summary": "Archived retry requires release.mergeCommitSha and passes it to immutable Git projection verification."
+        },
+        {
+          "label": "Projection verifier",
+          "locator": "file:///home/jon/dev/advance/plugin/src/archive/projection-proof.ts#L251-L300",
+          "summary": "Proof reads manifest/spec/docs from selected commit and fails closed on unreadable/mismatching evidence."
+        },
+        {
+          "label": "Archive idempotency law",
+          "locator": "file:///home/jon/dev/advance/docs/specs/advance-workflow.md#L5391-L5425",
+          "summary": "Archived bundle retry must be bounded no-op success without repeating finalization."
+        }
+      ],
+      "architecture_assessment": "NEEDS_AMENDMENT. Preserve mergeCommitSha as PR-specific compatibility evidence and add a route-neutral releasedCommitSha to typed successful reachability/finalization results. For direct proof, set it to exact remote default SHA proved equal to local HEAD; for PR proof, set it to merge commit OID. Consume only releasedCommitSha in projection proof paths. Do not infer from archive status, route-name strings, or a later unconstrained ref resolution.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Current design correctly requires route-specific reachability and fail-closed proof, but does not specify typed field, producer point, or whether ordinary accepted-delta proof also migrates from mergeCommitSha."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Adding releasedCommitSha preserves PR merge semantics but requires updating all shipped producers and test fixtures.",
+          "Using current proven remote-default SHA makes direct retries robust without treating a PR-only field as universal."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Populate mergeCommitSha for direct routes",
+            "disposition": "rejected",
+            "rationale": "Conflates PR-specific merge identity with default-branch release commit and obscures route semantics."
+          },
+          {
+            "option": "Choose commit in change.ts from route/status",
+            "disposition": "rejected",
+            "rationale": "Duplicates release authority outside typed reachability and encourages string heuristics."
+          },
+          {
+            "option": "Use origin/default at retry without equality proof",
+            "disposition": "rejected",
+            "rationale": "A later or stale ref is not exact commit established by release reachability."
+          }
+        ],
+        "recommendation": "Amend design before implementation: extend successful ReleaseReachabilityProof with required releasedCommitSha; have verifyDefaultBranchPushed return matched remote SHA and origin_default emit it; map it through verifyReleaseEvidenceFromMain and direct finalization. Retain mergeCommitSha for PR evidence. Replace both change.ts projection guards with releasedCommitSha. Add route-focused and integration regression tests."
+      },
+      "recommendation": "NEEDS_AMENDMENT: make releasedCommitSha explicit route-neutral proof emitted by same reachability decision; migrate both projection-verification call sites, preserving mergeCommitSha only for PR reporting/compatibility.",
+      "follow_ups": [
+        "Regression targets: archive-gate.test.ts direct origin_default result must carry releasedCommitSha and PR result must retain mergeCommitSha plus releasedCommitSha; git-finalize tests must assert remote default SHA propagation/fail-closed SHA resolution; change.archive-phase9.test.ts needs archived + bundle + non-empty deltas + matching projection manifest direct retry noOp success, equivalent PR route, and missing releasedCommitSha/mismatching projection blockers. Current createMockStore hard-codes deltas {}, so add fixture option and mock projection-proof boundary or use focused archive integration fixture."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveRetry",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Revalidation of amended direct archive retry design",
+      "sources": [
+        {
+          "label": "Amended design artifact",
+          "locator": "adv://change/fixDirectArchiveRetry/design",
+          "summary": "Design explicitly defines route-neutral releasedCommitSha, exact direct remote-default source, PR merge OID source, both call-site migration, and fail-closed behavior."
+        },
+        {
+          "label": "Typed reachability baseline",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/archive-helpers/git-finalize.ts#L343-L363",
+          "summary": "Existing successful reachability union is the correct structural owner for a required released SHA."
+        },
+        {
+          "label": "Direct equality proof baseline",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/archive-helpers/git-finalize.ts#L1259-L1300",
+          "summary": "remoteSha is the exact value compared to local HEAD and should be propagated when equal."
+        },
+        {
+          "label": "Projection call sites",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/change.ts#L4041-L4087",
+          "summary": "Archived retry currently guards and invokes projection proof through mergeCommitSha; amended design names this migration."
+        },
+        {
+          "label": "Normal projection call site",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/change.ts#L4374-L4420",
+          "summary": "Normal accepted-delta flow has same PR-only field dependency; amended design includes it."
+        },
+        {
+          "label": "Fail-closed verifier",
+          "locator": "file:///home/jon/dev/advance/plugin/src/archive/projection-proof.ts#L251-L300",
+          "summary": "Verifier binds manifest/spec/docs to supplied immutable commit and already returns typed failure for unreadable or mismatching evidence."
+        }
+      ],
+      "architecture_assessment": "READY. Amended design places releasedCommitSha at typed reachability/finalization authority, derives direct evidence from exact remote SHA already matched to HEAD, preserves PR-only mergeCommitSha semantics, migrates both consumers, and retains fail-closed projection verification.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Implementation has not yet changed; cited source lines identify required production migrations and tests. Design is sufficient for implementation."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "A new route-neutral field requires producer and fixture updates.",
+          "Keeping mergeCommitSha avoids a wider compatibility/reporting migration while projection proof uses precise neutral evidence."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Reuse mergeCommitSha for direct releases",
+            "disposition": "rejected",
+            "rationale": "Violates field semantics by treating a default-branch SHA as a PR merge commit."
+          },
+          {
+            "option": "Resolve SHA in change.ts",
+            "disposition": "rejected",
+            "rationale": "Would split release-proof authority and risk ref/status inference."
+          }
+        ],
+        "recommendation": "Proceed with implementation exactly as designed: make releasedCommitSha required on successful proof variants eligible for delta verification; fail closed if PR merge OID or direct matched remote SHA is unavailable; update both projection call sites and regression fixtures."
+      },
+      "recommendation": "READY: approved structural design; implement typed propagation and focused direct/PR/missing-SHA regression coverage.",
+      "follow_ups": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveRetry",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveRetry",
+      "task_id": "tk-ee9b2b8ece08",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ee9b2b8ece08"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/release-proof.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "shell-archive-gate-2026-07-26",
+          "command": "cd plugin && npx vitest run src/tools/change/archive-gate.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "37 tests passed"
+        },
+        {
+          "test_run_id": "shell-git-finalize-2026-07-26",
+          "command": "cd plugin && npx vitest run src/tools/archive-helpers/git-finalize.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "144 tests passed"
+        },
+        {
+          "test_run_id": "shell-archive-phase9-2026-07-26",
+          "command": "cd plugin && npx vitest run src/tools/change.archive-phase9.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "54 tests passed"
+        },
+        {
+          "test_run_id": "shell-static-check-2026-07-26",
+          "command": "cd plugin && pnpm run check",
+          "exit_code": 0,
+          "summary": "All schema, type, manifest, isolation, lockfile, lint, and format checks green"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Made releasedCommitSha required on every reachable ReleaseReachabilityProof",
+          "why": "Every successful reachability proof must carry exact released commit identity."
+        },
+        {
+          "what": "Populated releasedCommitSha within all successful reachability branches",
+          "why": "Reachability authority owns local HEAD, verified remote SHA, or PR merge OID."
+        },
+        {
+          "what": "Consumed reachability.releasedCommitSha directly in archive evidence verification",
+          "why": "Prevents route/status inference and keeps proof structural."
+        },
+        {
+          "what": "Kept mergeCommitSha PR-specific",
+          "why": "Preserves compatibility while route-neutral SHA drives projection proof."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [
+        "Record durable RED/GREEN/VERIFY evidence with adv_run_test before task completion."
+      ],
+      "related_scan": "All shipped finalization/reachability outcomes and both projection-proof consumers updated; missing PR merge SHA now fails closed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Route-neutral releasedCommitSha is required and propagated through all successful release proofs; focused suites and static checks pass.",
+        "suggested_next_action": "Bind durable test evidence, review diff, checkpoint task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: shell-archive-gate-2026-07-26"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: shell-git-finalize-2026-07-26"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: shell-archive-phase9-2026-07-26"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: shell-static-check-2026-07-26"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveRetry",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveRetry",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Allowed an already-archived retry with an existing bundle and accepted deltas to proceed without a worktree; this branch only verifies immutable released projection and reconciles metadata, so it does not write specs or bundles.",
+          "verification": "New archive retry regression passes; diff confirms only the preflight exemption changed."
+        },
+        {
+          "file": "plugin/src/tools/change.archive-phase9.test.ts",
+          "summary": "Added behavioral AC1 regression coverage for direct archived retry: verified default-branch SHA is supplied to projection proof, matching proof returns no-op success, and archive bundle is not rewritten.",
+          "verification": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts (55 passed); focused archive suite (236 passed)."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Existing-bundle archived retries with accepted deltas must bypass the generic worktree-required projection-write guard: their path reads the committed manifest and verifies it against the released SHA, without writing specs, docs, or archive artifacts."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts",
+          "bin/oc-test smoke",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Direct regression: 55 tests passed. Focused archive tests: 3 files, 236 tests passed. Smoke ran schemas:check, typecheck, generated-manifest check, isolation/lockfile checks, lint, format check, plus 94 tests; all passed. git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [
+        "Create a task checkpoint for the two reviewer remediation files before acceptance-gate completion.",
+        "Re-evaluate acceptance using this report; no remaining blocker or scope drift found."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test smoke"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveRetry",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveRetry",
+      "task_id": "tk-ee9b2b8ece08",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ee9b2b8ece08"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change/release-proof.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms1c99gc_6917a42d",
+          "command": "baseline releasedCommitSha reproduction",
+          "exit_code": 1,
+          "summary": "RED: baseline shipped reachability evidence lacks route-neutral releasedCommitSha."
+        },
+        {
+          "test_run_id": "tr_ms1cihqj_af1d1ce0",
+          "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: 236 focused archive and finalization tests pass after acceptance remediation."
+        },
+        {
+          "test_run_id": "tr_ms1cjmt9_a1bba352",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "VERIFY: schemas, typecheck, manifests, isolation, lockfile, lint, and format all pass."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Require releasedCommitSha on every reachable release proof",
+          "why": "Release authority and immutable commit identity remain structurally coupled."
+        },
+        {
+          "what": "Allow archived existing-bundle retry without worktreePath",
+          "why": "Retry performs read-only projection verification and bounded metadata reconciliation; original worktree may already be deleted."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "All successful local/direct/PR reachability branches and both projection-proof consumers covered; missing SHA remains fail-closed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Final implementation and acceptance remediation are bound to durable RED/VERIFY evidence; reviewer verdict READY.",
+        "suggested_next_action": "Retry acceptance gate using preserved user approval evidence."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDirectArchiveRetry",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDirectArchiveRetry",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "summary": "Direct Phase 9 finalization now post-fetches and compares origin/default after a successful push; it blocks on mismatch and uses verified remote SHA as releasedCommitSha for projection proof.",
+          "verification": "Targeted Phase 9 tests: 236 passed; pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+          "summary": "Converted direct-finalization artifact test to a local bare origin and asserted releasedCommitSha equals verified origin/trunk.",
+          "verification": "Targeted Phase 9 tests: 236 passed; pnpm run check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "A zero-exit git push is transport success, not release proof. Direct Phase 9 must fetch and compare origin/default before treating a SHA as released or using it for immutable projection verification."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts",
+          "pnpm run check",
+          "git diff --check origin/trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "236 targeted tests passed across 3 files. schemas check, TypeScript, manifest generation, isolation, lockfile policy, ESLint, and Prettier all passed. git diff --check clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No live hosted-remote or GitHub merge-queue execution was performed; coverage uses injected/unit paths and a local bare-origin integration fixture."
+      ],
+      "required_main_agent_actions": [
+        "Create the required task checkpoint for the two reviewer remediation files, then resume normal release/archive evidence flow.",
+        "Do not revisit unrelated archive/recovery behavior; reviewed scope limited to release reachability, retry preflight, and projection-proof safety."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check origin/trunk...HEAD"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-ee9b2b8ece08": [
+      {
+        "runId": "tr_ms1c99gc_6917a42d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "node -e \"const cp=require('node:child_process'); const source=cp.execFileSync('git',['show','HEAD:plugin/src/tools/archive-helpers/git-finalize.ts'],{encoding:'utf8'}); if (!source.includes('releasedCommitSha')) { console.error('RED: baseline shipped reachability evidence lacks route-neutral releasedCommitSha'); process.exit(1); }\"",
+        "durationMs": 73.6717910002917,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-07-26T05:09:29.300Z"
+      },
+      {
+        "runId": "tr_ms1c9l3d_e2bc0418",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 7882.823913998902,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-07-26T05:09:44.459Z"
+      },
+      {
+        "runId": "tr_ms1cauhz_9a45a50c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 52553.16172100045,
+        "evidence_kind": "other",
+        "recordedAt": "2026-07-26T05:10:43.247Z"
+      },
+      {
+        "runId": "tr_ms1cihqj_af1d1ce0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 6035.421307999641,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-07-26T05:16:39.927Z"
+      },
+      {
+        "runId": "tr_ms1cjmt9_a1bba352",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 48497.50471600145,
+        "evidence_kind": "other",
+        "recordedAt": "2026-07-26T05:17:33.162Z"
+      },
+      {
+        "runId": "tr_ms1de9b1_fbd05f42",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 6032.741119001061,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-07-26T05:41:21.989Z"
+      },
+      {
+        "runId": "tr_ms1dfgte_5c8b3bcf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 51066.452958000824,
+        "evidence_kind": "other",
+        "recordedAt": "2026-07-26T05:42:18.384Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-26T04:19:57.369Z",
+      "completed_by": "user",
+      "approval_evidence": "User instructed ADV to continue when next steps were known. Quick Contract and incident-backed RCA were rendered before creation; scope is focused remediation of the observed archive retry defect.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "fad542f6df60e71bb7710f4ecdde4f972cc868a2323ab37724f0e055e191f13e",
+        "non_whitespace_chars": 2417,
+        "checked_at": "2026-07-26T04:19:51.191Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "started_at": "2026-07-26T04:23:47.755Z",
+      "completed_at": "2026-07-26T04:24:00.167Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track Quick Contract confirmed by user's continue instruction. Agreement objectives and bounded AC persisted; standard typed contract minted with 10 items. Spec-law impact: no update required; restores rq-archiveRetryIdempotence01. Independent validator found one design amendment and revalidated READY.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "non_whitespace_chars": 1065,
+        "checked_at": "2026-07-26T04:19:51.192Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-26T04:24:06.241Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator attempt 1 NEEDS_AMENDMENT; design amended to route-neutral reachability-owned releasedCommitSha consumed by both projection proof paths. Attempt 2 READY.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "d5e3c83585e990ce15c05f5827fe07da256342d05bfe71e8ec0ccc4ca172c9c0",
+        "non_whitespace_chars": 1580,
+        "checked_at": "2026-07-26T04:19:51.193Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-26T04:24:48.283Z",
+      "completed_by": "user",
+      "approval_evidence": "User instructed continuation. Fast-track task graph: one focused TDD task covering all four AC; no spec delta because existing rq-archiveRetryIdempotence01 governs behavior; independent design validation READY."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-26T05:11:03.922Z",
+      "completed_by": "agent",
+      "approval_evidence": "Task checkpoint aaf9149a. RED tr_ms1c99gc_6917a42d reproduces missing route-neutral SHA; GREEN tr_ms1c9l3d_e2bc0418 passes 235 focused tests; VERIFY tr_ms1cauhz_9a45a50c passes pnpm run check. Reachability now structurally owns releasedCommitSha for local, direct, and PR success paths."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-26T05:34:43.687Z",
+      "completed_at": "2026-07-26T05:35:35.516Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved acceptance. Independent reviewer READY after focused preflight remediation; 236 focused tests and pnpm run check pass; contract matrix 10 rows / 0 failing. Legacy shell-report warning disposed as fixed using durable run IDs.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ee9d19459f1f66ea9850c454c782e5dba32743e8b19e63282a0cd2469e455d78",
+        "non_whitespace_chars": 1187,
+        "checked_at": "2026-07-26T04:19:51.195Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "hardenWorkflowRecovery archive retry incident 2026-07-26"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+      "approvedAt": "2026-07-26T04:23:52.627Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an archived change with deltas, an existing bundle, and direct-push reachability on the default branch, when archive retry runs, then projection verification receives a concrete released commit SHA and the retry returns `success: true` with `noOp: true` when the manifest matches.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given the equivalent PR route, when archive retry runs, then projection verification continues using the merged PR commit SHA.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given no provable released commit or a mismatching projection, when retry runs, then it returns a typed blocking failure and does not report success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Targeted archive tests and repository static checks pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not weaken `verifyProjectionAtGitCommit`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not infer release from status alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Do not rewrite archive bundles or specs during retry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No route-name string heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No fabricated merge SHA.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No manual projection mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-26T05:18:09.203Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms1cihqj_af1d1ce0: direct no-worktree archived retry regression passes within 236-test focused suite."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms1cihqj_af1d1ce0: PR reachability and merge-SHA compatibility tests pass."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms1cihqj_af1d1ce0: missing PR merge SHA and projection-failure cases remain fail-closed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms1cihqj_af1d1ce0 passes 236 focused tests; tr_ms1cjmt9_a1bba352 passes pnpm run check."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "`verifyProjectionAtGitCommit` unchanged; both callers still require its positive result. Reviewer verdict READY."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Released SHA is required on typed reachable proof and populated by branch/remote/PR evidence, never status alone."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Archived retry reads manifest and verifies git commit; no archive bundle/spec write added."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent acceptance reviewer READY: consumer uses typed `releasedCommitSha` directly, without route-name strings."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent acceptance reviewer READY: SHA comes from exact local HEAD, verified remote SHA, or PR merge OID; missing PR SHA blocks."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent acceptance reviewer READY: no manual projection mutation; historical reconciliation remained separate and no-op."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Given an archived change with deltas, an existing bundle, and direct-push reachability on the default branch, when archive retry runs, then projection verification receives a concrete released commit SHA and the retry returns `success: true` with `noOp: true` when the manifest matches.",
+    "Given the equivalent PR route, when archive retry runs, then projection verification continues using the merged PR commit SHA.",
+    "Given no provable released commit or a mismatching projection, when retry runs, then it returns a typed blocking failure and does not report success.",
+    "Targeted archive tests and repository static checks pass."
+  ],
+  "documents": {
+    "proposal": "# Fix Direct Archive Retry\n\n## Intent\nRestore idempotent `adv_change_archive` retry for already-archived direct-push changes whose archive bundle contains spec deltas.\n\n## Root Cause Analysis\n\n### Symptom\nAfter `hardenWorkflowRecovery` wrote its archive bundle and direct-push archive commit, retrying `adv_change_archive` returned `Archived retry cannot prove accepted delta projection` even though the reconciliation dry-run and execution classified both deltas as `identical`, the archive commit equaled `origin/trunk`, and no capability required repair.\n\n### Reproduction\n1. Archive a change with non-empty deltas through the direct release route.\n2. Ensure status is already `archived` and the archive bundle exists.\n3. Retry `adv_change_archive`.\n4. `verifyReleaseEvidenceFromMain` returns `status: shipped` for direct reachability but no `mergeCommitSha`.\n5. The shared archived-retry guard rejects any shipped result without `mergeCommitSha`.\n\n### Root cause\nThe retry proof assumes every shipped route provides a PR merge commit. Direct-push reachability proves release through default-branch ancestry but does not populate the PR-specific `mergeCommitSha` field. The route-independent guard therefore rejects valid direct releases before `verifyProjectionAtGitCommit` can run.\n\n### Evidence\n- Main and `origin/trunk`: `642e10f9d36deff261e791f33a228bc576506daf`.\n- Historical reconciliation: success, `hardenWorkflowRecovery` disposition `complete`, both deltas `identical`, affected capabilities empty.\n- Failing condition: `plugin/src/tools/change.ts` archived-retry branch requires `release.mergeCommitSha` after `release.status === shipped`.\n- Producer behavior: `plugin/src/tools/change/archive-gate.ts` sets `mergeCommitSha` only when reachability proof is `pr_merged`.\n\n## LBP Targets\n- Derive released commit SHA structurally from route-specific reachability evidence.\n- Preserve PR merge-commit verification.\n- Use default-branch released SHA for direct-push verification.\n- Fail closed when no released commit can be proven.\n\n## Scope\n- Archive retry release-proof representation or route-aware released-SHA selection.\n- Focused unit/regression tests for direct and PR retry paths.\n- No archive data rewrite and no change to release authority.\n\n## User Outcomes\n- Retrying an already-archived direct-push change with deltas returns bounded idempotent success when projection proof matches.\n- Invalid or unreachable released commits remain blocked.\n- `hardenWorkflowRecovery` can converge its release gate and lifecycle metadata.\n\n## Spec-Law Impact\nNo spec law update required: this defect violates existing `rq-archiveRetryIdempotence01`, especially scenario `.1`; implementation restores existing law without changing its behavior contract.",
+    "problemStatement": "Direct-push archive retries with deltas are structurally rejected because the retry guard requires a PR-only merge commit field even after direct default-branch reachability is proven.",
+    "agreement": "# Agreement\n\n## Objectives\n- Make archived retries route-aware when selecting the released commit used for delta projection verification.\n- Preserve fail-closed projection proof and idempotent no-op semantics.\n- Add regression coverage for direct and PR release routes.\n- Converge `hardenWorkflowRecovery` after the fix ships.\n\n## Acceptance Criteria\n1. Given an archived change with deltas, an existing bundle, and direct-push reachability on the default branch, when archive retry runs, then projection verification receives a concrete released commit SHA and the retry returns `success: true` with `noOp: true` when the manifest matches.\n2. Given the equivalent PR route, when archive retry runs, then projection verification continues using the merged PR commit SHA.\n3. Given no provable released commit or a mismatching projection, when retry runs, then it returns a typed blocking failure and does not report success.\n4. Targeted archive tests and repository static checks pass.\n\n## Constraints\n- Do not weaken `verifyProjectionAtGitCommit`.\n- Do not infer release from status alone.\n- Do not rewrite archive bundles or specs during retry.\n\n## Avoidances\n- No route-name string heuristics.\n- No fabricated merge SHA.\n- No manual projection mutation.",
+    "design": "# Design\n\n## Approach\nAdd a route-neutral `releasedCommitSha` to successful release reachability/finalization evidence. The reachability authority that proves shipment also owns this value:\n\n- Direct default-branch route: the exact remote-default SHA already matched against local `HEAD` during `origin_default` proof.\n- PR route: the merged PR commit OID.\n\nRetain `mergeCommitSha` as PR-specific compatibility/reporting evidence. Consume `releasedCommitSha` in both delta projection-proof call sites: archived-bundle retry and normal post-finalization archive flow.\n\n## Structural Guarantees\n- Every shipped outcome eligible for delta projection proof carries a concrete `releasedCommitSha` from typed reachability evidence.\n- `change.ts` does not infer a SHA from route labels, status, or an unconstrained ref.\n- PR-specific `mergeCommitSha` semantics remain unchanged.\n- Missing released SHA blocks before projection verification.\n- `verifyProjectionAtGitCommit`, manifest binding, expected change ID, and expected delta-set checks remain unchanged.\n\n## Verification\n- RED regression reproduces direct shipped outcome lacking usable commit SHA.\n- GREEN tests prove direct reachability propagates the exact verified remote-default SHA.\n- Archive phase-9 tests prove direct archived retry returns bounded `noOp: true` with matching projection.\n- PR equivalent retains merge SHA and uses it as released SHA.\n- Missing-SHA and projection-mismatch cases remain blocked.\n- Repository static checks pass.\n\n## Spec-Law Impact\nNo spec law update required: restores `rq-archiveRetryIdempotence01`.\n\n## Independent Validation\nAttempt 1: NEEDS_AMENDMENT. Validator confirmed root cause and required route-neutral `releasedCommitSha` owned by reachability, consumed at both projection-proof paths. Design amended accordingly.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nArchive retry now carries a route-neutral, proof-owned released commit SHA for every successful local, direct-default, and merged-PR release path. Direct-push archived changes with spec deltas can verify their committed projection and return bounded idempotent success instead of being rejected for lacking a PR-only merge field.\n\nArchived existing-bundle retries also bypass worktree-only preflight because they perform read-only projection verification and bounded metadata reconciliation. Direct post-push finalization fetches and compares `origin/{default}` and records the exact verified remote SHA.\n\n## Why It Matters\nThis removes the blocker that prevented `hardenWorkflowRecovery` from converging after its archive commit was already on `origin/trunk`. Release proof remains fail-closed: no status-only inference, no fabricated SHA, and no weakened projection verification.\n\n## Verification\n- RED `tr_ms1c99gc_6917a42d`: baseline lacks route-neutral release SHA.\n- Acceptance verification `tr_ms1cihqj_af1d1ce0`: 236 focused tests pass, including direct archived retry without a worktree.\n- Acceptance static check `tr_ms1cjmt9_a1bba352`: `pnpm run check` passes.\n- Harden verification `tr_ms1de9b1_fbd05f42`: 236 focused tests pass after remote-SHA remediation.\n- Harden static check `tr_ms1dfgte_5c8b3bcf`: `pnpm run check` passes.\n- Independent acceptance and hardening reviewers: READY.\n- Contract matrix: 10 rows, 0 failing.\n\n## Release Readiness Summary\nNo spec-law delta, migration, data change, frontend impact, or operational rollout. Worker-bundle impact is not applicable. Release risk is limited to host-side archive finalization and covered by local/direct/PR proof tests. No open follow-ups block release.\n\n## Next Action\nArchive and merge this change, deploy the merged trunk plugin, then retry `hardenWorkflowRecovery` archive to converge its release gate and lifecycle metadata.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-26T05:18:09.203Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given an archived change with deltas, an existing bundle, and direct-push reachability on the default branch, when archive retry runs, then projection verification receives a concrete released commit SHA and the retry returns `success: true` with `noOp: true` when the manifest matches. | pass | tr_ms1cihqj_af1d1ce0: direct no-worktree archived retry regression passes within 236-test focused suite. |\n| AC2 | acceptance_criterion | Given the equivalent PR route, when archive retry runs, then projection verification continues using the merged PR commit SHA. | pass | tr_ms1cihqj_af1d1ce0: PR reachability and merge-SHA compatibility tests pass. |\n| AC3 | acceptance_criterion | Given no provable released commit or a mismatching projection, when retry runs, then it returns a typed blocking failure and does not report success. | pass | tr_ms1cihqj_af1d1ce0: missing PR merge SHA and projection-failure cases remain fail-closed. |\n| AC4 | acceptance_criterion | Targeted archive tests and repository static checks pass. | pass | tr_ms1cihqj_af1d1ce0 passes 236 focused tests; tr_ms1cjmt9_a1bba352 passes pnpm run check. |\n| C1 | constraint | Do not weaken `verifyProjectionAtGitCommit`. | respected | `verifyProjectionAtGitCommit` unchanged; both callers still require its positive result. Reviewer verdict READY. |\n| C2 | constraint | Do not infer release from status alone. | respected | Released SHA is required on typed reachable proof and populated by branch/remote/PR evidence, never status alone. |\n| C3 | constraint | Do not rewrite archive bundles or specs during retry. | respected | Archived retry reads manifest and verifies git commit; no archive bundle/spec write added. |\n| DONT1 | avoidance | No route-name string heuristics. | respected | Independent acceptance reviewer READY: consumer uses typed `releasedCommitSha` directly, without route-name strings. |\n| DONT2 | avoidance | No fabricated merge SHA. | respected | Independent acceptance reviewer READY: SHA comes from exact local HEAD, verified remote SHA, or PR merge OID; missing PR SHA blocks. |\n| DONT3 | avoidance | No manual projection mutation. | respected | Independent acceptance reviewer READY: no manual projection mutation; historical reconciliation remained separate and no-op. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-26T04:19:51.258Z",
+      "contentHash": "fad542f6df60e71bb7710f4ecdde4f972cc868a2323ab37724f0e055e191f13e",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-26T04:19:51.258Z",
+      "contentHash": "f198a37a6b54d850c8a9fa9c081222dc77e62f99164b3881cef2afe5aeca1058",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-26T04:19:51.258Z",
+      "contentHash": "da18e1dee21b2fb9d888ff9d2f8d93b92cd4e2584562132b780fa81b851e4a1a",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-26T04:22:58.269Z",
+      "contentHash": "d5e3c83585e990ce15c05f5827fe07da256342d05bfe71e8ec0ccc4ca172c9c0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-26T05:42:39.843Z",
+      "contentHash": "1a4ffb52b2466aa964c9289d8fe01f1bb10af08f1d2e19676428d29fa3bd298e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-26T05:42:39.843Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "worktree_auto_managed": true
+}

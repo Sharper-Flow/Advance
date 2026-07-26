@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.38.1",
-  "updated_at": "2026-07-25T19:13:20.693Z",
+  "version": "1.39.0",
+  "updated_at": "2026-07-26T04:10:51.040Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -7683,6 +7683,118 @@
             "epics_available is false (never fabricated as live)",
             "source is always disk_projection (never temporal/live:true)",
             "freshness is the max lastSignalAt across active summaries and degraded reflects the documented threshold"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-workerEvolutionSafety01",
+      "title": "Workflow Worker Evolution Preserves Replay Compatibility",
+      "body": "ADV MUST prevent ordinary plugin or worker deployment from replaying active workflow histories against incompatible workflow code. Until ADV operates managed simultaneous old/new workers with deployment-version routing and drain-aware retirement, workflow-reachable behavior changes MUST use Temporal patching and candidate worker bundles MUST pass replay-determinism evidence against representative committed histories before release. Temporal Worker Deployments MUST remain disabled until a typed readiness assessment proves all operational prerequisites.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "temporal",
+        "worker",
+        "deployment",
+        "replay",
+        "versioning"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-workerEvolutionSafety01.1",
+          "title": "Candidate worker bundle replays supported histories",
+          "given": [
+            "A change modifies workflow-reachable code",
+            "Representative committed histories exist"
+          ],
+          "when": "The candidate worker bundle is evaluated before release",
+          "then": [
+            "Replay-determinism tests pass for every supported history",
+            "A deliberately incompatible fixture fails with TMPRL1100-class evidence",
+            "Release remains blocked without passing replay provenance"
+          ]
+        },
+        {
+          "id": "rq-workerEvolutionSafety01.2",
+          "title": "Pinned deployment routing is prerequisite-gated",
+          "given": [
+            "ADV currently replaces one worker process on bundle drift"
+          ],
+          "when": "Worker Deployment enablement is evaluated",
+          "then": [
+            "Readiness remains false until server capability, stable deployment identity, immutable Build ID, simultaneous old/new pollers, ramp controls, drain retirement, legacy migration, and operator rollback are all proven",
+            "Pinned routing is not enabled while any prerequisite is absent"
+          ]
+        },
+        {
+          "id": "rq-workerEvolutionSafety01.3",
+          "title": "Compatible workflow changes retain patches",
+          "given": [
+            "Historical executions may replay code that predates a workflow behavior change"
+          ],
+          "when": "The behavior change is implemented",
+          "then": [
+            "A stable Temporal patch marker preserves old-history behavior",
+            "Patch deprecation occurs only after supported old histories and workers no longer require it",
+            "Replay fixtures verify both legacy and current paths"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-recoveryProjectionTransaction01",
+      "title": "Recovery Projection Mutations Are Conditional and Verified",
+      "body": "ADV recovery mutations against a completed, missing, poisoned, or otherwise non-signalable change workflow MUST commit through one storage-owned conditional projection transaction. The transaction MUST serialize per change, read the latest projection inside the critical section, compare the expected projection revision, apply the field-level mutation to that latest state, increment revision, persist atomically, read back, and verify the mutation-specific postcondition before reporting success. All mutable active change-projection writers MUST route through this boundary or a mechanically validated terminal/bootstrap exception. Plain success is forbidden when readback cannot prove convergence.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "recovery",
+        "projection",
+        "concurrency",
+        "cas",
+        "verification"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-recoveryProjectionTransaction01.1",
+          "title": "Concurrent disjoint recovery mutations both survive",
+          "given": [
+            "A completed or poisoned change workflow requires disk-projection recovery",
+            "Two disjoint recovery mutations start from the same projection revision"
+          ],
+          "when": "The mutations execute concurrently",
+          "then": [
+            "Both mutations are present in the persisted projection",
+            "Projection revision advances once per committed mutation",
+            "Neither mutation silently overwrites the other"
+          ]
+        },
+        {
+          "id": "rq-recoveryProjectionTransaction01.2",
+          "title": "Conflicting recovery mutation fails explicitly",
+          "given": [
+            "Two recovery mutations target the same logical field",
+            "Both carry the same expected projection revision"
+          ],
+          "when": "They race to commit",
+          "then": [
+            "Exactly one mutation succeeds",
+            "The other returns typed stale-revision or lost-update evidence",
+            "No last-writer-wins success is reported"
+          ]
+        },
+        {
+          "id": "rq-recoveryProjectionTransaction01.3",
+          "title": "Recovery success requires downstream-visible readback",
+          "given": [
+            "A recovery mutation has written a change projection"
+          ],
+          "when": "The coordinator evaluates completion",
+          "then": [
+            "It reads the persisted projection from the same authority downstream readiness will consume",
+            "It verifies the mutation-specific postcondition",
+            "Unverifiable convergence returns a blocking recovered-unverified outcome instead of success"
           ]
         }
       ]

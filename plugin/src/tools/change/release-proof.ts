@@ -16,6 +16,8 @@ export type ReleaseGateProof =
       ok: true;
       source: "shipped-finalization" | "store" | "disk" | "evidence-match";
       finalizationStatus: string;
+      /** Route-neutral SHA that proved the release reached the default branch. */
+      releasedCommitSha?: string;
       mergeCommitSha?: string;
       pushStatus?: string;
       route?: string;
@@ -45,6 +47,9 @@ export function releaseGateProofToCompletion(
   }
   const details = [
     `Phase 9 finalization ${proof.finalizationStatus}`,
+    proof.releasedCommitSha
+      ? `releasedCommitSha=${proof.releasedCommitSha}`
+      : null,
     proof.mergeCommitSha ? `mergeCommitSha=${proof.mergeCommitSha}` : null,
     proof.pushStatus ? `pushStatus=${proof.pushStatus}` : null,
     proof.route ? `route=${proof.route}` : null,

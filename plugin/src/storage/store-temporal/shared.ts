@@ -112,6 +112,61 @@ export function mapTemporalChangeStateToChange(
   };
 }
 
+/**
+ * Fields whose values are owned by a healthy ChangeWorkflow. Disk-only
+ * recovery metadata deliberately remains outside this list: a Temporal
+ * dual-write must apply its authoritative state to the latest projection,
+ * rather than replace concurrent recovery repairs with a captured snapshot.
+ */
+const TEMPORAL_OWNED_PROJECTION_FIELDS = [
+  "id",
+  "title",
+  "status",
+  "lifecycleState",
+  "created_at",
+  "tasks",
+  "subagent_reports",
+  "test_runs",
+  "deltas",
+  "wisdom",
+  "gates",
+  "reentry_history",
+  "fast_follow_of",
+  "cross_project_origin",
+  "origin",
+  "contract",
+  "acceptanceCriteria",
+  "documents",
+  "artifacts",
+  "phase9_status",
+  "lastSignalAt",
+  "adv_project_id",
+  "cross_project_links",
+  "external_dependencies",
+  "same_project_dependencies",
+  "ops_followup",
+  "ops_followup_links",
+  "epic_membership",
+  "lightweight_profile",
+] as const satisfies readonly (keyof Change)[];
+
+/**
+ * Apply a Temporal state to the projection freshly read by the transaction.
+ * Projection revision/audit data and recovery-only fields stay on `latest`;
+ * the transaction owns revision/audit updates after this merge.
+ */
+export function projectTemporalStateOntoLatest(
+  latest: Change,
+  state: ChangeWorkflowState,
+): Change {
+  const mapped = mapTemporalChangeStateToChange(state);
+  const temporalOwned = Object.fromEntries(
+    TEMPORAL_OWNED_PROJECTION_FIELDS.map((field) => [field, mapped[field]]),
+  ) as Pick<Change, (typeof TEMPORAL_OWNED_PROJECTION_FIELDS)[number]>;
+
+  return { ...latest, ...temporalOwned };
+}
+
 export function getChangeHandle(
   input: TemporalStoreBackendInput,
   changeId: string,

@@ -39,6 +39,7 @@ import {
   type WorkflowHandleLike,
   type StoreDeps,
   mapTemporalChangeStateToChange,
+  projectTemporalStateOntoLatest,
   getGuardedChangeHandle,
   classifyTemporalReadFailure,
   createTemporalReadDeadline,
@@ -69,6 +70,7 @@ import {
   composeTypedMutationResult,
 } from "../../temporal/mutation-safety";
 import { assertDurablePersist, type DiskPersistOutcome } from "./disk-persist";
+import { commitChangeProjection } from "../change-projection-transaction";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
@@ -232,17 +234,24 @@ export function createTemporalStoreBackend(
       return { kind: "skipped", reason: "archived" };
     }
     try {
-      const overlay = changeOverlayCache.get(changeId);
-      const mapped: Change = {
-        ...mapTemporalChangeStateToChange(state),
-        ...(overlay ?? {}),
-        tasks: state.tasks,
-        wisdom: state.wisdom,
-        gates: state.gates,
-        reentry_history: state.reentry_history,
-        fast_follow_of: state.fast_follow_of,
-      };
-      await legacy.changes.save(mapped);
+      const commit = await commitChangeProjection({
+        changesDir: legacy.paths.changes,
+        changeId,
+        authority: { kind: "temporal", mutationReceiptId: state.changeId },
+        mutationKind: "temporal_dual_write_projection",
+        mutateLatest: (latest) => projectTemporalStateOntoLatest(latest, state),
+        verify: ({ readback }) =>
+          readback.status === state.status &&
+          readback.lifecycleState === state.lifecycleState,
+      });
+      if (commit.kind !== "committed") {
+        return {
+          kind: "failed",
+          error: new Error(
+            `Dual-write commit failed for ${changeId}: ${commit.kind}`,
+          ),
+        };
+      }
       return { kind: "persisted" };
     } catch (err) {
       logger.debug(

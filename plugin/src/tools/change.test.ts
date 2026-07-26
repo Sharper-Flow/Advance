@@ -2375,7 +2375,7 @@ describe("change tools — signal-driven lifecycle", () => {
 
     test("recovers executive-summary metadata without readable path when file is not materialized", async () => {
       const { createHash } = await import("crypto");
-      const { mkdir, readFile, rm } = await import("fs/promises");
+      const { mkdir, readFile, rm, writeFile } = await import("fs/promises");
       const { tmpdir } = await import("os");
       const { join: pathJoin } = await import("path");
       const tempRoot = pathJoin(
@@ -2385,6 +2385,20 @@ describe("change tools — signal-driven lifecycle", () => {
       const changesDir = pathJoin(tempRoot, ".adv/changes");
       const changeDir = pathJoin(changesDir, "test-change");
       await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        pathJoin(changeDir, "change.json"),
+        JSON.stringify({
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        }),
+        "utf-8",
+      );
 
       try {
         const store = createMockStore();
@@ -2425,7 +2439,7 @@ describe("change tools — signal-driven lifecycle", () => {
     });
 
     test("recovers executive-summary metadata via probe-first poisoned classification", async () => {
-      const { mkdir, readFile, rm } = await import("fs/promises");
+      const { mkdir, readFile, rm, writeFile } = await import("fs/promises");
       const { tmpdir } = await import("os");
       const { join: pathJoin } = await import("path");
       const tempRoot = pathJoin(
@@ -2435,6 +2449,20 @@ describe("change tools — signal-driven lifecycle", () => {
       const changesDir = pathJoin(tempRoot, ".adv/changes");
       const changeDir = pathJoin(changesDir, "test-change");
       await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        pathJoin(changeDir, "change.json"),
+        JSON.stringify({
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        }),
+        "utf-8",
+      );
 
       try {
         const store = createMockStore();
@@ -2491,6 +2519,20 @@ describe("change tools — signal-driven lifecycle", () => {
       const changesDir = pathJoin(tempRoot, ".adv/changes");
       const changeDir = pathJoin(changesDir, "test-change");
       await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        pathJoin(changeDir, "change.json"),
+        JSON.stringify({
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+        }),
+        "utf-8",
+      );
 
       try {
         const executiveSummary = "# Executive Summary\n\nDurable proof.";

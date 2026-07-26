@@ -2,6 +2,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 
+import { classifyReplayNondeterminismError } from "../replay-history-classification";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 
 const recordingWorkflowsPath = fileURLToPath(
@@ -37,7 +38,8 @@ describe("command-boundary replay determinism", () => {
         history = await handle.fetchHistory();
       });
 
-      await expect(
+      let caught: unknown;
+      const replay = () =>
         Worker.runReplayHistory(
           {
             workflowsPath: driftWorkflowsPath,
@@ -45,8 +47,22 @@ describe("command-boundary replay determinism", () => {
           },
           history!,
           workflowId,
+        ).catch((err) => {
+          caught = err;
+          throw err;
+        });
+
+      await expect(replay()).rejects.toThrow(
+        /nondeterminism|does not match|TMPRL1100/i,
+      );
+
+      const classification = classifyReplayNondeterminismError(caught);
+      expect(classification).toEqual({
+        kind: "TMPRL1100",
+        evidence: expect.stringMatching(
+          /nondeterminism|does not match|TMPRL1100/i,
         ),
-      ).rejects.toThrow(/nondeterminism|does not match/i);
+      });
     });
   }, 30_000);
 });

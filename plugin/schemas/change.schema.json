@@ -3415,6 +3415,60 @@
       ],
       "type": "object"
     },
+    "projection_commits": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "authority_kind": {
+            "enum": [
+              "temporal",
+              "recovery"
+            ],
+            "type": "string"
+          },
+          "committed_at": {
+            "type": "string"
+          },
+          "mutation_kind": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "mutation_receipt_id": {
+            "type": "string"
+          },
+          "new_revision": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "prior_revision": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "recovery_evidence": {
+            "type": "string"
+          },
+          "recovery_reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "mutation_kind",
+          "authority_kind",
+          "prior_revision",
+          "new_revision",
+          "committed_at"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "projection_revision": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    },
     "reentry_history": {
       "items": {
         "additionalProperties": false,

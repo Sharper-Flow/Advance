@@ -61,8 +61,8 @@ import {
   OpsRunUpsertedSignalPayloadSchema,
   LightweightProfileRequestedSignalPayloadSchema,
   LightweightProfileEvaluatedSignalPayloadSchema,
-  WorkerBundleProvenanceRecordedSignalPayloadSchema,
   WorkerBundleImpactSetSignalPayloadSchema,
+  WorkerBundleProvenanceRecordedSignalPayloadSchema,
 } from "../types";
 
 const designSignalKeys = [
@@ -144,7 +144,7 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 63 signal surface", () => {
+  it("defines the 64 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
@@ -690,7 +690,7 @@ describe("change workflow message contract", () => {
         {
           worker_bundle_impact: {
             kind: "required",
-            rationale: "workflow code changed",
+            rationale: "workflow-reachable code changed",
           },
           set_at: timestamp,
         },

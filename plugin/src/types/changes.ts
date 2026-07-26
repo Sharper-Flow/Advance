@@ -934,6 +934,28 @@ export const TestRunRecordSchema = z.object({
   recordedAt: z.string(),
 });
 
+/**
+ * Bounded audit entry for a storage-owned conditional projection commit.
+ *
+ * Recorded by `commitChangeProjection` on every active-projection write.
+ * Carries enough metadata to reconstruct authority, concurrency revision,
+ * and recovery provenance without embedding full histories or secrets.
+ */
+export const ProjectionCommitAuditEntrySchema = z.object({
+  mutation_kind: z.string().min(1),
+  authority_kind: z.enum(["temporal", "recovery"]),
+  mutation_receipt_id: z.string().optional(),
+  recovery_reason: z.string().optional(),
+  recovery_evidence: z.string().optional(),
+  prior_revision: z.number().int().nonnegative(),
+  new_revision: z.number().int().nonnegative(),
+  committed_at: z.string(),
+});
+
+export type ProjectionCommitAuditEntry = z.infer<
+  typeof ProjectionCommitAuditEntrySchema
+>;
+
 export const ChangeSchema = z
   .object({
     $schema: z.string().optional(),
@@ -1187,6 +1209,21 @@ export const ChangeSchema = z
      * by the idempotency resolver.
      */
     creation_request_hash: z.string().optional(),
+
+    /**
+     * Monotonic projection-revision counter for storage-owned conditional
+     * commits. Optional for backward compatibility — legacy changes and
+     * archive bundles without this field are treated as revision 0 on read.
+     * Incremented exactly once per successful `commitChangeProjection`.
+     */
+    projection_revision: z.number().int().nonnegative().optional(),
+
+    /**
+     * Bounded audit trail of storage-owned conditional projection commits.
+     * Optional additive/backward-compatible. Trimmed to the most recent 50
+     * entries at write time so the projection does not grow unbounded.
+     */
+    projection_commits: z.array(ProjectionCommitAuditEntrySchema).optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

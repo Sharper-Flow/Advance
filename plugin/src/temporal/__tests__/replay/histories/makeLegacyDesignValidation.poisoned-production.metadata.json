@@ -4,12 +4,12 @@
   "workflowId": "adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/makeLegacyDesignValidation",
   "source": "Captured from local Temporal with temporal workflow show --no-json-shorthand-payloads; deterministically sanitized before repository promotion.",
   "covers": [
-    "Captured production history replays cleanly against current source; historical live failure is therefore classified as worker bundle identity drift rather than a current workflow-code divergence."
+    "Captured production history previously replayed to a TMPRL1100 nondeterminism failure at event 479 (EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES); after trunk integration, candidate worker bundle generation 106a59bf199ba9059362bbeb09bca5cc4ba50e2409d6dc0bad1f71363dd962b1 built at 2026-07-26T03:38:24.259Z (106a59bf199b...) replays this fixture cleanly."
   ],
-  "expected": "Pre-fix replay reproduces the classified divergence.",
+  "expected": "Fixture MUST replay cleanly against the candidate worker bundle after trunk integration; candidate verifier treats a clean replay as pass.",
   "sanitized": true,
   "eventCount": 651,
-  "incidentEventId": "651",
+  "incidentEventId": "479",
   "incidentEventType": "EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES",
   "classification": "makeLegacyDesignValidation.poisoned-production.classification.json"
 }

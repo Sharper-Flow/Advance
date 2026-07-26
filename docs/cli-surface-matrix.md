@@ -107,6 +107,8 @@
 | `adv_task_checkpoint` | `keep-mcp-only` | Workflow-bound checkpoint tool |
 | `adv_subagent_report_submit` | `keep-mcp-only` | Workflow-bound report ingestion |
 | `adv_lightweight_profile_evaluate` | `keep-mcp-only` | Workflow-bound gate evaluation signal tool |
+| `adv_change_set_worker_bundle_impact` | `keep-mcp-only` | Planning-time worker-bundle applicability declaration; workflow-bound signal |
+| `adv_worker_bundle_provenance_record` | `keep-mcp-only` | Execution-time build+replay provenance receipt; workflow-bound signal |
 | `adv_worktree_cleanup` | `keep-mcp-only` | Preview MCP-side; mutation approval-gated |
 | `adv_change_create` | `no-cli-dangerous` | Change mutation |
 | `adv_change_update` | `no-cli-dangerous` | Change mutation |

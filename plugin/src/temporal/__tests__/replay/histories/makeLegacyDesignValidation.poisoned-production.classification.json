@@ -2,10 +2,10 @@
   "changeId": "makeLegacyDesignValidation",
   "workflowId": "adv/change/bdf259aa162ae192af5b18899ccdc653b085528d/makeLegacyDesignValidation",
   "fixture": "makeLegacyDesignValidation.poisoned-production.history.json",
-  "failingEventId": 651,
+  "failingEventId": 479,
   "failingEventType": "EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES",
-  "observedError": "Captured production history replays cleanly against current source; historical live failure is therefore classified as worker bundle identity drift rather than a current workflow-code divergence.",
-  "currentOperation": "unresolved command boundary",
+  "observedError": "Captured production history previously replayed to a TMPRL1100 nondeterminism failure at event 479 (EVENT_TYPE_UPSERT_WORKFLOW_SEARCH_ATTRIBUTES); after trunk integration, candidate worker bundle generation 106a59bf199ba9059362bbeb09bca5cc4ba50e2409d6dc0bad1f71363dd962b1 built at 2026-07-26T03:38:24.259Z (106a59bf199b...) replays this fixture cleanly.",
+  "currentOperation": "ActivityMachine: HistoryEvent(id: 479, UpsertWorkflowSearchAttributes)",
   "cause": "bundle_identity_mismatch",
   "outcome": "self_healed"
 }

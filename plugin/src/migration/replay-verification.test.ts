@@ -179,4 +179,18 @@ describe("verifyCommittedReplayFixtures — committed sanitized histories", () =
     expect(report.passed).toBe(true);
     expect(report.fixtures.every((f) => f.ok)).toBe(true);
   }, 120_000);
+
+  test("reports the makeLegacyDesignValidation fixture as a passing clean replay", async () => {
+    const report = await verifyCommittedReplayFixtures({
+      historiesDir: REAL_HISTORIES_DIR,
+      workflowsPath: REAL_WORKFLOWS_PATH,
+    });
+    const fixture = report.fixtures.find(
+      (f) =>
+        f.name === "makeLegacyDesignValidation poisoned production history",
+    );
+    expect(fixture).toBeDefined();
+    expect(fixture!.ok).toBe(true);
+    expect(fixture!.classificationOutcome).toBe("self_healed");
+  }, 120_000);
 });
