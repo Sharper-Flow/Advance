@@ -33,7 +33,7 @@ import { describe, expect, it } from "vitest";
 import type { WorkflowHandle } from "@temporalio/client";
 
 import { createDefaultGates } from "../../types";
-import type { Change, ChangeContract } from "../../types";
+import type { Change, ChangeContract, WorkerBundleImpact } from "../../types";
 import type { ChangeWorkflowInput, ChangeWorkflowState } from "../contracts";
 import { buildChangeWorkflowId, buildProjectTaskQueue } from "../client";
 import { getChangeStateQuery } from "../messages";
@@ -158,12 +158,11 @@ function makeChangeInput(
       gates: makeSeedGates(),
       contract: fixtureContract,
       reentry_history: [],
-      // Worker-bundle provenance is enforced for new release-gate completions;
-      // declare it not_applicable so the phase9 recovery path is not blocked.
       worker_bundle_impact: {
         kind: "not_applicable",
-        rationale: "Integration fixture bypasses worker-bundle provenance.",
-      },
+        rationale:
+          "archive phase9 split-brain recovery fixture; no worker bundle change",
+      } satisfies WorkerBundleImpact,
     },
   };
 }

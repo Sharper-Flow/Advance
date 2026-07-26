@@ -683,6 +683,11 @@ async function resolveAcceptanceRecoveryArtifactEvidence(input: {
  * resolution lives in `resolveAcceptanceRecoveryArtifactEvidence` (AC8).
  */
 async function completeGateViaRecovery(input: {
+  // rq-releaseRepairRecovery01: release-gate recovery writes the audited disk
+  // projection only when normal workflow signaling cannot record the missing
+  // state and machine evidence establishes a completed or poisoned workflow.
+  // Structural readiness blockers, finalization proof, and disposition
+  // vocabularies are preserved; generic signal failures fail closed.
   store: Store;
   change: Change;
   changeId: string;
@@ -833,20 +838,29 @@ async function completeGateViaRecovery(input: {
   }
 
   // AC3: readiness/blocker evaluation must read the durable disk projection
-  // when available. Under recovery the disk projection is authoritative; in
-  // normal operation it stays in sync via signals.
+  // when available AND verified. Under recovery the disk projection is
+  // authoritative only if it actually supports completing the target gate;
+  // an unverified/stale disk snapshot (e.g., a leaked default fixture) must
+  // not override the verified workflow-derived recovery state.
   const diskReadinessLoad = await loadChange(
     input.store.paths.changes,
     input.changeId,
   );
-  const readinessChange =
-    diskReadinessLoad.success && diskReadinessLoad.data
-      ? diskReadinessLoad.data
-      : recoveryChange;
-  const readinessGates =
-    diskReadinessLoad.success && diskReadinessLoad.data
-      ? (diskReadinessLoad.data.gates ?? createDefaultGates())
-      : recoveryGates;
+  const diskReadinessData = diskReadinessLoad.success
+    ? diskReadinessLoad.data
+    : null;
+  const diskReadinessVerified =
+    diskReadinessData !== null &&
+    canCompleteGate(
+      diskReadinessData.gates ?? createDefaultGates(),
+      input.gateId,
+    );
+  const readinessChange = diskReadinessVerified
+    ? diskReadinessData
+    : recoveryChange;
+  const readinessGates = diskReadinessVerified
+    ? (diskReadinessData.gates ?? createDefaultGates())
+    : recoveryGates;
   const recoveryState = buildRecoveryReadinessState({
     change: readinessChange,
     gates: readinessGates,

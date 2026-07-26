@@ -112,6 +112,13 @@ class rather than operator-only.
 |---|---|---|
 | `adv_lightweight_profile_evaluate` | orchestrator | Host-side evidence collection + Temporal signal for gate-bound lightweight profile evaluation |
 
+### Worker bundle release provenance
+
+| Tool | Class | Notes |
+|---|---|---|
+| `adv_change_set_worker_bundle_impact` | orchestrator | Declares/confirm worker-bundle impact applicability at planning time; fires `workerBundleImpactSetSignal` |
+| `adv_worker_bundle_provenance_record` | orchestrator | Records passing `build:worker` + replay-determinism provenance on the change after execution; fires `workerBundleProvenanceRecordedSignal` |
+
 ### Epic
 
 | Tool | Class | Notes |
