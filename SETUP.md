@@ -721,7 +721,8 @@ Add the following entry in the `rules:` map (P32 recommended):
 ```yaml
 P32:
   name: worktree-isolation
-  rule: Do not intentionally write implementation changes into a trunk/default
+  rule: >-
+    Do not intentionally write implementation changes into a trunk/default
     checkout when an isolated worktree is required or available for the work.
     Use the correct worktree/workdir, keep git operations scoped, and never
     bypass worktree isolation with manual file shuffling. Deploy, rebuild,
