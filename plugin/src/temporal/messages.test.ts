@@ -16,8 +16,10 @@ import {
   AcceptanceCriteriaSetSignalPayloadSchema,
   AcceptanceUpdatedSignalPayloadSchema,
   AgreementUpdatedSignalPayloadSchema,
+  AbortBatchCloseSignalPayloadSchema,
   ArchiveRequestedSignalPayloadSchema,
   ChangeCancelledSignalPayloadSchema,
+  CommitBatchCloseSignalPayloadSchema,
   ConformanceLockedSignalPayloadSchema,
   ConformanceOverriddenSignalPayloadSchema,
   ConformanceVerdictSignalPayloadSchema,
@@ -34,6 +36,7 @@ import {
   GateReenteredSignalPayloadSchema,
   GateStuckSignalPayloadSchema,
   Phase9StatusUpdatedSignalPayloadSchema,
+  PrepareBatchCloseSignalPayloadSchema,
   ProblemStatementUpdatedSignalPayloadSchema,
   ProposalUpdatedSignalPayloadSchema,
   ReflectionRecordedSignalPayloadSchema,
@@ -130,6 +133,9 @@ const designSignalKeys = [
   "workerBundleImpactSet",
   "archiveChange",
   "closeChange",
+  "prepareBatchClose",
+  "commitBatchClose",
+  "abortBatchClose",
 ] as const;
 
 const designQueryKeys = [
@@ -144,11 +150,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 64 signal surface", () => {
+  it("defines the 67 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(64);
+    expect(surfacedKeys).toHaveLength(67);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -693,6 +699,34 @@ describe("change workflow message contract", () => {
             rationale: "workflow-reachable code changed",
           },
           set_at: timestamp,
+        },
+      ],
+      [
+        PrepareBatchCloseSignalPayloadSchema,
+        {
+          batch_id: "batch-1",
+          closure: {
+            reason: "cancelled",
+            approved_by_user: true,
+            approval_evidence: "user approved",
+            approved_at: timestamp,
+            operation_id: "op-batch-1",
+          },
+        },
+      ],
+      [
+        CommitBatchCloseSignalPayloadSchema,
+        {
+          batch_id: "batch-1",
+          committed_at: timestamp,
+        },
+      ],
+      [
+        AbortBatchCloseSignalPayloadSchema,
+        {
+          batch_id: "batch-1",
+          reason: "sibling target rejected during prepare",
+          aborted_at: timestamp,
         },
       ],
       [

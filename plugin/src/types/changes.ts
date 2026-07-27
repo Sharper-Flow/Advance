@@ -189,6 +189,9 @@ export const BulkCloseResultSchema = z.object({
       changeId: z.string(),
       success: z.boolean(),
       error: z.string().optional(),
+      state: z
+        .enum(["pending", "prepared", "rejected", "committed", "aborted"])
+        .optional(),
     }),
   ),
   message: z.string(),

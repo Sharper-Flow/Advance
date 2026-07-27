@@ -13,7 +13,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { createChangeOps } from "./changes";
-import type { Change } from "../../types";
+import type { Change, ChangeClosure } from "../../types";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 
 const fireSignalWithMutationGuardMock = vi.hoisted(() => vi.fn());
@@ -44,6 +44,15 @@ vi.mock("./shared", () => ({
   remainingDeadlineMs: vi.fn(() => 10_000),
   TemporalQueryTimeoutError: class TemporalQueryTimeoutError extends Error {},
 }));
+
+import {
+  abortBatchCloseSignal,
+  commitBatchCloseSignal,
+  prepareBatchCloseSignal,
+} from "../../temporal/messages";
+import { stableStringify } from "../../temporal/digest";
+import { createHash, randomUUID } from "crypto";
+import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
 
 const CHANGE_ID = "chg-close-store";
 const PROJECT_ID = "pid-close";
@@ -109,6 +118,54 @@ function makeConfirmedState(): ChangeWorkflowState {
   } as ChangeWorkflowState;
 }
 
+function makeDraftWorkflowState(
+  changeId: string,
+  reservation?: {
+    batch_id: string;
+    phase: "prepared" | "committed" | "aborted";
+    closure: ChangeClosure;
+  },
+  signalRejection?: { signalName: string; errorMessage: string },
+): ChangeWorkflowState {
+  return {
+    ...makeConfirmedState(),
+    changeId,
+    id: changeId,
+    status: reservation?.phase === "committed" ? "closed" : "draft",
+    lifecycleState: reservation?.phase === "committed" ? "closed" : "open",
+    closure:
+      reservation?.phase === "committed" ? reservation.closure : undefined,
+    batch_close_reservations: reservation
+      ? {
+          [reservation.batch_id]: {
+            phase: reservation.phase,
+            prepared_at: AT,
+            closure: reservation.closure,
+          },
+        }
+      : {},
+    signal_rejections: signalRejection
+      ? [
+          {
+            signalName: signalRejection.signalName,
+            errorMessage: signalRejection.errorMessage,
+            errorClass: "SignalRejection",
+            payloadDigest: "sha256:test",
+            rejectedAt: "2099-01-01T00:00:00.000Z",
+          },
+        ]
+      : [],
+  } as ChangeWorkflowState;
+}
+
+function computeBatchId(targetIds: string[], closure: ChangeClosure): string {
+  const canonicalIds = [...new Set(targetIds)].sort();
+  const hash = createHash("sha256");
+  for (const id of canonicalIds) hash.update(id);
+  hash.update(stableStringify(closure));
+  return `batch-close-${hash.digest("hex")}`;
+}
+
 function makeDeps(overrides?: {
   getTemporalChange?: ReturnType<typeof vi.fn>;
 }) {
@@ -117,8 +174,9 @@ function makeDeps(overrides?: {
     success: true,
     data: draftChange(),
   });
+  const changesPath = `/tmp/changes-close-storage-${randomUUID()}`;
   const legacy = {
-    paths: { changes: "/tmp/changes", root: "/tmp/project" },
+    paths: { changes: changesPath, root: "/tmp/project" },
     changes: {
       get: getMock,
       save: saveMock,
@@ -252,46 +310,401 @@ describe("changes.close lifecycle storage ordering (AC5)", () => {
   });
 });
 
-describe("changes.closeBatch prevalidation characterization (RED note)", () => {
-  it("currently rejects non-draft targets via host prevalidation, not reducer authorization", async () => {
+describe("changes.closeBatch durable coordinator routing (AC5)", () => {
+  function baseClosure(): ChangeClosure {
+    return {
+      reason: "cancelled",
+      approved_by_user: true,
+      approval_evidence: "user approved",
+      approved_at: AT,
+      operation_id: "op-batch-1",
+    };
+  }
+
+  it("prepares, commits, persists projections, and records a durable operation record", async () => {
+    const { deps, persistStateToDiskDurable } = makeDeps();
+    let currentBatchId: string | undefined;
+    let phase: "prepared" | "committed" = "prepared";
+
+    signalMock.mockImplementation(async (signalDef, payload) => {
+      if (signalDef === prepareBatchCloseSignal) {
+        currentBatchId = payload.batch_id;
+        phase = "prepared";
+      } else if (signalDef === commitBatchCloseSignal) {
+        phase = "committed";
+      }
+    });
+
+    queryMock.mockImplementation(async () => {
+      const state = makeDraftWorkflowState(
+        "any",
+        currentBatchId
+          ? { batch_id: currentBatchId, phase, closure: baseClosure() }
+          : undefined,
+      );
+      return state;
+    });
+
+    const targetIds = ["draft-a", "draft-b"];
+    const closure = baseClosure();
+    const ops = createChangeOps(deps as never);
+    const result = await ops.closeBatch(targetIds, closure);
+
+    expect(result.success).toBe(true);
+    expect(result.closed).toBe(2);
+    expect(result.results).toEqual(
+      targetIds.map((id) => ({
+        changeId: id,
+        success: true,
+        state: "committed",
+      })),
+    );
+
+    expect(signalMock).toHaveBeenCalledWith(
+      prepareBatchCloseSignal,
+      expect.objectContaining({ batch_id: expect.any(String), closure }),
+    );
+    expect(signalMock).toHaveBeenCalledWith(
+      commitBatchCloseSignal,
+      expect.objectContaining({ batch_id: expect.any(String) }),
+    );
+    expect(persistStateToDiskDurable).toHaveBeenCalledTimes(2);
+
+    const batchOpsDir = `${deps.input.legacy.paths.changes}/.batch-operations`;
+    const files = await readdir(batchOpsDir);
+    expect(files).toHaveLength(1);
+    const record = JSON.parse(
+      await readFile(`${batchOpsDir}/${files[0]}`, "utf-8"),
+    ) as {
+      batch_id: string;
+      overall_state: string;
+      per_target: Record<string, { phase: string }>;
+    };
+    expect(record.overall_state).toBe("committed_all");
+    for (const id of targetIds) {
+      expect(record.per_target[id].phase).toBe("committed");
+    }
+  });
+
+  it("fail-alls when a target is unknown before sending any signal", async () => {
     const { deps, saveMock } = makeDeps({
       getTemporalChange: vi.fn().mockImplementation(async (id: string) => {
-        if (id === "archived") {
-          return {
-            success: true,
-            data: {
-              ...draftChange(),
-              id: "archived",
-              status: "archived",
-            } as Change,
-          };
+        if (id === "missing") {
+          return { success: false, error: "Change not found" };
         }
         return { success: true, data: { ...draftChange(), id } as Change };
       }),
     });
 
     const ops = createChangeOps(deps as never);
-    const result = await ops.closeBatch(["draft", "archived"], {
-      reason: "cancelled",
-      approved_by_user: true,
-      approval_evidence: "user approved",
-      approved_at: AT,
-    });
+    const result = await ops.closeBatch(["draft-a", "missing"], baseClosure());
 
     expect(result.success).toBe(false);
+    expect(result.closed).toBe(0);
     expect(result.results).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          changeId: "archived",
+          changeId: "missing",
           success: false,
-          error: expect.stringMatching(/Protected status/),
+          error: expect.stringMatching(/not found|unknown/i),
         }),
       ]),
     );
-    // No reducer-driven signal was attempted; the rejection is from the host
-    // prevalidation loop. This is the characterization we need to replace with
-    // reducer authorization in the batch coordinator task.
+    expect(signalMock).not.toHaveBeenCalled();
     expect(saveMock).not.toHaveBeenCalled();
-    expect(fireSignalWithMutationGuardMock).not.toHaveBeenCalled();
+  });
+
+  it("aborts prepared targets when the reducer rejects a prepare", async () => {
+    const { deps } = makeDeps();
+    let currentBatchId: string | undefined;
+    let prepareCount = 0;
+    let mode: "prepare" | "abort" = "prepare";
+
+    signalMock.mockImplementation(async (signalDef, payload) => {
+      if (signalDef === prepareBatchCloseSignal) {
+        currentBatchId = payload.batch_id;
+        prepareCount++;
+      } else if (signalDef === abortBatchCloseSignal) {
+        mode = "abort";
+      }
+    });
+
+    queryMock.mockImplementation(async () => {
+      if (mode === "abort") {
+        return makeDraftWorkflowState(
+          "any",
+          currentBatchId
+            ? {
+                batch_id: currentBatchId,
+                phase: "aborted",
+                closure: baseClosure(),
+              }
+            : undefined,
+        );
+      }
+      const rejected = prepareCount >= 2;
+      return makeDraftWorkflowState(
+        "any",
+        rejected
+          ? undefined
+          : currentBatchId
+            ? {
+                batch_id: currentBatchId,
+                phase: "prepared",
+                closure: baseClosure(),
+              }
+            : undefined,
+        rejected
+          ? {
+              signalName: "prepareBatchClose",
+              errorMessage:
+                "LIFECYCLE_INELIGIBLE: prepareBatchClose rejected because change is not in an eligible state",
+            }
+          : undefined,
+      );
+    });
+
+    const targetIds = ["draft-a", "draft-b"];
+    const ops = createChangeOps(deps as never);
+    const result = await ops.closeBatch(targetIds, baseClosure());
+
+    expect(result.success).toBe(false);
+    expect(result.closed).toBe(0);
+    expect(result.results).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ success: false, state: "aborted" }),
+        expect.objectContaining({ success: false, state: "rejected" }),
+      ]),
+    );
+
+    expect(signalMock).toHaveBeenCalledWith(
+      prepareBatchCloseSignal,
+      expect.anything(),
+    );
+    expect(signalMock).toHaveBeenCalledWith(
+      abortBatchCloseSignal,
+      expect.anything(),
+    );
+    expect(signalMock).not.toHaveBeenCalledWith(
+      commitBatchCloseSignal,
+      expect.anything(),
+    );
+  });
+
+  it("reuses the durable operation record on a second call with the same inputs", async () => {
+    const { deps, persistStateToDiskDurable } = makeDeps();
+    let currentBatchId: string | undefined;
+    let phase: "prepared" | "committed" = "prepared";
+
+    signalMock.mockImplementation(async (signalDef, payload) => {
+      if (signalDef === prepareBatchCloseSignal) {
+        currentBatchId = payload.batch_id;
+        phase = "prepared";
+      } else if (signalDef === commitBatchCloseSignal) {
+        phase = "committed";
+      }
+    });
+
+    queryMock.mockImplementation(async () =>
+      makeDraftWorkflowState(
+        "any",
+        currentBatchId
+          ? { batch_id: currentBatchId, phase, closure: baseClosure() }
+          : undefined,
+      ),
+    );
+
+    const targetIds = ["draft-a", "draft-b"];
+    const closure = baseClosure();
+    const ops = createChangeOps(deps as never);
+
+    const first = await ops.closeBatch(targetIds, closure);
+    expect(first.success).toBe(true);
+    expect(first.closed).toBe(2);
+
+    const signalCallsAfterFirst = signalMock.mock.calls.length;
+
+    const second = await ops.closeBatch(targetIds, closure);
+    expect(second.success).toBe(true);
+    expect(second.closed).toBe(2);
+
+    // The second invocation should load the already-committed operation record
+    // and not re-send prepare/commit signals.
+    expect(signalMock.mock.calls.length).toBe(signalCallsAfterFirst);
+    expect(persistStateToDiskDurable).toHaveBeenCalledTimes(4);
+  });
+
+  it("returns a typed schema error when the durable operation record is corrupt", async () => {
+    const { deps } = makeDeps();
+    const closure = baseClosure();
+    const targetIds = ["draft-a", "draft-b"];
+    const batchId = computeBatchId(targetIds, closure);
+
+    const recordPath = `${deps.input.legacy.paths.changes}/.batch-operations/${batchId}.json`;
+    await mkdir(`${deps.input.legacy.paths.changes}/.batch-operations`, {
+      recursive: true,
+    });
+    await writeFile(recordPath, "{not valid json", "utf-8");
+
+    const ops = createChangeOps(deps as never);
+    const result = await ops.closeBatch(targetIds, closure);
+
+    expect(result.success).toBe(false);
+    expect(result.closed).toBe(0);
+    expect(result.results).toEqual(
+      targetIds.map((changeId) => ({
+        changeId,
+        success: false,
+        error: expect.stringMatching(/corrupt|unreadable|Unexpected/i),
+      })),
+    );
+    expect(result.message).toMatch(/corrupt|unreadable/i);
+    expect(signalMock).not.toHaveBeenCalled();
+  });
+
+  it("canonicalizes target IDs so equivalent orders and duplicates reuse the same batch id", async () => {
+    const { deps } = makeDeps();
+    let currentBatchId: string | undefined;
+    let phase: "prepared" | "committed" = "prepared";
+
+    signalMock.mockImplementation(async (signalDef, payload) => {
+      if (signalDef === prepareBatchCloseSignal) {
+        currentBatchId = payload.batch_id;
+        phase = "prepared";
+      } else if (signalDef === commitBatchCloseSignal) {
+        phase = "committed";
+      }
+    });
+
+    queryMock.mockImplementation(async () =>
+      makeDraftWorkflowState(
+        "any",
+        currentBatchId
+          ? { batch_id: currentBatchId, phase, closure: baseClosure() }
+          : undefined,
+      ),
+    );
+
+    const ops = createChangeOps(deps as never);
+    const closure = baseClosure();
+
+    const first = await ops.closeBatch(
+      ["draft-b", "draft-a", "draft-a"],
+      closure,
+    );
+    expect(first.success).toBe(true);
+    expect(first.closed).toBe(2);
+    expect(first.results.map((r) => r.changeId)).toEqual([
+      "draft-b",
+      "draft-a",
+      "draft-a",
+    ]);
+
+    const signalCallsAfterFirst = signalMock.mock.calls.length;
+
+    // Equivalent canonical set: different order and with a duplicate.
+    const second = await ops.closeBatch(
+      ["draft-a", "draft-b", "draft-a"],
+      closure,
+    );
+    expect(second.success).toBe(true);
+    expect(second.closed).toBe(2);
+
+    // Same batch id means no new signals were sent.
+    expect(signalMock.mock.calls.length).toBe(signalCallsAfterFirst);
+  });
+
+  it("serializes concurrent same-batch invocations so the second observes the committed outcome", async () => {
+    const { deps } = makeDeps();
+    const knownBatches = new Map<string, "prepared" | "committed">();
+
+    signalMock.mockImplementation(async (signalDef, payload) => {
+      const batchId = payload.batch_id as string;
+      if (signalDef === prepareBatchCloseSignal) {
+        knownBatches.set(batchId, "prepared");
+        // Slow enough that a second concurrent invocation would overlap
+        // if it were not serialized by the per-batch file lock.
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      } else if (signalDef === commitBatchCloseSignal) {
+        knownBatches.set(batchId, "committed");
+      }
+    });
+
+    queryMock.mockImplementation(async () => {
+      const reservations = Object.fromEntries(
+        [...knownBatches.entries()].map(([batchId, phase]) => [
+          batchId,
+          { phase, prepared_at: AT, closure: baseClosure() },
+        ]),
+      );
+      const state = makeDraftWorkflowState("any");
+      state.batch_close_reservations = reservations;
+      state.status = knownBatches.size > 0 ? "closed" : "draft";
+      state.lifecycleState = state.status;
+      state.closure = knownBatches.size > 0 ? baseClosure() : undefined;
+      return state;
+    });
+
+    const ops = createChangeOps(deps as never);
+    const closure = baseClosure();
+
+    const [first, second] = await Promise.all([
+      ops.closeBatch(["draft-a", "draft-b"], closure),
+      ops.closeBatch(["draft-b", "draft-a"], closure),
+    ]);
+
+    expect(first.success).toBe(true);
+    expect(first.closed).toBe(2);
+    expect(second.success).toBe(true);
+    expect(second.closed).toBe(2);
+
+    // Only one of the two concurrent invocations actually drove prepare+commit;
+    // the second loaded the committed operation record.
+    expect(signalMock.mock.calls.length).toBe(4);
+  });
+
+  it("does not serialize concurrent invocations for different batches", async () => {
+    const { deps } = makeDeps();
+    const knownBatches = new Map<string, "prepared" | "committed">();
+
+    signalMock.mockImplementation(async (signalDef, payload) => {
+      const batchId = payload.batch_id as string;
+      if (signalDef === prepareBatchCloseSignal) {
+        knownBatches.set(batchId, "prepared");
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      } else if (signalDef === commitBatchCloseSignal) {
+        knownBatches.set(batchId, "committed");
+      }
+    });
+
+    queryMock.mockImplementation(async () => {
+      const reservations = Object.fromEntries(
+        [...knownBatches.entries()].map(([batchId, phase]) => [
+          batchId,
+          { phase, prepared_at: AT, closure: baseClosure() },
+        ]),
+      );
+      const state = makeDraftWorkflowState("any");
+      state.batch_close_reservations = reservations;
+      state.status = knownBatches.size > 0 ? "closed" : "draft";
+      state.lifecycleState = state.status;
+      state.closure = knownBatches.size > 0 ? baseClosure() : undefined;
+      return state;
+    });
+
+    const ops = createChangeOps(deps as never);
+
+    const [first, second] = await Promise.all([
+      ops.closeBatch(["draft-a"], baseClosure()),
+      ops.closeBatch(["draft-b"], baseClosure()),
+    ]);
+
+    expect(first.success).toBe(true);
+    expect(first.closed).toBe(1);
+    expect(second.success).toBe(true);
+    expect(second.closed).toBe(1);
+
+    // Different batch locks mean both coordinators ran prepare+commit.
+    expect(signalMock.mock.calls.length).toBe(4);
   });
 });

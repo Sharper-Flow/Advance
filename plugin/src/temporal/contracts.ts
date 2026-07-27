@@ -140,6 +140,9 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   workerBundleImpactSet: "adv.change.workerBundleImpactSet",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
+  prepareBatchClose: "adv.change.prepareBatchClose",
+  commitBatchClose: "adv.change.commitBatchClose",
+  abortBatchClose: "adv.change.abortBatchClose",
 } as const;
 
 export const EPIC_WORKFLOW_QUERY_NAMES = {
@@ -296,6 +299,7 @@ export interface ChangeWorkflowInput {
       | "acceptanceReadinessRevision"
       | "state_revision"
       | "operation_ledger"
+      | "batch_close_reservations"
       | "acceptanceCriteriaSnapshot"
       | "documents"
       | "reflections"
@@ -411,6 +415,41 @@ export interface OperationLedgerEntry {
   last_seen_at: string;
 }
 
+/**
+ * Durable reservation recorded by a target workflow during a batch close
+ * prepare phase. It blocks conflicting single-close commands until the batch
+ * coordinator commits or aborts the reservation.
+ */
+export interface BatchCloseReservation {
+  phase: "prepared" | "committed" | "aborted";
+  prepared_at: string;
+  closed_at?: string;
+  aborted_at?: string;
+  /** Closure captured at prepare time so commit can durably close the change. */
+  closure?: import("../types").ChangeClosure;
+}
+
+/** Prepare a target workflow for a batch close without closing it. */
+export interface PrepareBatchCloseSignalPayload {
+  batch_id: string;
+  closure: import("../types").ChangeClosure;
+}
+
+/** Commit a previously prepared batch close reservation. */
+export interface CommitBatchCloseSignalPayload {
+  batch_id: string;
+  /** ISO timestamp for ledger/revision stability; falls back to prepare time. */
+  committed_at?: string;
+}
+
+/** Abort a previously prepared batch close reservation. */
+export interface AbortBatchCloseSignalPayload {
+  batch_id: string;
+  reason: string;
+  /** ISO timestamp for ledger/revision stability; falls back to prepare time. */
+  aborted_at?: string;
+}
+
 export interface MockSurfaceEntry {
   pattern: string;
   count: number;
@@ -500,6 +539,12 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * (AC3, AC12).
    */
   operation_ledger?: Record<string, OperationLedgerEntry>;
+  /**
+   * Active batch-close reservations keyed by batch_id. Recorded during prepare
+   * and removed/updated after commit or abort. Conflicting single-close commands
+   * must be reducer-rejected while a reservation is in phase "prepared".
+   */
+  batch_close_reservations?: Record<string, BatchCloseReservation>;
   /**
    * Authoritative artifact content for the change, keyed by canonical
    * `ArtifactKind`. Source of truth for proposal/problemStatement/agreement/

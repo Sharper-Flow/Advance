@@ -14,6 +14,10 @@ import {
   type Phase9FinalizationStatus,
 } from "../../types";
 import { createHash } from "crypto";
+import { readFile, mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
+import { randomUUID } from "node:crypto";
+import { stableStringify } from "../../temporal/digest";
 import {
   acceptanceUpdatedSignal,
   agreementUpdatedSignal,
@@ -21,6 +25,9 @@ import {
   archiveConvergedSignal,
   archiveRequestedSignal,
   closeChangeSignal,
+  commitBatchCloseSignal,
+  abortBatchCloseSignal,
+  prepareBatchCloseSignal,
   designUpdatedSignal,
   epicMembershipClearedSignal,
   epicMembershipSetSignal,
@@ -37,7 +44,6 @@ import {
   MutationApplicationUnconfirmedError,
   waitForQueryPredicate,
 } from "../../utils/query-predicate";
-import { randomUUID } from "node:crypto";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { getCurrentSessionId } from "../../utils/session-id";
 import {
@@ -72,8 +78,15 @@ import {
 import { createLogger } from "../../utils/debug-log";
 import { enforceMutationEligibilityForError } from "../../temporal/mutation-safety";
 import { fireSignalWithMutationGuard } from "./gates";
-import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
+import { atomicWriteFile, acquireFileLock } from "../../utils/fs";
+import {
+  coordinateBatchClose,
+  type BatchCloseCoordinationDeps,
+  type BatchCloseCoordinationResult,
+  type BatchCloseOperation,
+  BatchCloseOperationSchema,
+} from "./batch-close-coordinator";
 import type { ChangeSummary } from "../store-temporal-memo";
 import {
   renderTerminalHistory,
@@ -233,6 +246,148 @@ async function fireContentSignalsSequentially(
       },
     });
   }
+}
+
+function canonicalizeBatchCloseTargetIds(target_ids: string[]): string[] {
+  // Stable order + duplicate removal: equivalent selector orders map to the
+  // same batch_id, and a target cannot appear twice in the operation record.
+  return [...new Set(target_ids)].sort();
+}
+
+function computeBatchCloseRequestHash(
+  target_ids: string[],
+  closure: ChangeClosure,
+): string {
+  const canonicalIds = canonicalizeBatchCloseTargetIds(target_ids);
+  const hash = createHash("sha256");
+  for (const id of canonicalIds) hash.update(id);
+  hash.update(stableStringify(closure));
+  return hash.digest("hex");
+}
+
+function getBatchOperationRecordPath(
+  legacy: { paths: { changes: string } },
+  batch_id: string,
+): string {
+  return `${legacy.paths.changes}/.batch-operations/${batch_id}.json`;
+}
+
+type BatchCloseOperationLoadResult =
+  | { valid: true; operation: BatchCloseOperation }
+  | { valid: false; error: string }
+  | undefined;
+
+async function loadBatchCloseOperation(
+  legacy: { paths: { changes: string } },
+  batch_id: string,
+): Promise<BatchCloseOperationLoadResult> {
+  const path = getBatchOperationRecordPath(legacy, batch_id);
+  let raw: unknown;
+  try {
+    raw = JSON.parse(await readFile(path, "utf-8"));
+  } catch (err) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      err.code === "ENOENT"
+    ) {
+      return undefined;
+    }
+    return { valid: false, error: String(err) };
+  }
+  const parsed = BatchCloseOperationSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { valid: false, error: parsed.error.message };
+  }
+  return { valid: true, operation: parsed.data };
+}
+
+async function persistBatchCloseOperation(
+  legacy: { paths: { changes: string } },
+  op: BatchCloseOperation,
+): Promise<void> {
+  const path = getBatchOperationRecordPath(legacy, op.batch_id);
+  await atomicWriteFile(path, `${JSON.stringify(op, null, 2)}\n`);
+}
+
+function createBatchCloseCoordinationDeps(
+  input: import("./shared").TemporalStoreBackendInput,
+  legacy: { paths: { changes: string } },
+  getTemporalChange: StoreDeps["getTemporalChange"],
+  preloadedOperation?: BatchCloseOperation,
+): BatchCloseCoordinationDeps {
+  return {
+    loadOperation: async () => preloadedOperation,
+    persistOperation: (op) => persistBatchCloseOperation(legacy, op),
+    resolveChange: async (changeId) => {
+      const result = await getTemporalChange(changeId);
+      if (!result.success) {
+        return { notFound: true, reason: result.error ?? "Change not found" };
+      }
+      if (!result.data) {
+        return { notFound: true, reason: "Change not found" };
+      }
+      return { state: result.data as unknown as ChangeWorkflowState };
+    },
+    sendSignal: async (changeId, signal, payload) => {
+      if (signal === "prepare") {
+        await fireGuardedSignal(
+          input,
+          changeId,
+          prepareBatchCloseSignal,
+          payload,
+        );
+      } else if (signal === "commit") {
+        await fireGuardedSignal(
+          input,
+          changeId,
+          commitBatchCloseSignal,
+          payload,
+        );
+      } else if (signal === "abort") {
+        await fireGuardedSignal(
+          input,
+          changeId,
+          abortBatchCloseSignal,
+          payload,
+        );
+      } else {
+        throw new Error(`Unknown batch close signal: ${signal}`);
+      }
+    },
+    queryState: async (changeId) =>
+      runTemporal(async () =>
+        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
+      ) as Promise<ChangeWorkflowState>,
+    now: () => new Date().toISOString(),
+  };
+}
+
+function mapBatchCloseOutcome(
+  outcome: BatchCloseCoordinationResult,
+  changeIds: string[],
+): BulkCloseResult {
+  const committedIds = new Set(
+    Object.entries(outcome.operation.per_target)
+      .filter(([, record]) => record.phase === "committed")
+      .map(([id]) => id),
+  );
+  const success = outcome.kind === "committed_all";
+  return {
+    success,
+    closed: committedIds.size,
+    results: changeIds.map((changeId) => {
+      const record = outcome.operation.per_target[changeId];
+      return {
+        changeId,
+        success: record?.phase === "committed",
+        error: record?.error,
+        state: record?.phase,
+      };
+    }),
+    message: outcome.message,
+  };
 }
 
 export function createChangeOps(deps: StoreDeps): Store["changes"] {
@@ -867,124 +1022,76 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       changeIds: string[],
       closure: ChangeClosure,
     ): Promise<BulkCloseResult> => {
-      // Pre-validate: fail-all if any target is invalid or protected
-      for (const id of changeIds) {
-        const change = await getTemporalChange(id);
-        if (!change.success || !change.data) {
+      if (changeIds.length === 0) {
+        return {
+          success: true,
+          closed: 0,
+          results: [],
+          message: "No changes to close.",
+        };
+      }
+
+      const canonicalIds = canonicalizeBatchCloseTargetIds(changeIds);
+      const batch_id = `batch-close-${computeBatchCloseRequestHash(canonicalIds, closure)}`;
+      const recordPath = getBatchOperationRecordPath(legacy, batch_id);
+
+      await mkdir(dirname(recordPath), { recursive: true });
+      const releaseLock = await acquireFileLock(recordPath);
+      try {
+        const loaded = await loadBatchCloseOperation(legacy, batch_id);
+        if (loaded && !loaded.valid) {
           return {
             success: false,
             closed: 0,
-            results: changeIds.map((cid) => ({
-              changeId: cid,
+            results: canonicalIds.map((changeId) => ({
+              changeId,
               success: false,
-              error:
-                cid === id
-                  ? change.success === false
-                    ? change.error
-                    : "Change not found"
-                  : "Aborted due to sibling failure",
+              error: `Batch operation record is corrupt or unreadable: ${loaded.error}`,
             })),
-            message: `Bulk close aborted: Change "${id}" not found.`,
+            message: `Batch ${batch_id} operation record is corrupt or unreadable; manual repair required.`,
           };
         }
-        if (change.data.status !== "draft") {
-          return {
-            success: false,
-            closed: 0,
-            results: changeIds.map((cid) => ({
-              changeId: cid,
-              success: false,
-              error:
-                cid === id
-                  ? `Protected status "${change.data!.status}"`
-                  : "Aborted due to sibling failure",
-            })),
-            message: `Bulk close aborted: Change "${id}" has protected status "${change.data.status}". Only draft changes can be bulk-closed.`,
-          };
-        }
-      }
 
-      const results: {
-        changeId: string;
-        success: boolean;
-        error?: string;
-      }[] = [];
-      let closed = 0;
+        const coordinationDeps = createBatchCloseCoordinationDeps(
+          input,
+          legacy,
+          getTemporalChange,
+          loaded?.operation,
+        );
 
-      for (const id of changeIds) {
-        try {
-          // Layer C1 (rq-archiveRetirement01-followon): disk-first
-          // safety-net write per id. If disk write fails, record a
-          // per-id failure and SKIP this id's Temporal mutation
-          // (no half-state). Other ids in the batch continue.
-          const current = await getTemporalChange(id);
-          if (!current.success || !current.data) {
-            throw new Error(
-              current.success === false
-                ? current.error
-                : `Change ${id} not found`,
+        const outcome = await coordinateBatchClose(coordinationDeps, {
+          batch_id,
+          target_ids: canonicalIds,
+          closure,
+        });
+
+        // Persist the canonical disk projection only for targets the reducer
+        // confirmed as closed. Coordinator record is already durable.
+        if (outcome.kind === "committed_all") {
+          for (const changeId of canonicalIds) {
+            const record = outcome.operation.per_target[changeId];
+            if (record?.phase !== "committed") continue;
+            const result = await runTemporal(async () =>
+              (await getGuardedChangeHandle(input, changeId)).query(
+                changeStateQuery,
+              ),
             );
+            const state = result as ChangeWorkflowState;
+            indexTasksFromState(state);
+            updateOverlay(changeId, {
+              status: "closed",
+              closure: state.closure,
+            });
+            setCachedChange(state);
+            emitChangeSummarySignal(changeId, state);
+            await persistStateToDiskDurable(changeId, state);
           }
-          const updated: Change = {
-            ...current.data,
-            status: "closed",
-            closure,
-          };
-          await legacy.changes.save(updated);
-
-          invalidateChange(id);
-
-          // Try Temporal signal; if workflow already completed, treat
-          // as disk-only close (disk save already succeeded).
-          //
-          // SC4 + SC6: see changes.close() — same guards apply here.
-          try {
-            const outcome = await fireSignalWithMutationGuard(
-              input,
-              id,
-              closeChangeSignal,
-              [closure],
-            );
-            if (outcome === "outcome_unknown_readback_unavailable") {
-              throw new Error(
-                `changes.closeBatch(${id}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-              );
-            }
-            const result = (await runTemporal(async () =>
-              (await getGuardedChangeHandle(input, id)).query(changeStateQuery),
-            )) as import("../../temporal/contracts").ChangeWorkflowState;
-            indexTasksFromState(result);
-            updateOverlay(id, { status: "closed", closure });
-            setCachedChange(result);
-            emitChangeSummarySignal(id, result);
-          } catch (err) {
-            if (!isWorkflowCompletedError(err)) throw err;
-            // Workflow already terminated — disk save succeeded.
-            logger.info(
-              `Change ${id} workflow already completed; closed on disk only (batch).`,
-            );
-            updateOverlay(id, { status: "closed", closure });
-          }
-          results.push({ changeId: id, success: true });
-          closed++;
-        } catch (err) {
-          results.push({
-            changeId: id,
-            success: false,
-            error: String(err),
-          });
         }
-      }
 
-      const allSuccess = closed === changeIds.length;
-      return {
-        success: allSuccess,
-        closed,
-        results,
-        message: allSuccess
-          ? `Successfully closed ${closed} change(s).`
-          : `Closed ${closed} of ${changeIds.length} change(s). See results for details.`,
-      };
+        return mapBatchCloseOutcome(outcome, changeIds);
+      } finally {
+        await releaseLock();
+      }
     },
     updateArtifacts: async (changeId, artifacts) => {
       // Layer 1 size validation (KD-8 layer 1). Fail fast before any disk

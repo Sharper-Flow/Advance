@@ -450,7 +450,9 @@ export async function saveSpec(specsDir: string, spec: Spec): Promise<string> {
 export async function listChangeDirs(changesDir: string): Promise<string[]> {
   try {
     const entries = await readdir(changesDir, { withFileTypes: true });
-    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    return entries
+      .filter((e) => e.isDirectory() && !e.name.startsWith("."))
+      .map((e) => e.name);
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
       logger.warn(

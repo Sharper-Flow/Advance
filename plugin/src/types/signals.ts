@@ -41,6 +41,7 @@ import {
   VerificationEvidenceDispositionSchema,
 } from "./subagent-reports";
 import {
+  ChangeClosureSchema,
   ChangeContractSchema,
   ChangeOriginSchema,
   ContractAmendmentSchema,
@@ -751,6 +752,35 @@ export const OriginRepairedSignalPayloadSchema = z.object({
 });
 export type OriginRepairedSignalPayload = z.infer<
   typeof OriginRepairedSignalPayloadSchema
+>;
+
+// =============================================================================
+// Batch Close Signal Payloads
+// =============================================================================
+
+export const PrepareBatchCloseSignalPayloadSchema = z.object({
+  batch_id: z.string().min(1),
+  closure: ChangeClosureSchema,
+});
+export type PrepareBatchCloseSignalPayload = z.infer<
+  typeof PrepareBatchCloseSignalPayloadSchema
+>;
+
+export const CommitBatchCloseSignalPayloadSchema = z.object({
+  batch_id: z.string().min(1),
+  committed_at: IsoTimestampSchema.optional(),
+});
+export type CommitBatchCloseSignalPayload = z.infer<
+  typeof CommitBatchCloseSignalPayloadSchema
+>;
+
+export const AbortBatchCloseSignalPayloadSchema = z.object({
+  batch_id: z.string().min(1),
+  reason: z.string().min(1),
+  aborted_at: IsoTimestampSchema.optional(),
+});
+export type AbortBatchCloseSignalPayload = z.infer<
+  typeof AbortBatchCloseSignalPayloadSchema
 >;
 
 // =============================================================================

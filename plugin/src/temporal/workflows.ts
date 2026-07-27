@@ -28,6 +28,9 @@ import {
   type ChangeWorkflowBootstrapState,
   type ChangeWorkflowInput,
   type CrossProjectCoordinationUpdatedSignalPayload,
+  type PrepareBatchCloseSignalPayload,
+  type CommitBatchCloseSignalPayload,
+  type AbortBatchCloseSignalPayload,
   type EpicWorkflowInput,
   type EpicWorkflowState,
 } from "./contracts";
@@ -92,6 +95,9 @@ import {
   applyWorktreeSetupFailedToState,
   archiveChangeInChangeState,
   closeChangeInChangeState,
+  prepareBatchCloseInChangeState,
+  commitBatchCloseInChangeState,
+  abortBatchCloseInChangeState,
   createChangeWorkflowState,
   findMutationReceipt,
   getTaskFromChangeState,
@@ -504,6 +510,15 @@ const archiveChangeSignal = wf.defineSignal(
 const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange,
 );
+const prepareBatchCloseSignal = wf.defineSignal<
+  [PrepareBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.prepareBatchClose);
+const commitBatchCloseSignal = wf.defineSignal<[CommitBatchCloseSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.commitBatchClose,
+);
+const abortBatchCloseSignal = wf.defineSignal<[AbortBatchCloseSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.abortBatchClose,
+);
 // Update definitions removed — signal-only architecture (R1.1)
 
 // Epic workflow signal/query definitions
@@ -702,6 +717,7 @@ export function buildChangeWorkflowContinueAsNewSeed(
       testRuns: state.testRuns,
       state_revision: state.state_revision,
       operation_ledger: state.operation_ledger,
+      batch_close_reservations: state.batch_close_reservations,
     },
   };
 }
@@ -2102,6 +2118,43 @@ export async function changeWorkflow(
       });
       return state;
     }),
+  );
+
+  wf.setHandler(
+    prepareBatchCloseSignal,
+    signalMutation("prepareBatchClose", (payload) =>
+      prepareBatchCloseInChangeState(state, payload),
+    ),
+  );
+
+  wf.setHandler(
+    commitBatchCloseSignal,
+    signalAsync("commitBatchClose", async (payload) => {
+      commitBatchCloseInChangeState(state, payload);
+      if (
+        state.status === "closed" &&
+        input.searchAttributesEnabled !== false
+      ) {
+        try {
+          wf.upsertSearchAttributes({
+            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+          });
+        } catch (saErr) {
+          wf.log.warn("search-attribute-upsert-failed", {
+            op: "commitBatchCloseSignal",
+            changeId: state.changeId,
+            error: saErr instanceof Error ? saErr.message : String(saErr),
+          });
+        }
+      }
+    }),
+  );
+
+  wf.setHandler(
+    abortBatchCloseSignal,
+    signalMutation("abortBatchClose", (payload) =>
+      abortBatchCloseInChangeState(state, payload),
+    ),
   );
 
   const thresholds = resolveHistoryThresholds();

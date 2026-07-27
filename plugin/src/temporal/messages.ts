@@ -376,6 +376,16 @@ export const closeChangeSignal = wf.defineSignal<
   [import("../types").ChangeClosure]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange);
 
+export const prepareBatchCloseSignal = wf.defineSignal<
+  [import("../types").PrepareBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.prepareBatchClose);
+export const commitBatchCloseSignal = wf.defineSignal<
+  [import("../types").CommitBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.commitBatchClose);
+export const abortBatchCloseSignal = wf.defineSignal<
+  [import("../types").AbortBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.abortBatchClose);
+
 export const workerBundleProvenanceRecordedSignal = wf.defineSignal<
   [WorkerBundleProvenanceRecordedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleProvenanceRecorded);
