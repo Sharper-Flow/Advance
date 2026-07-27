@@ -45,12 +45,13 @@ import {
 } from "../../utils/query-predicate";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { getCurrentSessionId } from "../../utils/session-id";
-import { isSchemaError, loadChange, removeChangeDir } from "../json";
+import { removeChangeDir } from "../json";
+import { isSchemaError, loadChange } from "../change-projection-reader";
 import {
   listSummaryChanges,
   type SummaryIndexPaths,
   type ChangeSummaryShard,
-} from "../change-summary-shard";
+} from "../change-summary-shard-reader";
 import {
   runTemporal,
   runTemporalQuery,

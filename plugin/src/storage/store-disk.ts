@@ -76,8 +76,8 @@ import {
   listRetiredEpicProjections,
   loadActiveEpicProjection,
   loadRetiredEpicProjection,
-  saveRetiredEpicProjection,
-} from "./epic-projection";
+} from "./epic-projection-reader";
+import { saveRetiredEpicProjection } from "./epic-projection";
 import {
   buildChangeRecency,
   computeLastActivity,

@@ -6,9 +6,9 @@
  * only (never exposed via bin/adv) and do not touch Temporal workflows.
  */
 
-import type { Store } from "../storage/store";
+import type { Store } from "../storage/store-types";
 import { buildLauncherProjection } from "../storage/launcher-projection";
-import { atomicWriteFile } from "../utils/fs";
+import { writeLauncherProjection } from "../storage/launcher-projection-writer";
 import { formatToolOutput } from "../utils/tool-output";
 import { createLogger } from "../utils/debug-log";
 
@@ -37,7 +37,7 @@ export const launcherProjectionTools = {
           degradedThresholdMs: 300_000,
         });
 
-        await atomicWriteFile(path, `${JSON.stringify(projection, null, 2)}\n`);
+        await writeLauncherProjection(path, projection);
 
         return formatToolOutput({
           ok: true,

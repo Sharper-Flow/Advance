@@ -1,9 +1,15 @@
+/**
+ * Epic projection readers.
+ *
+ * These helpers intentionally have no Temporal dependency and no active write
+ * surface. They are the read side of the epic projection store.
+ */
+
 import { join, basename } from "path";
-import { mkdir, readdir, readFile, access, rm } from "fs/promises";
+import { readdir, readFile, access } from "fs/promises";
 import { ZodError } from "zod";
 import type { Epic, RetiredEpicProjection } from "../types";
 import { EpicSchema, RetiredEpicProjectionSchema } from "../types";
-import { atomicWriteFile } from "../utils/fs";
 import type { LoadResult } from "./change-projection-reader";
 
 function formatZodError(
@@ -67,17 +73,6 @@ export async function loadRetiredEpicProjection(
   }
 }
 
-export async function saveRetiredEpicProjection(
-  retiredEpicsDir: string,
-  epicId: string,
-  projection: RetiredEpicProjection,
-): Promise<void> {
-  const projectionDir = join(retiredEpicsDir, epicId);
-  const projectionPath = join(projectionDir, "retired-projection.json");
-  await mkdir(projectionDir, { recursive: true });
-  await atomicWriteFile(projectionPath, JSON.stringify(projection, null, 2));
-}
-
 export async function loadActiveEpicProjection(
   activeEpicsDir: string | undefined,
   epicId: string,
@@ -99,26 +94,6 @@ export async function loadActiveEpicProjection(
       type: error instanceof ZodError ? "schema_error" : "read_error",
     };
   }
-}
-
-export async function saveActiveEpicProjection(
-  activeEpicsDir: string,
-  epic: Epic,
-): Promise<void> {
-  const dir = join(activeEpicsDir, epic.id);
-  await mkdir(dir, { recursive: true });
-  await atomicWriteFile(
-    join(dir, "active-projection.json"),
-    JSON.stringify(EpicSchema.parse(epic), null, 2),
-  );
-}
-
-export async function removeActiveEpicProjection(
-  activeEpicsDir: string | undefined,
-  epicId: string,
-): Promise<void> {
-  if (!activeEpicsDir) return;
-  await rm(join(activeEpicsDir, epicId), { recursive: true, force: true });
 }
 
 export async function listActiveEpicProjections(

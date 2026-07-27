@@ -12,7 +12,7 @@ import {
   parseToolOutput,
 } from "../__tests__/setup";
 import { getProjectId, getExternalRoot } from "../utils/project-id";
-import type { Store } from "../storage/store";
+import type { Store } from "../storage/store-types";
 
 async function initGitRepo(dir: string): Promise<void> {
   const { execFile } = await import("child_process");
@@ -59,44 +59,45 @@ async function initGitRepo(dir: string): Promise<void> {
   });
 }
 
-function writeChangeProjection(
+async function writeSummaryProjection(
+  summariesDir: string,
   changesDir: string,
   changeId: string,
-  state: Record<string, unknown>,
-) {
-  return writeFile(
-    join(changesDir, `${changeId}.json`),
-    JSON.stringify(
-      {
-        schemaVersion: 2,
-        projectId: "test-project",
-        changeId,
-        projectedAt: "2026-07-23T12:00:00.000Z",
-        state,
-      },
-      null,
-      2,
-    ),
-  );
-}
+): Promise<void> {
+  const changeDir = join(summariesDir, changeId);
+  const revDir = join(changeDir, "revisions");
+  await mkdir(revDir, { recursive: true });
 
-function makeState(changeId: string): Record<string, unknown> {
-  return {
+  const shardPath = join(revDir, "1.json");
+  const pointerPath = join(changeDir, "current.json");
+  const shard = {
+    schema_version: 1,
     id: changeId,
     title: `Title ${changeId}`,
     status: "draft",
-    createdAt: "2026-07-23T10:00:00.000Z",
-    tasks: [],
-    gates: {
-      proposal: { status: "pending" },
-      discovery: { status: "pending" },
-      design: { status: "pending" },
-      planning: { status: "pending" },
-      execution: { status: "pending" },
-      acceptance: { status: "pending" },
-      release: { status: "pending" },
-    },
+    phase: "proposal",
+    created_at: "2026-07-23T10:00:00.000Z",
+    last_activity_at: new Date().toISOString(),
+    task_count: 0,
+    completed_tasks: 0,
+    state_revision: 0,
+    operation_id: "test",
+    projection_revision: 1,
+    capabilities: [],
   };
+  const pointer = {
+    schema_version: 1,
+    change_id: changeId,
+    state_revision: 0,
+    projection_revision: 1,
+    operation_id: "test",
+    shard_path: shardPath,
+    snapshot_path: join(changesDir, changeId, "change.json"),
+    committed_at: "2026-07-23T12:00:00.000Z",
+  };
+
+  await writeFile(shardPath, JSON.stringify(shard, null, 2));
+  await writeFile(pointerPath, JSON.stringify(pointer, null, 2));
 }
 
 describe("adv_launcher_projection_rebuild", () => {
@@ -113,8 +114,10 @@ describe("adv_launcher_projection_rebuild", () => {
     const externalRoot = getExternalRoot(projectId);
     const changesDir = join(externalRoot, "changes");
     const archiveDir = join(externalRoot, "archive");
+    const summariesDir = join(externalRoot, "summaries");
     await mkdir(changesDir, { recursive: true });
     await mkdir(archiveDir, { recursive: true });
+    await mkdir(summariesDir, { recursive: true });
 
     store = {
       paths: {
@@ -122,6 +125,7 @@ describe("adv_launcher_projection_rebuild", () => {
         external: externalRoot,
         changes: changesDir,
         archive: archiveDir,
+        summariesDir,
         specs: join(tempDir, ".adv/specs"),
         docs: join(tempDir, "docs/specs"),
         config: join(tempDir, "project.json"),
@@ -139,16 +143,16 @@ describe("adv_launcher_projection_rebuild", () => {
     await cleanupTempDir(tempDir);
   });
 
-  test("regenerates active-launcher-state.json from seeded changes dir", async () => {
-    await writeChangeProjection(
+  test("regenerates active-launcher-state.json from seeded summary pointers", async () => {
+    await writeSummaryProjection(
+      store.paths.summariesDir,
       store.paths.changes,
       "change-a",
-      makeState("change-a"),
     );
-    await writeChangeProjection(
+    await writeSummaryProjection(
+      store.paths.summariesDir,
       store.paths.changes,
       "change-b",
-      makeState("change-b"),
     );
 
     const result =

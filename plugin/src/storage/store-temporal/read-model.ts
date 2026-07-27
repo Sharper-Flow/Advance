@@ -1,5 +1,5 @@
 import type { Change, Task } from "../../types";
-import { loadChange, type LoadResult } from "../json";
+import { loadChange, type LoadResult } from "../change-projection-reader";
 import type { ReadSnapshot } from "../store-types";
 
 /**

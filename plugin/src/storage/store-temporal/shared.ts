@@ -29,13 +29,13 @@ import {
   requireMutationEligible,
   type TemporalMutationOutcome,
 } from "../../temporal/mutation-safety";
-import { isSchemaError } from "../json";
+import { isSchemaError } from "../change-projection-reader";
 import type { DiskPersistOutcome } from "./disk-persist";
 import { DiskProjectionPersistError } from "./disk-persist";
 import type {
   ChangeSummaryShard,
   ChangeSummaryPointer,
-} from "../change-summary-shard";
+} from "../change-summary-shard-reader";
 import { commitChangeProjectionWithSummary } from "../change-summary-shard";
 import {
   changeStateQuery,

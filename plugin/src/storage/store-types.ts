@@ -42,7 +42,8 @@ import type {
 } from "../types";
 import type { GateProgress } from "./store-temporal-memo";
 import type { TemporalReadContext } from "./store-temporal/read-context";
-import type { ProjectPaths, LoadResult } from "./json";
+import type { ProjectPaths } from "./json";
+import type { LoadResult } from "./change-projection-reader";
 import type { ProductContext } from "./product-context";
 import { z } from "zod";
 

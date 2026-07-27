@@ -8,9 +8,9 @@
 import { existsSync } from "fs";
 import { join } from "path";
 import { z } from "zod";
-import type { Store } from "../storage/store";
-import { listSpecDirs, loadSpec } from "../storage/json";
-import type { SearchResult } from "../storage/store";
+import type { Store } from "../storage/store-types";
+import { listSpecDirs, loadSpec } from "../storage/spec-filesystem";
+import type { SearchResult } from "../storage/store-types";
 import { formatToolOutput, paginate } from "../utils/tool-output";
 
 // =============================================================================

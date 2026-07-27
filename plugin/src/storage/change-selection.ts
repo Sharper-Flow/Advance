@@ -6,7 +6,7 @@
  */
 
 import type { BulkCloseSelector, Change, ChangeListResponse } from "../types";
-import type { LoadResult } from "./json";
+import type { LoadResult } from "./change-projection-reader";
 
 export interface SelectionDeps {
   list: (filter?: {

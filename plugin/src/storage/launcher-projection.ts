@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   listSummaryChanges,
   type ChangeSummaryShard,
-} from "./change-summary-shard";
+} from "./change-summary-shard-reader";
 
 export const LauncherChangeSummarySchema = z.object({
   id: z.string(),

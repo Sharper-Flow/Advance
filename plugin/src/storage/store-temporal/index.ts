@@ -3,12 +3,12 @@ import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
+import { hasArchiveBundle } from "../json";
 import {
-  hasArchiveBundle,
   isSchemaError,
   listChangeDirs,
   loadChange,
-} from "../json";
+} from "../change-projection-reader";
 import type {
   ChangeStatus,
   EpicMembership,
@@ -21,7 +21,7 @@ import type {
 } from "../../types";
 import { SpecSchema } from "../../types";
 import { listSpecsFilesystem, readSpecFilesystem } from "../spec-filesystem";
-import type { LoadResult } from "../json";
+import type { LoadResult } from "../change-projection-reader";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import {
   listSourceRankedCandidates,
