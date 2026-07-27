@@ -483,10 +483,9 @@ export async function writeChangeProjection(
   // activity or change the return value.
   try {
     const externalRoot = dirname(input.projectionChangesDir);
-    const archiveDir = join(externalRoot, "archive");
     const projection = await buildLauncherProjection({
       changesDir: input.projectionChangesDir,
-      archiveDir,
+      summariesDir: join(externalRoot, "summaries"),
       generatedAt: input.state.lastSignalAt ?? input.projectedAt,
       degradedThresholdMs: 300_000,
     });

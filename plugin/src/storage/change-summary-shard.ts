@@ -21,6 +21,7 @@ import { readdir, readFile } from "fs/promises";
 import type { Dirent } from "fs";
 import { atomicWriteFile } from "../utils/fs";
 import type { Change } from "../types";
+import { FastFollowOfSchema } from "../types";
 import {
   commitChangeProjection,
   type CommitChangeProjectionOptions,
@@ -41,12 +42,20 @@ export const ChangeSummaryShardSchema = z.object({
   state_revision: z.number().int().nonnegative(),
   operation_id: z.string(),
   projection_revision: z.number().int().nonnegative(),
+  capabilities: z.array(z.string()).default([]),
+  fast_follow_of: FastFollowOfSchema.optional(),
   epic_membership: z
     .object({
       epic_id: z.string(),
       entry_id: z.string(),
       order: z.number().int().min(0),
       title: z.string(),
+      linked_at: z.string(),
+      epic_project_id: z.string().optional(),
+      repo_id: z.string().optional(),
+      source: z
+        .enum(["create", "promote_shell", "link_existing", "move"])
+        .optional(),
     })
     .optional(),
 });
@@ -155,9 +164,13 @@ function deriveSummaryShard(
     state_revision: change.state_revision ?? 0,
     operation_id: operationId,
     projection_revision: projectionRevision,
+    capabilities: Object.keys(change.deltas ?? {}),
   };
   if (change.epic_membership) {
     shard.epic_membership = change.epic_membership;
+  }
+  if (change.fast_follow_of) {
+    shard.fast_follow_of = change.fast_follow_of;
   }
   return shard;
 }

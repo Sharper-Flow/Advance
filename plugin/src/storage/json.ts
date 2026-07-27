@@ -39,6 +39,7 @@ export type LoadResult<T> =
         | "workflow"
         | "disk"
         | "archive"
+        | "active_projection"
         | "retired_projection"
         | "read_model";
     }
@@ -193,6 +194,7 @@ export interface ProjectPaths {
   changes: string;
   summariesDir: string;
   archive: string;
+  activeEpics: string;
   retiredEpics: string;
   wisdom: string;
   reflections: string;
@@ -236,6 +238,7 @@ export function getProjectPaths(
       changes: join(ext, changesDir),
       summariesDir: join(ext, "summaries"),
       archive: join(ext, archiveDir),
+      activeEpics: join(ext, "active-epics"),
       retiredEpics: join(ext, "retired-epics"),
       wisdom: join(ext, "wisdom.jsonl"),
       reflections: join(ext, "reflections.jsonl"),
@@ -254,6 +257,7 @@ export function getProjectPaths(
     changes: join(root, config?.changes_dir ?? ".adv/changes"),
     summariesDir: join(root, ".adv/summaries"),
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
+    activeEpics: join(root, ".adv/active-epics"),
     retiredEpics: join(root, ".adv/retired-epics"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
     reflections: join(root, ".adv/reflections.jsonl"),

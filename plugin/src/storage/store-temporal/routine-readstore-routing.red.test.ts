@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDefaultGates, type Change } from "../../types";
 import { createDiskStore } from "../store-disk";
+import { rebuildSummaryIndex } from "../change-summary-shard";
 import { createTemporalStoreBackend } from "./index";
 
 const CHANGE_ID = "read-model-routine";
@@ -52,6 +53,7 @@ function projection(): Change {
 
 function poisonedTemporal() {
   let queryCalls = 0;
+  let visibilityCalls = 0;
   return {
     temporal: {
       client: {
@@ -62,6 +64,12 @@ function poisonedTemporal() {
               throw new Error("routine read must not hydrate from workflow");
             },
           }),
+          list: async () => {
+            visibilityCalls += 1;
+            throw new Error(
+              "routine read must not enumerate Temporal Visibility",
+            );
+          },
           start: async () => {
             throw new Error("routine read must not start a workflow");
           },
@@ -69,6 +77,7 @@ function poisonedTemporal() {
       },
     },
     queryCalls: () => queryCalls,
+    visibilityCalls: () => visibilityCalls,
   };
 }
 
@@ -84,6 +93,10 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(projection());
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
     const poisoned = poisonedTemporal();
     return {
       store: createTemporalStoreBackend({
@@ -109,6 +122,52 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
         projection_revision: 7,
       },
     });
+  });
+
+  it("changes.listSummary reads immutable summary pointers for default and filtered pages without Visibility or hydration", async () => {
+    const { store, queryCalls, visibilityCalls } =
+      await createStoreWithProjection();
+
+    const result = await store.changes.listSummary!({
+      status: "draft",
+      limit: 1,
+      offset: 0,
+    });
+
+    expect(queryCalls()).toBe(0);
+    expect(visibilityCalls()).toBe(0);
+    expect(result.hydrationStats).toMatchObject({
+      fromHydration: 0,
+      fromMemo: 1,
+    });
+    expect(result.changes).toEqual([
+      expect.objectContaining({
+        id: CHANGE_ID,
+        status: "draft",
+        lastActivityAt: "2026-07-27T00:00:00.000Z",
+      }),
+    ]);
+  });
+
+  it("changes.list reads immutable summary pointers without Visibility or hydration", async () => {
+    const { store, queryCalls, visibilityCalls } =
+      await createStoreWithProjection();
+
+    const result = await store.changes.list({});
+
+    expect(queryCalls()).toBe(0);
+    expect(visibilityCalls()).toBe(0);
+    expect(result.hydrationStats).toMatchObject({
+      fromHydration: 0,
+      fromMemo: 1,
+    });
+    expect(result.changes).toEqual([
+      expect.objectContaining({
+        id: CHANGE_ID,
+        status: "draft",
+        capabilities: [],
+      }),
+    ]);
   });
 
   it("gates.get reads gates from the projection with no query", async () => {

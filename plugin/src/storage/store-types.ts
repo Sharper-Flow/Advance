@@ -272,6 +272,9 @@ export interface ReadStore extends StoreBase {
       titleContains?: string;
       createdBefore?: string;
       lastActivityBefore?: string;
+      sort?: "recency" | "stalest" | "default";
+      limit?: number;
+      offset?: number;
       /** Internal caller-specific cap for per-change hydration. */
       validationConcurrency?: number;
     }) => Promise<ChangeListResponse>;
@@ -287,6 +290,9 @@ export interface ReadStore extends StoreBase {
       titleContains?: string;
       createdBefore?: string;
       lastActivityBefore?: string;
+      sort?: "recency" | "stalest" | "default";
+      limit?: number;
+      offset?: number;
     }) => Promise<
       ChangeListResponse & {
         hydrationStats?: {
@@ -795,6 +801,9 @@ export interface Store extends ReadStore, CommandStore {
       titleContains?: string;
       createdBefore?: string;
       lastActivityBefore?: string;
+      sort?: "recency" | "stalest" | "default";
+      limit?: number;
+      offset?: number;
     }) => Promise<
       ChangeListResponse & {
         hydrationStats?: {

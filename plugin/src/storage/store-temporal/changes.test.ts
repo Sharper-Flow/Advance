@@ -17,7 +17,6 @@ import { isWorkflowCompletedError } from "../../temporal/recovery-classification
 import { ChangeSummaryMemo } from "../store-temporal-memo";
 
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
-const renderTerminalHistory = vi.hoisted(() => vi.fn());
 const getCurrentSessionIdMock = vi.hoisted(() => vi.fn());
 const removeChangeDirMock = vi.hoisted(() => vi.fn());
 
@@ -26,7 +25,7 @@ vi.mock("../../temporal/workflow-start", () => ({
 }));
 
 vi.mock("../../archive/terminal-history", () => ({
-  renderTerminalHistory,
+  renderTerminalHistory: vi.fn(),
   TERMINAL_HISTORY_DEADLINE_BUDGET_MS: 20_000,
 }));
 
@@ -48,10 +47,13 @@ vi.mock("../json", async (importOriginal) => {
   };
 });
 
+const listSummaryChanges = vi.hoisted(() => vi.fn());
+
 vi.mock("../change-summary-shard", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
+    listSummaryChanges,
     commitChangeProjectionWithSummary: vi.fn().mockResolvedValue({
       kind: "committed",
       snapshotRevision: 1,
@@ -746,74 +748,84 @@ describe("createChangeOps", () => {
   });
 
   describe("listSummary (rq-changeSummaryReadModel01)", () => {
-    test("serves memo-only candidates without per-change full hydration", async () => {
-      const memo = new ChangeSummaryMemo();
-      memo.set("changeA", {
-        id: "changeA",
-        title: "Change A",
-        status: "active",
-        gateProgress: {
-          proposal: "done",
-          discovery: "done",
-          design: "done",
-          planning: "done",
-          execution: "pending",
-          acceptance: "pending",
-          release: "pending",
-        },
-        taskCounts: { total: 4, done: 2, pending: 2 },
-        lastActivityAt: "2026-05-26T00:00:00.000Z",
-      });
-      memo.set("changeB", {
-        id: "changeB",
-        title: "Change B",
+    function summaryShard(
+      id: string,
+      overrides: Partial<
+        import("../change-summary-shard").ChangeSummaryShard
+      > = {},
+    ): import("../change-summary-shard").ChangeSummaryShard {
+      return {
+        schema_version: 1,
+        id,
+        title: `Change ${id}`,
         status: "draft",
-        gateProgress: {
-          proposal: "pending",
-          discovery: "pending",
-          design: "pending",
-          planning: "pending",
-          execution: "pending",
-          acceptance: "pending",
-          release: "pending",
-        },
-        taskCounts: { total: 0, done: 0, pending: 0 },
-        lastActivityAt: "2026-05-25T12:00:00.000Z",
-      });
+        phase: "proposal",
+        created_at: "2026-05-20T00:00:00.000Z",
+        last_activity_at: "2026-05-20T00:00:00.000Z",
+        task_count: 0,
+        completed_tasks: 0,
+        state_revision: 1,
+        operation_id: "op-1",
+        projection_revision: 1,
+        capabilities: [],
+        ...overrides,
+      };
+    }
 
+    function buildOps(paths: {
+      changes: string;
+      summariesDir: string;
+      root: string;
+    }) {
+      const workflowClient = { workflow: { getHandle: vi.fn() } };
       const getTemporalChange = vi.fn();
-      const legacy = {
-        paths: { changes: "/tmp/changes", root: "/tmp/project" },
-        changes: {
-          get: vi.fn().mockResolvedValue({ success: false }),
-        },
-      };
-      const workflowClient = {
-        workflow: {
-          // No `list` method → forces disk fallback path, no Visibility call.
-          getHandle: vi.fn(),
-        },
-      };
-
-      const ops = createChangeOps({
-        input: {
-          legacy,
-          temporal: { client: workflowClient },
-          projectId: "pid-summary",
-        },
-        legacy,
-        invalidateChange: vi.fn(),
-        updateOverlay: vi.fn(),
-        emitChangeSummarySignal: vi.fn(),
-        indexTasksFromState: vi.fn(),
-        setCachedChange: vi.fn(),
+      return {
+        ops: createChangeOps({
+          input: {
+            legacy: { paths, changes: { get: vi.fn() } },
+            temporal: { client: workflowClient },
+            projectId: "pid-summary",
+          },
+          legacy: { paths, changes: { get: vi.fn() } },
+          invalidateChange: vi.fn(),
+          updateOverlay: vi.fn(),
+          emitChangeSummarySignal: vi.fn(),
+          indexTasksFromState: vi.fn(),
+          setCachedChange: vi.fn(),
+          getTemporalChange,
+          getTemporalWorkflowClient: () => workflowClient,
+          dualWriteAfterMutation: vi.fn(),
+          memo: new ChangeSummaryMemo(),
+          changeCache: new Map(),
+        } as never),
         getTemporalChange,
-        listResolvedChanges: vi.fn(),
-        getTemporalWorkflowClient: () => workflowClient,
-        dualWriteAfterMutation: vi.fn(),
-        memo,
-        changeCache: new Map(),
-      } as never);
+      };
+    }
+
+    test("serves rows from immutable summary shards without workflow hydration", async () => {
+      listSummaryChanges.mockResolvedValue({
+        kind: "ok",
+        summaries: [
+          summaryShard("changeA", {
+            status: "draft",
+            task_count: 4,
+            completed_tasks: 2,
+            phase: "execution",
+            last_activity_at: "2026-05-26T00:00:00.000Z",
+          }),
+          summaryShard("changeB", {
+            status: "draft",
+            task_count: 0,
+            completed_tasks: 0,
+            last_activity_at: "2026-05-25T12:00:00.000Z",
+          }),
+        ],
+      });
+      const { ops, getTemporalChange } = buildOps({
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/summaries",
+        root: "/tmp/project",
+      });
 
       const result = await ops.listSummary!();
 
@@ -831,278 +843,153 @@ describe("createChangeOps", () => {
       const a = result.changes.find((c) => c.id === "changeA")!;
       expect(a.taskCount).toBe(4);
       expect(a.completedTasks).toBe(2);
-      expect(a.status).toBe("active");
+      expect(a.currentGate).toBe("execution");
+      expect(a.status).toBe("draft");
     });
 
-    test("falls back to full hydration for IDs missing from memo and cache", async () => {
-      const memo = new ChangeSummaryMemo();
-      const getTemporalChange = vi.fn().mockResolvedValue({
-        success: true,
-        data: {
-          id: "diskOnlyChange",
-          title: "Disk Only",
-          status: "active",
-          created_at: "2026-05-20T00:00:00.000Z",
-          tasks: [{ id: "t1", status: "done" }],
-          deltas: {},
-          wisdom: [],
-          gates: {},
-          reentry_history: [],
-        },
-      });
-      const legacy = {
-        paths: { changes: "/tmp/changes", root: "/tmp/project" },
-        changes: {
-          get: vi.fn(),
-        },
-      };
-      const workflowClient = { workflow: { getHandle: vi.fn() } };
-
-      // Seed memo so the candidate ID enters the listSummary set; the
-      // cache short-circuit serves it before any hydration call fires.
-      memo.set("diskOnlyChange", {
-        id: "diskOnlyChange",
-        title: "Disk Only",
-        status: "active",
-        gateProgress: {
-          proposal: "done",
-          discovery: "pending",
-          design: "pending",
-          planning: "pending",
-          execution: "pending",
-          acceptance: "pending",
-          release: "pending",
-        },
-        taskCounts: { total: 1, done: 1, pending: 0 },
-        lastActivityAt: "2026-05-20T00:00:00.000Z",
-      });
-      const seededCache = new Map();
-      seededCache.set("diskOnlyChange", {
-        id: "diskOnlyChange",
-        title: "Disk Only",
-        status: "active",
-        created_at: "2026-05-20T00:00:00.000Z",
-        tasks: [{ id: "t1", status: "done" }],
-        deltas: {},
-        wisdom: [],
-        gates: {},
-        reentry_history: [],
-      });
-
-      const ops2 = createChangeOps({
-        input: {
-          legacy,
-          temporal: { client: workflowClient },
-          projectId: "pid-fallback",
-        },
-        legacy,
-        invalidateChange: vi.fn(),
-        updateOverlay: vi.fn(),
-        emitChangeSummarySignal: vi.fn(),
-        indexTasksFromState: vi.fn(),
-        setCachedChange: vi.fn(),
-        getTemporalChange,
-        listResolvedChanges: vi.fn(),
-        getTemporalWorkflowClient: () => workflowClient,
-        dualWriteAfterMutation: vi.fn(),
-        memo,
-        changeCache: seededCache,
-      } as never);
-
-      const result = await ops2.listSummary!();
-
-      expect(result.hydrationStats?.fromCache).toBe(1);
-      expect(result.hydrationStats?.fromHydration).toBe(0);
-      expect(getTemporalChange).not.toHaveBeenCalled();
-      expect(result.changes.map((c) => c.id)).toEqual(["diskOnlyChange"]);
-      expect(result.changes[0].taskCount).toBe(1);
-      expect(result.changes[0].completedTasks).toBe(1);
-    });
-
-    test("uses terminal-history render for archived/closed filters plus active-only hydration", async () => {
-      const memo = new ChangeSummaryMemo();
-      const listResolvedChanges = vi.fn().mockResolvedValue({
-        changes: [
-          {
-            id: "activeC",
-            title: "Active",
-            status: "draft",
-            created_at: "2026-05-11T00:00:00.000Z",
-            tasks: [],
-            deltas: {},
-            wisdom: [],
-            gates: {},
-            reentry_history: [],
-          },
+    test("includes archived/closed terminal rows when explicitly requested", async () => {
+      listSummaryChanges.mockResolvedValue({
+        kind: "ok",
+        summaries: [
+          summaryShard("activeA", { status: "draft" }),
+          summaryShard("archivedB", { status: "archived" }),
+          summaryShard("closedC", { status: "closed" }),
         ],
-        warnings: [],
       });
-      renderTerminalHistory.mockResolvedValue({
-        changes: [
-          {
-            id: "archivedC",
-            title: "Archived",
-            status: "archived",
-            currentGate: "done",
-            created_at: "2026-05-10T00:00:00.000Z",
-            lastActivityAt: "2026-05-10T00:00:00.000Z",
-            taskCount: 0,
-            completedTasks: 0,
-            capabilities: [],
-          },
-        ],
-        warnings: [
-          {
-            code: "TERMINAL_SOURCE_DEGRADED",
-            source: "archive",
-            message: "summary fallback",
-          },
-        ],
-        hydrationStats: {
-          terminalFromArchive: 1,
-          terminalFromDisk: 0,
-          terminalFromWorkflow: 0,
-          terminalCandidates: 1,
-          omitted: 0,
-        },
+      const { ops } = buildOps({
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/summaries",
+        root: "/tmp/project",
       });
-      const legacy = {
-        paths: {
-          changes: "/tmp/changes",
-          root: "/tmp/project",
-          archive: "/tmp/project/archive",
-        },
-        changes: { get: vi.fn() },
-      };
-      const workflowClient = { workflow: { getHandle: vi.fn() } };
-
-      const ops = createChangeOps({
-        input: {
-          legacy,
-          temporal: { client: workflowClient },
-          projectId: "pid-terminal",
-        },
-        legacy,
-        invalidateChange: vi.fn(),
-        updateOverlay: vi.fn(),
-        emitChangeSummarySignal: vi.fn(),
-        indexTasksFromState: vi.fn(),
-        setCachedChange: vi.fn(),
-        getTemporalChange: vi.fn(),
-        listResolvedChanges,
-        getTemporalWorkflowClient: () => workflowClient,
-        dualWriteAfterMutation: vi.fn(),
-        memo,
-        changeCache: new Map(),
-      } as never);
 
       const result = await ops.listSummary!({ includeArchived: true });
 
-      expect(renderTerminalHistory).toHaveBeenCalledWith(
-        expect.objectContaining({
-          archivePath: "/tmp/project/archive",
-          changesPath: "/tmp/changes",
-          includeArchived: true,
-          includeClosed: false,
-        }),
-      );
-      expect(listResolvedChanges).toHaveBeenCalledWith(
-        { includeArchived: false, includeClosed: false },
-        expect.objectContaining({ budgetMs: expect.any(Number) }),
-      );
       expect(result.changes.map((c) => c.id).sort()).toEqual([
-        "activeC",
-        "archivedC",
+        "activeA",
+        "archivedB",
       ]);
-      expect(result.hydrationStats?.fromMemo).toBe(0);
-      expect(result.hydrationStats?.fromHydration).toBe(1);
-      expect(result.hydrationStats?.terminalFromArchive).toBe(1);
-      expect(result.warnings).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ code: "TERMINAL_SOURCE_DEGRADED" }),
-        ]),
+      expect(result.changes.find((c) => c.id === "archivedB")?.status).toBe(
+        "archived",
       );
     });
 
-    test("default active/in-flight listSummary excludes terminal rows and stays on the memo path", async () => {
-      const memo = new ChangeSummaryMemo();
-      const allDone = {
-        proposal: "done" as const,
-        discovery: "done" as const,
-        design: "done" as const,
-        planning: "done" as const,
-        execution: "done" as const,
-        acceptance: "done" as const,
-        release: "done" as const,
-      };
-      memo.set("activeA", {
-        id: "activeA",
-        title: "Active A",
-        status: "active",
-        gateProgress: allDone,
-        taskCounts: { total: 1, done: 0, pending: 1 },
-        lastActivityAt: "2026-05-26T00:00:00.000Z",
+    test("filters by status, prefix, title, and timestamps", async () => {
+      listSummaryChanges.mockResolvedValue({
+        kind: "ok",
+        summaries: [
+          summaryShard("alpha-1", {
+            title: "Alpha feature",
+            created_at: "2026-05-10T00:00:00.000Z",
+            last_activity_at: "2026-05-10T00:00:00.000Z",
+          }),
+          summaryShard("beta-2", {
+            title: "Beta feature",
+            created_at: "2026-05-15T00:00:00.000Z",
+            last_activity_at: "2026-05-15T00:00:00.000Z",
+          }),
+          summaryShard("alpha-3", {
+            title: "Alpha other",
+            created_at: "2026-05-20T00:00:00.000Z",
+            last_activity_at: "2026-05-21T00:00:00.000Z",
+          }),
+        ],
       });
-      memo.set("archivedB", {
-        id: "archivedB",
-        title: "Archived B",
-        status: "archived",
-        gateProgress: allDone,
-        taskCounts: { total: 0, done: 0, pending: 0 },
-        lastActivityAt: "2026-05-25T00:00:00.000Z",
-      });
-      memo.set("closedC", {
-        id: "closedC",
-        title: "Closed C",
-        status: "closed",
-        gateProgress: allDone,
-        taskCounts: { total: 0, done: 0, pending: 0 },
-        lastActivityAt: "2026-05-24T00:00:00.000Z",
+      const { ops } = buildOps({
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/summaries",
+        root: "/tmp/project",
       });
 
-      const listResolvedChanges = vi
-        .fn()
-        .mockRejectedValue(
-          new Error("listResolvedChanges should not be called for active-only"),
-        );
-      const getTemporalChange = vi
-        .fn()
-        .mockRejectedValue(
-          new Error("getTemporalChange should not be called for memo-only"),
-        );
-      const legacy = {
-        paths: { changes: "/tmp/changes", root: "/tmp/project" },
-        changes: { get: vi.fn() },
-      };
-      const workflowClient = { workflow: { getHandle: vi.fn() } };
+      const byPrefix = await ops.listSummary!({ prefix: "alpha" });
+      expect(byPrefix.changes.map((c) => c.id)).toEqual(["alpha-3", "alpha-1"]);
 
-      const ops = createChangeOps({
-        input: {
-          legacy,
-          temporal: { client: workflowClient },
-          projectId: "pid-active-fast",
-        },
-        legacy,
-        invalidateChange: vi.fn(),
-        updateOverlay: vi.fn(),
-        emitChangeSummarySignal: vi.fn(),
-        indexTasksFromState: vi.fn(),
-        setCachedChange: vi.fn(),
-        getTemporalChange,
-        listResolvedChanges,
-        getTemporalWorkflowClient: () => workflowClient,
-        dualWriteAfterMutation: vi.fn(),
-        memo,
-        changeCache: new Map(),
-      } as never);
+      const byTitle = await ops.listSummary!({ titleContains: "beta" });
+      expect(byTitle.changes.map((c) => c.id)).toEqual(["beta-2"]);
+
+      const byCreated = await ops.listSummary!({
+        createdBefore: "2026-05-12T00:00:00.000Z",
+      });
+      expect(byCreated.changes.map((c) => c.id)).toEqual(["alpha-1"]);
+
+      const byActivity = await ops.listSummary!({
+        lastActivityBefore: "2026-05-20T00:00:00.000Z",
+      });
+      expect(byActivity.changes.map((c) => c.id).sort()).toEqual([
+        "alpha-1",
+        "beta-2",
+      ]);
+    });
+
+    test("supports sort, offset, and pagination", async () => {
+      listSummaryChanges.mockResolvedValue({
+        kind: "ok",
+        summaries: [
+          summaryShard("old", {
+            created_at: "2026-05-10T00:00:00.000Z",
+            last_activity_at: "2026-05-11T00:00:00.000Z",
+          }),
+          summaryShard("new", {
+            created_at: "2026-05-20T00:00:00.000Z",
+            last_activity_at: "2026-05-21T00:00:00.000Z",
+          }),
+        ],
+      });
+      const { ops } = buildOps({
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/summaries",
+        root: "/tmp/project",
+      });
+
+      const stalest = await ops.listSummary!({ sort: "stalest", limit: 1 });
+      expect(stalest.changes.map((c) => c.id)).toEqual(["old"]);
+
+      const offset = await ops.listSummary!({ offset: 1, limit: 1 });
+      expect(offset.changes.map((c) => c.id)).toEqual(["old"]);
+    });
+
+    test("default active/in-flight listSummary excludes terminal rows", async () => {
+      listSummaryChanges.mockResolvedValue({
+        kind: "ok",
+        summaries: [
+          summaryShard("activeA", { status: "draft" }),
+          summaryShard("archivedB", { status: "archived" }),
+          summaryShard("closedC", { status: "closed" }),
+        ],
+      });
+      const { ops } = buildOps({
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/summaries",
+        root: "/tmp/project",
+      });
 
       const result = await ops.listSummary!();
 
-      expect(listResolvedChanges).not.toHaveBeenCalled();
-      expect(getTemporalChange).not.toHaveBeenCalled();
       expect(result.changes.map((c) => c.id)).toEqual(["activeA"]);
       expect(result.warnings).toBeUndefined();
-      expect(result.hydrationStats?.fromHydration).toBe(0);
+    });
+
+    test("surfaces degraded index state when summary shards cannot be read", async () => {
+      listSummaryChanges.mockResolvedValue({
+        kind: "error",
+        error: "summaries directory unreadable",
+      });
+      const { ops } = buildOps({
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/summaries",
+        root: "/tmp/project",
+      });
+
+      const result = await ops.listSummary!();
+
+      expect(result.changes).toEqual([]);
+      expect(result.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "TERMINAL_SOURCE_DEGRADED",
+            source: "active_disk",
+          }),
+        ]),
+      );
     });
   });
 

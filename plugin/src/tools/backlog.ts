@@ -302,26 +302,30 @@ export const backlogTools = {
       try {
         const [changesResult, worktreesResult, sessionsResult] =
           await Promise.allSettled([
-            store.changes.list({}),
+            store.changes.listSummary
+              ? store.changes.listSummary({})
+              : store.changes.list({}),
             worktreesProvider(projectRoot, budget),
             sessionsProvider(projectRoot),
           ]);
 
         let active_changes: WipStateResponse["active_changes"] = [];
         if (changesResult.status === "fulfilled") {
-          active_changes = changesResult.value.changes.map((c) => ({
-            id: c.id,
-            title: c.title,
-            status: c.status,
-            created_at: c.created_at,
-            lastActivityAt: c.lastActivityAt,
-            taskCount: c.taskCount,
-            completedTasks: c.completedTasks,
-            ops_followup: compactOpsFollowupAnnotation(c.ops_followup),
-            ops_followup_links: compactOpsFollowupLinkAnnotations(
-              c.ops_followup_links,
-            ),
-          }));
+          active_changes = changesResult.value.changes
+            .filter((c) => c.status !== "archived" && c.status !== "closed")
+            .map((c) => ({
+              id: c.id,
+              title: c.title,
+              status: c.status,
+              created_at: c.created_at,
+              lastActivityAt: c.lastActivityAt,
+              taskCount: c.taskCount,
+              completedTasks: c.completedTasks,
+              ops_followup: compactOpsFollowupAnnotation(c.ops_followup),
+              ops_followup_links: compactOpsFollowupLinkAnnotations(
+                c.ops_followup_links,
+              ),
+            }));
         } else {
           warnings.push({
             source: "active_changes",
