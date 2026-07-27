@@ -145,6 +145,12 @@ describe("workflow bundle transitive boundary", () => {
     expect(nodeImports).toEqual([]);
   });
 
+  it("does not reach the host SHA-256 command hash module", () => {
+    const parents = reachableFrom(workflowRoot);
+    const reachable = [...parents.keys()].map((filePath) => rel(filePath));
+    expect(reachable).not.toContain("utils/command-payload-hash.ts");
+  });
+
   it("exports epicWorkflow from the workflow bundle root", () => {
     const source = readFileSync(workflowRoot, "utf8");
     expect(source).toMatch(/export\s+async\s+function\s+epicWorkflow\b/);

@@ -183,6 +183,10 @@
           "minLength": 1,
           "type": "string"
         },
+        "payload_hash": {
+          "minLength": 1,
+          "type": "string"
+        },
         "reason": {
           "enum": [
             "cancelled",
@@ -2688,6 +2692,55 @@
         "omissionPolicy",
         "evaluations"
       ],
+      "type": "object"
+    },
+    "operation_ledger": {
+      "additionalProperties": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted_at": {
+            "type": "string"
+          },
+          "command_kind": {
+            "type": "string"
+          },
+          "last_seen_at": {
+            "type": "string"
+          },
+          "operation_id": {
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "accepted",
+              "rejected",
+              "idempotent_replay"
+            ],
+            "type": "string"
+          },
+          "payload_hash": {
+            "type": "string"
+          },
+          "state_revision": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operation_id",
+          "command_kind",
+          "payload_hash",
+          "outcome",
+          "state_revision",
+          "accepted_at",
+          "last_seen_at"
+        ],
+        "type": "object"
+      },
+      "propertyNames": {
+        "type": "string"
+      },
       "type": "object"
     },
     "ops_followup": {

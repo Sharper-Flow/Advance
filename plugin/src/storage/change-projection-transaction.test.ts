@@ -710,11 +710,12 @@ describe("commitChangeProjection", () => {
 
     it("proves stored operation identity and state revision by readback on success", async () => {
       const changeId = "readback-proof";
+      const payloadHash = "a".repeat(64);
       await seedChange(changesDir, makeChange(changeId, { state_revision: 7 }));
 
       const result = await commitWithIdentity(changesDir, changeId, {
         operationId: "op-1",
-        payloadHash: "hash-a",
+        payloadHash,
         stateRevision: 7,
         mutateLatest: (latest) => ({ ...latest, title: "updated" }),
       });
@@ -724,7 +725,7 @@ describe("commitChangeProjection", () => {
       expect(result.readback.state_revision).toBe(7);
       expect(result.readback.projection_revision).toBe(1);
       expect(result.audit.operation_id).toBe("op-1");
-      expect(result.audit.payload_hash).toBe("hash-a");
+      expect(result.audit.payload_hash).toBe(payloadHash);
       expect(result.audit.state_revision).toBe(7);
 
       const loaded = await loadChange(changesDir, changeId);
@@ -733,7 +734,7 @@ describe("commitChangeProjection", () => {
       expect(loaded.data.state_revision).toBe(7);
       const lastAudit = loaded.data.projection_commits?.[0];
       expect(lastAudit?.operation_id).toBe("op-1");
-      expect(lastAudit?.payload_hash).toBe("hash-a");
+      expect(lastAudit?.payload_hash).toBe(payloadHash);
       expect(lastAudit?.state_revision).toBe(7);
     });
 

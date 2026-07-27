@@ -15,6 +15,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { createChangeOps } from "./changes";
 import type { Change, ChangeClosure } from "../../types";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
+import { closeChangeSignal } from "../../temporal/messages";
 
 const fireSignalWithMutationGuardMock = vi.hoisted(() => vi.fn());
 const signalMock = vi.hoisted(() => vi.fn());
@@ -39,10 +40,47 @@ vi.mock("./shared", () => ({
   runTemporalRead: vi.fn(),
   createTemporalReadDeadline: vi.fn(),
   createTemporalReadContext: vi.fn(),
-  isTemporalReadExpired: vi.fn(() => false),
-  raceWithTemporalDeadline: vi.fn(),
-  remainingDeadlineMs: vi.fn(() => 10_000),
-  TemporalQueryTimeoutError: class TemporalQueryTimeoutError extends Error {},
+  isTemporalReadExpired: vi.fn(),
+  raceWithTemporalDeadline: async <T>(op: Promise<T>): Promise<T> => op,
+  remainingDeadlineMs: vi.fn(),
+  TemporalQueryTimeoutError: Error,
+  fallbackOperationId: vi.fn((kind: string) => kind),
+  buildSummaryCommitProjection: vi.fn(() => vi.fn()),
+  changeCommand: async (options: {
+    deps: {
+      persistStateToDiskDurable?: (
+        changeId: string,
+        state: ChangeWorkflowState,
+      ) => Promise<void>;
+      setCachedChange?: (state: ChangeWorkflowState) => unknown;
+    };
+    changeId: string;
+    signal: unknown;
+    signalArgs: unknown[];
+    operationId: string;
+  }) => {
+    await signalMock(options.signal, ...options.signalArgs);
+    const ledger = await queryMock(
+      { name: "adv.change.getOperationLedgerOutcome" },
+      options.operationId,
+    );
+    if (
+      ledger?.outcome !== "accepted" &&
+      ledger?.outcome !== "idempotent_replay"
+    ) {
+      return { kind: "rejected", reason: "mock rejected" };
+    }
+    const state = (await queryMock({
+      name: "adv.change.getState",
+    })) as ChangeWorkflowState;
+    if (options.deps.persistStateToDiskDurable) {
+      await options.deps.persistStateToDiskDurable(options.changeId, state);
+    }
+    if (options.deps.setCachedChange) {
+      options.deps.setCachedChange(state);
+    }
+    return { kind: "accepted", state };
+  },
 }));
 
 import {
@@ -176,7 +214,11 @@ function makeDeps(overrides?: {
   });
   const changesPath = `/tmp/changes-close-storage-${randomUUID()}`;
   const legacy = {
-    paths: { changes: changesPath, root: "/tmp/project" },
+    paths: {
+      changes: changesPath,
+      summariesDir: "/tmp/project/.adv/summaries",
+      root: "/tmp/project",
+    },
     changes: {
       get: getMock,
       save: saveMock,
@@ -227,8 +269,12 @@ beforeEach(() => {
 describe("changes.close lifecycle storage ordering (AC5)", () => {
   it("persists the disk projection only after signal acknowledgement and readback", async () => {
     const { deps, saveMock } = makeDeps();
-    fireSignalWithMutationGuardMock.mockResolvedValue("confirmed");
-    queryMock.mockResolvedValue(makeConfirmedState());
+    queryMock.mockImplementation(async (queryDef) => {
+      if (queryDef.name === "adv.change.getOperationLedgerOutcome") {
+        return { outcome: "accepted" };
+      }
+      return makeConfirmedState();
+    });
 
     const ops = createChangeOps(deps as never);
     await ops.close(CHANGE_ID, {
@@ -239,16 +285,12 @@ describe("changes.close lifecycle storage ordering (AC5)", () => {
       operation_id: "op-close-store-1",
     });
 
-    expect(fireSignalWithMutationGuardMock).toHaveBeenCalledWith(
-      deps.input,
-      CHANGE_ID,
-      expect.anything(),
-      [
-        expect.objectContaining({
-          reason: "cancelled",
-          operation_id: "op-close-store-1",
-        }),
-      ],
+    expect(signalMock).toHaveBeenCalledWith(
+      closeChangeSignal,
+      expect.objectContaining({
+        reason: "cancelled",
+        operation_id: "op-close-store-1",
+      }),
     );
     expect(saveMock).toHaveBeenCalledWith(
       expect.objectContaining({ status: "closed" }),
@@ -256,7 +298,7 @@ describe("changes.close lifecycle storage ordering (AC5)", () => {
     // The disk projection must be written AFTER the signal has been acknowledged
     // and the reducer readback has confirmed the accepted state.
     expect(saveMock.mock.invocationCallOrder[0]).toBeGreaterThan(
-      fireSignalWithMutationGuardMock.mock.invocationCallOrder[0],
+      signalMock.mock.invocationCallOrder[0],
     );
   });
 
@@ -283,7 +325,7 @@ describe("changes.close lifecycle storage ordering (AC5)", () => {
     ).rejects.toThrow(/already closed|ineligible|lifecycle/i);
 
     expect(saveMock).not.toHaveBeenCalled();
-    expect(fireSignalWithMutationGuardMock).not.toHaveBeenCalled();
+    expect(signalMock).not.toHaveBeenCalled();
   });
 
   it("throws for unknown targets before any disk write or signal", async () => {
@@ -306,7 +348,7 @@ describe("changes.close lifecycle storage ordering (AC5)", () => {
     ).rejects.toThrow(/not found/i);
 
     expect(saveMock).not.toHaveBeenCalled();
-    expect(fireSignalWithMutationGuardMock).not.toHaveBeenCalled();
+    expect(signalMock).not.toHaveBeenCalled();
   });
 });
 

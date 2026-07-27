@@ -10,23 +10,47 @@ import {
 } from "../../temporal/messages";
 import { getReadyTasksFromChangeState } from "../../temporal/change-state";
 import {
-  runTemporal,
   runTemporalQuery,
   getGuardedChangeHandle,
+  changeCommand,
+  fallbackOperationId,
+  buildSummaryCommitProjection,
+  type ChangeCommandOutcome,
   type StoreDeps,
 } from "./shared";
-import { fireSignalWithMutationGuard } from "./gates";
+import {
+  computeHostCommandPayloadHash,
+  sha256Hex,
+} from "../../utils/command-payload-hash";
+
+// Command outcomes surfaced by the changeCommand primitive:
+// accepted, idempotent_replay, rejected, projection_failure,
+// operator_required, outcome_unknown_readback_unavailable.
+
+function buildTaskCommandIdentity(
+  commandKind: string,
+  payload: Record<string, unknown>,
+  callerOperationId?: string,
+): { operationId: string; payloadHash: string } {
+  const payloadHash = computeHostCommandPayloadHash(payload);
+  const operationId =
+    callerOperationId ?? fallbackOperationId(commandKind, payload);
+  return { operationId, payloadHash };
+}
+
+function unwrapCommandOutcome(
+  outcome: ChangeCommandOutcome,
+  context: string,
+): import("../../temporal/contracts").ChangeWorkflowState {
+  if (outcome.kind === "accepted" || outcome.kind === "idempotent_replay") {
+    return outcome.state;
+  }
+  throw new Error(`${context}: ${outcome.kind} — ${outcome.reason}`);
+}
 
 export function createTaskOps(deps: StoreDeps): Store["tasks"] {
-  const {
-    input,
-    legacy,
-    taskChangeIndex,
-    resolveChangeId,
-    invalidateChange,
-    persistAndRefreshDurable,
-    indexTasksFromState,
-  } = deps;
+  const { input, legacy, taskChangeIndex, resolveChangeId, invalidateChange } =
+    deps;
 
   return {
     ...legacy.tasks,
@@ -47,7 +71,9 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       const state = (await runTemporalQuery(async () =>
         (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
       )) as import("../../temporal/contracts").ChangeWorkflowState;
-      indexTasksFromState(state);
+      for (const task of state.tasks ?? []) {
+        taskChangeIndex.set(task.id, changeId);
+      }
       return getReadyTasksFromChangeState(state);
     },
     update: async (
@@ -57,84 +83,125 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       implementationSummary,
       errorRecovery,
       touchedFiles,
+      options?: { operationId?: string },
     ) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      // SC4 + SC6: guard the signal; classify readback outcome.
-      const updateOutcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "taskUpdated";
+      const payload = {
+        taskId,
+        partial: {
+          status: status as Task["status"],
+          notes,
+          implementationSummary,
+          errorRecovery,
+          touchedFiles,
+        },
+        updatedAt: new Date().toISOString(),
+      };
+      const { operationId, payloadHash } = buildTaskCommandIdentity(
+        commandKind,
+        payload,
+        options?.operationId,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        taskUpdatedSignal,
-        [
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: taskUpdatedSignal,
+        signalArgs: [
           {
-            taskId,
-            partial: {
-              status: status as Task["status"],
-              notes,
-              implementationSummary,
-              errorRecovery,
-              touchedFiles,
-            },
-            updatedAt: new Date().toISOString(),
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
           },
         ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `tasks.update(${changeId}, ${taskId})`,
       );
-      if (updateOutcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `tasks.update(${changeId}, ${taskId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
       const task = state.tasks.find((t) => t.id === taskId) ?? null;
-      await persistAndRefreshDurable(changeId, state);
       return task;
     },
-    add: async (changeId, content, options) => {
+    add: async (
+      changeId,
+      content,
+      options,
+      commandOptions?: { operationId?: string },
+    ) => {
       invalidateChange(changeId);
+      const commandKind = "taskAdded";
       const now = new Date().toISOString();
-      const tempId = `tmp-${Date.now()}`;
-      const addOutcome = await fireSignalWithMutationGuard(
-        input,
+      const operationIdHint =
+        commandOptions?.operationId ??
+        fallbackOperationId(commandKind, { changeId, content, options });
+      // The task id is adapter-generated transport state. Tie it to the
+      // operation identity so a same-host retry has the same ledger hash.
+      const tempId = `tmp-${sha256Hex(operationIdHint).slice(0, 16)}`;
+      const payload = {
+        task: {
+          id: tempId,
+          title: content,
+          type: options?.type ?? "code",
+          section: options?.section,
+          status: "pending" as const,
+          priority: 0,
+          created_at: now,
+          deps: options?.blockedBy
+            ? options.blockedBy.map((target) => ({
+                type: "blocked_by" as const,
+                target,
+              }))
+            : [],
+          metadata: options?.metadata,
+        },
+        addedAt: now,
+      };
+      const { operationId, payloadHash } = buildTaskCommandIdentity(
+        commandKind,
+        payload,
+        operationIdHint,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        taskAddedSignal,
-        [
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: taskAddedSignal,
+        signalArgs: [
           {
-            task: {
-              id: tempId,
-              title: content,
-              type: options?.type ?? "code",
-              section: options?.section,
-              status: "pending",
-              priority: 0,
-              created_at: now,
-              deps: options?.blockedBy
-                ? options.blockedBy.map((target) => ({
-                    type: "blocked_by" as const,
-                    target,
-                  }))
-                : [],
-              metadata: options?.metadata,
-            },
-            addedAt: now,
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
           },
         ],
-      );
-      if (addOutcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `tasks.add(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(outcome, `tasks.add(${changeId})`);
       const created = state.tasks[state.tasks.length - 1] ?? null;
       if (created && typeof created === "object" && "id" in created) {
         taskChangeIndex.set((created as { id: string }).id, changeId);
       }
-      await persistAndRefreshDurable(changeId, state);
       return created;
     },
     get: async (taskId) => {
@@ -159,65 +226,107 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
       if (!task) return null;
       return { task: task as Task, changeId };
     },
-    cancel: async (taskId, cancellation) => {
+    cancel: async (
+      taskId,
+      cancellation,
+      options?: { operationId?: string },
+    ) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const cancelOutcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "taskCancelled";
+      const payload = {
+        taskId,
+        approvalEvidence: cancellation.approval_evidence ?? "cancelled",
+        reason: cancellation.reason ?? "cancelled",
+        cancelledAt: new Date().toISOString(),
+      };
+      const { operationId, payloadHash } = buildTaskCommandIdentity(
+        commandKind,
+        payload,
+        options?.operationId,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        taskCancelledSignal,
-        [
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: taskCancelledSignal,
+        signalArgs: [
           {
-            taskId,
-            approvalEvidence: cancellation.approval_evidence ?? "cancelled",
-            reason: cancellation.reason ?? "cancelled",
-            cancelledAt: new Date().toISOString(),
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
           },
         ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `tasks.cancel(${changeId}, ${taskId})`,
       );
-      if (cancelOutcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `tasks.cancel(${changeId}, ${taskId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
       const task = state.tasks.find((t) => t.id === taskId) ?? null;
-      await persistAndRefreshDurable(changeId, state);
       return task;
     },
-    reclassifyTdd: async (taskId, reclassification: TddReclassification) => {
+    reclassifyTdd: async (
+      taskId,
+      reclassification: TddReclassification,
+      options?: { operationId?: string },
+    ) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
       invalidateChange(changeId);
-      const reclassifyOutcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "taskUpdated";
+      const payload = {
+        taskId,
+        partial: {
+          metadata: {
+            tdd_intent: reclassification.to_intent,
+          },
+        },
+        updatedAt: new Date().toISOString(),
+      };
+      const { operationId, payloadHash } = buildTaskCommandIdentity(
+        commandKind,
+        payload,
+        options?.operationId,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        taskUpdatedSignal,
-        [
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: taskUpdatedSignal,
+        signalArgs: [
           {
-            taskId,
-            partial: {
-              metadata: {
-                tdd_intent: reclassification.to_intent,
-              },
-            },
-            updatedAt: new Date().toISOString(),
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
           },
         ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `tasks.reclassifyTdd(${changeId}, ${taskId})`,
       );
-      if (reclassifyOutcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `tasks.reclassifyTdd(${changeId}, ${taskId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
       const task = state.tasks.find((t) => t.id === taskId) ?? null;
-      await persistAndRefreshDurable(changeId, state);
       return task;
     },
   };

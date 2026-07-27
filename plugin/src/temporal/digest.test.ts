@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   describePayloadDigest,
+  canonicalCommandPayloadString,
+  computeLegacyWorkflowPayloadHash,
   fnv1a32,
   SIGNAL_REJECTION_PAYLOAD_SAMPLE_CHARS,
   stableStringify,
@@ -35,5 +37,46 @@ describe("workflow-safe digest helpers", () => {
       SIGNAL_REJECTION_PAYLOAD_SAMPLE_CHARS,
     );
     expect(digest.payload_fnv1a).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  it("ignores only reviewed transport timestamps for command retries", () => {
+    const first = canonicalCommandPayloadString({
+      task: { id: "tmp-1", created_at: "2026-07-27T00:00:00.000Z" },
+      addedAt: "2026-07-27T00:00:00.000Z",
+    });
+    const retry = canonicalCommandPayloadString({
+      task: { id: "tmp-1", created_at: "2026-07-27T00:01:00.000Z" },
+      addedAt: "2026-07-27T00:01:00.000Z",
+    });
+
+    expect(retry).toBe(first);
+  });
+
+  it("keeps non-transport audit and business timestamps in command identity", () => {
+    const base = {
+      approved_at: "2026-07-27T00:00:00.000Z",
+      audit: { updatedAt: "2026-07-27T00:00:00.000Z" },
+    };
+    const changedAuditTimestamp = {
+      approved_at: "2026-07-27T00:01:00.000Z",
+      audit: { updatedAt: "2026-07-27T00:00:00.000Z" },
+    };
+    const changedBusinessTimestamp = {
+      approved_at: "2026-07-27T00:00:00.000Z",
+      audit: { updatedAt: "2026-07-27T00:01:00.000Z" },
+    };
+
+    expect(canonicalCommandPayloadString(changedAuditTimestamp)).not.toBe(
+      canonicalCommandPayloadString(base),
+    );
+    expect(canonicalCommandPayloadString(changedBusinessTimestamp)).not.toBe(
+      canonicalCommandPayloadString(base),
+    );
+  });
+
+  it("labels the FNV command hash as legacy workflow compatibility only", () => {
+    expect(
+      computeLegacyWorkflowPayloadHash({ content: "legacy signal" }),
+    ).toMatch(/^[0-9a-f]{8}$/);
   });
 });

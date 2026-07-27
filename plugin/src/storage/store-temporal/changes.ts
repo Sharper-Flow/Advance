@@ -70,7 +70,13 @@ import {
   remainingDeadlineMs,
   TemporalQueryTimeoutError,
   type StoreDeps,
+  changeCommand,
+  fallbackOperationId,
+  buildSummaryCommitProjection,
+  type ChangeCommandOutcome,
 } from "./shared";
+import { computeHostCommandPayloadHash } from "../../utils/command-payload-hash";
+import type { ChangeWorkflowState } from "../../temporal/contracts";
 import {
   validateAggregateSize,
   validatePerArtifactSize,
@@ -92,11 +98,11 @@ import {
   renderTerminalHistory,
   TERMINAL_HISTORY_DEADLINE_BUDGET_MS,
 } from "../../archive/terminal-history";
-import type {
-  ChangeWorkflowState,
-  SignalRejection,
-} from "../../temporal/contracts";
 import { computeCreationRequestHash } from "./creation-hash";
+
+// Command outcomes surfaced by the changeCommand primitive:
+// accepted, idempotent_replay, rejected, projection_failure,
+// operator_required, outcome_unknown_readback_unavailable.
 
 const logger = createLogger("store-temporal-changes");
 
@@ -104,19 +110,25 @@ function computeContentHash(content: string): string {
   return createHash("sha256").update(content).digest("hex");
 }
 
-function latestSignalRejection(
-  state: ChangeWorkflowState,
-  signalName: string,
-  since: string,
-): SignalRejection | undefined {
-  const rejections = state.signal_rejections ?? [];
-  for (let i = rejections.length - 1; i >= 0; i--) {
-    const rejection = rejections[i];
-    if (rejection.signalName === signalName && rejection.rejectedAt >= since) {
-      return rejection;
-    }
+function buildChangeCommandIdentity(
+  commandKind: string,
+  payload: Record<string, unknown>,
+  callerOperationId?: string,
+): { operationId: string; payloadHash: string } {
+  const payloadHash = computeHostCommandPayloadHash(payload);
+  const operationId =
+    callerOperationId ?? fallbackOperationId(commandKind, payload);
+  return { operationId, payloadHash };
+}
+
+function unwrapCommandOutcome(
+  outcome: ChangeCommandOutcome,
+  context: string,
+): ChangeWorkflowState {
+  if (outcome.kind === "accepted" || outcome.kind === "idempotent_replay") {
+    return outcome.state;
   }
-  return undefined;
+  throw new Error(`${context}: ${outcome.kind} — ${outcome.reason}`);
 }
 
 /**
@@ -181,44 +193,85 @@ async function fireGuardedSignal<Args extends unknown[]>(
 }
 
 /**
- * Fire one content signal per defined field in `artifacts`, in deterministic
- * order (proposal → problemStatement → agreement → design → executiveSummary
- * → acceptance). Each call awaits server acknowledgement before the next.
- * Undefined fields fire no signal (no-op).
+ * Fire one command per defined artifact field, in deterministic order
+ * (proposal → problemStatement → agreement → design → executiveSummary →
+ * acceptance). Each artifact gets a stable operation id derived from the
+ * caller-stable `parentOperationId` plus the artifact kind. The command polls
+ * the workflow operation ledger for an accepted outcome, then commits the
+ * disk projection together with an immutable summary shard.
  *
- * The corresponding `updateArtifactMetadataSignal` fires AFTER each content
- * signal so `state.artifacts.{kind}.contentHash` stays consistent with
- * `state.documents.{kind}`.
+ * The companion `updateArtifactMetadataSignal` fires as a `postSignal` hook so
+ * the projection commit sees `state.artifacts.{kind}.contentHash` consistent
+ * with `state.documents.{kind}`.
  */
-async function fireContentSignalsSequentially(
-  input: import("./shared").TemporalStoreBackendInput,
-  handle: Awaited<ReturnType<typeof getGuardedChangeHandle>>,
+async function fireContentArtifactCommands(
+  deps: StoreDeps,
   changeId: string,
   artifacts: ArtifactPayload,
+  parentOperationId: string,
+  updatedAt: string,
   confirmReadinessReceipts = false,
-): Promise<void> {
-  const updatedAt = new Date().toISOString();
-  // Suppress unused-parameter lint when `handle` is unused due to routing
-  // through the SC4-guarded wrapper. The handle would be used by the
-  // attached fallback path if `fireGuardedSignal` cannot resolve
-  // `getGuardedChangeHandle`.
-  void handle;
+): Promise<ChangeWorkflowState> {
+  const { input, legacy } = deps;
+  let lastState: ChangeWorkflowState | undefined;
   for (const { kind, signal } of ARTIFACT_SIGNAL_ORDER) {
     const content = artifacts[kind];
     if (content === undefined) continue;
-    // Content signal — populates state.documents[kind]. SC4-guarded.
+    const commandKind = `${kind}Updated`;
+    const payloadHash = computeHostCommandPayloadHash({ text: content });
+    const operationId = `${parentOperationId}:${kind}`;
     const requiresReceipt =
       confirmReadinessReceipts &&
       (kind === "executiveSummary" || kind === "acceptance");
     const mutationReceiptId = requiresReceipt
       ? `mrec_${randomUUID()}`
       : undefined;
-    await fireGuardedSignal(input, changeId, signal, {
-      text: content,
-      updatedAt,
-      ...(mutationReceiptId ? { mutationReceiptId } : {}),
+
+    const outcome = await changeCommand({
+      deps,
+      changeId,
+      operationId,
+      commandKind,
+      payloadHash,
+      signal,
+      signalArgs: [
+        {
+          text: content,
+          updatedAt,
+          ...(mutationReceiptId ? { mutationReceiptId } : {}),
+          operation_id: operationId,
+          command_kind: commandKind,
+          payload_hash: payloadHash,
+        },
+      ],
+      postSignal: async (handle) => {
+        await handle.signal(updateArtifactMetadataSignal, {
+          kind,
+          metadata: {
+            updatedAt,
+            contentHash: computeContentHash(content),
+            source: "temporal",
+            readable: false,
+          },
+        });
+      },
+      commitProjection: buildSummaryCommitProjection(
+        legacy,
+        changeId,
+        operationId,
+        payloadHash,
+        commandKind,
+      ),
     });
+    if (outcome.kind !== "accepted" && outcome.kind !== "idempotent_replay") {
+      throw new Error(
+        `content command ${commandKind} for ${changeId} failed: ${outcome.kind} — ${"reason" in outcome ? outcome.reason : ""}`,
+      );
+    }
+    lastState = outcome.state;
+
     if (mutationReceiptId) {
+      const handle = await getGuardedChangeHandle(input, changeId);
       const receipt = await waitForQueryPredicate(
         () =>
           handle.query(getMutationReceiptQuery, mutationReceiptId) as Promise<
@@ -230,22 +283,13 @@ async function fireContentSignalsSequentially(
         throw new MutationApplicationUnconfirmedError(mutationReceiptId);
       }
     }
-
-    // Metadata signal — populates state.artifacts[kind] with contentHash.
-    // Fires AFTER the content signal so the hash reflects the just-written
-    // content. Temporal-only updates intentionally omit `path`: there is no
-    // readable artifact file for active content, and synthesizing one produces
-    // phantom paths in agent-facing tool output. SC4-guarded.
-    await fireGuardedSignal(input, changeId, updateArtifactMetadataSignal, {
-      kind,
-      metadata: {
-        updatedAt,
-        contentHash: computeContentHash(content),
-        source: "temporal",
-        readable: false,
-      },
-    });
   }
+  if (!lastState) {
+    throw new Error(
+      `fireContentArtifactCommands(${changeId}) fired no artifact commands`,
+    );
+  }
+  return lastState;
 }
 
 function canonicalizeBatchCloseTargetIds(target_ids: string[]): string[] {
@@ -609,15 +653,20 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // state.documents.
 
       if (Object.values(artifacts).some((v) => v !== undefined)) {
-        await runTemporal(async () => {
-          const handle = await getGuardedChangeHandle(input, created.data!.id);
-          await fireContentSignalsSequentially(
-            input,
-            handle,
-            created.data!.id,
-            artifacts,
-          );
+        const updatedAt = new Date().toISOString();
+        const parentOperationId = fallbackOperationId("createArtifacts", {
+          changeId: created.data!.id,
+          artifacts,
         });
+        const state = await fireContentArtifactCommands(
+          deps,
+          created.data!.id,
+          artifacts,
+          parentOperationId,
+          updatedAt,
+        );
+        setCachedChange(state);
+        emitChangeSummarySignal(created.data!.id, state);
       }
 
       return result;
@@ -881,71 +930,89 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     ) => {
       const recordedAt = setAt ?? new Date().toISOString();
       invalidateChange(changeId);
-      // SC4 + SC6 — guard the signal and classify the readback outcome.
-      // `outcome_unknown_readback_unavailable` throws a typed error rather
-      // than letting the caller claim the membership change was applied.
-      const outcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "epicMembershipSet";
+      const payload = {
+        membership,
+        ...(expectedCurrent ? { expectedCurrent } : {}),
+        setAt: recordedAt,
+      };
+      const { operationId, payloadHash } = buildChangeCommandIdentity(
+        commandKind,
+        payload,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        epicMembershipSetSignal,
-        [
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: epicMembershipSetSignal,
+        signalArgs: [
           {
-            membership,
-            ...(expectedCurrent ? { expectedCurrent } : {}),
-            setAt: recordedAt,
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
           },
         ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `changes.setEpicMembership(${changeId})`,
       );
-      if (outcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `changes.setEpicMembership(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as ChangeWorkflowState;
-      const rejection = latestSignalRejection(
-        state,
-        "epicMembershipSet",
-        recordedAt,
-      );
-      if (rejection) throw new Error(rejection.errorMessage);
       indexTasksFromState(state);
       updateOverlay(changeId, { epic_membership: state.epic_membership });
-      const change = setCachedChange(state);
-      emitChangeSummarySignal(changeId, state);
-      await dualWriteAfterMutation(changeId);
-      return change;
+      return state as unknown as Change;
     },
     clearEpicMembership: async (changeId, { expected, clearedAt }) => {
       const recordedAt = clearedAt ?? new Date().toISOString();
       invalidateChange(changeId);
-      const outcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "epicMembershipCleared";
+      const payload = {
+        expected,
+        clearedAt: recordedAt,
+      };
+      const { operationId, payloadHash } = buildChangeCommandIdentity(
+        commandKind,
+        payload,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        epicMembershipClearedSignal,
-        [{ expected, clearedAt: recordedAt }],
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: epicMembershipClearedSignal,
+        signalArgs: [
+          {
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
+          },
+        ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `changes.clearEpicMembership(${changeId})`,
       );
-      if (outcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `changes.clearEpicMembership(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as ChangeWorkflowState;
-      const rejection = latestSignalRejection(
-        state,
-        "epicMembershipCleared",
-        recordedAt,
-      );
-      if (rejection) throw new Error(rejection.errorMessage);
       indexTasksFromState(state);
       updateOverlay(changeId, { epic_membership: state.epic_membership });
-      const change = setCachedChange(state);
-      emitChangeSummarySignal(changeId, state);
-      await dualWriteAfterMutation(changeId);
-      return change;
+      return state as unknown as Change;
     },
     close: async (changeId: string, closure: ChangeClosure) => {
       // AC5: host preflight is advisory only. It loads the current change so we
@@ -973,34 +1040,43 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       invalidateChange(changeId);
 
-      // SC4 + SC6: signal dispatch and post-signal readback are classified so
-      // ambiguous mutations are not silently confirmed.
-      const outcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "closeChange";
+      const payload = { ...closure };
+      const operationId =
+        closure.operation_id ?? fallbackOperationId(commandKind, payload);
+      const payloadHash =
+        closure.payload_hash ?? computeHostCommandPayloadHash(payload);
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        closeChangeSignal,
-        [closure],
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: closeChangeSignal,
+        signalArgs: [
+          {
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
+          },
+        ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const result = unwrapCommandOutcome(
+        outcome,
+        `changes.close(${changeId})`,
       );
-      if (outcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `changes.close(${changeId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
-        );
-      }
-      const result = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
 
-      // Confirm the reducer outcome before persisting the projection. A rejected
-      // close leaves the change in its open state; it must not be promoted to
-      // a durable closed projection.
-      const rejection = latestSignalRejection(
-        result,
-        "closeChange",
-        closure.approved_at,
-      );
-      if (rejection) {
-        throw new Error(rejection.errorMessage);
-      }
+      // Confirm the reducer outcome before returning. A rejected close leaves
+      // the change in its open state; it must not be promoted to a durable
+      // closed projection.
       if (result.status !== "closed" || result.lifecycleState !== "closed") {
         throw new Error(
           `changes.close(${changeId}): reducer did not transition to closed (status=${result.status}, lifecycleState=${result.lifecycleState})`,
@@ -1009,13 +1085,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
 
       indexTasksFromState(result);
       updateOverlay(changeId, { status: "closed", closure: result.closure });
-      const change = setCachedChange(result);
-      emitChangeSummarySignal(changeId, result);
-
-      // AC2/AC5: durability-critical close is not successful until the disk
-      // projection is durably written via the canonical awaited path.
-      await persistStateToDiskDurable(changeId, result);
-      return change;
+      return result as unknown as Change;
     },
 
     closeBatch: async (
@@ -1133,26 +1203,39 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       }
       validateAggregateSize(artifacts, existingDocuments);
 
+      const hasArtifactContent = ARTIFACT_SIGNAL_ORDER.some(
+        ({ kind }) => artifacts[kind] !== undefined,
+      );
+      if (!hasArtifactContent) {
+        // Preserve the legacy no-op contract for an empty patch: no workflow
+        // command, projection write, cache invalidation, or synthetic error.
+        return { success: true };
+      }
+
       // T15 / AC8 + rq-artifactPathTruth01: no artifact-content disk writes
       // from the temporal store production path, and no synthesized artifact
       // paths. Active content is stored in state.documents; metadata records
       // source/readability instead of fake filesystem locations.
 
-      // KD-3 + KD-4: sequential await fan-out of content signals. Each
-      // defined field on `artifacts` fires its content signal (populating
-      // state.documents[kind]) followed by updateArtifactMetadataSignal
-      // (populating state.artifacts[kind].contentHash). Order matches
-      // ARTIFACT_SIGNAL_ORDER for deterministic history diffs (C5).
-      await runTemporal(async () => {
-        const handle = await getGuardedChangeHandle(input, changeId);
-        await fireContentSignalsSequentially(
-          input,
-          handle,
-          changeId,
-          artifacts,
-          true,
-        );
+      // KD-3 + KD-4: sequential await fan-out of content commands. Each
+      // defined artifact gets a stable operation id derived from a caller-
+      // stable parent id; the changeCommand primitive confirms the ledger
+      // outcome and commits the disk projection + summary shard.
+      const updatedAt = new Date().toISOString();
+      const parentOperationId = fallbackOperationId("updateArtifacts", {
+        changeId,
+        artifacts,
       });
+      const state = await fireContentArtifactCommands(
+        deps,
+        changeId,
+        artifacts,
+        parentOperationId,
+        updatedAt,
+        true,
+      );
+      setCachedChange(state);
+      emitChangeSummarySignal(changeId, state);
 
       // Compose result shape matching the legacy contract. Temporal-only
       // updates do not write artifact files, so no path fields are returned.

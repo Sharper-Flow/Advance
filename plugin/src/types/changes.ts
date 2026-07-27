@@ -150,6 +150,8 @@ export const ChangeClosureSchema = z.object({
   superseded_by: z.string().optional(),
   approved_at: z.string(),
   operation_id: z.string().min(1).optional(),
+  /** Canonical payload hash for close-command idempotency. */
+  payload_hash: z.string().min(1).optional(),
 });
 
 export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;
@@ -1240,6 +1242,26 @@ export const ChangeSchema = z
      * Legacy/absent = 0. Used to fence out-of-order projection commits.
      */
     state_revision: z.number().int().nonnegative().optional(),
+
+    /**
+     * Bounded operation ledger for stable command identity. Survives workflow
+     * continue-as-new / re-seed so retries and conflicting operation_ids are
+     * handled deterministically.
+     */
+    operation_ledger: z
+      .record(
+        z.string(),
+        z.object({
+          operation_id: z.string(),
+          command_kind: z.string(),
+          payload_hash: z.string(),
+          outcome: z.enum(["accepted", "rejected", "idempotent_replay"]),
+          state_revision: z.number().int().nonnegative(),
+          accepted_at: z.string(),
+          last_seen_at: z.string(),
+        }),
+      )
+      .optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

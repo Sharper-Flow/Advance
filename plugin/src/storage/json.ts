@@ -184,6 +184,7 @@ export interface ProjectPaths {
 
   // Mutable (external when externalRoot is provided, else in-repo fallback)
   changes: string;
+  summariesDir: string;
   archive: string;
   retiredEpics: string;
   wisdom: string;
@@ -226,6 +227,7 @@ export function getProjectPaths(
       docs,
       config: configPath,
       changes: join(ext, changesDir),
+      summariesDir: join(ext, "summaries"),
       archive: join(ext, archiveDir),
       retiredEpics: join(ext, "retired-epics"),
       wisdom: join(ext, "wisdom.jsonl"),
@@ -243,6 +245,7 @@ export function getProjectPaths(
     docs,
     config: configPath,
     changes: join(root, config?.changes_dir ?? ".adv/changes"),
+    summariesDir: join(root, ".adv/summaries"),
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
     retiredEpics: join(root, ".adv/retired-epics"),
     wisdom: join(root, ".adv/wisdom.jsonl"),

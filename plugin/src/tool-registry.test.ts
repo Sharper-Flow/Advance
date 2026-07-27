@@ -19,6 +19,7 @@ import {
   hasExplicitAdvToolTitle,
 } from "./utils/tool-title";
 import { createLegacyStore } from "./storage/store";
+import { getToolOperationContext } from "./utils/tool-operation-context";
 import {
   createTempDir,
   cleanupTempDir,
@@ -285,6 +286,38 @@ describe("createDegradedToolMap parity with createToolMap", () => {
     );
 
     expect(receivedArgs).toEqual({ summary: "Add rate limiting" });
+  });
+
+  test("registry binds a canonical tool operation context after preflight", async () => {
+    let observedOperationId: string | undefined;
+    const execute = async () => {
+      observedOperationId = getToolOperationContext()?.baseOperationId;
+      return JSON.stringify({ ok: true });
+    };
+    (execute as { __advToolName?: string }).__advToolName = "adv_wisdom_add";
+    const registered = registerTool(
+      "test",
+      { changeId: z.string(), type: z.string(), content: z.string() },
+      execute,
+    );
+    const context = {
+      sessionID: "session-1",
+      messageID: "message-1",
+      metadata: () => undefined,
+    };
+
+    await registered.execute(
+      { changeId: "c", type: "pattern", content: "learning" },
+      context as any,
+    );
+    const first = observedOperationId;
+    await registered.execute(
+      { changeId: "c", type: "pattern", content: "learning" },
+      context as any,
+    );
+
+    expect(first).toMatch(/^[0-9a-f]{64}$/);
+    expect(observedOperationId).toBe(first);
   });
 
   test("registry rejects invalid preflight args for non-create tools", async () => {

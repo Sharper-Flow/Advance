@@ -48,6 +48,17 @@ vi.mock("../json", async (importOriginal) => {
   };
 });
 
+vi.mock("../change-summary-shard", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    commitChangeProjectionWithSummary: vi.fn().mockResolvedValue({
+      kind: "committed",
+      snapshotRevision: 1,
+    }),
+  };
+});
+
 describe("isWorkflowCompletedError", () => {
   test("non-Error values → false", () => {
     expect(isWorkflowCompletedError("string error")).toBe(false);
@@ -1098,7 +1109,11 @@ describe("createChangeOps", () => {
   test("signals executiveSummary artifact metadata after artifact updates", async () => {
     const signalMock = vi.fn().mockResolvedValue(undefined);
     const legacy = {
-      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      paths: {
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/project/.adv/summaries",
+        root: "/tmp/project",
+      },
       changes: {
         get: vi.fn().mockResolvedValue({
           success: true,
@@ -1115,11 +1130,40 @@ describe("createChangeOps", () => {
       workflow: {
         getHandle: vi.fn(() => ({
           signal: signalMock,
-          query: vi.fn(async (_query, receiptId) => ({
-            id: receiptId,
-            signalName: "executiveSummaryUpdated",
-            recordedAt: "2026-07-19T20:00:00.000Z",
-          })),
+          query: vi.fn(async (queryDef, queryArg) => {
+            if (queryDef.name === "adv.change.getOperationLedgerOutcome") {
+              const envelope = signalMock.mock.calls
+                .slice()
+                .reverse()
+                .find((call) => {
+                  const payload = call[1] as
+                    | Record<string, unknown>
+                    | undefined;
+                  return payload?.operation_id === queryArg;
+                });
+              const payload = (envelope?.[1] ?? {}) as Record<string, unknown>;
+              return {
+                operation_id: queryArg,
+                command_kind: payload.command_kind ?? "executiveSummaryUpdated",
+                payload_hash: payload.payload_hash ?? "hash",
+                outcome: "accepted",
+                state_revision: 1,
+                accepted_at: "2026-07-19T20:00:00.000Z",
+                last_seen_at: "2026-07-19T20:00:00.000Z",
+              };
+            }
+            if (queryDef.name === "adv.change.getMutationReceipt") {
+              return {
+                id: queryArg,
+                signalName: "executiveSummaryUpdated",
+                recordedAt: "2026-07-19T20:00:00.000Z",
+              };
+            }
+            return {
+              changeId: "summaryChange",
+              state_revision: 1,
+            };
+          }),
         })),
       },
     };
@@ -1184,7 +1228,11 @@ describe("createChangeOps", () => {
     const signalMock = vi.fn().mockResolvedValue(undefined);
     const invalidateChangeMock = vi.fn();
     const legacy = {
-      paths: { changes: "/tmp/changes", root: "/tmp/project" },
+      paths: {
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/project/.adv/summaries",
+        root: "/tmp/project",
+      },
       changes: {
         get: vi.fn().mockResolvedValue({
           success: true,
@@ -1200,11 +1248,37 @@ describe("createChangeOps", () => {
       workflow: {
         getHandle: vi.fn(() => ({
           signal: signalMock,
-          query: vi.fn(async (_query, receiptId) => ({
-            id: receiptId,
-            signalName: "executiveSummaryUpdated",
-            recordedAt: "2026-07-19T20:00:00.000Z",
-          })),
+          query: vi.fn(async (queryDef, queryArg) => {
+            if (queryDef.name === "adv.change.getOperationLedgerOutcome") {
+              const envelope = signalMock.mock.calls
+                .slice()
+                .reverse()
+                .find((call) => {
+                  const payload = call[1] as
+                    | Record<string, unknown>
+                    | undefined;
+                  return payload?.operation_id === queryArg;
+                });
+              const payload = (envelope?.[1] ?? {}) as Record<string, unknown>;
+              return {
+                operation_id: queryArg,
+                command_kind: payload.command_kind ?? "executiveSummaryUpdated",
+                payload_hash: payload.payload_hash ?? "hash",
+                outcome: "accepted",
+                state_revision: 1,
+                accepted_at: "2026-07-19T20:00:00.000Z",
+                last_seen_at: "2026-07-19T20:00:00.000Z",
+              };
+            }
+            if (queryDef.name === "adv.change.getMutationReceipt") {
+              return {
+                id: queryArg,
+                signalName: "executiveSummaryUpdated",
+                recordedAt: "2026-07-19T20:00:00.000Z",
+              };
+            }
+            return { changeId: "cacheChange", state_revision: 1 };
+          }),
         })),
       },
     };

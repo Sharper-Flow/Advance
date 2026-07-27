@@ -154,7 +154,7 @@ describe("operation identity and state revision (AC3)", () => {
     expect(state.signal_rejections).toHaveLength(1);
   });
 
-  it("size-guard rejection does not increment state_revision or mutate documents", () => {
+  it("size-guard rejection does not increment state_revision or mutate documents but records a rejected ledger entry", () => {
     const state = baseState();
 
     applyDesignUpdatedToState(state, {
@@ -165,7 +165,14 @@ describe("operation identity and state revision (AC3)", () => {
 
     expect(state.state_revision).toBe(0);
     expect(state.documents?.design).toBeUndefined();
-    expect(state.operation_ledger?.["op-oversized"]).toBeUndefined();
+    expect(state.operation_ledger?.["op-oversized"]).toEqual(
+      expect.objectContaining({
+        operation_id: "op-oversized",
+        command_kind: "designUpdated",
+        outcome: "rejected",
+        state_revision: 0,
+      }),
+    );
   });
 
   it("changeSeedStateFromChange preserves state_revision and operation_ledger for Continue-As-New", () => {

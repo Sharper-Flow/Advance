@@ -25,6 +25,10 @@ import {
 } from "./utils/tool-arg-preflight";
 import { formatAdvToolTitle } from "./utils/tool-title";
 import { formatToolOutput, paginate } from "./utils/tool-output";
+import {
+  createToolOperationContext,
+  withToolOperationContext,
+} from "./utils/tool-operation-context";
 import type { Store } from "./storage/store-types";
 import type { OpencodeClient } from "./utils/opencode-types";
 
@@ -205,7 +209,15 @@ export function registerTool(
       if (validationError) return wrapResult(validationError);
       argsForExecute = preflight.normalizedArgs;
     }
-    return wrapResult(await execute(argsForExecute, contextOrExtra));
+    const operationContext =
+      toolName && isToolContext(contextOrExtra)
+        ? createToolOperationContext(toolName, argsForExecute, contextOrExtra)
+        : undefined;
+    return wrapResult(
+      await withToolOperationContext(operationContext, () =>
+        execute(argsForExecute, contextOrExtra),
+      ),
+    );
   };
 
   return tool({

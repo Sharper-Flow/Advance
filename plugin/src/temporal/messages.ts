@@ -93,6 +93,7 @@ import type {
   WorkerBundleProvenanceRecordedSignalPayload,
 } from "../types";
 import type { MutationReceipt } from "./contracts";
+import type { OperationLedgerEntry } from "./contracts";
 import type {
   ChangeWorkflowBootstrapState,
   ChangeWorkflowState,
@@ -148,6 +149,10 @@ export const getMutationReceiptQuery = wf.defineQuery<
   MutationReceipt | undefined,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
+export const getOperationLedgerOutcomeQuery = wf.defineQuery<
+  OperationLedgerEntry | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getOperationLedgerOutcome);
 export const getCurrentBucketQuery = wf.defineQuery<string>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
 );

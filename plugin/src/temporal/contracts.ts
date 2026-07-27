@@ -55,6 +55,7 @@ export const CHANGE_WORKFLOW_QUERY_NAMES = {
   getWorktrees: "adv.change.getWorktrees",
   getConformanceState: "adv.change.getConformanceState",
   getMutationReceipt: "adv.change.getMutationReceipt",
+  getOperationLedgerOutcome: "adv.change.getOperationLedgerOutcome",
 } as const;
 
 export const CHANGE_WORKFLOW_COMPAT_QUERY_NAMES = {
@@ -411,6 +412,8 @@ export interface OperationLedgerEntry {
   /** Stable digest of the behavior-changing payload that was accepted. */
   payload_hash: string;
   outcome: "accepted" | "rejected" | "idempotent_replay";
+  /** Workflow state revision at the time the outcome was recorded. */
+  state_revision: number;
   accepted_at: string;
   last_seen_at: string;
 }

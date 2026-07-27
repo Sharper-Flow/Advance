@@ -112,6 +112,13 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
     rationale:
       "Inventory test scans call sites; its own source may contain the string for documentation.",
   },
+  {
+    file: "plugin/src/storage/store-temporal/spec-deltas.disk-projection.test.ts",
+    context: null,
+    category: "test_raw_primitive",
+    rationale:
+      "RED/GREEN test seeds a durable delta-add projection directly via raw saveChange to prove the disk shard is written before the workflow ledger is consulted.",
+  },
 ];
 
 /**

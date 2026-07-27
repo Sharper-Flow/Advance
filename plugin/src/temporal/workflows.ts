@@ -254,6 +254,10 @@ const getMutationReceiptQuery = wf.defineQuery<
   import("./contracts").MutationReceipt | undefined,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
+const getOperationLedgerOutcomeQuery = wf.defineQuery<
+  import("./contracts").OperationLedgerEntry | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getOperationLedgerOutcome);
 const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [
@@ -911,6 +915,10 @@ export async function changeWorkflow(
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
   wf.setHandler(getMutationReceiptQuery, (receiptId) =>
     findMutationReceipt(state, receiptId),
+  );
+  wf.setHandler(
+    getOperationLedgerOutcomeQuery,
+    (operationId) => state.operation_ledger?.[operationId],
   );
   wf.setHandler(
     changeTasksQuery,

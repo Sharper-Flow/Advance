@@ -1,22 +1,26 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { createSpecDeltaOps } from "./spec-deltas";
-import { CHANGE_WORKFLOW_SIGNAL_NAMES } from "../../temporal/contracts";
+import {
+  CHANGE_WORKFLOW_SIGNAL_NAMES,
+  CHANGE_WORKFLOW_QUERY_NAMES,
+} from "../../temporal/contracts";
 import { DiskProjectionPersistError } from "./disk-persist";
+import { commitChangeProjectionWithSummary } from "../change-summary-shard";
 
 const { signalMock, queryMock } = vi.hoisted(() => ({
   signalMock: vi.fn(),
   queryMock: vi.fn(),
 }));
 
-vi.mock("./shared", () => ({
-  runTemporal: async <T>(op: () => Promise<T>): Promise<T> => op(),
-  runTemporalQuery: async <T>(op: () => Promise<T>): Promise<T> => op(),
-  getGuardedChangeHandle: async () => ({
-    signal: signalMock,
-    query: queryMock,
-  }),
-}));
+vi.mock("../change-summary-shard", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../change-summary-shard")>();
+  return {
+    ...actual,
+    commitChangeProjectionWithSummary: vi.fn(),
+  };
+});
 
 const ADD_DELTA = {
   id: "dl-AAA11111",
@@ -64,30 +68,96 @@ function makeStateWithDelta() {
     changeId: "spec-delta-store-test",
     deltas: { "collection-dashboard": [ADD_DELTA] },
     wisdom: [],
+    state_revision: 1,
   };
+}
+
+function makeHandle(_stateAfterSignal: unknown) {
+  return {
+    signal: signalMock,
+    query: queryMock,
+  };
+}
+
+function mockQueries(
+  stateAfterSignal: unknown,
+  ledgerOutcome: "accepted" | "rejected" = "accepted",
+) {
+  queryMock.mockImplementation(async (queryDef, queryArg) => {
+    if (
+      queryDef.name === CHANGE_WORKFLOW_QUERY_NAMES.getOperationLedgerOutcome
+    ) {
+      if (ledgerOutcome === "rejected") {
+        return { outcome: "rejected" };
+      }
+      const envelope = signalMock.mock.calls
+        .slice()
+        .reverse()
+        .find((call) => {
+          const payload = call[1] as Record<string, unknown> | undefined;
+          return payload?.operation_id === queryArg;
+        });
+      const payload = (envelope?.[1] ?? {}) as Record<string, unknown>;
+      return {
+        operation_id: queryArg,
+        command_kind: payload.command_kind ?? "specDeltaAdded",
+        payload_hash: payload.payload_hash ?? "hash",
+        outcome: "accepted",
+        state_revision: 1,
+        accepted_at: new Date().toISOString(),
+        last_seen_at: new Date().toISOString(),
+      };
+    }
+    return stateAfterSignal;
+  });
 }
 
 function makeDeps(stateAfterSignal: unknown) {
-  queryMock.mockResolvedValue(stateAfterSignal);
+  const handle = makeHandle(stateAfterSignal);
   return {
-    input: { projectId: "pid-spec-delta" },
-    legacy: { specDeltas: {} },
+    input: {
+      projectId: "pid-spec-delta",
+      legacy: {
+        changes: {
+          get: vi.fn().mockResolvedValue({ success: true, data: null }),
+        },
+      },
+      temporal: {
+        client: {
+          workflow: {
+            getHandle: vi.fn().mockReturnValue(handle),
+          },
+        },
+      },
+    },
+    legacy: {
+      specDeltas: {},
+      paths: {
+        changes: "/tmp/spec-delta-changes",
+        summariesDir: "/tmp/spec-delta-summaries",
+      },
+    },
     invalidateChange: vi.fn(),
     setCachedChange: vi.fn(),
     emitChangeSummarySignal: vi.fn(),
-    persistStateToDisk: vi.fn(),
-    persistStateToDiskDurable: vi.fn(),
   };
 }
 
-describe("createSpecDeltaOps", () => {
-  beforeEach(() => {
-    signalMock.mockClear();
-    queryMock.mockReset();
+beforeEach(() => {
+  signalMock.mockClear();
+  queryMock.mockReset();
+  vi.mocked(commitChangeProjectionWithSummary).mockReset();
+  vi.mocked(commitChangeProjectionWithSummary).mockResolvedValue({
+    kind: "committed",
+    snapshotRevision: 1,
   });
+});
 
+describe("createSpecDeltaOps", () => {
   it("signals specDeltaAdded, refreshes state, persists, and returns the appended delta", async () => {
-    const deps = makeDeps(makeStateWithDelta());
+    const state = makeStateWithDelta();
+    const deps = makeDeps(state);
+    mockQueries(state);
     const ops = createSpecDeltaOps(deps as never);
 
     const result = await ops.add(
@@ -109,15 +179,14 @@ describe("createSpecDeltaOps", () => {
       addedBy: "agent",
     });
     expect(typeof payload.addedAt).toBe("string");
+    expect(payload.operation_id).toBeDefined();
+    expect(payload.command_kind).toBe("specDeltaAdded");
+    expect(payload.payload_hash).toMatch(/^[0-9a-f]{64}$/);
     expect(deps.invalidateChange).toHaveBeenCalledWith("spec-delta-store-test");
-    expect(deps.setCachedChange).toHaveBeenCalledWith(makeStateWithDelta());
+    expect(deps.setCachedChange).toHaveBeenCalledWith(state);
     expect(deps.emitChangeSummarySignal).toHaveBeenCalledWith(
       "spec-delta-store-test",
-      makeStateWithDelta(),
-    );
-    expect(deps.persistStateToDiskDurable).toHaveBeenCalledWith(
-      "spec-delta-store-test",
-      makeStateWithDelta(),
+      state,
     );
   });
 
@@ -141,13 +210,14 @@ describe("createSpecDeltaOps", () => {
       ],
     };
     const deps = makeDeps(rejectedState);
+    mockQueries(rejectedState, "rejected");
     const ops = createSpecDeltaOps(deps as never);
 
     await expect(
       ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA),
-    ).rejects.toThrow(/rq-specDelta01/);
-    expect(deps.persistStateToDiskDurable).not.toHaveBeenCalled();
+    ).rejects.toThrow();
     expect(deps.setCachedChange).not.toHaveBeenCalled();
+    expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
   });
 
   it("signals specDeltaAmended, replaces the delta in place, and returns the amended delta", async () => {
@@ -156,6 +226,7 @@ describe("createSpecDeltaOps", () => {
     const amended = { ...MODIFY_DELTA, changes: { title: "Amended title" } };
     state.deltas["collection-dashboard"][0] = amended;
     const deps = makeDeps(state);
+    mockQueries(state);
     const ops = createSpecDeltaOps(deps as never);
 
     const result = await ops.amend(
@@ -179,7 +250,7 @@ describe("createSpecDeltaOps", () => {
       amendedBy: "agent",
     });
     expect(deps.setCachedChange).toHaveBeenCalledWith(state);
-    expect(deps.persistStateToDiskDurable).toHaveBeenCalledWith(
+    expect(deps.emitChangeSummarySignal).toHaveBeenCalledWith(
       "spec-delta-store-test",
       state,
     );
@@ -190,8 +261,10 @@ describe("createSpecDeltaOps", () => {
       changeId: "spec-delta-store-test",
       deltas: { "collection-dashboard": [] },
       wisdom: [],
+      state_revision: 1,
     };
     const deps = makeDeps(emptyState);
+    mockQueries(emptyState);
     const ops = createSpecDeltaOps(deps as never);
 
     await ops.retract(
@@ -212,11 +285,13 @@ describe("createSpecDeltaOps", () => {
       retractedBy: "agent",
     });
     expect(deps.setCachedChange).toHaveBeenCalled();
-    expect(deps.persistStateToDiskDurable).toHaveBeenCalled();
+    expect(deps.emitChangeSummarySignal).toHaveBeenCalled();
   });
 
   it("throws a typed error when retract readback still finds the delta", async () => {
-    const deps = makeDeps(makeStateWithDelta());
+    const state = makeStateWithDelta();
+    const deps = makeDeps(state);
+    mockQueries(state);
     const ops = createSpecDeltaOps(deps as never);
 
     await expect(
@@ -226,13 +301,14 @@ describe("createSpecDeltaOps", () => {
         "dl-AAA11111",
       ),
     ).rejects.toThrow(/without removing delta/);
-    expect(deps.persistStateToDiskDurable).not.toHaveBeenCalled();
+    expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
   });
 
   it("signals specDeltaRemoved, refreshes state, and returns the appended remove delta", async () => {
     const state = makeStateWithDelta();
     state.deltas["collection-dashboard"].push(REMOVE_DELTA);
     const deps = makeDeps(state);
+    mockQueries(state);
     const ops = createSpecDeltaOps(deps as never);
 
     const result = await ops.remove(
@@ -260,6 +336,7 @@ describe("createSpecDeltaOps", () => {
     const state = makeStateWithDelta();
     state.deltas["collection-dashboard"].push(RENAME_DELTA);
     const deps = makeDeps(state);
+    mockQueries(state);
     const ops = createSpecDeltaOps(deps as never);
 
     const result = await ops.rename(
@@ -284,24 +361,37 @@ describe("createSpecDeltaOps", () => {
   });
 
   it("propagates DiskProjectionPersistError when the durable disk write fails (AC1/AC5/AC7)", async () => {
-    const deps = makeDeps(makeStateWithDelta());
-    deps.persistStateToDiskDurable = vi
-      .fn()
-      .mockRejectedValue(
-        new DiskProjectionPersistError(
-          "spec-delta-store-test",
-          new Error("EACCES: permission denied"),
-        ),
-      );
+    const state = makeStateWithDelta();
+    const deps = makeDeps(state);
+    mockQueries(state);
+    vi.mocked(commitChangeProjectionWithSummary).mockRejectedValue(
+      new DiskProjectionPersistError(
+        "spec-delta-store-test",
+        new Error("EACCES: permission denied"),
+      ),
+    );
     const ops = createSpecDeltaOps(deps as never);
 
-    // The Temporal signal + readback confirmed the delta, but the disk
-    // projection write failed — success must NOT be returned; the typed
-    // ambiguous error propagates so the caller does not blind-retry.
     await expect(
       ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA, {
         addedBy: "agent",
       }),
     ).rejects.toBeInstanceOf(DiskProjectionPersistError);
+  });
+
+  it("reports projection failure when the summary shard/pointer commit fails", async () => {
+    const state = makeStateWithDelta();
+    const deps = makeDeps(state);
+    mockQueries(state);
+    vi.mocked(commitChangeProjectionWithSummary).mockResolvedValue({
+      kind: "error",
+      error: "summary pointer readback mismatch",
+    });
+    const ops = createSpecDeltaOps(deps as never);
+    await expect(
+      ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA, {
+        addedBy: "agent",
+      }),
+    ).rejects.toThrow(/projection_failure/);
   });
 });

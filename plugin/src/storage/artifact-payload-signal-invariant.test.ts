@@ -11,16 +11,45 @@
  * sequential-await ordering (C5) and the metadata signal pairing.
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createChangeOps } from "./store-temporal/changes";
+import { commitChangeProjectionWithSummary } from "./change-summary-shard";
 import type { ArtifactPayload } from "../types";
+import {
+  createToolOperationContext,
+  withToolOperationContext,
+} from "../utils/tool-operation-context";
 
 interface RecordedSignal {
   signalName: string;
   kind?: string;
   text?: string;
+  operationId?: string;
+  commandKind?: string;
+  payloadHash?: string;
 }
+
+vi.mock("./change-summary-shard", async () => {
+  const actual = await vi.importActual<typeof import("./change-summary-shard")>(
+    "./change-summary-shard",
+  );
+  return {
+    ...actual,
+    commitChangeProjectionWithSummary: vi.fn(async () => ({
+      kind: "committed",
+      snapshotRevision: 1,
+    })),
+  };
+});
+
+beforeEach(() => {
+  vi.mocked(commitChangeProjectionWithSummary).mockReset();
+  vi.mocked(commitChangeProjectionWithSummary).mockResolvedValue({
+    kind: "committed",
+    snapshotRevision: 1,
+  });
+});
 
 function buildRecordingDeps(): {
   signals: RecordedSignal[];
@@ -31,18 +60,61 @@ function buildRecordingDeps(): {
   const handle = {
     signal: vi.fn(async (def: { name?: string }, payload: unknown) => {
       const signalName = def.name ?? "unknown";
-      const p = payload as { text?: string; kind?: string };
+      const p = payload as {
+        text?: string;
+        kind?: string;
+        operation_id?: string;
+        command_kind?: string;
+        payload_hash?: string;
+      };
       signals.push({
         signalName,
         kind: p.kind,
         text: p.text,
+        operationId: p.operation_id,
+        commandKind: p.command_kind,
+        payloadHash: p.payload_hash,
       });
     }),
-    query: vi.fn(async (_def: unknown, receiptId: string) => ({
-      id: receiptId,
-      signalName: "artifactUpdated",
-      recordedAt: "2026-07-19T20:00:00.000Z",
-    })),
+    query: vi.fn(async (def: { name?: string }, ...args: unknown[]) => {
+      const name = def.name ?? "unknown";
+      if (name === "adv.change.getOperationLedgerOutcome") {
+        const operationId = args[0] as string;
+        const recorded = signals.find((s) => s.operationId === operationId);
+        return {
+          operation_id: operationId,
+          command_kind: recorded?.commandKind ?? "unknown",
+          payload_hash: recorded?.payloadHash ?? "unknown",
+          outcome: "accepted",
+          state_revision: 1,
+          accepted_at: new Date().toISOString(),
+          last_seen_at: new Date().toISOString(),
+        };
+      }
+      if (name === "adv.change.getState") {
+        return {
+          changeId: "test-change",
+          title: "test",
+          status: "draft",
+          createdAt: "2026-05-28T00:00:00.000Z",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: {},
+          reentry_history: [],
+          documents: {},
+          artifacts: {},
+          state_revision: 1,
+        };
+      }
+      // Default: getMutationReceipt query
+      const receiptId = args[0] as string;
+      return {
+        id: receiptId,
+        signalName: "artifactUpdated",
+        recordedAt: "2026-07-19T20:00:00.000Z",
+      };
+    }),
   };
 
   const workflowClient = {
@@ -65,7 +137,11 @@ function buildRecordingDeps(): {
   };
 
   const legacy = {
-    paths: { changes: "/tmp/changes", root: "/tmp/project" },
+    paths: {
+      changes: "/tmp/changes",
+      root: "/tmp/project",
+      summariesDir: "/tmp/summaries",
+    },
     changes: {
       create: vi
         .fn()
@@ -191,5 +267,40 @@ describe("AC6 — ArtifactPayload signal invariant", () => {
     // 2 content signals + 2 metadata signals = 4 total
     expect(signals.filter((s) => s.text !== undefined)).toHaveLength(2);
     expect(signals.filter((s) => s.kind !== undefined)).toHaveLength(2);
+  });
+
+  it("reuses stable per-artifact ids on a same-message retry", async () => {
+    const { signals, deps } = buildRecordingDeps();
+    const ops = createChangeOps(deps);
+    const context = createToolOperationContext(
+      "adv_change_update",
+      { changeId: "test-change", artifacts: { proposal: "p" } },
+      { sessionID: "session-1", messageID: "message-1" },
+    );
+
+    await withToolOperationContext(context, () =>
+      ops.updateArtifacts("test-change", { proposal: "p" }),
+    );
+    await withToolOperationContext(context, () =>
+      ops.updateArtifacts("test-change", { proposal: "p" }),
+    );
+
+    const contentIds = signals
+      .filter((signal) => signal.text !== undefined)
+      .map((signal) => signal.operationId);
+    expect(contentIds).toEqual([contentIds[0], contentIds[0]]);
+    expect(contentIds[0]).toMatch(/:updateArtifacts:proposal$/);
+  });
+
+  it("rejects content success when the summary proof fails", async () => {
+    const { deps } = buildRecordingDeps();
+    vi.mocked(commitChangeProjectionWithSummary).mockResolvedValueOnce({
+      kind: "error",
+      error: "summary pointer readback failed",
+    });
+
+    await expect(
+      createChangeOps(deps).updateArtifacts("test-change", { proposal: "p" }),
+    ).rejects.toThrow(/projection_failure/);
   });
 });
