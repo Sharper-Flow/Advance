@@ -53,11 +53,18 @@ vi.mock("../change-summary-shard", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
-    listSummaryChanges,
     commitChangeProjectionWithSummary: vi.fn().mockResolvedValue({
       kind: "committed",
       snapshotRevision: 1,
     }),
+  };
+});
+
+vi.mock("../change-summary-shard-reader", async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    listSummaryChanges,
   };
 });
 
