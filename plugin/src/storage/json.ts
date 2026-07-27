@@ -35,12 +35,19 @@ export type LoadResult<T> =
   | {
       success: true;
       data: T;
-      source?: "workflow" | "disk" | "archive" | "retired_projection";
+      source?:
+        | "workflow"
+        | "disk"
+        | "archive"
+        | "retired_projection"
+        | "read_model";
     }
   | {
       success: false;
       error: string;
       type: "not_found" | "schema_error" | "read_error";
+      source?: "read_model";
+      degraded?: unknown;
     };
 
 /**

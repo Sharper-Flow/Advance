@@ -1,4 +1,5 @@
 import type { Store, ChangeConflictAuthority } from "../store-types";
+import { snapshotToLoadResult } from "./read-model";
 import {
   type ArtifactKind,
   type ArtifactPayload,
@@ -450,6 +451,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     persistStateToDiskDurable,
     memo,
     changeCache,
+    readChangeSnapshot,
   } = deps;
 
   return {
@@ -892,16 +894,14 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           : {}),
       };
     },
-    get: async (changeId: string, opts?: { context?: TemporalReadContext }) => {
-      // Delegates to the shared orphan-tolerant path so adv_status,
-      // adv_change_show, and adv_change_list all behave the same when
-      // a workflow is missing: try to re-seed from disk, otherwise
-      // return the not-found error.
-      // A caller-supplied context threads the per-request circuit-breaker
-      // across members (e.g. epic convergence), so K unresponsive children
-      // trip the CB once instead of each burning the full per-member budget.
-      const ctx = opts?.context ?? createTemporalReadContext();
-      return getTemporalChange(changeId, { context: ctx });
+    get: async (
+      changeId: string,
+      _opts?: { context?: TemporalReadContext },
+    ) => {
+      // Routine show/get is deliberately distinct from command/preflight
+      // getTemporalChange: absence or corruption of a projection must never
+      // obtain a workflow handle or trigger orphan hydration.
+      return snapshotToLoadResult(await readChangeSnapshot(changeId));
     },
     refresh: async (changeId: string): Promise<void> => {
       // R1 follow-on: tool-layer code paths that mutate workflow state

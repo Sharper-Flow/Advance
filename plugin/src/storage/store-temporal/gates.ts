@@ -6,7 +6,6 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import {
-  classifyTemporalReadFailure,
   runTemporal,
   getGuardedChangeHandle,
   changeCommand,
@@ -14,18 +13,13 @@ import {
   buildSummaryCommitProjection,
   type ChangeCommandOutcome,
   type StoreDeps,
-  createTemporalReadContext,
-  isTemporalReadExpired,
-  type TemporalReadContext,
 } from "./shared";
 import {
   composeTypedMutationResult,
   enforceMutationEligibilityForError,
   type TemporalMutationOutcome,
 } from "../../temporal/mutation-safety";
-import { collectErrorText } from "../../temporal/error-text";
 import { createLogger } from "../../utils/debug-log";
-import { isSchemaError } from "../json";
 import { computeHostCommandPayloadHash } from "../../utils/command-payload-hash";
 
 export { fireSignalWithMutationGuard };
@@ -113,63 +107,18 @@ async function fireSignalWithMutationGuard(
 
 export function createGateOps(deps: StoreDeps): Store["gates"] {
   const {
-    input,
     legacy,
     invalidateChange,
     setCachedChange,
     emitChangeSummarySignal,
-    getTemporalChange,
+    readChangeSnapshot,
   } = deps;
 
   return {
     ...legacy.gates,
     get: async (changeId: string) => {
-      // SC3 aggregate-budget compliance: build ONE
-      // `TemporalReadContext` per call and thread it through both the
-      // primary read and the fallback read. The previous implementation
-      // created a fresh context for the fallback path, which violated the
-      // request-scoped aggregate deadline (`rq-temporalRecoveryOutcome01`).
-      const ctx: TemporalReadContext = createTemporalReadContext();
-      try {
-        const result = await getTemporalChange(changeId, { context: ctx });
-        if (isSchemaError(result)) {
-          throw new Error(result.error);
-        }
-        if (result.success && result.data) {
-          return result.data.gates ?? null;
-        }
-        throw new Error(`Failed to load gates for change ${changeId}`);
-      } catch (error) {
-        const failure = await classifyTemporalReadFailure(
-          input,
-          changeId,
-          error,
-        );
-        if (failure.errorClass !== "fallback") {
-          throw error;
-        }
-        // Fallback may reuse the existing context only if it has budget
-        // remaining. Once expired, return a typed degraded read result
-        // rather than silently starting a new budget.
-        if (isTemporalReadExpired(ctx)) {
-          throw new Error(
-            `Aggregate read budget exhausted during fallback for change ${changeId}: original error preserved (${collectErrorText(error)})`,
-            { cause: error },
-          );
-        }
-        const recovered = await getTemporalChange(changeId, { context: ctx });
-        if (isSchemaError(recovered)) {
-          // Preserve the outer caught `error` as cause for traceability
-          // (preserve-caught-error). The schema_error message in
-          // `recovered.error` is the primary symptom; `error` is the
-          // Temporal read failure that triggered the fallback path.
-          throw new Error(recovered.error, { cause: error });
-        }
-        if (recovered.success && recovered.data) {
-          return recovered.data.gates ?? null;
-        }
-        throw error;
-      }
+      const snapshot = await readChangeSnapshot(changeId);
+      return snapshot.found ? (snapshot.snapshot.gates ?? null) : null;
     },
     complete: async (
       changeId: string,

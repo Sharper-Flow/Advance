@@ -930,6 +930,10 @@ export interface StoreDeps {
   ) => Promise<ChangeWorkflowState>;
   indexTasksFromState: (state: ChangeWorkflowState) => void;
   resolveChangeId: (taskId: string) => Promise<string | null>;
+  /** Disk-only authoritative snapshot read for routine ReadStore methods. */
+  readChangeSnapshot: (
+    changeId: string,
+  ) => Promise<import("./read-model").ChangeReadSnapshot>;
   getTemporalChange: (
     changeId: string,
     opts?: {

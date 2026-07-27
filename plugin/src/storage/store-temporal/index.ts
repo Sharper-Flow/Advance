@@ -74,6 +74,7 @@ import { commitChangeProjection } from "../change-projection-transaction";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
+import { readChangeSnapshot } from "./read-model";
 import { createGateOps } from "./gates";
 import { createWisdomOps } from "./wisdom";
 import { createSpecDeltaOps } from "./spec-deltas";
@@ -202,6 +203,15 @@ export function createTemporalStoreBackend(
     });
     indexTasksFromChange(change);
     return change;
+  };
+
+  // Routine reads are disk/read-model authoritative. This closure has no
+  // Temporal dependency and only populates advisory caches after validating a
+  // fresh projection read.
+  const readProjectionSnapshot = async (changeId: string) => {
+    const snapshot = await readChangeSnapshot(legacy.paths.changes, changeId);
+    if (snapshot.found) setCachedProjection(snapshot.snapshot);
+    return snapshot;
   };
 
   /**
@@ -1521,7 +1531,10 @@ export function createTemporalStoreBackend(
               terminal:
                 result.data.status === "archived" ||
                 result.data.status === "closed",
-              source: result.source,
+              // getTemporalChange is a workflow/preflight helper, but the
+              // public LoadResult union also admits read_model provenance.
+              // Terminal reconciliation treats a durable projection as disk.
+              source: result.source === "read_model" ? "disk" : result.source,
               omitted: false,
             },
           };
@@ -2040,6 +2053,7 @@ export function createTemporalStoreBackend(
     resolveStateOrQuery,
     indexTasksFromState,
     resolveChangeId,
+    readChangeSnapshot: readProjectionSnapshot,
     getTemporalChange,
     listResolvedChanges,
     reseedChangeFromDisk,

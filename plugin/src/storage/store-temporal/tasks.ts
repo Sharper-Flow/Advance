@@ -4,14 +4,10 @@ import {
   taskAddedSignal,
   taskUpdatedSignal,
   taskCancelledSignal,
-  changeTasksQuery,
-  changeTaskQuery,
-  changeStateQuery,
 } from "../../temporal/messages";
 import { getReadyTasksFromChangeState } from "../../temporal/change-state";
+import { filterProjectionTasks } from "./read-model";
 import {
-  runTemporalQuery,
-  getGuardedChangeHandle,
   changeCommand,
   fallbackOperationId,
   buildSummaryCommitProjection,
@@ -49,32 +45,36 @@ function unwrapCommandOutcome(
 }
 
 export function createTaskOps(deps: StoreDeps): Store["tasks"] {
-  const { input, legacy, taskChangeIndex, resolveChangeId, invalidateChange } =
-    deps;
+  const {
+    legacy,
+    taskChangeIndex,
+    resolveChangeId,
+    invalidateChange,
+    readChangeSnapshot,
+  } = deps;
 
   return {
     ...legacy.tasks,
     list: async (changeId: string, status?: string, filter?: string) => {
-      const tasks = (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(
-          changeTasksQuery,
-          status,
-          filter,
-        ),
-      )) as Awaited<ReturnType<Store["tasks"]["list"]>>;
-      for (const task of tasks ?? []) {
+      const snapshot = await readChangeSnapshot(changeId);
+      const tasks = snapshot.found
+        ? filterProjectionTasks(snapshot.snapshot.tasks ?? [], status, filter)
+        : [];
+      for (const task of tasks) {
         taskChangeIndex.set(task.id, changeId);
       }
       return tasks;
     },
     ready: async (changeId: string) => {
-      const state = (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
-      for (const task of state.tasks ?? []) {
+      const snapshot = await readChangeSnapshot(changeId);
+      if (!snapshot.found) return { ready: [], blocked: [] };
+      const tasks = snapshot.snapshot.tasks ?? [];
+      for (const task of tasks) {
         taskChangeIndex.set(task.id, changeId);
       }
-      return getReadyTasksFromChangeState(state);
+      return getReadyTasksFromChangeState({
+        tasks,
+      } as import("../../temporal/contracts").ChangeWorkflowState);
     },
     update: async (
       taskId,
@@ -207,24 +207,28 @@ export function createTaskOps(deps: StoreDeps): Store["tasks"] {
     get: async (taskId) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
-      return (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(
-          changeTaskQuery,
-          taskId,
-        ),
-      )) as Awaited<ReturnType<Store["tasks"]["get"]>>;
+      const snapshot = await readChangeSnapshot(changeId);
+      if (!snapshot.found) return null;
+      for (const task of snapshot.snapshot.tasks ?? []) {
+        taskChangeIndex.set(task.id, changeId);
+      }
+      return (
+        snapshot.snapshot.tasks?.find((task) => task.id === taskId) ?? null
+      );
     },
     show: async (taskId) => {
       const changeId = await resolveChangeId(taskId);
       if (!changeId) return null;
-      const task = await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(
-          changeTaskQuery,
-          taskId,
-        ),
+      const snapshot = await readChangeSnapshot(changeId);
+      if (!snapshot.found) return null;
+      for (const candidate of snapshot.snapshot.tasks ?? []) {
+        taskChangeIndex.set(candidate.id, changeId);
+      }
+      const task = snapshot.snapshot.tasks?.find(
+        (candidate) => candidate.id === taskId,
       );
       if (!task) return null;
-      return { task: task as Task, changeId };
+      return { task, changeId };
     },
     cancel: async (
       taskId,

@@ -1,9 +1,7 @@
 import type { Store } from "../store-types";
 import type { WisdomType, WisdomEntry } from "../../types";
-import { wisdomAddedSignal, changeStateQuery } from "../../temporal/messages";
+import { wisdomAddedSignal } from "../../temporal/messages";
 import {
-  runTemporalQuery,
-  getGuardedChangeHandle,
   changeCommand,
   fallbackOperationId,
   buildSummaryCommitProjection,
@@ -40,7 +38,7 @@ function unwrapCommandOutcome(
 }
 
 export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
-  const { input, legacy, invalidateChange } = deps;
+  const { legacy, invalidateChange, readChangeSnapshot } = deps;
 
   return {
     ...legacy.wisdom,
@@ -115,10 +113,8 @@ export function createWisdomOps(deps: StoreDeps): Store["wisdom"] {
       return latest;
     },
     list: async (changeId: string) => {
-      const state = (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
-      return state.wisdom;
+      const snapshot = await readChangeSnapshot(changeId);
+      return snapshot.found ? (snapshot.snapshot.wisdom ?? []) : [];
     },
   };
 }
