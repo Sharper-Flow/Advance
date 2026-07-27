@@ -523,7 +523,13 @@
         "Orchestrator: consider adding explicit AC for read-after-write consistency from GH #168 to discovery agreement (overlaps but extends current AC1/AC2).",
         "Verify whether listResolvedChanges bundle-dominance (store-temporal/index.ts:762-801) can be extended to treat a typed terminal phase9 evidence record (not just bundle presence) as archived-dominant, closing the no-bundle split-brain at the read layer.",
         "Confirm cross-project mutation feasibility (#175 peer_owned serviceability) before committing proposal item 4 to implementation vs documentation."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt 3 candidates into discovery scope; surface 2 to user; defer 0.\n\nAUTO-ADOPT into discovery agreement:\n1. (Family A) Add re-entrant pending_merge finalization that reuses resolveReleaseReachability PR-merge proof to complete release gate + bundle + status->archived idempotently. Ties to AC1/AC2, C1/C2. Reuses existing structural proof — boring, no new heuristics.\n2. (Family B) Make adv_change_status_repair (and any disk-projection status write) read-after-write consistent: gate success on the same durable source adv_change_show/adv_change_list use, or fail with source/evidence mismatch instead of returning success. Ties to GH #168 AC, C1. Add the #168 read-after-write invariant explicitly to the agreement AC set.\n3. (Family C) Bound status summary: cap recommendations (slice top-N) and cap/skip recentEnrichment in summary view; gate heavy per-change archaeology behind view:changes|hygiene|health with pagination. Mirror existing backlog.ts:419 slice idiom. Ties to AC3/AC4/C4.\n\nUSER-SURFACE:\n4. Scope of proposal item 4 (cross-project operator ergonomics): #168 + #175 evidence suggests cross-project MUTATION from this session is blocked (target queue not_serviceable). Ask whether to (a) implement a same-project audited repair tool + document the cross-project limitation, or (b) invest in the peer-owned serviceability path (#175) now. Recommend (a) for this change.\n5. Severity reframing: confirm with user that GH #168 read-after-write split-brain is treated as the critical anchor (it makes repair success untrustworthy). It overlaps but is broader than the proposal's pending_merge framing.\n\nAVOID (agreement DONT alignment): do not add title/name-based status flips (DONT3); do not rely on git branch --merged for squash-merge proof (DONT2 — use existing detectSquashMergeByTree/readPrMergeState); do not add unbounded GitHub API calls to default status (DONT4 — keep PR evidence only in explicit repair/finalization paths, not /adv-status summary)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -578,7 +584,13 @@
       "follow_ups": [
         "Slice 2 should reuse verifyReleaseEvidenceFromMain for shipped/pending_merge/blocked classification rather than authoring new proof.",
         "Confirm whether the cap belongs at the store getStatus source (cheaper, skips enrichment of omitted rows) vs status.ts (keeps store generic) — a planning-time decision."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the design with two scoping notes for planning: (A) Slice 3 verifier should compose existing store.changes.get + list archive-bundle-dominant reads, not new read logic; (B) Slice 5 must cap at BOTH the getStatus source projection (index.ts:876) and the status.ts enrichment loop (1469-1508), defaulting to 10 with omitted-count markers, since summary view currently bounds nothing."
+      }
     },
     {
       "schema_version": "1.0",
@@ -633,7 +645,13 @@
       "follow_ups": [
         "Planning: add DDC/task note that status boundedness cap must be applied before recentChangeEnrichment (status.ts:1491), not only in the post-hoc summary projection (status.ts:1027).",
         "Planning: ensure Slice 2 recovery helper wraps verifyReleaseEvidenceFromMain to avoid a parallel reachability/proof path."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design is correct, simple, and source-verified — it reuses real helpers and targets the two confirmed gaps without inventing proof or duplicate dominance logic. Two refinements to carry into planning, both non-blocking: (1) Make explicit that the status cap (DDC1, cap=10) is applied to the recentChanges array before the recentChangeEnrichment loop at status.ts:1491 — the current summary projection at status.ts:1027 trims fields after all per-change store.changes.get/proposal reads already executed, so capping only there would not deliver the boundedness objective; (2) Slice 2's new recovery helper should wrap verifyReleaseEvidenceFromMain rather than re-derive reachability, preventing a second PR-proof code path. No alternative approach is materially simpler; building on the established WorkflowNotFoundError disk-projection recovery model is the boring, proven path."
+      }
     },
     {
       "schema_version": "1.0",

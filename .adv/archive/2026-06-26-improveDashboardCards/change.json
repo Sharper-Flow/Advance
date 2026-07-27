@@ -210,7 +210,13 @@
       "follow_ups": [
         "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided in the prompt; proceeded with prompt scope per policy.",
         "Confirm whether gateProgressStr format divergence (compact vs labeled, seen in attention.test.ts:174 vs adv.test.ts:25) is intentional; if a single producer feeds the dashboard it is moot, but it reinforces using firstIncompleteGate index over glyph parsing."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed (VALIDATED). Implementation guidance: (1) Add a pure completedGateCount(change) helper deriving from GATE_ORDER.indexOf(firstIncompleteGate) (null => 7) — do NOT count ✓ glyphs. (2) Sort within buildAttentionLanes per lane after filtering: completedGateCount desc, then lastActivityAt desc, then title asc, then id asc; keep degradedItems prepended ahead of sorted needs_attention ADV cards. (3) Thread lastActivityAt onto ChangeStatusLaneItem (or sort accumulators/changes before item construction) so the tiebreak data is available. (4) In changeStatusHtml replace the 'Status: <status>' block with a gate-progress line; retain the existing gate badge. (5) Leave buildUnmatchedSource untouched for AC4. Test focus: model test for completedGateCount edge cases (all ○, all ✓/null, mixed); intra-lane sort ordering test with differing gate progress (AC2) and equal-progress deterministic tiebreak (AC3); UI test asserting 'Status: draft' no longer renders and gate progress does (AC1); regression test that unmatched GitHub source stays in unmatched_source and is not converted to adv_change_status (AC4); verify degraded source still leads needs_attention after sort; run via 'bin/oc-test targeted -- bin/lib/dashboard' then full 'bun test bin/'."
+      }
     },
     {
       "schema_version": "1.0",

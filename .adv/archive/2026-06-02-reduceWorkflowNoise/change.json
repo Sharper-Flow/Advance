@@ -464,7 +464,13 @@
         "C5 lazy-view / summary-index status work from docs/repo-improve-prep.md overlaps SC #8 cost reduction — orchestrator decides whether to absorb here or cross-link as separate change.",
         "Coordinate archive Phase 9 edits (SC #7) with stale draft addArchiveCleanupScanner to avoid spec/checklist drift.",
         "Reflection value-gap (SC #6): no structured evidence found that reflection output is queried/actioned downstream beyond reflections.jsonl persistence — recommend orchestrator confirm whether high-friction-only trigger loses any real consumer before narrowing."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now into the agreement: (C1) status gate-aware next-action — make the recency/stale recommendation derive the resume command from the change's actual next gate instead of hard-coding /adv-apply, and dedupe against the gate recommendation (SC #8, status.ts:688-689). (C2) Reframe rq-R3v13wR1 / checklists so a clean verdict requires the existing file-level GENUINELY-CLEAN-JUSTIFICATION evidence instead of a manufactured 3-finding minimum (SC #2); keep mandatory remediation untouched. Surface to user (do not auto-adopt): (C3) investment-report remove-vs-demote decision — reuse retireinvestmentgovernancedead's consumer audit; only adv orchestrator consumes it (SC #9). (C4) review/harden responsibility de-dup — define the split but treat as design-time decision because security/release blockers must be preserved (SC #3). Follow-up (record, do not block): (C5) fold the repo-improve-prep status over-computation findings (lazy views, defer cleanup, summary-index) into this change's status work or cross-link, since they share the adv_status hot path (SC #8 cost dimension)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -520,7 +526,13 @@
         "Verify status.ts:688 reuse of getRecommendationForGate handles archived/closed changes gracefully (recency path currently fires before gate-satisfaction guard at 666-667).",
         "Confirm workflows.queries.test.ts:148 expectation is left intact if getInvestmentReportQuery is retained (recommended) — no test churn needed.",
         "When rewriting rq-R3v13wR1, mirror edits into docs/specs/advance-workflow.md per the retireinvestmentgovernancedead precedent (markdown mirror exists)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt 5 refinements: (A) auto-adopt — make quota-removal slice rewrite spec rq-R3v13wR1 body+scenario.1 as the structural anchor, with the absence-pinning asset test asserting the spec no longer encodes a numeric finding threshold; harden.md:371-372 '>3 MEDIUM' matrix must be reworded to evidence-clean verdicts too. (B) auto-adopt — implement review/harden ownership split as two scenarios under the existing single spec requirement (shared spec, not new policy-data code); avoids over-engineering. (C) auto-adopt — relocate computePerGateDurations+computePerGateWorkDurations to a reflection-local pure helper exactly as slice D plans; confirmed reflection imports nothing else from investment.ts. (D) surface-to-user / design-around — explicitly scope the Temporal getInvestmentReportQuery OUT of the tool-removal slice (it is independent dead derivation; removing it touches the workflow bundle for zero value and is a separate replay-aware decision). (E) auto-adopt — route the status.ts:688 stale-recency recommendation through the existing manifest helper getRecommendationForGate instead of hardcoded /adv-apply, simultaneously satisfying agreement 'one canonical next action' + 'no stale /adv-apply before implementation gates' by reuse; and drop the already-stale tier text at adv-review.md:488."
+      }
     },
     {
       "schema_version": "1.0",
@@ -571,7 +583,13 @@
         "Add rewriteStatusCli to the design's coordination/AC10 surface to avoid status-routing-doc collisions during planning.",
         "During planning, pin Slice D task to assert zero active adv_investment_report references across registry, tool-title, agent allowlists, reviewer asset test, and commands.",
         "Confirm computePerGateDurations/computePerGateWorkDurations relocation target (reflection-local) preserves existing pure signatures consumed at reflection.ts:396,401."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design solves all stated objectives, is the simplest viable approach (prose/spec policy over new runtime subsystems, pure-helper relocation, query scope-out), and contradicts no existing spec. Before or during planning, add an explicit coordination note for the newer `rewriteStatusCli` change alongside the existing addArchiveCleanupScanner/firstClassExecutiveSummary coordination (C7/AC10 spirit), since both now touch status-routing surfaces; confirm the split keeps KD5 (status.ts recommendation dedup) and rewriteStatusCli (CLI/command rewrite) non-overlapping at the file level. Verify Slice D enumerates every confirmed adv_investment_report reference (tool-registry.ts L432-434/L741, tool-title.ts L105, adv-reviewer-asset.test.ts L175, investment.ts/.test.ts) and that reflection.ts helper relocation keeps the pure-function signatures intact."
+      }
     },
     {
       "schema_version": "1.0",

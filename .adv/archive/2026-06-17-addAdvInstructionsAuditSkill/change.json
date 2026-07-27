@@ -186,7 +186,13 @@
         "Execution: pre-plan ≤100-line split (sibling *.md for 5 dimensions) per adv-skill-author:109-111; adv-audit's 134 lines is a cautionary precedent.",
         "Dry-run validity: project.md:36 '21 slash-command workflow files' is an unanchored count-style claim (AGENTS.md equivalent IS banned by repo-instructions-assets.test.ts:16) — good third positive control for the 'single-source-per-surface' + 'test-or-cut' rules beyond the two claimed.",
         "Methodology note: 'runtime-assembly-aware' rule is sound given deploy-local.sh overlay assembly + adv-runtime-protocol-coverage.md — but ensure it doesn't flag intentionally-compressed runtime adv.md text whose invariant is preserved-by-coverage (docs/adv-runtime-protocol-coverage.md:13-28 maps compressed→retained); false-positive vector."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "PROCEED to design-gate completion. The design is architecturally sound: distinct axis from adv-audit, machine-checkable anchor definition, correct positioning of existing tests as prior-art instances, both positive controls verified. Before execution, tighten three things in the SKILL.md design: (1) Make 'trace-to-anchor' rule require anchor-FIDELITY not just anchor-PRESENCE — an anchor counts only if a vitest assertion fails for the claim's specific failure mode (prevents the project.md CI-order false-anchored case where substring-presence passes but matrix-granularity is stale). (2) Keep the skill methodology-only per rq-skillProseCompression01 — no embedded anchor inventory; enumerate at dry-run time. (3) Plan ≤100-line compression with a sibling reference file for the 5 dimensions if needed. 'single-source-per-surface' rule is well-motivated by real asymmetry: repo-instructions-assets.test.ts:16 bans count-style staleness ('24 slash-command workflow files') in AGENTS.md but project.md:36 still says '21 slash-command workflow files' unguarded — a concrete drift the skill should surface."
+      }
     }
   ],
   "deltas": {},

@@ -319,7 +319,13 @@
       "recommendation": "VALIDATED — proceed to planning/execution. The design is correct, minimal, and spec-compliant. The setupReady:true stamp belongs at applyWorktreeCreatedToState because worktreeCreatedSignal is structurally success-only (failure path uses a different registry write), making this a structural fact rather than a heuristic. Keeping the signal payload schema unchanged is the simpler and replay-safer choice and is the by-the-book reducer-projection pattern. No simpler viable alternative exists; the payload-schema alternative was correctly rejected. Ensure execution verifies AC4 (workflow signal-handler + bundle-boundary tests) and AC5 (live probe after build/deploy, since live tool calls run from cached dist/index.js per AGENTS.md source-vs-dist gotcha). No blockers.",
       "follow_ups": [
         "AC5 live proof requires pnpm run build + scripts/deploy-local.sh --fix + session restart before the main-checkout mutation probe — surface this in archive notes if in-session live validation is blocked by runtime cache."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED — proceed to planning/execution. The design is correct, minimal, and spec-compliant. The setupReady:true stamp belongs at applyWorktreeCreatedToState because worktreeCreatedSignal is structurally success-only (failure path uses a different registry write), making this a structural fact rather than a heuristic. Keeping the signal payload schema unchanged is the simpler and replay-safer choice and is the by-the-book reducer-projection pattern. No simpler viable alternative exists; the payload-schema alternative was correctly rejected. Ensure execution verifies AC4 (workflow signal-handler + bundle-boundary tests) and AC5 (live probe after build/deploy, since live tool calls run from cached dist/index.js per AGENTS.md source-vs-dist gotcha). No blockers."
+      }
     },
     {
       "schema_version": "1.0",

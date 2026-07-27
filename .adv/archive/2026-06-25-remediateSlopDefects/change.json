@@ -635,7 +635,13 @@
         "Confirm exact file:line for KD7 3rd CHANGE_WORKFLOW_PREFIX def + CHANGE_BRANCH_PREFIX def (design cites worktree/state.ts:219-220 but no plugin/src/storage/worktree/state.ts exists at that path).",
         "Ensure KD1 converges session/index.ts isPidAlive (already correct) and new process-liveness.ts on one implementation; keep session/index.test.ts:18 + worker-lock.test.ts green.",
         "KD8 docstring should reference ADV_INSTRUCTIONS.md per rq-twf01.7 spec scenario, not restate residual-risk prose."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design is VALIDATED with simplicity bias satisfied — every workstream is a boring in-place fix with behavior preservation. Before execution: (1) resolve the KD7 3rd-prefix-site path discrepancy (worktree/state.ts:219-220 not found at that path) so AC7 SSOT consolidation is complete and not partial; (2) make KD1's process-liveness.ts the single canonical implementation that session/index.ts re-exports (it already has the exact correct semantics) to avoid a third divergent isPidAlive; (3) point the KD8 classifyDestructiveBash docstring at ADV_INSTRUCTIONS.md per rq-twf01.7 rather than restating the residual-risk prose. The EPERM->alive direction (AC1) is confirmed the correct fail-safe choice; KD2 compaction-skip (AC2) genuinely closes a real data-destruction path with no new silent-failure; KD7 (AC7) is workflow-bundle-boundary-safe. New spec IDs do not collide."
+      }
     },
     {
       "schema_version": "1.0",

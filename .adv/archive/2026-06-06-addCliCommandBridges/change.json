@@ -1019,7 +1019,13 @@
         "Decide source-of-truth strategy for bin/adv projection shapes (shared helper module vs codegen from plugin/src/types.ts) BEFORE adding subcommand #2 to prevent gate-order/lastActivity drift.",
         "Catalog Temporal-dependent command slices (active-change annotation, WIP/worktree/session, live gate granularity) so they are explicitly excluded from disk-only CLI bridges.",
         "Author reusable spec + asset-test templates so each future bridge inherits the no-fanout + no-fallback contract by construction (structural-correctness over prose)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "RECOMMENDED FIRST STEP (lowest risk): add `adv roadmap` as a disk-only read of `.adv/roadmap-snapshot.json` reusing existing network/Temporal-free helpers (readSnapshotFile + assessAnnotationFreshness + pure filter/sort) WITHOUT active-change annotation; bridge /adv-roadmap's non-annotated read path to it. Keep active-change cross-reference + recommendations agent-owned (they need Temporal Visibility). ALTERNATIVE: /adv-validate is thin but adv_change_validate likely needs live workflow/spec state — if so, make it a thin single-MCP-call command (one adv_change_validate + deterministic table, no fanout, no recommendations) mirroring status discipline, NOT a pure-disk CLI. MANDATORY GUARDRAILS (mirror rq-statusCliBridge01): (a) New spec rq-<cmd>CliBridge01 with .1 output injection, .2 forbids agent fanout/synthesis, .3 CLI failure surfaces stderr with NO MCP fallback. (b) New *-cli-assets.test.ts cloned from adv-status-cli-assets.test.ts asserting the !`adv <subcmd>` token, verbatim/no-analysis instructions, forbidden-token list, spec anchoring. (c) Refactor bin/adv BEFORE adding subcommand #2: extract shared disk-read + projection-shape helpers (or codegen shape from plugin/src/types.ts) so gate order / lastActivity / snapshot schema have ONE source of truth. (d) Mark each disk-read subcommand's known-staleness boundary in --help + command body. (e) Do NOT convert any slice owning Tier B approval, gates, cancellation, archive, acceptance, sub-agent dispatch, or judgment."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1095,7 +1101,13 @@
         "adv_change_validate CLI port requires a decision: extract disk-projection read helper vs. disk-only-with-freshness-disclaimer, since the MCP tool reads Temporal-first.",
         "Add a CI JSON mode (--json) to validate/roadmap/doctor so CI consumes structured verdicts without ANSI parsing; gate with an assets test mirroring rq-statusCliBridge01.",
         "Conformance run already reads a CI artifact — a thin adv conformance status --json could surface last_verdict in CI without granting lock/override authority."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Ship CLI bridges only for pure disk-projection reads and read-only diagnostics, in order: (1) adv roadmap (reads .adv/roadmap-snapshot.json; --json for CI), (2) adv validate --json as CI gate (disk-projection-only, freshness-disclaimed), (3) adv doctor (temporal diagnose + snapshot scan, read-only), (4) adv spec list/show (read in-repo .adv/specs directly). Extract a shared read helper module (project resolution + change.json/spec loaders) from bin/adv so status/roadmap/validate/doctor do not each reimplement state logic. Keep all gate-owning workflow commands and all signal-firing/HITL/destructive tools (gate_complete, task add/update/cancel/checkpoint, change create/close/archive/reenter, contract_mint, worktree create/delete, temporal worker_restart/reconnect/register, snapshot repair, conformance init/lock/unlock/override) strictly agent-owned with NO CLI mutation authority. Conformance status/run and snapshot scan may expose CLI read/CI-JSON only."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1150,7 +1162,13 @@
       "follow_ups": [
         "TASK_SCOPE anchors present in packet; no packet defects. Proposal still carries CLARIFY_MISSING_SUCCESS_CRITERIA — C3 (ci-json verdict contract) directly answers the missing measurable-outcome gap.",
         "Orchestrator must decide bin/adv cross-boundary strategy (codegen from plugin/src/types.ts vs. bundled shared module vs. continued duplication) BEFORE roadmap subcommand lands — this is the keystone leverage point."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the bin/adv shared-helper extraction (C1) and the parameterized bridge-contract harness (C2) now — both are contract-tied, low-risk, and prevent compounding drift before the first new (roadmap) bridge lands. Design around C3 (ci-json verdict contract) by adding a --json acceptance criterion. Defer C4 (doctor/diagnostics bridge) to follow-up; surface C5 (validate disk-only-vs-Temporal-first divergence) to the orchestrator/user because it carries a freshness/correctness tradeoff that is a user-value decision, not auto-adoptable."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1199,7 +1217,13 @@
       "recommendation": "Adopt the parameterized asset-harness generalization + advance-meta spec-clone now (lowest risk, highest payoff, proven prior art); design the new bin/lib/roadmap.ts renderer + snapshot reader as a CLI-local re-expression guarded by parity tests against plugin source — do NOT attempt to import plugin roadmap.ts into the zero-dep CLI.",
       "follow_ups": [
         "Drive-by: correct bin/adv:23 comment to cite plugin/src/types/gates.ts (canonical), not plugin/src/types.ts."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the parameterized asset-harness generalization + advance-meta spec-clone now (lowest risk, highest payoff, proven prior art); design the new bin/lib/roadmap.ts renderer + snapshot reader as a CLI-local re-expression guarded by parity tests against plugin source — do NOT attempt to import plugin roadmap.ts into the zero-dep CLI."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1259,7 +1283,13 @@
       "follow_ups": [
         "Confirm the parameterized asset harness asserts a forbidden-token list for roadmap that includes adv_roadmap, adv_backlog_state, adv_change_list (mirroring the status forbidden list) so the bridge cannot regress into fanout.",
         "The deferred adv validate disk-vs-Temporal research (AC8) is correctly out of scope here; ensure the design's recorded validateChange purity finding (validator.ts:104 pure function) is carried into the follow-up change."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed. The design satisfies AC1-AC9 and respects all four DONT constraints with verified evidence. Recommend two prep-task refinements: (a) ensure the GATE_ORDER parity test imports from plugin/src/types/gates.ts (authoritative) and, as a campsite fix, correct the stale bin/adv:23 comment that says 'plugin/src/types.ts GATE_DEFS' to name gates.ts; (b) scope the roadmap snapshot parity test to cover BOTH RoadmapSnapshot shape AND assessRoadmapFreshness 2h threshold so freshness-text drift fails CI, since AC4 ties file-mode staleness wording to that constant. The default-path annotation-loss tradeoff is real but was correctly surfaced at the design checkpoint; no change required beyond the one-line MCP opt-in pointer already in the design."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1646,7 +1676,13 @@
       "follow_ups": [
         "Duplicate the query-name constant ('adv.change.getState') as a bin-local literal with a comment pinning it to CHANGE_WORKFLOW_QUERY_NAMES.getState; add a plugin parity test asserting the two strings match so drift is caught without a runtime import.",
         "Confirm the Bun CLI can resolve @temporalio/client at runtime (bin/adv currently has zero deps); adding the client dep is the one new surface — verify it does not pull the workflow sandbox transitively."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the draft. Enforce 3 laws in spec rq-statusCliBridge01: (1) CLI queries live state by query-name STRING 'adv.change.getState' via CHANGE_WORKFLOW_QUERY_NAMES.getState — never import messages.ts/workflows (sandbox-only, breaks the client). (2) Active rows come ONLY from live workflow queries; disk JSON permitted ONLY for archived/closed counts. (3) Connect/list/query failure or timeout => exit non-zero + remediation + JSON {source:'temporal',live:false,stale:false,error,remediation}; never substitute disk active rows. Mirror createTemporalClientBundle (loopback guard) + listChangeWorkflowIds (Visibility AdvAffectedProjects + AdvChangeStatus) + a 5s bounded timeout. Tests: Bun unit tests with mocked live client (success + connect-fail + query-timeout) and a plugin asset test asserting adv-status.md stays verbatim no-fanout. Do NOT import bin helpers into plugin tests except for text/parity."
+      }
     },
     {
       "schema_version": "1.0",

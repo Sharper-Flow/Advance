@@ -951,7 +951,13 @@
       "follow_ups": [
         "Add AC covering degradation behavior when structured ADV state is missing at packet-render time (ties to CLARIFY_MISSING_ERROR_HANDLING).",
         "Add AC covering archive-cleanup idempotency/replay-safety for transient vs durable slice retirement."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Auto-adopt the two low-risk contract-tied leverage candidates (invert SUBAGENT_REPORT_FIELD_SOURCES as the lane packet renderer; reuse buildChangeContextSnapshot as the packet base). Surface to user the two shape decisions (include-quartet delivery vector vs new tool; durable-fact promotion taxonomy). Record the missing-state degradation behavior as an AC gap that discovery must close before design."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1001,7 +1007,13 @@
       "follow_ups": [
         "Confirm classifier outcome taxonomy (transient_prompt_context/agenda/wisdom_candidate/spec_delta_candidate/epic_terminal_note/archive_only_evidence/unresolved_action) maps onto existing promotable-type + follow_up/required_follow_up report fields before adding new outcome storage.",
         "Ensure any new packet formatter passes context-snapshot.purity.test.ts-style boundary rules (no storage/tools imports) if placed under utils/."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt candidate 1 (include.briefingPacket flag + pure formatter reuse) and candidate 3 (mechanical anchor derivation) now — both are contract-tied, low-risk, no user-value tradeoff. Model the durable-fact classifier + archive digest (candidate 4/5) directly on archive.ts:450-491's type-based dedup/compact classifier and the createArchive bundle-writer to inherit idempotency structurally. Keep packet formatting in a pure util (no storage/tools imports) per the enforced layer-boundary test so it stays reachable from workflow-safe contexts."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1057,7 +1069,13 @@
         "Planning: add explicit archive-digest overwrite/upsert mechanism + replay-repeat idempotency test (AC7); do not rely solely on wisdom content-dedupe precedent.",
         "Planning: gate the durable-fact classifier behind a proof that each outcome maps to an existing structured report field before adding new outcome storage (AC6, P33).",
         "Asset tests: extend existing subagent-reports.test.ts anchor-drift pattern to also pin the new briefingPacket lane->agent mapping and lane-slice bounds (AC9)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED-with-CAUTION: proceed to planning. The architecture is sound, simpler than the rejected alternatives, spec-compliant, and backed by verified code precedents for every load-bearing claim (anchor derivation, include pattern, renderer purity, Epic compactness, archive dedupe). Before or during planning, tighten two items: (1) specify the archive digest's deterministic overwrite/upsert semantics as an explicit mechanism with a replay-repeat idempotency test (AC7), since the cited wisdom-promotion precedent is content-dedupe not path-overwrite; (2) require the durable-fact classifier task to first prove each Decision-4 outcome maps to an existing structured report field (follow_ups, required_follow_ups, required_main_agent_actions, context_update_for_adv, wisdom_candidates, scanner bundle follow_ups) before adding any new outcome storage, adding narrow typed briefing_facts[] only where a concrete gap is demonstrated (AC6, P33). No CONFLICT with specs or agreement was found; scanner/verifier lane mapping and non-persisted-scanner handling match subagent-reports spec exactly."
+      }
     },
     {
       "schema_version": "1.0",

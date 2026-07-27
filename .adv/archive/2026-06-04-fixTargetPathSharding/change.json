@@ -428,7 +428,13 @@
       "follow_ups": [
         "Confirm design Risks section names the path-{12hex}/nogit caller-shard fallback as an intended limitation with test coverage.",
         "Ensure RED regression in cross-project-coordination.test.ts sets XDG_DATA_HOME to a .../opencode-projects/{40-hex} fixture and asserts target state under target shard, absent from caller shard."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed. The design is correct, minimal, and spec-compliant; it resolves the defect at the only choke point and preserves current-project and legacy non-sharded behavior. Before implementation, tighten two points: (a) implement 'sibling shard' as a structural rebuild — join(dirname(getDataHome()), targetProjectId, 'opencode/plugins/advance', targetProjectId) — rather than a string replace, to avoid SHA-substring path corruption; (b) explicitly document that path-{12hex}/nogit caller shards fall back to caller XDG (they are not canonically derivable, so fallback is the correct, non-silent behavior, but it should be named in design Risks and covered by the fallback test). No simpler viable alternative exists that meets all objectives: parameterizing getDataHome() globally would touch ~23 current-project sites and violate the do-not-break-legacy constraint; the focused target helper is the boring, correct choice."
+      }
     },
     {
       "schema_version": "1.0",

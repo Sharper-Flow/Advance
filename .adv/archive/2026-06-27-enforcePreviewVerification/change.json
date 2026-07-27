@@ -352,7 +352,13 @@
       "follow_ups": [
         "Implementation: extend the asset test to pin strengthened spec.json body phrases (exact route, hydration/readiness, viewport/375, fixture/mock, stale/cache, URL-source-only insufficiency) AND a non-visual not_applicable assertion, per AC9/AC10.",
         "Implementation: confirm whether any other asset test (e.g. adv-reviewer-asset.test.ts, subagent-reports-spec-assets.test.ts cited in the design Testing Plan) already references these anchors so RED assertions are added in the right file without duplication."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to design gate as READY-with-corrections (CAUTION). The strengthen-in-place approach is sound, source-feasible, and architecture-aligned. Before completing planning: (1) add the test-substring-preservation note to the implementation plan for the review.md table edit, (2) anchor strengthened-body assertions on spec.json (not the generated markdown mirror), and (3) keep viewport wording parametric (375px OR documented project equivalent). No new MCP tool / browser framework is needed or justified."
+      }
     },
     {
       "schema_version": "1.0",

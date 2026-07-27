@@ -441,7 +441,13 @@
       "follow_ups": [
         "Optional: if withTimeout is duplicated into epic-list.ts, consider a later refactor to share it from a common bin/lib util — untied, do not block this change.",
         "Confirm AC4 help-text test asserts both the new 'epic list' line AND that existing status/roadmap/slop-scan/dashboard lines remain (regression guard)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with the design draft as written. Auto-adopt C1, C2, C3 (below): (1) reuse listEpicWorkflowIds directly for enumeration+prefix filter (AC2/AC6); (2) reuse the existing async-generator fake Visibility client harness for epic-list.test.ts (AC1/AC2/AC3); (3) implement AC5 as a structural static argv/dispatch guard asserting epic dispatch reaches only 'list' and rejects create/update/delete tokens, co-located in cli-bridge-contract.test.ts. Surface C4 (shared withTimeout extraction) to user as optional refactor — untied, defer to avoid scope creep. Treat C5 (--json-required usage error) as a design note: make it an explicit testable non-zero usage error under AC4 help coverage, not silent."
+      }
     },
     {
       "schema_version": "1.0",
@@ -492,7 +498,13 @@
         "Add an explicit RED test + helper branch for resolveProjectId === null (non-git-repo) producing the AC3 fail-closed JSON shape, so the null contract is structural not assumed.",
         "Optional/untied: if epic-list.ts needs withTimeout, prefer importing it from a shared bin/lib util over duplicating; defer extraction refactor to avoid scope creep.",
         "Confirm AC4 help-text test asserts BOTH the new 'epic list' line and that existing status/roadmap/slop-scan/dashboard lines remain (regression guard)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. Design is VALIDATED with one CAUTION-level note worth pinning in tasks, not a blocker: explicitly handle resolveProjectId returning null (non-git-repo) as a fail-closed AC3 JSON error with remediation, and add a RED test for it so the null path is not an implicit happy-path assumption. Keep the AC5 mutation guard structural in cli-bridge-contract.test.ts (argv/token assertion) per the established pattern. Treat shared-withTimeout extraction as an optional, untied follow-up — do not expand this change's scope for it."
+      }
     },
     {
       "schema_version": "1.0",

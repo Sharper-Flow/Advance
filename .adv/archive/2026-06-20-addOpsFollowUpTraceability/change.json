@@ -1172,7 +1172,13 @@
         "Confirm the deployed Visibility store + Temporal Server version for this project (dev-server/SQLite vs Cloud/ES) — it sets the real KeywordList cap (3 vs 5) and whether advanced-Visibility List Filters are available.",
         "If a new multi-value dependency dimension is truly needed and KeywordList budget is full, decide between joined-single-Keyword encoding vs displacing an existing KeywordList (e.g. AdvWorktreePaths) — needs a usage audit of current SA queries.",
         "lgrep semantic search timed out twice (hybrid + non-hybrid); local refs gathered via grep/read instead. Re-index recommended for future semantic queries."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Model dependency/relationship edges in typed ChangeWorkflowState (authoritative, query via defineQuery), and project ONLY a minimal discovery key into Visibility. Prefer a single-valued Keyword (e.g. parent/blocking change id) over a new KeywordList — the 3-slot KeywordList budget is already full on the dev-server/SQLite Visibility store. Treat any Visibility-based collision/uniqueness check as advisory due to eventual consistency; enforce true uniqueness/ordering structurally in workflow state or via an authoritative Query/Activity, not via a Visibility list query alone. Do not use memo for any queryable relationship data (non-filterable)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1233,7 +1239,13 @@
         "lgrep semantic index was stale/timed out in the prior attempt for this change; local evidence gathered via grep/read. Re-index recommended before next semantic query.",
         "Discovery must decide relationship-enum strategy (reuse vs new) to avoid a third divergent vocabulary across CrossProjectLink/ExternalDependency/ops-follow-up.",
         "Confirm whether adv_wip_state lineage exposure should be summary-only (id + parent/origin id) to honor the lazy read-path constraint from docs/repo-improve-prep.md."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "In discovery, anchor the model on existing typed primitives: (a) reuse the advisory/non-blocking ExternalDependency shape as the template for release-first surviving obligations; (b) add the missing same-project parent->children reverse edge using the cross_project_links write-back as a template; (c) make the subagent-report->agenda promotion path carry typed source_change + relationship + contract refs instead of the free-text 'Source:' line; (d) keep the edge graph authoritative in ChangeWorkflowState (query-read) with at most one single-valued Keyword discovery key — do NOT request a new KeywordList. Surface the relationship-vocabulary decision (extend ExternalDependencyRelationship vs new ops enum) and the wip_state lineage-exposure choice to the user as design tradeoffs."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1285,7 +1297,13 @@
         "Design: decide single-enum-with-mapping vs net-new ops_followup_links array; if coexisting with cross_project_links, define dual-write ownership to avoid drift.",
         "Design: spec reverse-link partial-failure repair from child provenance (FastFollowOf is currently child->parent only, no reverse edge exists today).",
         "Confirm deployed Visibility store/server version to fix the real KeywordList cap (3 dev-server vs 5 Cloud) before any single-Keyword ops discovery projection is added."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt: route adv_followup_promote off the existing typed RequiredFollowUp object (obligation_class + source_contract_id), reusing addAgendaItem's provenance pattern but writing a typed linked change instead of agenda free-text. Design-around: keep a SINGLE ops relationship enum and map existing CrossProjectLink/ExternalDependency/FastFollowOf relationships into it for readback rather than adding a 4th parallel vocabulary; do NOT reuse ExternalDependency (advisory:literal(true)) for ops blocks that must gate release. Surface: correct AC #9 to name checkCriticalOpsCoverage (rq-PR007coc) and spec the reverse-link repair path. Follow_up: confirm whether the parent-side ops_followup_links should subsume or coexist with cross_project_links to avoid dual-write drift."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1341,7 +1359,13 @@
         "Planning: reconcile agreement AC#9 symbol name to checkCriticalOpsCoverage and clarify planning-gate vs release-gate scope.",
         "Planning: choose authoritative vs derived storage for OpsFollowupLink to avoid dual-write drift.",
         "Planning: confirm OpsRelationship->existing-enum mapping table (CrossProjectLink follow_up/depends_on, ExternalDependency blocks/requires, fast_follow_of) is exhaustive and lossless for read model."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. Verdict VALIDATED with two minor cautions to resolve during /adv-plan: (a) reconcile the AC#9 enforcement-symbol naming to checkCriticalOpsCoverage and clarify it is the PLANNING-gate required-critical guard (not a release guard), so the new release-first handoff logic is additive and does not claim to extend that function; (b) commit to ONE authoritative storage model for OpsFollowupLink (typed workflow state preferred for structural-correctness P33, with derived projection for reads) and keep the reverse-link-repair-from-child-provenance path as the failure mode. Reuse decisions (reject ExternalDependency for blocking links, single Keyword for discovery, no Memo for filterable data, structural WIP over agenda scan) are all source-backed and should be carried forward unchanged."
+      }
     },
     {
       "schema_version": "1.0",

@@ -338,7 +338,13 @@
       "follow_ups": [
         "Consider whether the deploy-local generic adv-*.md cleanup loops deserve a deterministic test asserting they remove an arbitrary stale adv-X.md (stronger than ATC-specific), satisfying DDC2 durably.",
         "advance-meta spec rq-orchestratorOpsDelegation01.6 ('adv-atc.md is not modified') becomes vacuous after ATC removal — retire or convert to historical note, not just leave dangling."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Augment design Affected Components + DDCs with: (a) adopt-now — remove the orphaned adv-autopilot special-case block (deploy-local.sh:1238-1256) and the explicit ATC tool-drift guard (deploy-local.sh:723-726) as part of ATC removal, since generic loops cover deletion-sync but not these ATC-narrative artifacts; (b) design-around — add a DDC asserting generic adv-*.md stale-cleanup loops remain intact (they ARE the AC3 mechanism), preventing a regression that silently breaks self-cleaning; (c) clarify test fate per-file: atc-assets.test.ts delete; manifest.test.ts/adv-instructions-assets.test.ts/orchestrator-ops-delegation-assets.test.ts edit-to-absence; phantom-subagent-roster.test.ts/delegation-matrix.test.ts shrink PRIMARIES array preserving bans; (d) note manifest removal needs no sibling reverse-link patching. Proceed to design-gate completion after folding these in."
+      }
     },
     {
       "schema_version": "1.0",
@@ -394,7 +400,13 @@
         "Planning: add deterministic test asserting generic deploy-local adv-*.md stale-cleanup removes an arbitrary source-absent adv-X.md (durable AC3 proof stronger than ATC-specific).",
         "Planning: retire/convert advance-meta rq-orchestratorOpsDelegation01.6 ATC clause to historical note.",
         "Planning: include workflow-noise-reduction-assets.test.ts:166 in removal sweep to avoid a lingering (benign) adv-atc.md path string."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to design-gate completion. Design is sound and shippable. Fold three planning-scope clarifications: (1) add workflow-noise-reduction-assets.test.ts:166 and deploy-local.test.ts:793 to the AC1 current-support scan list so the removal sweep is exhaustive (both benign — existsSync-guarded no-op and a code comment — so they need no flip, just confirmation); (2) explicitly retire advance-meta rq-orchestratorOpsDelegation01.6's 'adv-atc out of scope' clause as historical rather than leaving it dangling (AC5); (3) update manifest.test.ts command-count assertion 27→26 alongside removing the dedicated 'adv-atc scope gates' test and the five other ATC sites. The deploy-local ATC-specific tool-drift guard (723-726) and orphaned adv-autopilot block (1238-1256) must be removed explicitly since generic stale loops do not cover them — already captured in Key Decision 5."
+      }
     },
     {
       "schema_version": "1.0",

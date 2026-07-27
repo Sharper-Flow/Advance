@@ -505,7 +505,13 @@
         "DECISION-TREE ORDERING (cite into design): adv_change_show + adv_gate_status (prove state loads) -> if loads: report 'not lost', resume from nextGate -> else adv_temporal_diagnose -> server unreachable: escalate; worker dead & no peer pollers: adv_temporal_worker_restart; search-attributes missing: adv_temporal_register_search_attributes (approval-gated); STSL down: adv_temporal_reconnect -> only if disk/tool state truly absent AND session pointer wrong: adv_change_forget(exact pointer). Reject filesystem-only evidence as invalid and re-run via tools.",
         "WARNING: packet anchors TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE present but DONE_WHEN/STOP_WHEN/VERIFICATION blocks were not supplied in the orchestrator packet; proceeded with prompt scope per degradation policy.",
         "Scout hit ADV:TOOL_OUTPUT_TRUNCATED reading temporal-ops.ts (28k chars) — concrete evidence supporting discovery-agenda item on section-limited adv_change_show / artifact reads."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "ADOPT NOW (low-risk, contract-tied, no user tradeoff): (1) Reuse existing adv-researcher change-scoped report transport for the specialist's read-only classification output instead of minting a bespoke repair schema for v1 — ties to 'Decide report transport: reuse... unless durable repair evidence requires' and 'Must not make ... repair safety depend on agent prose alone'. (2) Rely on deploy-local.sh auto-sync glob (scripts/deploy-local.sh:1295-1318) rather than adding repair-specific deploy wiring; just add a presence/drift test — ties to deploy-sync asset-test scope item. (3) Narrow adv_temporal_diagnose description to its actual thin output (server/worker/stsl/changeWorkflow/recommendedNextAction) rather than enriching it — ties to 'Fix or design around the current adv_temporal_diagnose description/output drift'; enrichment is higher-risk scope creep into Temporal classification internals. SURFACE TO USER (medium risk or tradeoff): (A) Whether a bespoke typed adv-temporal-repair report schema is in-scope LATER once durable repair-evidence requirements are concrete — only if v1 reuse proves insufficient; this is a user-value/maintenance tradeoff. (B) Whether adv_change_show needs an artifact-only/section-limited read mode to avoid output truncation (the discovery agenda already raises it, and this scout session itself hit truncated tool output) — user-facing capability scope decision."
+      }
     },
     {
       "schema_version": "1.0",
@@ -562,7 +568,13 @@
         "KD4 vs serverServiceable: if (5) is rejected, record exposing serverServiceable as a follow-up agenda item — it is already computed and currently discarded except in recommendedNextAction.",
         "VERIFICATION/DONE_WHEN/STOP_WHEN packet anchors were present in this design-scout packet; IN_SCOPE/OUT_OF_SCOPE honored. No identity inference was needed.",
         "Candidate count: 5 considered, 3 auto-adopt, 1 design-around (auto-adopt w/ note), 1 surface-to-user."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "AUTO-ADOPT (contract-tied, low risk, no user tradeoff): (1) Satisfy AC3 by adding '.opencode/agents/adv-temporal-repair.md' to the HARDCODED AGENT_PATHS array at subagent-reports-spec-assets.test.ts:15-22, and require the agent body to contain the policy anchor strings the test asserts (ADV State Access Policy, change.json, proposal/problem-statement/agreement/design/executive-summary/acceptance, agenda, wisdom, conformance, adv_change_show, include guidance, 'artifacts.*.path', 'readable'). Ties to AC3. (2) Template adv-temporal-repair-assets.test.ts from adv-tron-assets.test.ts (read-only specialist, NOT a SubagentAgentSchema enum member) rather than adv-designer-assets.test.ts — ties to AC1+AC5 (no bespoke schema in v1). (3) Rely on deploy-local.sh agent glob + add a presence assertion in deploy-local.test.ts; no deploy wiring. Ties to deploy/asset-test scope. DESIGN-AROUND (auto-adopt with note): (4) Because tool-name-assets.test.ts globs the agents dir, the design must constrain the agent body to reference ONLY registered callables (adv_temporal_diagnose, adv_temporal_reconnect, adv_temporal_worker_restart, adv_temporal_register_search_attributes, adv_change_show, adv_gate_status, adv_change_forget, adv_subagent_report_submit). Note this in the design as a hard authoring constraint. SURFACE TO USER (low risk, but changes KD4): (5) Instead of KD4's pure 'narrow the description', also expose the already-computed serverServiceable field in adv_temporal_diagnose output (temporal-ops.ts:391-399) so description matches output AND the specialist gets the structural 'serviceable-via-peers → do not recommend restart' signal. This is a 1-field, fully-additive change, but it nudges KD4 from narrow-only toward narrow+enrich, so confirm with orchestrator/user before adopting."
+      }
     },
     {
       "schema_version": "1.0",
@@ -618,7 +630,13 @@
         "Planning: invert KD3 transport default — text-return primary, researcher change-scoped report only when a valid change_id is present in the packet (phantom incidents lack change_id, which is a required researcher-report field).",
         "Execution AC6: add a parity test in plugin/src/tools/temporal-ops.test.ts locking adv_temporal_diagnose description to its actual returned envelope so the T13 thin-diagnostic drift cannot reappear.",
         "If artifact-only/section-limited adv_change_show read (AC8) is not a clean backward-compatible optional include, defer to a follow-up change rather than expanding v1 tool surface."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. Verdict: VALIDATED. (1) Keep classifier-first / no-mutation design as-is — it is the boring, correct choice and respects all constraints/avoidances. (2) In planning, make the no-change text-return path the primary report transport and the adv-researcher change-scoped report the conditional path (only when packet supplies a valid change_id), since phantom incidents typically lack one. (3) For AC6, the implementation task must (a) narrow the adv_temporal_diagnose description to the actual returned fields, (b) optionally add the already-computed serverServiceable to the return envelope, and (c) add/extend a temporal-ops.test.ts assertion that pins description-to-output parity so drift is regression-locked. (4) Add adv-temporal-repair.md to AGENT_PATHS in subagent-reports-spec-assets.test.ts and model frontmatter on adv-tron (mode:subagent, hidden:true, temperature:0.10, task:false, write/edit/bash/morph:false, no gate/mutation/worker-restart/SA-registration tools). (5) Treat AC8 artifact-only bounded read as opportunistic per KD5; if it cannot be a backward-compatible optional include extension, record a follow-up rather than expanding v1."
+      }
     },
     {
       "schema_version": "1.0",
@@ -673,7 +691,13 @@
       "follow_ups": [
         "Plan task should name the exact diagnose output field (serverServiceable) and assert the narrowed description no longer claims search-attribute/stale-queue/last-error dimensions.",
         "Ensure AC8 follow-up is created as a tracked item if bounded artifact-read is deferred during apply."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design satisfies all approved acceptance criteria and constraints with verified source backing, and chooses the simplest proven pattern (adv-tron read-only hidden subagent + adv-researcher report reuse) over novel mechanisms, honoring DONT4/DONT6 and C1 (structural-before-heuristic). During planning/apply: (a) frame AC6 as a description-narrowing fix first (remove unimplemented dimensions from the description) plus the additive serverServiceable field with a contract test, not merely a field add; (b) gate routing-prose additions against the existing prompt compression ceiling test; (c) explicitly record the AC8 artifact-read follow-up if deferred. No re-entry to discovery needed."
+      }
     },
     {
       "schema_version": "1.0",

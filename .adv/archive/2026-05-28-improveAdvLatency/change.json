@@ -818,7 +818,13 @@
         "ScoutCandidate SC-4: id=visibility-attribute-alignment, title=\"Align project-scope Visibility attribute (AdvProjectId vs AdvAffectedProjects) for reliable Visibility-first reads\", opportunity=\"Pick one of: (a) register AdvProjectId as Keyword in ADV_SEARCH_ATTRIBUTES so listChangeWorkflowIds keeps its current query; or (b) migrate listChangeWorkflowIds to AdvAffectedProjects contains_any clause so it matches backlog-claim queries; remove inconsistent pre-existing comment.\", evidence=\"plugin/src/temporal/visibility-claim-queries.ts:11-15 (explicit local comment naming AdvProjectId as pre-existing inconsistency); plugin/src/temporal/list-change-workflows.ts:24-27, 83-84\", contract_tie=\"Indirect: the summary-index read model (SC-3) depends on Visibility being a structurally reliable enumeration source; misaligned attributes silently fall back to disk-listing, defeating the perf win. Proposal Failure Handling: 'Lazy view planning must fail closed for correctness-sensitive data'.\", payoff=\"Eliminates a class of silent slow-path fallbacks; reduces operator confusion ('why is list slow/offline?'); precondition for SC-3 paying off\", risk=\"MEDIUM — touches Temporal search-attribute registration / namespace metadata; needs migration plan and tests; user input warranted because choice (a) vs (b) has spec implications and rollout sequencing affects existing deployments\", fate=\"surface_to_user\", routing=\"discovery clarification (user-facing) — pick alignment direction before design lock\"",
         "ScoutCandidate SC-5: id=production-latency-telemetry, title=\"Wire per-tool wall_time_ms and adv_status substep timings into production telemetry + repair bench harness\", opportunity=\"Three-part bundle: (1) call recordWallTimeMs from tool.execute.after with performance.now() delta around tool execution; (2) add a lightweight named-span helper in adv_status that records per-substep durations (e.g. status_load, recent_change_enrichment, temporal_health_probe, worktree_cleanup, snapshot_health) and surfaces them in view:\\\"health\\\" alongside existing counters from getMetrics(); (3) fix bench-adv-latency.ts to construct the required temporalBundle (or guard with ADV_DISABLE_TEMPORAL path) so regression budgets can run.\", evidence=\"plugin/src/utils/metrics.ts:85 + plugin/src/utils/safe-execute.ts:380-449 + plugin/src/index.ts:819-867 (recordWallTimeMs only referenced from tests); plugin/scripts/bench-adv-latency.ts:44 vs plugin/src/storage/store.ts:46-49 ('temporalBundle is required'); docs/repo-improve-prep.md:67-72\", contract_tie=\"Proposal Success Criteria #3 (per-tool duration_ms + named adv_status phase durations) and #4 (regression coverage / documented benchmark workflow)\", payoff=\"First-class diagnosis of slow tools/substeps; unblocks any future budget assertion; bench script becomes usable for before/after evidence on SC-1/SC-2/SC-3\", risk=\"LOW — telemetry-only; counters reset on plugin init (no persistence concerns); bench fix is local. Must respect ADV_PROFILE existing log path to avoid duplicate emission.\", fate=\"adopt_now\", routing=\"discovery/design task list\"",
         "Warning: TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN packet anchors were present and used; no missing-anchor degradation applied."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt 5 ScoutCandidates inside discovery agenda. Auto-adopt SC-1 (lazy adv_status view planning) and SC-2 (defer worktree cleanup out of status hot path) — both are pure execution-plan refactors with strong existing safety rails and no user-visible contract change beyond what the approved proposal already authorizes. Surface SC-3 (promote ChangeSummaryMemo into a contract-bound summary read model for adv_change_list/adv_status defaults) to user — needs user confirmation on which default fields are compatibility-sensitive and may need a spec delta in advance-meta. Surface SC-4 (visibility attribute alignment: AdvProjectId → AdvAffectedProjects or register AdvProjectId) to user — touches search-attribute registration, has migration implications, but is on the critical path for a reliable Visibility-first summary model. Auto-adopt SC-5 (wire recordWallTimeMs + per-substep timing into tool.execute.after and view:\"health\") — telemetry-only, no behavior change. Repair bench-adv-latency.ts to unblock regression evidence (small fix, in scope)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -883,7 +889,13 @@
       "follow_ups": [
         "Confirm with user whether SC-3 should fully remove session-debt scan from summary path or keep behind an explicit opt-in flag (current contract says remove)",
         "If SC-1 adopted, agree ring buffer size (recommend 200 recent invocations) and whether to keep ADV_PROFILE file-log path as opt-in extra"
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "ScoutCandidate rows (≤5):\n\n1) id=SC-1 title='Reuse safeExecute profiling for telemetry' opportunity='Convert recordToolProfile from ADV_PROFILE-gated file-log to always-on in-memory ring buffer + optional file log; expose ring in adv_status view:health.' evidence='safe-execute.ts:380-400 + metrics.ts already in-memory singleton pattern' contract_tie='rq-advLatencyTelemetry01' payoff='Eliminates separate timer wrapper; one code path; production-visible without env flag' risk='LOW: bounded ring (e.g. last 200 entries), no hot-path allocation beyond what profiling already does' fate='AUTO-ADOPT' routing='execution'\n\n2) id=SC-2 title='Memo-served changes.list fast path' opportunity='When filter has no prefix/titleContains/timestamp/status-archived-or-closed, serve list from ChangeSummaryMemo.getAll() directly, skipping listResolvedChanges N hydrations.' evidence='changes.ts:201-269 returns summary shape; memo already holds all required fields (id,title,status,taskCounts,lastActivityAt via overlay)' contract_tie='rq-changeSummaryReadModel01' payoff='Replaces N per-change getTemporalChange with O(1) Map iteration on default warm path; no new public method' risk='LOW: full fallback when filter present; safety paths (gate, archive, claims) still use changes.get/full state' fate='AUTO-ADOPT' routing='execution'\n\n3) id=SC-3 title='Remove worktree-cleanup + session-debt from summary view' opportunity='Drop advWorktreeCleanup(\"status\") and scanOpenCodeSessionDebt() from adv_status summary plan; keep in hygiene/health only.' evidence='status.ts:1283 + 1307 unconditional; AC2 explicitly forbids; KD-3 says audit but evidence is clear' contract_tie='rq-advStatusLazyView01 (AC2)' payoff='Eliminates the two dominant non-Temporal taxes from default warm read; matches contract' risk='LOW: hygiene/health views still surface them; no consumer of summary depends on session_debt residues per current contract' fate='AUTO-ADOPT' routing='execution'\n\n4) id=SC-4 title='Drop dead emitChangeSummarySignal references from design' opportunity='Design KD-5/implementation-strategy step 5 cite emitChangeSummarySignal as a live invalidation mechanism; it is a no-op since projectWorkflow retired.' evidence='store-temporal/index.ts:269-274 is empty body with retirement comment' contract_tie='design-doc-correctness (no rq tie)' payoff='Prevents implementer from wiring against dead surface; saves a debugging cycle' risk='NONE: doc-only update' fate='SURFACE-TO-USER' routing='design'\n\n5) id=SC-5 title='Sequence KD-6 visibility-attribute alignment before memo fast path' opportunity='If SC-2 memo cold-start ever falls back to visibility for hydration on new sessions, AdvProjectId vs AdvAffectedProjects drift can silently omit changes. Land KD-6 register/migrate FIRST or pin memo fallback to disk scan only.' evidence='list-change-workflows.ts:84 uses AdvProjectId; visibility-claim-queries.ts:87 uses AdvAffectedProjects' contract_tie='rq-visibilityProjectScope01' payoff='Prevents silent summary miss on cold session; preserves correctness' risk='MEDIUM if not sequenced: cold-session summary may miss recent changes' fate='SURFACE-TO-USER (sequencing decision)' routing='planning'"
+      }
     },
     {
       "schema_version": "1.0",
@@ -954,7 +966,13 @@
         "Cross-check with backlog-coordination spec rq-backlogCoord01..07 during planning to ensure Visibility-attribute alignment does not regress claim queries.",
         "Confirm benchmark fixture under Temporal-only contract uses isolated namespace per docs/temporal-recovery.md.",
         "During Phase D implementation, verify ChangeSummary shape (no sourceVersion, per existing PSW-retired test in store-temporal-memo.test.ts) remains stable when adding new summary fields."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with caution. Design correctly addresses agreement objectives, respects all constraints (Temporal/Zod/gates preserved), and matches Temporal-native LBP. Before planning gate completion: (a) add a line to design.md explicitly preserving _contextSnapshot emission in summary view per chat-output-display spec; (b) commit KD-3 session-debt audit to a planning checkpoint with binary remove/confine outcome before Phase A code ships; (c) clarify KD-6 Visibility-attribute migration direction (rename AdvProjectId callers to AdvAffectedProjects, or dual-read during transition). No architectural rework required; cautions are scope/clarification not correctness defects."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1017,7 +1035,13 @@
         "Planning task: adv_run_test compatibility test matrix (shell metachars, pipelines, redirects, timeout/killSignal, maxBuffer, exit-code/signal classification) before any subprocess strategy change.",
         "Planning task: telemetry schema for per-tool duration stats nailed down for health view to keep structural CI deterministic.",
         "Planning task: Visibility dual-read → AdvAffectedProjects convergence guarded by tests proving ID coverage."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Verdict: VALIDATED. Approve design and proceed to planning. Planning should: (1) add explicit session-debt remove/confine decision task gated before Phase A; (2) sequence Phase A status refactor with RED tests asserting provider non-invocation, slim formatted output, AND required _contextSnapshot emission per rq-ctxsnap2/rq-ctxticker2.5; (3) sequence Phase B telemetry before Phase C subprocess profiling so adv_run_test substep numbers exist before any structural change; (4) keep Phase C compatibility-first — no exec→spawn swap without explicit tests covering shell metacharacters, pipelines, redirects, timeout+killSignal, maxBuffer truncation/termination, exit-code/error.signal classification; (5) for Phase E summary listing surface, add tests that gates/archive/recovery/claim/task-completion paths still call full hydration (KD-5/DONT2); (6) for Phase F Visibility convergence, add transition tests proving AdvAffectedProjects coverage before removing AdvProjectId reliance or explicitly register+document AdvProjectId."
+      }
     }
   ],
   "deltas": {},

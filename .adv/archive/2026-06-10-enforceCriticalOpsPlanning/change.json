@@ -739,7 +739,13 @@
         "notes": "No contradictory evidence. One alignment constraint discovered: blocking enforcement must not be implemented via gateCriteria (would violate addFirstClassGateCriteriaState contract DONT3)."
       },
       "recommendation": "Auto-adopt candidates 1, 2, 4 into agreement (contract-tied, low risk, no user-value tradeoff); auto-adopt 3 as design_around with explicit agreement wording on follow_ups-vs-required_main_agent_actions channel policy; surface candidate 5 (typed harden audit records) to user as optional scope decision.",
-      "follow_ups": []
+      "follow_ups": [],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Auto-adopt candidates 1, 2, 4 into agreement (contract-tied, low risk, no user-value tradeoff); auto-adopt 3 as design_around with explicit agreement wording on follow_ups-vs-required_main_agent_actions channel policy; surface candidate 5 (typed harden audit records) to user as optional scope decision."
+      }
     },
     {
       "schema_version": "1.0",
@@ -798,7 +804,13 @@
       "recommendation": "Auto-adopt candidates 1, 2, 4 (contract-tied, low risk, adopt_now). Auto-adopt 3 as design_around with explicit design.md decision on carrier shape (consume required_main_agent_actions strings vs additive typed required_obligations field with class enum — typed field better satisfies C2 structural/typed constraint). Record candidate 5 as prep-phase planning note (follow_up), not design content. Record the kind-vs-flag criticality decision in design.md; prefer boolean criticality flag to avoid perturbing kind-keyed contract logic.",
       "follow_ups": [
         "Prep-phase note: plan validator, report-ingest, and command/spec task lanes in parallel after shared ContractItem/obligation type change lands first"
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Auto-adopt candidates 1, 2, 4 (contract-tied, low risk, adopt_now). Auto-adopt 3 as design_around with explicit design.md decision on carrier shape (consume required_main_agent_actions strings vs additive typed required_obligations field with class enum — typed field better satisfies C2 structural/typed constraint). Record candidate 5 as prep-phase planning note (follow_up), not design content. Record the kind-vs-flag criticality decision in design.md; prefer boolean criticality flag to avoid perturbing kind-keyed contract logic."
+      }
     },
     {
       "schema_version": "1.0",
@@ -870,7 +882,13 @@
         "notes": "No agreement/spec conflicts. Cautions: (a) clarify code-level stage ownership vs existing CONTRACT_AC_UNCOVERED at validate/archive; (b) add plugin/src/schema-registry.ts + plugin/schemas/*.schema.json regeneration and .opencode/agents/adv-engineer.md / adv-reviewer.md prompt contracts to affected components; (c) new report carrier field must be optional to satisfy .strict() legacy parsing (C1)."
       },
       "recommendation": "VALIDATED with cautions. Proceed to planning. During prep: (1) decide whether checkCriticalOpsCoverage delegates to/reuses the contract.ts coverage helpers and document which codes own planning vs validate/archive stages; (2) extend affected components with schema regeneration artifacts and agent prompt contract files; (3) keep the new report/contract fields optional-additive and add legacy-normalization tests as designed.",
-      "follow_ups": []
+      "follow_ups": [],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with cautions. Proceed to planning. During prep: (1) decide whether checkCriticalOpsCoverage delegates to/reuses the contract.ts coverage helpers and document which codes own planning vs validate/archive stages; (2) extend affected components with schema regeneration artifacts and agent prompt contract files; (3) keep the new report/contract fields optional-additive and add legacy-normalization tests as designed."
+      }
     },
     {
       "schema_version": "1.0",

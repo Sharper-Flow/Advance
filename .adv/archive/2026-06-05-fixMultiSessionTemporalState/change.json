@@ -629,7 +629,13 @@
       "follow_ups": [
         "Design did not (in retrieved text) reach the KD-3 retirement-chain relocation detail or the KD-4 _unknown fallback; planning tasks should pin both explicitly with contract refs to AC3/AC5/C3/C4 and rq-releaseProjectionDurability01.",
         "Minor: design references worktree/triage.ts but actual path is tools/worktree/triage.ts; correct file map before execution."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning with KD-1, KD-2, KD-4 as-designed (KD-4: confirm _unknown fallback retained). For KD-3, require the design to (a) explicitly relocate the full finalizeRelease->release-gate-done->durable-proof->status-transition->issue-closure->cleanup chain into the background Phase9JobQueue so the synchronous return is a non-success 'pending' with zero retirement side effects, satisfying rq-releaseProjectionDurability01; (b) specify durable persistence of phase9_status:'pending' via the new defineSignal before returning, plus a startup pending-scan re-enqueue, to recover crash durability the process-local queue otherwise loses; (c) confirm updatePhase9StatusSignal uses wf.defineSignal (bundle-safe), not defineUpdate; and (d) record that a Temporal Activity is the canonical durable pattern consciously rejected for DONT2/bundle cost. These are clarifications/guardrails, not redesigns."
+      }
     },
     {
       "schema_version": "1.0",

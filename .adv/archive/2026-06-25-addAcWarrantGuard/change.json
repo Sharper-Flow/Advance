@@ -305,7 +305,13 @@
       "follow_ups": [
         "Decide and document KD2 source-of-truth: injected live toolSurface (lighter) vs generated manifest vs ADV_TOOL_NAMES extension.",
         "If generated manifest chosen, wire tool-surface:check into pnpm run check and add a parity/drift test mirroring tool-registry.test.ts:66 to prevent stale-surface false verdicts."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed; no blocker. Record the KD2 source-of-truth decision explicitly. Preferred order: (1) inject live toolSurface from the impure adv_contract_mint wrapper into pure buildContractFromAgreement via the existing resolveWarrant seam (no new build artifact, no new check); (2) if a static artifact is required, extend the existing parity-guarded ADV_TOOL_NAMES structure and model the gate on schemas:check wired into pnpm run check. Keep KD1/KD3/KD4/KD5 as designed."
+      }
     },
     {
       "schema_version": "1.0",

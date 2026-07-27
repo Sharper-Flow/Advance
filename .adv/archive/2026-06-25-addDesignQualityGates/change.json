@@ -996,7 +996,13 @@
       "follow_ups": [
         "Confirm during design whether design_proof rows are minted at contract-mint time (prep) or appended at review time.",
         "Decide rigor tiering: all-six-dimensions vs documented smaller rubric for low-risk UI tasks (user-surface)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the consumer-wiring framing as the discovery spine: map design_dimensions (concern/fail) to design_proof review-matrix rows for UI changes, and ride concern surfacing on the existing required_follow_ups obligation_class rail rather than new gate code. Surface to user the two genuine policy tradeoffs (six-dimension rigor tier; whether neighboring concerns block acceptance vs HITL) since they are user-value decisions, not auto-adoptable."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1057,7 +1063,13 @@
         "Design must decide where design_proof review-matrix rows for UI tasks are minted: at contract-mint (prep) so prep-readiness can pre-seed, vs appended at review-time by adv-review when designer report lands. gate-readiness.ts:413 keys off contract.items, so prep-time minting is likely cleaner.",
         "Confirm with user/design whether a single shared notes string (current schema) suffices for concern/n/a rationale or whether per-dimension rationale map is required (C3 decision).",
         "Verify adv-review reads task.subagent_reports[] (not just change sidecar) for designer concerns, since adv-designer reports are task-scoped (subagent-reports.ts:179)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the four-rails framing but with two refinements: (1) Make C2 (consumer wiring of design_dimensions → design_proof review-matrix rows) the explicit spine of the design, since it is the actual user value and all other rails feed it. (2) Prefer C3: extend the EXISTING DesignerDesignDimensionsSchema via superRefine (require a rationale/notes when any dimension is concern|n/a) instead of adding parallel dimension_notes/rationales objects — this is the simpler equivalent and minimizes schema + asset-test churn. Surface to user only the genuine policy tradeoff already flagged in discovery (whether one shared notes string vs per-dimension rationale map). C1/C4/C5 are mechanical reuse of shipped patterns and need no user decision."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1124,7 +1136,13 @@
         "Implementation: confirm prep-readiness frontend-applicability validation (D2) emits warn-only for heuristics and error/structural only when backed by agreement frontend scope or task metadata.frontend with frontend_rationale — no existing frontend validator found in plugin/src/validator (net-new surface).",
         "Spec alignment: ensure new review/acceptance consumer language for design concerns/neighboring recs does not introduce 'accepted_debt' literal forbidden by adv-autonomy-quality-assets.test.ts:79; map to fixed|rejected_with_evidence + scope-discovery split.",
         "Note: adv_change_show/adv_spec/project_context returned no reachable workflow/specs/project.md; validation relied on inline packet + direct codebase evidence under /home/jon/dev/advance."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning with one binding refinement: reconcile the 'accepted debt' disposition language in D5/AC4/AC5 with the existing enforced no-accepted-debt policy before writing tests. Concretely — (1) tighten DesignerDesignDimensionsSchema so notes is required when any dimension is concern or n/a (D4 needs a refine()/superRefine, since notes is .optional() today at subagent-reports.ts:166); (2) classify unresolved in-scope design concerns as fixed | rejected_with_evidence (reuse adv-review.md terminal states), and route neighboring/out-of-scope items through scope-discovery split rather than a new accepted_debt state, so the adv-autonomy-quality-assets.test.ts assertions are not violated; (3) reuse the existing Preview URL Proof live/not_applicable/blocked path for D6 conditional browser evidence; (4) keep design-derived criterion 'hard failures structured not heuristic-only' as a schema/validator test, consistent with the warn-only heuristic stance in D2. With these mappings the design is VALIDATED-on-implementation; the only risk is shipping 'accepted_debt' literal vocabulary that collides with existing spec tests."
+      }
     },
     {
       "schema_version": "1.0",

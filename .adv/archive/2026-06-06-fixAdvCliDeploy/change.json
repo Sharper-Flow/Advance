@@ -651,7 +651,13 @@
         "SCOUT CANDIDATE 4 [adopt/design_around | payoff:medium risk:low | tie:AC 'adv status --json emits live metadata or fail-closed live error not schema_version:1', constraint 'do not duplicate status semantics' | prior:new]: Extend cli-bridge-contract.test.ts (already guards no-mutation + live-default at :183-287) for the status-JSON-shape proof rather than a separate guard file. Rationale: keeps live-status law in one guard surface; avoids collision with addCliCommandBridges semantics which that file already pins.",
         "SCOUT CANDIDATE 5 [surface_to_user | payoff:medium risk:medium | tie:AC 'check fails/fix warns on PATH shadow', avoidance 'protect unrelated files' | prior:new]: PATH-shadow remediation policy is a user-value tradeoff: --fix could (a) warn-only (design default) or (b) offer to relink/reorder when a non-ADV adv shadows ~/.local/bin/adv. Option (b) risks touching user-owned PATH/bins (violates 'protect unrelated files'). Recommend warn-only default; surface the choice to user before committing. Evidence: design 'check fails/fix warns on PATH shadow' is already conservative; deploy-local has no precedent for mutating user PATH entries (deploy-local.sh only manages ~/.local/share/Advance and ~/.config/opencode).",
         "WARNING: packet did not include explicit prior_consideration archive data for these candidates; classified all as 'new' from absence of matching active/archived change evidence in repo grep. If orchestrator has Phase-1.6 conflict-scan data, reconcile before auto-adopt."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt candidates 1-4 into the design without user pause: (1) extend overlay-sync-assets.test.ts's existing mkdtempSync+spawnSync+HOME harness for CLI install tests, adding a tempBin dir on PATH for shadow cases; (2) sync the CLI payload through the existing Section-0 rsync block / check_rsync idiom; (3) co-deploy bin/lib beside bin/adv and rely on Bun default symlink-realpath resolution (no --preserve-symlinks needed) to keep ./lib/* imports intact; (4) extend cli-bridge-contract.test.ts for the status-JSON-shape proof rather than a new guard file. Surface candidate 5 (PATH-shadow fix behavior: warn-only vs offer-relink) to the user since it touches user-owned ~/.local/bin/adv. Mirror check_config / prune_config_backups reporting idiom for check_adv_cli_install / fix_adv_cli_install."
+      }
     },
     {
       "schema_version": "1.0",
@@ -717,7 +723,13 @@
         "Design text should name the bin/lib -> ../../plugin/src/temporal cross-tree import dependency and the runtime-root invariant that satisfies it.",
         "Rename addCliCommandBridges references in agreement/design to plugin/src/cli-bridge-contract.test.ts + advance-meta rq-statusCliBridge01 (the real protected surface).",
         "Planning: add a test that the managed runtime CLI's temporal client import target resolves under $LOCAL_DEPLOY_ROOT, guarding AC6 against future plugin-deploy changes that might drop plugin/src from runtime."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Complete the design gate. Before planning, amend design.md to (a) explicitly document the bin/lib/live-status.ts -> ../../plugin/src/temporal/* runtime dependency and assert the chosen runtime root ($LOCAL_DEPLOY_ROOT/bin with sibling $LOCAL_DEPLOY_ROOT/plugin) satisfies it, ordering the CLI co-deploy after the existing plugin rsync; (b) make the --check live-status verification assert reachability of the temporal client import target (AC6 shape: source:'temporal' on success or fail-closed live error), not merely adv --version (honors DONT5); (c) rename the addCliCommandBridges references to the real surface (plugin/src/cli-bridge-contract.test.ts + rq-statusCliBridge01) so DONT2 is testable; (d) ensure the narrow regular-file ADV recognizer is structurally checkable (e.g. shebang/marker match) per C3/AC3, and the AC7 test matrix exercises the temp-HOME/PATH fixtures already proven by the fake-HOME harness. Cite Bun's default symlink-resolution behavior in the design's symlink-mechanism rationale."
+      }
     },
     {
       "schema_version": "1.0",

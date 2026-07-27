@@ -574,7 +574,13 @@
         "Add asset/integration test asserting an archived Epic child appears in adv_epic_show history (terminal_summary set), not just that membership_status is 'ok'. A membership_status-only assertion would pass against the broken state.",
         "Verify clear_stale_projection-for-missing-Epic path (epic.ts:1141) and mark_target_unreachable interplay with archive cleanup do not regress.",
         "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided; continued with prompt scope per policy."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Do NOT complete the design gate as docs/spec/asset-test only. Resolve D2 before design gate by choosing one: (1) PREFERRED — add a thin runtime wire-up so adv_change_archive (and close) fires entryTerminalSummarySignal for the linked Epic entry, setting terminal_summary={status:'archived',completed_at}; then D2 verify reloads adv_epic_show and confirms the entry appears in history. This is the boring, correct fix and uses the already-built signal/handler. Keep repair (sync/clear/mark_unreachable) as the fallback for stale/unreachable projection only. (2) If runtime change is rejected now, narrow rq-epicArchiveSync01 and AC5 to membership-projection liveness verification (linked vs stale/unreachable), explicitly state terminal-history projection is a tracked follow-up, and avoid wording that claims the archive verifies 'terminal entry state' — because no tool delivers that today. Either way, update design.md D2 + acceptance criteria to match the chosen path, and re-enter design before planning."
+      }
     },
     {
       "schema_version": "1.0",
@@ -636,7 +642,13 @@
         "Cross-project (target_path) Epic membership: route entryTerminalSummarySignal through the target store/handle, guard trust rules, and on unreachable-Epic emit typed warning without touching release proof.",
         "Confirm the runtime test asserts terminal_summary/history (not membership_status:'ok'), per the attempt-1 lesson that a membership_status-only assertion passes against the broken state.",
         "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided; continued with prompt scope per policy (warning, non-blocking)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "PASS — complete the design gate. The runtime wire-up (D2) is the correct, boring fix and the design's anchors are all verified against source. Shortest implementation path: (1) RED: add a runtime/integration test asserting an archived change with epic_membership yields entry.terminal_summary visible as history through adv_epic_show (assert status/completed_at, NOT membership_status). (2) Add store method epics.setEntryTerminalSummary(epicId,{entryId,status:'archived',completedAt,idempotencyKey}) firing entryTerminalSummarySignal via the epics.ts:438-505 pattern. (3) Call it from BOTH archive terminal sites in change.ts AFTER status='archived'/save: async path after line 4274, sync/recovery path after line 4536; derive payload from currentChange.epic_membership; wrap in try/catch that logs a typed warning and never alters phase9_status/release proof on Epic-unreachable. (4) GREEN the runtime test. (5) Asset tests in advance-epics-assets.test.ts for adv-archive.md Phase 1/7/8 + Epic report line + rq-epicArchiveSync01 + adv.md archive/release Epic rule. (6) Spec: .adv/specs/advance-epics/spec.json version bump + rq-epicArchiveSync01; mirror docs/specs/advance-epics.md. (7) Targeted run via bin/oc-test targeted -- src/advance-epics-assets.test.ts and the new runtime test; adv_change_validate strict:true before acceptance."
+      }
     },
     {
       "schema_version": "1.0",
@@ -712,7 +724,13 @@
         "Decide + test the already-archived-Epic backfill case (epic_archived guard at epic-state.ts:506).",
         "Decide whether terminal children should also show membership_status='linked' (display-only; progress unaffected).",
         "Ensure schemas:check stays green if any public Epic schema is touched (none required by this design)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "PROCEED to design gate. Shortest implementation path: in adv_epic_repair_membership sync_child_projection (epic.ts:1263-1309), after loading the child (L1207) and before/alongside the existing setEpicMembership+setEntryMembershipStatus, branch on child.status: if 'archived' or 'closed', also call store.epics.setEntryTerminalSummary(epic_id,{entryId:entry.entry_id,status:child.status,completedAt: child.updated_at ?? new Date().toISOString()}). Keep dryRun preview symmetric (surface a terminal_summary preview). Reuse warning-not-fatal posture if desired but prefer fatal here since this is the operator's explicit repair intent. Honor target_path/childStore routing already in place. Test anchors: (a) extend plugin/src/tools/epic.test.ts near :912 with a sync test where child.status='archived' asserting setEntryTerminalSummary called with status:'archived' and a valid ISO completedAt, and repaired:true; (b) add a closed-child variant; (c) unit-cover recomputeEpicProgress advancing completed_entries+next_entry_id given a terminal_summary (epic-state.test.ts already at :684 has a recomputeEpicProgress block — add a backfill case); (d) dryRun symmetry test asserting no signal fired. Confirm via: bin/oc-test targeted -- src/tools/epic.test.ts src/temporal/epic-state.test.ts."
+      }
     },
     {
       "schema_version": "1.0",

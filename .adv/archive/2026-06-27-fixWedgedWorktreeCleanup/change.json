@@ -426,7 +426,13 @@
       "follow_ups": [
         "Implementation should confirm via live timing whether store.changes.get on the pokeedge fixStagingDigestResolution terminal workflow is the dominant hang (root-cause A) vs cumulative 30s git/gh (root-cause B) before finalizing the Temporal-decouple priority.",
         "Verify execFileGitCb (index.ts:774) actually honors execFile timeout as a SIGKILL on this Node/Bun runtime; if Bun execFile ignores timeout, git substeps become a leak surface and re-enter scope."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt 5 leverage points: (1) thread DeadlineContext but scope the abort fix to the Temporal read + wrapper, not git/gh which already self-kill [adopt_now]; (2) reuse prMergeEvidence DI seam for AC4 PR/squash regression tests — no network needed [adopt_now]; (3) prefer registry snapshot + recorded release evidence (mergeCommitSha/prNumber from release gate) over store.changes.get for archived changes, making the Temporal read a bounded fallback only [adopt_now]; (4) extend the existing index-delete.test.ts no-late-mutation drain test rather than authoring AC5 from scratch [design_around]; (5) consolidate the three budget constants (8000 wrapper / 30000 pending-item / 5000 signal) into one DeadlineContext-derived reserve so drain stops before starting an item it cannot finish [adopt_now]. All five are contract-tied and low risk → auto-adopt; none require surfacing to user."
+      }
     },
     {
       "schema_version": "1.0",
@@ -486,7 +492,13 @@
       "follow_ups": [
         "Confirm a regression test exists for archive_repair cleanup_merged returning bounded partial results when candidate count is large (KD6 / rq-worktreeBoundedCleanup01).",
         "Confirm pokeedge live validation is recorded after rebuild/deploy/restart per AC (source-vs-dist reload gotcha applies to live tool behavior)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed. The design's diagnosis and key decisions are source- and spec-verified, and KD1/KD3/KD5 are compelled by existing spec law rq-worktreeBoundedCleanup02. Before planning, tighten two points: (a) make KD2 explicit that persisted terminal cleanup authority is reverified through advWorktreeDelete's clean/merged/terminal/in-use gates and never used as standalone deletion authority (rq-terminalCleanupSafety01.2, constraint C1/C5); (b) sequence the work so the minimal correctness fix (wrapper passes a sub-8s cleanupItemTimeoutMs and the missing-registry/discovery store.changes.get awaits gain a cleanup-local sub-budget) lands and is regression-tested first, with the PendingDelete authority-metadata extension (KD2) scoped specifically to the missing-registry/poisoned-workflow case where the live registry no longer contains the change. Add a DDC5 regression test asserting old PendingDelete records without authority metadata remain readable and retryable."
+      }
     },
     {
       "schema_version": "1.0",

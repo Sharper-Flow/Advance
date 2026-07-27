@@ -207,7 +207,13 @@
         "Rerun lgrep semantic/symbol search with fresh index during design; proposal records two prior semantic-search timeouts.",
         "Design to decide durable home: extend adv-discover spec (recommended) vs advance-workflow spec vs both; recommend adv-discover to keep locality (P04).",
         "Define exact trigger vocabulary bounds and an explicit opt-out marker for narrow changes to satisfy the 'do not force repo-wide scans' Must-Not."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the trigger-scoped specialization approach: (a) define a precise trigger condition (chokepoint / sole entry point / single point of change / shared cross-cutting control surface claim) so narrow changes are NOT forced into repo-wide scans (honors proposal Must-Not); (b) extend the P25 Related-Pattern Scan step to require a comprehensive target-operation surface scan (lgrep_search_semantic + lgrep_search_symbols) when the trigger fires, with recorded methodology (terms searched, surfaces found, surfaces excluded + rationale, scope disposition); (c) wire the over-claim outcome into the existing B=Boundaries AMBIGUITY ANALYSIS as a CRITICAL finding so the existing halt-and-handoff-to-/adv-clarify path is reused; (d) make it durable via adv-discover spec rq-* delta + discover-checklist output-section row + an asset/command-consistency test, not prose alone. Confirm non-duplication with tightenAdvScopeDiscipline before minting spec deltas."
+      }
     },
     {
       "schema_version": "1.0",
@@ -264,7 +270,13 @@
         "Planning: single atomic engineer task for spec+docs-mirror+command+checklist (no sequencing required; asset tests are presence-based and independent).",
         "Design/engineer note: completeness.ts is NOT reusable for discovery prose enforcement — keep KD5 text-anchor approach; do not wire a code validator.",
         "Keep new Phase 1.8 command prose under ~36 added lines or bump token-budgets.json adv-discover.md baseline (358) to avoid the warn-only token-budget noise."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with the draft design unchanged on architecture. Apply two boring leverage adjustments at planning: (A) Add the 'All 10 → 11 protocol steps' edit to BOTH discover-checklist.md:24 and :139 as an explicit task line item (DDC4-prevention) since no test will catch the miss. (B) Make spec.json + docs/specs/adv-discover.md mirror + .opencode/command/adv-discover.md + discover-checklist.md a SINGLE atomic engineer task (no sequencing needed — asset tests assert token presence independently), with the Output Section Schema 'Completeness Verification' row as the canonical anchor referenced by command Phase 1.8. Explicitly do NOT touch plugin/src/validator/completeness.ts — it is not the discovery-completeness seam. Keep new Phase 1.8 prose under +36 lines to stay below the adv-discover.md token warn threshold (baseline 358 → 394)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -315,7 +327,13 @@
         "adv_spec FTS search returned empty for completeness/chokepoint/boundary queries; validation relied on the full paginated spec.show (21/21 requirements) instead — note possible search-index staleness, not a design issue.",
         "Prep: add a derived step-count cross-check in the asset test (DDC4) rather than independent presence tokens.",
         "Confirm at prep that ADV_INSTRUCTIONS.md pointer edit does not collide with tightenAdvScopeDiscipline's shared-surface edits (C4)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design solves all six ACs with spec-grounded mechanics and chooses the simplest durable approach (extend Phase 1.7 sibling + reuse rq-disc-tax2 halt). No CONFLICT with existing adv-discover law; rq-disc13/14/15 are collision-free and advance-workflow is correctly left untouched (C3). Address one CAUTION in prep: make the DDC4 step-count invariant cross-checked by the asset test (assert command and checklist reference the identical protocol step count, e.g. both say 9/11) so they cannot silently diverge — this converts the weakest structural anchor from presence-only to drift-resistant, strengthening the P33 posture without new scope."
+      }
     },
     {
       "schema_version": "1.0",

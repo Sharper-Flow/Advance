@@ -382,7 +382,13 @@
         "Nonblocking: formatStatusOutput summary view already blanks health/worktree/session/peer sections (status.ts:1813-1817). Ensure the new grouped next-actions section is included in summary's retained sections, else summary loses the grouped synthesis the change is meant to add.",
         "Nonblocking: add a tool-formatters.test.ts fixture for the grouped next-actions section (formatter currently only tested for recommendationsList length 0/1); the design's formatter RED test should land here.",
         "Packet note: TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were not provided in the orchestrator packet; continued with prompt scope per policy."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to design gate (READY) with these required corrections recorded in design/planning: (R1) Pin the summary double-bound interaction. capSummaryRecommendations already mutates status.recommendations to length 11 before applyStatusView; the new typed grouping must derive recommendation_groups/recommendation_summary from the FULL typed item set (pre-cap), not from the truncated flat strings, otherwise omitted counts will be wrong. Build typed items + groups first, then project the legacy flat cap from them. (R2) Make all numeric bounds named constants with tests (design already says this in D4 — keep it a hard AC, no prose-only limits). (R3) Decide the legacy string->kind fallback's authority explicitly: per P33/agreement constraint it must be display-only, never correctness; add a test asserting all known producers emit structural kinds and that the fallback path is unreachable for them. (R4) Preserve exported _test surface (appendRecencyRecommendation) or migrate its tests deliberately; existing tests at status.test.ts:503-546 call it directly. (R5) Confirm placement of the pure builder keeps the utils purity guard green if placed under utils/ (no storage/tools imports); placing it in tools/status.ts or a new pure tools-local/types-only module avoids the guard entirely."
+      }
     },
     {
       "schema_version": "1.0",

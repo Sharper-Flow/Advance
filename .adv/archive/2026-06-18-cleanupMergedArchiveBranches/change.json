@@ -805,7 +805,13 @@
         "LBP: enumerate worktree/triage.ts listDiskWorktrees porcelain parser as a 5th reused primitive for KD4.",
         "DDC3: short-circuit cherry fallback when tree-SHA detector already proves merged, to bound the 10s tool budget.",
         "Report wording: label merge proof 'patch-equivalent'/'tree-identical' not 'patch-id' per git-cherry diff-based equivalence semantics."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED — proceed to planning. Three non-blocking refinements to fold into design/AC before execution: (1) Document explicitly that `git branch -d` final guard checks merge-into-upstream-or-HEAD which may differ from the detector's merge-into-default, and that this divergence is safe (false-refusal only, never unsafe-delete) since -D is never used — add a one-line rationale so a future reader does not 'fix' the apparent redundancy. (2) Reuse the existing porcelain parser pattern from worktree/triage.ts:155 (listDiskWorktrees) for KD4 getCheckedOutChangeBranches rather than re-implementing branch:-line parsing — add to LBP reused-primitives list (4 -> 5). (3) Per-branch latency: short-circuit the cherry fallback when detectSquashMergeByTree already returns reachable:true, so worst case is ~2 git invocations/branch not 4 — tightens DDC3 against the 10s budget. Label merge proof as 'patch-equivalent (git cherry)' or 'tree-identical' rather than 'patch-id' for accuracy. No spec or contract blocker; non-regression of change.ts:4436-4441 and deleteChangeBranch body is sound."
+      }
     },
     {
       "schema_version": "1.0",

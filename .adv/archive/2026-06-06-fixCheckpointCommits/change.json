@@ -249,7 +249,13 @@
       "follow_ups": [
         "Confirm KD3 guard path rejects (not truncates) overlength subject inputs to satisfy AC3/DDC3.",
         "When rewriting rq-cc03.1, update both complete and cancel subject regex examples and ensure no other advance-delivery scenario references the old 'task({taskId})' subject form (AC8)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED — proceed with the design as written. All four KDs are evidence-backed: chore(adv) is canonical and release-neutral per Conventional Commits 1.0.0, the Reason-in-body move follows the git-trailer footer convention, and the rq-cc03.1 subject rewrite plus the meta.merged_from parse-repair (AC9) are both confirmed necessary against the live spec. No materially simpler alternative exists that still satisfies objective 1 (CC-compatible subjects) — keeping the old 'task(...)' form is the only simpler path and it is precisely the bug. Minor follow-ups: keep body footer tokens single-word/hyphenated per CC item 9, and ensure KD3 rejects overlength subjects deterministically rather than truncating task IDs (AC3/DDC3). Bound the spec edit to the rq-cc03.1 subject clause and the malformed meta.merged_from fields only, per the design's stated scope."
+      }
     },
     {
       "schema_version": "1.0",

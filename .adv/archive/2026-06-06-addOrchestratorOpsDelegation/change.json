@@ -320,7 +320,13 @@
         "Design must decide canonical worker mapping for ops triggers (explore vs adv-tron vs general) and keep it consistent across adv.md prose and the instruction-surface table.",
         "Open user-facing question for design: should the operational-shed table live in BOTH ADV_INSTRUCTIONS.md and adv-apply.md, or only ADV_INSTRUCTIONS.md since ops work spans all gates not just apply? adv-apply.md is apply-phase-scoped.",
         "Packet anchors TASK_SCOPE/IN_SCOPE/DONE_WHEN were present; STOP_WHEN/VERIFICATION present. No packet defect."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed. In design: (a) add rq-orchestratorOpsDelegation01 to advance-meta as additive, defining authority-KEEP set + operational SHED triggers (incl. GitHub CI/check-run investigation) + the 'no second recon/shell/test/CI cycle before delegating' rule; (b) require NEW drift tests (adv.md+adv-atc.md operational-shed prose tokens with zero table pipes in that section; ADV_INSTRUCTIONS.md+adv-apply.md operational trigger table containing the GitHub-CI token) — do not rely on non-existent existing guards; (c) keep new instruction-surface table clearly labeled as orchestrator-session operational routing, distinct from per-task Step 4.5; (d) explicitly out-of-scope: runtime enforcement, OMR model-routing config, task-level 4.5 semantics."
+      }
     },
     {
       "schema_version": "1.0",
@@ -386,7 +392,13 @@
         "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were present in the packet; no identity-anchor defect.",
         "When implementing, run targeted vitest for the new asset test and at least bin/oc-test smoke or pnpm run check per repo policy."
       ],
-      "consumer_warnings": []
+      "consumer_warnings": [],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Auto-adopt test factoring and negative-assertion candidates. Surface only spec version bump as conditional: bump advance-meta version/updated_at if this repo convention requires metadata updates for new requirements; otherwise avoid churn. Keep design scope unchanged: no runtime enforcement, no OMR/model routing, no adv-atc.md edit, no Step 4.5 semantic change."
+      }
     },
     {
       "schema_version": "1.0",
@@ -437,7 +449,13 @@
         "Asset test: scope adv.md no-pipe assertion to the Context-Optimal Execution heading slice only, since adjacent Sub-Agent Policy tables in the same file contain pipes (adv.md:271-306).",
         "Strengthen spec scenario + test to assert ops table routes code-writing/edit rows away from general (constraint: general is not a code-writing catch-all; no runtime enforcement exists).",
         "Ensure docs/specs/advance-meta.md mirror is updated in lockstep to avoid manifest-doc-drift test failures."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with minor cautions. The design correctly solves all stated objectives and contradicts no existing spec-law. Two correctness hardening points: (a) the new asset test's adv.md no-pipe assertion must scope strictly to the Context-Optimal Execution heading region (deterministic heading-to-next-heading slice) so it does not collide with the adjacent Sub-Agent Policy tables in the same file, which legitimately contain pipes; (b) since 'general not code-writing catch-all' is a stated constraint with no runtime enforcement, the spec scenario and test should assert the ops table maps research/edit rows to adv-researcher/adv-engineer/adv-designer (not general) so the prose/table cannot silently drift general into a code-writing default. Recommend keeping the new ops-routing row tokens (GitHub CI/check-run/status -> general) as exact assertable tokens. No simpler viable alternative materially reduces scope: collapsing ops guidance into the existing Step 4.5 table was correctly rejected because it blurs task-routing and session-routing semantics that rq-contextShed01/02 keep distinct."
+      }
     },
     {
       "schema_version": "1.0",

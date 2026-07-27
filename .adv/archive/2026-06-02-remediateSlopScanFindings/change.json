@@ -508,7 +508,13 @@
         "D5: confirm at apply whether the 4 completed-only sites are intentionally narrower or latent bugs that should also probe poisoned history; if the latter that is a separate scoped decision, not a behavior-preserving refactor.",
         "D7: add/confirm a status.ts test asserting equivalent recommendations[] before vs after registry conversion for view='health' and view='hygiene'.",
         "D4: verify SignalPayloadDigest has (or gets) a Zod schema; SignalRejection Zod schema is incomplete without it."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with all 7. D1: fix masking mock at artifact-payload-signal-invariant.test.ts:86 to {success:true,data:{documents:{}}} and add RED test through updateArtifacts. D2: soften heuristic inversion to warning AND add regression test ((a) inversion=warning, (b) TASK_TDD_INTENT_MISSING still error). D3: keep regexes permissive of surrounding context for the two mid-string phrasings; rerun changes.test.ts:25-70 green before/after. D4: author Zod SignalRejection + SignalPayloadDigest, wire into ChangeSchema as optional additive fields, drop casts, run schemas:generate/check + workflow-bundle-boundary tests. D5: extract predicate as TOOL-LAYER combinator covering ONLY the 6 Shape-B sites; leave the 4 Shape-A sites unchanged and document why; preserve change.ts:2826 short-circuit + signalError threading. D6: split preserving entrypoint signature + acceptance/release guard. D7: model probes as a registry retaining explicit ordering + temporalHealth->queueServiceability dependency + recommendation side-effects; add a test that view='health' still emits identical recommendations."
+      }
     },
     {
       "schema_version": "1.0",

@@ -430,7 +430,13 @@
         "Confirm whether cleanup must precede issue-creation (4a) as well as scoring (4c), or scoring only.",
         "Decide agenda 'should-merge/superseded' mapping (complete+note vs cancel+note) — no native supersede verb exists.",
         "Decide dry-run preview vs Tier-B boundary for each cleanup action class."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt a single new cleanup stage between Phase 3 (match/gap) and Phase 4 (user assignments) that validates the full pool, reuses the adv-cleanup Tier-B per-bucket approval parser verbatim, and uses structural close primitives (gh issue close --duplicate-of/--reason; adv_change_close). Generalize Phase 4b into this stage rather than keeping two relevance passes; retain a thin item-level fallback only if discovery finds field-gap-specific evidence. Add a backlog-coordination spec requirement + extend the relevance asset test to assert cleanup-stage-before-Phase-4. Lock the agenda supersede->complete/cancel mapping with the user (user-value tradeoff)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -487,7 +493,13 @@
         "Confirm Phase 4b is fully removed (not left as a second pass) to avoid double relevance prompting.",
         "Lock dry-run vs Tier-B boundary per cleanup action class (archive-recommend vs change_close vs gh close vs agenda complete).",
         "Set net-new spec id rq-backlogCoord09 for cleanup-before-creation/scoring law (AC8)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now: (1) Single Phase 3.5 over full pool replacing Phase 4b (delete duplicate relevance pass). (2) Reuse adv-triage-relevance-assets.test.ts ordering-index pattern for AC7. (3) Reuse PROMPTS agenda 'complete-with-note' precedent for AC5. (4) Add rq-backlogCoord09 cleanup-before-creation/scoring law. Design-around (do NOT hardcode comment heuristic): make GH duplicate handling capability-detected — probe 'gh issue close --help' for --duplicate-of; use native --duplicate-of/--reason duplicate when present (structural, P33-aligned), comment-fallback only when absent. Surface to orchestrator: the AC6/C6 wording presumes the flag is unavailable, which the official manual contradicts; confirm with user whether to keep heuristic-only (honoring literal AC6) or upgrade AC6 to capability-detected structural-first."
+      }
     },
     {
       "schema_version": "1.0",
@@ -543,7 +555,13 @@
         "Update adv-triage-relevance-assets.test.ts ordering assertions when Phase 4b lifts into Phase 3.5 (else suite breaks).",
         "Align AC6/C6 prose: gh issue close --duplicate-of IS available per official manual; capability-detection covers both, but spec should not assert universal absence.",
         "Confirm wisdom/note/todo cleanup classifications respect C4 (no broad repo hygiene) boundary."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED. The design solves all 8 objectives with confirmed structural primitives and the simplest viable approach (generalize existing Phase 4b rather than add a parallel pass; command-local cleanup_decisions[] rather than new tool/store). Proceed to planning. During execution: (a) honor strategy step 6 — update the existing 4b→4c asset-test ordering assertions to 3.5→4a/4c so AC7 regressions still fire; (b) keep D5 capability detection as the single GitHub duplicate path and align AC6/C6 prose so it no longer asserts native flags are absent; (c) confirm wisdom/note/todo cleanup stays within C4 backlog-source scope, not broad hygiene."
+      }
     },
     {
       "schema_version": "1.0",

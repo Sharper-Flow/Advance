@@ -528,7 +528,13 @@
         "4) Define minimal always-show-vs-omit consequence categories (delivered value, remaining ops, migration/data impact, frontend/preview, collision/release risk, release action, open follow-ups) — route: surface_to_user — payoff: sets the durable contract for what approval context always contains; prevents scope creep into verbose dumps — risk: low (definition/agreement task) — evidence: proposal Discovery Agenda Domain unknowns — suggested_agreement_effect: enumerate the category set + omit-when-not-applicable rule as explicit AC.",
         "5) Surface release-action + collision/release risk one-liner at archive sign-off from gate-readiness ops classification — route: auto_adopt — payoff: tells user 'what approving does next' (release-first vs blocking) using existing structural classifier, no heuristic — risk: low — evidence: gate-readiness.ts:631-702 (blocks vs follows_release/monitors/cleanup_after + required_handoff) — suggested_agreement_effect: add AC 'archive sign-off states the release action and any surviving-obligation handoff'.",
         "Warning: packet omitted no required anchors; all identity/scope anchors present. VERIFICATION note: every candidate is cited to spec/code/command source above."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Prioritize two auto-adoptable, structural, spec-backed candidates: (A) render the already-emitted openOpsObligations in the archive Phase 8 report + adopt in renderBriefSummary, closing rq-opsFollowRelease01 drift; (B) add a terse delivered-value classification (delivered-usable | enabling-only | follow-up-dependent) to the acceptance/executive summary sourced from contract.reviewMatrix + open ops links. Surface to user for agreement: (C) persisting harden deployment-readiness verdicts into a durable field the approval prompt reads, and (D) the exact minimal always-show-vs-omit consequence category set. Keep everything omit-when-empty and under the existing size cap; add asset-drift tests so surfaces are enforced, not prose-only."
+      }
     },
     {
       "schema_version": "1.0",
@@ -588,7 +594,13 @@
       "follow_ups": [
         "If a shared renderer module is added, extend workflow-noise-reduction-assets.test.ts + human-checkpoints-assets.test.ts rather than adding a new test file.",
         "Confirm during prep whether adv-scanner-bundle harden reports are submitted at change scope (change.subagent_reports) vs task scope, so the archive read path targets the right array."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now: (A) Promote the 'optional pure formatter' to a single required renderer module (mirror plugin/src/utils/archive-summary.ts) owning the 8-category vocabulary + status enum, so adv-review, adv-archive, exec-summary template, and asset tests all reference one source — this is the durable AC7/DDC5 anchor and kills the prose-drift risk. (B) In the design, name adv_change_show include:{subagentReports:true} as the concrete archive-time harden-evidence read path (DDC4). (C) Reuse the existing preview-state table (adv-review.md:524-547) and getOpenOpsFollowupObligations verbatim; do not re-implement. Defer: no ADR needed (design already declined). Reject: none."
+      }
     },
     {
       "schema_version": "1.0",
@@ -648,7 +660,13 @@
       "follow_ups": [
         "Plan: define explicit archive-time fallback status when harden subagent-report evidence is unretrievable, to avoid misleading N/A (protects AC2).",
         "Plan/design note: evaluate persisting full readiness matrix at harden time vs live reassembly at archive for simplicity (dimension 4, non-blocking)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with one caution. The design is architecturally sound, spec-compliant, and correctly reuses existing structural rails at verified assembly points. Before planning completes, the design/plan should specify the archive-time fallback when harden readiness evidence cannot be retrieved from subagent reports (explicit 'unavailable' status vs silent N/A) to keep AC2 honest, and consider whether persisting the full readiness matrix at harden time (rather than live reassembly at archive) is materially simpler. Neither point blocks design-gate completion."
+      }
     },
     {
       "schema_version": "1.0",

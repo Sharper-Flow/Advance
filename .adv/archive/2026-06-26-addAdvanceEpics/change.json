@@ -2050,7 +2050,13 @@
         "Before any Epic-workflow design, re-read the PSW retirement decision (D3) and no-psw-references.test.ts to confirm a per-Epic workflow does not re-trip the do-not-revive guard or its replay/aggregation failure class.",
         "CONSUMER WARNING: lgrep_search_semantic timed out (Voyage API) across 3 attempts; findings used grep/read/adv_spec instead. Re-verify membership-query code paths with semantic search if it recovers.",
         "PACKET NOTE: agreement/AC artifacts not yet formed (discovery gate pending); assessment grounded in approved proposal + code/spec evidence only."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Discovery agreement should: (1) Adopt the boring linkage model: Epic membership as optional flat change metadata (epic_id + recommended order index) mirroring fast_follow_of, with Epic context/order resolved through existing Visibility queries (AdvAffectedProjects-scoped) rather than a parent workflow, unless discovery proves a stateful Epic workflow is required. (2) If durable Epic narrative/shell-entry state is needed, prefer a single lightweight per-Epic entity workflow ONLY if flat metadata + a small Epic record proves insufficient, and explicitly reconcile against the PSW-retirement do-not-revive guard before committing. (3) Add AC for the 3-KeywordList cap: index Epic-id as a single-value Keyword (AdvEpicId) if cross-session Epic membership queries are required, NOT a new KeywordList. (4) Add AC: ordering + membership are structural/typed (P33), never prose roadmap text. (5) Add AC for failure handling of missing/archived child changes in Epic order. (6) Add AC: shell-entry promotion reuses adv_change_create with epic linkage seeded at create (like origin/fast_follow seeding), not a late disk patch."
+      }
     },
     {
       "schema_version": "1.0",
@@ -2102,7 +2108,13 @@
         "If per-epic workflow retained: add design note reconciling against PSW retirement (D3) risk class and confirm plugin/src/temporal/workflow-bundle-boundary.test.ts coverage for the new workflow type.",
         "Make 'single-value AdvEpicId => one epic per change in v1' an explicit, tested design invariant.",
         "lgrep_search_semantic not attempted this pass (prior discovery reported Voyage API timeouts); findings used adv tools + grep/read. Re-verify membership-query code paths with semantic search if it recovers."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Before completing the design gate: (1) SURFACE TO USER — challenge the dedicated per-epic entity workflow. Default to the boring substrate: store the Epic record (id, title, narrative, ordered entries[], status summary, timestamps, version) as a typed atomic projection reusing the jsonl-atomic-writer pattern, with optimistic version checks to satisfy AC10 concurrent-edit determinism. Adopt a workflow ONLY if design proves a requirement the projection cannot meet (e.g. cross-session signal coordination that Visibility queries + version-CAS cannot provide). (2) AUTO-ADOPT — keep epic_membership as flat optional projection on child changes (mirror fast_follow_of) and AdvEpicId as single-value Keyword; add an explicit design invariant that single-value Keyword => one epic per change in v1 (consistent with AC8). (3) AUTO-ADOPT — promotion must seed epic linkage at adv_change_create time (like origin/fast_follow seeding), never a late disk patch (AC3 idempotency). (4) If the workflow IS retained, the design must include a short written reconciliation against the PSW D3 retirement risk class and confirm the new workflow type passes the workflow-bundle-boundary guard."
+      }
     },
     {
       "schema_version": "1.0",
@@ -2158,7 +2170,13 @@
         "Planning: add design-derived criterion for cross-continue-as-new signal idempotency + all-handlers-finished drain on epicWorkflow.",
         "Planning: add criterion/test that Epic annotation on /adv-status and /adv-roadmap respects advance-meta CLI-bridge no-fanout laws and worker-free Visibility read path.",
         "Implementation: confirm worker-bundle boundary test is extended to cover epicWorkflow workflow-safe imports as Slice B states."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED-with-CAUTION. Proceed to planning. Add two design-derived criteria before execution: (DC-A) epicWorkflow signal handling must be idempotent across continue-as-new via an explicit in-workflow idempotency key and must drain/finish handlers before CAN (cite https://docs.temporal.io/handling-messages); this hardens the existing 'idempotent shell promotion' and 'concurrent reorder CAS' criteria against the CAN boundary. (DC-B) Epic annotation added to /adv-status and /adv-roadmap surfaces must be sourced from the worker-free CLI/Visibility bridge and must not introduce agent fanout, preserving advance-meta CLI-bridge laws. No simpler viable alternative was overlooked — disk/JSONL, project-singleton, flat-metadata, and ROADMAP.md-v2 were each correctly rejected with evidence consistent with the Temporal-only-runtime project context."
+      }
     },
     {
       "schema_version": "1.0",
@@ -2929,7 +2947,13 @@
         "Planning: add backward-compat normalization + parse tests for EpicChangeEntry change_id→change_ref (strict discriminatedUnion, not passthrough).",
         "Planning: specify cross-project one-Epic-per-change behavior when target change read is unreachable (fail-closed vs projection_pending).",
         "Note: full ADV artifact bodies (problem-statement/proposal raw) were marked readable:false; validation used adv_change_show include flags and source code only, per ADV state access policy."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to the planning gate. Verdict CAUTION (proceed-with-conditions): the architecture is correct and grounded in existing patterns, but planning MUST encode five non-blocking items as explicit tasks/acceptance criteria before execution: (a) deterministic (wall-clock-free) idempotency keys for link/unlink/move/repair; (b) concrete backward-compat normalization for EpicChangeEntry change_id→change_ref with parse tests, since the entry union is strict; (c) new epicMembershipSet/Cleared change-workflow signals routed via fireSignalAndRefresh and target-store cache for cross-project; (d) audited unlink with evidence/expected_version while keeping idempotent missing-entry tolerance; (e) defined fail-closed behavior for one-Epic-per-change when the target change is unreachable. The no-distributed-transaction / membership_status + repair model is the right call and should be kept as-is."
+      }
     },
     {
       "schema_version": "1.0",

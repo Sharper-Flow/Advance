@@ -639,7 +639,13 @@
         "Discovery should decide whether to encode the Temporal-first artifact source-of-truth invariant as new spec law (advance-workflow or subagent-reports) — currently no spec covers it (0 search hits).",
         "Confirm whether any existing test snapshots assert artifacts.*.path values that would break under a path-shape change before choosing C5's output shape.",
         "Verify gate.ts acceptance artifact_evidence.path (gate.ts:394-396) uses inspectArtifactActivity against a real on-disk file — appears to be a genuine disk path, so the phantom-path fix must not regress acceptance-gate evidence."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Carry these 5 ScoutCandidates into /adv-discover agreement formation. Auto-adopt C1 (researcher ADV State Access Policy parity) and C2 (artifact-wide packet rule) — both low-risk, contract-tied to the 'must not require direct advance-file reads' Must-Not. Design-around C3 (ARTIFACT_FILENAME single-source-of-truth) and C4 (regression coverage for unbacked design/agreement paths). Surface C5 (path output-shape decision: omit vs label source:temporal vs availability flag) to the user — it is a user-facing wording/contract tradeoff already flagged as a Domain unknown. ROWS BELOW.\n\n--- ScoutCandidate rows ---\nC1 | candidate: adv-researcher.md lacks the 'ADV State Access Policy' block (NEVER read ADV state files; use adv_change_show) that adv-engineer/build/designer/reviewer/adv all carry | evidence: .opencode/agents/adv-researcher.md:77-86 vs adv-engineer.md:190-209 | payoff: high | risk: low | contract_tie: Must-Not 'must not require sub-agents to read ~/.local/share/.../advance files directly' + objective 'access artifacts through ADV tools' | prior_consideration: new | fate: adopt_now | route: auto-adopt | rationale: Cheapest highest-leverage fix; closes the exact gap that produced the triggering incident; pattern already proven in 5 sibling agent files.\nC2 | candidate: Command packets (adv-research:43, adv-refactor:34) and the adv-design validator packet (adv-design.md:138-167) restrict only proposal.md / inject only design.md content; no artifact-wide 'access via ADV tools/include fields, never raw paths' rule | evidence: .opencode/command/adv-research.md:43, adv-refactor.md:34, adv-design.md:159-167 | payoff: high | risk: low | contract_tie: objective 'align researcher/design-validation packet guidance with ADV state access rules for all artifacts' | prior_consideration: new | fate: design_around | route: auto-adopt | rationale: Generalize the proposal-only rule to all artifacts in worker packets; design adjustment but no user-value tradeoff.\nC3 | candidate: ARTIFACT_FILENAME kebab map duplicated in 4+ modules despite types/artifacts.ts naming temporal/activities.ts as single source of truth | evidence: types/artifacts.ts:9-10, change.ts:81, changes.ts:676, hydrate-documents.ts:43 | payoff: medium | risk: low | contract_tie: constraint 'any read-surface change must be backward-compatible' (drift across copies breaks this) | prior_consideration: new | fate: design_around | route: auto-adopt | rationale: Any path-shape fix must touch one canonical map or the test plan must pin all copies; surfacing now prevents a partial fix.\nC4 | candidate: no-disk-writes-invariant.test.ts asserts no disk writes but NO test asserts adv_change_show output does not present unbacked design/agreement paths as readable | evidence: plugin/src/storage/store-temporal/no-disk-writes-invariant.test.ts:30-71 (write-side only) | payoff: medium | risk: low | contract_tie: objective 'add regression coverage for Temporal-only artifact content with nonexistent disk sidecar files' | prior_consideration: new | fate: design_around | route: auto-adopt | rationale: Names the precise missing regression: assert the read-surface (change_show) for design/agreement when only state.documents has content and no disk file exists.\nC5 | candidate: Output-shape decision for unbacked paths (omit path | label source:'temporal' | add readable:false availability flag) is a user-facing/backward-compat contract choice, not purely internal | evidence: proposal Domain unknowns + Knowledge Gap Analysis (adv_change_show output shape deferred to /adv-discover) | payoff: high | risk: medium | contract_tie: Must-Not 'must not hide useful artifact metadata without machine-readable replacement' | prior_consideration: new | fate: surface_to_user | route: user-surface | rationale: Medium risk + user-value/back-compat tradeoff for existing callers; must be decided with the user, not auto-adopted."
+      }
     },
     {
       "schema_version": "1.0",
@@ -705,7 +711,13 @@
         "Planning: name changes.test.ts:662-673 as a test requiring inversion under KD-1.",
         "Planning: ensure normalizeArtifactMetadataForRead treats path==='' (change-state.ts sentinel) as non-readable, equivalent to absent path.",
         "Planning: confirm target_path readback uses target store paths for fileExists checks (C6) — design mentions this but verify the existing cross-project read helper is reused."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. Design is VALIDATED on all four dimensions: CORRECTNESS (solves all 6 ACs structurally; verified bug locus and fix surfaces), SIMPLICITY (no simpler approach reaches AC5's machine-readable distinction since the fake path is embedded in tool output), SPEC-LAW COMPLIANCE (new invariants are additive and consistent with Temporal-only/no-disk-writes laws; gate-evidence path already optional), and KEY ALTERNATIVES (prompt-only and disk-write alternatives both correctly rejected per DONT1/C2). Two non-blocking cautions for planning: (a) explicitly enumerate the existing changes.test.ts metadata-path assertion as a test that flips from asserting-present to asserting-absent; (b) ensure readback normalization treats both absent path AND empty-string path ('' sentinel from change-state.ts) as non-readable, since two independent code paths seed metadata. Recommend normalization centralizes the readable/source derivation in one helper applied at adv_change_show and reused for target_path reads (C6)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -765,7 +777,13 @@
       "follow_ups": [
         "Verify activities.ts ARTIFACT_FILENAME is the third duplicate before centralizing (design names it; confirm during impl).",
         "Confirm create-path metadataPaths at changes.ts:273-280 is also covered by the source fix, not just the updateArtifacts path at :687."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the source-fix-first sequencing: land Decision 1 (kill path synthesis at changes.ts:687 + :274) and Decision 4 (central ARTIFACT_FILENAME in types/artifacts.ts) first; gate evidence (AC5/Decision 3) then needs only a regression test, not new conditional logic. Treat Decision 5 as 'extend forbidden list + add recovery-rule parity' across the 5 existing blocks plus a net-new block in adv-researcher.md, reusing the existing block's exact wording/structure for asset-test consistency. Land normalization (Decision 2) at change.ts:2244 reusing the in-scope fileExists helper."
+      }
     },
     {
       "schema_version": "1.0",

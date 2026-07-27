@@ -185,7 +185,13 @@
       "recommendation": "VALIDATED with minor cautions. Proceed with the design as written. During implementation: (a) order the new clarify bullet near or after the existing continue/ship bullet so the auto-continue override is locally legible; (b) keep all 3 new bullets as decision-rules, avoiding absolute ALWAYS/NEVER for the judgment-call clarify trigger, per OpenAI GPT-5.5 guidance; (c) ensure the new AC2 alignment test normalizes a single trailing newline (design already notes this) since gpt.md ends with a newline and the TS array join does not; (d) keep the pinned non-GPT expectations to satisfy AC3/DONT3 byte-identity.",
       "follow_ups": [
         "Consider (separate, optional) collapsing the GPT hint's flat bullet list into a tiny 'when to continue vs ask' decision block if it grows further, per OpenAI guidance against process-heavy stacks — out of scope for this change."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with minor cautions. Proceed with the design as written. During implementation: (a) order the new clarify bullet near or after the existing continue/ship bullet so the auto-continue override is locally legible; (b) keep all 3 new bullets as decision-rules, avoiding absolute ALWAYS/NEVER for the judgment-call clarify trigger, per OpenAI GPT-5.5 guidance; (c) ensure the new AC2 alignment test normalizes a single trailing newline (design already notes this) since gpt.md ends with a newline and the TS array join does not; (d) keep the pinned non-GPT expectations to satisfy AC3/DONT3 byte-identity."
+      }
     },
     {
       "schema_version": "1.0",

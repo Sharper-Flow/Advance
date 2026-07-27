@@ -277,7 +277,13 @@
       "follow_ups": [
         "Design validator should confirm whether optimizer reuses explore scanners only or also adv-researcher for the best-practice/reference dimension (affects whether the asset test asserts a Task-tool spawn block like adv-tron vs inline-scan like adv-improve).",
         "Confirm exact frontmatter description is 5-14 words (manifest-doc-drift caps it) and identical across manifest/frontmatter/README/ADV_INSTRUCTIONS."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt prompt-only command modeled on adv-improve's boundary/exits/evidence/degraded shape + adv-slop-scan's explore fan-out and no-nested-delegation contract. Register in manifest utility block as exact clone of adv-tron entry (successors adv-proposal+adv-task). CRITICAL: update manifest.test.ts count 26->27 and append 'adv-optimizer' to expectedCommands or the suite fails. Write optimizer-local asset test cloned from adv-improve-assets.test.ts (boundary/no-mutation/no-create-tools/evidence/output/degraded). Rely on manifest-doc-drift.test.ts generic loops for SC1/SC3 (just add README + ADV_INSTRUCTIONS rows). No new spec; no new agent (reuse explore + optionally adv-researcher)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -328,7 +334,13 @@
         "Design should pin D2: explore Task-tool spawn (packet-contract per DDC3) vs inline scan (adv-improve style). DDC3 currently presumes a worker packet; reconcile.",
         "Confirm exact 5-14 word frontmatter description identical across manifest/frontmatter/README/ADV_INSTRUCTIONS (DDC1; manifest-doc-drift.test.ts enforces).",
         "Planning must bump manifest.test.ts toHaveLength(26)->(27) and append 'adv-optimizer' to expectedCommands or the suite fails."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with one CAUTION. The prompt-only design is the simplest viable approach and is strongly supported by adv-improve (boundary/evidence/degraded/proposal output), adv-slop-scan (explore fan-out + verbatim no-nested-delegation contract), and adv-tron (manifest utility registration). No materially simpler alternative exists short of dropping sub-agent fan-out entirely (which would weaken SC5/multi-perspective objective). No overlooked viable alternative — a CLI runner (C2) or dedicated agent (C1) would add scope the agreement explicitly defers. Resolve the single internal-consistency gap before planning: make D2 concrete about whether optimizer spawns a Task-tool worker packet (adv-tron style, satisfying DDC3's workdir/no-nested packet) or scans inline (adv-improve style); pick one so the DDC3 packet-contract asset test has a definite target. Also confirm the frontmatter description is exactly 5-14 words and byte-identical across manifest/frontmatter/README/ADV_INSTRUCTIONS (manifest-doc-drift enforces this)."
+      }
     },
     {
       "schema_version": "1.0",

@@ -342,7 +342,13 @@
         "Confirm whether OpenCode's execFileGitCb wrapper forwards the `timeout`/`killSignal` execFile options (git() helper at :758 sets timeout:30000, so the option IS plumbed — verify killSignal default does not leave zombie git процess).",
         "Decide central budget value vs SDK 10s with margin for safeExecute's own race overhead.",
         "Spec/docs: worktree-lifecycle spec must document effectiveTimeoutMs reporting and the no-late-mutation invariant."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt a single CENTRAL_WORKTREE_BUDGET_MS (~7-8s, below 10s) as the source of truth; derive per-item, git-remove, warp-fetch, and signal timeouts as fractions of it and report effectiveTimeoutMs. Make abort real: pass {timeout, killSignal:'SIGKILL'} to gitWorktreeRemove execFile and AbortSignal.timeout() to all workspace-warp fetches. Remove the void deletePromise.then() late-mutation branch entirely (replace with abort + retain-for-retry, no post-timeout clearPendingDelete). Keep existing safety gates (dirty/unmerged/in-use) untouched. Reuse the existing notification ok:false→warning precedent (index.ts:179-186) for the git-remove-succeeded-but-notify-stalled case to return ok:true+warning."
+      }
     },
     {
       "schema_version": "1.0",
@@ -403,7 +409,13 @@
         "Spec delta must edit rq-worktreeBoundedCleanup01.1 '10s' notification wording, not only append rq-worktreeBoundedCleanup02 (consistency).",
         "Planning task: prove gitWorktreeRemove execFileGitCb forwards AbortSignal + {timeout, killSignal:'SIGKILL'} to execFile; assert no zombie git process.",
         "Confirm new central budget (8s) leaves enough margin for safeExecute's own race overhead + JSON formatting before 10s (leverage-scout open question)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with two cautions to carry into planning. The design solves all 9 ACs with source-backed decisions, prefers boring native Node primitives, and respects every constraint/avoidance (C1 sole-authority, C4 target_path, DONT1 safety gates, DONT2 no-late-mutation, DONT3 no-longer-waits, DONT4 no-false-failure, DONT5 no-redesign). Before/during planning: (a) ensure the spec delta AMENDS rq-worktreeBoundedCleanup01.1's '10s' notification wording to the new shorter bound so spec law stays consistent (AC9); (b) add a planning task that verifies gitWorktreeRemove's execFileGitCb actually forwards AbortSignal + {timeout, killSignal} to execFile (proving abort is real, not cosmetic) and asserts no zombie git process on kill. No blocking conflicts; proceed to planning."
+      }
     },
     {
       "schema_version": "1.0",

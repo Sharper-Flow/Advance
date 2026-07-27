@@ -182,7 +182,13 @@
         "DENY-BY-DEFAULT: verify a completed-workflow close failure WITHOUT recoveryMode still returns the raw error (negative test) — mirror archive test change.test.ts:1478-1506.",
         "TEST PARITY: add single-close recovery (completed + poisoned-evidence variants), bulk mixed (one recovers, one hard-fails), and no-recoveryMode negative — mirroring change.test.ts:1442-1545 and task.test.ts:585-690.",
         "Confirm Change['status'] union includes the intended terminal close value ('closed' vs 'cancelled') so saveRecoveredChangeStatus type-checks; close currently fires changeCancelledSignal so the disk status value must match what the cancelled signal would have set."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed. Implement by mirroring archive recovery (change.ts:3936-4009) exactly: signal first; on catch, gate on recoveryMode==='poisoned_history'; classify via isWorkflowCompletedError(error) (completed) OR workflowHasPoisonedRecoveryEvidence probe (poisoned); only then call saveRecoveredChangeStatus({status, authorization:{reason: completedWorkflow?'completed_workflow_close_recovery':'poisoned_history_close_recovery', evidence: recoveryEvidence ?? errorText}}); return _recoveryMutation:true + RECOVERY_RECONCILIATION_WARNING; run best-effort removeChangeDir/sweep AFTER recovery succeeds. Use RecoveryModeSchema from task.ts for schema parity. Validate recoveryEvidence with isPreciseWorkflowRecoveryEvidence when recoveryMode set, before the try block (matches archive 3442-3452)."
+      }
     },
     {
       "schema_version": "1.0",

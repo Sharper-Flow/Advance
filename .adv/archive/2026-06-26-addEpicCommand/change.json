@@ -348,7 +348,13 @@
         "Discovery decision: command-only vs new spec requirement rq-epicCreateCommand01 (recommend command-only for v1).",
         "Confirm frontmatter description wording lands in 5-14 words AND matches manifest exactly (manifest-doc-drift.test.ts).",
         "cli-surface-matrix.md must get an adv-epic row with agent-workflow-only disposition or cli-surface-matrix.test.ts fails."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now: (1) clone adv-idea.md structure for .opencode/command/adv-epic.md; (2) encode ultimate_goal into narrative (no schema change); (3) reuse adv-proposal.md:41 overlap recipe with adv_epic_list+adv_change_list+adv_backlog_state, surfacing update-vs-new as a question only when overlap ambiguous; (4) register across all 5 CI-gated surfaces (manifest.ts, command doc, README table, ADV_INSTRUCTIONS table, cli-surface-matrix.md row=agent-workflow-only) with frontmatter description 5-14 words. Defer rq-epicCreateCommand01 spec law unless discovery proves enforcement needed. Surface to user: the update-vs-new recommendation default and whether ultimate goal should ever become a structural field (future, not v1)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -415,7 +421,13 @@
         "Confirm exact frontmatter description wording lands 5-14 words AND identical in manifest, README, ADV_INSTRUCTIONS(x2), SETUP, command file (manifest-doc-drift.test.ts).",
         "Verify whether ADV_INSTRUCTIONS.md line 988 'Command-only' execution-mode list must include adv-epic (it lists command-only commands; adv-epic is command-only-with-mutation — decide row placement during prep).",
         "token-budgets.json (.opencode/token-budgets.json) tracks per-command line budgets for idea/problem; check if adv-epic.md needs an entry to avoid a budget-drift failure."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt draft with 4 precision corrections: (1) set manifest phase:'pre-implementation' (not 'utility'); (2) author /adv-epic Command Boundary + manifest scope to reflect Epic MUTATION after user confirmation (do NOT inherit adv-idea's read-only MUST-NOT); (3) explicitly update manifest.test.ts count 26->27, title, and expectedCommands[] (highest-miss-risk anchor); (4) extend advance-epics-assets.test.ts with an adv-epic command-contract assertion (Ultimate Goal + overlap-decision + typed-Epic-tool tokens) and add rq-epicCreateCommand01 to the docs/specs/advance-epics.md mirror inclusion list — this is what gives AC8 its RED/GREEN teeth. Keep rq-epicCreateCommand01 minimal: goal-first creation + evidence-backed overlap decision, no new fields. Register across README.md, ADV_INSTRUCTIONS.md (all 3 relevant rows incl. line 988 command-only list), SETUP.md, cli-surface-matrix.md(agent-workflow-only). Frontmatter description 5-14 words, exact-match manifest.description."
+      }
     },
     {
       "schema_version": "1.0",
@@ -465,7 +477,13 @@
       "follow_ups": [
         "Prep: split the manifest.test.ts update into its two coupled edit points (expectedCommands array + toHaveLength) to avoid a partial-edit test failure.",
         "Confirm during prep whether ADV_INSTRUCTIONS.md and .opencode/token-budgets.json enumerate per-command entries requiring an adv-epic row (design flagged as 'surfaced/partial')."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED. Proceed to prep. The command-over-typed-tools architecture is the simplest correct approach and contradicts no advance-epics requirement. During prep, make the manifest.test.ts edit explicit: update BOTH the expectedCommands array (add 'adv-epic') AND toHaveLength(26)->27, plus the title 'creates N commands' string if present. Keep phase as 'pre-implementation' (agreement-permitted, schema-legal) and ensure manifest scope.modifies includes 'epic' so the mutation boundary is not misrepresented as read-only. No alternative (new utility phase, ultimate_goal schema field, CLI mutation verb) is warranted — each is explicitly out of scope and would add unjustified complexity."
+      }
     },
     {
       "schema_version": "1.0",

@@ -278,7 +278,13 @@
         "CANDIDATE id=mutation-flag-guard summary='Assert read-only boundary via frontmatter tool-flag test instead of new prose' evidence='.opencode/agents/adv-tron.md:32-47 (write/edit/bash/task/context7_*/exa_*/webfetch/searchcode_* all false)' payoff=medium risk=low fate=adopt_now contract_tie=AC:mutation-boundary+AC:evidence-boundary notes='Boundary already structurally enforced; a flag assertion is stronger and cheaper than restating prose.'",
         "CANDIDATE id=combo-bound summary='Bound combination routing examples to avoid output bloat' evidence='agent:154 + skill:128 cap findings; design adds combination examples' payoff=low risk=low fate=defer contract_tie=constraint:bounded-output notes='Keep routing combos to a short table, not enumerated permutations; minor.'",
         "WARNING: packet anchors present and used; no packet defect."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt design as scoped. Strengthen with: (1) extend adv-tron-assets.test.ts to assert each routing-target command name (adv-optimizer, adv-slop-scan, adv-arch-scan, adv-proposal, adv-task) appears in the command/skill routing section AND that each referenced /adv-* command file exists on disk — converts the routing matrix from heuristic prose to a machine-checkable contract (P33). (2) Reconcile the existing /adv-audit next-command reference (command:70, skill:114-118) with the new trio so guidance is not self-contradictory. (3) Prefer adding the baseline-context + routing matrix to ONE canonical location (skill) and have command/agent reference it, OR pin the duplicated string in the test, to bound triplication drift. (4) Treat the mutation-boundary AC as 'add a frontmatter tool-flag assertion' rather than more prose — boundary is already structurally enforced."
+      }
     },
     {
       "schema_version": "1.0",
@@ -334,7 +340,13 @@
         "CAUTION non-blocking: triplication drift surface (scan protocol duplicated agent vs skill vs command) widened by adding baseline+routing to all three; mitigate via shared-anchor pin in adv-tron-assets.test.ts.",
         "CAUTION non-blocking: AC3/AC4 routing+combo guidance is prose-only unless AC8 tests assert command names + on-disk existence; design intends this (KD3) but implementation must enforce it.",
         "INFO: all six routing-target command files (optimizer/slop-scan/arch-scan/proposal/task/audit) confirmed present on disk — route-pin existence assertion is feasible."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED. The design solves all 9 objectives, respects every constraint, and is spec-compliant (delegation-defaults scopes tron out of the matrix and already requires next-command routing + evidence in tron reports, so KD4's no-spec-delta is correct). Prefer this boring contract-update approach over any runtime change. Strengthen, do not rewrite: (1) AC8 tests should assert each routing-target command name appears in the routing section AND that each /adv-* file exists on disk (all six confirmed present) — converts prose routing to a machine-checkable contract per P33; (2) implement AC6 as a frontmatter tool-flag assertion (write/edit/bash/task/searchcode_*/context7_*/exa_* false; only adv_subagent_report_submit true) since the boundary is already structural — stronger and cheaper than restating prose; (3) bound the triplication drift by pinning a shared anchor string across command/agent/skill in the asset test rather than three independent substring checks; (4) execute KD5 explicitly — keep /adv-audit only for spec-vs-implementation drift and make optimizer/slop/arch the primary trio, removing the current contradictory command:70 next-command list."
+      }
     },
     {
       "schema_version": "1.0",

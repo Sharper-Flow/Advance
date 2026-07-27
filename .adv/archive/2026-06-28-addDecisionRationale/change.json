@@ -341,7 +341,13 @@
         "adv_change_list timed out (ToolExecutionTimeout); archived-change enumeration for full prior_consideration not possible. All candidates classified 'new' based on grep confirming no existing 'Decision rationale' surface.",
         "Align rationale citation format with docs/adr References-style URLs for AC2 lint consistency.",
         "Re-evaluation trigger field has no internal precedent — design should resolve its representation before prep."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "AUTO-ADOPT two contract-tied low-risk leverage points: (1) reuse the existing ADR 3-criterion rubric as the major-vs-routine classifier (ties AC7, machine-checkable per P33); (2) enrich the existing 'Chosen direction' spine section instead of adding a new heading (ties AC4 + constraint 'preserve Gate Handoff Voice', avoids rq-handoffVoice01 violation). SURFACE TO USER: (3) re-evaluation trigger representation — no internal precedent, AC6 demands concrete conditions, decide enumerated trigger kinds vs free-text-with-lint; (4) whether major-decision scope is limited to design/discover gate handoffs only or spans all ADV decision emission points (scope/user-value tradeoff). FOLLOW-UP: align rationale source-citation format with the existing ADR 'References' URL convention for AC2 lint consistency."
+      }
     },
     {
       "schema_version": "1.0",
@@ -392,7 +398,13 @@
         "C4 allowlist-location decision (spec rq-decisionRationale03 vs docs/command-voice-standard.md) should be settled before prep for AC4 determinism.",
         "If warrant-grammar reuse is adopted, update D3/D4 + the proposed rq-decisionRationale citation requirement to reference rq-acWarrant01 grammar rather than a new [source:] format.",
         "Spine validator (commands-spine-assets.test.ts) currently has NO ban on a top-level '## Decision rationale' heading — D4's negative test is net-new; specify it explicitly."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now: (1) reuse/extend the existing `[warrant: <ref>]` grammar (rq-acWarrant01) for AC2 source markers instead of inventing `[source: ...]`, gaining free mint-time structural verification; (2) reuse ADR 3-criterion rubric for D2 (already in design). Design around: (3) re-evaluation trigger — add an explicit typed-enum grammar + one fixture per kind (date|metric|event|state) since no precedent exists. Surface to user/orchestrator: (4) where the major-decision allowlist lives (spec rq vs docs) — affects D2 determinism and AC4 audit. Confirm before prep. Reject: none."
+      }
     },
     {
       "schema_version": "1.0",
@@ -448,7 +460,13 @@
         "Correct D2/AC4 rubric citation: ADR-0003 → rq-domainContextADR01 (domain-context spec). ADR-0003 is signal-handler semantics, not the major-decision rubric.",
         "Ensure new rq-decisionRationale0x requirements cross-reference rq-domainContextADR01 for the classifier criteria rather than restating them, to avoid divergent rubric copies.",
         "Add a negative test that a [source:] marker is NOT verified through the [warrant:] contract-mint path (prevents semantic overload / CONTRACT_UNRESOLVED_WARRANT false-positives)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design is VALIDATED on correctness, simplicity, spec-law compliance, and alternatives. Before completing the design gate, apply one MINOR correction: retarget the major-decision rubric citation in D2 (and verify the agreement AC4 wording) from 'ADR-0003 rubric' to the actual spec law rq-domainContextADR01 in the domain-context spec. The three rubric criteria themselves are accurate and need no change. Keep the [source:] marker grammar modeled on — but namespaced distinct from — [warrant:] as D3 already specifies, and add a negative test asserting [source:] does not resolve through the warrant mint path (avoids semantic overload regressions). No spec-law contradictions found; the design respects Gate Handoff Voice (rq-handoffVoice01), inline approval (rq-inlineApproval01), and the sparse-ADR rubric (rq-domainContextADR01)."
+      }
     },
     {
       "schema_version": "1.0",

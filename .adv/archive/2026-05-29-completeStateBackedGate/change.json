@@ -488,7 +488,13 @@
         "If design adopts Path B: add a `materializeArtifactsAtArchiveFromState` change to the backlog and link it as a blocker for next archive operation.",
         "Verify the design content (was truncated and design gate is still pending in change state — design.md was not located on disk). Confirm the actual design artifact reflects this validation feedback before completing the design gate.",
         "Consider whether acceptance.md (lines 803-832) is itself sound long-term: writing it to disk solely for inspectArtifactActivity (recovery) + archive readdir copy is the inverse of state-backed. Out of scope here, but a future change `materializeAcceptanceProjectionAtArchive` could complete the Temporal-proof transition."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Revise design before planning gate. Two acceptable paths: (A — PREFERRED, scope-expand) extend the design to also materialize state.documents.executiveSummary -> bundle/executive-summary.md inside the same `state-backed-acceptance-proof-v1` patch branch (right next to the existing line-803 writeArtifactActivity for acceptance.md), OR add an archive-time materialization in createArchive() that reads state.documents from the workflow snapshot. (B — scope-defer) explicitly add an avoidance A7 acknowledging the archive-bundle gap, document it in CHANGELOG, add a regression test asserting current behavior, and create a follow-up change (`materializeExecutiveSummaryAtArchive`) as a blocker for any new change archive. Path A is preferred because it composes cleanly with the surgery already happening at workflows.ts:803-832, follows the same write-to-disk-at-gate-completion pattern already in use for acceptance.md (which has the same archive-bundle requirement and uses exactly this approach), and avoids re-introducing a known unrecoverable consumer break. Path A also keeps the C1 constraint intact in spirit (no GENERAL disk dual-write restoration; only artifact-specific archive-time materialization gated to the acceptance moment). Other than this gap, the design is sound: ready-for-planning once the archive-bundle consumer is addressed."
+      }
     }
   ],
   "deltas": {},

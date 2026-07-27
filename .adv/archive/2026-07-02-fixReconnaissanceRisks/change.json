@@ -1158,7 +1158,13 @@
         "Confirm no test pins the transient 'materializing' updateWorktreeRecord pre-write before removing that call site (index.ts:1123).",
         "Ensure worktreeSetupFailedSignal payload 'stage' cleanly distinguishes git_failed (materialized:false) vs hook_failed (materialized:true, headSha present) so the reducer records accurate setup_failed state.",
         "adv_spec FTS search returned empty for all queries this session; validation of advance-delivery/advance-meta laws relied on the full advance-meta spec dump + AGENTS.md workflow-bundle-boundary contract + source evidence rather than targeted FTS hits."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with two minor cautions to fold into execution. (1) When removing updateWorktreeRecord call sites, keep the transient 'materializing' pre-write (index.ts:1123) intentionally non-persisted as the design states, but verify no test pins the materializing record and that the new signal payload distinguishes the git_failed (materialized:false, no headSha) vs hook_failed (materialized:true, headSha present) stages via the design's 'stage' field so the reducer records an accurate setup_failed entry. (2) Ship the Slice A spec-delta (amend rq-wl-setupReadiness01.1 for durability+resume-visibility, or add rq-wl-setupReadiness02) in the same change so specs-as-laws stays coherent — the current no-op is a latent spec violation the fix closes. Sequence D last as planned. No CONFLICT; no orchestrator decision required."
+      }
     },
     {
       "schema_version": "1.0",

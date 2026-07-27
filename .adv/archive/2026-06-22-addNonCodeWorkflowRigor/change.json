@@ -913,7 +913,13 @@
       "follow_ups": [
         "Confirm whether tightenAdvScopeDiscipline has landed before design finalizes reverse-traceability wiring (agreement: 'reuse tightenAdvScopeDiscipline if landed').",
         "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors were present in packet; no anchor defects."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt candidates 1 and 2 now (close the contract.ts code-only enforcement hole as an explicit AC-tied design step; centralize evidence-policy enum extension with a single fixture-update sweep). Design-around candidate 3 (gate reverse-traceability behind a coordination check with tightenAdvScopeDiscipline rather than reimplementing). Defer candidate 4 (separate non-code archive shape) and reject candidate 5 (new /adv-work command). Keep all changes additive/optional for Temporal replay safety."
+      }
     },
     {
       "schema_version": "1.0",
@@ -974,7 +980,13 @@
         "Add test: explicit metadata.tdd_intent overrides type-derived default in adv_task_add (decision #5 ordering).",
         "Decide evidence_policy source-of-truth: task-stored vs derived from contract_refs; add consistency validation if stored.",
         "Confirm contract.ts:85 broadening is unconditional, independent of tightenAdvScopeDiscipline landing."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed. The design is structurally sound and minimal: it extends three verified central surfaces (TaskTypeSchema, ContractEvidencePolicySchema, prep-readiness tdd_intent) instead of building a parallel non-code lifecycle, satisfying the no-parallel-lifecycle and structural-over-heuristic constraints. Before execution, resolve three non-blocking cautions: (1) decide whether task-level evidence_policy is authoritative or derived from contract_refs to avoid dual source-of-truth, adding a consistency check if stored on the task; (2) ensure type-driven tdd_intent derivation slots before the existing inline fallback at task.ts:1083 so explicit caller metadata still wins, with a test; (3) make the contract.ts:85 code-only broadening unconditional rather than gated on tightenAdvScopeDiscipline landing. None of these block design-gate completion."
+      }
     },
     {
       "schema_version": "1.0",

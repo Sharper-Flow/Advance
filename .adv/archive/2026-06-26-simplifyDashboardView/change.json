@@ -327,7 +327,13 @@
         "Confirm with planning whether group items become a new typed lane item kind (e.g. 'group') in attention.ts AttentionLanes, which would also require ui.ts itemHtml to add a groupHtml branch alongside the existing adv_change/degraded_source/summary branches (ui.ts:90-124).",
         "Verify GitHub updated_at timestamps are always ISO-8601 Z before relying on lexical max for latestUpdatedAt; add a parse if any non-Z format can appear from github.ts.",
         "Decide a bounded preview limit (N) for unmatched open-PR cards and inventory drafts; design says 'small preview' but does not pin N — pin it as a named constant for testability."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning with the design direction VALIDATED, but make grouping/summarization a TYPED server-side concern in attention.ts (extend the existing SummaryLaneItem + history-aggregation pattern) instead of a new client-only PresentationItem union in ui.ts. This maximizes testability (AC#8), preserves locality (P04), and lets ui.ts stay a thin renderer that reuses itemHtml/metadataHtml/safeUrl/escapeHtml unchanged for members. Use native <details>/<summary> for expansion with the representative link in the details body (never in <summary>). Add explicit tests: (a) typed group item with count + latest timestamp in attention.test.ts, (b) malicious-url/title escaping inside a grouped member in ui.test.ts, (c) inventory renders summary not full draft wall, (d) attention/active remain expanded. Keep the design's fallback-to-single-card error handling."
+      }
     },
     {
       "schema_version": "1.0",

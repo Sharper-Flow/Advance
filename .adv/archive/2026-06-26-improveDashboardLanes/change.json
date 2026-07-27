@@ -417,7 +417,13 @@
         "Audit all callers of isDashboardActiveStatus / DASHBOARD_ACTIVE_STATUSES before redefining draft semantics, so the dashboard active-lane change does not regress bin/adv status or render.ts active-row logic.",
         "Decide deterministic disposition for ADV statuses outside {draft,pending,active} (closed, archived, superseded) into the inventory/history tier, since the current set only enumerates the 3 active-ish statuses.",
         "Confirm GitHub payload field names against live API shape (pull: number/title/html_url/head.ref/state; run: name/head_branch/conclusion/status/html_url/updated_at; deployment: environment/ref/sha) before encoding the typed summary, since correlation.ts only reads head.ref/head.sha/head_branch today."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED — proceed with the five-direction design, with these adjustments: (a) Do not reuse DASHBOARD_ACTIVE_STATUS as-is for the active lane because it counts draft as active and conflicts with AC#1/#2; introduce or refine a dashboard-specific active-vs-inventory predicate (active=status active/pending with real gate progress; draft/closed/archived/stale => inventory) and re-pin all affected tests. (b) Add a typed discriminated-union LaneItemSummary projected in correlation.ts/attention.ts so ui.ts renders a known shape (number/title/url/branch/status|conclusion/updated_at) instead of reaching into item:unknown. (c) Add an explicit success/history classifier so conclusion=success workflow runs are collapsed/summarized out of primary lanes (AC#5) while failures remain in an attention lane (AC#6). (d) Keep lane count small and fixed (recommend: attention | active | unmatched | inventory-or-history) to match the proven GitHub-inbox triage model and avoid lane sprawl (P19). (e) Treat attention.test.ts as an intentional breaking update; replace with lane-taxonomy + typed-card-metadata + no-secret-leak + read-only tests. (f) Preserve sanitizeDashboardState as the single redaction sink; do not add a second ad-hoc redaction path. No code changes performed."
+      }
     },
     {
       "schema_version": "1.0",

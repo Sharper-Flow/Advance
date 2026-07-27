@@ -123,7 +123,13 @@
       "follow_ups": [
         "Confirm the chosen SC6 anchor string is unique and stable in the command doc before writing the asset assertion.",
         "Ensure SC5 output anchor lands in the existing Coverage/Current State section (L127-130) rather than introducing a new top-level report section, to avoid disturbing the proposal-shape asset test (L50-60)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. VALIDATED with one CAUTION: reconcile placement wording — anchor the baseline at the head of Phase 1 (or rename Phase 1 to include the baseline) rather than a discrete pre-Phase-1 step, so SC1 'before scanner fan-out' is met while reusing Phase 1 context-load. Add the SC6 anchor as a literal stable token (e.g. 'Tech Stack Baseline') so the asset test uses the same toContain mechanism as L42-48. Keep SC3 prompt strictly conditional ('only when uncertainty materially affects recommendations') to honor the no-over-prompt avoidance."
+      }
     },
     {
       "schema_version": "1.0",

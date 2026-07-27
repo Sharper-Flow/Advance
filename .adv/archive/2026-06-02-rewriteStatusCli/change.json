@@ -337,7 +337,13 @@
       "follow_ups": [
         "Add manifest-doc-drift.test.ts to the planned targeted test run so the frontmatter/manifest/README/ADV_INSTRUCTIONS description quartet stays synchronized.",
         "Consider an asset assertion that the new command body contains no analysis directive beyond 'return verbatim', since one LLM turn still occurs per OpenCode docs."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with CAUTION. Proceed with the design as written; the architecture, mechanism, spec compliance, and simplicity are all sound and the no-fanout asset tests (KD4) make the contract drift-resistant. Before/within execution, treat the manifest-doc-drift coupling as a hard requirement, not conditional: when KD2 changes the .opencode/command/adv-status.md frontmatter description, update plugin/src/manifest.ts adv-status.description, README.md line 297, and ADV_INSTRUCTIONS.md line 123 to the exact same new string atomically, and add/keep a green run of manifest-doc-drift.test.ts in the planned test set. No simpler viable alternative was overlooked that also satisfies AC7's 'fast table' wording requirement; the markdown-file form (vs opencode.jsonc template config) is the correct repo-convention choice."
+      }
     },
     {
       "schema_version": "1.0",

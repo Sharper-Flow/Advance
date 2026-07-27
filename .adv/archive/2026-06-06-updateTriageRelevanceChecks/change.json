@@ -148,7 +148,13 @@
         "Decide exact close semantics: does relevance-validation actually `gh issue close` obsolete items, or only exclude-from-scoring + surface for user close? Closing is a mutation → must be Tier B approval-gated like issue creation. Design should state this explicitly.",
         "Confirm whether relevance check applies only to feature-Value/bug-priority candidates or to ALL open issues in scope (broader scan = more value but more API/budget cost; ties into existing GraphQL budget gate).",
         "TASK_SCOPE/IN_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were present in prompt; SCOPE KEY/ATTEMPT were inferred from defaults — orchestrator should confirm scope_key/attempt if exact provenance matters."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED. Implement as: (1) Insert Phase 4-relevance step in adv-triage.md BEFORE 4b field-assignment matrix — gate each candidate (matched-open + unrepresented bound for scoring) through relevance check; outcomes = relevant / stale-close / already-addressed-close / defer. Use structural signals first (P33): linked-change archived/closed, issue already closed, referenced file/symbol gone, superseding issue. AI relevance judgment is advisory only and must route to a user question, never auto-close. (2) Add relevance PROMPT template to PROMPTS.md (question tool, not plain chat — consistent with existing 4b rule); put relevance criteria/rubric in WSJF.md or SKILL.md Structural Rules. (3) Add a Constraint line ('MUST NOT prompt for Priority/Value before relevance validation') and an ANTI-PATTERNS row. (4) Asset test plugin/src/adv-triage-relevance-assets.test.ts modeled on adv-improve-assets.test.ts."
+      }
     },
     {
       "schema_version": "1.0",

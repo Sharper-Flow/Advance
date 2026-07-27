@@ -706,7 +706,13 @@
         "Add bundle-boundary check (workflow-bundle-boundary.test.ts) review if any new signal is added to temporal/ for retarget.",
         "Reproduction fixture: PokeEdge shape (Epic cardIdentity / entry identity-uuid-scripts / stale child completeUuidPrimaryOperationalScripts / real child completeUuidPrimaryOperational) — mirror in epic.test.ts.",
         "TASK_SCOPE anchors were present in packet; no scope warning needed."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now: (1) reachability-gated child dereference in repair + unlink so a missing child becomes typed evidence (not CHANGE_NOT_FOUND) and routes to parent-only repair via existing unlinkChange/setEntryMembershipStatus signals; (2) parent-only stale-entry removal mode reusing unlinkChange; (3) link_change recovery for child-already-in-Epic vs stale parent before CHANGE_ALREADY_IN_EPIC at line 1124. Design around / consider deferring retarget-to-reachable-child as a distinct sub-scope because it requires a NEW workflow signal (none exists) — confirm with orchestrator whether retarget is in this change or a fast-follow. Surface: clearMissingEpicProjection also needs the both-missing (epic+child gone) case handled. All modes must enforce one-Epic-per-change and require audit evidence per spec."
+      }
     },
     {
       "schema_version": "1.0",
@@ -773,7 +779,13 @@
         "Verify advance-epics-assets.test.ts:169-176 tool-doc-ordering regex after adding remove_stale_entry/retarget_stale_entry to docs.",
         "Consider deriving new_repo_id/new_target_path from reachable child record to shrink retarget arg surface.",
         "Cover both-missing (epic+child gone) case in clearMissingEpicProjection (epic.ts:333-423)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt draft as-is for removal + link-recovery (cheap, spec-mandated, reuses unlinkChange + existing link rebuild). For retarget: keep the atomic changeRetargeted signal design (do NOT downgrade to unlink+link), but explicitly flag it as the fast-follow cut-line since spec does not mandate it and it carries 5+ new coordinated surfaces. Trim retarget args: derive new_repo_id/new_target_path from the reachable child record instead of accepting them as inputs. Add the both-missing (epic+child gone) case to clearMissingEpicProjection. Verify asset-test doc ordering; skip schemas:generate unless a registry-exported schema actually changes."
+      }
     },
     {
       "schema_version": "1.0",
@@ -829,7 +841,13 @@
         "Implementer: add boundary-test assertion that changeRetargetedSignal/applyChangeRetargetedToState live only under temporal/ + types.ts (workflow-bundle-boundary.test.ts).",
         "Implementer: RED test asserting retarget refuses on target-B membership mismatch with zero parent mutation (no signal fired).",
         "Note: live tool behavior validation requires pnpm run build + deploy-local.sh --fix + session restart (source-vs-dist reload gotcha); in-session validation is unit/integration tests only."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED — proceed to planning. Design solves all stated objectives with minimal new surface (one signal/reducer/store method + two tool branches) and is consistent with advance-epics spec laws and signal-driven workflow determinism. Ensure planning/RED tests explicitly cover: (1) retarget target-B membership-mismatch refusal fires before any parent signal (DDC4/AC3); (2) link recovery exact-match compares both epic_id AND entry_id; (3) workflow-bundle boundary test extended to the new changeRetargetedSignal module; (4) both-missing (A and B) deterministic output; plus the named regressions for mark_target_unreachable and terminal-summary sync (AC6)."
+      }
     },
     {
       "schema_version": "1.0",

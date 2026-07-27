@@ -399,7 +399,13 @@
         "Orchestrator decision: typed-lane-over-general vs net-new adv-verifier agent (blast radius: matrix allowlist + roster tests + model routing).",
         "Confirm whether triage classification should write task.error_recovery directly (durable, feeds doom-loop) or only emit a report the orchestrator persists — affects whether the cheap worker touches ADV state (constraint boundary).",
         "Decide linkage to addCiWaitAgent: dependency vs sibling (per proposal discovery agenda)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Prefer design_around 'upgrade existing untyped Verify-Only Burst lane' over creating a new agent. Reuse ErrorClass enum (status.ts:202) for structural classification and the error_recovery persisted bridge as the durable sink; add one typed report branch (transport: typed_persisted_worker) + a packet_contract on spec.json:77 so triage output is ingest-validated, not prose. Keep general as executor unless model routing argues for a dedicated cheap agent. Defer net-new-agent decision to orchestrator (surface_to_user) because it trades blast radius vs. specialization."
+      }
     },
     {
       "schema_version": "1.0",
@@ -455,7 +461,13 @@
         "Design decision: scope_key namespace — reuse 'scanner-bundle:<phase>' vs add a new 'verifier' token to ChangeReportScopeKeySchema regex (+ ChangeReportScopeKeySchema tests).",
         "Design decision: model engineer_handoff as required_follow_ups obligation (reuse consumer) vs net-new packet field.",
         "Confirm UNKNOWN error_class is routing-only (blocks auto-handoff) and not persisted into task.error_recovery doom-loop enum."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the draft but bind it to existing substrates: (a) clone ScannerBundleSubagentReportSchema into a triage-bundle branch in ChangeScopedSubagentReportSchema with a valid scope_key namespace; (b) express engineer_handoff via required_follow_ups so main ADV owns routing and the worker stays evidence-only; (c) reuse the 4-value ErrorClass enum and treat UNKNOWN as a routing-only auto-handoff blocker, not a persisted class; (d) land the typed packet_contract at spec.json:77 and update delegation-matrix + optimized-handoff-assets test fixtures. Keep general as executor; no net-new spawnable agent."
+      }
     },
     {
       "schema_version": "1.0",
@@ -512,7 +524,13 @@
         "New bundle schema must be added to ChangeScopedSubagentReportSchema union + SUBAGENT_REPORT_FIELD_SOURCES + errorRecoveryFromReport switch returning null (subagent-reports.ts:406-411,640; change-state.ts:870-879).",
         "Confirm CI/check_check_run lane reuses existing 'general' GitHub CI investigation routing rather than a second worker name (orchestrator ops delegation precedent).",
         "adv_change_show was unreachable this session (WorkflowNotFoundError); validation used inline packet + repo source evidence only — re-confirm against live agreement/design artifacts if they diverge from packet."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED-WITH-CAUTION. The design correctly solves all five objectives and respects every constraint (C1-C5) and avoidance (DONT1-DONT5); it reuses the canonical adv-scanner-bundle authority-free-report pattern rather than inventing a novel mechanism, which is the simplest viable approach. Before/at prep, surface three concrete integration touch points so they are not late surprises: (a) extend ChangeReportScopeKeySchema regex to admit verifier:<slug> and add the new agent to SubagentAgentSchema; (b) register the new bundle in ChangeScopedSubagentReportSchema, SUBAGENT_REPORT_FIELD_SOURCES, and errorRecoveryFromReport (must return null like other change-scoped agents); (c) keep UNKNOWN strictly routing-only since task error_class has no UNKNOWN member. No simpler equivalent and no overlooked viable alternative — a brand-new spawnable agent would violate AC6/objective-5 and add surface area for no benefit."
+      }
     },
     {
       "schema_version": "1.0",

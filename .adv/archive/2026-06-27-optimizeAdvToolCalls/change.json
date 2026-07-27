@@ -486,7 +486,13 @@
         "AdvProjectId vs AdvAffectedProjects fix requires a search-attribute registration/migration test so the fast path is structurally reliable before index work depends on it.",
         "adv_run_test degraded-recording status field touches the durable-evidence Must-Not constraint — confirm spec home (advance-workflow vs advance-meta) during design.",
         "No SLO thresholds (p50/p95) exist yet; perf-budget tests cannot be written until discovery sets targets — this is a DONE_WHEN dependency for the testing finding."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt 4 leverage points as discovery-scoped work items, sequenced to de-risk: (1) FIRST fix Visibility project-attribute drift (structural prerequisite for any Visibility-backed summary read model); (2) thread probe context.signal into getTemporalHealth/getWorktreeCensus/scanSnapshotHealth/computeSearchAttributesSnapshot fetch bodies (near-free, bounds real work, serves 'fewer timeouts'); (3) split status optimization into lazy-probe-gating (adopt_now, low risk) then summary-index hydration (design_around, surface SLO tradeoff to user); (4) convert adv_run_test best-effort catch into an explicit degraded-recording status field surfaced in output. Defer live-Temporal benchmark mode and per-tool wall-time telemetry to acceptance-evidence tasks — needed to PROVE wins but not themselves latency wins. Surface to user: the summary-index hydration boundary (which fields are mandatory in default lightweight output) is the one genuine user-value tradeoff requiring a decision."
+      }
     },
     {
       "schema_version": "1.0",
@@ -538,7 +544,13 @@
         "KD3 downgrade depends on confirming no OTHER reader still queries the unregistered AdvProjectId — observability.test.ts:49 and contracts.ts:34 reference it; verify these are assertions/legacy-only before removing.",
         "adv_run_test recording-status field touches durable-evidence Must-Not (DONT7/AC5); confirm spec home (advance-workflow vs advance-meta) and that the field is structural (typed enum) not prose during planning.",
         "Live-Temporal bench mode (AC6) and per-tool wall-time telemetry are acceptance-EVIDENCE tasks needed to PROVE wins, not themselves latency wins — keep them sequenced after the four leverage fixes."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Sequence design tasks to bank the near-free wins first and de-risk the index work: (1) KD4 probe signal-threading — thread context.signal into getTemporalHealth/getWorktreeCensus/computeSearchAttributesSnapshot/scanSnapshotHealth where the adapter accepts AbortSignal, else classify non-cancellable and exclude from summary; tests must prove the underlying work is actually cancelled on cold-fetch-timeout (cite lru-cache ignoreFetchAbort semantics), not just that the caller returns. (2) adv_run_test recording-status field — replace the swallowed catch (test.ts:475-477) with a typed degraded/ok/timed-out recording status carried beside the existing runId in formatToolOutput; bounded ≤300ms wait per design. (3) KD1 residuals only — gate loadStatusWithBootstrapRetry behind the summary plan (or a lighter summary loader) and parallelize/bound recentChangeEnrichment; the plan.* gating scaffold already exists, so this is targeted, not a rewrite. (4) DOWNGRADE KD3 to a stale-constant cleanup (remove/realign contracts.ts:34 AdvProjectId) — it is NOT a blocking prerequisite because the hot path already uses AdvAffectedProjects; do not let it gate summary-index work. USER TRADEOFF requiring a decision: the summary-plan mandatory field set (which orientation fields stay in lean default vs move to health/hygiene) — this is the one genuine user-value boundary (AC1/AC2) and should be surfaced explicitly, not inferred."
+      }
     },
     {
       "schema_version": "1.0",
@@ -600,7 +612,13 @@
         "notes": "VALIDATED. All four validation dimensions pass with sourced evidence. CORRECTNESS: design solves all six objectives; AC1-AC8 map to verified code/spec anchors. SIMPLICITY: design explicitly chooses residual cleanup over rewrite and reuses existing probe-cache stale-while-revalidate + existing fail-closed bench mode; no materially simpler equivalent overlooked. SPEC-LAW COMPLIANCE: no contradiction with rq-statusProbeCache01, rq-statusCliWorkerFree01, rq-dashboardWorkerFree01, rq-backlogCoord05; KD2/KD3 reinforce rather than violate the worker-free/authoritative-state boundary. KEY ALTERNATIVES: none significant overlooked. One non-blocking caution: KD4 rationale should correct the signal-drop attribution from probe-cache.ts to the status.ts probe closures (probe-cache.ts already threads signal); fix target unaffected. DDC3's 300ms recording wait and DDC4 benchmark fields are reasonable and testable per AC7."
       },
       "recommendation": "Approve the design (VERDICT: VALIDATED). It is correct, simpler-by-the-book, and spec-compliant, with all material claims verified against live source and canonical lru-cache docs. Before or during execution, tighten KD4's rationale text: the AbortSignal is already threaded inside probe-cache.ts (createProbeCache passes {signal,staleValue} into options.fetch and sets allowStaleOnFetchAbort/ignoreFetchAbort); the real cancellation gap is the status.ts:200-211,241-245 probe closures that accept the context but never forward context.signal into getTemporalHealth/getWorktreeCensus/scanSnapshotHealth. Slice B should therefore (a) forward context.signal from those closures into operations that accept it, and (b) classify scanSnapshotHealth/computeSearchAttributesSnapshot as non-cancellable and exclude them from summary if they cannot honor the signal — both already implied by the design. Keep KD7 spec deltas anchored to advance-meta (probe/status/benchmark) with tdd-contract touched only if adv_run_test recording changes TDD evidence semantics. No agenda items required; no blockers.",
-      "follow_ups": []
+      "follow_ups": [],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Approve the design (VERDICT: VALIDATED). It is correct, simpler-by-the-book, and spec-compliant, with all material claims verified against live source and canonical lru-cache docs. Before or during execution, tighten KD4's rationale text: the AbortSignal is already threaded inside probe-cache.ts (createProbeCache passes {signal,staleValue} into options.fetch and sets allowStaleOnFetchAbort/ignoreFetchAbort); the real cancellation gap is the status.ts:200-211,241-245 probe closures that accept the context but never forward context.signal into getTemporalHealth/getWorktreeCensus/scanSnapshotHealth. Slice B should therefore (a) forward context.signal from those closures into operations that accept it, and (b) classify scanSnapshotHealth/computeSearchAttributesSnapshot as non-cancellable and exclude them from summary if they cannot honor the signal — both already implied by the design. Keep KD7 spec deltas anchored to advance-meta (probe/status/benchmark) with tdd-contract touched only if adv_run_test recording changes TDD evidence semantics. No agenda items required; no blockers."
+      }
     },
     {
       "schema_version": "1.0",

@@ -431,7 +431,13 @@
         "Confirm at planning whether AC1-AC6 tests already exist (design-concern.test.ts, _recovery-writers.test.ts, gate.release-enforcement.test.ts, gate.test.ts seen in grep) cover each AC, to avoid redundant test authoring.",
         "Verify the deploy-local allowlist note (deploy-local.test.ts:808) does not require a parallel allowlist edit when adding designConcernTools to getToolSurface.",
         "TASK_SCOPE anchors were present and complete; no packet-defect warning needed."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the design's architectural seam (it correctly reuses existing recovery conventions). At planning, split tasks by true fate: (a) AC7 code task — add designConcernTools to getToolSurface() groups[] array in tool-registry.ts:799-823 (one line) + add surface-test assertion for adv_design_concern_disposition#{target_path,recoveryMode,recoveryEvidence,recoveryReason}; (b) spec task — add rq-releaseRepairRecovery01 to advance-workflow spec, retain rq-archiveRecoveryConsistency01 for status repair; (c) verification tasks (NOT new code) for AC1-AC6 — characterization tests proving design-concern.ts recovery, _recovery-writers latest-wins audit parity, gate.ts release blocker, change.ts status repair readback already behave per AC. Run via bin/oc-test targeted per AC8. Do NOT reimplement saveRecoveredDesignConcernDisposition / recoveryEvidenceError / completeGateViaRecovery — they exist and are parity-correct."
+      }
     },
     {
       "schema_version": "1.0",
@@ -491,7 +497,13 @@
       "follow_ups": [
         "At planning, confirm existing tests (design-concern.test.ts, _recovery-writers.test.ts, gate release tests) already cover AC1-AC6 to avoid redundant test authoring.",
         "Verify no parallel deploy-local allowlist edit is needed when adding designConcernTools to getToolSurface (scout flagged deploy-local.test.ts:808)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED. Design solves all objectives with a boring, convention-consistent approach: reuses existing typed-recovery-writer + signal-first model rather than inventing a new repair mechanism, keeps recovery opt-in/audited/invariant-preserving, isolates the only genuine net-new code to a one-line getToolSurface fix (AC7), a new surface-test assertion, and a focused rq-releaseRepairRecovery01 spec law. Latest-wins parity, release-finalization blocker, status-repair readback, and warrant-surface omission all independently verified in source. Single caution is scope-precision (AC1-AC6 already exist; plan them as characterization not build), which design already reflects in Decision 3. No simpler equivalent approach overlooked, no viable alternative missing; a generic disk-projection fallback was correctly rejected as it would violate DONT2/OOS3."
+      }
     },
     {
       "schema_version": "1.0",

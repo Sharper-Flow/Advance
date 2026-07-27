@@ -403,7 +403,13 @@
         "Consider adding ?branch= server-side narrowing to actions/runs fetch (github.ts:150) to shrink the firehose, but only as an optimization AFTER the client-side fold is correct — server filtering alone does not solve cross-run staleness.",
         "Add explicit test: rerun scenario where same run id changes conclusion failure->success across two polls must show ready/running, not attention.",
         "Add explicit test: distinct run ids (new push) same workflow+branch, newest=success suppresses older=failure; AND newest=failure surfaces despite older=success."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED — implement the per-identity latest-state fold. Concrete adjustments: (1) Run identity key = `${workflow_id ?? name ?? 'unknown'}\\u0000${head_branch ?? ''}`; deployment identity key = `${environment}\\u0000${ref}`. Do NOT key on run id. (2) Recency = max(run_started_at, created_at, updated_at) parsed as timestamp; reuse the existing isIsoLikeTimestamp/latestItem comparator (attention.ts:377-383) rather than inventing a new one (LBP). (3) Fold rule: within an identity group, the newest event wins; a newer success/in_progress/queued REPLACES (not merely summarizes) an older failure/cancelled/timed_out. Only emit needs_attention when the WINNER of the group is a failure-class status. (4) Suppression must never cross identity tuples — assert this with a test: two workflows on same branch, one red one green, both surface independently. (5) Keep correlation.ts structural-only; build the fold as a new pure reduce step between correlate and lane-bucketing so it is independently testable. (6) New lane keys (needs_attention/running/ready_landed/backlog + secondary unmatched_source) require updating the frozen `Object.keys(lanes)` assertion in attention.test.ts:82-87 and the ui.ts lane-template (ui.ts:75-80) data-lane attributes — these are coupled contracts that will silently break rendering if not co-updated. (7) Preserve degraded-source visibility: a degraded/timeout/missing GitHub read must keep the change card's source state as unknown/degraded, never default to ready_landed/green (guard with a test feeding empty github data + a degraded source)."
+      }
     },
     {
       "schema_version": "1.0",

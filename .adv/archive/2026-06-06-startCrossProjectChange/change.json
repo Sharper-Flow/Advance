@@ -491,7 +491,13 @@
         "C4 [auto-adopt] candidate=Mirror P1.4 transactional rollback guard for warning-vs-rollback decision | evidence=changes.ts:174-221 | payoff=proposal wants 'change written vs live-registered' distinction; P1.4 already rolls back on start failure. Decide: rollback (P1.4 parity) OR keep-disk+warn (proposal text). These CONFLICT. | risk=med | fate=user-surface | contract_tie=Temporal-down warning AC | rec=design MUST resolve: proposal says keep disk projection + warn; existing same-project path rolls back. Pick one explicitly.",
         "C5 [inconclusive] candidate=Trust-gating unification | evidence=change.ts uses validateCrossRepoTarget; withTargetPathStore uses resolveTargetProject mutation gate | payoff=single trust source if C1 adopted | risk=med (behavior-change risk if gates differ) | fate=inconclusive | contract_tie='preserve target_path trust validation' Must-Not | rec=if C1 adopted, verify the two trust checks are equivalent before collapsing",
         "WARNING: VERIFICATION block present in packet; required_when_possible source citations satisfied. C4 surfaces a real contradiction between proposal text (keep disk + warn) and existing same-project P1.4 behavior (rollback) — orchestrator/design must decide."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt the convergence framing in design: (a) prefer routing cross-project change-create through withTargetPathStore default Temporal mode to reuse the existing workflow-start + P1.4 rollback + trust gate, rather than adding a parallel ensureChangeWorkflowStarted call in change.ts (CANDIDATE-1, user-surface: architectural direction); (b) before designing a new bounded reconciliation scan, verify whether existing reseedChangeFromDisk/P1.5 read-time healing already makes disk-only orphans visible once their target project opens a Temporal-store session — this may shrink reconciliation scope to docs+test-only (CANDIDATE-2, user-surface); (c) auto-adopt reuse of the idempotent startChangeWorkflow adapter and changeSeedStateFromChange seed builder rather than constructing seedState inline (CANDIDATE-3, auto-adopt)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -556,7 +562,13 @@
         "C4 [auto-adopt] candidate=Resolve rollback-vs-warn contradiction in favor of P1.4 rollback | evidence=changes.ts:174-221 rollback; agreement AC4 + decision#1 = rollback; proposal prose says keep+warn (stale) | payoff=removes a real spec/prose conflict; matches approved acceptance criteria | risk=low | fate=auto-adopt | contract_tie=AC4,SC3,DONT5 | rec=design must state AC4 rollback governs; drop proposal keep+warn wording",
         "C5 [inconclusive] candidate=Unify trust gate (validateCrossRepoTarget → resolveTargetProject) | evidence=change.ts:742 vs target-project.ts:168 | payoff=single trust source if C1 adopted | risk=med (behavior drift if gates differ) | fate=inconclusive | contract_tie=C3 (preserve target_path trust validation) | rec=if C1 adopted, prove equivalence before collapsing; else keep separate",
         "NOTE: full design.md body could not be read (stored in Temporal documents blob, tool-truncated >21k chars; no on-disk design.md). Scouting based on agreement/contract/problem-statement/proposal + direct code evidence + prior discovery scout report. If design already encodes C1/C2 decisions, treat these as confirmation rather than new surface."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt convergence framing: (C1, user-surface direction) reroute cross-project create through withTargetPathStore default Temporal mode as primary architecture vs hand-rolled ensureChangeWorkflowStarted in change.ts, preserving source-side cross_project_origin + cross_project_links writes; (C2, auto-adopt) treat existing list/read-time reseedChangeFromDisk as the reconciliation trigger and add bounded latency/safety tests rather than a new startup scan; (C3, auto-adopt) reuse startChangeWorkflow adapter + changeSeedStateFromChange seed builder; (C4, auto-adopt) follow P1.4 rollback semantics per AC4 and drop stale proposal keep+warn wording; (C5, user-surface) if C1 adopted, verify validateCrossRepoTarget == resolveTargetProject trust equivalence before collapsing."
+      }
     },
     {
       "schema_version": "1.0",
@@ -617,7 +629,13 @@
         "Prep task: wire cross_project_origin into the Temporal store changes.create inline seedState (changes.ts ~L190-204), not only changeSeedStateFromChange.",
         "Prep task: correct design wording from stateRequirement 'temporal' to 'temporal-required' to match TargetStateRequirement enum.",
         "Confirm during prep whether adv_change_create's target-path branch needs target_confirmed/confirmationEvidence plumbed through withTargetPathStore for untrusted targets (KD1 'if required')."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED with two minor cautions. The design is correct, evidence-backed, and notably simple: it removes a bespoke divergent path and reuses existing target-store + Temporal-create + reseed machinery, satisfying AC1-AC8 and all constraints without new scanners or duplicated workflow-start code. Before planning, resolve two precision items: (1) replace stateRequirement label 'temporal' with the real enum 'temporal-required'; (2) make explicit that the Temporal store changes.create inline seedState block (changes.ts ~L190-204) must also carry cross_project_origin, not only changeSeedStateFromChange — otherwise KD2 leaves a seed gap on the primary create path. Neither item changes the architecture; both are implementation-precision tasks for prep."
+      }
     },
     {
       "schema_version": "1.0",

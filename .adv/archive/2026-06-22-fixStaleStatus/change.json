@@ -255,7 +255,13 @@
         "Consider applying the same ExecutionStatus = \"Running\" guard to plugin/src/temporal/list-change-workflows.ts buildVisibilityQuery so MCP cold-start enumeration and CLI stay structurally aligned (out of this change's stated scope but same leak class).",
         "Implementation should decide unprefixed `ExecutionStatus` vs `TemporalExecutionStatus`; if the project pins a Temporal Server version, verify which name that server accepts before locking the test assertion string.",
         "Packet anchors TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION were not provided as explicit labeled blocks; proceeded with the inline TASK description as scope."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with the fix as designed. Append ` AND ExecutionStatus = \"Running\"` to the summariesFromVisibility query in bin/lib/live-status.ts. Keep it worker-free and disk-fallback-free. Add a code comment citing https://docs.temporal.io/list-filter and noting TemporalExecutionStatus as the Temporal-prefixed fallback name if an older/newer server rejects the unprefixed alias. Suggested test assertions: (a) the constructed query string contains `AdvChangeStatus IN (\"draft\", \"pending\", \"active\")` AND `ExecutionStatus = \"Running\"` joined by AND; (b) given a fake VisibilityListClient whose list() only yields executions matching the full query, a completed/archived workflow with stale AdvChangeStatus=[\"active\"] is NOT yielded (i.e. the boundary excludes it at the query level, not in post-filter) — assert the test client's recorded query and that summaries excludes the stale id; (c) a genuinely-active draft/pending/active Running workflow IS included; (d) projectId double-quote escaping is preserved when ExecutionStatus is appended; (e) regression: query is a single AND-joined string with exactly one ExecutionStatus term. Optionally add a contract test in plugin/src/temporal to assert ADV registers no custom 'ExecutionStatus' attribute (prevents future shadowing)."
+      }
     },
     {
       "schema_version": "1.0",

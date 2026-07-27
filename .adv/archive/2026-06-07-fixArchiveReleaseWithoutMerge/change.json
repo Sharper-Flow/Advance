@@ -625,7 +625,13 @@
         "Packet defect: TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION anchors absent; proceeded with prompt scope per protocol; did not infer identity anchors (change_id from CHANGE line).",
         "Live-probe whether gh pr view --json autoMergeRequest reliably returns non-null after a successful --auto arm before locking it as the armed-state discriminator.",
         "Confirm ADV target repos use a gh token allowed to enable auto-merge on self-created PRs (self-PR restriction noted is Actions-bot-token specific; a user gh auth token is usually fine, probe once)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "1) Detection primary = gh api repos/{o}/{r}/rules/branches/{DEFAULT} (ruleset-aware, all levels) + gh api repos/{o}/{r} --jq '.allow_auto_merge,.default_branch'; keep reactive fallback (attempt push, classify GH008/protected branch/required status check, reset local default to origin/default, route to PR) as second line since bypass_actors may permit some pushes. 2) Idempotent: PR=$(gh pr list --head change/<id> --state open --json number,url --jq '.[0]'); create only if empty via non-interactive gh pr create --repo O/R -B <default> -H change/<id> --title.. --body.. (avoids multi-remote prompt hang). 3) Arm: gh pr merge <num> --squash --auto, then immediately gh pr view <num> --json state,mergedAt,mergeCommit,autoMergeRequest; MERGED->reconcile now; autoMergeRequest!=null->pending; neither->not armed->manual-merge terminal, no release done. 4) Reconcile: gh pr view change/<id> --json state,mergedAt,mergeCommit; state==MERGED (mergedAt non-null) is the ONLY merged signal; never git log origin/default..change/id. 5) Auth: require gh auth status healthy; classic repo+read:org; pass all flags non-interactive; exit 4 -> explicit error, not false release done."
+      }
     },
     {
       "schema_version": "1.0",

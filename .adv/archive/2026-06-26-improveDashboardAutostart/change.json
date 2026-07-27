@@ -741,7 +741,13 @@
         "Confirm with user: token provider may shell out to `gh auth token` (subprocess) vs env-only — affects the auth model CLARIFY warning.",
         "Design phase: decide default-config location (user-level XDG vs Advance-owned generated file) so observed PokeEdge repos do not require repo-local config files.",
         "Verify low-CPU/API claim empirically in design/acceptance: measure GitHub API calls per refresh interval with N open tabs before vs after client/TTL reuse."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now into the agreement: (A) reuse a single GitHubDashboardClient across requests + add a short server-side state TTL/in-flight de-dupe so the ETag cache survives and concurrent browser tabs share one upstream read — this is the primary lever for the low-CPU/API constraint. (B) Extend the token provider with a `gh auth token` fallback when GITHUB_TOKEN is unset, and reshape GITHUB_AUTH_UNAVAILABLE into actionable setup guidance (run `gh auth login`). (C) Ship a WantedBy=default.target user systemd unit modeled on existing temporal-dev.service/vision.service (Type=simple, Restart=on-failure) for login-start + stable http://127.0.0.1:8765 URL. (D) Provide a default/generated config for ~/dev/pokeedge and ~/dev/pokeedge-web so --config is satisfied at login. Surface to user: confirm fixed port 8765 reservation and exact stable URL, and confirm `gh auth token` invocation is acceptable (it shells out to gh). Defer: missing-project tolerance polish beyond existing per-source degradation."
+      }
     },
     {
       "schema_version": "1.0",
@@ -793,7 +799,13 @@
         "Design: pick the concrete distinct exit code for port collision and document it in both bin/adv and the systemd unit RestartPreventExitStatus.",
         "Acceptance: add a test that binds 8765 first, then starts the dashboard, asserting a distinct non-zero exit and a no-fallback-port diagnostic (AC4).",
         "Acceptance: measure GitHub API request count per refresh interval with multiple open tabs before vs after the long-lived-client + TTL change (AC7/SC4)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now (contract-tied, low risk): (A) In runDashboard set reusePort:false, wrap bun.serve in try/catch, emit a clear collision diagnostic, and exit with a distinct dedicated code; wire that code into the systemd unit's RestartPreventExitStatus and add StartLimitIntervalSec/StartLimitBurst as a backstop — closes AC4/C4 and prevents a restart storm. Add a TDD red test that pre-binds 8765 and asserts the distinct non-zero exit. (B) Make runDashboard inject a long-lived stateBuilder that reuses ONE createGitHubDashboardClient (preserving its ETag cache) plus a short server-side TTL (= refresh_seconds) and in-flight /api/state promise de-dupe via the existing stateBuilder seam — closes AC7/SC4/C6 with no architecture change. Design-around: (C) doctor/install may self-enable linger via `loginctl enable-linger` (no root for caller) as a one-shot AC2 remediation, falling back to emit-only guidance if it fails. Surface to user (medium): confirm a fixed dedicated exit code value for port collision and whether doctor should auto-run enable-linger vs only print it. Follow-up: empirically measure GitHub API calls per refresh with N tabs before/after the cache change during acceptance."
+      }
     },
     {
       "schema_version": "1.0",
@@ -849,7 +861,13 @@
         "Planning: confirm port-collision exit code is disjoint from existing bin/adv exit codes 2/3 and matches RestartPreventExitStatus.",
         "Planning: evaluate Type=exec vs Type=simple for adv-dashboard-pokeedge.service per systemd start-failure-reporting guidance.",
         "Note: lgrep semantic search timed out (8s) during research; fell back to grep/read — no impact on findings completeness."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. Design is VALIDATED against agreement objectives, AC1-AC9, and external canonical docs. During planning, (a) reserve a dedicated, disjoint exit code for port collision and wire it identically into both the Bun catch path and RestartPreventExitStatus; (b) consider Type=exec for the unit; (c) ensure DDC6 adapter seams cover loginctl enable-linger permission-denied so AC2 remediation path is unit-tested without host mutation."
+      }
     },
     {
       "schema_version": "1.0",

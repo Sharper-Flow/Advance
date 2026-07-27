@@ -433,7 +433,13 @@
         "Add an explicit 'design-derived budget/constraint' criteria category so performance/security/scale limits that cannot be firmed pre-architecture are not forced into discovery.",
         "Consider naming alignment with 29148 (Implementation-Free, derived requirements) and dual-track (Definition of Ready) so the model reads as established practice rather than bespoke ADV invention.",
         "Did not separately verify Volere/BABOK/Cockburn/Cooper stage-gate primary sources this pass (bounded research); 29148 + dual-track + SbE + Scrum DoD/AC corpus already give converging multi-source support. State explicitly if deeper stage-gate-specific citation is later required."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Ship the model. Adopt established terminology to anchor it and reduce reinvention friction: (1) Use 29148 'Implementation-Free' as the test for discovery AC (what-not-how, black-box/observable, atomic, verifiable). (2) Call DISCOVERY criteria 'behavioral / black-box acceptance criteria' and DESIGN criteria 'derived requirements / design constraints' (29148 vocabulary) or frame as extrinsic (AC, user-perceived) vs intrinsic (DoD/engineering) quality (Scrum.org/Cohn). (3) Name the discovery→delivery handoff a 'Definition of Ready' (dual-track agile) and the design→discovery loop 'iterative/recursive refinement' or 'requirements re-validation' (29148) — frame it as normal change control, NOT failure. (4) Add a discovery-exit guard rejecting AC that encode a chosen mechanism, and an explicit category for design-derived budgets so teams don't try to firm un-firmable criteria in discovery. (5) Optionally lean on Specification-by-Example / Gherkin for the 'firmed and confirmed with the user' step — established mechanism for user-confirmed testable AC — but heed Fowler's caveat that examples are not the sole requirements technique."
+      }
     },
     {
       "schema_version": "1.0",
@@ -500,7 +506,13 @@
         "Prep: enumerate json.ts:591/661 + change.ts:166-172 scaffold templates in rename scope.",
         "Prep: tighten spec/command wording on contract enforcement granularity (any-item vs AC/SC-specific) to match actual CONTRACT_ITEMS_EMPTY semantics.",
         "Prep: confirm context-snapshot countSuccessCriteria repoint/drop keeps chat-output-display 'success criteria count' MUST satisfied."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to design-gate completion. The design is architecturally sound and the load-bearing enforcement-gap claim holds: the discovery gate's agreement-artifact L2 check plus DISCOVERY_CONTRACT_MISSING contract blocker form a structural enforcement floor that supersedes the retired proposal-text warning, so removing checkMissingSuccessCriteria creates no path to planning/execution without an agreement+contract. Three non-blocking cautions should be folded into prep tasks: (1) tighten spec/command wording -- the contract enforces 'at least one contract item', not 'AC/SC specifically' (the design's framing slightly overstates the existing guarantee, though AC8 correctly preserves current behavior); (2) add json.ts:591/661 and change.ts:166-172 proposal scaffold templates to the rename edit list so freshly scaffolded proposals emit '## User Outcomes'; (3) verify the complete bounded removal set for CLARIFY_MISSING_SUCCESS_CRITERIA (clarify-readiness.ts def+2 uses, clarify-readiness.test.ts, tool-formatters.ts:269, types/changes.ts:171 comment). None of these change the verdict; the retire-not-repoint decision is correct and simpler than the rejected alternative."
+      }
     },
     {
       "schema_version": "1.0",

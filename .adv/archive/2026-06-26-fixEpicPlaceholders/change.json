@@ -275,7 +275,13 @@
         "CAUTION: consider relocating create-time partial-membership guard from change.ts helper to CROSS_FIELD_VALIDATORS[adv_change_create] for preflight-surface consistency",
         "Add sentinels:omit to epic_id/entry_id/epic_title policies so AC2 sentinel normalization is covered, not only blank",
         "Pin AC4 missing-Epic dry-run preview + PROJECTION_MISMATCH typed mapping (catch clearEpicMembership store throw) in epic.test.ts"
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. VALIDATED — no spec conflict, ACs satisfiable, infra present. Two refinements for the plan: (1) Prefer adding the partial-membership completeness/reject guard to CROSS_FIELD_VALIDATORS[adv_change_create] rather than a new change.ts helper, for single-surface preflight consistency. (2) Add sentinels:omit (not just blank:omit) to the epic_id/entry_id/epic_title FIELD_POLICIES so AC2's sentinel path is structurally covered. Ensure planned epic.test.ts cases pin: missing-Epic dry-run preview, missing-Epic mismatch→PROJECTION_MISMATCH typed mapping (catch store throw), and missing change_id/entry_id→typed failure. Ensure change.test.ts pins: blank epic fields→no membership (AC1), sentinel epic_id→no membership (AC2), partial epic_id-only→INVALID_TOOL_ARGS (AC2 reject), complete valid context→membership seeded (AC3)."
+      }
     },
     {
       "schema_version": "1.0",

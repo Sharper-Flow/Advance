@@ -706,7 +706,13 @@
         "Planning must specify state-mutator wiring from tool scope to index.ts state.activeChange.id, or formally scope terminal-clear to the status.ts mirror only.",
         "DDC2 50ms p95 target unverified; replace with existing benchmark framing or add a real micro-benchmark task.",
         "AC6/AC7: ~12 test files reference {objective: null} fixtures (system-block.test.ts, system-block-ac.verification.test.ts) must update when field removed."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning with two design clarifications. (1) Resolve dual-pointer reachability gap: state explicitly how clearActiveChangeIfMatch (KD2) and adv_change_forget (KD1) reach state.activeChange.id from tool scope. Simplest boring fix: inject a state-mutator into tool deps (mirrors setActiveChange side-channel) OR formally document terminal-clear targets only the status.ts mirror and AC4 reachability gate is the load-bearing guarantee — then AC2/AC3 should drop the state.activeChange.id claim. Do not ship KD2 implying both surfaces clear from change.ts; not mechanically possible. (2) Soften/substantiate DDC2 50ms p95 — no evidence for per-call bound; cite existing 552-changes-<2s benchmark and frame the win as 'no per-change getState query'. Spec-law compliance clean; no overlooked alternative (persist+reconcile, no-op hook, workflow-owned pointer, write-ahead creating-state) is clearly superior for an in-memory bugfix — chosen approach appropriately boring."
+      }
     },
     {
       "schema_version": "1.0",

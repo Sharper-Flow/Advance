@@ -654,7 +654,13 @@
         "Design must define merge entry-conflict resolution (recommend explicit user choice per spec failure-handling clause, NOT silent dedupe).",
         "Confirm whether AdvEpicId Visibility search attribute on child changes needs re-index on merge (rq-epicTemporalConstraints01 single Keyword) — re-projection via setEpicMembership should already refresh it; verify in design.",
         "Two active related agendas (Fix Epic cross-project guidance, Fix Epic tool warrant surface) may overlap merge UX — reconcile during design."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to design. Adopt the 'derived product-ness' model (auto-adopt: zero behavioral readers of kind). Implement scope mutation as a CAS-guarded signal mirroring epicUpdated (auto-adopt pattern). Model merge as supersede: surviving Epic absorbs entries + child re-projection via existing setEpicMembership/clearEpicMembership; source Epic gets a terminal merged_into/superseded state mirroring archive + change-supersede precedent (auto-adopt pattern, surface naming to user). SURFACE TO USER: (a) display label for derived product-ness ('Product Epic' label vs 'scoped'), (b) merge entry-conflict policy (copy-all vs dedupe-by-title vs require-choice — spec leans require-choice / explicit decision), (c) whether archived/completed source Epics may be merged. DEFER: multi-membership, board/sprint fields (explicit out-of-scope)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -713,7 +719,13 @@
         "C4 AUTO-ADOPT: Reuse existing EpicMembershipStatusSchema (target_unreachable/projection_stale/terminal/unlinked) and setEntryMembershipStatus for DDC6 cross-project typed statuses during merge; no new membership-status enum. Evidence: epics.ts:164-171, epic.ts:1182-1210.",
         "C5 AUTO-ADOPT: Derived scope classifier (DDC1) is safe to add as pure display helper over epic_scope.repos length/projects; no correctness consumer of epic_scope.kind exists to migrate. Reuse for merge moved-entry/source terminal records via existing setEntryTerminalSummary instead of a new entry-terminal field. Evidence: grep classifyScope (none), epic.ts:1305 / change.ts:1347.",
         "WARNING: Orchestrator packet omitted explicit DONE_WHEN candidate-cap framing as ScoutCandidate rows; reported as 5 follow_up candidates classified auto-adopt/user-surface inline per scout convention."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with the design. Adopt C1, C3, C4, C5 directly (low-risk reuse). Surface C2 (merged status placement: separate merged_into pointer + status stays active/archived-derived, vs widening EpicStatusSchema) to the user/orchestrator before implementation, since it changes a shared enum's type surface."
+      }
     },
     {
       "schema_version": "1.0",
@@ -764,7 +776,13 @@
         "Confirm during planning whether EpicProgressSummary.status must also reflect merged (persisted/typed) or remain active with formatter-only override; pick one and test it.",
         "Add test: merged source Epic is excluded from rq-epicNextWork01 next-work selection, not just hidden in formatter.",
         "Add test: cross-project merge/scope-removal preserves target_confirmed + typed membership statuses (AC8)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed (CAUTION). The design correctly solves all six objectives and contradicts no advance-epics spec requirement: scope-mutation and merge both reuse battle-tested concurrency/idempotency and move primitives, scope-breadth derivation matches rq-epicProductScope01, and additive merged_into + formatter-derived status are backcompat-safe under EpicSchema.passthrough(). The materially simpler-vs-correct tradeoff favors the chosen formatter-derived merged status over widening the core enum, so no simpler viable alternative was overlooked. Before planning closes, resolve the single real risk: ensure the merged_into pointer is honored not only by the show-formatter but also by ADV next-work selection (rq-epicNextWork01) and by recomputeEpicProgress/EpicProgressSummary.status, so a merged source produces NO active next work at every layer (AC6) rather than only being visually suppressed. Add explicit tests for (a) merged source excluded from next-work selection, and (b) merge conflict requiring explicit disposition with no heuristic dedupe (AC5)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -821,7 +839,13 @@
         "Extend EpicWorkflowState.status union (contracts.ts:313) AND EpicStatusSchema (types/epics.ts:25) to include 'merged'; ensure workflow-bundle-boundary stays green.",
         "Add a merged-source mutation-rejection guard analogous to isArchived so scope/merge mutations on an already-merged source are typed-rejected while reads remain intact.",
         "TASK_SCOPE/VERIFICATION anchors present; no packet-defect warning."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED WITH ONE CAUTION. The revised structural-merged-status design resolves the attempt-1 caution at the correct layer: recomputeEpicProgress sets merged status/active_entries:0/next_entry_id:null, and next_work derives solely from next_entry_id, so merged sources vanish from next-work without formatter-only hacks. No new spec-law conflict — the design composes existing move/projection primitives and preserves one-Epic-per-change and target-path trust. Before planning, the design or plan should explicitly require that the new 'merged' status NOT be added to the workflows.ts:1861-1875 archived completion / continue-as-new gate (so the merged source workflow stays alive and queryable per AC6/DONT), that EpicWorkflowState.status union (contracts.ts:313) and EpicStatusSchema both gain 'merged', that a merged-source mutation-rejection guard mirror isArchived, and that a test assert a merged Epic remains queryable and does not complete. With that one branch called out explicitly, proceed to planning."
+      }
     },
     {
       "schema_version": "1.0",

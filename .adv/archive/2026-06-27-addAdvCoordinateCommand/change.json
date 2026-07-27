@@ -458,7 +458,13 @@
         "Verify deploy-local.sh / overlay sync picks up a new .opencode/command/adv-coordinate.md automatically (it globs adv-*.md) — likely no script change needed, but confirm in design.",
         "Decide the exact strong verb for the manifest description before writing tests, since the verb-first gate and 5-14 word gate are both hard-failing.",
         "Decide whether SETUP.md and docs/cli-surface-matrix.md rows are in-scope for this change (not drift-tested, but user-facing/governance surfaces — recommend including to avoid stale docs)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "PROCEED to discovery/design with these concrete corrections. (A) Model the command file on adv-cleanup.md: dry-run/report-first default, Command Boundary block ('Produces / × MUST NOT / Gate: None'), explicit MUST NOT list (new Epic mutation tools, mandatory membership, auto-enrollment, hard-gating on Epic order, CLI mutation verbs), Tier B inline whitelist approval before any durable Epic mutation, 'Runs inline; no sub-agents'. (B) Reuse ONLY existing typed Epic tools for mutation (adv_epic_update/reorder/repair_membership/move_change/unlink_change) — all already require expected_version/audit evidence and support dryRun; do NOT add a new aggregate or coordinate tool. (C) Fix the voice gate first: pick a description verb that is in STRONG_VERBS (Audit/Analyze/Review/Triage/Scan) or extend the allowlist; e.g. 'Audit Epic alignment, sequencing, and membership health'. (D) Update manifest count 27->28 + expectedCommands[] + all four+ doc surfaces. (E) Add a MINOR advance-epics spec delta (rq-epicCoordinateCommand01) capturing the read-first + advisory-order + audited-mutation + no-new-primitive contract so the avoidances are law, not just prose, and write the asset test to assert it (pattern: advance-epics-assets.test.ts). This keeps correctness structural (P33) rather than prose-only. No anti-patterns detected; this is the simplest viable architecture."
+      }
     },
     {
       "schema_version": "1.0",
@@ -524,7 +530,13 @@
         "TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION packet anchors were not provided in standard block form; proceeded with embedded TASK + prompt scope. No identity anchors inferred.",
         "Verify whether adv-coordinate should appear in any command's manifest successors/prerequisites arrays (manifest.test.ts:115-133 validates successor/prereq names resolve) — draft leaves it islanded (prereq []/successors []), which is valid but worth a conscious design decision.",
         "Confirm whether README.md groups commands by phase; adv-coordinate placed in phase 'advanced' should be slotted alongside /adv-cleanup and /adv-refactor rows in every doc table for consistency, not appended at end."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt 5 leverage/scope-risk fixes before independent design validation: (1) EXPAND verification command to include src/cli-surface-matrix.test.ts and add the docs/cli-surface-matrix.md row (disposition agent-workflow-only, mirroring /adv-cleanup and /adv-epic rows) — this is a hard CI gate the draft omitted. (2) RESOLVE the description verb: either add 'Audit' to STRONG_VERBS in manifest.test.ts, or change the verb to an existing allowlisted one (recommend 'Audit' addition since AC text says 'Audit Epic alignment, sequencing, and membership health' — but flag this as a tiny test-harness edit that must accompany the manifest entry). (3) REUSE adv-cleanup.md verbatim as the phase skeleton (scan->categorize->report->Tier-B-approval->atomic-apply) swapping adv_change_* for adv_epic_*; do not invent a new approval pattern. (4) LEAN on tool-enforced expected_version/dryRun/evidence rather than writing new prose guards — the 'current expected_version' + 'audit evidence' constraints are already structural in adv_epic_update/reorder/repair_membership. (5) ADD rq-epicCoordinateCommand01 to BOTH .adv/specs/advance-epics/spec.json (bump version 1.4.0->1.5.0) and the docs/specs/advance-epics.md mirror, AND add an explicit assets-test assertion — the existing hardcoded req-ID array (advance-epics-assets.test.ts:31-44) will NOT auto-validate the new req."
+      }
     },
     {
       "schema_version": "1.0",
@@ -574,7 +586,13 @@
       "follow_ups": [
         "At prep, ensure the red-test task explicitly covers the STRONG_VERBS allowlist addition ('Audit') and the manifest length 27→28 bump so AC2/AC3 fail-first before implementation.",
         "Confirm cli-surface-matrix.test.ts is included in the targeted verification command (design already lists it) so the new agent-workflow-only row is enforced (AC8)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED — proceed to planning. The design is correct, materially simple (no new tool/workflow/state/CLI verb), and spec-compliant. It faithfully reuses the adv-cleanup report-first/approval-gated skeleton and the existing typed Epic tool safeguards (expected_version, evidence, dryRun, target trust). Every approved contract item maps to a concrete design decision. Two execution-time reminders already embedded in the design and worth re-confirming during prep: (1) add 'Audit' to the STRONG_VERBS allowlist in manifest.test.ts (line 188-210) alongside the manifest entry, since the description verb is otherwise rejected; (2) bump the manifest length assertion at manifest.test.ts:64 from 27 to 28. Both are anticipated by AC2/AC3/D2 — no design change required."
+      }
     },
     {
       "schema_version": "1.0",

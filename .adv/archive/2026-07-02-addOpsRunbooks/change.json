@@ -639,7 +639,13 @@
         "External SRE/runbook best-practice validation still owed (Exa credits exhausted this pass) before locking the runbook-step data model.",
         "Discovery must decide extend-ops_followup vs new ops_run; evidence favors extension + derived-status reconciler for simplicity.",
         "Confirm no other reader (archive/acceptance projection) also trusts the stale link.status snapshot before changing its authority."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Route to discovery/design with these ranked candidates. ADOPT_NOW: (S1) make release-blocker authority derive completion from the child ops_followup profile/evidence rather than the parent link.status snapshot — kills the dual-source-of-truth (boring, high payoff). (S2) require >=1 evidence entry (or explicit not_applicable disposition) before a 'blocks' follow-up counts complete — structural, closes the drainer no-evidence hole. DESIGN_AROUND: (S3) extend OpsEvidenceEntry/profile with runbook-step semantics (dry_run/execute pairing, approval ref, health-check assertion, rollback disposition) reusing the existing evidence-policy axis; prefer profile extension over a new ops_run state machine. SURFACE_TO_USER: (S4) whether prod approval is per-run mandatory vs allowlist-low-risk — policy decision, not inferable from code. DEFER: (S5) cross-project link status refresh — real but secondary to fixing the single-project stale-snapshot root cause first."
+      }
     },
     {
       "schema_version": "1.0",
@@ -695,7 +701,13 @@
         "Prep must verify R1: getOpenOpsFollowupObligations is a second link.status reader (archive), not only the release blocker — reconciliation must cover it.",
         "Broader SRE/runbook multi-source corroboration for the per-step approval-policy choice still owed (Exa credits exhausted); Rundeck alone validates plan/execution + state/log separation but keeps approval on a separate axis.",
         "Confirm reused evidence_policy axis values map cleanly onto ops execute steps (test/static_check/stakeholder_acceptance/not_applicable) during type design."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Keep the design's extend-ops_followup + reconciliation-replaces-snapshot direction (boring, canonical-backed). Apply 3 bounded refinements before/at prep: (R1) explicitly migrate getOpenOpsFollowupObligations (archive readback, gate-readiness.ts:689) to the verified reconciliation/derived status — not just the release blocker — so the archive surface stops reading link.status. (R2) Constrain per-step approval-policy tags to execute-classified steps only; read/plan/health steps carry no policy tag (reduces over-modeling, satisfies Rundeck-style separation while preserving single-agent safety enforcement). (R3) Reuse the existing typed evidence_policy axis for ops evidence rather than a parallel vocabulary. Do not add a separate ops_run state machine; the optional runs[] under OpsFollowupProfile is the simpler proven shape."
+      }
     },
     {
       "schema_version": "1.0",
@@ -751,7 +763,13 @@
         "Prep: add explicit test that a 'blocks' link with status:'complete' but zero evidence is NOT release-authoritative under the new resolution path (closes the fixPikaqianDrainerR2Config no-evidence hole).",
         "Prep: add legacy-history replay fixture proving old OpsFollowupProfile (evidence[] only, no runs[]) parses and projects unchanged after reducer additions.",
         "External SRE/runbook best-practice corroboration was not obtained this pass (repo+Temporal-docs grounded only); optional additional Exa lookup could validate the plan→approve→execute→health→rollback step taxonomy against industry runbook models before locking OpsRunStep kinds."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design is correct, spec-law-compliant, and each defect it targets is verified against source (gate-readiness.ts, types/changes.ts, ops-followup-readback.ts). Two non-blocking prep-phase asks: (1) explicitly justify OpsFollowupResolution reconciler vs the simpler derive-from-child-and-remove-cached-field approach — the reconciler is only clearly superior because it also delivers deterministic cross-project/unreachable-child blockers (DDC7); document that the resolution proof is verified-at-read (release/harden/archive/approval context) and is never persisted as standalone release authority, so it cannot become a new stale snapshot; (2) require legacy-history/replay compatibility fixtures for the new optional-field reducers and confirm they remain signal/query-only (no defineUpdate) per the AGENTS.md replay cliff. Both are already implied by Slice 7 tests and DDC7/Risk-mitigations; make them explicit acceptance items in prep."
+      }
     },
     {
       "schema_version": "1.0",

@@ -604,7 +604,13 @@
         "Confirm with user/design owner: is per-change ops_followup/ops_followup_links visibility in-scope for v1 (worker-backed) or enrichment-only (worker-free degrade)?",
         "Design task must extend bin/lib/types.ts ChangeRecord/ChangeSummary + normalizeWorkflowState to carry ops fields IF ops visibility is v1-required.",
         "Add explicit test for token never appearing in /api/state JSON or logs (DONT6) given greenfield GitHub fetch client."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt worktrees-registry/AdvWorktreeBranches as the worker-free source for change/{id} branch+headSha correlation keys (auto-adopt). Make ADV-plane degradation explicit: prefer the worker-free Visibility path for liveness, and treat getState (for ops_followup/links + tasks) as a best-effort enrichment that degrades to 'ops unknown' per C5/SC4 when no live worker — do NOT make whole-dashboard liveness depend on getState. Surface to user: whether v1 ops_followup/links visibility is required (forces worker dependency) or deferrable (keeps worker-free liveness). Keep GitHub client minimal: serialized fetch, ETag store keyed per endpoint, authenticated headers mandatory, handle x-ratelimit-reset (primary) and Retry-After (secondary) separately."
+      }
     },
     {
       "schema_version": "1.0",
@@ -650,7 +656,13 @@
         "Planning: extend bin/lib/types.ts ChangeRecord/ChangeSummary + normalizeWorkflowState to carry ops fields IF v1 ops visibility is required (else keep enrichment-only worker-free degrade).",
         "Planning: add explicit test that token never appears in /api/state JSON or server logs (DONT6) for greenfield GitHub fetch client.",
         "Planning: ensure rate handling distinguishes retry-after (secondary limit) from x-ratelimit-reset (primary limit, UTC epoch seconds)."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED. Proceed to planning. Task explicitly: (1) greenfield GitHub fetch client must mandate authenticated headers (GITHUB_TOKEN or gh auth token) and include a test asserting no token appears in /api/state JSON or logs; (2) if v1 surfaces ops_followup/ops-evidence, task the ChangeRecord/ChangeSummary + normalizeWorkflowState extension as degradable enrichment that never blanks worker-free liveness; (3) GitHub rate handling must treat retry-after (secondary) and x-ratelimit-reset (primary, UTC epoch) as distinct signals per official docs."
+      }
     },
     {
       "schema_version": "1.0",

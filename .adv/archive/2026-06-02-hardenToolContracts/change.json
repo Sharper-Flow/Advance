@@ -604,7 +604,13 @@
         "ScoutCandidate C4 [inconclusive]: agent-tool-contracts.md checklist could become an executable lint (assert packet anchors↔report-schema required fields), but no current tooling hook exists; needs orchestrator decision on enforcement appetite before estimating.",
         "ScoutCandidate C5 [inconclusive]: SupportedSubagentReportSchema (types/subagent-reports.ts:359) is a deprecated alias still exported; possible dead-narrowing of ingest surface, but consumer audit not completed in this bounded pass.",
         "WARNING: orchestrator packet supplied scope anchors but change workflow `hardenToolContracts` is unreachable (WorkflowNotFoundError on adv_change_show; absent from adv_change_list). Confirm change identity/store state before planning."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Within approved scope, prioritize 2 auto-adopt candidates and surface 1 to the user. AUTO-ADOPT C1: Generate plugin/schemas/*.schema.json from live Zod types using Zod 4 z.toJSONSchema (boring, first-party, no new dep) and fix the emitted $schema URLs to the real Sharper-Flow/Advance path (or drop the URL if schemas aren't actually published/fetched). AUTO-ADOPT C2: Add a drift-guard test that fails when a tool in ADV_TOOL_NAMES has placeholder-sensitive arg fields (audit/evidence/path/identity/command/branch) with no FIELD_POLICIES entry — mirrors the existing ADV_TOOL_NAMES↔createToolMap guard. USER-SURFACE C3: whether to publish JSON schemas at all (regenerate-and-publish vs delete stubs + remove $schema stamping) — this is a product/distribution decision needing orchestrator/user input. Do NOT expand into report-schema redesign or seven-gate work (OOS)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -665,7 +671,13 @@
         "Planning: enumerate the full anomalyco/oc-plugins occurrence set (schema $id, test, 22 spec.json) and decide in-scope vs deferred against the 'no dead anomalyco URLs' AC.",
         "Design: pin generated-schema envelope shape (self-contained vs definitions-wrapper) and a deterministic serializer before writing schemas:generate.",
         "Confirm no curated artifact schema later adds .transform()/z.date(); if it does, schemas:check will throw by design — document the .overwrite() escape hatch."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "ADOPT the design with two scoped corrections. ScoutCandidates (<=5): [1 AUTO-ADOPT] Use z.toJSONSchema(schema,{target:'draft-07'}) and rely on DEFAULT unrepresentable:'throw' for the fail-loud schemas:check guard — no custom transform-detection needed (cite zod.dev/json-schema). [2 USER-SURFACE] Dead-URL replacement scope is incomplete: design names only store-disk.ts + delta.ts, but anomalyco/oc-plugins also appears in plugin/schemas/*.json $id, store-disk.judgment-calls-removal.test.ts, and 22 .adv/specs/*/spec.json $schema refs — confirm whether spec.json $schema refs are in-scope for 'no dead anomalyco URLs' AC or explicitly deferred. [3 AUTO-ADOPT] Emit generated schemas through a deterministic serializer (sorted object keys + trailing newline) so schemas:check produces a stable diff; reused:'inline' default means key-order, not $defs churn, is the flap risk. [4 AUTO-ADOPT] Preflight coverage test can introspect createToolMap's returned tool .args against FIELD_POLICIES keys purely (no store/Temporal) — keep it in the pure registry layer per design. [5 INCONCLUSIVE] Whether generated schemas should keep the $ref/$defs envelope shape of the current stubs (title/$id/$ref/definitions) vs a flat self-contained schema — current stubs use a definitions wrapper; native output is self-contained. Pick one shape explicitly in design to avoid consumer ($schema validators) breakage; evidence insufficient to know which consumers read these files."
+      }
     },
     {
       "schema_version": "1.0",
@@ -726,7 +738,13 @@
         "Planning: enumerate exact file list for anomalyco->Sharper-Flow URL replacement (~19 spec.json + store-disk.ts + archive/delta.ts + 2 test sites) to guarantee AC2 completeness.",
         "Generator: lock io mode + deterministic key ordering + reused/cycles options so schemas:check is byte-stable (AC1 determinism).",
         "Confirm whether stored spec.json $schema rewrite is a one-time data migration vs only changing the emitter; AC2 says stored artifacts must be clean, implying a migration step."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning as VALIDATED with two caution riders. (a) Determinism: z.object() output-mode emits additionalProperties:false and Zod inlines reused schemas by default; pin io mode, key-ordering (stable JSON.stringify with sorted keys), and reused/cycles options in the generator so schemas:check is byte-stable across machines/CI — this directly satisfies the deterministic-generation constraint and AC1. (b) Breadth: enumerate all anomalyco/oc-plugins occurrences (2 source files, 2 test sites, ~19 .adv/specs/*/spec.json) as explicit planning tasks so AC2 ('no dead URLs in stored change/spec artifacts') is provably complete rather than sampled. Both are planning-level precision, not design changes."
+      }
     },
     {
       "schema_version": "1.0",

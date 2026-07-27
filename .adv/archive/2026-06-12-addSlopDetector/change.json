@@ -571,7 +571,13 @@
         "Orchestrator decision: confirm Semgrep is referenced (covered-by-CI), not ingested, for this change; verify sharperflow-security-gates export contract only if ingestion is desired later.",
         "Discovery should resolve prep Q1 (Knip devDependency vs pnpm dlx/optional) and Q3 (runner home: bin/adv vs plugin tool vs shared module) before prep gate.",
         "Confirm golden-fixture tests replace sentinel-string tests in plugin/src/slop-scan-false-positive-fixtures.test.ts as part of this change's Testing scope."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt now (auto): (1) shared Zod-typed slop-finding + coverage schema as single source of truth feeding CLI JSON, chat report, metadata, and golden fixtures; (2) bin/adv slop-scan [path] --json --phase 1 subcommand on the existing bin/lib pattern; (3) ESLint --format json adapter for complexity/max-depth -> MAINT-004 (only local AST tool confirmed installed, eslint v10.4.1); (4) fix threshold naming drift by making the typed schema the only field-name source (nesting_depth_threshold/defensive_guard_threshold/complexity_threshold/ast_timeout_ms) and updating docs/skill/command prose. Design-around: account for Semgrep by referencing it as an external 'covered-by-CI' security coverage entry (SARIF as the interchange reference) — do NOT re-run or duplicate it locally; defer real SARIF ingestion and any sharperflow-security-gates change. Surface to user only the staging question (which optional detectors — Knip/ast-grep/jscpd — ship in this change vs deferred) since 'fix all prep findings' can be satisfied by registry + coverage-gap reporting even if some adapters land as explicit 'skipped' detectors initially."
+      }
     },
     {
       "schema_version": "1.0",

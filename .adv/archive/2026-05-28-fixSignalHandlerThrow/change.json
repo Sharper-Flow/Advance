@@ -452,7 +452,13 @@
         "Add fixture: capture a representative ChangeWorkflowState history pre-change and pin it as a replay-test fixture in plugin/src/temporal/__fixtures__/ for the Safe Deployments validation.",
         "Audit task-layer mutation tools (_adapters.ts) to ensure adv_task_add/update/cancel surface the new rejection state to the caller (rq-cacheRefresh01 already ensures freshness; caller-side reporting needs explicit code).",
         "wisdom pw-TPaAlADl was not findable via adv_wisdom_list query — verify it exists at project scope or re-promote after this change ships."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with the design after addressing three corrections:\n\n1. **Digest**: replace 'sorted JSON SHA-256' with sandbox-safe stringify-length + 256-char-sample tuple, OR import a pure-JS hash from a new temporal/digest.ts (no node:crypto). Add a workflow-bundle-boundary test assertion that crypto/node-builtins are not reachable from the digest helper.\n\n2. **safeUpdateHandler sites**: in the same change, convert gateCompleted / archiveRequested / changeCancelled / archiveChange to a new `signalAsync` helper (or rewrite safeUpdateHandler to detect signal context and reject-not-throw). Leaving them on the throw path partially defeats the change's purpose.\n\n3. **CancelledFailure passthrough**: in both signalMutation and signalAsync catches, `if (err instanceof wf.CancelledFailure || err instanceof wf.TemporalFailure) throw err;` before recording the rejection. Cite https://typescript.temporal.io/api/namespaces/workflow.\n\nAdditionally:\n- Expose `signal_rejections_total` counter alongside the ring buffer.\n- Surface rejections in adv_status / adv_change_show (UI visibility).\n- Wire wf.log.warn into applySignalRejectionToState for every recorded rejection.\n- Add the structural test enforcing every setHandler uses signalMutation/signalAsync/safeUpdateHandler (no bare bodies); model it on workflow-bundle-boundary.test.ts.\n- Validate via the documented Safe Deployments replay-test methodology against captured pre-change histories before merge.\n- ADR 0003 should explicitly cite https://docs.temporal.io/handling-messages#exceptions, https://docs.temporal.io/workflow-definition#deterministic-constraints, and SDK PR #519 to lock in the rationale."
+      }
     },
     {
       "schema_version": "1.0",

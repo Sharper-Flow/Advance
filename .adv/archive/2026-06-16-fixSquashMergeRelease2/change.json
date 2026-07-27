@@ -614,7 +614,13 @@
         "Design must add merge_queue test coverage to git-finalize.test.ts (currently zero) including: queue-required rule classification, arming via gh pr merge --auto without -d, and pending-vs-merged proof.",
         "Confirm with orchestrator whether change-branch rebase/update-branch is intentionally OUT of design scope given queue provides latest-base reconciliation (avoids YAGNI heavy route).",
         "All packet anchors (TASK_SCOPE/IN_SCOPE/OUT_OF_SCOPE/DONE_WHEN/STOP_WHEN/VERIFICATION) were present; no scope degradation occurred."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Scout candidates (classified): [AUTO-ADOPT] C1: Detect merge_queue by inspecting rule `type` in the ALREADY-fetched `rules/branches/{default}` response inside classifyFinalizationRoute; add a `merge_queue` route variant (or annotate the route) — zero new API calls. [AUTO-ADOPT GUARDRAIL] C2: Codify the invariant that the queue/auto-merge arming MUST NOT pass -d/--delete-branch (current code already complies; add a regression test + spec note) — cli/cli rejects it and it can strand the PR. [REJECT-COMPLEXITY/INFORM] C3: Do NOT add a GraphQL enqueuePullRequest mutation or strategy-stripping for queues; `gh pr merge --squash --auto` is already the documented queue-correct handoff (strategy ignored for queue, queue-or-auto-merge auto-selected). [USER-SURFACE] C4: Decide freshness strategy — evidence favors the BORING path: for merge_queue repos rely on the queue's latest-base merge_group (no change-branch rebase); for non-queue strict-status repos rely on GitHub auto-merge + requiresStrictStatusChecks; only fall back to a minimal reconcile if neither applies. Surface this 'no bespoke rebase route' decision to the orchestrator/user before design locks a heavier update-branch route. [FOLLOW-UP] C5: Optionally enrich Pending diagnostics with GraphQL PullRequest.mergeQueueEntry.state/position/estimatedTimeToMerge — pure observability, not correctness; defer unless pending-state UX is in scope."
+      }
     },
     {
       "schema_version": "1.0",
@@ -670,7 +676,13 @@
         "Confirm git-finalize.test.ts:302 (ghUnavailable) expectation is updated from pr_manual to blocked when the fail-closed change lands.",
         "Add a test fixture for a rules response containing type:'merge_queue' to lock structural detection.",
         "Document the local-user-auth assumption for gh merge-queue arming and the CI-token fail-closed behavior."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with the design — it is correct, appropriately boring, and strengthens (not weakens) rq-releaseFinalization01 by failing closed on unknown policy. Before planning, fold in four refinements: (a) explicitly scope reconcileChangeBranchWithDefault to non-queue PR routes and document the required_linear_history + non-squash edge, preferring rebase-or-block only where a merge commit would violate the detected rule rather than blanket 'git merge'; (b) treat the pr_manual→blocked fallback change as a deliberate test update, fixing the existing ghUnavailable expectation at git-finalize.test.ts:302; (c) record the local-user-auth assumption for 'gh pr merge --auto' so GitHub App/Actions-token executions fail closed to 'blocked' instead of mis-arming (cli/cli #7213); (d) extract the shared push + open/reuse-PR + arm sequence common to merge-queue and auto-merge handoffs. None of these are blockers; they are tighten-before-ship items."
+      }
     },
     {
       "schema_version": "1.0",

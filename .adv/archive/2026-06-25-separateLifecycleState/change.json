@@ -545,7 +545,13 @@
         "ScoutCandidate#4 fate=surface_to_user route=user-surface: confirm spec amendment scope (rq-backlogCoord01/02, worktree-lifecycle, rq-statusCliWorkerFree01 encode old semantics); contract_tie=untied-to-AC but blocks spec-as-law correctness; risk=medium.",
         "ScoutCandidate#5 fate=follow_up route=inconclusive-needs-AC: explicit fail-closed AC for missing AdvLifecycleState projection mid-migration; ties to recorded CLARIFY_MISSING_ERROR_HANDLING finding; risk=medium.",
         "WARNING: orchestrator packet provided full anchor set; no packet defect. EXPECTED OUTPUT ScoutCandidate rows delivered in this follow_ups list since researcher report schema has no native candidate array."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Surface 5 scout candidates. AUTO-ADOPT (contract-tied, low risk): (1) Fix worktree state.ts:596 AdvChangeStatus = \"active\" to the non-terminal IN-set — live defect inside the proposal's worktree-ownership objective and Must-Not #5. (2) Adopt additive AdvLifecycleState + retained-deprecated AdvChangeStatus alias as the migration approach (design_around) — grounded in Temporal self-hosted SQL remove/re-add hazard and the proposal's compatibility constraints. (3) Extract one shared non-terminal-status predicate/constant consumed by list-change-workflows, visibility-claim-queries, worktree/state, and bin live-status — eliminates the duplicated literal and prevents migration drift (design_around). SURFACE TO USER: (4) Spec amendment scope — rq-backlogCoord01/02 and worktree-lifecycle encode the old semantics; user should confirm coordinated spec edits are in-scope vs follow-up. FOLLOW-UP: (5) Record CLARIFY_MISSING_ERROR_HANDLING finding — fail-closed behavior when AdvLifecycleState projection is missing mid-migration (proposal already states fail-closed intent; needs an explicit AC)."
+      }
     },
     {
       "schema_version": "1.0",
@@ -599,7 +605,13 @@
         "ScoutCandidate#4 candidate='Decide shared-module vs deliberate-duplication for the predicate across plugin and bin packages (separate build surfaces)' evidence=bin/lib/changes.ts:44-46 + bin/lib/live-status.ts:308 vs plugin DEFAULT_STATUSES payoff=medium risk=medium contract_tie=AC#3 prior_consideration=new recommended_fate=surface_to_user rationale='bin and plugin are distinct build targets; a shared import may cross a layer boundary — user/orchestrator should pick share vs duplicate+drift-test.'",
         "ScoutCandidate#5 candidate='Reframe migration as read/query convergence over an already-3-valued AdvChangeStatus, not a new state machine' evidence=types/changes.ts:59-67 + change-state.ts:1174,1185,1407,1415 (pending/active dead) payoff=medium risk=low contract_tie=untied (blast-radius bounding) prior_consideration=new recommended_fate=follow_up rationale='Bounds scope and reviewer expectations; advisory wisdom, does not block design.'",
         "WARNING: ScoutCandidate rows delivered in this follow_ups list because the researcher report schema has no native candidate array. Full anchor set present in packet; no packet defect."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Adopt 5 leverage points into design. ADOPT_NOW (contract-tied, low risk): (C1) Declare AdvLifecycleState as single-value Keyword and document it does NOT consume the 3-slot KeywordList dev-server cap (ties Constraint #6 / SC#6). (C2) Implement projection as the single mapping at search-attributes.ts:179, keeping AdvChangeStatus retained/additive (ties AC#1/#2, Agent-Decision #2). DESIGN_AROUND (low risk, needs design note): (C3) Extract one shared non-terminal/open predicate helper consumed by all 4 production query sites, carrying the ExecutionStatus=Running terminal guard, and fix worktree/state.ts:596 through it — also remediates the missing-guard defect at :596 (ties AC#3/#4/#5, Agent-Decision #4/#5). SURFACE_TO_USER: (C4) confirm whether the helper is shared across plugin+bin packages via one importable module vs deliberate duplication-with-drift-test, since bin and plugin are separate build surfaces (ties AC#3, untied to a single AC otherwise). FOLLOW_UP: (C5) reframe migration as read/query convergence over an already-3-valued AdvChangeStatus rather than a new state machine, to bound blast radius — advisory wisdom, not blocking."
+      }
     },
     {
       "schema_version": "1.0",
@@ -664,7 +676,13 @@
       "follow_ups": [
         "Planning: add buildActiveWorktreeChangesVisibilityQuery (state.ts:635) and backlog claim queries (visibility-claim-queries.ts) to the lifecycle-helper conversion task list, or document explicit deferral.",
         "Planning: scope spec-scenario + asserting-test migration for literal AdvChangeStatus IN (...) strings in backlog-coordination, worktree-lifecycle, and list-change-workflows surfaces."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED WITH CAUTION — proceed to planning with two scope clarifications. First, expand the D3 consumer inventory and Affected Components to explicitly include buildActiveWorktreeChangesVisibilityQuery (plugin/src/tools/worktree/state.ts:635) and the backlog-claim authority in plugin/src/temporal/visibility-claim-queries.ts (CLAIM_HELD_STATUSES and its query builders), or make an explicit, documented decision to defer the claim path with a fail-closed note — leaving it implicit risks an AC3 ('no production open-authority query uses AdvChangeStatus active/union') failure at acceptance. Second, treat the backlog-coordination, worktree-lifecycle, and list-change-workflows spec scenarios that assert literal AdvChangeStatus IN (...) strings (rq-backlogCoord01.3, 02.1, 03; worktree state tests) as in-scope spec+test deltas to migrate in lockstep, so the D6 spec rewrite does not leave stale-but-passing literal assertions. The core architecture — additive Keyword AdvLifecycleState, central open-query helper with ExecutionStatus terminal guard, pure shared normalizer, fail-closed migration — is the boring, proven, correct path and is well-supported by both Temporal documentation and existing in-repo precedent."
+      }
     },
     {
       "schema_version": "1.0",

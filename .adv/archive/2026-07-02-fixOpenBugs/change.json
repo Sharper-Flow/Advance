@@ -1790,7 +1790,13 @@
         "Scout candidate fates: all 4 surfaced candidates classified auto-adopt (contract-tied to AC8/AC6/AC4/AC1-AC2). None require user surface. None inconclusive.",
         "Confirm during prep that adding epicTools to getToolSurface does not introduce a tool-name collision (epic tool names are adv_epic_* — no overlap with existing 24 groups per ADV_TOOL_NAMES).",
         "VERIFICATION NOTE: research was source-cited but did not run the test suite; prep/execution should red-test the surface test flip before implementing slice F."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "PROCEED to planning as designed. Add two explicit prep tasks: (T-surface) update tool-registry.surface.test.ts — remove/replace the adv_change_archive#target_path negative assertion (line 30-33) when slice F adds target routing, AND add a positive epic-tool-arg resolution assertion for slice A. (T-worktree) implement slice D by dispatching the existing worktreeDeletedSignal from removeWorktree() (state.ts:571) rather than adding new registry-mutation infra. For AC1/AC2 reuse the existing CLAIM_CONFLICT structural-evidence shape (change-claim path) instead of any title/heuristic matching. No user-surface decisions required — all candidates are auto-adopt engineering-hygiene items tied to approved contract items."
+      }
     },
     {
       "schema_version": "1.0",
@@ -1860,7 +1866,13 @@
       "follow_ups": [
         "Prep must convert DDC7 (surface-test flip + Epic positive warrant) into explicit tasks; two edits to tool-registry.surface.test.ts are required, not one.",
         "KD3 regression should cover warm-cache listSummary path, not only mocked changes.list, per Slice C and existing rq-changeSummaryReadModel01 coverage."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to planning. The design is correct, simpler-by-construction, and spec-compliant; all high-leverage claims are source-verified. During prep, ensure: (a) KD3 adds a public-readback regression that exercises the warm listSummary cache after status repair without regressing existing rq-changeSummaryReadModel01 scenarios; (b) Slice F prep tasks explicitly include both the archive#target_path negative-to-positive test flip and a new Epic-tool positive warrant surface test (DDC7); (c) KD6 no-op path is asserted via spies proving finalizeRelease/issue-close/branch-delete/cleanup are NOT called; (d) KD4 retains the advWorktreeDelete safety authority and does not treat census.cleanupEligible as deletion authority. No alternative architecture is materially simpler for this defect set."
+      }
     },
     {
       "schema_version": "1.0",

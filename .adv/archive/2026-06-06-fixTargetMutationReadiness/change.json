@@ -374,7 +374,13 @@
       "follow_ups": [
         "Confirm during planning whether mutation-boundary freshness window should be stricter than the 60s DEFAULT_FRESH_POLLER_MS used by status/health; design says 'fresh' but does not pin the threshold.",
         "Helper must catch/restructure ensureProjectTemporalQueue's throw (plugin-init.ts) for client-only sessions rather than calling it unguarded, since it currently throws before getService() runs."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "VALIDATED. Proceed with the boundary helper (ensureTargetMutationQueueReady) using a FRESH probeTaskQueuePollers + classifyQueueServiceability call sourced from getService().connection/namespace; do not reuse health-probe's cached pollerProbeCache. Ensure the helper restructures ensureProjectTemporalQueue's 'no registered worker' throw into: (a) accept already-registered queue, (b) register if a local worker exists, (c) else fresh server probe -> classify -> accept only 'fresh'/serviceable, (d) else fail with typed blockers + recovery action before createStore. Add the freshPollerMs threshold as an explicit boundary parameter so mutation-boundary freshness is auditable and not silently inheriting the 60s default. Keep tests covering client-only fresh poller, stale/absent/unavailable poller, owned local registration, untrusted-target confirmation, and create no-partial-link."
+      }
     },
     {
       "schema_version": "1.0",

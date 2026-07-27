@@ -401,7 +401,13 @@
         "Design must define exact bounding semantics for count vs total vs omitted (total = full listReflections length pre-truncation; count = returned slice; omitted = total - count) so the reader is deterministic and testable.",
         "Confirm byFrictionCategory keys are constrained to the FrictionItemSchema enum (tool_gap|workaround|missing_capability|docs_gap|ux_friction|provider_specific) and bySuggestion shape (count of improvement_suggestions vs grouping) in the design to avoid ambiguous test expectations.",
         "When wisdom readers gain target_path, add the targetPathSchema-style arg (target_path optional only; no target_confirmed needed for read-only snapshot) and ensure schemas:generate / schemas:check stays green if these tools have public JSON schemas."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed to design gate as READY with required corrections folded into the design: (1) Explicitly enumerate ALL tool-registration surfaces the new adv_reflection_list must touch — createToolMap binding (bindTool like adv_reflect), ADV_TOOL_NAMES, the frozen array in cli-bridge-contract.test.ts (.toEqual(frozen)), a cli-surface-matrix row/disposition, a non-empty args object, and a tool-title.ts read(...) entry. Missing any breaks an existing contract/drift test. (2) For the wisdom retrofit, specify that the entire execute body is wrapped in withOptionalTargetPathStore and every read goes through activeStore (store.wisdom.search/listAll/list + listProjectWisdom(activeStore.paths.root, {wisdomPath: activeStore.paths.wisdom})), with _projectContext appended only when target_path is set, and product-scope filtering applied against the active store — guaranteeing output shape is unchanged when target_path is absent. (3) Reader should call listReflections(store.paths.external ?? store.paths.root, {reflectionsPath: store.paths.reflections, ...scope}) to match the write-tool path resolution and resolveReadableReflectionsPath legacy fallback."
+      }
     },
     {
       "schema_version": "1.0",

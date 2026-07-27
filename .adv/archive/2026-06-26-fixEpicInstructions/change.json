@@ -200,7 +200,13 @@
       "follow_ups": [
         "Verify exact AC1-AC5 text to confirm whether ADV_INSTRUCTIONS.md needs an additive target_path cross-project membership edit (the test's `instructions` source is ADV_INSTRUCTIONS.md, not adv.md).",
         "Reconcile docs/adr/0004-per-epic-workflow.md ('Cross-repo Epic membership is out of scope for v1') against advance-epics spec v1.1.0 product-scope, or note it as accepted superseded-by-spec drift."
-      ]
+      ],
+      "architecture_judgement": {
+        "applicability": "not_applicable",
+        "confidence": "low",
+        "reason": "Legacy persisted adv-researcher report predates typed architecture judgement.",
+        "recommendation": "Proceed with the design. Before planning, (a) confirm the strengthened assets-test assertions map to the correct files — adv.md for current-repo-only rejection, ADV_INSTRUCTIONS.md for target_path cross-project membership wording — and add an additive ADV_INSTRUCTIONS.md:535 edit IF AC1/AC2 require explicit target_path-tool membership prose there; (b) add a one-line note or follow-up to reconcile ADR-0004 with spec v1.1.0 product-scope so the cross-repo out-of-scope statement does not re-introduce drift. Keep the promote_shell boundary exactly as designed."
+      }
     },
     {
       "schema_version": "1.0",
