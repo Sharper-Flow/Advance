@@ -172,6 +172,12 @@ ADV_PLUGIN_PATH="$ADV_RUNTIME_PLUGIN_PATH"
 ADV_PLUGIN_DIST="$ADV_SOURCE_PLUGIN_PATH/dist/index.js"
 ADV_INSTRUCTION_PATH="$REPO_ROOT/ADV_INSTRUCTIONS.md"
 
+# ADV MCP server (Tier-4 read surface, addAdvMcpReadSurface). The opencode.jsonc
+# mcp block registers the vision-proxied HTTP endpoint so `tools.adv.*` reads
+# resolve in Code Mode. Port 6298 per DDC1 (avoids episode=6297, lgrep=6278).
+ADV_MCP_SERVER_NAME="adv-advance"
+ADV_MCP_SERVER_URL="http://localhost:6298/mcp"
+
 echo "==> ADV deploy-local ($MODE): $REPO_ROOT -> $GLOBAL_CONFIG"
 echo "    runtime plugin: $ADV_SOURCE_PLUGIN_PATH -> $ADV_RUNTIME_PLUGIN_PATH"
 if [ "$DRY_RUN" = true ]; then
@@ -836,6 +842,18 @@ check_config() {
 		((config_issues++)) || true
 	fi
 
+	# Validate adv-advance MCP registration (Tier-4 read surface)
+	if jq -e --arg name "$ADV_MCP_SERVER_NAME" \
+	       --arg url "$ADV_MCP_SERVER_URL" \
+	    '(.mcp // {}) | if type == "object" then has($name) and (.[$name].url // "") == $url else false end' \
+	    <(jsonc_to_json "$GLOBAL_JSON") &>/dev/null; then
+		echo "    ✓  mcp: $ADV_MCP_SERVER_NAME registered (Tier-4 read surface)"
+	else
+		echo "    ✗  mcp: $ADV_MCP_SERVER_NAME entry missing or URL mismatch in .mcp"
+		echo "       Expected: .mcp.$ADV_MCP_SERVER_NAME.url = \"$ADV_MCP_SERVER_URL\""
+		((config_issues++)) || true
+	fi
+
 	# ADV_INSTRUCTIONS.md is scoped to the ADV runtime agent. It should
 	# NOT be globally registered because global instructions load into every
 	# session, including non-ADV agents.
@@ -1144,6 +1162,17 @@ fix_config() {
 			'.plugin = (((.plugin // []) | if type == "array" then . else [.] end) + [$plugin] | unique)' \
 			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
 		patches_summary+="      + add plugin: $ADV_PLUGIN_PATH"$'\n'
+		((patched++)) || true
+	fi
+
+	# Patch adv-advance MCP entry if missing or URL-drifted
+	if ! jq -e --arg name "$ADV_MCP_SERVER_NAME" --arg url "$ADV_MCP_SERVER_URL" \
+	    '(.mcp // {}) | if type == "object" then has($name) and (.[$name].url // "") == $url else false end' \
+	    "$tmp_json" &>/dev/null; then
+		jq --arg name "$ADV_MCP_SERVER_NAME" --arg url "$ADV_MCP_SERVER_URL" \
+			'.mcp = ((.mcp // {}) | . + {($name): {"type": "remote", "url": $url, "enabled": true}})' \
+			"$tmp_json" >"$tmp_json.new" && mv "$tmp_json.new" "$tmp_json"
+		patches_summary+="      + add mcp.$ADV_MCP_SERVER_NAME (Tier-4 read surface, $ADV_MCP_SERVER_URL)"$'\n'
 		((patched++)) || true
 	fi
 
