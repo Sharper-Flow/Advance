@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-07-27T23:43:35.092Z",
+  "capabilities": [],
+  "change_hash": "8909180609e85b97a0fa49a576051c885ec94debd3e96305c19a51ccca73190f",
+  "change_id": "addDurableAdvAdvanceMcp",
+  "completed_tasks": 1,
+  "created_at": "2026-07-27T23:31:13.530Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "entry-durable-mcp-registration",
+    "epic_id": "optimizeAdvToolSurface",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-27T23:39:39.628Z",
+    "order": 7,
+    "source": "link_existing",
+    "title": "Make adv-advance MCP registration durable in deploy-local.sh"
+  },
+  "last_activity_at": "2026-07-27T23:41:48.499Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "81f3180c903fb44d75cdfd87c325abad797bbcb1983182836000c4c7ce0152f8",
+  "task_count": 1,
+  "title": "Add durable adv-advance MCP registration to deploy-local.sh",
+  "version": "1"
+}

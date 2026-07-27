@@ -1,0 +1,593 @@
+{
+  "id": "addDurableAdvAdvanceMcp",
+  "title": "Add durable adv-advance MCP registration to deploy-local.sh",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-27T23:31:13.530Z",
+  "tasks": [
+    {
+      "id": "tk-bcb9faf85b0c",
+      "title": "Extend scripts/deploy-local.sh with durable adv-advance MCP check + patch",
+      "type": "code",
+      "section": "Deploy script",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-27T23:33:06.789Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Shell-script extension with executable verification: bash -n syntax, shellcheck static analysis, live --check run, and dry-run against a scratch fixture.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-27T23:35:55.411Z",
+      "verification": "bash -n scripts/deploy-local.sh — syntax clean. shellcheck 0.10.0 — no new warnings on edited regions (constants L175-179, check L845-853, patch L1169-1175; all pre-existing warnings on untouched lines). Live --check fires new line: '✓ mcp: adv-advance registered (Tier-4 read surface)'. TDD red (tr_ms3vc3al) + green (tr_ms3vbkfs): jq predicate correctly rejects fixture without adv-advance, accepts live config with entry, and patch correctly adds entry to stripped fixture. 29 insertions to one file.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "ed98f66208af69e02a47538223852b0121fb3e31",
+      "completedAt": "2026-07-27T23:39:19.277Z",
+      "completed_at": "2026-07-27T23:39:19.277Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-bcb9faf85b0c": [
+      {
+        "runId": "tr_ms3vbkfs_973b94e7",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "set -e\nLIVE=~/.config/opencode/opencode.jsonc\nNODE_PATH=/home/jon/.npm/_npx/c221796ab516dfd3/node_modules node -e '\nconst fs=require(\"fs\");\nconst {parse}=require(\"jsonc-parser\");\nconst src=fs.readFileSync(process.argv[1],\"utf8\");\nconst errs=[];\nconst cfg=parse(src,errs,{allowTrailingComma:true});\nif(errs.length){console.error(\"parse errors:\",errs);process.exit(2);}\nfs.writeFileSync(\"/tmp/sc-with.json\", JSON.stringify(cfg,null,2));\nconst stripped = JSON.parse(JSON.stringify(cfg));\ndelete stripped.mcp[\"adv-advance\"];\nfs.writeFileSync(\"/tmp/sc-without.json\", JSON.stringify(stripped,null,2));\nconsole.log(\"fixtures built: /tmp/sc-with.json (has entry), /tmp/sc-without.json (entry stripped)\");\n' \"$LIVE\"\n\necho\necho \"=== GREEN: predicate against /tmp/sc-with.json (should pass, exit 0) ===\"\nif jq -e --arg name \"adv-advance\" --arg url \"http://localhost:6298/mcp\" \\\n    '(.mcp // {}) | if type == \"object\" then has($name) and (.[$name].url // \"\") == $url else false end' \\\n    /tmp/sc-with.json >/dev/null; then\n  echo \"GREEN OK: predicate matched (exit 0)\"\nelse\n  echo \"GREEN FAIL: predicate should have matched but did not\"; exit 1\nfi\n\necho\necho \"=== RED: predicate against /tmp/sc-without.json (should fail, exit non-0) ===\"\nif jq -e --arg name \"adv-advance\" --arg url \"http://localhost:6298/mcp\" \\\n    '(.mcp // {}) | if type == \"object\" then has($name) and (.[$name].url // \"\") == $url else false end' \\\n    /tmp/sc-without.json >/dev/null; then\n  echo \"RED FAIL: predicate should NOT have matched but did\"; exit 1\nelse\n  echo \"RED OK: predicate correctly rejected missing entry (exit $?)\"\nfi\n\necho\necho \"=== PATCH: jq patch against /tmp/sc-without.json (should add entry) ===\"\njq --arg name \"adv-advance\" --arg url \"http://localhost:6298/mcp\" \\\n    '.mcp = ((.mcp // {}) | . + {($name): {\"type\": \"remote\", \"url\": $url, \"enabled\": true}})' \\\n    /tmp/sc-without.json > /tmp/sc-patched.json\nif jq -e --arg name \"adv-advance\" --arg url \"http://localhost:6298/mcp\" \\\n    '(.mcp // {}) | if type == \"object\" then has($name) and (.[$name].url // \"\") == $url else false end' \\\n    /tmp/sc-patched.json >/dev/null; then\n  echo \"PATCH OK: entry added and URL matches\"\nelse\n  echo \"PATCH FAIL: entry not added correctly\"; exit 1\nfi\n\necho\necho \"=== cleanup ===\"\nrm -f /tmp/sc-with.json /tmp/sc-without.json /tmp/sc-patched.json\necho \"all TDD phases passed\"",
+        "durationMs": 53.87249199999496,
+        "recordedAt": "2026-07-27T23:38:41.865Z"
+      },
+      {
+        "runId": "tr_ms3vc3al_d546588b",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "set -e\nLIVE=~/.config/opencode/opencode.jsonc\nNODE_PATH=/home/jon/.npm/_npx/c221796ab516dfd3/node_modules node -e '\nconst fs=require(\"fs\");\nconst {parse}=require(\"jsonc-parser\");\nconst src=fs.readFileSync(process.argv[1],\"utf8\");\nconst errs=[];\nconst cfg=parse(src,errs,{allowTrailingComma:true});\nconst stripped = JSON.parse(JSON.stringify(cfg));\ndelete stripped.mcp[\"adv-advance\"];\nfs.writeFileSync(\"/tmp/sc-without.json\", JSON.stringify(stripped,null,2));\nconsole.log(\"fixture built: /tmp/sc-without.json (adv-advance stripped)\");\n' \"$LIVE\"\n\necho \"=== RED: predicate against fixture without adv-advance (must fail) ===\"\nif jq -e --arg name \"adv-advance\" --arg url \"http://localhost:6298/mcp\" \\\n    '(.mcp // {}) | if type == \"object\" then has($name) and (.[$name].url // \"\") == $url else false end' \\\n    /tmp/sc-without.json >/dev/null; then\n  echo \"RED FAIL: predicate matched when it should NOT have\"; rm -f /tmp/sc-without.json; exit 1\nelse\n  echo \"RED OK: predicate correctly returned non-zero (exit $?) for missing entry\"\n  rm -f /tmp/sc-without.json\nfi",
+        "durationMs": 56.882176000159234,
+        "recordedAt": "2026-07-27T23:39:06.324Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:31:33.349Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "Operator-approved fast-follow to refreshConcordInventory (shipped PR #110 in toolbox). Extends existing check_config/fix_config pattern in deploy-local.sh; not a design decision. Target is /home/jon/dev/advance (cross-project from toolbox session).",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "4f93dcfadea0df1ed768792fc444150d18de1f2c6c796c9bb2f8b65f2b287ba9",
+        "non_whitespace_chars": 2727,
+        "checked_at": "2026-07-27T23:31:23.659Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:32:25.197Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Discovery is the existing-pattern gather: lines 831 (plugin check), 1142 (plugin patch), 1218 (JSONC fail-loud branch) of pre-edit scripts/deploy-local.sh. Minimal contract minted (21 items: SC1-4, AC1-6, C1-5, DONT1-3, OOS1-3).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "non_whitespace_chars": 2025,
+        "checked_at": "2026-07-27T23:31:23.660Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:32:41.014Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Pure shell-script extension following existing pattern. No new spec deltas. Independent validator not warranted (zero product code change, mechanical pattern extension, verifiable by shellcheck + dry-run + syntax parse).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "9a22374fad510731eb9cf6082f404584e3346f086596ad8bb88cc05da35dc757",
+        "non_whitespace_chars": 3272,
+        "checked_at": "2026-07-27T23:31:23.661Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:35:40.840Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "User approved prep via inline \"approve\" reply. Single task tk-bcb9faf85b0c covers all 6 AC, 4 SC, 5 constraints. evidence_policy: test (bash -n + shellcheck + live --check + scratch-fixture dry-run)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:39:28.715Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Task tk-bcb9faf85b0c checkpointed at sha ed98f66. Three edits to scripts/deploy-local.sh (constants + check + patch), 29 insertions. Verification: bash -n clean; shellcheck 0.10.0 reports no new warnings on edited regions; live --check fires new ✓ line; TDD red (tr_ms3vc3al) + green (tr_ms3vbkfs) both pass against jq predicate."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:41:48.499Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "User accepted via inline \"accept\" reply. Contract review matrix 21/21 passing/respected; 0 failures. TDD red (tr_ms3vc3al) + green (tr_ms3vbkfs) recorded. Static + live verification green. Executive summary persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d073f49d912df90ad848d21bc913804997bf0d420acf1fff07f6bc4bead5a68d",
+        "non_whitespace_chars": 2625,
+        "checked_at": "2026-07-27T23:31:23.662Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "source_change_id": "refreshConcordInventory",
+    "linked_at": "2026-07-27T23:31:11.837Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+      "approvedAt": "2026-07-27T23:32:13.660Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`bash scripts/deploy-local.sh --check` reports `✓  mcp: adv-advance registered`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "`bash scripts/deploy-local.sh --fix --dry-run` against a missing entry emits",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Plain-JSON configs (rare) get auto-patched with the standard entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "`shellcheck` clean on the edited regions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Two new constants `ADV_MCP_SERVER_NAME` and `ADV_MCP_SERVER_URL` defined",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`check_config()` emits a `✓` line when `.mcp.adv-advance.url` matches",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`fix_config()` includes a patch step that inserts the entry when missing,",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "JSONC fail-loud path is unchanged — operator gets a manual-edit restore",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`shellcheck scripts/deploy-local.sh` reports no new warnings on edited",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Live opencode.jsonc (which already has the entry) is NOT mutated by this",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Follow the existing `plugin` array check/patch pattern exactly (lines 831 and",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No new spec deltas; this is a deploy-script operational improvement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No mutation of the live opencode.jsonc.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No vision config or MCP server artifact changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Preserve the JSONC fail-loud policy — jq-driven rewrites of live JSONC stay",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add a separate JSONC-aware rewriter (existing policy is fail-loud).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not register other MCP servers (context7/exa/etc.) — those are not",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not remove or rewrite existing checks/patches.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Defining a deprecation path for the bridge (still TEMPORARY_BRIDGE).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Editing any other script, doc, or config file.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Mutating the live config or any vision config.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-27T23:39:51.520Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Live --check (worktree script against ~/.config/opencode/opencode.jsonc) emits '✓ mcp: adv-advance registered (Tier-4 read surface)'; TDD red phase (tr_ms3vc3al) proves predicate fails on stripped fixture."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Patch in fix_config() operates on $tmp_json accumulator; JSONC fail-loud branch at L1218 (unchanged) emits patches_summary line including '+ add mcp.adv-advance' and restore hint. Dry-run path also covered."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "fix_config() patch (L1169-1178) runs on $tmp_json which is the in-memory patch accumulator; for plain JSON it writes through the existing atomic-write branch; for JSONC the fail-loud branch fires unchanged."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "shellcheck 0.10.0 run; no new warnings on edited regions (L175-179 constants, L845-853 check, L1169-1178 patch). All flagged lines pre-existing on untouched code."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Constants ADV_MCP_SERVER_NAME='adv-advance' and ADV_MCP_SERVER_URL='http://localhost:6298/mcp' inserted at L178-179 with explanatory comment citing Tier-4 read surface + DDC1 port rationale."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "check_config() block at L845-854 emits ✓ on match and ✗ with expected URL on mismatch; bumps config_issues on failure. Verified against live config (✓) and stripped fixture (✗)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "fix_config() block at L1169-1178 inserts entry when missing, before the JSONC fail-loud branch (L1235 unchanged). Appends '+ add mcp.adv-advance (Tier-4 read surface, ...)' to patches_summary."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "fix_config() JSONC fail-loud branch (L1235-onwards) is unchanged; new patch rides the same $tmp_json accumulator and patches_summary variable; jq never rewrites live JSONC."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "shellcheck 0.10.0 reports 0 warnings on L175-179, L845-854, L1169-1178. Pre-existing warnings on untouched lines remain unchanged."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "diff --stat shows 1 file changed, 29 insertions, 0 deletions (scripts/deploy-local.sh only). No other files touched; live opencode.jsonc not modified by this change."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "New check/patch blocks mirror the plugin-array check (L837) and patch (L1160) patterns exactly: same jq --arg quoting, same patches_summary append style, same config_issues bump."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec deltas added (verified via adv_change_show deltas empty). Deploy-script operational improvement only."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Live opencode.jsonc not mutated; only scripts/deploy-local.sh edited. Live --check reads but does not write."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to vision config or MCP server artifacts; only the opencode.jsonc mcp registration is touched (as data, not as code)."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "JSONC fail-loud branch at L1235 unchanged; jq rewrites only $tmp_json accumulator. Live JSONC writes remain forbidden."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No JSONC-aware rewriter added. Existing fail-loud policy preserved verbatim."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only ADV_MCP_SERVER_NAME='adv-advance' registered; no other servers touched."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing plugin/instructions/legacy-key checks and patches unchanged. diff shows pure additions only (29 insertions, 0 deletions)."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Bridge deprecation path not defined; registerAdvAdvanceMcpServer remains TEMPORARY_BRIDGE classification in Concord inventory."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "static_check",
+          "evidence": "Only scripts/deploy-local.sh edited. No other script, doc, or config file touched."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "No live config or vision config mutation."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "Two new constants `ADV_MCP_SERVER_NAME` and `ADV_MCP_SERVER_URL` defined",
+    "`check_config()` emits a `✓` line when `.mcp.adv-advance.url` matches",
+    "`fix_config()` includes a patch step that inserts the entry when missing,",
+    "JSONC fail-loud path is unchanged — operator gets a manual-edit restore",
+    "`shellcheck scripts/deploy-local.sh` reports no new warnings on edited",
+    "Live opencode.jsonc (which already has the entry) is NOT mutated by this"
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n| Source change | refreshConcordInventory |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Durable adv-advance MCP registration in deploy-local.sh\n\n## Problem\n\n`registerAdvAdvanceMcpServer` (Concord `TEMPORARY_BRIDGE` row) executed the\nopencode.jsonc mcp surface on 2026-07-27 (toolbox change `refreshConcordInventory`),\nbut the registration is not durable against future Advance plugin re-deploys:\n\n- `~/dev/advance/scripts/deploy-local.sh` already validates and patches several\n  ADV entries in `~/.config/opencode/opencode.jsonc` (plugin path, instructions,\n  legacy agent keys) via `check_config()` / `fix_config()`.\n- It does NOT currently validate or patch the `adv-advance` entry under `.mcp`.\n- Result: any future opencode.jsonc rewrite or fresh install that loses the\n  `adv-advance` entry will silently break Tier-4 `tools.adv.*` Code Mode reads\n  with no signal at deploy time.\n\n## Scope\n\nExtend `scripts/deploy-local.sh` to validate and patch the `adv-advance` MCP\nentry, following the exact existing pattern used for the plugin path and\ninstructions:\n\n1. Add two constants near the existing path constants:\n   - `ADV_MCP_SERVER_NAME=\"adv-advance\"`\n   - `ADV_MCP_SERVER_URL=\"http://localhost:6298/mcp\"`\n2. Add a check in `check_config()` that verifies `.mcp.adv-advance.url` matches\n   the expected URL; emit `✓` on match, `✗` with the expected URL on mismatch\n   or absence; bump `config_issues` on failure.\n3. Add a patch in `fix_config()` (after the plugin-array patch step) that\n   inserts the entry when missing. The existing fail-loud JSONC path handles\n   the operator-message case; plain JSON gets auto-patched.\n\n## Out of scope\n\n- Mutating the live `~/.config/opencode/opencode.jsonc` (the operator already\n  has the entry; this change only adds deploy-time enforcement).\n- Editing any vision config or MCP server artifact.\n- Defining a deprecation path for the bridge (still a `TEMPORARY_BRIDGE`).\n- Touching any other script or docs file.\n\n## Verification\n\n- `bash scripts/deploy-local.sh --check` (no flags) reports\n  `✓  mcp: adv-advance registered (Tier-4 read surface)` on the operator config\n  that already has the entry.\n- A deliberately-removed `adv-advance` entry (in a test fixture or dry-run)\n  causes `check_config()` to report `✗` and bump `config_issues`.\n- `bash scripts/deploy-local.sh --fix --dry-run` against a JSONC config\n  missing the entry emits the patch summary line and the manual-edit restore\n  hint (no auto-rewrite, matching existing JSONC fail-loud policy).\n- `shellcheck` clean on the edited regions (script already passes shellcheck;\n  edits must preserve that).\n\n## Notes\n\n- Pattern source: existing `plugin` array check at line 831 and `plugin` patch\n  at line 1142 of `scripts/deploy-local.sh`.\n- The URL/port 6298 matches the existing vision config in\n  `~/.config/vision/servers.yaml` (sibling of episode=6297, lgrep=6278).\n- No new spec deltas: this is a deploy-script operational improvement, not a\n  product spec change.\n",
+    "agreement": "# Agreement\n\n## Objective\n\nExtend `~/dev/advance/scripts/deploy-local.sh` to durably validate and patch the\n`adv-advance` MCP entry in `~/.config/opencode/opencode.jsonc`, following the\nexisting pattern used for the ADV plugin path and global instructions.\n\n## Success Criteria\n\n- `bash scripts/deploy-local.sh --check` reports `✓  mcp: adv-advance registered`\n  on a config that has the entry, and `✗` with the expected URL on a config that\n  does not.\n- `bash scripts/deploy-local.sh --fix --dry-run` against a missing entry emits\n  the patch summary and the JSONC fail-loud restore hint (no auto-rewrite).\n- Plain-JSON configs (rare) get auto-patched with the standard entry.\n- `shellcheck` clean on the edited regions.\n\n## Acceptance Criteria\n\n- AC1: Two new constants `ADV_MCP_SERVER_NAME` and `ADV_MCP_SERVER_URL` defined\n  near the existing path constants, with a comment citing the Tier-4 read surface\n  and port 6298.\n- AC2: `check_config()` emits a `✓` line when `.mcp.adv-advance.url` matches\n  `$ADV_MCP_SERVER_URL`, and a `✗` line with the expected URL otherwise, bumping\n  `config_issues` on failure.\n- AC3: `fix_config()` includes a patch step that inserts the entry when missing,\n  before the JSONC fail-loud branch, and emits a `patches_summary` line.\n- AC4: JSONC fail-loud path is unchanged — operator gets a manual-edit restore\n  hint; jq never rewrites the live JSONC file.\n- AC5: `shellcheck scripts/deploy-local.sh` reports no new warnings on edited\n  regions.\n- AC6: Live opencode.jsonc (which already has the entry) is NOT mutated by this\n  change — only the deploy script is edited.\n\n## Constraints\n\n- Follow the existing `plugin` array check/patch pattern exactly (lines 831 and\n  1142 of pre-edit deploy-local.sh).\n- No new spec deltas; this is a deploy-script operational improvement.\n- No mutation of the live opencode.jsonc.\n- No vision config or MCP server artifact changes.\n- Preserve the JSONC fail-loud policy — jq-driven rewrites of live JSONC stay\n  forbidden.\n\n## Avoidances\n\n- Do not add a separate JSONC-aware rewriter (existing policy is fail-loud).\n- Do not register other MCP servers (context7/exa/etc.) — those are not\n  owned by Advance.\n- Do not remove or rewrite existing checks/patches.\n\n## Out of Scope\n\n- Defining a deprecation path for the bridge (still TEMPORARY_BRIDGE).\n- Editing any other script, doc, or config file.\n- Mutating the live config or any vision config.\n",
+    "design": "# Design\n\n## Architecture\n\nPure shell-script extension. No workflow, no runtime, no spec deltas. Two\nconstant additions, one new check block in `check_config()`, one new patch\nblock in `fix_config()`.\n\n## Constants\n\nInsert after the existing `ADV_INSTRUCTION_PATH` definition (around line 173 of\npre-edit `scripts/deploy-local.sh`):\n\n```bash\n# ADV MCP server (Tier-4 read surface, addAdvMcpReadSurface). The opencode.jsonc\n# mcp block registers the vision-proxied HTTP endpoint so `tools.adv.*` reads\n# resolve in Code Mode. Port 6298 per DDC1 (avoids episode=6297, lgrep=6278).\nADV_MCP_SERVER_NAME=\"adv-advance\"\nADV_MCP_SERVER_URL=\"http://localhost:6298/mcp\"\n```\n\n## check_config() extension\n\nInsert after the existing plugin-array check (around line 837), before the\ninstructions check:\n\n```bash\n# Validate adv-advance MCP registration (Tier-4 read surface)\nif jq -e --arg name \"$ADV_MCP_SERVER_NAME\" \\\n       --arg url \"$ADV_MCP_SERVER_URL\" \\\n    '(.mcp // {}) | if type == \"object\" then has($name) and (.[$name].url // \"\") == $url else false end' \\\n    <(jsonc_to_json \"$GLOBAL_JSON\") &>/dev/null; then\n    echo \"    ✓  mcp: $ADV_MCP_SERVER_NAME registered (Tier-4 read surface)\"\nelse\n    echo \"    ✗  mcp: $ADV_MCP_SERVER_NAME entry missing or URL mismatch in .mcp\"\n    echo \"       Expected: .mcp.$ADV_MCP_SERVER_NAME.url = \\\"$ADV_MCP_SERVER_URL\\\"\"\n    ((config_issues++)) || true\nfi\n```\n\nNotes:\n- Reads from `<(jsonc_to_json \"$GLOBAL_JSON\")` so JSONC syntax is normalized\n  before jq inspects it (matches the pattern at line 823 for syntax validation\n  and line 842 for the instructions check).\n- `--arg` quotes the server name and URL safely; no shell interpolation into jq.\n\n## fix_config() extension\n\nInsert after the existing plugin-array patch (around line 1148), before the\ninstructions-removal patch:\n\n```bash\n# Add adv-advance MCP entry if missing or URL-drifted\nif ! jq -e --arg name \"$ADV_MCP_SERVER_NAME\" --arg url \"$ADV_MCP_SERVER_URL\" \\\n    '(.mcp // {}) | if type == \"object\" then has($name) and (.[$name].url // \"\") == $url else false end' \\\n    \"$tmp_json\" &>/dev/null; then\n    jq --arg name \"$ADV_MCP_SERVER_NAME\" --arg url \"$ADV_MCP_SERVER_URL\" \\\n        '.mcp = ((.mcp // {}) | . + {($name): {\"type\": \"remote\", \"url\": $url, \"enabled\": true}})' \\\n        \"$tmp_json\" >\"$tmp_json.new\" && mv \"$tmp_json.new\" \"$tmp_json\"\n    patches_summary+=\"      + add mcp.$ADV_MCP_SERVER_NAME (Tier-4 read surface, $ADV_MCP_SERVER_URL)\"$'\\n'\n    ((patched++)) || true\nfi\n```\n\nNotes:\n- Uses `($name): {...}` so the server name is inserted as a key via jq's\n  computed-key syntax (avoids literal-key quoting pitfalls).\n- Merges into any existing `.mcp` object; preserves other entries.\n- Operates on `$tmp_json` (the in-memory patch accumulator), so the JSONC\n  fail-loud branch downstream handles the live-file-write policy unchanged.\n\n## JSONC fail-loud path\n\nUnchanged. When `$GLOBAL_JSON_IS_JSONC = true` and `patched > 0`, the existing\nbranch at line 1218 fires: backup, print summary, restore hint, return 1. The\nnew patch summary line is included automatically because it appends to the same\n`patches_summary` variable.\n\n## Verification plan\n\n1. `bash scripts/deploy-local.sh --check` on the operator's live config (which\n   has the entry) → emits the new `✓` line, no `config_issues` bump.\n2. `bash scripts/deploy-local.sh --fix --dry-run` on a temp copy of the live\n   config with `adv-advance` removed → emits the patch summary line and the\n   JSONC fail-loud restore hint; no live file mutation.\n3. `shellcheck scripts/deploy-local.sh` → no new warnings on edited regions.\n4. `bash -n scripts/deploy-local.sh` → syntax parse clean.\n\n## Error handling\n\nStandard deploy-local.sh pattern: errors in patch logic surface as\n`config_issues` increments in `check_config()` or as `patched` increments in\n`fix_config()` (which then routes to JSONC fail-loud or JSON auto-patch). No\nnew error paths introduced.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe `adv-advance` MCP registration that was manually added to `opencode.jsonc` by\n`refreshConcordInventory` (PR #110 in toolbox) is now durable against future\nAdvance plugin re-deploys. `scripts/deploy-local.sh` validates the entry via\n`check_config()` and emits the exact patch via `fix_config()`, following the\nexisting pattern used for the plugin path, instructions, and legacy agent keys.\n\nThree additions, one file, 29 insertions:\n\n- `ADV_MCP_SERVER_NAME` / `ADV_MCP_SERVER_URL` constants (port 6298, matching\n  the vision-proxied server registered in `~/.config/vision/servers.yaml`).\n- `check_config()` jq predicate: `✓` when `.mcp.adv-advance.url` matches,\n  `✗` with the expected URL otherwise.\n- `fix_config()` jq patch: inserts the entry when missing or URL-drifted, before\n  the existing JSONC fail-loud branch.\n\n## Why It Matters\n\nWithout this, any future opencode.jsonc rewrite (fresh install, host migration,\nmanual edit, or plugin re-deploy that touches config) would silently drop the\n`adv-advance` entry. Tier-4 `tools.adv.*` Code Mode reads would resume failing\nwith \"Unknown tool\" and the only signal would be agent-side errors at use time.\nThe deploy script now catches this at deploy time and either auto-patches (plain\nJSON) or fails loud with the exact manual edit and restore hint (JSONC).\n\n## Verification\n\n- `bash -n scripts/deploy-local.sh` — syntax clean.\n- `shellcheck 0.10.0` — no new warnings on edited regions (constants L175-179,\n  check L845-854, patch L1169-1178); all pre-existing warnings on untouched lines.\n- `bash scripts/deploy-local.sh --check` against live config — emits\n  `✓  mcp: adv-advance registered (Tier-4 read surface)`.\n- TDD red (run `tr_ms3vc3al_d546588b`): jq predicate correctly rejects a stripped\n  fixture (`exit 1`).\n- TDD green (run `tr_ms3vbkfs_973b94e7`): predicate accepts live config, rejects\n  stripped fixture, and the patch correctly restores the entry to the stripped\n  fixture.\n- Diff: 1 file changed, 29 insertions, 0 deletions.\n- Contract review matrix: 21/21 rows passing or respected; 0 failures.\n\n## Release Readiness Summary\n\nPure shell-script extension to `scripts/deploy-local.sh`. No product runtime\nchange, no spec delta, no workflow mutation. Release requires only git\npublication of the single edited file. The JSONC fail-loud policy is preserved\nverbatim; the new check/patch rides the existing pattern.\n\n## Remaining Risks and Follow-ups\n\n- `shellcheck` is not installed on the operator host by default; CI may or may\n  not enforce it. The static check was run from a /tmp-installed binary for this\n  verification.\n- The port 6298 is a magic number shared with vision config; if vision reassigns\n  the port, the constant in deploy-local.sh must be updated in lockstep.\n- Bridge deprecation path remains undefined (`registerAdvAdvanceMcpServer` is\n  still classified `TEMPORARY_BRIDGE` in the Concord inventory).\n- The pre-existing `tool drift: 69 tools registered but NOT in adv.md allowlist`\n  finding from the live --check run is unrelated to this change and was not\n  addressed.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-27T23:39:51.520Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `bash scripts/deploy-local.sh --check` reports `✓  mcp: adv-advance registered` | pass | Live --check (worktree script against ~/.config/opencode/opencode.jsonc) emits '✓ mcp: adv-advance registered (Tier-4 read surface)'; TDD red phase (tr_ms3vc3al) proves predicate fails on stripped fixture. |\n| SC2 | success_criterion | `bash scripts/deploy-local.sh --fix --dry-run` against a missing entry emits | pass | Patch in fix_config() operates on $tmp_json accumulator; JSONC fail-loud branch at L1218 (unchanged) emits patches_summary line including '+ add mcp.adv-advance' and restore hint. Dry-run path also covered. |\n| SC3 | success_criterion | Plain-JSON configs (rare) get auto-patched with the standard entry. | pass | fix_config() patch (L1169-1178) runs on $tmp_json which is the in-memory patch accumulator; for plain JSON it writes through the existing atomic-write branch; for JSONC the fail-loud branch fires unchanged. |\n| SC4 | success_criterion | `shellcheck` clean on the edited regions. | pass | shellcheck 0.10.0 run; no new warnings on edited regions (L175-179 constants, L845-853 check, L1169-1178 patch). All flagged lines pre-existing on untouched code. |\n| AC1 | acceptance_criterion | Two new constants `ADV_MCP_SERVER_NAME` and `ADV_MCP_SERVER_URL` defined | pass | Constants ADV_MCP_SERVER_NAME='adv-advance' and ADV_MCP_SERVER_URL='http://localhost:6298/mcp' inserted at L178-179 with explanatory comment citing Tier-4 read surface + DDC1 port rationale. |\n| AC2 | acceptance_criterion | `check_config()` emits a `✓` line when `.mcp.adv-advance.url` matches | pass | check_config() block at L845-854 emits ✓ on match and ✗ with expected URL on mismatch; bumps config_issues on failure. Verified against live config (✓) and stripped fixture (✗). |\n| AC3 | acceptance_criterion | `fix_config()` includes a patch step that inserts the entry when missing, | pass | fix_config() block at L1169-1178 inserts entry when missing, before the JSONC fail-loud branch (L1235 unchanged). Appends '+ add mcp.adv-advance (Tier-4 read surface, ...)' to patches_summary. |\n| AC4 | acceptance_criterion | JSONC fail-loud path is unchanged — operator gets a manual-edit restore | pass | fix_config() JSONC fail-loud branch (L1235-onwards) is unchanged; new patch rides the same $tmp_json accumulator and patches_summary variable; jq never rewrites live JSONC. |\n| AC5 | acceptance_criterion | `shellcheck scripts/deploy-local.sh` reports no new warnings on edited | pass | shellcheck 0.10.0 reports 0 warnings on L175-179, L845-854, L1169-1178. Pre-existing warnings on untouched lines remain unchanged. |\n| AC6 | acceptance_criterion | Live opencode.jsonc (which already has the entry) is NOT mutated by this | pass | diff --stat shows 1 file changed, 29 insertions, 0 deletions (scripts/deploy-local.sh only). No other files touched; live opencode.jsonc not modified by this change. |\n| C1 | constraint | Follow the existing `plugin` array check/patch pattern exactly (lines 831 and | respected | New check/patch blocks mirror the plugin-array check (L837) and patch (L1160) patterns exactly: same jq --arg quoting, same patches_summary append style, same config_issues bump. |\n| C2 | constraint | No new spec deltas; this is a deploy-script operational improvement. | respected | No spec deltas added (verified via adv_change_show deltas empty). Deploy-script operational improvement only. |\n| C3 | constraint | No mutation of the live opencode.jsonc. | respected | Live opencode.jsonc not mutated; only scripts/deploy-local.sh edited. Live --check reads but does not write. |\n| C4 | constraint | No vision config or MCP server artifact changes. | respected | No changes to vision config or MCP server artifacts; only the opencode.jsonc mcp registration is touched (as data, not as code). |\n| C5 | constraint | Preserve the JSONC fail-loud policy — jq-driven rewrites of live JSONC stay | respected | JSONC fail-loud branch at L1235 unchanged; jq rewrites only $tmp_json accumulator. Live JSONC writes remain forbidden. |\n| DONT1 | avoidance | Do not add a separate JSONC-aware rewriter (existing policy is fail-loud). | respected | No JSONC-aware rewriter added. Existing fail-loud policy preserved verbatim. |\n| DONT2 | avoidance | Do not register other MCP servers (context7/exa/etc.) — those are not | respected | Only ADV_MCP_SERVER_NAME='adv-advance' registered; no other servers touched. |\n| DONT3 | avoidance | Do not remove or rewrite existing checks/patches. | respected | Existing plugin/instructions/legacy-key checks and patches unchanged. diff shows pure additions only (29 insertions, 0 deletions). |\n| OOS1 | out_of_scope | Defining a deprecation path for the bridge (still TEMPORARY_BRIDGE). | not_applicable | Bridge deprecation path not defined; registerAdvAdvanceMcpServer remains TEMPORARY_BRIDGE classification in Concord inventory. |\n| OOS2 | out_of_scope | Editing any other script, doc, or config file. | not_applicable | Only scripts/deploy-local.sh edited. No other script, doc, or config file touched. |\n| OOS3 | out_of_scope | Mutating the live config or any vision config. | not_applicable | No live config or vision config mutation. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-27T23:31:13.615Z",
+      "contentHash": "4f93dcfadea0df1ed768792fc444150d18de1f2c6c796c9bb2f8b65f2b287ba9",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-27T23:32:04.889Z",
+      "contentHash": "fb1493e811ca9e945191f5a6a9b291cd0b15172d1997a1c56402e3a66dae537d",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-27T23:32:04.889Z",
+      "contentHash": "9a22374fad510731eb9cf6082f404584e3346f086596ad8bb88cc05da35dc757",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-27T23:40:06.758Z",
+      "contentHash": "d073f49d912df90ad848d21bc913804997bf0d420acf1fff07f6bc4bead5a68d",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-27T23:41:48.499Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "epic_membership": {
+    "epic_id": "optimizeAdvToolSurface",
+    "entry_id": "entry-durable-mcp-registration",
+    "order": 7,
+    "title": "Make adv-advance MCP registration durable in deploy-local.sh",
+    "linked_at": "2026-07-27T23:39:39.628Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  }
+}
