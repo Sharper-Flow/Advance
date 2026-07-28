@@ -136,9 +136,7 @@ export const ReleaseNotesArchiveEnvelopeSchema = z
     schema_version: z.literal("1.0"),
     change_id: z.string(),
     title: z.string(),
-    release_notes: z
-      .array(ReleaseNotesContentSchema)
-      .max(RELEASE_NOTES_COLLECTION_MAX),
+    release_notes: ReleaseNotesContentSchema,
   })
   .refine(
     (envelope) => {
@@ -1320,7 +1318,7 @@ export const ChangeSchema = z
      * Optional release-notes content for this change. Additive/backward-
      * compatible; absence means no release notes have been authored yet.
      */
-    release_notes: z.array(ReleaseNotesContentSchema).optional(),
+    release_notes: ReleaseNotesContentSchema.optional(),
 
     /**
      * Worker-bundle impact classification for release-readiness gating.

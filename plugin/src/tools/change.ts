@@ -2812,12 +2812,9 @@ export const changeTools = {
         .string()
         .min(1)
         .describe("Change ID to set release notes on."),
-      release_notes: z
-        .array(ReleaseNotesContentSchema)
-        .min(1)
-        .describe(
-          "Complete release-note content block(s) to replace any existing release_notes. Each entry requires audience and category; all other fields are optional.",
-        ),
+      release_notes: ReleaseNotesContentSchema.describe(
+        "Complete release-note content block to replace any existing release_notes. It requires audience and category; all other fields are optional.",
+      ),
       target_path: targetPathSchema.shape.target_path,
       target_confirmed: targetPathSchema.shape.target_confirmed,
       confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
@@ -2831,7 +2828,7 @@ export const changeTools = {
         confirmationEvidence,
       }: {
         changeId: string;
-        release_notes: ReleaseNotesContent[];
+        release_notes: ReleaseNotesContent;
         target_path?: string;
         target_confirmed?: true;
         confirmationEvidence?: string;
@@ -2861,10 +2858,8 @@ export const changeTools = {
           });
         }
 
-        const notesValidation = z
-          .array(ReleaseNotesContentSchema)
-          .min(1)
-          .safeParse(release_notes);
+        const notesValidation =
+          ReleaseNotesContentSchema.safeParse(release_notes);
         if (!notesValidation.success) {
           return formatToolOutput({
             success: false,

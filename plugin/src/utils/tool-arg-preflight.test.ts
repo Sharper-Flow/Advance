@@ -1436,13 +1436,15 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     toolName: "adv_change_set_release_notes",
     schema: {
       changeId: z.string(),
-      release_notes: z.array(ReleaseNotesContentSchema),
+      release_notes: ReleaseNotesContentSchema,
     },
     rawArgs: {
       changeId: "c",
-      release_notes: [
-        { audience: "external", category: "added", headline_external: "x" },
-      ],
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
     },
     ok: true,
   },
@@ -1451,13 +1453,15 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     toolName: "adv_change_set_release_notes",
     schema: {
       changeId: z.string(),
-      release_notes: z.array(ReleaseNotesContentSchema),
+      release_notes: ReleaseNotesContentSchema,
     },
     rawArgs: {
       changeId: " ",
-      release_notes: [
-        { audience: "external", category: "added", headline_external: "x" },
-      ],
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
     },
     ok: false,
     fields: ["changeId"],
@@ -1467,22 +1471,26 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     toolName: "adv_change_set_release_notes",
     schema: {
       changeId: z.string(),
-      release_notes: z.array(ReleaseNotesContentSchema),
+      release_notes: ReleaseNotesContentSchema,
       target_path: z.string().optional(),
     },
     rawArgs: {
       changeId: "c",
-      release_notes: [
-        { audience: "external", category: "added", headline_external: "x" },
-      ],
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
       target_path: " ",
     },
     ok: true,
     normalizedArgs: {
       changeId: "c",
-      release_notes: [
-        { audience: "external", category: "added", headline_external: "x" },
-      ],
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
     },
   },
 ];

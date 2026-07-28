@@ -88,14 +88,12 @@ const tools = changeTools as unknown as Record<
   }
 >;
 
-const validReleaseNotes: ReleaseNotesContent[] = [
-  {
-    audience: "external",
-    category: "added",
-    headline_external: "Added release-note setter",
-    area: "workflow",
-  },
-];
+const validReleaseNotes: ReleaseNotesContent = {
+  audience: "external",
+  category: "added",
+  headline_external: "Added release-note setter",
+  area: "workflow",
+};
 
 describe("adv_change_set_release_notes", () => {
   beforeEach(() => {
@@ -142,9 +140,7 @@ describe("adv_change_set_release_notes", () => {
     const result = await tools.adv_change_set_release_notes.execute(
       {
         changeId: "release-notes-change",
-        release_notes: [
-          { category: "added" } as unknown as ReleaseNotesContent,
-        ],
+        release_notes: { category: "added" } as unknown as ReleaseNotesContent,
       },
       store,
     );
@@ -160,12 +156,10 @@ describe("adv_change_set_release_notes", () => {
     const result = await tools.adv_change_set_release_notes.execute(
       {
         changeId: "release-notes-change",
-        release_notes: [
-          {
-            audience: "external",
-            category: "unknown-category",
-          } as unknown as ReleaseNotesContent,
-        ],
+        release_notes: {
+          audience: "external",
+          category: "unknown-category",
+        } as unknown as ReleaseNotesContent,
       },
       store,
     );

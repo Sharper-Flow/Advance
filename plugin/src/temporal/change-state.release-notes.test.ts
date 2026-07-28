@@ -34,14 +34,12 @@ function validPayload(
   overrides: Partial<ReleaseNotesSetSignalPayload> = {},
 ): ReleaseNotesSetSignalPayload {
   return ReleaseNotesSetSignalPayloadSchema.parse({
-    release_notes: [
-      {
-        audience: "external",
-        category: "added",
-        headline_external: "Added release-note setter",
-        area: "workflow",
-      },
-    ],
+    release_notes: {
+      audience: "external",
+      category: "added",
+      headline_external: "Added release-note setter",
+      area: "workflow",
+    },
     set_at: "2026-01-01T00:00:01.000Z",
     operation_id: "op-release-notes-1",
     command_kind: "releaseNotesSet",
@@ -55,9 +53,8 @@ describe("applyReleaseNotesSetToState", () => {
     const state = baseState();
     applyReleaseNotesSetToState(state, validPayload());
 
-    expect(state.release_notes).toHaveLength(1);
-    expect(state.release_notes?.[0]?.audience).toBe("external");
-    expect(state.release_notes?.[0]?.category).toBe("added");
+    expect(state.release_notes?.audience).toBe("external");
+    expect(state.release_notes?.category).toBe("added");
     expect(state.state_revision).toBe(6);
     expect(state.lastSignalAt).toBe("2026-01-01T00:00:01.000Z");
     expect(state.operation_ledger?.["op-release-notes-1"]).toMatchObject({
@@ -72,7 +69,7 @@ describe("applyReleaseNotesSetToState", () => {
   it("rejects invalid payload and records signal rejection", () => {
     const state = baseState();
     applyReleaseNotesSetToState(state, {
-      release_notes: [{ audience: "invalid", category: "added" }],
+      release_notes: { audience: "invalid", category: "added" },
       set_at: "2026-01-01T00:00:01.000Z",
       operation_id: "op-release-notes-invalid",
       command_kind: "releaseNotesSet",
@@ -107,17 +104,15 @@ describe("applyReleaseNotesSetToState", () => {
       state,
       validPayload({
         payload_hash: "hash-2",
-        release_notes: [
-          {
-            audience: "internal",
-            category: "changed",
-            headline_internal: "Changed something",
-          },
-        ],
+        release_notes: {
+          audience: "internal",
+          category: "changed",
+          headline_internal: "Changed something",
+        },
       }),
     );
 
-    expect(state.release_notes?.[0]?.audience).toBe("external");
+    expect(state.release_notes?.audience).toBe("external");
     expect(state.signal_rejections).toHaveLength(1);
     expect(state.signal_rejections?.[0]?.signalName).toBe("releaseNotesSet");
     expect(state.operation_ledger?.["op-release-notes-1"]).toMatchObject({
@@ -133,18 +128,16 @@ describe("applyReleaseNotesSetToState", () => {
       validPayload({
         operation_id: "op-release-notes-2",
         payload_hash: "hash-2",
-        release_notes: [
-          {
-            audience: "internal",
-            category: "changed",
-            headline_internal: "Changed something",
-          },
-        ],
+        release_notes: {
+          audience: "internal",
+          category: "changed",
+          headline_internal: "Changed something",
+        },
       }),
     );
 
     expect(state.state_revision).toBe(7);
-    expect(state.release_notes?.[0]?.audience).toBe("internal");
+    expect(state.release_notes?.audience).toBe("internal");
   });
 
   it("keeps release_notes undefined when never set (legacy compatibility)", () => {

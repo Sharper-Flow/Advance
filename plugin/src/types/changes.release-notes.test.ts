@@ -128,16 +128,35 @@ describe("ReleaseNotesContentSchema", () => {
 });
 
 describe("ReleaseNotesArchiveEnvelopeSchema", () => {
+  test("accepts one release-note object and rejects an array", () => {
+    const envelope = {
+      schema_version: "1.0",
+      change_id: "addReleaseNotesData",
+      title: "Add release notes data schemas",
+      release_notes: validContent,
+    };
+
+    expect(
+      ReleaseNotesArchiveEnvelopeSchema.parse(envelope).release_notes,
+    ).toEqual(validContent);
+    expect(() =>
+      ReleaseNotesArchiveEnvelopeSchema.parse({
+        ...envelope,
+        release_notes: [validContent],
+      }),
+    ).toThrow();
+  });
+
   test("accepts a valid envelope", () => {
     const envelope = {
       schema_version: "1.0",
       change_id: "addReleaseNotesData",
       title: "Add release notes data schemas",
-      release_notes: [validContent],
+      release_notes: validContent,
     };
     const parsed = ReleaseNotesArchiveEnvelopeSchema.parse(envelope);
     expect(parsed.schema_version).toBe("1.0");
-    expect(parsed.release_notes).toHaveLength(1);
+    expect(parsed.release_notes).toEqual(validContent);
   });
 
   test("rejects wrong schema_version", () => {
@@ -146,18 +165,7 @@ describe("ReleaseNotesArchiveEnvelopeSchema", () => {
         schema_version: "2.0",
         change_id: "addReleaseNotesData",
         title: "Add release notes data schemas",
-        release_notes: [validContent],
-      }),
-    ).toThrow();
-  });
-
-  test("rejects more than 20 release notes", () => {
-    expect(() =>
-      ReleaseNotesArchiveEnvelopeSchema.parse({
-        schema_version: "1.0",
-        change_id: "addReleaseNotesData",
-        title: "Add release notes data schemas",
-        release_notes: Array.from({ length: 21 }, () => validContent),
+        release_notes: validContent,
       }),
     ).toThrow();
   });
@@ -167,13 +175,11 @@ describe("ReleaseNotesArchiveEnvelopeSchema", () => {
       schema_version: "1.0",
       change_id: "addReleaseNotesData",
       title: "Add release notes data schemas",
-      release_notes: [
-        {
-          ...validContent,
-          headline_external: "x".repeat(2000),
-          highlights: Array.from({ length: 20 }, () => "x".repeat(2000)),
-        },
-      ],
+      release_notes: {
+        ...validContent,
+        headline_external: "x".repeat(2000),
+        highlights: Array.from({ length: 20 }, () => "x".repeat(2000)),
+      },
     };
     const bytes = new TextEncoder().encode(JSON.stringify(envelope)).length;
     expect(bytes).toBeGreaterThan(RELEASE_NOTES_ENVELOPE_MAX_BYTES);
@@ -187,10 +193,9 @@ describe("ChangeSchema release_notes passthrough", () => {
   test("ChangeSchema accepts optional release_notes", () => {
     const parsed = ChangeSchema.parse({
       ...minimalChange,
-      release_notes: [validContent],
+      release_notes: validContent,
     });
-    expect(parsed.release_notes).toHaveLength(1);
-    expect(parsed.release_notes?.[0]?.audience).toBe("external");
+    expect(parsed.release_notes?.audience).toBe("external");
   });
 
   test("ChangeSchema survives legacy changes without release_notes", () => {

@@ -283,7 +283,7 @@ export type WorkerBundleImpactSetSignalPayload = z.infer<
 
 export const ReleaseNotesSetSignalPayloadSchema = z
   .object({
-    release_notes: z.array(ReleaseNotesContentSchema),
+    release_notes: ReleaseNotesContentSchema,
     set_at: IsoTimestampSchema,
   })
   .merge(CommandOperationEnvelopeSchema);

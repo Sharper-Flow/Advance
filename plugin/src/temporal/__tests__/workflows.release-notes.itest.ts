@@ -40,14 +40,12 @@ function makeChangeInput(changeId: string): ChangeWorkflowInput {
 
 function makeValidPayload(): ReleaseNotesSetSignalPayload {
   return {
-    release_notes: [
-      {
-        audience: "external",
-        category: "added",
-        headline_external: "Added release-note setter",
-        area: "workflow",
-      },
-    ],
+    release_notes: {
+      audience: "external",
+      category: "added",
+      headline_external: "Added release-note setter",
+      area: "workflow",
+    },
     set_at: new Date().toISOString(),
     operation_id: "op-release-notes-itest-1",
     command_kind: "releaseNotesSet",
@@ -76,8 +74,7 @@ describe("changeWorkflow releaseNotesSetSignal integration", () => {
         await handle.signal(releaseNotesSetSignal, payload);
 
         const state = await handle.query(changeStateQuery);
-        expect(state.release_notes).toHaveLength(1);
-        expect(state.release_notes?.[0]).toMatchObject({
+        expect(state.release_notes).toMatchObject({
           audience: "external",
           category: "added",
           headline_external: "Added release-note setter",
@@ -112,7 +109,7 @@ describe("changeWorkflow releaseNotesSetSignal integration", () => {
         });
 
         await handle.signal(releaseNotesSetSignal, {
-          release_notes: [{ audience: "invalid", category: "added" }],
+          release_notes: { audience: "invalid", category: "added" },
           set_at: new Date().toISOString(),
           operation_id: "op-release-notes-invalid",
           command_kind: "releaseNotesSet",
@@ -152,7 +149,7 @@ describe("changeWorkflow releaseNotesSetSignal integration", () => {
         await handle.signal(releaseNotesSetSignal, payload);
 
         const state = await handle.query(changeStateQuery);
-        expect(state.release_notes).toHaveLength(1);
+        expect(state.release_notes).toBeDefined();
         expect(
           state.operation_ledger?.["op-release-notes-itest-1"],
         ).toMatchObject({
