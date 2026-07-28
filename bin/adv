@@ -57,7 +57,6 @@ import {
   loadLiveEpics,
 } from "./lib/epic-list";
 import { loadLiveResumeProjection } from "./lib/resume-projection-live";
-import { runRoadmapCommand } from "./lib/roadmap";
 import { settleWithinBudget } from "./lib/optional-enrichment";
 import { buildResumeProjectionState } from "./lib/resume-projection-state";
 
@@ -301,39 +300,6 @@ async function runEpic(argv: string[]): Promise<number> {
   }
 
   return runEpicListCommand((values.json as boolean) ?? false);
-}
-
-async function runRoadmap(argv: string[]): Promise<number> {
-  const epicId = argv[0];
-  if (!epicId) {
-    process.stderr.write("roadmap: missing <epic-id>. Use `adv roadmap <epic-id>`.\n");
-    return 2;
-  }
-
-  let values: Record<string, unknown>;
-  try {
-    const parsed = parseArgs({
-      args: argv.slice(1),
-      options: {
-        json: { type: "boolean" },
-        "no-color": { type: "boolean" },
-      },
-      allowPositionals: false,
-      strict: true,
-    });
-    values = parsed.values as Record<string, unknown>;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stderr.write(`roadmap: ${msg}\n`);
-    return 2;
-  }
-
-  const result = await runRoadmapCommand(
-    epicId,
-    (values["no-color"] as boolean) ?? false,
-    (values.json as boolean) ?? false,
-  );
-  return result.exitCode;
 }
 
 async function runDashboard(argv: string[]): Promise<number> {
@@ -598,13 +564,12 @@ SUBCOMMANDS:
   dashboard doctor      Check dashboard user service health
   slop-scan            Run deterministic slop scanner
   epic list            Show live Epic IDs from Temporal Visibility (JSON-only)
-  roadmap <epic-id>    Show Epic roadmap + repo backlog future-work rows
 
 FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
-      --json              Output JSON for status, slop-scan, roadmap; required for epic list
+      --json              Output JSON for status, slop-scan; required for epic list
 
 FLAGS (dashboard only):
       --config <path>      Dashboard config JSON (schema_version 1)
@@ -621,7 +586,6 @@ EXIT CODES:
   1  Not in a git repo, git failure, or unknown command
    2  Live Temporal status unavailable (status)
       Epic list unavailable or JSON flag missing (epic list)
-      Roadmap unavailable (roadmap)
       Dashboard config/server error (dashboard)
 
 
@@ -715,10 +679,6 @@ async function main(argv: string[]): Promise<number> {
 
   if (subcommand === "epic") {
     return runEpic(argv.slice(1));
-  }
-
-  if (subcommand === "roadmap") {
-    return runRoadmap(argv.slice(1));
   }
 
   if (subcommand === "dashboard") {

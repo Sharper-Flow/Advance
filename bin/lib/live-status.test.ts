@@ -5,7 +5,6 @@ import {
   buildLiveStatusPayloadFromSummaries,
   buildSummaryFromSearchAttributes,
   filterTerminalSummaries,
-  listLiveChangeStates,
   QUERY_TIMEOUT_MS,
   summariesFromVisibility,
 } from "./live-status";
@@ -87,18 +86,6 @@ const liveState = {
 };
 
 describe("live status reader", () => {
-  test("lists and queries live Temporal workflow states by string query name", async () => {
-    const states = await listLiveChangeStates(
-      fakeClient({ liveChange: liveState }),
-      {
-        projectId: "project123",
-      },
-    );
-
-    expect(states.map((state) => state.id)).toEqual(["liveChange"]);
-    expect(states[0]?.created_at).toBe("2026-06-05T10:00:00.000Z");
-  });
-
   test("does not include disk-only active changes in the live payload", async () => {
     const payload = buildLiveStatusPayload(
       [
@@ -127,25 +114,6 @@ describe("live status reader", () => {
       "diskOnly",
     );
     expect(payload.counts).toEqual({ active: 1, archived: 2, closed: 1 });
-  });
-
-  test("fails closed when visibility listing fails", async () => {
-    await expect(
-      listLiveChangeStates(
-        fakeClient({}, new Error("visibility unavailable")),
-        {
-          projectId: "project123",
-        },
-      ),
-    ).rejects.toThrow("visibility unavailable");
-  });
-
-  test("fails closed when any enumerated workflow query fails", async () => {
-    await expect(
-      listLiveChangeStates(fakeClient({ broken: new Error("query timeout") }), {
-        projectId: "project123",
-      }),
-    ).rejects.toThrow("query timeout");
   });
 
   test("uses bounded query timeout constant", () => {
