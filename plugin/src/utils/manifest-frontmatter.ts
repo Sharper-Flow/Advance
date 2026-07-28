@@ -12,6 +12,7 @@
 
 import { readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 import YAML from "yaml";
 import { AGENT_TOOL_POLICY } from "../tool-role-policy";
 
@@ -197,4 +198,87 @@ export function scanDir(
 
   walk(dir);
   return { checked, failures };
+}
+
+// ── runtimeFrontmatterCheck (plugin-init) ──────────────────────────────
+
+/**
+ * Bounded frontmatter scan for plugin initialization. Scans the deployed
+ * global agents/commands directories, warns on unparseable files, and
+ * enforces a startup-time budget. Never throws.
+ *
+ * rq-advOwnedFrontmatterValid01 / DDC1 (≤ 300 ms budget).
+ */
+export function runtimeFrontmatterCheck(
+  budgetMs = 300,
+  dirs?: string[],
+): {
+  checked: number;
+  failures: number;
+  elapsedMs: number;
+  budgetExceeded: boolean;
+} {
+  const start = performance.now();
+  const scanDirs = dirs ?? [
+    join(homedir(), ".config", "opencode", "agents"),
+    join(homedir(), ".config", "opencode", "command"),
+  ];
+
+  let checked = 0;
+  let failures = 0;
+
+  function walk(d: string): void {
+    if (performance.now() - start > budgetMs) return;
+    let entries: string[];
+    try {
+      entries = readdirSync(d);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (performance.now() - start > budgetMs) return;
+      const fullPath = join(d, entry);
+      let stat;
+      try {
+        stat = statSync(fullPath);
+      } catch {
+        continue;
+      }
+      if (stat.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.endsWith(".md")) {
+        checked++;
+        const result = parseFrontmatter(fullPath);
+        if (!result.ok) {
+          failures++;
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[ADV] frontmatter: ${fullPath} — ${result.error}`,
+          );
+        }
+      }
+    }
+  }
+
+  for (const dir of scanDirs) {
+    walk(dir);
+  }
+
+  const elapsedMs = performance.now() - start;
+  const budgetExceeded = elapsedMs > budgetMs;
+
+  if (failures > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[ADV] frontmatter: ${failures} unparseable manifest(s) in ${checked} checked (${elapsedMs.toFixed(0)}ms)`,
+    );
+  }
+  if (budgetExceeded) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[ADV] frontmatter: scan budget exceeded (${elapsedMs.toFixed(0)}ms > ${budgetMs}ms), some files not checked`,
+    );
+  }
+
+  return { checked, failures, elapsedMs, budgetExceeded };
 }

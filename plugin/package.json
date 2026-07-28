@@ -47,7 +47,8 @@
     "jsonc-parser": "^3.3.1",
     "lru-cache": "^11.3.6",
     "nanoid": "^5.0.9",
-    "zod": "^4.3.6"
+    "zod": "^4.3.6",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@ast-grep/cli": "^0.44.1",
@@ -66,8 +67,7 @@
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.8",
-    "vitest": "^4.1.4",
-    "yaml": "^2.9.0"
+    "vitest": "^4.1.4"
   },
   "peerDependencies": {
     "typescript": "^5.0.0 || ^6.0.0"

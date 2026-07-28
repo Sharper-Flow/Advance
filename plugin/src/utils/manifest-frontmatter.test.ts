@@ -7,6 +7,7 @@ import {
   parseFrontmatter,
   assertPolicyMatch,
   scanDir,
+  runtimeFrontmatterCheck,
 } from "./manifest-frontmatter";
 
 describe("parseFrontmatterText", () => {
@@ -189,5 +190,57 @@ body`,
     expect(result.failures.length).toBe(1);
     expect(result.failures[0].file).toContain("broken.md");
     rmSync(tmp, { recursive: true, force: true });
+  });
+});
+
+describe("runtimeFrontmatterCheck", () => {
+  it("reports failures for broken files and respects budget", () => {
+    const tmp = join(tmpdir(), `fm-rt-${Date.now()}`);
+    mkdirSync(tmp, { recursive: true });
+    writeFileSync(
+      join(tmp, "clean.md"),
+      `---
+name: clean
+tools:
+  adv_spec: true
+---
+body`,
+    );
+    writeFileSync(
+      join(tmp, "broken.md"),
+      `---
+name: broken
+> **bad**
+---
+body`,
+    );
+
+    const result = runtimeFrontmatterCheck(300, [tmp]);
+    expect(result.checked).toBe(2);
+    expect(result.failures).toBe(1);
+    expect(result.elapsedMs).toBeLessThan(300);
+    expect(result.budgetExceeded).toBe(false);
+
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("stops scanning when budget is exceeded", () => {
+    // Use an absurdly small budget to force early exit
+    const tmp = join(tmpdir(), `fm-budget-${Date.now()}`);
+    mkdirSync(tmp, { recursive: true });
+    for (let i = 0; i < 50; i++) {
+      writeFileSync(join(tmp, `f${i}.md`), `---\nname: f${i}\n---\n`);
+    }
+    const result = runtimeFrontmatterCheck(0, [tmp]);
+    expect(result.budgetExceeded).toBe(true);
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it("handles a nonexistent directory gracefully", () => {
+    const result = runtimeFrontmatterCheck(300, [
+      join(tmpdir(), `nonexistent-${Date.now()}`),
+    ]);
+    expect(result.checked).toBe(0);
+    expect(result.failures).toBe(0);
   });
 });
