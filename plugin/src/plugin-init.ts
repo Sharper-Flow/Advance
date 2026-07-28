@@ -211,7 +211,8 @@ export async function tryInitStore(
     // rq-advOwnedFrontmatterValid01 / DDC1: bounded runtime frontmatter
     // check. Warn-only, never throws — init resilience takes precedence.
     try {
-      const { runtimeFrontmatterCheck } = await import("./utils/manifest-frontmatter");
+      const { runtimeFrontmatterCheck } =
+        await import("./utils/manifest-frontmatter");
       runtimeFrontmatterCheck(300);
     } catch {
       // Swallow — frontmatter check is advisory at init time.
