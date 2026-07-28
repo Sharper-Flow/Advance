@@ -357,9 +357,8 @@ export async function tryInitStore(
             bundleDir: dirname(workerScriptPath),
             restartChild: () => outOfProcessWorker.restartChild(),
             verifyCandidateBundle: async ({ workflowsPath, historiesDir }) => {
-              const { verifyCommittedReplayFixtures } = await import(
-                "./migration/replay-verification"
-              );
+              const { verifyCommittedReplayFixtures } =
+                await import("./migration/replay-verification");
               return verifyCommittedReplayFixtures({
                 workflowsPath,
                 historiesDir,
