@@ -58,6 +58,8 @@ import {
 } from "./lib/epic-list";
 import { loadLiveResumeProjection } from "./lib/resume-projection-live";
 import { runRoadmapCommand } from "./lib/roadmap";
+import { settleWithinBudget } from "./lib/optional-enrichment";
+import { buildResumeProjectionState } from "./lib/resume-projection-state";
 
 // =============================================================================
 // Constants
@@ -65,6 +67,16 @@ import { runRoadmapCommand } from "./lib/roadmap";
 
 const VERSION = "0.1.0";
 const EPIC_READ_ONLY_SUBCOMMANDS = new Set(["list"]);
+
+/**
+ * Wall-clock budget for the advisory resume projection.
+ *
+ * Deliberately independent of ADV_STATUS_TIMEOUT_MS: that governs primary
+ * reads, which must fail closed (rq-statusCliWorkerFree01.2). This governs
+ * enrichment, which must degrade instead. Coupling the two is what allowed a
+ * projection with no polling worker to gate the status table.
+ */
+const RESUME_ENRICHMENT_BUDGET_MS = 2_000;
 
 // =============================================================================
 // Subcommands
@@ -126,16 +138,15 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       : QUERY_TIMEOUT_MS;
 
   try {
-    const [summaries, terminalCounts, resumeResult] = await Promise.all([
+    // The resume projection is advisory and is bounded independently. It must
+    // never gate the status table — `.catch()` alone was insufficient because
+    // it handles rejection but not a slow resolve.
+    const [summaries, terminalCounts, resumeOutcome] = await Promise.all([
       loadLiveSummaries(projectId, now, timeoutMs),
       countTerminalChanges(root),
-      loadLiveResumeProjection(projectId, timeoutMs).catch(
-        (err): Awaited<ReturnType<typeof loadLiveResumeProjection>> => ({
-          live: false,
-          error: err instanceof Error ? err.message : String(err),
-          remediation:
-            "ADV resume projection unavailable. Verify Temporal is running and the project has active changes/epics.",
-        }),
+      settleWithinBudget(
+        loadLiveResumeProjection(projectId, timeoutMs),
+        RESUME_ENRICHMENT_BUDGET_MS,
       ),
     ]);
     const visibleSummaries = filterTerminalSummaries(
@@ -147,8 +158,18 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       now,
       ...terminalCounts,
     });
-    if (resumeResult.live && resumeResult.resume_projection) {
-      payload.resume_projection = resumeResult.resume_projection;
+    // Always emit the state, even on success. An absent projection must be
+    // explicable, never silently missing (DONT5).
+    payload.resume_projection_state = buildResumeProjectionState(
+      resumeOutcome,
+      now,
+    );
+    if (
+      resumeOutcome.settled &&
+      resumeOutcome.value.live &&
+      resumeOutcome.value.resume_projection
+    ) {
+      payload.resume_projection = resumeOutcome.value.resume_projection;
     }
 
     if (json) {
@@ -225,23 +246,25 @@ async function runEpicListCommand(json: boolean): Promise<number> {
       : QUERY_TIMEOUT_MS;
 
   try {
-    const [epics, resumeResult] = await Promise.all([
+    // Advisory enrichment, bounded independently of the epic list read.
+    const [epics, resumeOutcome] = await Promise.all([
       loadLiveEpics(projectId, timeoutMs),
-      loadLiveResumeProjection(
-        projectId,
-        timeoutMs,
-      ).catch(
-        (err): Awaited<ReturnType<typeof loadLiveResumeProjection>> => ({
-          live: false,
-          error: err instanceof Error ? err.message : String(err),
-          remediation:
-            "ADV resume projection unavailable. Verify Temporal is running and the project has active changes/epics.",
-        }),
+      settleWithinBudget(
+        loadLiveResumeProjection(projectId, timeoutMs),
+        RESUME_ENRICHMENT_BUDGET_MS,
       ),
     ]);
     const payload = buildLiveEpicListPayload(epics, { projectId, now });
-    if (resumeResult.live && resumeResult.resume_projection) {
-      payload.resume_projection = resumeResult.resume_projection;
+    payload.resume_projection_state = buildResumeProjectionState(
+      resumeOutcome,
+      now,
+    );
+    if (
+      resumeOutcome.settled &&
+      resumeOutcome.value.live &&
+      resumeOutcome.value.resume_projection
+    ) {
+      payload.resume_projection = resumeOutcome.value.resume_projection;
     }
     process.stdout.write(emitJson(payload) + "\n");
     return 0;
