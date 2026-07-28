@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
   getChangeHandle: vi.fn(() => handleMock),
   signalMock: vi.fn(),
   queryMock: vi.fn(),
+  withTargetPathStore: vi.fn(),
 }));
 
 const handleMock = {
@@ -48,6 +49,17 @@ vi.mock("./_adapters", () => ({
   fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   getChangeHandle: mocks.getChangeHandle,
 }));
+
+// Mock withTargetPathStore while preserving the real targetPathSchema and
+// formatTargetProjectContext (the tool imports both). Cross-project routing
+// tests configure this mock per-case.
+vi.mock("./target-project", async () => {
+  const actual =
+    await vi.importActual<typeof import("./target-project")>(
+      "./target-project",
+    );
+  return { ...actual, withTargetPathStore: mocks.withTargetPathStore };
+});
 
 function createMockStore(change: Change): Store {
   return {
@@ -272,5 +284,133 @@ describe("adv_change_set_worker_bundle_impact", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
     expect(parsed.error).toMatch(/change missing|not found/i);
+  });
+
+  test("schema exposes target_path / target_confirmed / confirmationEvidence", () => {
+    // AC1: peer-pattern target_path routing fields present in args
+    const args = tools.adv_change_set_worker_bundle_impact.args;
+    expect(args).toHaveProperty("target_path");
+    expect(args).toHaveProperty("target_confirmed");
+    expect(args).toHaveProperty("confirmationEvidence");
+
+    // Sanity: the three fields parse as optional (omittable) so existing
+    // same-project callers are unaffected.
+    const parsed = z.object(args).safeParse({
+      changeId: "c",
+      kind: "not_applicable",
+      rationale: "x",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  test("cross-project target_path with target_confirmed + confirmationEvidence routes through withTargetPathStore and uses the TARGET project store/handle", async () => {
+    // AC2/AC4/AC6: when target_path is provided and confirmed, the inner
+    // runSetImpact runs against the TARGET store, resolves the TARGET project
+    // ID via projectContext, and fires the signal against the TARGET workflow.
+    const change = activeChange();
+    const sessionStore = createMockStore(change);
+    const targetStore = createMockStore(change);
+
+    const targetContext = {
+      root: "/tmp/target-project",
+      projectId: "target-project-id",
+      trusted: false,
+      trustSource: "explicit" as const,
+      stateMode: "temporal" as const,
+      warning: undefined,
+    };
+
+    mocks.withTargetPathStore.mockImplementation(
+      async (_input: unknown, fn: (scope: unknown) => Promise<unknown>) =>
+        fn({ context: targetContext, store: targetStore }),
+    );
+
+    const result = await tools.adv_change_set_worker_bundle_impact.execute(
+      {
+        changeId: change.id,
+        kind: "required",
+        rationale: "Touches workflow-reachable code",
+        target_path: "/tmp/target-project",
+        target_confirmed: true,
+        confirmationEvidence: "Operator approved via question tool.",
+      },
+      sessionStore,
+    );
+
+    // withTargetPathStore received mutation:true + stateRequirement:"temporal-required"
+    // + the three trust fields.
+    expect(mocks.withTargetPathStore).toHaveBeenCalledTimes(1);
+    const wrapperCall = mocks.withTargetPathStore.mock.calls[0][0] as Record<
+      string,
+      unknown
+    >;
+    expect(wrapperCall.mutation).toBe(true);
+    expect(wrapperCall.stateRequirement).toBe("temporal-required");
+    expect(wrapperCall.target_path).toBe("/tmp/target-project");
+    expect(wrapperCall.target_confirmed).toBe(true);
+    expect(wrapperCall.confirmationEvidence).toBe(
+      "Operator approved via question tool.",
+    );
+
+    // Session store untouched; target store received the save.
+    expect(sessionStore.changes.save).not.toHaveBeenCalled();
+    expect(targetStore.changes.save).toHaveBeenCalledTimes(1);
+    const saved = vi.mocked(targetStore.changes.save).mock
+      .calls[0][0] as Change;
+    expect(saved.worker_bundle_impact).toMatchObject({
+      kind: "required",
+      rationale: "Touches workflow-reachable code",
+    });
+
+    // Signal fired once; project ID came from projectContext, not the session.
+    expect(mocks.getProjectId).not.toHaveBeenCalled();
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+    expect(signalCall[1]).toBe(targetStore); // activeStore passed in
+    expect(signalCall[3]).toBe(workerBundleImpactSetSignal);
+
+    // Response includes _projectContext (peer shape parity).
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.worker_bundle_impact.kind).toBe("required");
+    expect(parsed._projectContext).toMatchObject({
+      projectId: "target-project-id",
+      root: "/tmp/target-project",
+    });
+  });
+
+  test("untrusted target_path without target_confirmed returns the canonical refusal and performs NO save and NO signal", async () => {
+    // AC3/AC8: when target_path is provided without target_confirmed, the
+    // wrapper's trust gate throws TargetProjectError; the outer catch surfaces
+    // it via formatToolOutput. The inner runSetImpact never runs.
+    const change = activeChange();
+    const sessionStore = createMockStore(change);
+
+    mocks.withTargetPathStore.mockImplementation(async () => {
+      throw new Error(
+        "Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence before changing target state: /tmp/some-project",
+      );
+    });
+
+    const result = await tools.adv_change_set_worker_bundle_impact.execute(
+      {
+        changeId: change.id,
+        kind: "not_applicable",
+        rationale: "docs",
+        target_path: "/tmp/some-project",
+        // target_confirmed intentionally omitted
+      },
+      sessionStore,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error).toMatch(/Untrusted target_path mutation/);
+    expect(parsed.changeId).toBe(change.id);
+    expect(parsed.target_path).toBe("/tmp/some-project");
+
+    // AC8: no save, no signal, no workflow handle resolution.
+    expect(sessionStore.changes.save).not.toHaveBeenCalled();
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 });

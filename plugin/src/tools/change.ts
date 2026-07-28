@@ -2696,65 +2696,109 @@ export const changeTools = {
         .string()
         .min(1)
         .describe("Human-readable rationale for the classification."),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
     },
     execute: async (
       {
         changeId,
         kind,
         rationale,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
       }: {
         changeId: string;
         kind: "required" | "not_applicable";
         rationale: string;
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
       },
       store: Store,
     ) => {
-      const existing = await store.changes.get(changeId);
-      if (!existing.success || !existing.data) {
+      const runSetImpact = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        const existing = await activeStore.changes.get(changeId);
+        if (!existing.success || !existing.data) {
+          return formatToolOutput({
+            success: false,
+            error: existing.success
+              ? `Change '${changeId}' not found.`
+              : existing.error,
+            hint: "Use adv_change_list to find valid change IDs.",
+          });
+        }
+
+        const change = existing.data;
+        const confirmedAt = new Date().toISOString();
+        const worker_bundle_impact: WorkerBundleImpact = {
+          kind,
+          rationale,
+          confirmed_at: confirmedAt,
+        };
+        const updated = { ...change, worker_bundle_impact };
+        await activeStore.changes.save(updated);
+
+        const projectId =
+          projectContext?.projectId ??
+          (await getProjectId(activeStore.paths.root));
+        if (!projectId) {
+          return formatToolOutput({ error: "Could not resolve project ID" });
+        }
+        const bundle = getService();
+        if (!bundle) {
+          return formatToolOutput({ error: "Temporal service not available" });
+        }
+        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        await fireSignalAndRefresh(
+          handle,
+          activeStore,
+          changeId,
+          workerBundleImpactSetSignal,
+          {
+            worker_bundle_impact,
+            set_at: confirmedAt,
+          },
+        );
+
         return formatToolOutput({
-          success: false,
-          error: existing.success
-            ? `Change '${changeId}' not found.`
-            : existing.error,
-          hint: "Use adv_change_list to find valid change IDs.",
-        });
-      }
-
-      const change = existing.data;
-      const confirmedAt = new Date().toISOString();
-      const worker_bundle_impact: WorkerBundleImpact = {
-        kind,
-        rationale,
-        confirmed_at: confirmedAt,
-      };
-      const updated = { ...change, worker_bundle_impact };
-      await store.changes.save(updated);
-
-      const projectId = await getProjectId(store.paths.root);
-      if (!projectId) {
-        return formatToolOutput({ error: "Could not resolve project ID" });
-      }
-      const bundle = getService();
-      if (!bundle) {
-        return formatToolOutput({ error: "Temporal service not available" });
-      }
-      const handle = getChangeHandle(bundle.client, projectId, changeId);
-      await fireSignalAndRefresh(
-        handle,
-        store,
-        changeId,
-        workerBundleImpactSetSignal,
-        {
+          success: true,
+          changeId,
           worker_bundle_impact,
-          set_at: confirmedAt,
-        },
-      );
+          ...(projectContext ? { _projectContext: projectContext } : {}),
+        });
+      };
 
-      return formatToolOutput({
-        success: true,
-        changeId,
-        worker_bundle_impact,
-      });
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              mutation: true,
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runSetImpact(targetStore, formatTargetProjectContext(context)),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project worker-bundle impact set unavailable: ${errorText}`,
+            changeId,
+            target_path,
+          });
+        }
+      }
+      return runSetImpact(store);
     },
   },
 
