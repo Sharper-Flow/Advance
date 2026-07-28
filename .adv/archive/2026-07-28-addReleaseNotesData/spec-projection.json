@@ -5,7 +5,7 @@
   "capabilities": [
     {
       "capability": "advance-workflow",
-      "base_version": "1.40.0",
+      "base_version": "1.41.0",
       "target_version": "1.41.0",
       "spec_sha256": "37e197b08d24e3f49a19bf7e85b9b1f50f1a7e5da5de27e683a4cb55785ab1d8",
       "document_sha256": "1aebed99101f6939275333fb26572fa1641bdf70f992ca813a35544d4b28c09e",
@@ -148,14 +148,14 @@
         {
           "deltaId": "dl-RLNCap01",
           "operation": "add",
-          "status": "missing",
+          "status": "identical",
           "targetId": "rq-releaseNotesCapture01"
         }
       ]
     },
     {
       "capability": "advance-delivery",
-      "base_version": "1.5.0",
+      "base_version": "1.6.0",
       "target_version": "1.6.0",
       "spec_sha256": "5a221f8ec411bdbab908a9ddc84b62b4a51828fb7543a6761763f60212f1e5dd",
       "document_sha256": "388cdf11560dd0b53cf31ef2005b508e366a5d1a018b40a30ca0a395e13524de",
@@ -193,7 +193,7 @@
         {
           "deltaId": "dl-RLNSide1",
           "operation": "add",
-          "status": "missing",
+          "status": "identical",
           "targetId": "rq-releaseNotesSidecar01"
         }
       ]

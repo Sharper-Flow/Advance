@@ -3686,16 +3686,8 @@
     "confirmed_at": "2026-07-28T08:35:17.845Z"
   },
   "creation_request_hash": "b6a38575dd739c2a92bf03e625f73dc184da379baa2f52726448ce9c666d0cdf",
-  "projection_revision": 83,
+  "projection_revision": 84,
   "projection_commits": [
-    {
-      "mutation_kind": "temporal_dual_write_projection",
-      "authority_kind": "temporal",
-      "mutation_receipt_id": "addReleaseNotesData",
-      "prior_revision": 33,
-      "new_revision": 34,
-      "committed_at": "2026-07-28T14:19:19.701Z"
-    },
     {
       "mutation_kind": "temporal_dual_write_projection",
       "authority_kind": "temporal",
@@ -4096,6 +4088,14 @@
       "prior_revision": 82,
       "new_revision": 83,
       "committed_at": "2026-07-28T17:55:56.484Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addReleaseNotesData",
+      "prior_revision": 83,
+      "new_revision": 84,
+      "committed_at": "2026-07-28T17:57:31.552Z"
     }
   ],
   "state_revision": 15
