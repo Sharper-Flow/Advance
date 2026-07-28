@@ -1359,7 +1359,7 @@ refresh_deployed_temporal_workers() {
 	local mode="$1"
 	local runtime_plugin_path worker_script
 	local matches advisory legacy pid cmd
-	local bounce_grace_seconds=2
+	local bounce_grace_seconds=6
 
 	if runtime_plugin_path="$(cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P)"; then
 		worker_script="$runtime_plugin_path/dist/temporal/worker.js"
@@ -1417,6 +1417,19 @@ refresh_deployed_temporal_workers() {
 		echo "    no legacy deployed Temporal workers require signaling; self-roll capable workers skipped"
 		return 0
 	fi
+
+	# Replay-verification gate: refuse to bounce if the candidate bundle
+	# fails replay against committed histories. ADV_FORCE_DEPLOY=1 overrides.
+	if [ "${ADV_FORCE_DEPLOY:-0}" != "1" ]; then
+		if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run verify:worker-bundle >/dev/null 2>&1); then
+			echo "    ✗  Candidate worker bundle failed replay verification — refusing to bounce"
+			echo "    Set ADV_FORCE_DEPLOY=1 to override (operator accepts poisoning risk)"
+			return 1
+		fi
+	else
+		echo "    [ADV:FORCE_DEPLOY] Replay verification skipped — operator accepted poisoning risk"
+	fi
+	echo "    [ADV:RESIDUAL_RISK] Fixture corpus is advance-repo-only; cross-project workflow shapes may not be represented."
 
 	echo "    bouncing legacy deployed Temporal worker(s) for: $worker_script"
 	local failures=""
