@@ -1,0 +1,1504 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixSubagentReportRouting",
+  "title": "Fix subagent report routing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-27T23:32:53.043Z",
+  "tasks": [
+    {
+      "id": "tk-a7c40ff6debe",
+      "title": "Build the CI guard that binds sub-agent prompt bodies to AGENT_TOOL_POLICY.",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-28T00:35:14.278Z",
+      "started_at": "2026-07-28T00:46:30.766Z",
+      "completed_at": "2026-07-28T00:51:11.613Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Built AC5 guard: plugin/src/agent-prompt-policy-binding.test.ts. Grammar documented per DONT5: (1) strip ADV-GENERATED frontmatter region, (2) strip fenced code blocks, (3) match adv_[a-z0-9_]+ identifiers, (4) each match must be in agent's allowed set (derived from AGENT_TOOL_POLICY at runtime) or wrapped in adv_tool_invoke. Fixtures: 3/3 pass — true positive flagged, code-fence not flagged, invoke-wrapped not flagged. RED run tr_ms3xvg8b_6760b49d: 8 lanes with violations (expected pre-rewrite). GREEN run tr_ms3xvw66_82ce4848: 3 fixtures pass. Prompt-body tests remain red until Task 3 rewrites prompts.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/agent-prompt-policy-binding.test.ts"
+      ],
+      "checkpointSha": "21ea749f52f3381e2a74d6fd1676c673536166e2",
+      "completedAt": "2026-07-28T00:51:11.613Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC2"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "DONT5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/agent-prompt-policy-binding.test.ts"
+      ],
+      "updatedAt": "2026-07-28T00:36:58.376Z"
+    },
+    {
+      "id": "tk-8604d28f20e9",
+      "title": "Capture the AC7 red-run evidence: run the Task 1 guard against pre-rewrite prompt bodies and pin the failure output.",
+      "type": "verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a7c40ff6debe"
+        }
+      ],
+      "created_at": "2026-07-28T00:35:50.028Z",
+      "started_at": "2026-07-28T00:52:06.336Z",
+      "completed_at": "2026-07-28T00:57:34.685Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC7 evidence pinned as permanent fixture. 4 pre-rewrite excerpts, guard flags all (runId tr_ms3xyvli_a481a445). Reviewer report READY. RED run tr_ms3xvg8b_6760b49d captured 8 lanes, 39+ violations. Commit f3a73a4c.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "f3a73a4c421795b316491b0192819047d9680866",
+      "completedAt": "2026-07-28T00:57:34.685Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C6",
+          "DONT6"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Verification task, not logic-bearing implementation. Evidence is the captured guard failure output pinned as a fixture — AC7 requires demonstrating the guard fails against pre-rewrite prompts, not passing a new test.",
+        "review_evidence_ref": {
+          "report_key": "fixSubagentReportRouting|tk-8604d28f20e9|adv-reviewer|1"
+        },
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "artifact_reference",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSubagentReportRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSubagentReportRouting",
+          "task_id": "tk-8604d28f20e9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8604d28f20e9"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "npx vitest run src/agent-prompt-policy-binding.test.ts -t \"AC7 pre-rewrite evidence\""
+            ],
+            "results": "pass",
+            "evidence": "4/4 AC7 fixture tests pass (adv_run_test runId tr_ms3xyvli_a481a445). Guard correctly flags pre-rewrite violation patterns: bare imperative direct calls to adv_subagent_report_submit and adv_run_test in prose outside code fences."
+          },
+          "scope_drift": {
+            "items": [],
+            "details": "No scope drift. AC7 fixture evidence is within agreed scope.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx vitest run src/agent-prompt-policy-binding.test.ts -t \"AC7 pre-rewrite evidence\""
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-07-28T00:54:23.549Z"
+    },
+    {
+      "id": "tk-dcb1653f6f0e",
+      "title": "Rewrite sub-agent prompt bodies to route non-Tier-1 ADV tools through `adv_tool_invoke`, and rescope the retry amplifier.",
+      "type": "docs",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a7c40ff6debe"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-8604d28f20e9"
+        }
+      ],
+      "created_at": "2026-07-28T00:36:10.378Z",
+      "started_at": "2026-07-28T00:58:39.840Z",
+      "completed_at": "2026-07-28T01:09:33.617Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "8 prompt-body files rewritten. 52 violations → 0. Full guard 17/17 pass (runId tr_ms3yihh9_84e483c3). ADV-GENERATED regions unchanged (AC8). Retry rescope correct (AC4). Engineer report submitted.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "d2b4ad2442d14ff003ce3451ac1e10cd47a81e33",
+      "completedAt": "2026-07-28T01:09:33.617Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC3"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Prompt-body rewrite verified by the AC5 guard (Task 1) reporting zero violations — the guard IS the test. Diff review confirms ADV-GENERATED regions untouched (AC8) and retry rescoped (AC4). Not a separate test route because the proof is the existing guard passing green, not a new test.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "review",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "touched_files": [],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSubagentReportRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSubagentReportRouting",
+          "task_id": "tk-dcb1653f6f0e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dcb1653f6f0e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            ".opencode/agents/adv-designer.md",
+            ".opencode/agents/adv-engineer.md",
+            ".opencode/agents/adv-researcher.md",
+            ".opencode/agents/adv-reviewer.md",
+            ".opencode/agents/adv-temporal-repair.md",
+            ".opencode/agents/adv-tron.md",
+            ".opencode/agents/adv-verifier.md",
+            ".opencode/agents/adv-visual-review.md"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms3ygnjz_24123d7d",
+              "command": "npx vitest run src/agent-prompt-policy-binding.test.ts --reporter verbose",
+              "exit_code": 0,
+              "summary": "All 17 tests pass (0 failures) in agent-prompt-policy-binding.test.ts"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Rewrote every non-Tier-1 ADV tool prose reference to adv_tool_invoke({name, args}) form across the 8 in-scope sub-agent prompts.",
+              "why": "AC5/AC1 binds prompt-body call instructions to AGENT_TOOL_POLICY; tools outside the Tier-1 allowed set must be dispatched through the Tier-3 invoke surface so prose cannot drift from the role firewall."
+            },
+            {
+              "what": "Rescoped the adv-engineer.md retry amplifier to transport-only retries and added a ROLE_FIREWALL_BLOCK no-retry payload-emission fallback.",
+              "why": "AC4 requires the agent to stop retrying deterministically blocked calls and instead emit the full report payload in the final response for orchestrator recovery."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Rewrote the same direct-call ADV tool pattern across all 8 in-scope sub-agent prompt bodies; no other instances remain in scope.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All 8 sub-agent prompt bodies now route non-Tier-1 ADV tools through adv_tool_invoke; the adv-engineer retry amplifier distinguishes transport failures from ROLE_FIREWALL_BLOCK rejections. The AC5 verifier passes with 17/17 tests.",
+            "suggested_next_action": "Run bin/oc-test smoke or full to confirm no regressions, then proceed to design review / gate completion."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms3ygnjz_24123d7d"
+            }
+          ]
+        }
+      ],
+      "updatedAt": "2026-07-28T01:08:55.313Z",
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      }
+    },
+    {
+      "id": "tk-55feae076c68",
+      "title": "Verify that all invariants the agreement marks as unmodified are in fact unmodified, and that existing test suites pass.",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-dcb1653f6f0e"
+        }
+      ],
+      "created_at": "2026-07-28T00:36:25.207Z",
+      "started_at": "2026-07-28T01:10:04.232Z",
+      "completed_at": "2026-07-28T01:10:40.941Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC2/AC3: git diff trunk...HEAD for tool-role-policy.ts and tool-role-firewall.ts is empty — both files byte-identical to trunk. AC9: 62/62 tests pass across 4 suites (agent-tool-contracts-assets, subagent-reports-spec-assets, tool-role-policy, agent-prompt-policy-binding) — runId tr_ms3ylgf7_1b35957a. Tool-role-policy.test validates manifest exactness, blockable set derivation, and roster parity unchanged. Full diff stat: 9 files changed (8 prompts + 1 test), 342 insertions, 53 deletions. No policy/firewall/config files touched.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "d2b4ad2442d14ff003ce3451ac1e10cd47a81e33",
+      "completedAt": "2026-07-28T01:10:40.941Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC2",
+          "AC3",
+          "AC9"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [],
+      "updatedAt": "2026-07-28T00:36:58.382Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSubagentReportRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSubagentReportRouting",
+      "task_id": "tk-8604d28f20e9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8604d28f20e9"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "npx vitest run src/agent-prompt-policy-binding.test.ts -t \"AC7 pre-rewrite evidence\""
+        ],
+        "results": "pass",
+        "evidence": "4/4 AC7 fixture tests pass (adv_run_test runId tr_ms3xyvli_a481a445). Guard correctly flags pre-rewrite violation patterns: bare imperative direct calls to adv_subagent_report_submit and adv_run_test in prose outside code fences."
+      },
+      "scope_drift": {
+        "items": [],
+        "details": "No scope drift. AC7 fixture evidence is within agreed scope.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx vitest run src/agent-prompt-policy-binding.test.ts -t \"AC7 pre-rewrite evidence\""
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSubagentReportRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSubagentReportRouting",
+      "task_id": "tk-dcb1653f6f0e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dcb1653f6f0e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".opencode/agents/adv-designer.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-researcher.md",
+        ".opencode/agents/adv-reviewer.md",
+        ".opencode/agents/adv-temporal-repair.md",
+        ".opencode/agents/adv-tron.md",
+        ".opencode/agents/adv-verifier.md",
+        ".opencode/agents/adv-visual-review.md"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms3ygnjz_24123d7d",
+          "command": "npx vitest run src/agent-prompt-policy-binding.test.ts --reporter verbose",
+          "exit_code": 0,
+          "summary": "All 17 tests pass (0 failures) in agent-prompt-policy-binding.test.ts"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Rewrote every non-Tier-1 ADV tool prose reference to adv_tool_invoke({name, args}) form across the 8 in-scope sub-agent prompts.",
+          "why": "AC5/AC1 binds prompt-body call instructions to AGENT_TOOL_POLICY; tools outside the Tier-1 allowed set must be dispatched through the Tier-3 invoke surface so prose cannot drift from the role firewall."
+        },
+        {
+          "what": "Rescoped the adv-engineer.md retry amplifier to transport-only retries and added a ROLE_FIREWALL_BLOCK no-retry payload-emission fallback.",
+          "why": "AC4 requires the agent to stop retrying deterministically blocked calls and instead emit the full report payload in the final response for orchestrator recovery."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Rewrote the same direct-call ADV tool pattern across all 8 in-scope sub-agent prompt bodies; no other instances remain in scope.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All 8 sub-agent prompt bodies now route non-Tier-1 ADV tools through adv_tool_invoke; the adv-engineer retry amplifier distinguishes transport failures from ROLE_FIREWALL_BLOCK rejections. The AC5 verifier passes with 17/17 tests.",
+        "suggested_next_action": "Run bin/oc-test smoke or full to confirm no regressions, then proceed to design review / gate completion."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms3ygnjz_24123d7d"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-a7c40ff6debe": [
+      {
+        "runId": "tr_ms3xvg8b_6760b49d",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run src/agent-prompt-policy-binding.test.ts --reporter verbose 2>&1",
+        "durationMs": 3819.513171999948,
+        "recordedAt": "2026-07-28T00:50:08.758Z"
+      },
+      {
+        "runId": "tr_ms3xvw66_82ce4848",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/agent-prompt-policy-binding.test.ts -t \"AC5 grammar fixtures\" --reporter verbose 2>&1",
+        "durationMs": 3886.63433299982,
+        "recordedAt": "2026-07-28T00:50:29.418Z"
+      }
+    ],
+    "tk-8604d28f20e9": [
+      {
+        "runId": "tr_ms3xyvli_a481a445",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/agent-prompt-policy-binding.test.ts -t \"AC7 pre-rewrite evidence\" --reporter verbose 2>&1",
+        "durationMs": 4171.803967999993,
+        "recordedAt": "2026-07-28T00:52:48.642Z"
+      }
+    ],
+    "tk-dcb1653f6f0e": [
+      {
+        "runId": "tr_ms3y6k8x_3fef6a4e",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run src/agent-prompt-policy-binding.test.ts --reporter json 2>&1 | node -e \"const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); const t=d.testResults||[]; for(const r of t){if(r.status==='failed'){const m=(r.message||'').split('\\n').filter(l=>l.includes(': adv_')||l.includes('violation')); for(const l of m) console.log(l.trim())}}\" 2>&1 || npx vitest run src/agent-prompt-policy-binding.test.ts --reporter verbose 2>&1",
+        "durationMs": 7399.0883929999545,
+        "recordedAt": "2026-07-28T00:58:47.180Z"
+      },
+      {
+        "runId": "tr_ms3ygnjz_24123d7d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/agent-prompt-policy-binding.test.ts --reporter verbose",
+        "durationMs": 4646.383226000238,
+        "recordedAt": "2026-07-28T01:06:38.036Z"
+      },
+      {
+        "runId": "tr_ms3yihh9_84e483c3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/agent-prompt-policy-binding.test.ts --reporter verbose 2>&1",
+        "durationMs": 4540.034111999907,
+        "recordedAt": "2026-07-28T01:08:03.468Z"
+      }
+    ],
+    "tk-55feae076c68": [
+      {
+        "runId": "tr_ms3ylgf7_1b35957a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/agent-tool-contracts-assets.test.ts src/subagent-reports-spec-assets.test.ts src/tool-role-policy.test.ts src/agent-prompt-policy-binding.test.ts --reporter verbose 2>&1",
+        "durationMs": 4478.929381999653,
+        "recordedAt": "2026-07-28T01:10:22.063Z"
+      },
+      {
+        "runId": "tr_ms3yomwq_5d118461",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/agent-prompt-policy-binding.test.ts src/tool-role-policy.test.ts src/agent-tool-contracts-assets.test.ts src/subagent-reports-spec-assets.test.ts --reporter verbose 2>&1",
+        "durationMs": 4943.343113999814,
+        "recordedAt": "2026-07-28T01:12:50.442Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:36:48.822Z",
+      "completed_by": "user",
+      "approval_evidence": "User confirmed problem statement inline: \"confirm\". Defect-origin proposal carries Root Cause Analysis tracing prompt/manifest contract drift from slimMutationToolSurface. Open design question (prompt-fix vs sub-agent union membership) deliberately left for discovery/design. User flagged adv_run_test as a possible genuine capability gap that may widen scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "ef23b335419a489cfc85a66d9510ea238c7af1232dfa9ebfa538b2331d4cd502",
+        "non_whitespace_chars": 4660,
+        "checked_at": "2026-07-27T23:33:03.528Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:47:38.314Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved agreement inline: \"approve\". Contract minted with 22 typed items: SC1-3, AC1-7, C1-4, DONT1-4, OOS1-4. Discovery closed both proposal-stage open questions by measurement: no capability gap (adv_run_test reachable via adv_tool_invoke, 67 successful dispatches from adv-engineer), and option (a) prompt-fix selected over option (b) union-widening (dispatcher proven 230/230). Real failure mode is dual-route ambiguity. Same agreement-format re-mint applied as the toolbox change.",
+      "started_at": "2026-07-27T23:45:47.992Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "bc55610d63e41a3effe6dcd42af75432720dec1aed076fbfbf247ad53661c507",
+        "non_whitespace_chars": 3230,
+        "checked_at": "2026-07-27T23:33:03.530Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:08:02.397Z",
+      "completed_by": "agent",
+      "approval_evidence": "Two independent adv-researcher validation passes. Pass 1 CAUTION: sequencing reversed to Advance-first, AC5 grammar defect found. Pass 2 CONFLICT on N2 (AC7 would merge a red test and break trunk CI, .github/workflows/ci.yml L3-7/L83-95) — corrected by adopting the validator's own prescribed remedy: capture red run pre-merge on branch or pinned fixture, merge guard+rewrite in one PR, recorded as C6/DONT6. N3 cleared: real violations at adv-engineer.md L162/L276 sit outside fenced blocks starting L168/L282, so the AC5 fence-stripping grammar does not hide them. Contract re-minted at 28 items. No third validation pass run; both post-pass-2 fixes were the validator's verbatim recommendations and are verifiable by inspection.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "953877b728bc09fbc5e87bf576f029bf71775e32b6594d8527dacab9703fd043",
+        "non_whitespace_chars": 6020,
+        "checked_at": "2026-07-27T23:33:03.531Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:46:11.216Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep gate completed via /adv-apply command-as-approval (rq-inlineApproval01.7). 4-task graph approved: build guard → capture red → rewrite prompts → verify invariants. All 9 ACs + 3 SCs covered."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-28T01:14:08.520Z",
+      "completed_by": "agent",
+      "approval_evidence": "4/4 tasks done. AC1: 52 prompt-body violations rewritten to adv_tool_invoke across 8 lanes (52→0). AC4: retry amplifier rescoped — ROLE_FIREWALL_BLOCK never retried. AC5/AC6: guard with documented grammar + 3 fixtures. AC7: red-run evidence pinned as permanent fixture. AC8: ADV-GENERATED regions byte-identical (diff verified). AC2/AC3: policy/firewall unmodified (empty diff). AC9: 62/62 tests pass across 4 suites. Full check green: schemas+typecheck+lint+format+isolation+manifests. Validation: 0 errors."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-28T01:44:09.826Z",
+      "completed_by": "user",
+      "started_at": "2026-07-28T01:43:33.296Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Temporal workflow query failure prevented executive-summary.md persistence. Contract review matrix (28 rows, 0 failing) is authoritative acceptance proof. Verification evidence dispositions recorded for tk-8604d28f20e9 and tk-dcb1653f6f0e (both fixed with durable adv_run_test runIds)."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+      "approvedAt": "2026-07-27T23:47:38.314Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Every ADV sub-agent prompt body names only the supported dispatch route for non-Tier-1 ADV tools, so a worker cannot be instructed into a call the role firewall will reject.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The prompt-to-policy contract is machine-enforced rather than prose-enforced, so future edits to either side cannot silently drift apart.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "A routing error costs at most one wasted model turn instead of three.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Every imperative direct-call reference to a non-Tier-1 `adv_*` tool in a sub-agent prompt body is rewritten to `adv_tool_invoke({name, args})` form across all nine lanes, verified by the AC5 guard reporting zero violations.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "`AGENT_TOOL_POLICY`, `TIER_1_ALLOWLIST`, `TIER_2_ALLOWLIST`, `subAgentUnionAllowlist()`, and `blockableFromSubAgentSession()` are unmodified, and no tool is added to any sub-agent allowed set, verified by diff review.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/tool-role-firewall.ts` is unmodified and its fail-closed semantics are preserved, verified by diff review.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "The retry-up-to-3-attempts submission instruction is rescoped so a typed authorization rejection carrying code `ROLE_FIREWALL_BLOCK` is never retried, while genuine transport failures retain retry and the payload-emission fallback is preserved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "A CI test binds sub-agent prompt bodies to `AGENT_TOOL_POLICY` using an explicit documented grammar that strips the ADV-GENERATED frontmatter region, excludes fenced code blocks, and matches `adv_[a-z0-9_]+` identifiers in backtick-quoted or bare prose positions, asserting each match is either in that agent's allowed set or occurs within an `adv_tool_invoke({name: \"...\"})` expression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "The AC5 guard ships with fixtures covering at least one true positive (bare imperative direct call), one code-fence case that must NOT be flagged, and one `adv_tool_invoke`-wrapped reference that must NOT be flagged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "The AC5 guard is demonstrated failing against the pre-rewrite prompt bodies, with the failure output captured as evidence from an unmerged branch or a pinned pre-rewrite fixture; the guard and the prompt rewrite then merge together in a single PR so trunk CI never observes a deliberately failing test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "The ADV-GENERATED frontmatter regions remain generator-owned and byte-identical except where the generator itself produces a change, verified by diff review.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`adv_subagent_report_submit` and `adv_run_test` remain reachable from sub-agent sessions via `adv_tool_invoke`, verified by the existing sub-agent asset and role-policy test suites passing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Prompt sources live at `~/dev/advance/.opencode/agents/*.md`; deployed copies under `~/.config/opencode/agents/` are install artifacts and must not be edited directly.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Reuse the canonical invoke-routing wording already present in each manifest's frontmatter rather than inventing new phrasing per lane.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "`adv-ci-waiter` has an empty allowed set by design and must not gain ADV tool references.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Do not hand-edit generated manifest regions; changes must survive the manifest generator.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "This change must merge and deploy BEFORE the paired toolbox change `cutAdvEngineerTokenBurn` removes the direct-call schemas from the model payload.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Trunk CI must never be knowingly left red; the AC7 red-run evidence is captured pre-merge, not by merging a failing test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add `adv_subagent_report_submit`, `adv_run_test`, or any other tool to the sub-agent union allowlist; discovery rejected this because it would widen the exact manifest surface `slimMutationToolSurface` set out to shrink.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not weaken or bypass the role firewall.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not change the Tier-1, Tier-2, or Tier-3 classification of any tool.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not fix this by editing `opencode.jsonc`; that surface belongs to `cutAdvEngineerTokenBurn` in the toolbox project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not let the AC5 guard rely on an undocumented heuristic; the grammar must be explicit and fixture-backed, or the guard reproduces the prose-drift failure it exists to prevent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not merge a deliberately failing test to trunk to satisfy AC7.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "The `slimMutationToolSurface` Tier split itself.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "`opencode.jsonc` permission drift, owned by `cutAdvEngineerTokenBurn` in the toolbox project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Token-efficiency work not caused by this defect.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Any change to `adv_tool_invoke` dispatch behavior, which discovery proved sound at 230 of 230.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-28T01:18:13.118Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "AC5 guard reports 0 violations across all 9 lanes (runId tr_ms3yihh9_84e483c3). Every prompt body now names only the supported dispatch route."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Guard test plugin/src/agent-prompt-policy-binding.test.ts — 17 tests pass, binding prose to AGENT_TOOL_POLICY at runtime"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Retry amplifier rescoped: ROLE_FIREWALL_BLOCK never retried (adv-engineer.md L276 diff)"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "52 violations rewritten to adv_tool_invoke across 8 lanes, 0 remaining (runId tr_ms3yihh9_84e483c3)"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk...HEAD -- plugin/src/tool-role-policy.ts is empty; tool-role-policy.test.ts 45 tests pass"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk...HEAD -- plugin/src/tool-role-firewall.ts is empty; fail-closed semantics preserved"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-engineer.md L276: transport failures retain retry, ROLE_FIREWALL_BLOCK excluded, payload-emission fallback preserved"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Grammar documented in test header: strip ADV-GENERATED, strip fences, match adv_[a-z0-9_]+, check allowed/invoke. 17 tests pass"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "3 fixtures: true positive flagged, code-fence not flagged, invoke-wrapped not flagged — all pass"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "4 pre-rewrite excerpt fixtures pinned in test file. RED run tr_ms3xvg8b_6760b49d captured 8 lanes. Reviewer report READY."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk...HEAD grep for ADV-GENERATED marker lines returns empty — regions byte-identical"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "62/62 tests pass across 4 suites including tool-role-policy and agent-tool-contracts-assets (runId tr_ms3ylgf7_1b35957a)"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only .opencode/agents/adv-*.md source files edited; deployed copies under ~/.config/opencode/ untouched"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Invoke-routing wording from frontmatter note reused consistently in all rewrites"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-ci-waiter.md not modified; guard verifies 0 ADV tool references (empty allowed set by design)"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "ADV-GENERATED frontmatter regions unchanged — diff grep returns empty"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Sequencing constraint: this change is ready to merge first, before paired toolbox change cutAdvEngineerTokenBurn"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Guard + rewrite merge in single PR; AC7 red-run evidence captured pre-merge as pinned fixture, not by merging failing test"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "AGENT_TOOL_POLICY, TIER_1/2_ALLOWLIST, subAgentUnionAllowlist() unmodified (AC2 empty diff)"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "tool-role-firewall.ts unmodified (AC3 empty diff)"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "TIER_1/2/3 classification unchanged — no allowlist modifications"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No changes to opencode.jsonc or any config file"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Grammar is explicit with 4 documented steps and 3 fixture-backed proofs in the test file"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No failing test merged to trunk; red evidence captured as pre-rewrite fixture on branch"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "slimMutationToolSurface Tier split not modified"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "opencode.jsonc permission drift owned by cutAdvEngineerTokenBurn in toolbox"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No token-efficiency work beyond this defect fix"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "adv_tool_invoke dispatch behavior unchanged (proven sound at 230/230)"
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Every imperative direct-call reference to a non-Tier-1 `adv_*` tool in a sub-agent prompt body is rewritten to `adv_tool_invoke({name, args})` form across all nine lanes, verified by the AC5 guard reporting zero violations.",
+    "`AGENT_TOOL_POLICY`, `TIER_1_ALLOWLIST`, `TIER_2_ALLOWLIST`, `subAgentUnionAllowlist()`, and `blockableFromSubAgentSession()` are unmodified, and no tool is added to any sub-agent allowed set, verified by diff review.",
+    "`plugin/src/tool-role-firewall.ts` is unmodified and its fail-closed semantics are preserved, verified by diff review.",
+    "The retry-up-to-3-attempts submission instruction is rescoped so a typed authorization rejection carrying code `ROLE_FIREWALL_BLOCK` is never retried, while genuine transport failures retain retry and the payload-emission fallback is preserved.",
+    "A CI test binds sub-agent prompt bodies to `AGENT_TOOL_POLICY` using an explicit documented grammar that strips the ADV-GENERATED frontmatter region, excludes fenced code blocks, and matches `adv_[a-z0-9_]+` identifiers in backtick-quoted or bare prose positions, asserting each match is either in that agent's allowed set or occurs within an `adv_tool_invoke({name: \"...\"})` expression.",
+    "The AC5 guard ships with fixtures covering at least one true positive (bare imperative direct call), one code-fence case that must NOT be flagged, and one `adv_tool_invoke`-wrapped reference that must NOT be flagged.",
+    "The AC5 guard is demonstrated failing against the pre-rewrite prompt bodies, with the failure output captured as evidence from an unmerged branch or a pinned pre-rewrite fixture; the guard and the prompt rewrite then merge together in a single PR so trunk CI never observes a deliberately failing test.",
+    "The ADV-GENERATED frontmatter regions remain generator-owned and byte-identical except where the generator itself produces a change, verified by diff review.",
+    "`adv_subagent_report_submit` and `adv_run_test` remain reachable from sub-agent sessions via `adv_tool_invoke`, verified by the existing sub-agent asset and role-policy test suites passing."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\nEvery shipped ADV sub-agent prompt instructs the worker to call `adv_subagent_report_submit` directly. The runtime role firewall blocks that call from every sub-agent session. Result: 100% failure rate on the one action every typed worker must perform.\n\nMeasured from OpenCode session DBs (partial sample, 2026-07-21 → 2026-07-27):\n\n| Lane | Tool | Calls | Errors |\n|---|---|--:|--:|\n| adv-engineer | `adv_run_test` | 60 | 60 (100%) |\n| adv-engineer | `adv_subagent_report_submit` | 24 | 24 (100%) |\n| adv-engineer | `adv_project_context` | 6 | 6 (100%) |\n| adv-reviewer | `adv_subagent_report_submit` | 18 | 18 (100%) |\n| adv-reviewer | `adv_run_test` / `adv_spec` | 2 | 2 (100%) |\n| adv-researcher | `adv_subagent_report_submit` / `adv_spec` | 3 | 3 (100%) |\n| adv-designer | `adv_run_test` | 2 | 2 (100%) |\n\nError text is stable and typed:\n\n> `Role firewall: Tool adv_subagent_report_submit is blocked from sub-agent sessions; it is reserved for the SDK-derived orchestrator root session.`\n\n## Root Cause Analysis\n\n**Mechanism (traced declaration → loader → call site → observable effect):**\n\n1. `plugin/src/tool-role-policy.ts` `AGENT_TOOL_POLICY` grants every sub-agent `TIER_1_ALLOWLIST` only (11 tools). `adv_subagent_report_submit` and `adv_run_test` are not in Tier 1.\n2. `subAgentUnionAllowlist()` unions the per-agent `allowed` sets → Tier 1. `blockableFromSubAgentSession()` returns the complement.\n3. `plugin/src/tool-role-firewall.ts` `roleFirewallCheck()` throws `RoleFirewallError` for any blockable tool whose caller session is not the SDK-derived root session. Sub-agent sessions always fail this test.\n4. The shipped agent manifests are internally consistent with (1) — generated frontmatter grants exactly Tier 1 plus an invoke-routing note.\n5. **The prompt bodies are not.** Every lane's markdown body still describes the direct call imperatively:\n\n| Prompt | Direct refs to `adv_subagent_report_submit`/`adv_run_test` | Invoke-routing examples |\n|---|--:|--:|\n| adv-designer | 7 | 1 |\n| adv-engineer | 7 | 1 |\n| adv-researcher | 5 | 1 |\n| adv-reviewer | 5 | 1 |\n| adv-tron | 5 | 1 |\n| adv-visual-review | 5 | 1 |\n| adv-temporal-repair | 2 | 1 |\n| adv-verifier | 2 | 1 |\n\n**Root cause:** prompt/manifest contract drift introduced when `slimMutationToolSurface` moved ~66 tools to invoke-only dispatch. The manifest generator was updated from `AGENT_TOOL_POLICY`; the prompt bodies were not. The single invoke-routing note lives in frontmatter, while imperative body text (\"call `adv_subagent_report_submit` with `{ report: ENGINEER_REPORT }`\", `\"test_run_id\": \"{same-task adv_run_test runId}\"`) dominates model behavior.\n\n**Amplifier:** `adv-engineer.md` § Submission Rules instructs \"retry up to 3 total attempts with exponential backoff\" on submit failure — each guaranteed-fail submit burns up to 3 full model turns, then a full-payload text dump.\n\n## Discovery findings (2026-07-27) — design question RESOLVED\n\nTwo proposal-stage open questions are now closed by measurement.\n\n### The dispatcher route works flawlessly\n\n`adv_tool_invoke` dispatch from sub-agent sessions, same sample:\n\n| Lane → tool via `adv_tool_invoke` | Calls | Errors |\n|---|--:|--:|\n| adv-engineer → `adv_subagent_report_submit` | 102 | **0** |\n| adv-engineer → `adv_run_test` | 67 | **0** |\n| adv-researcher → `adv_subagent_report_submit` | 32 | **0** |\n| adv-reviewer → `adv_subagent_report_submit` | 11 | **0** |\n| adv-designer → `adv_subagent_report_submit` | 10 | **0** |\n| adv-designer → `adv_run_test` | 8 | **0** |\n| adv-engineer → `adv_task_checkpoint` | 6 | **0** |\n\n**230 sub-agent dispatches, zero failures.**\n\n### There is NO capability gap\n\nThe proposal flagged a risk that `adv_run_test` might be unreachable from sub-agents, making the ENGINEER_REPORT `test_run_id` field structurally unsatisfiable. **That risk is disproven** — 67 successful `adv_run_test` dispatches from `adv-engineer` and 8 from `adv-designer` via `adv_tool_invoke`. The schema is satisfiable; evidence binding works on the dispatcher route.\n\n### Option (a) confirmed, option (b) rejected\n\n- **(a) Prompt fix** — rewrite sub-agent prompt bodies to route through `adv_tool_invoke`. **Selected.** Preserves `slimMutationToolSurface` intent exactly; the route is already proven at 230/230.\n- **(b) Add tools to the sub-agent union** — **rejected.** Unnecessary: the tools are already reachable. It would widen the top-level manifest surface (the exact thing `slimMutationToolSurface` set out to shrink) to solve a problem that is purely instructional.\n\n### Real failure mode: dual-route ambiguity\n\nDirect calls fail 84/84; invoke calls succeed 230/230. The model is not incapable — it is **choosing between two presented routes**, and picks the broken one roughly a third of the time. It sees the direct-call schema in its payload because `~/.config/opencode/opencode.jsonc` re-grants those tools (tracked as `cutAdvEngineerTokenBurn` RC1 in the toolbox project), while its prompt body names the direct call imperatively.\n\n**Sequencing:** the toolbox fix removes the direct schema from the payload, which should collapse the ambiguity on its own. This change is the durable correctness half — it makes the prompts state the only supported route, so the contract holds regardless of downstream config.\n\n## Scope\n\n1. Rewrite imperative direct-call references in all 9 sub-agent prompt bodies to `adv_tool_invoke({name, args})` form. Frontmatter and `AGENT_TOOL_POLICY` are already correct — **do not change the Tier split**.\n2. Remove or rescope the \"retry up to 3 total attempts\" instruction so it cannot amplify a routing error into three wasted turns.\n3. Add a CI assertion binding prompt bodies to `AGENT_TOOL_POLICY`: any `adv_*` tool named imperatively in a sub-agent prompt body must either be in that agent's `allowed` set or appear only in `adv_tool_invoke({name: \"...\"})` form. This is the structural guard that would have caught the drift at the source (P33 — make correctness structural, not prose).\n\n## Verification\n\n- Zero `Role firewall` errors in new sub-agent sessions across all lanes.\n- New CI assertion fails against the current (pre-fix) prompt bodies and passes after.\n- `adv_subagent_report_submit` success rate at 100% on the invoke route, unchanged.\n\n## Out of scope\n\n- Changing the `slimMutationToolSurface` Tier-1/2/3 split\n- Adding tools to the sub-agent union allowlist (option (b), rejected above)\n- `opencode.jsonc` permission drift → `cutAdvEngineerTokenBurn` in the toolbox project\n- Token-efficiency work not caused by this defect",
+    "problemStatement": "Every ADV sub-agent lane fails 100% of its direct `adv_subagent_report_submit` calls. The typed report — the mandatory exit protocol for every worker — never lands in durable ADV state on that path. Workers fall back to dumping the report payload as chat text for orchestrator recovery, and `adv-engineer` additionally cannot produce bindable `adv_run_test` verification evidence.",
+    "agreement": "## Objectives (narrative)\n\nClose the prompt/manifest contract drift that makes every ADV sub-agent lane fail 100% of its direct `adv_subagent_report_submit` and `adv_run_test` calls, and add a structural guard so the drift cannot silently recur. The tools are already reachable via `adv_tool_invoke` (230 of 230 successful sub-agent dispatches). This change makes the prompts state that route as the only supported one, and makes CI enforce it.\n\nThis change ships FIRST, before the paired toolbox change `cutAdvEngineerTokenBurn`. Fixing the prompts is the root-cause fix and is safe in isolation; removing the direct-call schemas first would instruct workers to call tools absent from their payload.\n\n## Success Criteria\n\n- SC1: Every ADV sub-agent prompt body names only the supported dispatch route for non-Tier-1 ADV tools, so a worker cannot be instructed into a call the role firewall will reject.\n- SC2: The prompt-to-policy contract is machine-enforced rather than prose-enforced, so future edits to either side cannot silently drift apart.\n- SC3: A routing error costs at most one wasted model turn instead of three.\n\n## Acceptance Criteria\n\n- AC1: Every imperative direct-call reference to a non-Tier-1 `adv_*` tool in a sub-agent prompt body is rewritten to `adv_tool_invoke({name, args})` form across all nine lanes, verified by the AC5 guard reporting zero violations.\n- AC2: `AGENT_TOOL_POLICY`, `TIER_1_ALLOWLIST`, `TIER_2_ALLOWLIST`, `subAgentUnionAllowlist()`, and `blockableFromSubAgentSession()` are unmodified, and no tool is added to any sub-agent allowed set, verified by diff review.\n- AC3: `plugin/src/tool-role-firewall.ts` is unmodified and its fail-closed semantics are preserved, verified by diff review.\n- AC4: The retry-up-to-3-attempts submission instruction is rescoped so a typed authorization rejection carrying code `ROLE_FIREWALL_BLOCK` is never retried, while genuine transport failures retain retry and the payload-emission fallback is preserved.\n- AC5: A CI test binds sub-agent prompt bodies to `AGENT_TOOL_POLICY` using an explicit documented grammar that strips the ADV-GENERATED frontmatter region, excludes fenced code blocks, and matches `adv_[a-z0-9_]+` identifiers in backtick-quoted or bare prose positions, asserting each match is either in that agent's allowed set or occurs within an `adv_tool_invoke({name: \"...\"})` expression.\n- AC6: The AC5 guard ships with fixtures covering at least one true positive (bare imperative direct call), one code-fence case that must NOT be flagged, and one `adv_tool_invoke`-wrapped reference that must NOT be flagged.\n- AC7: The AC5 guard is demonstrated failing against the pre-rewrite prompt bodies, with the failure output captured as evidence from an unmerged branch or a pinned pre-rewrite fixture; the guard and the prompt rewrite then merge together in a single PR so trunk CI never observes a deliberately failing test.\n- AC8: The ADV-GENERATED frontmatter regions remain generator-owned and byte-identical except where the generator itself produces a change, verified by diff review.\n- AC9: `adv_subagent_report_submit` and `adv_run_test` remain reachable from sub-agent sessions via `adv_tool_invoke`, verified by the existing sub-agent asset and role-policy test suites passing.\n\n## Constraints\n\n- C1: Prompt sources live at `~/dev/advance/.opencode/agents/*.md`; deployed copies under `~/.config/opencode/agents/` are install artifacts and must not be edited directly.\n- C2: Reuse the canonical invoke-routing wording already present in each manifest's frontmatter rather than inventing new phrasing per lane.\n- C3: `adv-ci-waiter` has an empty allowed set by design and must not gain ADV tool references.\n- C4: Do not hand-edit generated manifest regions; changes must survive the manifest generator.\n- C5: This change must merge and deploy BEFORE the paired toolbox change `cutAdvEngineerTokenBurn` removes the direct-call schemas from the model payload.\n- C6: Trunk CI must never be knowingly left red; the AC7 red-run evidence is captured pre-merge, not by merging a failing test.\n\n## Avoidances\n\n- DONT1: Do not add `adv_subagent_report_submit`, `adv_run_test`, or any other tool to the sub-agent union allowlist; discovery rejected this because it would widen the exact manifest surface `slimMutationToolSurface` set out to shrink.\n- DONT2: Do not weaken or bypass the role firewall.\n- DONT3: Do not change the Tier-1, Tier-2, or Tier-3 classification of any tool.\n- DONT4: Do not fix this by editing `opencode.jsonc`; that surface belongs to `cutAdvEngineerTokenBurn` in the toolbox project.\n- DONT5: Do not let the AC5 guard rely on an undocumented heuristic; the grammar must be explicit and fixture-backed, or the guard reproduces the prose-drift failure it exists to prevent.\n- DONT6: Do not merge a deliberately failing test to trunk to satisfy AC7.\n\n## Out of Scope\n\n- OOS1: The `slimMutationToolSurface` Tier split itself.\n- OOS2: `opencode.jsonc` permission drift, owned by `cutAdvEngineerTokenBurn` in the toolbox project.\n- OOS3: Token-efficiency work not caused by this defect.\n- OOS4: Any change to `adv_tool_invoke` dispatch behavior, which discovery proved sound at 230 of 230.",
+    "design": "## Design\n\n> **Validated 2026-07-27**, two passes by independent adv-researcher design validation.\n> Pass 1 → CAUTION: sequencing reversed to Advance-first; AC5 grammar defect found.\n> Pass 2 → CONFLICT on defect N2 (AC7 would land a red test on trunk). Corrected below. N3 cleared: real violations sit outside fenced blocks, so the AC5 grammar does not hide them.\n\n### Principle\n\n`AGENT_TOOL_POLICY` is already correct and the role firewall is already correct. The defect is entirely instructional: prompt bodies name a route the policy does not grant. The fix makes prose match policy, then makes CI enforce the match so prose can never drift again.\n\n**Nothing in `plugin/src/tool-role-policy.ts` or `plugin/src/tool-role-firewall.ts` changes.** (AC2, AC3)\n\n### Sequencing — this change ships FIRST (C5)\n\nValidation reversed the original plan. Fixing prompts is safe in isolation: after this lands, prompts say \"use invoke\", the model uses invoke, and the direct-call schemas remain in the payload — harmless and unused. Only then does `cutAdvEngineerTokenBurn` strip the dead schemas.\n\nThe reverse order would strip schemas while prompts still name the direct call, instructing workers to call tools absent from their payload.\n\n### Change 1 — rewrite direct-call references in prompt bodies (AC1)\n\nSource files: `~/dev/advance/.opencode/agents/adv-*.md`. Deployed copies under `~/.config/opencode/agents/` are install artifacts (C1).\n\nCurrent drift, body-text references vs invoke examples:\n\n| Prompt | Direct refs | Invoke examples |\n|---|--:|--:|\n| adv-designer | 7 | 1 |\n| adv-engineer | 7 | 1 |\n| adv-researcher | 5 | 1 |\n| adv-reviewer | 5 | 1 |\n| adv-tron | 5 | 1 |\n| adv-visual-review | 5 | 1 |\n| adv-temporal-repair | 2 | 1 |\n| adv-verifier | 2 | 1 |\n| adv-ci-waiter | 0 | 0 |\n\n`adv-ci-waiter` has an empty allowed set by design and must gain no ADV references (C3).\n\n**Rewrite rule.** For any `adv_*` tool named imperatively in a body: if it is in that agent's `allowed` set (Tier 1) leave it as a direct call; otherwise rewrite to `adv_tool_invoke({name: \"<tool>\", args: {...}})`. Reuse the canonical frontmatter wording (C2).\n\n**Confirmed violation sites in `adv-engineer.md` (validated, N3):** lines **162** (§ Exit Protocol step 3) and **276** (§ Submission Rules) — both **outside** fenced blocks. The fenced payload examples begin at lines 168 and 282 and are illustrative schemas, not call instructions. This is why the AC5 grammar can strip fences without hiding real violations.\n\n- line 162 / 276: \"call `adv_subagent_report_submit`\" → `adv_tool_invoke({name: \"adv_subagent_report_submit\", args: { report: ENGINEER_REPORT }})`\n- ENGINEER_REPORT payload comment `\"{same-task adv_run_test runId}\"` → note the run id comes from an `adv_tool_invoke`-dispatched `adv_run_test`\n\nThe JSON payload *schemas* are unchanged — only the prose describing how to reach the tool.\n\n### Change 2 — remove the retry amplifier (AC4)\n\n`adv-engineer.md` § Submission Rules: \"On tool-call failure, retry up to 3 total attempts with exponential backoff.\"\n\nAgainst a role-firewall rejection this is a deterministic failure retried three times, each a full model turn re-reading ~108K of cached context. Rescope so a typed authorization rejection carrying code `ROLE_FIREWALL_BLOCK` is never retried; genuine transport failures retain retry, and the payload-emission fallback for orchestrator recovery is preserved.\n\n### Change 3 — CI guard binding prompts to policy (AC5-AC7)\n\nNew test alongside the existing agent-asset tests. For each agent in `SPAWNABLE_SUBAGENT_ROSTER`, parse the prompt body and assert every `adv_*` reference is either in that agent's `allowed` set or wrapped in `adv_tool_invoke`.\n\n**Explicit grammar (AC5).** Pass 1 flagged the original \"imperative positions\" wording as an undocumented heuristic guarding a structural rule — the exact P33 failure this change exists to fix. Defined precisely:\n\n1. Strip the `>>> ADV-GENERATED adv_* tools <<<` frontmatter region — generator-owned (AC8).\n2. Strip fenced code blocks (``` delimited) — illustrative payload schemas, not call instructions.\n3. In the remainder, match identifiers `adv_[a-z0-9_]+` in backtick-quoted or bare prose positions.\n4. Each match passes if it is in that agent's `allowed` set, or occurs within an `adv_tool_invoke({name: \"...\"})` expression. Otherwise fail.\n\n**Fixtures (AC6)** — the grammar must be proven, not trusted:\n- one true positive: bare imperative direct call → must flag\n- one code-fence occurrence → must NOT flag\n- one `adv_tool_invoke`-wrapped reference → must NOT flag\n\n**Red-then-green evidence (AC7) — CORRECTED.** Pass 2 found the original instruction (\"land the test first, capture the red run, then land the rewrite\") would break trunk: Advance CI runs on push and PR and its build requires `pnpm test` to pass (`.github/workflows/ci.yml` L3-7, L83-95). Merging a knowingly-red test violates C6.\n\nCorrect sequence:\n1. On the change branch, add the guard and run it against the **pre-rewrite** prompt bodies. Capture the failure output as AC7 evidence.\n2. Apply the prompt rewrite on the same branch.\n3. Re-run: guard now green.\n4. Merge guard + rewrite **together in one PR**, so trunk CI never observes a failing test.\n\nAlternatively pin a pre-rewrite fixture so the red case stays permanently reproducible without depending on git history. Either satisfies AC7; the fixture route is preferable because the evidence remains re-runnable after merge.\n\n**Derive expectations from `AGENT_TOOL_POLICY` at runtime** — never hardcode a tool list, or the guard drifts exactly like the prose did.\n\n### Verification design\n\n- **AC1** — AC5 guard reports zero violations across all 9 sources.\n- **AC2/AC3/AC8** — diff review confirming policy, firewall, and generated regions untouched.\n- **AC4** — inspect the rescoped instruction; confirm `ROLE_FIREWALL_BLOCK` is excluded from retry.\n- **AC5/AC6** — grammar documented in the test file; three fixtures present and passing.\n- **AC7** — captured red output from step 1 above; single PR containing guard + rewrite; trunk CI green throughout.\n- **AC9** — existing sub-agent asset and role-policy suites pass.\n\n### Rejected alternatives\n\n- **Add tools to the sub-agent union (option b)** — rejected in discovery, recorded as DONT1. Tools already reachable at 230/230; would widen the manifest surface `slimMutationToolSurface` shrank, to solve a purely instructional problem.\n- **Relax the role firewall for sub-agent-shaped tools** — rejected. It is fail-closed by design (Decision 3) and its session-ancestry derivation is what makes it non-forgeable. Weakening it to fix prose inverts the risk.\n- **Fix only `adv-engineer`** — rejected. Seven other lanes carry the same drift.\n- **Prompt fix without the CI guard** — rejected. That is exactly how the drift arose: policy moved, prose did not, nothing checked. Without AC5-AC7 this is a one-time patch, not a fix (P33).\n- **Heuristic guard without documented grammar or fixtures** — rejected on validation; recorded as DONT5.\n- **Landing the guard red first** — rejected on validation pass 2; breaks trunk CI. Recorded as DONT6/C6.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nADV sub-agent prompts now route non-Tier-1 tools through adv_tool_invoke, backed by a CI guard preventing prompt/policy drift. Approver decides whether to accept and proceed to release hardening.\n\n## Why It Matters\nBefore: every sub-agent prompt instructed direct calls to adv_subagent_report_submit/adv_run_test. Role firewall blocked 100% (84/84 failures). Dispatcher route worked 230/230 — prompts just didn't say to use it. This fix aligns prose with policy and makes CI enforce it.\n\n## Verdict\nAPPROVED\n\n## What Was Built\n1. CI guard (plugin/src/agent-prompt-policy-binding.test.ts) — binds prompt bodies to AGENT_TOOL_POLICY with documented grammar + fixtures\n2. Prompt rewrites across 8 lanes — 52 direct-call refs rewritten to adv_tool_invoke form\n3. Retry amplifier rescoped — ROLE_FIREWALL_BLOCK never retried\n\n## What Was Verified\n- Verdict: APPROVED, 0 blockers, 0 issues\n- Tests: 62/62 pass across 4 suites\n- Preview URL: not_applicable (visual_surface: false)\n- Contract matrix: 28 rows, 0 failing\n\n## Remaining Concerns\nNone blocking. Paired toolbox change cutAdvEngineerTokenBurn merges after (C5).\n\n## Consequence Context\n1. Delivered value: 52 violations eliminated, CI guard prevents recurrence\n2. Enabling dependency: cutAdvEngineerTokenBurn merges after this (C5)\n3. Ops readiness: no ops impact, harden owns deploy\n4. Migration/data: n/a\n5. Frontend/preview: not_applicable\n6. Collision/release risk: low, 9 files, single PR\n7. Open follow-ups: none blocking\n8. Next action: acceptance -> /adv-harden inline"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-27T23:39:13.649Z",
+      "contentHash": "14f49919bd4112bcaff9652e7bc2ee521bc751ee4a7a5b3c64184b0b28060832",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-27T23:32:53.134Z",
+      "contentHash": "7108c1a0ee4667a3f8bbe69e6c0a2614428961ce859b9825276c9becdaf3fba8",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-28T00:06:17.023Z",
+      "contentHash": "0074543b7eefa39e37fe830d71efd814ed59906e0d814450b1c93238d948a666",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-28T00:07:38.245Z",
+      "contentHash": "953877b728bc09fbc5e87bf576f029bf71775e32b6594d8527dacab9703fd043",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-28T01:19:50.953Z",
+      "contentHash": "2732dc643a354acf543ec774de6a82a4c60f1dec6d401206a60baa6a33ad6db0",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-28T00:32:51.978Z"
+    }
+  ],
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-27T23:32:51.501Z"
+  },
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-28T01:44:09.826Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-8604d28f20e9",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "AC7 fixture tests verified passing via adv_run_test runId tr_ms3xyvli_a481a445 (4/4 pass, exit 0). The verification_missing warning was due to the reviewer report citing the command string without a durable runId binding. The orchestrator's adv_run_test call provides the durable evidence.",
+      "dispositionedAt": "2026-07-28T01:43:58.969Z"
+    },
+    {
+      "taskId": "tk-dcb1653f6f0e",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Prompt rewrite verified by AC5 guard via adv_run_test runId tr_ms3yihh9_84e483c3 (17/17 tests pass, 0 violations, exit 0). The verification_missing warning was due to the engineer report citing runId tr_ms3ygnjz_24123d7d which was run via npx vitest in bash, not via adv_run_test. The orchestrator's adv_run_test run (tr_ms3yihh9_84e483c3) provides durable evidence for the same test file.",
+      "dispositionedAt": "2026-07-28T01:43:58.974Z"
+    }
+  ],
+  "epic_membership": {
+    "epic_id": "optimizeAdvToolSurface",
+    "entry_id": "entry-fix-report-routing",
+    "order": 4,
+    "title": "Fix sub-agent report/test routing contract",
+    "linked_at": "2026-07-27T23:39:34.209Z",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "source": "link_existing"
+  },
+  "creation_request_hash": "f6328dbb00855c77f8e061eac51d5ca171c10869b365e3d01804408fd8f83ddb",
+  "projection_revision": 43,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-07-27T23:36:48.973Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-07-27T23:39:34.452Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-27T23:43:35.894Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-27T23:45:48.067Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-27T23:45:54.197Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-27T23:47:18.395Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-27T23:47:38.414Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-28T00:01:57.570Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-28T00:06:56.822Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-28T00:08:02.526Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-28T00:34:03.680Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-28T00:35:14.390Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-28T00:35:50.176Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-28T00:36:10.828Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-28T00:36:25.501Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-28T00:36:58.509Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-28T00:37:00.092Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-28T00:37:00.139Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-28T00:37:00.489Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-28T00:46:11.319Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-28T00:46:30.888Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-28T00:51:11.709Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-28T00:52:06.509Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-28T00:53:13.133Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-28T00:54:23.695Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-28T00:55:08.319Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-28T00:56:42.822Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-28T00:57:01.412Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-28T00:57:01.510Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-28T00:57:34.769Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-28T00:58:39.959Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-28T01:07:20.369Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-28T01:07:20.462Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9f48145ccc522282abfb625486668b1a003b763fe0b2e1122cbc3bc6b088678a:taskUpdated",
+      "operation_id": "9f48145ccc522282abfb625486668b1a003b763fe0b2e1122cbc3bc6b088678a:taskUpdated",
+      "payload_hash": "28639333be62c1e8cdc9e791378eb1f2f76b80fb277b7b5742225bdaefa7639c",
+      "state_revision": 11,
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-28T01:08:55.448Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-28T01:09:33.713Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-28T01:10:04.363Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-28T01:10:41.053Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-28T01:14:08.649Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785201493210_ja116a5v",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-07-28T01:18:13.404Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-07-28T01:43:33.433Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785203038977_5jqxj4n7",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-07-28T01:43:59.092Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785203038979_bpp8yp5q",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-07-28T01:44:00.689Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSubagentReportRouting",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-07-28T01:44:09.958Z"
+    }
+  ],
+  "state_revision": 11
+}
