@@ -4,6 +4,7 @@ import {
   ChangeSchema,
   DeltaSchema,
   ProjectConfigSchema,
+  ReleaseNotesArchiveEnvelopeSchema,
   RequirementSchema,
   ScenarioSchema,
   SpecSchema,
@@ -49,6 +50,12 @@ export const PUBLIC_JSON_SCHEMAS: PublicJsonSchemaEntry[] = [
     filename: "project.schema.json",
     title: "ADV Project Configuration",
     schema: ProjectConfigSchema,
+  },
+  {
+    name: "release-notes",
+    filename: "release-notes.schema.json",
+    title: "ADV Release Notes Archive Envelope",
+    schema: ReleaseNotesArchiveEnvelopeSchema,
   },
   {
     name: "requirement",
