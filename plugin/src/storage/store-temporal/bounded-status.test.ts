@@ -2,16 +2,13 @@
  * Bounded summary status reads (fixChangeListTimeouts, task 3).
  *
  * Verifies:
- *  1. `store.status({ recentLimit })` bounds resolver hydration BEFORE
- *     deep per-change work: at most `recentLimit` workflow queries, the
- *     remaining candidates become typed bounded omissions (AC3 / C2).
+ *  1. `store.status({ recentLimit })` bounds the recent list AFTER reading
+ *     the full durable summary projection, so total counts stay complete
+ *     while recency is truncated with typed degradation (AC3 / C2).
  *  2. Complete semantics when every candidate resolves within the bound
  *     (AC2): full counts, no degradation metadata.
- *  3. No bound without the option: full views hydrate every candidate.
- *  4. Bounded hydration orders memo-warm candidates by recency so the
- *     bounded set is the most recent one, not an arbitrary prefix.
- *  5. The request-local resolved document map travels with the status
- *     result so enrichment can reuse it without a second read (AC4).
+ *  3. No workflow queries fire on routine status reads.
+ *  4. Bounded recent list is ordered by summary-shard recency.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -20,6 +17,7 @@ import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDefaultGates, type Change } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
+import { rebuildSummaryIndex } from "../change-summary-shard";
 
 function activeChange(
   id: string,
@@ -58,8 +56,6 @@ function workflowStateFor(change: Change) {
     reflections: [],
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
-    // Marker present so the lazy worktree_auto_managed migration hook
-    // does not fire an extra owner-guard read per query.
     worktree_auto_managed: false,
   };
 }
@@ -124,6 +120,10 @@ describe("bounded summary status reads", () => {
       (_, i) => `change${String(i).padStart(2, "0")}`,
     );
     for (const id of ids) await legacy.changes.save(activeChange(id));
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
 
     const queried: string[] = [];
     const store = createTemporalStoreBackend({
@@ -134,12 +134,12 @@ describe("bounded summary status reads", () => {
 
     const status = await store.status({ recentLimit: 10 });
 
-    // The bound applies before deep hydration: at most 10 candidates were
-    // loaded; the remaining 2 are typed omissions, never silently dropped.
-    // bl-HiZJbUuy: candidates hydrate disk-first, so no workflow queries fire;
-    // the bound is proven by resolvedChanges.size (10) + boundedOmitted (2).
+    // The bound truncates the recent list; the remaining 2 are typed
+    // omissions, never silently dropped. Summary-only reads issue no
+    // workflow queries.
     expect(queried).toHaveLength(0);
     expect(status.changes.recent.length).toBeLessThanOrEqual(10);
+    expect(status.changes.byStatus.draft).toBe(12);
     expect(status.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -153,9 +153,8 @@ describe("bounded summary status reads", () => {
     );
     expect(boundWarning?.omittedIds).toHaveLength(2);
     expect(status.hydrationStats?.boundedOmitted).toBe(2);
-    // Request-local resolved documents travel with the result for
-    // enrichment reuse (AC4).
-    expect(status.resolvedChanges?.size).toBe(10);
+    // Summary-only routine reads intentionally do not hydrate full changes.
+    expect(status.resolvedChanges?.size).toBe(0);
   });
 
   it("keeps complete count/recency semantics when candidates resolve within the bound (AC2)", async () => {
@@ -164,6 +163,10 @@ describe("bounded summary status reads", () => {
     for (const id of ["alpha", "bravo", "charlie"]) {
       await legacy.changes.save(activeChange(id));
     }
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
 
     const queried: string[] = [];
     const store = createTemporalStoreBackend({
@@ -174,18 +177,18 @@ describe("bounded summary status reads", () => {
 
     const status = await store.status({ recentLimit: 10 });
 
-    // bl-HiZJbUuy: disk-first hydration — 3 candidates resolve from disk with
-    // zero workflow queries; completeness proven by resolvedChanges.size (3).
+    // bl-HiZJbUuy: summary-only reads — 3 candidates resolve from durable
+    // shards with zero workflow queries; completeness proven by counts.
     expect(queried).toHaveLength(0);
     expect(status.warnings).toBeUndefined();
-    expect(status.hydrationStats).toBeUndefined();
+    expect(status.hydrationStats?.fromHydration).toBe(0);
     // bl-HiZJbUuy: disk-first returns the canonical normalized status — the
     // disk load path normalizes legacy "active" to "draft" (the schema enum is
     // draft/archived/closed), whereas the old Temporal query mock returned the
     // un-normalized "active".
     expect(status.changes.byStatus.draft).toBe(3);
     expect(status.changes.recent).toHaveLength(3);
-    expect(status.resolvedChanges?.size).toBe(3);
+    expect(status.resolvedChanges?.size).toBe(0);
   });
 
   it("hydrates every candidate when no recentLimit is provided (full views)", async () => {
@@ -196,6 +199,10 @@ describe("bounded summary status reads", () => {
       (_, i) => `change${String(i).padStart(2, "0")}`,
     );
     for (const id of ids) await legacy.changes.save(activeChange(id));
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
 
     const queried: string[] = [];
     const store = createTemporalStoreBackend({
@@ -206,23 +213,23 @@ describe("bounded summary status reads", () => {
 
     const status = await store.status();
 
-    // bl-HiZJbUuy: full view hydrates all 12 candidates disk-first (no workflow
-    // queries); completeness proven by resolvedChanges.size (12).
+    // bl-HiZJbUuy: full view reads all 12 candidates from summary shards
+    // (no workflow queries); completeness proven by counts.
     expect(queried).toHaveLength(0);
     expect(status.warnings).toBeUndefined();
     // bl-HiZJbUuy: disk-first returns canonical "draft" (legacy "active"
     // normalizes at the disk load path), not the mock's un-normalized "active".
     expect(status.changes.byStatus.draft).toBe(12);
     expect(status.changes.recent).toHaveLength(12);
-    expect(status.resolvedChanges?.size).toBe(12);
+    expect(status.resolvedChanges?.size).toBe(0);
   });
 
-  it("orders bounded hydration by memo recency so the warm recent set resolves first", async () => {
+  it("orders bounded hydration by recency so the most recent set resolves first", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
-    // Three memo-seeded candidates with distinct activity: change00 is
-    // oldest, change01 newest, change02 in between. Nine more cold disk
-    // candidates have no memo signal.
+    // Three candidates with distinct activity: change00 is oldest, change01
+    // newest, change02 in between. Nine more cold disk candidates have no
+    // explicit activity timestamp.
     const seeded: Array<[string, string]> = [
       ["change00", "2026-01-01T00:00:00.000Z"],
       ["change01", "2026-06-01T00:00:00.000Z"],
@@ -235,7 +242,15 @@ describe("bounded summary status reads", () => {
     for (const [id, createdAt] of seeded) {
       await legacy.changes.save(activeChange(id, createdAt));
     }
-    for (const id of cold) await legacy.changes.save(activeChange(id));
+    for (const id of cold) {
+      // Cold changes are older than the seeded set so recency ordering is
+      // deterministic.
+      await legacy.changes.save(activeChange(id, "2025-01-01T00:00:00.000Z"));
+    }
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
 
     const queried: string[] = [];
     const store = createTemporalStoreBackend({
@@ -243,20 +258,12 @@ describe("bounded summary status reads", () => {
       temporal: makeTemporal(queried, new Map(seeded)),
       projectId: "project-1",
     });
-    // Seed memo + changeCache in insertion order change00 → change01 →
-    // change02. Recency ordering must rank change01 > change02 > change00
-    // regardless of that insertion order.
-    for (const [id] of seeded) {
-      const result = await store.changes.get(id);
-      expect(result.success).toBe(true);
-    }
-    const seedQueries = queried.length;
 
     const status = await store.status({ recentLimit: 2 });
 
-    // The two most recent memo-warm changes resolve (from cache — no new
-    // queries); every other candidate is a typed bounded omission.
-    expect(queried.length - seedQueries).toBe(0);
+    // The two most recent changes resolve; every other candidate is a typed
+    // bounded omission. No workflow queries fire.
+    expect(queried).toHaveLength(0);
     expect(status.changes.recent.map((r) => r.id).sort()).toEqual([
       "change01",
       "change02",
@@ -281,6 +288,10 @@ describe("bounded summary status reads", () => {
     for (const row of rows) {
       await legacy.changes.save(activeChange(row.id, row.createdAt));
     }
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
 
     const queried: string[] = [];
     const store = createTemporalStoreBackend({
@@ -307,7 +318,7 @@ describe("bounded summary status reads", () => {
       )
       .slice(0, 10)
       .map((row) => row.id);
-    // bl-HiZJbUuy: source-ranked candidates hydrate disk-first (no workflow
+    // bl-HiZJbUuy: summary shards provide recency ordering (no workflow
     // queries); the newest-10 ranking + 47 bounded omissions still hold.
     expect(queried).toHaveLength(0);
     expect(status.changes.recent.map((row) => row.id)).toEqual(expected);

@@ -93,6 +93,7 @@ import type {
   WorkerBundleProvenanceRecordedSignalPayload,
 } from "../types";
 import type { MutationReceipt } from "./contracts";
+import type { OperationLedgerEntry } from "./contracts";
 import type {
   ChangeWorkflowBootstrapState,
   ChangeWorkflowState,
@@ -148,6 +149,10 @@ export const getMutationReceiptQuery = wf.defineQuery<
   MutationReceipt | undefined,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
+export const getOperationLedgerOutcomeQuery = wf.defineQuery<
+  OperationLedgerEntry | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getOperationLedgerOutcome);
 export const getCurrentBucketQuery = wf.defineQuery<string>(
   CHANGE_WORKFLOW_COMPAT_QUERY_NAMES.getCurrentBucket,
 );
@@ -375,6 +380,16 @@ export const archiveChangeSignal = wf.defineSignal(
 export const closeChangeSignal = wf.defineSignal<
   [import("../types").ChangeClosure]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange);
+
+export const prepareBatchCloseSignal = wf.defineSignal<
+  [import("../types").PrepareBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.prepareBatchClose);
+export const commitBatchCloseSignal = wf.defineSignal<
+  [import("../types").CommitBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.commitBatchClose);
+export const abortBatchCloseSignal = wf.defineSignal<
+  [import("../types").AbortBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.abortBatchClose);
 
 export const workerBundleProvenanceRecordedSignal = wf.defineSignal<
   [WorkerBundleProvenanceRecordedSignalPayload]

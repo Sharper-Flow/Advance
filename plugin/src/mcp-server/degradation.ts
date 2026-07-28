@@ -153,7 +153,9 @@ export function wrapTier4Tool(
   options: DegradationOptions = {},
 ): (args: Record<string, unknown>) => Promise<string> {
   return async (args) => {
-    const needsTemporal = classifications.includes("needs-temporal");
+    const needsTemporal =
+      classifications.includes("needs-temporal") ||
+      classifications.includes("needs-temporal-diagnostics");
     const needsHostProbe = classifications.includes("needs-host-probe");
 
     if (needsTemporal) {

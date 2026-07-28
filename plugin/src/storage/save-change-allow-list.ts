@@ -80,6 +80,13 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
       "RED-phase test intentionally exercises raw saveCall to reproduce the lost-update defect that commitChangeProjection fixes.",
   },
   {
+    file: "plugin/src/storage/change-summary-shard.test.ts",
+    context: null,
+    category: "test_raw_primitive",
+    rationale:
+      "RED/GREEN tests for the per-change summary shard wrapper seed fixtures directly via raw saveChange.",
+  },
+  {
     file: "plugin/src/storage/json.test.ts",
     context: null,
     category: "test_raw_primitive",
@@ -104,6 +111,13 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
     category: "inventory_reference",
     rationale:
       "Inventory test scans call sites; its own source may contain the string for documentation.",
+  },
+  {
+    file: "plugin/src/storage/store-temporal/spec-deltas.disk-projection.test.ts",
+    context: null,
+    category: "test_raw_primitive",
+    rationale:
+      "RED/GREEN test seeds a durable delta-add projection directly via raw saveChange to prove the disk shard is written before the workflow ledger is consulted.",
   },
 ];
 

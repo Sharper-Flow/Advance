@@ -1948,6 +1948,16 @@ describe("changeWorkflow signal handlers", () => {
     }
   });
 
+  it("preserves state_revision and operation_ledger in continue-as-new seed", () => {
+    const source = readFileSync(workflowsPath, "utf8");
+    for (const assignment of [
+      "state_revision: state.state_revision",
+      "operation_ledger: state.operation_ledger",
+    ]) {
+      expect(source).toContain(assignment);
+    }
+  });
+
   // AC3 (completeStateBackedGate): replay determinism. The new state-backed
   // acceptance patch marker MUST be checked BEFORE the legacy acceptance
   // disk-inspect patch marker. New histories record STATE_BACKED_ACCEPTANCE_

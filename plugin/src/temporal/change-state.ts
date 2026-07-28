@@ -91,17 +91,30 @@ import {
   resolveTaskEvidence,
   validateTaskEvidenceForStage,
 } from "../validator/task-classifier";
-import { describePayloadDigest } from "./digest";
+import {
+  describePayloadDigest,
+  computeLegacyWorkflowPayloadHash,
+  fnv1a32,
+  stableStringify,
+} from "./digest";
 import type {
   ArtifactKind,
   ArtifactMetadata,
+  BatchCloseReservation,
   ChangeWorkflowInput,
   ChangeWorkflowState,
+  CommitBatchCloseSignalPayload,
   MutationReceipt,
+  OperationLedgerEntry,
+  PrepareBatchCloseSignalPayload,
+  AbortBatchCloseSignalPayload,
   SignalRejection,
   TestRunRecord,
 } from "./contracts";
-import { MUTATION_RECEIPTS_FIFO_LIMIT } from "./contracts";
+import {
+  MUTATION_RECEIPTS_FIFO_LIMIT,
+  OPERATION_LEDGER_LIMIT,
+} from "./contracts";
 
 export interface UpdateTaskInput {
   status: Task["status"];
@@ -170,6 +183,9 @@ export function createChangeWorkflowState(input: {
     worktrees: {},
     conformance: { lockedSpecs: [], overrides: [] },
     acceptanceReadinessRevision: 0,
+    state_revision: 0,
+    operation_ledger: {},
+    batch_close_reservations: {},
     same_project_dependencies: [],
   };
 }
@@ -179,7 +195,12 @@ export function changeSeedStateFromChange(
 ): NonNullable<ChangeWorkflowInput["seedState"]> {
   const [normalizedChange] = normalizePersistedSubagentReportState(change);
   const safeChange = normalizedChange as Change &
-    Partial<Pick<ChangeWorkflowState, "workerBundleProvenance">>;
+    Partial<
+      Pick<
+        ChangeWorkflowState,
+        "workerBundleProvenance" | "state_revision" | "operation_ledger"
+      >
+    >;
   // Legacy stored statuses ("active"/"pending") never reach workflow state:
   // they normalize to "draft" (the open status) at the seed boundary.
   const status = normalizeLegacyChangeStatus(safeChange.status) as ChangeStatus;
@@ -202,6 +223,10 @@ export function changeSeedStateFromChange(
     acceptanceCriteria: safeChange.acceptanceCriteria,
     contract: safeChange.contract,
     acceptanceReadinessRevision: safeChange.acceptanceReadinessRevision,
+    state_revision: safeChange.state_revision ?? 0,
+    operation_ledger: safeChange.operation_ledger ?? {},
+    batch_close_reservations: (safeChange.batch_close_reservations ??
+      {}) as Record<string, BatchCloseReservation>,
     acceptanceCriteriaSnapshot: safeChange.acceptanceCriteriaSnapshot,
     documents: safeChange.documents,
     origin: safeChange.origin,
@@ -330,6 +355,169 @@ export function findMutationReceipt(
 ): MutationReceipt | undefined {
   const receipts = state.mutationReceipts ?? [];
   return receipts.find((r) => r.id === mutationReceiptId);
+}
+
+function advanceStateRevision(state: ChangeWorkflowState): void {
+  state.state_revision = (state.state_revision ?? 0) + 1;
+}
+
+/** Legacy workflow-only fallback for old document signals without SHA-256. */
+export function computeLegacyDocumentPayloadHash(text: string): string {
+  return fnv1a32(stableStringify({ text }));
+}
+
+function trimOperationLedger(
+  ledger: Record<string, OperationLedgerEntry>,
+): Record<string, OperationLedgerEntry> {
+  const entries = Object.entries(ledger);
+  if (entries.length <= OPERATION_LEDGER_LIMIT) return ledger;
+  const sorted = entries.sort((a, b) => {
+    const ta = a[1].accepted_at;
+    const tb = b[1].accepted_at;
+    if (ta !== tb) return ta.localeCompare(tb);
+    return a[0].localeCompare(b[0]);
+  });
+  const trimmed = sorted.slice(entries.length - OPERATION_LEDGER_LIMIT);
+  return Object.fromEntries(trimmed);
+}
+
+function recordOperationLedger(
+  state: ChangeWorkflowState,
+  entry: OperationLedgerEntry,
+): void {
+  const next = {
+    ...(state.operation_ledger ?? {}),
+    [entry.operation_id]: entry,
+  };
+  state.operation_ledger = trimOperationLedger(next);
+}
+
+function recordOperationAccepted(
+  state: ChangeWorkflowState,
+  operation_id: string,
+  command_kind: string,
+  payload_hash: string,
+  at: string,
+): void {
+  recordOperationLedger(state, {
+    operation_id,
+    command_kind,
+    payload_hash,
+    outcome: "accepted",
+    state_revision: state.state_revision ?? 0,
+    accepted_at: at,
+    last_seen_at: at,
+  });
+}
+
+function recordOperationRejected(
+  state: ChangeWorkflowState,
+  operation_id: string,
+  command_kind: string,
+  payload_hash: string,
+  at: string,
+): void {
+  recordOperationLedger(state, {
+    operation_id,
+    command_kind,
+    payload_hash,
+    outcome: "rejected",
+    state_revision: state.state_revision ?? 0,
+    accepted_at: at,
+    last_seen_at: at,
+  });
+}
+
+/**
+ * AC3/AC12: stable operation identity requires same operation_id, same
+ * command kind, and same payload hash. A different command kind with the same
+ * id/hash is a typed conflict, not a replay.
+ */
+function isOperationIdempotentReplay(
+  existing: OperationLedgerEntry,
+  command_kind: string,
+  payload_hash: string,
+): boolean {
+  return (
+    existing.command_kind === command_kind &&
+    existing.payload_hash === payload_hash
+  );
+}
+
+function formatOperationConflictMessage(
+  operation_id: string,
+  existing: OperationLedgerEntry,
+  command_kind: string,
+  payload_hash: string,
+): string {
+  if (existing.command_kind !== command_kind) {
+    return `OPERATION_KIND_CONFLICT: operation_id ${operation_id} received command ${command_kind} but ledger holds ${existing.command_kind}`;
+  }
+  return `OPERATION_PAYLOAD_CONFLICT: operation_id ${operation_id} received conflicting payload (expected hash ${existing.payload_hash}, got ${payload_hash})`;
+}
+
+interface CommandOperationEnvelope {
+  operation_id?: string;
+  command_kind?: string;
+  payload_hash?: string;
+}
+
+export function withChangeCommandOperation<T extends CommandOperationEnvelope>(
+  state: ChangeWorkflowState,
+  payload: T,
+  commandKind: string,
+  at: string,
+  mutate: () => void,
+): { state: ChangeWorkflowState; applied: boolean } {
+  const operation_id = payload.operation_id;
+  const command_kind = payload.command_kind ?? commandKind;
+  let payload_hash: string | undefined = payload.payload_hash;
+  if (operation_id && !payload_hash) {
+    // Compatibility-only: modern host adapters always supply SHA-256.
+    payload_hash = computeLegacyWorkflowPayloadHash(payload);
+  }
+  if (operation_id && payload_hash) {
+    const existing = state.operation_ledger?.[operation_id];
+    if (existing) {
+      if (isOperationIdempotentReplay(existing, command_kind, payload_hash)) {
+        const replay: OperationLedgerEntry = {
+          ...existing,
+          outcome: "idempotent_replay",
+          last_seen_at: at,
+        };
+        recordOperationLedger(state, replay);
+        setLastSignalAt(state, at);
+        return { state, applied: false };
+      }
+      applySignalRejectionToState(state, {
+        signalName: command_kind,
+        error: new Error(
+          formatOperationConflictMessage(
+            operation_id,
+            existing,
+            command_kind,
+            payload_hash,
+          ),
+        ),
+        payload,
+        rejectedAt: at,
+      });
+      setLastSignalAt(state, at);
+      return { state, applied: false };
+    }
+  }
+  mutate();
+  if (operation_id && payload_hash) {
+    advanceStateRevision(state);
+    recordOperationAccepted(
+      state,
+      operation_id,
+      command_kind,
+      payload_hash,
+      at,
+    );
+  }
+  return { state, applied: true };
 }
 
 export function applyCrossProjectCoordinationUpdatedToState(
@@ -583,31 +771,43 @@ export function applyEpicMembershipSetToState(
   state: ChangeWorkflowState,
   payload: EpicMembershipSetSignalPayload,
 ): ChangeWorkflowState {
-  const current = state.epic_membership;
-  if (current) {
-    const sameTarget = epicMembershipMatches(current, {
-      epic_id: payload.membership.epic_id,
-      entry_id: payload.membership.entry_id,
-    });
-    const expectedMatches = payload.expectedCurrent
-      ? epicMembershipMatches(current, payload.expectedCurrent)
-      : false;
-    const moveAllowed = payload.membership.source === "move" && expectedMatches;
+  withChangeCommandOperation(
+    state,
+    payload,
+    "epicMembershipSet",
+    payload.setAt,
+    () => {
+      const current = state.epic_membership;
+      if (current) {
+        const sameTarget = epicMembershipMatches(current, {
+          epic_id: payload.membership.epic_id,
+          entry_id: payload.membership.entry_id,
+        });
+        const expectedMatches = payload.expectedCurrent
+          ? epicMembershipMatches(current, payload.expectedCurrent)
+          : false;
+        const moveAllowed =
+          payload.membership.source === "move" && expectedMatches;
 
-    if (!sameTarget && !moveAllowed) {
-      const currentIdentity = epicMembershipIdentity(current);
-      throw new Error(
-        `Cannot set Epic membership: change already belongs to Epic ${currentIdentity.epic_id} entry ${currentIdentity.entry_id}`,
-      );
-    }
-  } else if (payload.membership.source === "move" && payload.expectedCurrent) {
-    throw new Error(
-      `Cannot move Epic membership: expected current Epic ${payload.expectedCurrent.epic_id} entry ${payload.expectedCurrent.entry_id}, but change has no Epic membership`,
-    );
-  }
+        if (!sameTarget && !moveAllowed) {
+          const currentIdentity = epicMembershipIdentity(current);
+          throw new Error(
+            `Cannot set Epic membership: change already belongs to Epic ${currentIdentity.epic_id} entry ${currentIdentity.entry_id}`,
+          );
+        }
+      } else if (
+        payload.membership.source === "move" &&
+        payload.expectedCurrent
+      ) {
+        throw new Error(
+          `Cannot move Epic membership: expected current Epic ${payload.expectedCurrent.epic_id} entry ${payload.expectedCurrent.entry_id}, but change has no Epic membership`,
+        );
+      }
 
-  state.epic_membership = payload.membership;
-  setLastSignalAt(state, payload.setAt);
+      state.epic_membership = payload.membership;
+      setLastSignalAt(state, payload.setAt);
+    },
+  );
   return state;
 }
 
@@ -615,20 +815,28 @@ export function applyEpicMembershipClearedToState(
   state: ChangeWorkflowState,
   payload: EpicMembershipClearedSignalPayload,
 ): ChangeWorkflowState {
-  const current = state.epic_membership;
-  if (!current) {
-    throw new Error(
-      `Cannot clear Epic membership: expected Epic ${payload.expected.epic_id} entry ${payload.expected.entry_id}, but change has no Epic membership`,
-    );
-  }
-  if (!epicMembershipMatches(current, payload.expected)) {
-    throw new Error(
-      `Cannot clear Epic membership: current Epic ${current.epic_id} entry ${current.entry_id} does not match expected Epic ${payload.expected.epic_id} entry ${payload.expected.entry_id}`,
-    );
-  }
+  withChangeCommandOperation(
+    state,
+    payload,
+    "epicMembershipCleared",
+    payload.clearedAt,
+    () => {
+      const current = state.epic_membership;
+      if (!current) {
+        throw new Error(
+          `Cannot clear Epic membership: expected Epic ${payload.expected.epic_id} entry ${payload.expected.entry_id}, but change has no Epic membership`,
+        );
+      }
+      if (!epicMembershipMatches(current, payload.expected)) {
+        throw new Error(
+          `Cannot clear Epic membership: current Epic ${current.epic_id} entry ${current.entry_id} does not match expected Epic ${payload.expected.epic_id} entry ${payload.expected.entry_id}`,
+        );
+      }
 
-  delete state.epic_membership;
-  setLastSignalAt(state, payload.clearedAt);
+      delete state.epic_membership;
+      setLastSignalAt(state, payload.clearedAt);
+    },
+  );
   return state;
 }
 
@@ -766,7 +974,53 @@ function applyContentWithSizeGuard(
   kind: ArtifactKind,
   text: string,
   at: string,
+  options?: {
+    operation_id?: string;
+    command_kind?: string;
+  },
 ): { state: ChangeWorkflowState; applied: boolean } {
+  const operation_id = options?.operation_id;
+  const command_kind = options?.command_kind;
+  let ledgerHash: string | undefined;
+
+  // AC3: before mutating, resolve operation identity. Same operation_id with
+  // the same payload is an idempotent replay; same operation_id with a different
+  // payload is a typed conflict.
+  if (operation_id && command_kind) {
+    ledgerHash = computeLegacyDocumentPayloadHash(text);
+    const existing = state.operation_ledger?.[operation_id];
+    if (existing) {
+      if (isOperationIdempotentReplay(existing, command_kind, ledgerHash)) {
+        const replay: OperationLedgerEntry = {
+          ...existing,
+          outcome: "idempotent_replay",
+          last_seen_at: at,
+        };
+        recordOperationLedger(state, replay);
+        setLastSignalAt(state, at);
+        return { state, applied: false };
+      }
+      // Typed conflict: do not overwrite the accepted operation ledger entry.
+      // Record the rejection in the bounded signal_rejection audit channel so
+      // the conflict is observable without destroying stable idempotency.
+      applySignalRejectionToState(state, {
+        signalName: command_kind,
+        error: new Error(
+          formatOperationConflictMessage(
+            operation_id,
+            existing,
+            command_kind,
+            ledgerHash,
+          ),
+        ),
+        payload: { operation_id, command_kind, text },
+        rejectedAt: at,
+      });
+      setLastSignalAt(state, at);
+      return { state, applied: false };
+    }
+  }
+
   // Active content is Temporal-first; metadata intentionally omits active
   // filesystem paths until an archive/recovery/materialization step creates one.
   const temporalOnlyMetadata = (): ArtifactMetadata => ({
@@ -784,6 +1038,15 @@ function applyContentWithSizeGuard(
         rejection: perCheck.rejection,
       },
     };
+    if (operation_id && command_kind) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        command_kind,
+        ledgerHash ?? computeLegacyDocumentPayloadHash(text),
+        at,
+      );
+    }
     setLastSignalAt(state, at);
     return { state, applied: false };
   }
@@ -798,6 +1061,15 @@ function applyContentWithSizeGuard(
         rejection: aggCheck.rejection,
       },
     };
+    if (operation_id && command_kind) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        command_kind,
+        ledgerHash ?? computeLegacyDocumentPayloadHash(text),
+        at,
+      );
+    }
     setLastSignalAt(state, at);
     return { state, applied: false };
   }
@@ -813,6 +1085,13 @@ function applyContentWithSizeGuard(
   state.documents = { ...(state.documents ?? {}), [kind]: text };
   state.artifacts = { ...state.artifacts, [kind]: nextArtifact };
   setLastSignalAt(state, at);
+
+  // AC3: count exactly one accepted behavior-changing transition.
+  advanceStateRevision(state);
+  if (operation_id && command_kind && ledgerHash) {
+    recordOperationAccepted(state, operation_id, command_kind, ledgerHash, at);
+  }
+
   return { state, applied: true };
 }
 
@@ -825,6 +1104,10 @@ export function applyProposalUpdatedToState(
     "proposal",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "proposalUpdated",
+    },
   ).state;
 }
 
@@ -837,6 +1120,10 @@ export function applyProblemStatementUpdatedToState(
     "problemStatement",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "problemStatementUpdated",
+    },
   ).state;
 }
 
@@ -849,6 +1136,10 @@ export function applyAgreementUpdatedToState(
     "agreement",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "agreementUpdated",
+    },
   ).state;
 }
 
@@ -861,6 +1152,10 @@ export function applyDesignUpdatedToState(
     "design",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "designUpdated",
+    },
   );
   // rq-readinessMutationReceipt01: design content affects acceptance
   // readiness (the design gate artifact backs acceptance review). Record
@@ -884,6 +1179,10 @@ export function applyExecutiveSummaryUpdatedToState(
     "executiveSummary",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "executiveSummaryUpdated",
+    },
   );
   // rq-readinessMutationReceipt01: executive summary content gates
   // acceptance readiness; record only on successful content application.
@@ -906,6 +1205,10 @@ export function applyAcceptanceUpdatedToState(
     "acceptance",
     payload.text,
     payload.updatedAt,
+    {
+      operation_id: payload.operation_id,
+      command_kind: "acceptanceUpdated",
+    },
   );
   // rq-readinessMutationReceipt01: acceptance proof content gates
   // release readiness; record only on successful content application.
@@ -996,15 +1299,23 @@ export function applyTaskAddedToState(
   state: ChangeWorkflowState,
   payload: TaskAddedSignalPayload,
 ): ChangeWorkflowState {
-  const existingIndex = state.tasks.findIndex(
-    (task) => task.id === payload.task.id,
+  withChangeCommandOperation(
+    state,
+    payload,
+    "taskAdded",
+    payload.addedAt,
+    () => {
+      const existingIndex = state.tasks.findIndex(
+        (task) => task.id === payload.task.id,
+      );
+      if (existingIndex >= 0) {
+        state.tasks[existingIndex] = payload.task;
+      } else {
+        state.tasks.push(payload.task);
+      }
+      setLastSignalAt(state, payload.addedAt);
+    },
   );
-  if (existingIndex >= 0) {
-    state.tasks[existingIndex] = payload.task;
-  } else {
-    state.tasks.push(payload.task);
-  }
-  setLastSignalAt(state, payload.addedAt);
   return state;
 }
 
@@ -1012,36 +1323,46 @@ export function applyTaskUpdatedToState(
   state: ChangeWorkflowState,
   payload: TaskUpdatedSignalPayload,
 ): ChangeWorkflowState {
-  const task = getMutableTask(state, payload.taskId);
-  // rq-releaseFinalization01 / security-4 (addWisdomAutoSurfacing):
-  // defense-in-depth — validate the wisdom_drafts partial at the workflow
-  // boundary before Object.assign merges it into task state. Malformed
-  // arrays are dropped (existing task.wisdom_drafts preserved); other
-  // fields in the same partial still apply.
-  //
-  // Design note: full TaskSchema.partial().safeParse was evaluated and
-  // rejected during addTestsTaskSignalValidation. TaskSchema uses
-  // .passthrough() for forward/backward compatibility (older workflow
-  // code may write fields newer code doesn't know about); full-safeParse
-  // would either preserve unknown keys (defeating the strip goal) or
-  // drop the entire partial on any single malformed field (rejecting
-  // valid partial updates). The field-specific pattern is the correct
-  // tradeoff: validate the nested substructure that's known to evolve
-  // (wisdom_drafts), leave scalar fields to the signal payload schema.
-  const partial = { ...payload.partial };
-  if (partial.wisdom_drafts !== undefined) {
-    const parsed = WisdomDraftSchema.array().safeParse(partial.wisdom_drafts);
-    if (parsed.success) {
-      partial.wisdom_drafts = parsed.data;
-    } else {
-      // Drop the malformed field; existing task.wisdom_drafts is preserved.
-      // A subsequent signal with valid shape can retry the mutation.
-      delete partial.wisdom_drafts;
-    }
-  }
-  Object.assign(task, partial);
-  (task as Task & { updatedAt?: string }).updatedAt = payload.updatedAt;
-  setLastSignalAt(state, payload.updatedAt);
+  withChangeCommandOperation(
+    state,
+    payload,
+    "taskUpdated",
+    payload.updatedAt,
+    () => {
+      const task = getMutableTask(state, payload.taskId);
+      // rq-releaseFinalization01 / security-4 (addWisdomAutoSurfacing):
+      // defense-in-depth — validate the wisdom_drafts partial at the workflow
+      // boundary before Object.assign merges it into task state. Malformed
+      // arrays are dropped (existing task.wisdom_drafts preserved); other
+      // fields in the same partial still apply.
+      //
+      // Design note: full TaskSchema.partial().safeParse was evaluated and
+      // rejected during addTestsTaskSignalValidation. TaskSchema uses
+      // .passthrough() for forward/backward compatibility (older workflow
+      // code may write fields newer code doesn't know about); full-safeParse
+      // would either preserve unknown keys (defeating the strip goal) or
+      // drop the entire partial on any single malformed field (rejecting
+      // valid partial updates). The field-specific pattern is the correct
+      // tradeoff: validate the nested substructure that's known to evolve
+      // (wisdom_drafts), leave scalar fields to the signal payload schema.
+      const partial = { ...payload.partial };
+      if (partial.wisdom_drafts !== undefined) {
+        const parsed = WisdomDraftSchema.array().safeParse(
+          partial.wisdom_drafts,
+        );
+        if (parsed.success) {
+          partial.wisdom_drafts = parsed.data;
+        } else {
+          // Drop the malformed field; existing task.wisdom_drafts is preserved.
+          // A subsequent signal with valid shape can retry the mutation.
+          delete partial.wisdom_drafts;
+        }
+      }
+      Object.assign(task, partial);
+      (task as Task & { updatedAt?: string }).updatedAt = payload.updatedAt;
+      setLastSignalAt(state, payload.updatedAt);
+    },
+  );
   return state;
 }
 
@@ -1642,18 +1963,26 @@ export function applyTaskCancelledToState(
   state: ChangeWorkflowState,
   payload: TaskCancelledSignalPayload,
 ): ChangeWorkflowState {
-  const task = getMutableTask(state, payload.taskId);
-  task.status = "cancelled";
-  task.cancelApproval = payload.approvalEvidence;
-  task.cancelledAt = payload.cancelledAt;
-  task.completed_at = payload.cancelledAt;
-  task.cancellation = {
-    reason: payload.reason,
-    approved_by_user: true,
-    approval_evidence: payload.approvalEvidence,
-    approved_at: payload.cancelledAt,
-  };
-  setLastSignalAt(state, payload.cancelledAt);
+  withChangeCommandOperation(
+    state,
+    payload,
+    "taskCancelled",
+    payload.cancelledAt,
+    () => {
+      const task = getMutableTask(state, payload.taskId);
+      task.status = "cancelled";
+      task.cancelApproval = payload.approvalEvidence;
+      task.cancelledAt = payload.cancelledAt;
+      task.completed_at = payload.cancelledAt;
+      task.cancellation = {
+        reason: payload.reason,
+        approved_by_user: true,
+        approval_evidence: payload.approvalEvidence,
+        approved_at: payload.cancelledAt,
+      };
+      setLastSignalAt(state, payload.cancelledAt);
+    },
+  );
   return state;
 }
 
@@ -1699,46 +2028,54 @@ export function applyGateStuckToState(
   setLastSignalAt(state, payload.triggeredAt);
   return state;
 }
-
 export function applyGateCompletedToState(
   state: ChangeWorkflowState,
   payload: GateCompletedSignalPayload,
 ): ChangeWorkflowState {
-  state.gates[payload.gateId] = {
-    ...state.gates[payload.gateId],
-    status: "done",
-    stuck_reason: undefined,
-    readiness_blockers: undefined,
-    completed_at: payload.completedAt,
-    completed_by: payload.completedBy,
-    approval_evidence: payload.approvalEvidence,
-    artifact_evidence: payload.artifactEvidence,
-  };
-  // Persist gate criteria if present (advisory audit trail)
-  if (payload.criteria) {
-    state.gateCriteria = {
-      ...(state.gateCriteria ?? {}),
-      [payload.gateId]: payload.criteria,
-    };
-  }
-  // Capture acceptance criteria snapshot keyed to the current readiness
-  // revision so stale audit evidence can never be surfaced as current pass.
-  if (payload.gateId === "acceptance" && payload.criteria) {
-    state.acceptanceCriteriaSnapshot = {
-      criteria: payload.criteria,
-      basisRevision: state.acceptanceReadinessRevision ?? 0,
-    };
-  }
-  setLastSignalAt(state, payload.completedAt);
-  // rq-readinessMutationReceipt01: gate completion is the canonical
-  // readiness-affecting mutation; the receipt is recorded AFTER the
-  // reducer applies state so AC7 immediate gate readiness observes the
-  // applied state on its first valid attempt.
-  recordMutationReceipt(state, {
-    signalName: "gateCompleted",
-    mutationReceiptId: payload.mutationReceiptId,
-    recordedAt: payload.completedAt,
-  });
+  withChangeCommandOperation(
+    state,
+    payload,
+    "gateCompleted",
+    payload.completedAt,
+    () => {
+      state.gates[payload.gateId] = {
+        ...state.gates[payload.gateId],
+        status: "done",
+        stuck_reason: undefined,
+        readiness_blockers: undefined,
+        completed_at: payload.completedAt,
+        completed_by: payload.completedBy,
+        approval_evidence: payload.approvalEvidence,
+        artifact_evidence: payload.artifactEvidence,
+      };
+      // Persist gate criteria if present (advisory audit trail)
+      if (payload.criteria) {
+        state.gateCriteria = {
+          ...(state.gateCriteria ?? {}),
+          [payload.gateId]: payload.criteria,
+        };
+      }
+
+      // Capture acceptance criteria snapshot keyed to the current readiness
+      // revision so stale audit evidence can never be surfaced as current pass.
+      if (payload.gateId === "acceptance" && payload.criteria) {
+        state.acceptanceCriteriaSnapshot = {
+          criteria: payload.criteria,
+          basisRevision: state.acceptanceReadinessRevision ?? 0,
+        };
+      }
+      setLastSignalAt(state, payload.completedAt);
+      // rq-readinessMutationReceipt01: gate completion is the canonical
+      // readiness-affecting mutation; the receipt is recorded AFTER the
+      // reducer applies state so AC7 immediate gate readiness observes the
+      // applied state on its first valid attempt.
+      recordMutationReceipt(state, {
+        signalName: "gateCompleted",
+        mutationReceiptId: payload.mutationReceiptId,
+        recordedAt: payload.completedAt,
+      });
+    },
+  );
   return state;
 }
 
@@ -1749,17 +2086,25 @@ export function applyGateReenteredToState(
   state: ChangeWorkflowState,
   payload: GateReenteredSignalPayload,
 ): ChangeWorkflowState {
-  if (state.contract && payload.fromGateId !== "release") {
-    delete state.contract.reviewMatrix;
-    advanceAcceptanceReadinessRevision(state);
-  }
-  reopenFromGateInChangeState(state, payload.fromGateId, {
-    now: payload.reenteredAt,
-    reason: payload.reason,
-    scopeDelta: payload.scopeDelta,
-    reopenedBy: payload.reenteredBy,
-  });
-  setLastSignalAt(state, payload.reenteredAt);
+  withChangeCommandOperation(
+    state,
+    payload,
+    "gateReentered",
+    payload.reenteredAt,
+    () => {
+      if (state.contract && payload.fromGateId !== "release") {
+        delete state.contract.reviewMatrix;
+        advanceAcceptanceReadinessRevision(state);
+      }
+      reopenFromGateInChangeState(state, payload.fromGateId, {
+        now: payload.reenteredAt,
+        reason: payload.reason,
+        scopeDelta: payload.scopeDelta,
+        reopenedBy: payload.reenteredBy,
+      });
+      setLastSignalAt(state, payload.reenteredAt);
+    },
+  );
   return state;
 }
 
@@ -1767,8 +2112,16 @@ export function applyWisdomAddedToState(
   state: ChangeWorkflowState,
   payload: WisdomAddedSignalPayload,
 ): ChangeWorkflowState {
-  state.wisdom.push(payload.entry);
-  setLastSignalAt(state, payload.addedAt);
+  withChangeCommandOperation(
+    state,
+    payload,
+    "wisdomAdded",
+    payload.addedAt,
+    () => {
+      state.wisdom.push(payload.entry);
+      setLastSignalAt(state, payload.addedAt);
+    },
+  );
   return state;
 }
 
@@ -1787,37 +2140,45 @@ export function applySpecDeltaAddedToState(
   state: ChangeWorkflowState,
   payload: SpecDeltaAddedSignalPayload,
 ): ChangeWorkflowState {
-  if (!CAPABILITY_KEY_PATTERN.test(payload.capability)) {
-    throw new Error(
-      `Malformed capability key: ${JSON.stringify(payload.capability)}`,
-    );
-  }
-  const deltas = state.deltas ?? {};
-  for (const [capability, entries] of Object.entries(deltas)) {
-    for (const entry of entries) {
-      if (entry.id === payload.delta.id) {
+  withChangeCommandOperation(
+    state,
+    payload,
+    "specDeltaAdded",
+    payload.addedAt,
+    () => {
+      if (!CAPABILITY_KEY_PATTERN.test(payload.capability)) {
         throw new Error(
-          `Duplicate spec delta id ${payload.delta.id} under capability ${capability}`,
+          `Malformed capability key: ${JSON.stringify(payload.capability)}`,
         );
       }
-      if (
-        entry.operation === "add" &&
-        entry.requirement.id === payload.delta.requirement.id
-      ) {
-        throw new Error(
-          `Duplicate requirement id ${payload.delta.requirement.id} under capability ${capability}`,
-        );
+      const deltas = state.deltas ?? {};
+      for (const [capability, entries] of Object.entries(deltas)) {
+        for (const entry of entries) {
+          if (entry.id === payload.delta.id) {
+            throw new Error(
+              `Duplicate spec delta id ${payload.delta.id} under capability ${capability}`,
+            );
+          }
+          if (
+            entry.operation === "add" &&
+            entry.requirement.id === payload.delta.requirement.id
+          ) {
+            throw new Error(
+              `Duplicate requirement id ${payload.delta.requirement.id} under capability ${capability}`,
+            );
+          }
+        }
       }
-    }
-  }
-  state.deltas = {
-    ...deltas,
-    [payload.capability]: [
-      ...(deltas[payload.capability] ?? []),
-      payload.delta,
-    ],
-  };
-  setLastSignalAt(state, payload.addedAt);
+      state.deltas = {
+        ...deltas,
+        [payload.capability]: [
+          ...(deltas[payload.capability] ?? []),
+          payload.delta,
+        ],
+      };
+      setLastSignalAt(state, payload.addedAt);
+    },
+  );
   return state;
 }
 
@@ -1831,40 +2192,48 @@ export function applySpecDeltaModifiedToState(
   state: ChangeWorkflowState,
   payload: SpecDeltaModifiedSignalPayload,
 ): ChangeWorkflowState {
-  const parsed = SpecDeltaModifiedSignalPayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    throw new Error(
-      `Invalid modify spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
-    );
-  }
-  const validated = parsed.data;
-  const deltas = state.deltas ?? {};
-  for (const [capability, entries] of Object.entries(deltas)) {
-    for (const entry of entries) {
-      if (entry.id === validated.delta.id) {
+  withChangeCommandOperation(
+    state,
+    payload,
+    "specDeltaModified",
+    payload.modifiedAt,
+    () => {
+      const parsed = SpecDeltaModifiedSignalPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
         throw new Error(
-          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+          `Invalid modify spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
         );
       }
-      if (
-        capability === validated.capability &&
-        entry.operation === "modify" &&
-        entry.target_id === validated.delta.target_id
-      ) {
-        throw new Error(
-          `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
-        );
+      const validated = parsed.data;
+      const deltas = state.deltas ?? {};
+      for (const [capability, entries] of Object.entries(deltas)) {
+        for (const entry of entries) {
+          if (entry.id === validated.delta.id) {
+            throw new Error(
+              `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+            );
+          }
+          if (
+            capability === validated.capability &&
+            entry.operation === "modify" &&
+            entry.target_id === validated.delta.target_id
+          ) {
+            throw new Error(
+              `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
+            );
+          }
+        }
       }
-    }
-  }
-  state.deltas = {
-    ...deltas,
-    [validated.capability]: [
-      ...(deltas[validated.capability] ?? []),
-      validated.delta,
-    ],
-  };
-  setLastSignalAt(state, validated.modifiedAt);
+      state.deltas = {
+        ...deltas,
+        [validated.capability]: [
+          ...(deltas[validated.capability] ?? []),
+          validated.delta,
+        ],
+      };
+      setLastSignalAt(state, validated.modifiedAt);
+    },
+  );
   return state;
 }
 
@@ -1878,56 +2247,67 @@ export function applySpecDeltaAmendedToState(
   state: ChangeWorkflowState,
   payload: SpecDeltaAmendedSignalPayload,
 ): ChangeWorkflowState {
-  const parsed = SpecDeltaAmendedSignalPayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    throw new Error(
-      `Invalid amend spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
-    );
-  }
-  const validated = parsed.data;
-  const deltas = state.deltas ?? {};
-  const capabilityEntries = deltas[validated.capability] ?? [];
-  const index = capabilityEntries.findIndex(
-    (entry) => entry.id === validated.deltaId,
-  );
-  if (index === -1) {
-    throw new Error(
-      `spec delta ${validated.deltaId} not found under capability ${validated.capability}`,
-    );
-  }
-  if (validated.delta.id !== validated.deltaId) {
-    throw new Error(
-      `amend id mismatch: delta.id ${validated.delta.id} does not match deltaId ${validated.deltaId}`,
-    );
-  }
-  if (validated.delta.operation === "modify") {
-    for (const [capability, entries] of Object.entries(deltas)) {
-      for (const entry of entries) {
-        if (entry.id === validated.delta.id && entry.id !== validated.deltaId) {
-          throw new Error(
-            `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
-          );
-        }
-        if (
-          capability === validated.capability &&
-          entry.operation === "modify" &&
-          entry.target_id === validated.delta.target_id &&
-          entry.id !== validated.deltaId
-        ) {
-          throw new Error(
-            `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
-          );
+  withChangeCommandOperation(
+    state,
+    payload,
+    "specDeltaAmended",
+    payload.amendedAt,
+    () => {
+      const parsed = SpecDeltaAmendedSignalPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
+        throw new Error(
+          `Invalid amend spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+        );
+      }
+      const validated = parsed.data;
+      const deltas = state.deltas ?? {};
+      const capabilityEntries = deltas[validated.capability] ?? [];
+      const index = capabilityEntries.findIndex(
+        (entry) => entry.id === validated.deltaId,
+      );
+      if (index === -1) {
+        throw new Error(
+          `spec delta ${validated.deltaId} not found under capability ${validated.capability}`,
+        );
+      }
+      if (validated.delta.id !== validated.deltaId) {
+        throw new Error(
+          `amend id mismatch: delta.id ${validated.delta.id} does not match deltaId ${validated.deltaId}`,
+        );
+      }
+      if (validated.delta.operation === "modify") {
+        for (const [capability, entries] of Object.entries(deltas)) {
+          for (const entry of entries) {
+            if (
+              entry.id === validated.delta.id &&
+              entry.id !== validated.deltaId
+            ) {
+              throw new Error(
+                `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+              );
+            }
+            if (
+              capability === validated.capability &&
+              entry.operation === "modify" &&
+              entry.target_id === validated.delta.target_id &&
+              entry.id !== validated.deltaId
+            ) {
+              throw new Error(
+                `Conflicting modify delta target ${validated.delta.target_id} under capability ${capability}`,
+              );
+            }
+          }
         }
       }
-    }
-  }
-  const nextEntries = [...capabilityEntries];
-  nextEntries[index] = validated.delta;
-  state.deltas = { ...deltas, [validated.capability]: nextEntries };
-  setLastSignalAt(state, validated.amendedAt);
+
+      const nextEntries = [...capabilityEntries];
+      nextEntries[index] = validated.delta;
+      state.deltas = { ...deltas, [validated.capability]: nextEntries };
+      setLastSignalAt(state, validated.amendedAt);
+    },
+  );
   return state;
 }
-
 /**
  * Retraction reducer. Removes the staged delta with id `deltaId` from the
  * capability-local delta record.
@@ -1936,29 +2316,37 @@ export function applySpecDeltaRetractedToState(
   state: ChangeWorkflowState,
   payload: SpecDeltaRetractedSignalPayload,
 ): ChangeWorkflowState {
-  const parsed = SpecDeltaRetractedSignalPayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    throw new Error(
-      `Invalid retract spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
-    );
-  }
-  const validated = parsed.data;
-  const deltas = state.deltas ?? {};
-  const capabilityEntries = deltas[validated.capability] ?? [];
-  const index = capabilityEntries.findIndex(
-    (entry) => entry.id === validated.deltaId,
+  withChangeCommandOperation(
+    state,
+    payload,
+    "specDeltaRetracted",
+    payload.retractedAt,
+    () => {
+      const parsed = SpecDeltaRetractedSignalPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
+        throw new Error(
+          `Invalid retract spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+        );
+      }
+      const validated = parsed.data;
+      const deltas = state.deltas ?? {};
+      const capabilityEntries = deltas[validated.capability] ?? [];
+      const index = capabilityEntries.findIndex(
+        (entry) => entry.id === validated.deltaId,
+      );
+      if (index === -1) {
+        throw new Error(
+          `spec delta ${validated.deltaId} not found under capability ${validated.capability}`,
+        );
+      }
+      const nextEntries = [
+        ...capabilityEntries.slice(0, index),
+        ...capabilityEntries.slice(index + 1),
+      ];
+      state.deltas = { ...deltas, [validated.capability]: nextEntries };
+      setLastSignalAt(state, validated.retractedAt);
+    },
   );
-  if (index === -1) {
-    throw new Error(
-      `spec delta ${validated.deltaId} not found under capability ${validated.capability}`,
-    );
-  }
-  const nextEntries = [
-    ...capabilityEntries.slice(0, index),
-    ...capabilityEntries.slice(index + 1),
-  ];
-  state.deltas = { ...deltas, [validated.capability]: nextEntries };
-  setLastSignalAt(state, validated.retractedAt);
   return state;
 }
 
@@ -1971,40 +2359,48 @@ export function applySpecDeltaRemovedToState(
   state: ChangeWorkflowState,
   payload: SpecDeltaRemovedSignalPayload,
 ): ChangeWorkflowState {
-  const parsed = SpecDeltaRemovedSignalPayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    throw new Error(
-      `Invalid remove spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
-    );
-  }
-  const validated = parsed.data;
-  const deltas = state.deltas ?? {};
-  for (const [capability, entries] of Object.entries(deltas)) {
-    for (const entry of entries) {
-      if (entry.id === validated.delta.id) {
+  withChangeCommandOperation(
+    state,
+    payload,
+    "specDeltaRemoved",
+    payload.removedAt,
+    () => {
+      const parsed = SpecDeltaRemovedSignalPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
         throw new Error(
-          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+          `Invalid remove spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
         );
       }
-      if (
-        capability === validated.capability &&
-        entry.operation === "remove" &&
-        entry.target_id === validated.delta.target_id
-      ) {
-        throw new Error(
-          `Conflicting remove delta target ${validated.delta.target_id} under capability ${capability}`,
-        );
+      const validated = parsed.data;
+      const deltas = state.deltas ?? {};
+      for (const [capability, entries] of Object.entries(deltas)) {
+        for (const entry of entries) {
+          if (entry.id === validated.delta.id) {
+            throw new Error(
+              `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+            );
+          }
+          if (
+            capability === validated.capability &&
+            entry.operation === "remove" &&
+            entry.target_id === validated.delta.target_id
+          ) {
+            throw new Error(
+              `Conflicting remove delta target ${validated.delta.target_id} under capability ${capability}`,
+            );
+          }
+        }
       }
-    }
-  }
-  state.deltas = {
-    ...deltas,
-    [validated.capability]: [
-      ...(deltas[validated.capability] ?? []),
-      validated.delta,
-    ],
-  };
-  setLastSignalAt(state, validated.removedAt);
+      state.deltas = {
+        ...deltas,
+        [validated.capability]: [
+          ...(deltas[validated.capability] ?? []),
+          validated.delta,
+        ],
+      };
+      setLastSignalAt(state, validated.removedAt);
+    },
+  );
   return state;
 }
 
@@ -2017,31 +2413,39 @@ export function applySpecDeltaRenamedToState(
   state: ChangeWorkflowState,
   payload: SpecDeltaRenamedSignalPayload,
 ): ChangeWorkflowState {
-  const parsed = SpecDeltaRenamedSignalPayloadSchema.safeParse(payload);
-  if (!parsed.success) {
-    throw new Error(
-      `Invalid rename spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
-    );
-  }
-  const validated = parsed.data;
-  const deltas = state.deltas ?? {};
-  for (const [capability, entries] of Object.entries(deltas)) {
-    for (const entry of entries) {
-      if (entry.id === validated.delta.id) {
+  withChangeCommandOperation(
+    state,
+    payload,
+    "specDeltaRenamed",
+    payload.renamedAt,
+    () => {
+      const parsed = SpecDeltaRenamedSignalPayloadSchema.safeParse(payload);
+      if (!parsed.success) {
         throw new Error(
-          `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+          `Invalid rename spec delta: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
         );
       }
-    }
-  }
-  state.deltas = {
-    ...deltas,
-    [validated.capability]: [
-      ...(deltas[validated.capability] ?? []),
-      validated.delta,
-    ],
-  };
-  setLastSignalAt(state, validated.renamedAt);
+      const validated = parsed.data;
+      const deltas = state.deltas ?? {};
+      for (const [capability, entries] of Object.entries(deltas)) {
+        for (const entry of entries) {
+          if (entry.id === validated.delta.id) {
+            throw new Error(
+              `Duplicate spec delta id ${validated.delta.id} under capability ${capability}`,
+            );
+          }
+        }
+      }
+      state.deltas = {
+        ...deltas,
+        [validated.capability]: [
+          ...(deltas[validated.capability] ?? []),
+          validated.delta,
+        ],
+      };
+      setLastSignalAt(state, validated.renamedAt);
+    },
+  );
   return state;
 }
 
@@ -2578,13 +2982,164 @@ export function updateArtifactMetadataInChangeState(
   state.artifacts[kind] = normalized;
 }
 
+function computeClosurePayloadHash(closure: ChangeClosure): string {
+  if (closure.payload_hash) return closure.payload_hash;
+  const sanitized = { ...closure };
+  delete (sanitized as { operation_id?: string }).operation_id;
+  delete (sanitized as { payload_hash?: string }).payload_hash;
+  return fnv1a32(stableStringify(sanitized));
+}
+
+function isCloseEligible(
+  state: ChangeWorkflowState,
+): { eligible: true } | { eligible: false; reason: string } {
+  if (state.lifecycleState !== "open") {
+    return {
+      eligible: false,
+      reason: `lifecycleState is ${state.lifecycleState}`,
+    };
+  }
+  if (state.status !== "draft") {
+    return {
+      eligible: false,
+      reason: `status is ${state.status}`,
+    };
+  }
+  return { eligible: true };
+}
+
+function hasActiveBatchCloseReservation(state: ChangeWorkflowState): boolean {
+  return Object.values(state.batch_close_reservations ?? {}).some(
+    (reservation) => reservation.phase === "prepared",
+  );
+}
+
 export function closeChangeInChangeState(
   state: ChangeWorkflowState,
   closure: ChangeClosure,
 ): ChangeWorkflowState {
+  const at = closure.approved_at;
+  const operation_id = closure.operation_id;
+  const command_kind = "closeChange";
+
+  // AC3/AC5: resolve operation identity before mutating. Same operation_id +
+  // same command_kind + same payload hash is an idempotent replay; same
+  // operation_id with a different command kind or payload is a typed conflict
+  // that must not overwrite the accepted result.
+  let ledgerHash: string | undefined;
+  if (operation_id) {
+    ledgerHash = computeClosurePayloadHash(closure);
+    const existing = state.operation_ledger?.[operation_id];
+    if (existing) {
+      if (isOperationIdempotentReplay(existing, command_kind, ledgerHash)) {
+        const replay: OperationLedgerEntry = {
+          ...existing,
+          outcome: "idempotent_replay",
+          last_seen_at: at,
+        };
+        recordOperationLedger(state, replay);
+        setLastSignalAt(state, at);
+        return state;
+      }
+      applySignalRejectionToState(state, {
+        signalName: command_kind,
+        error: new Error(
+          formatOperationConflictMessage(
+            operation_id,
+            existing,
+            command_kind,
+            ledgerHash,
+          ),
+        ),
+        payload: { operation_id, command_kind, closure },
+        rejectedAt: at,
+      });
+      setLastSignalAt(state, at);
+      return state;
+    }
+  }
+
+  // AC5: a conflicting batch-close reservation blocks single-close commands
+  // until the coordinator commits or aborts the reservation.
+  if (hasActiveBatchCloseReservation(state)) {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        `BATCH_CLOSE_RESERVATION_CONFLICT: closeChange rejected because change has an active batch-close reservation`,
+      ),
+      payload: { operation_id, command_kind, closure },
+      rejectedAt: at,
+    });
+    if (operation_id && ledgerHash) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        command_kind,
+        ledgerHash,
+        at,
+      );
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  // AC5: lifecycle authority lives in the reducer, not in host preflight.
+  // Only open, non-terminal changes are eligible to be closed.
+  const eligibility = isCloseEligible(state);
+  if (!eligibility.eligible) {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        `LIFECYCLE_INELIGIBLE: closeChange rejected because change is not in an eligible state (${eligibility.reason})`,
+      ),
+      payload: { operation_id, command_kind, closure },
+      rejectedAt: at,
+    });
+    if (operation_id && ledgerHash) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        command_kind,
+        ledgerHash,
+        at,
+      );
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  // Explicit approval contract: closure must carry approval truth and evidence.
+  if (!closure.approved_by_user || closure.approval_evidence.trim() === "") {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        `APPROVAL_MISSING: closeChange requires explicit approval with evidence`,
+      ),
+      payload: { operation_id, command_kind, closure },
+      rejectedAt: at,
+    });
+    if (operation_id && ledgerHash) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        command_kind,
+        ledgerHash,
+        at,
+      );
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
   state.status = "closed";
   state.lifecycleState = "closed";
   state.closure = closure;
+  advanceStateRevision(state);
+  setLastSignalAt(state, at);
+
+  if (operation_id && ledgerHash) {
+    recordOperationAccepted(state, operation_id, command_kind, ledgerHash, at);
+  }
   return state;
 }
 
@@ -2593,5 +3148,262 @@ export function archiveChangeInChangeState(
 ): ChangeWorkflowState {
   state.status = "archived";
   state.lifecycleState = "archived";
+  return state;
+}
+
+// =============================================================================
+// Durable batch-close coordinator reducer functions
+//
+// Prepare/commit/abort reservations, lifecycle checks, operation-ledger identity,
+// and conflict blocking for single-close commands.
+// =============================================================================
+
+export function getBatchCloseReservation(
+  state: ChangeWorkflowState,
+  batch_id: string,
+): BatchCloseReservation | undefined {
+  return state.batch_close_reservations?.[batch_id];
+}
+
+export function prepareBatchCloseInChangeState(
+  state: ChangeWorkflowState,
+  payload: PrepareBatchCloseSignalPayload,
+): ChangeWorkflowState {
+  const { batch_id, closure } = payload;
+  const at = closure.approved_at;
+  const operation_id = closure.operation_id;
+  const command_kind = "prepareBatchClose";
+
+  let ledgerHash: string | undefined;
+  if (operation_id) {
+    ledgerHash = computeClosurePayloadHash(closure);
+    const existing = state.operation_ledger?.[operation_id];
+    if (existing) {
+      if (isOperationIdempotentReplay(existing, command_kind, ledgerHash)) {
+        recordOperationLedger(state, {
+          ...existing,
+          outcome: "idempotent_replay",
+          last_seen_at: at,
+        });
+        setLastSignalAt(state, at);
+        return state;
+      }
+      applySignalRejectionToState(state, {
+        signalName: command_kind,
+        error: new Error(
+          formatOperationConflictMessage(
+            operation_id,
+            existing,
+            command_kind,
+            ledgerHash,
+          ),
+        ),
+        payload: { operation_id, command_kind, batch_id, closure },
+        rejectedAt: at,
+      });
+      setLastSignalAt(state, at);
+      return state;
+    }
+  }
+
+  const eligibility = isCloseEligible(state);
+  if (!eligibility.eligible) {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        `LIFECYCLE_INELIGIBLE: prepareBatchClose rejected because change is not in an eligible state (${eligibility.reason})`,
+      ),
+      payload: { operation_id, command_kind, batch_id, closure },
+      rejectedAt: at,
+    });
+    if (operation_id && ledgerHash) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        command_kind,
+        ledgerHash,
+        at,
+      );
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  if (!closure.approved_by_user || closure.approval_evidence.trim() === "") {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        `APPROVAL_MISSING: prepareBatchClose requires explicit approval with evidence`,
+      ),
+      payload: { operation_id, command_kind, batch_id, closure },
+      rejectedAt: at,
+    });
+    if (operation_id && ledgerHash) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        command_kind,
+        ledgerHash,
+        at,
+      );
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  state.batch_close_reservations = {
+    ...(state.batch_close_reservations ?? {}),
+    [batch_id]: {
+      phase: "prepared",
+      prepared_at: at,
+      closure,
+    },
+  };
+  advanceStateRevision(state);
+  setLastSignalAt(state, at);
+
+  if (operation_id && ledgerHash) {
+    recordOperationAccepted(state, operation_id, command_kind, ledgerHash, at);
+  }
+  return state;
+}
+
+export function commitBatchCloseInChangeState(
+  state: ChangeWorkflowState,
+  payload: CommitBatchCloseSignalPayload,
+): ChangeWorkflowState {
+  const { batch_id, committed_at } = payload;
+  const command_kind = "commitBatchClose";
+  const operation_id = `op-commit-${batch_id}`;
+  const reservation = state.batch_close_reservations?.[batch_id];
+  const at =
+    committed_at ??
+    reservation?.prepared_at ??
+    state.lastSignalAt ??
+    "1970-01-01T00:00:00.000Z";
+  const ledgerHash = fnv1a32(stableStringify({ batch_id }));
+
+  const existing = state.operation_ledger?.[operation_id];
+  if (existing) {
+    if (isOperationIdempotentReplay(existing, command_kind, ledgerHash)) {
+      recordOperationLedger(state, {
+        ...existing,
+        outcome: "idempotent_replay",
+        last_seen_at: at,
+      });
+      setLastSignalAt(state, at);
+      return state;
+    }
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        formatOperationConflictMessage(
+          operation_id,
+          existing,
+          command_kind,
+          ledgerHash,
+        ),
+      ),
+      payload: { operation_id, command_kind, batch_id },
+      rejectedAt: at,
+    });
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  if (!reservation || reservation.phase !== "prepared") {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        reservation?.phase === "committed"
+          ? `BATCH_CLOSE_COMMITTED: commitBatchClose rejected because reservation is already committed`
+          : `BATCH_CLOSE_RESERVATION_MISSING: commitBatchClose rejected because no matching prepared reservation exists`,
+      ),
+      payload: { operation_id, command_kind, batch_id },
+      rejectedAt: at,
+    });
+    recordOperationRejected(state, operation_id, command_kind, ledgerHash, at);
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  state.status = "closed";
+  state.lifecycleState = "closed";
+  state.closure = reservation.closure;
+  reservation.phase = "committed";
+  reservation.closed_at = at;
+  advanceStateRevision(state);
+  setLastSignalAt(state, at);
+
+  recordOperationAccepted(state, operation_id, command_kind, ledgerHash, at);
+  return state;
+}
+
+export function abortBatchCloseInChangeState(
+  state: ChangeWorkflowState,
+  payload: AbortBatchCloseSignalPayload,
+): ChangeWorkflowState {
+  const { batch_id, reason, aborted_at } = payload;
+  const command_kind = "abortBatchClose";
+  const operation_id = `op-abort-${batch_id}`;
+  const reservation = state.batch_close_reservations?.[batch_id];
+  const at =
+    aborted_at ??
+    reservation?.prepared_at ??
+    state.lastSignalAt ??
+    "1970-01-01T00:00:00.000Z";
+  const ledgerHash = fnv1a32(stableStringify({ batch_id, reason }));
+
+  const existing = state.operation_ledger?.[operation_id];
+  if (existing) {
+    if (isOperationIdempotentReplay(existing, command_kind, ledgerHash)) {
+      recordOperationLedger(state, {
+        ...existing,
+        outcome: "idempotent_replay",
+        last_seen_at: at,
+      });
+      setLastSignalAt(state, at);
+      return state;
+    }
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        formatOperationConflictMessage(
+          operation_id,
+          existing,
+          command_kind,
+          ledgerHash,
+        ),
+      ),
+      payload: { operation_id, command_kind, batch_id, reason },
+      rejectedAt: at,
+    });
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  if (!reservation || reservation.phase !== "prepared") {
+    applySignalRejectionToState(state, {
+      signalName: command_kind,
+      error: new Error(
+        reservation?.phase === "committed"
+          ? `BATCH_CLOSE_COMMITTED: abortBatchClose rejected because reservation is already committed and cannot be reopened`
+          : `BATCH_CLOSE_RESERVATION_MISSING: abortBatchClose rejected because no matching prepared reservation exists`,
+      ),
+      payload: { operation_id, command_kind, batch_id, reason },
+      rejectedAt: at,
+    });
+    recordOperationRejected(state, operation_id, command_kind, ledgerHash, at);
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  reservation.phase = "aborted";
+  reservation.aborted_at = at;
+  delete reservation.closure;
+  advanceStateRevision(state);
+  setLastSignalAt(state, at);
+
+  recordOperationAccepted(state, operation_id, command_kind, ledgerHash, at);
   return state;
 }

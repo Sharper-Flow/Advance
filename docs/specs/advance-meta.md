@@ -1,7 +1,7 @@
 # Advance Meta
 
-> **Version:** 1.30.0
-> **Updated:** 2026-07-22
+> **Version:** 1.31.0
+> **Updated:** 2026-07-28
 
 ## Purpose
 
@@ -2957,5 +2957,78 @@ The retired adv_change_forget tool's session active-change pointer clearing is c
 - (Case A) No phantom_pointer finding is produced and the pointer is not cleared
 - (Case B) The phantom-pointer check is skipped entirely and probeChangePhantomStatus is never called
 - In both cases the pointer is left unchanged
+
+---
+
+### Projection-First Routine Reads
+
+**ID:** `rq-projectionReadModel02` | **Priority:** **[MUST]**
+
+Routine ADV reads must resolve from schema-versioned durable entity projections and per-entity summary shards without workflow Queries. Temporal Queries, Visibility, and Describe are restricted to command confirmation, reconciliation, diagnostics, and repair. Pure metadata surfaces remain independent of both Temporal and entity projection machinery.
+
+**Tags:** `read-model`, `projection`, `tool-catalog`, `tier4`, `performance`
+
+#### Scenarios
+
+**Routine reads avoid workflow Queries** (`rq-projectionReadModel02.1`)
+
+**Given:**
+- A valid full projection or summary shard exists
+
+**When:** A change, task, gate, wisdom, delta, Epic, status, or WIP read executes
+
+**Then:**
+- The result is served from the read model
+- No workflow Query is dispatched
+- The response includes typed source, revision, and degraded provenance
+
+**Workflow health does not block reads** (`rq-projectionReadModel02.2`)
+
+**Given:**
+- A workflow is missing, poisoned, or assigned to an orphaned task queue
+- A valid durable projection exists
+
+**When:** A routine read executes
+
+**Then:**
+- The projection result is returned
+- Temporal infrastructure failure is not surfaced as the read result
+- Any degradation is represented as typed provenance
+
+**Missing projection is typed** (`rq-projectionReadModel02.3`)
+
+**Given:**
+- No valid projection exists for the requested entity
+
+**When:** A routine read executes
+
+**Then:**
+- The result is typed not-found or corrupt-projection as applicable
+- The read does not silently hydrate from a workflow Query
+- Repair or reconciliation is an explicit operational path
+
+**Concurrent summaries preserve all changes** (`rq-projectionReadModel02.4`)
+
+**Given:**
+- Different changes commit projections concurrently
+
+**When:** Their summary shards are published
+
+**Then:**
+- Each change updates only its own immutable revision shard and current pointer
+- No shared-manifest lost update occurs
+- The index can be rebuilt solely from full projections
+
+**Pure metadata stays Temporal-free** (`rq-projectionReadModel02.5`)
+
+**Given:**
+- Tool catalog, tool describe, specs, backlog, or project context is requested
+
+**When:** The read executes
+
+**Then:**
+- The request uses registry or filesystem context directly
+- No Temporal reachability probe is required
+- Tool classification structurally distinguishes pure/context/read-model/diagnostic needs
 
 ---

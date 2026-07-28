@@ -72,9 +72,12 @@ import {
   type LoadResult,
 } from "./json";
 import {
+  listActiveEpicProjections,
+  listRetiredEpicProjections,
+  loadActiveEpicProjection,
   loadRetiredEpicProjection,
-  saveRetiredEpicProjection,
-} from "./epic-projection";
+} from "./epic-projection-reader";
+import { saveRetiredEpicProjection } from "./epic-projection";
 import {
   buildChangeRecency,
   computeLastActivity,
@@ -122,6 +125,7 @@ export async function createDiskStore(
   // Make sure the mutable side-tree exists; tools assume these dirs are
   // present at first write.
   await mkdir(paths.changes, { recursive: true });
+  await mkdir(paths.activeEpics, { recursive: true });
   await mkdir(paths.retiredEpics, { recursive: true });
   if (paths.external) {
     await mkdir(paths.external, { recursive: true });
@@ -1245,12 +1249,34 @@ export async function createDiskStore(
             source: "retired_projection" as const,
           };
         }
+        const active = await loadActiveEpicProjection(
+          paths.activeEpics,
+          epicId,
+        );
+        if (!active.success) return active as LoadResult<null>;
+        if (active.data)
+          return {
+            success: true,
+            data: active.data,
+            source: "active_projection" as const,
+          };
         return {
           success: true,
           data: null,
         };
       },
-      list: async (_filter?: { status?: "active" | "all" }) => [],
+      list: async (filter?: { status?: "active" | "all" }) => {
+        const active = await listActiveEpicProjections(paths.activeEpics);
+        if (!active.success) return [];
+        if (filter?.status !== "all") return active.data;
+        const retired = await listRetiredEpicProjections(paths.retiredEpics);
+        if (!retired.success) return active.data;
+        return [...active.data, ...retired.data].sort(
+          (a, b) =>
+            b.created_at.localeCompare(a.created_at) ||
+            a.id.localeCompare(b.id),
+        );
+      },
       update: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },

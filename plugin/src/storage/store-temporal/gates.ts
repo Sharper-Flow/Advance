@@ -6,26 +6,46 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import {
-  classifyTemporalReadFailure,
   runTemporal,
   getGuardedChangeHandle,
+  changeCommand,
+  fallbackOperationId,
+  buildSummaryCommitProjection,
+  type ChangeCommandOutcome,
   type StoreDeps,
-  createTemporalReadContext,
-  isTemporalReadExpired,
-  type TemporalReadContext,
 } from "./shared";
 import {
   composeTypedMutationResult,
   enforceMutationEligibilityForError,
   type TemporalMutationOutcome,
 } from "../../temporal/mutation-safety";
-import { collectErrorText } from "../../temporal/error-text";
 import { createLogger } from "../../utils/debug-log";
-import { isSchemaError } from "../json";
+import { computeHostCommandPayloadHash } from "../../utils/command-payload-hash";
 
 export { fireSignalWithMutationGuard };
 
 const logger = createLogger("store-temporal-gates");
+
+function buildGateCommandIdentity(
+  commandKind: string,
+  payload: Record<string, unknown>,
+  callerOperationId?: string,
+): { operationId: string; payloadHash: string } {
+  const payloadHash = computeHostCommandPayloadHash(payload);
+  const operationId =
+    callerOperationId ?? fallbackOperationId(commandKind, payload);
+  return { operationId, payloadHash };
+}
+
+function unwrapCommandOutcome(
+  outcome: ChangeCommandOutcome,
+  context: string,
+): import("../../temporal/contracts").ChangeWorkflowState {
+  if (outcome.kind === "accepted" || outcome.kind === "idempotent_replay") {
+    return outcome.state;
+  }
+  throw new Error(`${context}: ${outcome.kind} — ${outcome.reason}`);
+}
 
 /**
  * rq-temporalMutationSafety01 — SC6 outcome classification for a
@@ -36,7 +56,7 @@ const logger = createLogger("store-temporal-gates");
  * an ambiguous result as a confirmed mutation.
  *
  * On an SC4 mutation-ineligible class (no-poller / unregistered-query /
- * deadline / unknown / query-rejected / resource-exhaustion / permission)
+ * deadline / unknown / query-rejected / permission / resource-exhaustion)
  * the signal error is re-thrown as `TemporalMutationIneligibleError` so
  * the caller never authorizes a mutation against an unreachable workflow.
  *
@@ -87,94 +107,67 @@ async function fireSignalWithMutationGuard(
 
 export function createGateOps(deps: StoreDeps): Store["gates"] {
   const {
-    input,
     legacy,
     invalidateChange,
     setCachedChange,
     emitChangeSummarySignal,
-    persistStateToDiskDurable,
-    getTemporalChange,
+    readChangeSnapshot,
   } = deps;
 
   return {
     ...legacy.gates,
     get: async (changeId: string) => {
-      // SC3 aggregate-budget compliance: build ONE
-      // `TemporalReadContext` per call and thread it through both the
-      // primary read and the fallback read. The previous implementation
-      // created a fresh context for the fallback path, which violated the
-      // request-scoped aggregate deadline (`rq-temporalRecoveryOutcome01`).
-      const ctx: TemporalReadContext = createTemporalReadContext();
-      try {
-        const result = await getTemporalChange(changeId, { context: ctx });
-        if (isSchemaError(result)) {
-          throw new Error(result.error);
-        }
-        if (result.success && result.data) {
-          return result.data.gates ?? null;
-        }
-        throw new Error(`Failed to load gates for change ${changeId}`);
-      } catch (error) {
-        const failure = await classifyTemporalReadFailure(
-          input,
-          changeId,
-          error,
-        );
-        if (failure.errorClass !== "fallback") {
-          throw error;
-        }
-        // Fallback may reuse the existing context only if it has budget
-        // remaining. Once expired, return a typed degraded read result
-        // rather than silently starting a new budget.
-        if (isTemporalReadExpired(ctx)) {
-          throw new Error(
-            `Aggregate read budget exhausted during fallback for change ${changeId}: original error preserved (${collectErrorText(error)})`,
-            { cause: error },
-          );
-        }
-        const recovered = await getTemporalChange(changeId, { context: ctx });
-        if (isSchemaError(recovered)) {
-          // Preserve the outer caught `error` as cause for traceability
-          // (preserve-caught-error). The schema_error message in
-          // `recovered.error` is the primary symptom; `error` is the
-          // Temporal read failure that triggered the fallback path.
-          throw new Error(recovered.error, { cause: error });
-        }
-        if (recovered.success && recovered.data) {
-          return recovered.data.gates ?? null;
-        }
-        throw error;
-      }
+      const snapshot = await readChangeSnapshot(changeId);
+      return snapshot.found ? (snapshot.snapshot.gates ?? null) : null;
     },
-    complete: async (changeId: string, gateId: GateId, notes?: string) => {
+    complete: async (
+      changeId: string,
+      gateId: GateId,
+      notes?: string,
+      options?: { operationId?: string },
+    ) => {
       invalidateChange(changeId);
-      // SC4 + SC6: classify-and-classify. `outcome_unknown_readback_unavailable`
-      // surfaces a typed error rather than silently confirming a mutation
-      // whose post-signal readback failed.
-      const outcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "gateCompleted";
+      const payload = {
+        gateId,
+        approvalEvidence: notes,
+        completedBy: "agent",
+        completedAt: new Date().toISOString(),
+      };
+      const { operationId, payloadHash } = buildGateCommandIdentity(
+        commandKind,
+        payload,
+        options?.operationId,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        gateCompletedSignal,
-        [
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: gateCompletedSignal,
+        signalArgs: [
           {
-            gateId,
-            approvalEvidence: notes,
-            completedBy: "agent",
-            completedAt: new Date().toISOString(),
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
           },
         ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `gates.complete(${changeId}, ${gateId})`,
       );
-      if (outcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `gate.complete(${changeId}, ${gateId}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable. Do not retry without stable idempotency evidence.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      await persistStateToDiskDurable(changeId, state);
     },
     reopenFrom: async (
       changeId,
@@ -183,33 +176,51 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
       scopeDelta,
       reopenedBy,
       _approvalEvidence,
+      options?: { operationId?: string },
     ) => {
       invalidateChange(changeId);
-      const outcome = await fireSignalWithMutationGuard(
-        input,
+      const commandKind = "gateReentered";
+      const payload = {
+        fromGateId: fromGate,
+        reason,
+        scopeDelta: scopeDelta ?? undefined,
+        reenteredBy: reopenedBy ?? "agent",
+        reenteredAt: new Date().toISOString(),
+      };
+      const { operationId, payloadHash } = buildGateCommandIdentity(
+        commandKind,
+        payload,
+        options?.operationId,
+      );
+      const outcome = await changeCommand({
+        deps,
         changeId,
-        gateReenteredSignal,
-        [
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: gateReenteredSignal,
+        signalArgs: [
           {
-            fromGateId: fromGate,
-            reason,
-            scopeDelta: scopeDelta ?? undefined,
-            reenteredBy: reopenedBy ?? "agent",
-            reenteredAt: new Date().toISOString(),
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
           },
         ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `gates.reopenFrom(${changeId}, ${fromGate})`,
       );
-      if (outcome === "outcome_unknown_readback_unavailable") {
-        throw new Error(
-          `gate.reopenFrom(${changeId}, ${fromGate}): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable. Do not retry without stable idempotency evidence.`,
-        );
-      }
-      const state = (await runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as import("../../temporal/contracts").ChangeWorkflowState;
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      await persistStateToDiskDurable(changeId, state);
     },
   };
 }

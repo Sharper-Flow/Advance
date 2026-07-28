@@ -7,7 +7,7 @@
 
 import { readFile } from "fs/promises";
 import { join } from "path";
-import type { Store } from "../storage/store";
+import type { Store } from "../storage/store-types";
 import { formatToolOutput } from "../utils/tool-output";
 
 // =============================================================================

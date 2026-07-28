@@ -21,10 +21,17 @@ import { mkdir, readFile, stat, unlink } from "fs/promises";
 import { join, normalize, isAbsolute, resolve, dirname, sep } from "path";
 import { createHash } from "crypto";
 
-import { listSpecDirs } from "../storage/json";
 import { atomicWriteFile } from "../utils/fs";
 import { createLogger } from "../utils/debug-log";
 import { buildLauncherProjection } from "../storage/launcher-projection";
+import {
+  listSpecsFilesystem,
+  readSpecFilesystem,
+  type ListSpecsInput,
+  type ListSpecsResult,
+  type ShowSpecInput,
+  type ShowSpecResult,
+} from "../storage/spec-filesystem";
 import type { ChangeWorkflowState } from "./contracts";
 import { CHANGE_BRANCH_PREFIX } from "./contracts";
 import { renderBriefSummary } from "../utils/archive-summary";
@@ -255,54 +262,16 @@ const ARTIFACT_KIND_ORDER: ReadonlyArray<ArtifactKind> = [
   "acceptance",
 ];
 
-export interface ListSpecsInput {
-  specsDir: string;
-}
-
-export type ListSpecsResult =
-  | { ok: true; specs: string[] }
-  | { ok: false; error: string; specs?: undefined };
-
 export async function listSpecsActivity(
   input: ListSpecsInput,
 ): Promise<ListSpecsResult> {
-  try {
-    // listSpecDirs swallows ENOENT and returns []. Anything else propagates.
-    const specs = await listSpecDirs(input.specsDir);
-    return { ok: true, specs };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { ok: false, error: `listSpecs failed: ${message}` };
-  }
+  return listSpecsFilesystem(input);
 }
-
-export interface ShowSpecInput {
-  specsDir: string;
-  capability: string;
-}
-
-export type ShowSpecResult =
-  | { ok: true; content: string; path: string }
-  | { ok: false; error: string; content?: undefined; path?: undefined };
 
 export async function showSpecActivity(
   input: ShowSpecInput,
 ): Promise<ShowSpecResult> {
-  const path = join(input.specsDir, input.capability, "spec.json");
-  try {
-    const content = await readFile(path, "utf-8");
-    return { ok: true, content, path };
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      ok: false,
-      error:
-        code === "ENOENT"
-          ? `Spec not found: ${input.capability} (${path})`
-          : `Read failed (${code ?? "unknown"}): ${message}`,
-    };
-  }
+  return readSpecFilesystem(input);
 }
 
 export interface CrossRepoArtifactInput {
@@ -514,10 +483,9 @@ export async function writeChangeProjection(
   // activity or change the return value.
   try {
     const externalRoot = dirname(input.projectionChangesDir);
-    const archiveDir = join(externalRoot, "archive");
     const projection = await buildLauncherProjection({
       changesDir: input.projectionChangesDir,
-      archiveDir,
+      summariesDir: join(externalRoot, "summaries"),
       generatedAt: input.state.lastSignalAt ?? input.projectedAt,
       degradedThresholdMs: 300_000,
     });

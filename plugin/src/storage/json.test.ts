@@ -51,6 +51,7 @@ describe("getProjectPaths", () => {
     expect(paths.root).toBe("/project");
     expect(paths.specs).toBe("/project/.adv/specs");
     expect(paths.changes).toBe("/project/.adv/changes");
+    expect(paths.summariesDir).toBe("/project/.adv/summaries");
     expect(paths.archive).toBe("/project/.adv/archive");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/project/.adv/wisdom.jsonl");
@@ -85,6 +86,7 @@ describe("getProjectPaths", () => {
     expect(paths.config).toBe("/project/project.json");
     // Mutable paths go external
     expect(paths.changes).toBe("/ext/data/abc123/changes");
+    expect(paths.summariesDir).toBe("/ext/data/abc123/summaries");
     expect(paths.archive).toBe("/ext/data/abc123/archive");
     expect("db" in paths).toBe(false);
     expect(paths.wisdom).toBe("/ext/data/abc123/wisdom.jsonl");
@@ -109,6 +111,7 @@ describe("getProjectPaths", () => {
     // Custom subdirectory names applied within external root
     expect(paths.changes).toBe("/ext/data/abc123/my-changes");
     expect("db" in paths).toBe(false);
+    expect(paths.summariesDir).toBe("/ext/data/abc123/summaries");
     expect(paths.reflections).toBe("/ext/data/abc123/reflections.jsonl");
     // Specs still in-repo (unaffected by external)
     expect(paths.specs).toBe("/project/.adv/specs");

@@ -28,6 +28,9 @@ import {
   type ChangeWorkflowBootstrapState,
   type ChangeWorkflowInput,
   type CrossProjectCoordinationUpdatedSignalPayload,
+  type PrepareBatchCloseSignalPayload,
+  type CommitBatchCloseSignalPayload,
+  type AbortBatchCloseSignalPayload,
   type EpicWorkflowInput,
   type EpicWorkflowState,
 } from "./contracts";
@@ -92,6 +95,9 @@ import {
   applyWorktreeSetupFailedToState,
   archiveChangeInChangeState,
   closeChangeInChangeState,
+  prepareBatchCloseInChangeState,
+  commitBatchCloseInChangeState,
+  abortBatchCloseInChangeState,
   createChangeWorkflowState,
   findMutationReceipt,
   getTaskFromChangeState,
@@ -248,6 +254,10 @@ const getMutationReceiptQuery = wf.defineQuery<
   import("./contracts").MutationReceipt | undefined,
   [string]
 >(CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt);
+const getOperationLedgerOutcomeQuery = wf.defineQuery<
+  import("./contracts").OperationLedgerEntry | undefined,
+  [string]
+>(CHANGE_WORKFLOW_QUERY_NAMES.getOperationLedgerOutcome);
 const changeTasksQuery = wf.defineQuery<
   ChangeWorkflowState["tasks"],
   [
@@ -504,6 +514,15 @@ const archiveChangeSignal = wf.defineSignal(
 const closeChangeSignal = wf.defineSignal<[import("../types").ChangeClosure]>(
   CHANGE_WORKFLOW_SIGNAL_NAMES.closeChange,
 );
+const prepareBatchCloseSignal = wf.defineSignal<
+  [PrepareBatchCloseSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.prepareBatchClose);
+const commitBatchCloseSignal = wf.defineSignal<[CommitBatchCloseSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.commitBatchClose,
+);
+const abortBatchCloseSignal = wf.defineSignal<[AbortBatchCloseSignalPayload]>(
+  CHANGE_WORKFLOW_SIGNAL_NAMES.abortBatchClose,
+);
 // Update definitions removed — signal-only architecture (R1.1)
 
 // Epic workflow signal/query definitions
@@ -700,6 +719,9 @@ export function buildChangeWorkflowContinueAsNewSeed(
       worker_bundle_impact: state.worker_bundle_impact,
       workerBundleProvenance: state.workerBundleProvenance,
       testRuns: state.testRuns,
+      state_revision: state.state_revision,
+      operation_ledger: state.operation_ledger,
+      batch_close_reservations: state.batch_close_reservations,
     },
   };
 }
@@ -893,6 +915,10 @@ export async function changeWorkflow(
   wf.setHandler(getConformanceStateQuery, () => state.conformance);
   wf.setHandler(getMutationReceiptQuery, (receiptId) =>
     findMutationReceipt(state, receiptId),
+  );
+  wf.setHandler(
+    getOperationLedgerOutcomeQuery,
+    (operationId) => state.operation_ledger?.[operationId],
   );
   wf.setHandler(
     changeTasksQuery,
@@ -2073,7 +2099,13 @@ export async function changeWorkflow(
         title: state.title?.slice(0, 80),
       });
       closeChangeInChangeState(state, closure);
-      if (input.searchAttributesEnabled !== false) {
+      // Only upsert the terminal "closed" search attribute if the reducer
+      // actually accepted the transition; a rejected close leaves the change
+      // in its open lifecycle state and stale attributes must not claim otherwise.
+      if (
+        state.status === "closed" &&
+        input.searchAttributesEnabled !== false
+      ) {
         try {
           wf.upsertSearchAttributes({
             [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
@@ -2090,9 +2122,47 @@ export async function changeWorkflow(
         op: "closeChangeSignal",
         changeId: state.changeId,
         closureReason: closure.reason,
+        accepted: state.status === "closed",
       });
       return state;
     }),
+  );
+
+  wf.setHandler(
+    prepareBatchCloseSignal,
+    signalMutation("prepareBatchClose", (payload) =>
+      prepareBatchCloseInChangeState(state, payload),
+    ),
+  );
+
+  wf.setHandler(
+    commitBatchCloseSignal,
+    signalAsync("commitBatchClose", async (payload) => {
+      commitBatchCloseInChangeState(state, payload);
+      if (
+        state.status === "closed" &&
+        input.searchAttributesEnabled !== false
+      ) {
+        try {
+          wf.upsertSearchAttributes({
+            [ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES.changeStatus]: ["closed"],
+          });
+        } catch (saErr) {
+          wf.log.warn("search-attribute-upsert-failed", {
+            op: "commitBatchCloseSignal",
+            changeId: state.changeId,
+            error: saErr instanceof Error ? saErr.message : String(saErr),
+          });
+        }
+      }
+    }),
+  );
+
+  wf.setHandler(
+    abortBatchCloseSignal,
+    signalMutation("abortBatchClose", (payload) =>
+      abortBatchCloseInChangeState(state, payload),
+    ),
   );
 
   const thresholds = resolveHistoryThresholds();

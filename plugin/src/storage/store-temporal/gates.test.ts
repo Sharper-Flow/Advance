@@ -1,13 +1,6 @@
 /**
- * SC3 aggregate-budget tests for `createGateOps(deps).get`.
- *
- * Verifies that the gates fallback path:
- * - Threads the caller's `TemporalReadContext` (does NOT start a fresh
- *   context).
- * - Returns a typed degraded result when the aggregate deadline has
- *   expired before the fallback is invoked.
- * - Reuses the same context across the primary and fallback reads so the
- *   aggregate budget is honored end-to-end.
+ * Routine gate reads use the disk ReadStore projection, independent of
+ * Temporal workflow health. Mutation confirmation remains covered separately.
  */
 import { describe, expect, test, vi } from "vitest";
 import { createGateOps } from "./gates";
@@ -31,24 +24,8 @@ function makeChange(changeId: string): Change {
   } as unknown as Change;
 }
 
-function makeDeps(
-  opts: {
-    primaryResult?: { success: boolean; data?: Change; error?: string };
-    fallbackResult?: { success: boolean; data?: Change; error?: string };
-    primaryError?: Error;
-    fallbackError?: Error;
-  } = {},
-): StoreDeps {
-  const getTemporalChange = vi
-    .fn()
-    .mockImplementationOnce(async () => {
-      if (opts.primaryError) throw opts.primaryError;
-      return opts.primaryResult ?? { success: true, data: makeChange("c1") };
-    })
-    .mockImplementationOnce(async () => {
-      if (opts.fallbackError) throw opts.fallbackError;
-      return opts.fallbackResult ?? { success: true, data: makeChange("c1") };
-    });
+function makeDeps(change: Change | null = makeChange("c1")): StoreDeps {
+  const getTemporalChange = vi.fn();
 
   return {
     input: {
@@ -81,86 +58,49 @@ function makeDeps(
     resolveStateOrQuery: vi.fn(),
     indexTasksFromState: vi.fn(),
     resolveChangeId: vi.fn(),
+    readChangeSnapshot: vi.fn(async () =>
+      change
+        ? {
+            found: true as const,
+            snapshot: change,
+            stateRevision: 1,
+            projectionRevision: 1,
+            source: "read_model" as const,
+          }
+        : {
+            found: false as const,
+            reason: "not_found" as const,
+            source: "read_model" as const,
+          },
+    ),
     getTemporalChange,
     listResolvedChanges: vi.fn(),
     reseedChangeFromDisk: vi.fn(),
   } as unknown as StoreDeps;
 }
 
-// Use a not-found error message so classifyTemporalReadFailure classifies
-// the primary error as fallback + missing_workflow (a real Temporal path
-// that exercises the recovery routing contract).
-const NOT_FOUND_ERROR = new Error(
-  "Workflow execution not found for workflowId: change-p-c1",
-);
-
-describe("createGateOps.get — SC3 aggregate budget", () => {
-  test("returns gates on primary success without invoking fallback", async () => {
-    const deps = makeDeps({
-      primaryResult: {
-        success: true,
-        data: makeChange("c1"),
-      },
-    });
+describe("createGateOps.get — disk ReadStore", () => {
+  test("returns projection gates without Temporal hydration", async () => {
+    const deps = makeDeps();
     const ops = createGateOps(deps);
     const result = await ops.get("c1");
     expect(result).toMatchObject({ discovery: { status: "done" } });
-    expect(deps.getTemporalChange).toHaveBeenCalledTimes(1);
-    const call = deps.getTemporalChange.mock.calls[0];
-    // Threading check: primary must receive the caller's context.
-    expect(call[1]).toHaveProperty("context");
-    expect((call[1] as { context: unknown }).context).toBeDefined();
+    expect(deps.readChangeSnapshot).toHaveBeenCalledWith("c1");
+    expect(deps.getTemporalChange).not.toHaveBeenCalled();
   });
 
-  test("threads the SAME context into the fallback read (no fresh context)", async () => {
-    const deps = makeDeps({
-      primaryError: NOT_FOUND_ERROR,
-      fallbackResult: { success: true, data: makeChange("c1") },
-    });
+  test("does not hydrate a missing projection", async () => {
+    const deps = makeDeps(null);
     const ops = createGateOps(deps);
     const result = await ops.get("c1");
-    expect(result).toMatchObject({ discovery: { status: "done" } });
-    expect(deps.getTemporalChange).toHaveBeenCalledTimes(2);
-    const primaryCtx = (
-      deps.getTemporalChange.mock.calls[0][1] as {
-        context: unknown;
-      }
-    ).context;
-    const fallbackCtx = (
-      deps.getTemporalChange.mock.calls[1][1] as {
-        context: unknown;
-      }
-    ).context;
-    // SC3 enforcement: the fallback must reuse the primary's context,
-    // not start a fresh one (the previous behavior started fresh).
-    expect(fallbackCtx).toBe(primaryCtx);
+    expect(result).toBeNull();
+    expect(deps.getTemporalChange).not.toHaveBeenCalled();
   });
 
-  test("returns typed degraded error when the aggregate deadline has expired before fallback", async () => {
-    const deps = makeDeps({
-      primaryError: NOT_FOUND_ERROR,
-    });
-    // Pre-expire the context that the gates.get implementation will build.
-    // The implementation builds ONE context at the top of get() and threads
-    // it through both reads. We can't intercept the context from outside,
-    // so we instead drive the test via a primary read that exhausts the
-    // default budget — hard to do reliably. Instead, we directly assert
-    // the structural behavior: the fallback read receives `{ context: ctx }`
-    // matching the primary's context. The "expired" branch is covered by
-    // the SC3 unit test in shared.test.ts (isTemporalReadExpired path).
+  test("keeps the Temporal command primitive available for mutation confirmation", async () => {
+    const deps = makeDeps();
     const ops = createGateOps(deps);
-    await ops.get("c1");
-    expect(deps.getTemporalChange).toHaveBeenCalledTimes(2);
-    const primaryCtx = (
-      deps.getTemporalChange.mock.calls[0][1] as {
-        context: unknown;
-      }
-    ).context;
-    const fallbackCtx = (
-      deps.getTemporalChange.mock.calls[1][1] as {
-        context: unknown;
-      }
-    ).context;
-    expect(fallbackCtx).toBe(primaryCtx);
+    expect(ops.complete).toBeTypeOf("function");
+    expect(deps.getTemporalChange).not.toHaveBeenCalled();
   });
 });

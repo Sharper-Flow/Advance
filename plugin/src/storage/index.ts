@@ -2,7 +2,15 @@
  * Storage Module Exports
  */
 
-export { createStore, type Store, type SearchResult } from "./store";
+export {
+  createStore,
+  type Store,
+  type ReadStore,
+  type CommandStore,
+  type ReadSnapshot,
+  ReadSnapshotSchema,
+  type SearchResult,
+} from "./store";
 export {
   loadProjectConfig,
   saveProjectConfig,

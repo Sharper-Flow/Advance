@@ -35,6 +35,60 @@ function makeMockStore(
 }
 
 describe("adv_wip_state (rq-backlogCoord04)", () => {
+  it("reads active changes from the summary projection and preserves terminal precedence", async () => {
+    const store = makeMockStore([]);
+    const summaryRows = [
+      {
+        id: "open",
+        title: "Open",
+        status: "draft",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T03:00:00.000Z",
+        taskCount: 2,
+        completedTasks: 1,
+      },
+      {
+        id: "terminal",
+        title: "Terminal",
+        status: "archived",
+        created_at: "2026-05-11T00:00:00.000Z",
+        lastActivityAt: "2026-05-11T04:00:00.000Z",
+        taskCount: 0,
+        completedTasks: 0,
+      },
+    ];
+    store.changes.listSummary = vi.fn().mockResolvedValue({
+      changes: summaryRows,
+    });
+    vi.mocked(store.changes.list).mockRejectedValue(
+      new Error("WIP must not hydrate changes through the full list"),
+    );
+
+    const result = await backlogTools.adv_wip_state.execute(
+      {},
+      store,
+      undefined,
+      {
+        worktreesProvider: async () => [],
+        sessionsProvider: async () => ({
+          sessions: [],
+          total: 0,
+          deadFiltered: 0,
+        }),
+      },
+    );
+
+    const parsed = JSON.parse(result);
+    expect(store.changes.listSummary).toHaveBeenCalledWith({});
+    expect(store.changes.list).not.toHaveBeenCalled();
+    expect(parsed.active_changes).toEqual([
+      expect.objectContaining({
+        id: "open",
+        lastActivityAt: summaryRows[0].lastActivityAt,
+      }),
+    ]);
+  });
+
   it("returns aggregated active_changes + worktrees + peer_sessions + generated_at", async () => {
     const store = makeMockStore([
       {

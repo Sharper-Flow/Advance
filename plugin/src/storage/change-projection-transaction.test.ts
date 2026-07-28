@@ -8,11 +8,16 @@
  *      and proves every successful commit via in-lock readback + postcondition.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { join } from "path";
 import { mkdir, writeFile, readFile } from "fs/promises";
+import * as fsModule from "../utils/fs";
 import { loadChange, saveChange } from "./json";
-import { commitChangeProjection } from "./change-projection-transaction";
+import {
+  commitChangeProjection,
+  type ProjectionCommitVerifyContext,
+  type ProjectionCommitVerifyResult,
+} from "./change-projection-transaction";
 import { projectTemporalStateOntoLatest } from "./store-temporal/shared";
 import { ChangeSchema } from "../types";
 import { changeToWorkflowState } from "../temporal/change-state";
@@ -21,7 +26,7 @@ import {
   cleanupTempDir,
   SAMPLE_CHANGE,
 } from "../__tests__/setup";
-import type { Change } from "../types";
+import type { Change, ProjectionCommitAuditEntry } from "../types";
 
 const RECOVERY_AUTHORITY = {
   kind: "recovery" as const,
@@ -46,6 +51,36 @@ async function seedChange(changesDir: string, change: Change): Promise<void> {
     JSON.stringify(change, null, 2),
     "utf-8",
   );
+}
+
+function commitWithIdentity(
+  changesDir: string,
+  changeId: string,
+  options: {
+    operationId?: string;
+    payloadHash?: string;
+    stateRevision?: number;
+    mutationKind?: string;
+    expectedRevision?: number;
+    mutateLatest?: (latest: Change) => Change;
+    verify?: (
+      ctx: ProjectionCommitVerifyContext,
+    ) => ProjectionCommitVerifyResult;
+  },
+) {
+  return commitChangeProjection({
+    changesDir,
+    changeId,
+    authority: RECOVERY_AUTHORITY,
+    mutationKind: options.mutationKind ?? "test:identity-fence",
+    operationId: options.operationId,
+    payloadHash: options.payloadHash,
+    stateRevision: options.stateRevision,
+    expectedRevision: options.expectedRevision,
+    mutateLatest: options.mutateLatest ?? ((latest) => latest),
+    verify: options.verify ?? (() => true),
+    lockTimeoutMs: 1000,
+  });
 }
 
 describe("commitChangeProjection", () => {
@@ -543,5 +578,235 @@ describe("commitChangeProjection", () => {
     const reparsed = ChangeSchema.parse(raw);
     expect(reparsed.projection_revision).toBe(1);
     expect(reparsed.projection_commits).toHaveLength(1);
+  });
+
+  describe("operation identity and state revision fencing (AC4/AC12)", () => {
+    it("returns idempotent committed result for same operation_id + payload_hash + state_revision without projection increment", async () => {
+      const changeId = "idempotent-replay";
+      await seedChange(changesDir, makeChange(changeId, { state_revision: 5 }));
+
+      const first = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "first" }),
+      });
+
+      expect(first.kind).toBe("committed");
+      if (first.kind !== "committed") return;
+      expect(first.idempotent).not.toBe(true);
+      expect(first.revision).toBe(1);
+      expect(first.readback.state_revision).toBe(5);
+      expect(first.readback.title).toBe("first");
+      expect(first.readback.projection_revision).toBe(1);
+
+      const second = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "second" }),
+      });
+
+      expect(second.kind).toBe("committed");
+      if (second.kind !== "committed") return;
+      expect(second.idempotent).toBe(true);
+      expect(second.revision).toBe(first.revision);
+      expect(second.readback.title).toBe("first");
+      expect(second.readback.projection_revision).toBe(first.revision);
+
+      const loaded = await loadChange(changesDir, changeId);
+      expect(loaded.success).toBe(true);
+      if (!loaded.success || !loaded.data) return;
+      expect(loaded.data.title).toBe("first");
+      expect(loaded.data.projection_commits).toHaveLength(1);
+    });
+
+    it("returns operation_conflict for same operation_id + different payload_hash", async () => {
+      const changeId = "payload-conflict";
+      await seedChange(changesDir, makeChange(changeId, { state_revision: 5 }));
+
+      const first = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "first" }),
+      });
+      expect(first.kind).toBe("committed");
+
+      const second = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-b",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "second" }),
+      });
+
+      expect(second.kind).toBe("operation_conflict");
+      if (second.kind !== "operation_conflict") return;
+      expect(second.operationId).toBe("op-1");
+      expect(second.expectedPayloadHash).toBe("hash-a");
+      expect(second.actualPayloadHash).toBe("hash-b");
+
+      const loaded = await loadChange(changesDir, changeId);
+      expect(loaded.success && loaded.data?.title).toBe("first");
+      expect(loaded.success && loaded.data?.projection_revision).toBe(1);
+    });
+
+    it("returns state_regression when incoming state_revision is lower than stored projection", async () => {
+      const changeId = "state-regression";
+      await seedChange(changesDir, makeChange(changeId, { state_revision: 5 }));
+
+      const first = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "first" }),
+      });
+      expect(first.kind).toBe("committed");
+
+      const second = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-2",
+        payloadHash: "hash-b",
+        stateRevision: 3,
+        mutateLatest: (latest) => ({ ...latest, title: "second" }),
+      });
+
+      expect(second.kind).toBe("state_regression");
+      if (second.kind !== "state_regression") return;
+      expect(second.expected).toBe(5);
+      expect(second.actual).toBe(3);
+
+      const loaded = await loadChange(changesDir, changeId);
+      expect(loaded.success && loaded.data?.state_revision).toBe(5);
+      expect(loaded.success && loaded.data?.projection_revision).toBe(1);
+    });
+
+    it("returns state_revision_conflict when equal state_revision has conflicting operation/content", async () => {
+      const changeId = "revision-conflict";
+      await seedChange(changesDir, makeChange(changeId, { state_revision: 5 }));
+
+      const first = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "first" }),
+      });
+      expect(first.kind).toBe("committed");
+
+      const second = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-2",
+        payloadHash: "hash-b",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "second" }),
+      });
+
+      expect(second.kind).toBe("state_revision_conflict");
+      if (second.kind !== "state_revision_conflict") return;
+      expect(second.stateRevision).toBe(5);
+
+      const loaded = await loadChange(changesDir, changeId);
+      expect(loaded.success && loaded.data?.title).toBe("first");
+      expect(loaded.success && loaded.data?.projection_revision).toBe(1);
+    });
+
+    it("proves stored operation identity and state revision by readback on success", async () => {
+      const changeId = "readback-proof";
+      const payloadHash = "a".repeat(64);
+      await seedChange(changesDir, makeChange(changeId, { state_revision: 7 }));
+
+      const result = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash,
+        stateRevision: 7,
+        mutateLatest: (latest) => ({ ...latest, title: "updated" }),
+      });
+
+      expect(result.kind).toBe("committed");
+      if (result.kind !== "committed") return;
+      expect(result.readback.state_revision).toBe(7);
+      expect(result.readback.projection_revision).toBe(1);
+      expect(result.audit.operation_id).toBe("op-1");
+      expect(result.audit.payload_hash).toBe(payloadHash);
+      expect(result.audit.state_revision).toBe(7);
+
+      const loaded = await loadChange(changesDir, changeId);
+      expect(loaded.success).toBe(true);
+      if (!loaded.success || !loaded.data) return;
+      expect(loaded.data.state_revision).toBe(7);
+      const lastAudit = loaded.data.projection_commits?.[0];
+      expect(lastAudit?.operation_id).toBe("op-1");
+      expect(lastAudit?.payload_hash).toBe(payloadHash);
+      expect(lastAudit?.state_revision).toBe(7);
+    });
+
+    it("does not return success when readback lacks stored operation identity", async () => {
+      const changeId = "readback-identity-failure";
+      await seedChange(changesDir, makeChange(changeId, { state_revision: 5 }));
+
+      const first = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "first" }),
+      });
+      expect(first.kind).toBe("committed");
+
+      const raw = JSON.parse(
+        await readFile(join(changesDir, changeId, "change.json"), "utf-8"),
+      );
+      const tampered = {
+        ...raw,
+        projection_commits: (raw.projection_commits ?? []).map(
+          (entry: ProjectionCommitAuditEntry) => ({
+            ...entry,
+            operation_id: undefined,
+            payload_hash: undefined,
+          }),
+        ),
+      };
+      await writeFile(
+        join(changesDir, changeId, "change.json"),
+        JSON.stringify(tampered, null, 2),
+        "utf-8",
+      );
+
+      const second = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "second" }),
+      });
+
+      expect(second.kind).not.toBe("committed");
+
+      const loaded = await loadChange(changesDir, changeId);
+      expect(loaded.success && loaded.data?.title).toBe("first");
+      expect(loaded.success && loaded.data?.projection_revision).toBe(1);
+    });
+
+    it("returns write_error and preserves non-blind-retry semantics when atomicWriteFile fails", async () => {
+      const changeId = "write-failure";
+      await seedChange(changesDir, makeChange(changeId, { state_revision: 5 }));
+
+      const spy = vi
+        .spyOn(fsModule, "atomicWriteFile")
+        .mockRejectedValueOnce(new Error("disk full"));
+
+      const result = await commitWithIdentity(changesDir, changeId, {
+        operationId: "op-1",
+        payloadHash: "hash-a",
+        stateRevision: 5,
+        mutateLatest: (latest) => ({ ...latest, title: "updated" }),
+      });
+
+      spy.mockRestore();
+
+      expect(result.kind).toBe("write_error");
+      expect(result.kind).not.toBe("committed");
+      const loaded = await loadChange(changesDir, changeId);
+      expect(loaded.success && loaded.data?.title).not.toBe("updated");
+      expect(
+        loaded.success && loaded.data?.projection_revision,
+      ).toBeUndefined();
+    });
   });
 });

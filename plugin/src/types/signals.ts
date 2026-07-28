@@ -41,6 +41,7 @@ import {
   VerificationEvidenceDispositionSchema,
 } from "./subagent-reports";
 import {
+  ChangeClosureSchema,
   ChangeContractSchema,
   ChangeOriginSchema,
   ContractAmendmentSchema,
@@ -64,11 +65,38 @@ import {
 
 const IsoTimestampSchema = z.string();
 
+/**
+ * Shared optional envelope for caller-stable command identity and canonical
+ * payload hash. Migrated ChangeWorkflow command signals accept these fields
+ * so the workflow reducer can deduplicate retries and detect payload conflicts.
+ */
+const CommandOperationEnvelopeSchema = z.object({
+  operation_id: z.string().min(1).optional(),
+  command_kind: z.string().min(1).optional(),
+  payload_hash: z.string().min(1).optional(),
+});
+
 const DocumentUpdateBaseSchema = z.object({
   text: z.string(),
   updatedBy: z.string().optional(),
   updatedAt: IsoTimestampSchema,
   mutationReceiptId: z.string().min(1).optional(),
+  /**
+   * Caller-stable operation identity. Survives Temporal retries and
+   * continue-as-new so the workflow reducer can deduplicate the same logical
+   * command and detect payload conflicts (AC3).
+   */
+  operation_id: z.string().min(1).optional(),
+  /**
+   * Command kind recorded in the operation ledger. Must match the signal's
+   * command kind for the ledger entry to be accepted.
+   */
+  command_kind: z.string().min(1).optional(),
+  /**
+   * Canonical payload hash for content-update idempotency. When supplied the
+   * reducer uses it instead of recomputing a hash from the text.
+   */
+  payload_hash: z.string().min(1).optional(),
 });
 
 export const ProposalUpdatedSignalPayloadSchema = DocumentUpdateBaseSchema;
@@ -137,19 +165,23 @@ export type ContractReviewMatrixSetSignalPayload = z.infer<
   typeof ContractReviewMatrixSetSignalPayloadSchema
 >;
 
-export const TaskAddedSignalPayloadSchema = z.object({
-  task: TaskSchema,
-  addedAt: IsoTimestampSchema,
-});
+export const TaskAddedSignalPayloadSchema = z
+  .object({
+    task: TaskSchema,
+    addedAt: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type TaskAddedSignalPayload = z.infer<
   typeof TaskAddedSignalPayloadSchema
 >;
 
-export const TaskUpdatedSignalPayloadSchema = z.object({
-  taskId: z.string(),
-  partial: TaskSchema.partial(),
-  updatedAt: IsoTimestampSchema,
-});
+export const TaskUpdatedSignalPayloadSchema = z
+  .object({
+    taskId: z.string(),
+    partial: TaskSchema.partial(),
+    updatedAt: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type TaskUpdatedSignalPayload = z.infer<
   typeof TaskUpdatedSignalPayloadSchema
 >;
@@ -299,12 +331,14 @@ export type TaskBlockedSignalPayload = z.infer<
   typeof TaskBlockedSignalPayloadSchema
 >;
 
-export const TaskCancelledSignalPayloadSchema = z.object({
-  taskId: z.string(),
-  approvalEvidence: z.string().min(1),
-  reason: z.string().min(1),
-  cancelledAt: IsoTimestampSchema,
-});
+export const TaskCancelledSignalPayloadSchema = z
+  .object({
+    taskId: z.string(),
+    approvalEvidence: z.string().min(1),
+    reason: z.string().min(1),
+    cancelledAt: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type TaskCancelledSignalPayload = z.infer<
   typeof TaskCancelledSignalPayloadSchema
 >;
@@ -337,21 +371,23 @@ export type GateStuckSignalPayload = z.infer<
   typeof GateStuckSignalPayloadSchema
 >;
 
-export const GateCompletedSignalPayloadSchema = z.object({
-  gateId: GateIdSchema,
-  approvalEvidence: z.string().optional(),
-  compatibilityReason: z.string().optional(),
-  artifactEvidence: GateArtifactEvidenceSchema.optional(),
-  completedBy: z.string(),
-  completedAt: IsoTimestampSchema,
-  mutationReceiptId: z.string().min(1).optional(),
-  /**
-   * Advisory criteria evaluated at gate completion time.
-   * Optional for replay-safety — histories predating this field replay
-   * cleanly with criteria undefined.
-   */
-  criteria: z.array(GateCriterionSchema).optional(),
-});
+export const GateCompletedSignalPayloadSchema = z
+  .object({
+    gateId: GateIdSchema,
+    approvalEvidence: z.string().optional(),
+    compatibilityReason: z.string().optional(),
+    artifactEvidence: GateArtifactEvidenceSchema.optional(),
+    completedBy: z.string(),
+    completedAt: IsoTimestampSchema,
+    mutationReceiptId: z.string().min(1).optional(),
+    /**
+     * Advisory criteria evaluated at gate completion time.
+     * Optional for replay-safety — histories predating this field replay
+     * cleanly with criteria undefined.
+     */
+    criteria: z.array(GateCriterionSchema).optional(),
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type GateCompletedSignalPayload = z.infer<
   typeof GateCompletedSignalPayloadSchema
 >;
@@ -368,21 +404,25 @@ export type ArchiveConvergedSignalPayload = z.infer<
   typeof ArchiveConvergedSignalPayloadSchema
 >;
 
-export const GateReenteredSignalPayloadSchema = z.object({
-  fromGateId: GateIdSchema,
-  reason: z.string().min(1),
-  scopeDelta: z.string().optional(),
-  reenteredBy: z.string(),
-  reenteredAt: IsoTimestampSchema,
-});
+export const GateReenteredSignalPayloadSchema = z
+  .object({
+    fromGateId: GateIdSchema,
+    reason: z.string().min(1),
+    scopeDelta: z.string().optional(),
+    reenteredBy: z.string(),
+    reenteredAt: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type GateReenteredSignalPayload = z.infer<
   typeof GateReenteredSignalPayloadSchema
 >;
 
-export const WisdomAddedSignalPayloadSchema = z.object({
-  entry: WisdomEntrySchema,
-  addedAt: IsoTimestampSchema,
-});
+export const WisdomAddedSignalPayloadSchema = z
+  .object({
+    entry: WisdomEntrySchema,
+    addedAt: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type WisdomAddedSignalPayload = z.infer<
   typeof WisdomAddedSignalPayloadSchema
 >;
@@ -397,12 +437,14 @@ export type WisdomAddedSignalPayload = z.infer<
  * kebab-case capability key; the workflow reducer appends the delta under
  * `state.deltas[capability]` and archive remains the sole global-spec writer.
  */
-export const SpecDeltaAddedSignalPayloadSchema = z.object({
-  capability: CapabilityKeySchema,
-  delta: DeltaAddSchema,
-  addedAt: IsoTimestampSchema,
-  addedBy: z.string().optional(),
-});
+export const SpecDeltaAddedSignalPayloadSchema = z
+  .object({
+    capability: CapabilityKeySchema,
+    delta: DeltaAddSchema,
+    addedAt: IsoTimestampSchema,
+    addedBy: z.string().optional(),
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type SpecDeltaAddedSignalPayload = z.infer<
   typeof SpecDeltaAddedSignalPayloadSchema
 >;
@@ -419,6 +461,7 @@ export const SpecDeltaModifiedSignalPayloadSchema = z
     modifiedAt: IsoTimestampSchema,
     modifiedBy: z.string().optional(),
   })
+  .merge(CommandOperationEnvelopeSchema)
   .strict();
 export type SpecDeltaModifiedSignalPayload = z.infer<
   typeof SpecDeltaModifiedSignalPayloadSchema
@@ -436,6 +479,7 @@ export const SpecDeltaAmendedSignalPayloadSchema = z
     amendedAt: IsoTimestampSchema,
     amendedBy: z.string().optional(),
   })
+  .merge(CommandOperationEnvelopeSchema)
   .strict();
 export type SpecDeltaAmendedSignalPayload = z.infer<
   typeof SpecDeltaAmendedSignalPayloadSchema
@@ -445,12 +489,14 @@ export type SpecDeltaAmendedSignalPayload = z.infer<
  * Retraction payload: removes an existing staged delta by id from the
  * capability-local delta record.
  */
-export const SpecDeltaRetractedSignalPayloadSchema = z.object({
-  capability: CapabilityKeySchema,
-  deltaId: z.string(),
-  retractedAt: IsoTimestampSchema,
-  retractedBy: z.string().optional(),
-});
+export const SpecDeltaRetractedSignalPayloadSchema = z
+  .object({
+    capability: CapabilityKeySchema,
+    deltaId: z.string(),
+    retractedAt: IsoTimestampSchema,
+    retractedBy: z.string().optional(),
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type SpecDeltaRetractedSignalPayload = z.infer<
   typeof SpecDeltaRetractedSignalPayloadSchema
 >;
@@ -466,6 +512,7 @@ export const SpecDeltaRemovedSignalPayloadSchema = z
     removedAt: IsoTimestampSchema,
     removedBy: z.string().optional(),
   })
+  .merge(CommandOperationEnvelopeSchema)
   .strict();
 export type SpecDeltaRemovedSignalPayload = z.infer<
   typeof SpecDeltaRemovedSignalPayloadSchema
@@ -483,6 +530,7 @@ export const SpecDeltaRenamedSignalPayloadSchema = z
     renamedAt: IsoTimestampSchema,
     renamedBy: z.string().optional(),
   })
+  .merge(CommandOperationEnvelopeSchema)
   .strict();
 export type SpecDeltaRenamedSignalPayload = z.infer<
   typeof SpecDeltaRenamedSignalPayloadSchema
@@ -748,6 +796,35 @@ export type OriginRepairedSignalPayload = z.infer<
 >;
 
 // =============================================================================
+// Batch Close Signal Payloads
+// =============================================================================
+
+export const PrepareBatchCloseSignalPayloadSchema = z.object({
+  batch_id: z.string().min(1),
+  closure: ChangeClosureSchema,
+});
+export type PrepareBatchCloseSignalPayload = z.infer<
+  typeof PrepareBatchCloseSignalPayloadSchema
+>;
+
+export const CommitBatchCloseSignalPayloadSchema = z.object({
+  batch_id: z.string().min(1),
+  committed_at: IsoTimestampSchema.optional(),
+});
+export type CommitBatchCloseSignalPayload = z.infer<
+  typeof CommitBatchCloseSignalPayloadSchema
+>;
+
+export const AbortBatchCloseSignalPayloadSchema = z.object({
+  batch_id: z.string().min(1),
+  reason: z.string().min(1),
+  aborted_at: IsoTimestampSchema.optional(),
+});
+export type AbortBatchCloseSignalPayload = z.infer<
+  typeof AbortBatchCloseSignalPayloadSchema
+>;
+
+// =============================================================================
 // Epic Workflow Signal Payloads
 // =============================================================================
 
@@ -876,11 +953,13 @@ const EpicMembershipIdentitySchema = z.object({
 /**
  * Set/refresh a child change's compact Epic membership projection.
  */
-export const EpicMembershipSetSignalPayloadSchema = z.object({
-  membership: EpicMembershipSchema,
-  expectedCurrent: EpicMembershipIdentitySchema.optional(),
-  setAt: IsoTimestampSchema,
-});
+export const EpicMembershipSetSignalPayloadSchema = z
+  .object({
+    membership: EpicMembershipSchema,
+    expectedCurrent: EpicMembershipIdentitySchema.optional(),
+    setAt: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type EpicMembershipSetSignalPayload = z.infer<
   typeof EpicMembershipSetSignalPayloadSchema
 >;
@@ -888,10 +967,12 @@ export type EpicMembershipSetSignalPayload = z.infer<
 /**
  * Clear a child change's Epic membership projection when identity matches.
  */
-export const EpicMembershipClearedSignalPayloadSchema = z.object({
-  expected: EpicMembershipIdentitySchema,
-  clearedAt: IsoTimestampSchema,
-});
+export const EpicMembershipClearedSignalPayloadSchema = z
+  .object({
+    expected: EpicMembershipIdentitySchema,
+    clearedAt: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
 export type EpicMembershipClearedSignalPayload = z.infer<
   typeof EpicMembershipClearedSignalPayloadSchema
 >;

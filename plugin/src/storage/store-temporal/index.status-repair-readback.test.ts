@@ -7,6 +7,7 @@ import { createDefaultGates, type Change } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
 import { saveRecoveredChangeStatus } from "../../tools/_recovery-writers";
+import { rebuildSummaryIndex } from "../change-summary-shard";
 
 function allDoneGates(): Change["gates"] {
   return Object.fromEntries(
@@ -52,9 +53,14 @@ describe("status repair public read-path parity", () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
 
-    // Seed an active change on disk with all gates done.
+    // Seed an active change on disk with all gates done. The disk load path
+    // normalizes legacy "active" to "draft".
     const change = activeChange("statusRepairedChange");
     await legacy.changes.save(change);
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
 
     // Temporal still reports the stale active state (poisoned/completed
     // workflow that never persisted the archive transition).
@@ -95,16 +101,17 @@ describe("status repair public read-path parity", () => {
       projectId: "project-1",
     });
 
-    // Warm public read paths with the stale active state. At this point the
-    // archive bundle has not been written yet, so the cache/memo warms active.
+    // Warm public read paths with the disk projection. At this point the
+    // archive bundle has not been written yet, so the summary shard reports
+    // the normalized "draft" status.
     const warmGet = await store.changes.get("statusRepairedChange");
     expect(warmGet.success).toBe(true);
-    expect(warmGet.data?.status).toBe("active");
+    expect(warmGet.data?.status).toBe("draft");
 
     const warmList = await store.changes.listSummary!({});
     expect(
       warmList.changes.find((c) => c.id === "statusRepairedChange")?.status,
-    ).toBe("active");
+    ).toBe("draft");
 
     // Now simulate the real shipped invariant: archive bundle is present on
     // disk, but the active source dir still carries the stale active status.
@@ -127,8 +134,15 @@ describe("status repair public read-path parity", () => {
     });
     expect(repaired.status).toBe("archived");
 
-    // AC3: immediate public read paths must agree. Query the warm-path
-    // summary list first, since it is the most likely to read stale cache.
+    // Rebuild the summary index so the repaired terminal state is visible to
+    // routine projection readers.
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
+
+    // AC3: immediate public read paths must agree. The active summary list
+    // excludes the now-archived change.
     const inFlight = await store.changes.listSummary!({});
     expect(inFlight.changes.some((c) => c.id === "statusRepairedChange")).toBe(
       false,

@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.39.0
-> **Updated:** 2026-07-26
+> **Version:** 1.40.0
+> **Updated:** 2026-07-28
 
 ## Purpose
 
@@ -6977,5 +6977,68 @@ ADV recovery mutations against a completed, missing, poisoned, or otherwise non-
 - It reads the persisted projection from the same authority downstream readiness will consume
 - It verifies the mutation-specific postcondition
 - Unverifiable convergence returns a blocking recovered-unverified outcome instead of success
+
+---
+
+### Projection-Proven Command Success
+
+**ID:** `rq-projectionCommandProof01` | **Priority:** **[MUST]**
+
+ADV state-changing commands must carry stable operation identity, be validated and applied by the authoritative Temporal workflow reducer, and return success only after the accepted monotonic state revision is committed to and verified in the durable projection. Routine read state must never authorize a mutation. Signal-based command confirmation may use a bounded workflow Query; routine reads may not.
+
+**Tags:** `temporal`, `projection`, `command-receipt`, `idempotency`, `cqrs`
+
+#### Scenarios
+
+**Accepted command proves durable projection** (`rq-projectionCommandProof01.1`)
+
+**Given:**
+- A state-changing command has a stable operation id and payload hash
+- The workflow reducer accepts the command and records a new state revision
+
+**When:** The command adapter reports success
+
+**Then:**
+- The durable full projection contains at least the accepted state revision
+- The matching operation id and payload identity are verified by readback
+- The durable summary shard points to the same state revision
+
+**Projection failure prevents false success** (`rq-projectionCommandProof01.2`)
+
+**Given:**
+- The workflow reducer accepted a command
+- The projection commit or verification fails
+
+**When:** The command adapter returns
+
+**Then:**
+- The result is typed as accepted-but-not-durably-projected or outcome-unknown
+- The result does not claim success
+- The operation id and accepted revision support deterministic repair without blind retry
+
+**Reducer owns lifecycle authorization** (`rq-projectionCommandProof01.3`)
+
+**Given:**
+- Host preflight state is stale or advisory
+- A close or batch-close command targets an ineligible lifecycle state
+
+**When:** The workflow reducer handles the command
+
+**Then:**
+- The command is rejected with a typed ledger outcome
+- Lifecycle state and state revision remain unchanged
+- No lifecycle disk projection is written before reducer acceptance
+
+**Stable operation replay is idempotent** (`rq-projectionCommandProof01.4`)
+
+**Given:**
+- An operation id and payload hash were previously accepted or rejected
+
+**When:** The same operation is retried
+
+**Then:**
+- The prior outcome and revision are returned
+- The reducer is not applied again
+- The state revision and projection revision do not increment again
 
 ---

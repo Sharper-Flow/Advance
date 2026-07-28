@@ -7,9 +7,13 @@
  */
 
 import { describe, expect, test, vi } from "vitest";
+import { mkdirSync, mkdtempSync, writeFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 import { createEpicOps } from "./epics";
 import type { StoreDeps } from "./shared";
 import { createDiskStore } from "../store-disk";
+import { saveActiveEpicProjection } from "../epic-projection";
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import {
   epicArchivedSignal,
@@ -23,7 +27,6 @@ import {
   changeRetargetedSignal,
   changeUnlinkedSignal,
   entriesReorderedSignal,
-  getEpicStateQuery,
   searchAttributesRefreshedSignal,
 } from "../../temporal/messages";
 import type { Epic, EpicWorkflowState } from "../../types";
@@ -90,6 +93,16 @@ function setup() {
     getTemporalWorkflowClient: () =>
       client as ReturnType<StoreDeps["getTemporalWorkflowClient"]>,
   } as unknown as StoreDeps;
+  const activeEpics = mkdtempSync(join(tmpdir(), "epic-active-"));
+  const activeEpic = makeEpic();
+  mkdirSync(join(activeEpics, activeEpic.id), { recursive: true });
+  writeFileSync(
+    join(activeEpics, activeEpic.id, "active-projection.json"),
+    JSON.stringify(activeEpic),
+  );
+  deps.legacy = {
+    paths: { activeEpics },
+  } as StoreDeps["legacy"];
 
   return {
     deps,
@@ -123,7 +136,7 @@ describe("createEpicOps", () => {
     );
   });
 
-  test("get returns Epic from workflow query", async () => {
+  test("get returns the active projection without workflow query", async () => {
     const { deps, queryMock } = setup();
     const epic = makeEpic();
     queryMock.mockResolvedValue(makeState(epic));
@@ -132,21 +145,47 @@ describe("createEpicOps", () => {
     const result = await ops.get("addAuthEpic");
     expect(result.success).toBe(true);
     expect(result.data?.title).toBe("Add Auth Epic");
-    expect(queryMock).toHaveBeenCalledWith(getEpicStateQuery);
+    expect(queryMock).not.toHaveBeenCalled();
   });
 
-  test("get treats an Epic-only query response as unreadable state", async () => {
+  test("get consumes a durable Epic projection without workflow query", async () => {
+    const { deps, queryMock, getHandleMock } = await setupWithRetiredEpicsDir();
+    const epic = makeEpic({ id: "projectedEpic" });
+    await deps.legacy.epics.saveRetiredProjection("projectedEpic", {
+      epic_id: epic.id,
+      epic_snapshot: epic,
+      retired_at: new Date().toISOString(),
+      retired_by: "agent",
+      evidence: "projection read contract",
+      source_workflow_id: "adv/epic/project-id/projectedEpic",
+      source_version: 0,
+      projection_status: "retired",
+    });
+    queryMock.mockRejectedValue(new Error("Epic read must not query workflow"));
+
+    const result = await createEpicOps(deps).get("projectedEpic");
+
+    expect(result).toMatchObject({
+      success: true,
+      source: "retired_projection",
+      data: { id: "projectedEpic" },
+    });
+    expect(getHandleMock).not.toHaveBeenCalled();
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  test("get ignores malformed workflow responses because projections are authoritative", async () => {
     const { deps, queryMock } = setup();
     queryMock.mockResolvedValue(makeEpic());
 
     const ops = createEpicOps(deps);
     const result = await ops.get("addAuthEpic");
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.type).toBe("read_error");
-    }
-    expect(queryMock).toHaveBeenCalledWith(getEpicStateQuery);
+    expect(result).toMatchObject({
+      success: true,
+      source: "active_projection",
+    });
+    expect(queryMock).not.toHaveBeenCalled();
   });
 
   test("get falls back to retired projection when workflow query is unresponsive", async () => {
@@ -185,11 +224,10 @@ describe("createEpicOps", () => {
     expect(result.data?.id).toBe("retiredUnresponsiveEpic");
     expect(result.source).toBe("retired_projection");
     expect(
-      (result.data as Epic & { _recovery?: { reason: string } })._recovery
-        ?.reason,
-    ).toBe("workflow_unresponsive");
+      (result.data as Epic & { _recovery?: { reason: string } })._recovery,
+    ).toBeUndefined();
     expect(elapsed).toBeLessThan(2_000);
-    expect(queryMock).toHaveBeenCalledWith(getEpicStateQuery);
+    expect(queryMock).not.toHaveBeenCalled();
   }, 5_000);
 
   test("update fires epicUpdated with expected version", async () => {
@@ -526,14 +564,17 @@ describe("createEpicOps", () => {
       expect(result.data).toBeNull();
     });
 
-    test("get returns read_error for non-not-found query failures", async () => {
+    test("get ignores workflow failures when the active projection exists", async () => {
       const { deps, queryMock } = setup();
       queryMock.mockRejectedValue(new Error("Temporal connection refused"));
 
       const ops = createEpicOps(deps);
       const result = await ops.get("addAuthEpic");
-      expect(result.success).toBe(false);
-      expect(result.type).toBe("read_error");
+      expect(result).toMatchObject({
+        success: true,
+        source: "active_projection",
+      });
+      expect(queryMock).not.toHaveBeenCalled();
     });
 
     test("update throws epic_not_found when Epic workflow does not exist", async () => {
@@ -590,33 +631,18 @@ describe("createEpicOps", () => {
       ).rejects.toMatchObject({ code: "epic_not_found" });
     });
 
-    test("list skips Epics that disappear between enumeration and query", async () => {
+    test("list ignores a poisoned Temporal client", async () => {
       const { deps, queryMock } = setup();
       const client = deps.input.temporal as {
         workflow: { list: ReturnType<typeof vi.fn> };
       };
-      client.workflow.list = vi.fn(() => ({
-        [Symbol.asyncIterator]: async function* () {
-          yield { workflowId: "adv/epic/project-id/presentEpic" };
-          yield { workflowId: "adv/epic/project-id/vanishedEpic" };
-        },
-      })) as unknown as typeof client.workflow.list;
-
-      let callCount = 0;
-      queryMock.mockImplementation(async () => {
-        callCount++;
-        if (callCount === 2) {
-          throw new Error(
-            "Workflow not found: adv/epic/project-id/vanishedEpic",
-          );
-        }
-        return makeState(makeEpic({ id: "presentEpic" }));
+      client.workflow.list.mockImplementation(() => {
+        throw new Error("Visibility must not be called by routine reads");
       });
 
-      const ops = createEpicOps(deps);
-      const epics = await ops.list();
-      expect(epics).toHaveLength(1);
-      expect(epics[0].id).toBe("presentEpic");
+      const epics = await createEpicOps(deps).list();
+      expect(epics.map((epic) => epic.id)).toEqual(["addAuthEpic"]);
+      expect(queryMock).not.toHaveBeenCalled();
     });
   });
 
@@ -896,7 +922,7 @@ describe("createEpicOps", () => {
       });
     }
 
-    test("active mode uses ExecutionStatus=Running and returns only active Epics", async () => {
+    test("active mode reads only active disk projections", async () => {
       const { deps, queryMock } = setup();
       const temporal = deps.input.temporal as unknown as {
         workflow: { list: ReturnType<typeof vi.fn> };
@@ -916,10 +942,11 @@ describe("createEpicOps", () => {
       const ops = createEpicOps(deps);
       const result = await ops.list({ status: "active" });
 
-      expect(result).toHaveLength(0);
+      expect(result.map((epic) => epic.id)).toEqual(["addAuthEpic"]);
+      expect(queryMock).not.toHaveBeenCalled();
     });
 
-    test("all mode returns running Epics regardless of progress status", async () => {
+    test("all mode reads active projections without workflow queries", async () => {
       const { deps, queryMock } = setup();
       const temporal = deps.input.temporal as unknown as {
         workflow: { list: ReturnType<typeof vi.fn> };
@@ -937,11 +964,11 @@ describe("createEpicOps", () => {
       const ops = createEpicOps(deps);
       const result = await ops.list({ status: "all" });
 
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("completedEpic");
+      expect(result.map((epic) => epic.id)).toEqual(["addAuthEpic"]);
+      expect(queryMock).not.toHaveBeenCalled();
     });
 
-    test("active mode includes active Epics", async () => {
+    test("active mode includes seeded active Epic projections", async () => {
       const { deps, queryMock } = setup();
       const temporal = deps.input.temporal as unknown as {
         workflow: { list: ReturnType<typeof vi.fn> };
@@ -956,11 +983,11 @@ describe("createEpicOps", () => {
       const ops = createEpicOps(deps);
       const result = await ops.list({ status: "active" });
 
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("activeEpic");
+      expect(result.map((epic) => epic.id)).toEqual(["addAuthEpic"]);
+      expect(queryMock).not.toHaveBeenCalled();
     });
 
-    test("list short-circuits via circuit-breaker when epic workflows are unresponsive", async () => {
+    test("list does not query unresponsive Epic workflows", async () => {
       const { deps, queryMock } = setup();
       const temporal = deps.input.temporal as unknown as {
         workflow: { list: ReturnType<typeof vi.fn> };
@@ -977,19 +1004,64 @@ describe("createEpicOps", () => {
       queryMock.mockImplementation(() => new Promise<never>(() => {}));
 
       const ops = createEpicOps(deps);
-      const start = Date.now();
       const result = await ops.list({ status: "all" });
-      const elapsed = Date.now() - start;
+      expect(queryMock).not.toHaveBeenCalled();
+      expect(result.map((epic) => epic.id)).toEqual(["addAuthEpic"]);
+    });
 
-      // Circuit-breaker trips after K=3 consecutive unresponsive members,
-      // short-circuiting the remaining two. Without the CB, five hanging
-      // queries would each burn the 1500ms per-member cap (>=7500ms) and
-      // exceed the tool budget; with it, only three are attempted.
-      expect(queryMock).toHaveBeenCalledTimes(3);
-      expect(elapsed).toBeLessThan(6_000);
-      // No epic resolved (all unresponsive); result is empty, not a hang.
-      expect(result).toHaveLength(0);
-    }, 15_000);
+    test("lists active projections, includes retired in all mode, and gives terminal state dominance", async () => {
+      const { deps, legacy, queryMock, getHandleMock } =
+        await setupWithRetiredEpicsDir();
+      const activeDir = legacy.paths.activeEpics;
+      const active = makeEpic({
+        id: "active",
+        created_at: "2026-07-23T10:00:00.000Z",
+      });
+      const staleActive = makeEpic({
+        id: "shared",
+        title: "stale active",
+        created_at: "2026-07-23T09:00:00.000Z",
+      });
+      const retired = makeCompletedEpic({
+        id: "shared",
+        title: "terminal retired",
+        created_at: "2026-07-24T10:00:00.000Z",
+      });
+      await saveActiveEpicProjection(activeDir, active);
+      await saveActiveEpicProjection(activeDir, staleActive);
+      await legacy.epics.saveRetiredProjection("shared", {
+        epic_snapshot: retired,
+        retired_at: "2026-07-24T11:00:00.000Z",
+        retired_by: "agent",
+        evidence: "terminal projection",
+        source_workflow_id: "adv/epic/project-id/shared",
+        source_version: retired.version,
+        projection_status: "retired",
+      });
+
+      const ops = createEpicOps(deps);
+      expect((await ops.list()).map((epic) => epic.id)).toEqual(["active"]);
+      const all = await ops.list({ status: "all" });
+      expect(all.map((epic) => epic.id)).toEqual(["shared", "active"]);
+      expect(all[0]?.title).toBe("terminal retired");
+      expect(getHandleMock).not.toHaveBeenCalled();
+      expect(queryMock).not.toHaveBeenCalled();
+    });
+
+    test("returns an empty list for missing projections and rejects corrupt active projections without workflow fallback", async () => {
+      const { deps, legacy, queryMock, getHandleMock } =
+        await setupWithRetiredEpicsDir();
+      const ops = createEpicOps(deps);
+      expect(await ops.list()).toEqual([]);
+      mkdirSync(join(legacy.paths.activeEpics, "corrupt"), { recursive: true });
+      writeFileSync(
+        join(legacy.paths.activeEpics, "corrupt", "active-projection.json"),
+        "{invalid json",
+      );
+      expect(await ops.list()).toEqual([]);
+      expect(getHandleMock).not.toHaveBeenCalled();
+      expect(queryMock).not.toHaveBeenCalled();
+    });
   });
 
   describe("repairIndex", () => {

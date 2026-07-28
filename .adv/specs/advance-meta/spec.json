@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.30.0",
-  "updated_at": "2026-07-22T23:12:57.005Z",
+  "version": "1.31.0",
+  "updated_at": "2026-07-28T00:01:33.539Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -3225,6 +3225,87 @@
             "(Case A) No phantom_pointer finding is produced and the pointer is not cleared",
             "(Case B) The phantom-pointer check is skipped entirely and probeChangePhantomStatus is never called",
             "In both cases the pointer is left unchanged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-projectionReadModel02",
+      "title": "Projection-First Routine Reads",
+      "body": "Routine ADV reads must resolve from schema-versioned durable entity projections and per-entity summary shards without workflow Queries. Temporal Queries, Visibility, and Describe are restricted to command confirmation, reconciliation, diagnostics, and repair. Pure metadata surfaces remain independent of both Temporal and entity projection machinery.",
+      "priority": "must",
+      "tags": [
+        "read-model",
+        "projection",
+        "tool-catalog",
+        "tier4",
+        "performance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-projectionReadModel02.1",
+          "title": "Routine reads avoid workflow Queries",
+          "given": [
+            "A valid full projection or summary shard exists"
+          ],
+          "when": "A change, task, gate, wisdom, delta, Epic, status, or WIP read executes",
+          "then": [
+            "The result is served from the read model",
+            "No workflow Query is dispatched",
+            "The response includes typed source, revision, and degraded provenance"
+          ]
+        },
+        {
+          "id": "rq-projectionReadModel02.2",
+          "title": "Workflow health does not block reads",
+          "given": [
+            "A workflow is missing, poisoned, or assigned to an orphaned task queue",
+            "A valid durable projection exists"
+          ],
+          "when": "A routine read executes",
+          "then": [
+            "The projection result is returned",
+            "Temporal infrastructure failure is not surfaced as the read result",
+            "Any degradation is represented as typed provenance"
+          ]
+        },
+        {
+          "id": "rq-projectionReadModel02.3",
+          "title": "Missing projection is typed",
+          "given": [
+            "No valid projection exists for the requested entity"
+          ],
+          "when": "A routine read executes",
+          "then": [
+            "The result is typed not-found or corrupt-projection as applicable",
+            "The read does not silently hydrate from a workflow Query",
+            "Repair or reconciliation is an explicit operational path"
+          ]
+        },
+        {
+          "id": "rq-projectionReadModel02.4",
+          "title": "Concurrent summaries preserve all changes",
+          "given": [
+            "Different changes commit projections concurrently"
+          ],
+          "when": "Their summary shards are published",
+          "then": [
+            "Each change updates only its own immutable revision shard and current pointer",
+            "No shared-manifest lost update occurs",
+            "The index can be rebuilt solely from full projections"
+          ]
+        },
+        {
+          "id": "rq-projectionReadModel02.5",
+          "title": "Pure metadata stays Temporal-free",
+          "given": [
+            "Tool catalog, tool describe, specs, backlog, or project context is requested"
+          ],
+          "when": "The read executes",
+          "then": [
+            "The request uses registry or filesystem context directly",
+            "No Temporal reachability probe is required",
+            "Tool classification structurally distinguishes pure/context/read-model/diagnostic needs"
           ]
         }
       ]

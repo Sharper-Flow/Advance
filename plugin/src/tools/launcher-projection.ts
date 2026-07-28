@@ -6,11 +6,9 @@
  * only (never exposed via bin/adv) and do not touch Temporal workflows.
  */
 
-import { join } from "path";
-import type { Store } from "../storage/store";
-import { getProjectId, getExternalRoot } from "../utils/project-id";
+import type { Store } from "../storage/store-types";
 import { buildLauncherProjection } from "../storage/launcher-projection";
-import { atomicWriteFile } from "../utils/fs";
+import { writeLauncherProjection } from "../storage/launcher-projection-writer";
 import { formatToolOutput } from "../utils/tool-output";
 import { createLogger } from "../utils/debug-log";
 
@@ -26,30 +24,20 @@ export const launcherProjectionTools = {
       "Temporal workflows or bin/adv.",
     args: {},
     execute: async (_args: Record<string, never>, store: Store) => {
-      const projectId = await getProjectId(store.paths.root);
-      if (!projectId) {
-        return formatToolOutput({
-          ok: false,
-          error:
-            "Could not resolve project identity for the current directory.",
-        });
-      }
-
-      const externalRoot = getExternalRoot(projectId);
-      const changesDir = join(externalRoot, "changes");
-      const archiveDir = join(externalRoot, "archive");
       const generatedAt = new Date().toISOString();
-      const path = join(externalRoot, "active-launcher-state.json");
+      const path = store.paths.external
+        ? `${store.paths.external}/active-launcher-state.json`
+        : `${store.paths.root}/.adv/active-launcher-state.json`;
 
       try {
         const projection = await buildLauncherProjection({
-          changesDir,
-          archiveDir,
+          changesDir: store.paths.changes,
+          summariesDir: store.paths.summariesDir,
           generatedAt,
           degradedThresholdMs: 300_000,
         });
 
-        await atomicWriteFile(path, `${JSON.stringify(projection, null, 2)}\n`);
+        await writeLauncherProjection(path, projection);
 
         return formatToolOutput({
           ok: true,
@@ -61,8 +49,7 @@ export const launcherProjectionTools = {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         logger.warn("launcher-projection-rebuild-failed", {
-          projectId,
-          externalRoot,
+          root: store.paths.root,
           error: message,
         });
         return formatToolOutput({

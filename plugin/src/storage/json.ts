@@ -7,15 +7,9 @@
  */
 
 import { join, basename } from "path";
-import { readdir, mkdir, readFile, access, rm } from "fs/promises";
-import {
-  SpecSchema,
-  ChangeSchema,
-  ProjectConfigSchema,
-  normalizePersistedSubagentReportState,
-  normalizeLegacyChangeStatus,
-} from "../types";
-import type { Spec, Change, ProjectConfig } from "../types";
+import { mkdir, readFile, access, rm } from "fs/promises";
+import { ProjectConfigSchema } from "../types";
+import type { Change, ProjectConfig } from "../types";
 import { ZodError } from "zod";
 import { atomicWriteFile } from "../utils/fs";
 import { createLogger } from "../utils/debug-log";
@@ -23,44 +17,26 @@ import { isSyntheticValidationDraftPattern } from "../utils/synthetic-fixture-de
 
 const logger = createLogger("json");
 
+import type { LoadResult } from "./change-projection-reader";
+import { listChangeDirs, loadChange } from "./change-projection-reader";
+export type { LoadResult } from "./change-projection-reader";
+export {
+  isSchemaError,
+  listChangeDirs,
+  resolveChangeId,
+  loadChange,
+  loadAllChanges,
+} from "./change-projection-reader";
+export {
+  listSpecDirs,
+  loadSpec,
+  loadAllSpecs,
+  saveSpec,
+} from "./spec-filesystem";
+
 // =============================================================================
 // Result Types
 // =============================================================================
-
-/**
- * Result type for load operations that can fail with schema validation errors.
- * Errors are returned as data, not logged to console, so AI agents can see them.
- */
-export type LoadResult<T> =
-  | {
-      success: true;
-      data: T;
-      source?: "workflow" | "disk" | "archive" | "retired_projection";
-    }
-  | {
-      success: false;
-      error: string;
-      type: "not_found" | "schema_error" | "read_error";
-    };
-
-/**
- * Predicate: true when a LoadResult carries a schema_error.
- *
- * Workflow-touching callers MUST check this before falling through to a
- * Temporal query: schema errors are not recoverable through a workflow
- * round-trip and surface as generic "Failed to query Workflow" errors when
- * masked (issue #258 Defect 1).
- *
- * The existing LoadResult flow already propagates `result.error` verbatim
- * through tool-layer `if (!result.success) return formatToolOutput({error})`
- * patterns. This predicate exists to make "do not fall through on
- * schema_error" explicit at every store-layer swallow site.
- */
-export function isSchemaError<T>(
-  result: LoadResult<T>,
-): result is { success: false; error: string; type: "schema_error" } {
-  return !result.success && result.type === "schema_error";
-}
 
 /**
  * Format a Zod validation error into a human-readable string for AI agents.
@@ -81,96 +57,6 @@ function formatZodError(
   );
 }
 
-/**
- * Rewrite historical 6-gate migration artifacts into the current 7-gate shape.
- *
- * Context: during the 6→7 gate migration, older change.json files could
- * contain:
- *   - gate records with `status: "legacy"` (meaning "this gate was retired,
- *     treat it as satisfied")
- *   - auxiliary fields `migrated_from` / `absorbed_completions` recording
- *     the 6-gate origin
- *
- * The current schema (`GateStatusSchema` in types.ts) still accepts "legacy"
- * as a valid value, but production code no longer writes it — changes start
- * with `createDefaultGates()` (all pending) and progress via
- * `store.gates.complete()` (sets "done"). The old `createLegacyGates()` helper
- * and `store.gates.migrate()` scaffold were removed in April 2026.
- *
- * This normalizer stays in place to handle any residual on-disk data from
- * projects that predate the 6→7 migration. It rewrites `status: "legacy"`
- * to `status: "done"` and strips the `migrated_from` / `absorbed_completions`
- * fields so the record validates against the current schema.
- *
- * When the normalizer touches a file, `loadChange` writes the normalized
- * form back to disk atomically so subsequent loads are no-ops.
- */
-function normalizeLegacyGateData(value: unknown): [unknown, boolean] {
-  let changed = false;
-
-  if (Array.isArray(value)) {
-    const next = value.map((item) => {
-      const [normalized, itemChanged] = normalizeLegacyGateData(item);
-      changed = changed || itemChanged;
-      return normalized;
-    });
-    return [next, changed];
-  }
-
-  if (value && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-
-    for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
-      if (key === "migrated_from" || key === "absorbed_completions") {
-        changed = true;
-        continue;
-      }
-
-      if (key === "status" && raw === "legacy") {
-        out[key] = "done";
-        changed = true;
-        continue;
-      }
-
-      const [normalized, childChanged] = normalizeLegacyGateData(raw);
-      out[key] = normalized;
-      changed = changed || childChanged;
-    }
-
-    return [out, changed];
-  }
-
-  return [value, false];
-}
-
-/**
- * Normalize the change record's OWN root `status` before schema validation.
- *
- * `active` and `pending` were historically stored on change records but no
- * code path writes them anymore (open changes are `draft`; open-claim
- * authority is `AdvLifecycleState`). Legacy or poisoned change.json files
- * must still load (C4), so both values map to `"draft"` via
- * `normalizeLegacyChangeStatus`.
- *
- * Deliberately SHALLOW: only the record's own `status` key is touched. Gate
- * records legitimately carry `status: "pending"` — recursing (as
- * `normalizeLegacyGateData` does for gate-shaped values) would corrupt them.
- *
- * When the normalizer touches a file, `loadChange` writes the normalized
- * form back to disk atomically so subsequent loads are no-ops.
- */
-function normalizeLegacyChangeRootStatus(value: unknown): [unknown, boolean] {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return [value, false];
-  }
-  const record = value as Record<string, unknown>;
-  const normalizedStatus = normalizeLegacyChangeStatus(record.status);
-  if (normalizedStatus !== record.status) {
-    return [{ ...record, status: normalizedStatus }, true];
-  }
-  return [value, false];
-}
-
 // =============================================================================
 // File Paths
 // =============================================================================
@@ -184,7 +70,9 @@ export interface ProjectPaths {
 
   // Mutable (external when externalRoot is provided, else in-repo fallback)
   changes: string;
+  summariesDir: string;
   archive: string;
+  activeEpics: string;
   retiredEpics: string;
   wisdom: string;
   reflections: string;
@@ -226,7 +114,9 @@ export function getProjectPaths(
       docs,
       config: configPath,
       changes: join(ext, changesDir),
+      summariesDir: join(ext, "summaries"),
       archive: join(ext, archiveDir),
+      activeEpics: join(ext, "active-epics"),
       retiredEpics: join(ext, "retired-epics"),
       wisdom: join(ext, "wisdom.jsonl"),
       reflections: join(ext, "reflections.jsonl"),
@@ -243,7 +133,9 @@ export function getProjectPaths(
     docs,
     config: configPath,
     changes: join(root, config?.changes_dir ?? ".adv/changes"),
+    summariesDir: join(root, ".adv/summaries"),
     archive: join(root, config?.archive_dir ?? ".adv/archive"),
+    activeEpics: join(root, ".adv/active-epics"),
     retiredEpics: join(root, ".adv/retired-epics"),
     wisdom: join(root, ".adv/wisdom.jsonl"),
     reflections: join(root, ".adv/reflections.jsonl"),
@@ -367,194 +259,8 @@ export async function saveProjectConfig(
 }
 
 // =============================================================================
-// Spec Operations
-// =============================================================================
-
-export async function listSpecDirs(specsDir: string): Promise<string[]> {
-  try {
-    const entries = await readdir(specsDir, { withFileTypes: true });
-    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      logger.warn(
-        `Unexpected error reading specs directory: ${(err as Error).message}`,
-      );
-    }
-    return [];
-  }
-}
-
-export async function loadSpec(
-  specsDir: string,
-  capability: string,
-): Promise<LoadResult<Spec | null>> {
-  const specPath = join(specsDir, capability, "spec.json");
-
-  try {
-    const content = await readFile(specPath, "utf-8");
-    return { success: true, data: SpecSchema.parse(JSON.parse(content)) };
-  } catch (error) {
-    if (error instanceof ZodError) {
-      // Provide helpful error message for schema violations
-      return {
-        success: false,
-        error: formatZodError(error, {
-          type: "spec",
-          id: capability,
-          path: specPath,
-        }),
-        type: "schema_error",
-      };
-    } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      // File not found - not an error, just return null
-      return { success: true, data: null };
-    } else {
-      return {
-        success: false,
-        error: `Failed to load spec ${capability}: ${String(error)}`,
-        type: "read_error",
-      };
-    }
-  }
-}
-
-export async function loadAllSpecs(
-  specsDir: string,
-): Promise<Map<string, Spec>> {
-  const specs = new Map<string, Spec>();
-  const dirs = await listSpecDirs(specsDir);
-
-  for (const dir of dirs) {
-    const spec = await loadSpec(specsDir, dir);
-    if (spec.success && spec.data) {
-      specs.set(spec.data.name, spec.data);
-    }
-  }
-
-  return specs;
-}
-
-export async function saveSpec(specsDir: string, spec: Spec): Promise<string> {
-  const specDir = join(specsDir, spec.name);
-  const specPath = join(specDir, "spec.json");
-
-  await atomicWriteFile(specPath, JSON.stringify(spec, null, 2));
-
-  return specPath;
-}
-
-// =============================================================================
 // Change Operations
 // =============================================================================
-
-export async function listChangeDirs(changesDir: string): Promise<string[]> {
-  try {
-    const entries = await readdir(changesDir, { withFileTypes: true });
-    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
-      logger.warn(
-        `Unexpected error reading changes directory: ${(err as Error).message}`,
-      );
-    }
-    return [];
-  }
-}
-
-/**
- * Resolve a partial change ID to a full change ID.
- * Supports:
- * - Full ID: "addUserAuth" → "addUserAuth"
- * - Prefix match: "addUs" → "addUserAuth" (if unique)
- * - Case-insensitive prefix: "adduser" → "addUserAuth" (if unique)
- *
- * Returns null if no match or multiple matches found.
- */
-export async function resolveChangeId(
-  changesDir: string,
-  partialId: string,
-): Promise<{ id: string | null; candidates: string[] }> {
-  const dirs = await listChangeDirs(changesDir);
-
-  // Exact match first
-  if (dirs.includes(partialId)) {
-    return { id: partialId, candidates: [partialId] };
-  }
-
-  // Case-insensitive prefix match
-  const prefixMatches = dirs.filter((d) =>
-    d.toLowerCase().startsWith(partialId.toLowerCase()),
-  );
-  if (prefixMatches.length === 1) {
-    return { id: prefixMatches[0], candidates: prefixMatches };
-  }
-  if (prefixMatches.length > 1) {
-    return { id: null, candidates: prefixMatches };
-  }
-
-  return { id: null, candidates: [] };
-}
-
-export async function loadChange(
-  changesDir: string,
-  changeId: string,
-): Promise<LoadResult<Change | null>> {
-  const changePath = join(changesDir, changeId, "change.json");
-
-  try {
-    const content = await readFile(changePath, "utf-8");
-    const parsed = JSON.parse(content);
-    const [gateNormalized, gateChanged] = normalizeLegacyGateData(parsed);
-    const [reportNormalized, reportChanged] =
-      normalizePersistedSubagentReportState(gateNormalized);
-    const [normalized, statusChanged] =
-      normalizeLegacyChangeRootStatus(reportNormalized);
-    const changed = gateChanged || reportChanged || statusChanged;
-
-    if (changed) {
-      await atomicWriteFile(changePath, JSON.stringify(normalized, null, 2));
-    }
-
-    return { success: true, data: ChangeSchema.parse(normalized) };
-  } catch (error) {
-    if (error instanceof ZodError) {
-      return {
-        success: false,
-        error: formatZodError(error, {
-          type: "change",
-          id: changeId,
-          path: changePath,
-        }),
-        type: "schema_error",
-      };
-    } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      // File not found - return success with null data
-      return { success: true, data: null };
-    } else {
-      return {
-        success: false,
-        error: `Failed to read change ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
-        type: "read_error",
-      };
-    }
-  }
-}
-
-export async function loadAllChanges(
-  changesDir: string,
-): Promise<Map<string, Change>> {
-  const changes = new Map<string, Change>();
-  const dirs = await listChangeDirs(changesDir);
-
-  for (const dir of dirs) {
-    const change = await loadChange(changesDir, dir);
-    if (change.success && change.data) {
-      changes.set(change.data.id, change.data);
-    }
-  }
-
-  return changes;
-}
 
 export async function saveChange(
   changesDir: string,

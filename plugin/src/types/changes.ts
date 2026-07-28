@@ -149,6 +149,9 @@ export const ChangeClosureSchema = z.object({
   approval_evidence: z.string(),
   superseded_by: z.string().optional(),
   approved_at: z.string(),
+  operation_id: z.string().min(1).optional(),
+  /** Canonical payload hash for close-command idempotency. */
+  payload_hash: z.string().min(1).optional(),
 });
 
 export type ChangeClosure = z.infer<typeof ChangeClosureSchema>;
@@ -188,6 +191,9 @@ export const BulkCloseResultSchema = z.object({
       changeId: z.string(),
       success: z.boolean(),
       error: z.string().optional(),
+      state: z
+        .enum(["pending", "prepared", "rejected", "committed", "aborted"])
+        .optional(),
     }),
   ),
   message: z.string(),
@@ -947,6 +953,12 @@ export const ProjectionCommitAuditEntrySchema = z.object({
   mutation_receipt_id: z.string().optional(),
   recovery_reason: z.string().optional(),
   recovery_evidence: z.string().optional(),
+  /** Stable operation identity supplied by the caller at the command boundary. */
+  operation_id: z.string().min(1).optional(),
+  /** Canonical hash of the command payload for idempotency/conflict detection. */
+  payload_hash: z.string().min(1).optional(),
+  /** Workflow state revision that was projected by this commit. */
+  state_revision: z.number().int().nonnegative().optional(),
   prior_revision: z.number().int().nonnegative(),
   new_revision: z.number().int().nonnegative(),
   committed_at: z.string(),
@@ -1224,6 +1236,32 @@ export const ChangeSchema = z
      * entries at write time so the projection does not grow unbounded.
      */
     projection_commits: z.array(ProjectionCommitAuditEntrySchema).optional(),
+
+    /**
+     * Monotonic workflow state revision mirrored into the disk projection.
+     * Legacy/absent = 0. Used to fence out-of-order projection commits.
+     */
+    state_revision: z.number().int().nonnegative().optional(),
+
+    /**
+     * Bounded operation ledger for stable command identity. Survives workflow
+     * continue-as-new / re-seed so retries and conflicting operation_ids are
+     * handled deterministically.
+     */
+    operation_ledger: z
+      .record(
+        z.string(),
+        z.object({
+          operation_id: z.string(),
+          command_kind: z.string(),
+          payload_hash: z.string(),
+          outcome: z.enum(["accepted", "rejected", "idempotent_replay"]),
+          state_revision: z.number().int().nonnegative(),
+          accepted_at: z.string(),
+          last_seen_at: z.string(),
+        }),
+      )
+      .optional(),
   })
   .passthrough(); // Allow extra fields for forward/backward compatibility
 

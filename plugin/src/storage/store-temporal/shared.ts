@@ -29,8 +29,22 @@ import {
   requireMutationEligible,
   type TemporalMutationOutcome,
 } from "../../temporal/mutation-safety";
-import { isSchemaError } from "../json";
+import { isSchemaError } from "../change-projection-reader";
 import type { DiskPersistOutcome } from "./disk-persist";
+import { DiskProjectionPersistError } from "./disk-persist";
+import type {
+  ChangeSummaryShard,
+  ChangeSummaryPointer,
+} from "../change-summary-shard-reader";
+import { commitChangeProjectionWithSummary } from "../change-summary-shard";
+import {
+  changeStateQuery,
+  getOperationLedgerOutcomeQuery,
+} from "../../temporal/messages";
+import { waitForQueryPredicate } from "../../utils/query-predicate";
+import type { OperationLedgerEntry } from "../../temporal/contracts";
+import { getToolOperationContext } from "../../utils/tool-operation-context";
+import { randomUUID } from "node:crypto";
 
 const logger = createLogger("store-temporal-shared");
 
@@ -433,6 +447,281 @@ export {
   type RunTemporalReadOptions,
 } from "./read-context";
 
+export type ChangeCommandOutcome =
+  | { kind: "accepted"; state: ChangeWorkflowState }
+  | { kind: "idempotent_replay"; state: ChangeWorkflowState }
+  | { kind: "rejected"; reason: string }
+  | { kind: "projection_failure"; reason: string }
+  | { kind: "operator_required"; reason: string }
+  | { kind: "outcome_unknown_readback_unavailable"; reason: string };
+
+export type CommandProjectionCommitOutcome =
+  | {
+      kind: "committed";
+      snapshotRevision?: number;
+      shard?: ChangeSummaryShard;
+      pointer?: ChangeSummaryPointer;
+    }
+  | {
+      kind: "idempotent";
+      snapshotRevision?: number;
+      shard?: ChangeSummaryShard;
+      pointer?: ChangeSummaryPointer;
+    }
+  | { kind: "conflict"; reason: string }
+  | { kind: "error"; reason: string }
+  | { kind: "operator_required"; reason: string };
+
+export function buildSummaryCommitProjection(
+  legacy: Store,
+  changeId: string,
+  operationId: string,
+  payloadHash: string,
+  mutationKind: string,
+): (
+  state: ChangeWorkflowState,
+  stateRevision: number,
+) => Promise<CommandProjectionCommitOutcome> {
+  return async (state, stateRevision) => {
+    const summary = await commitChangeProjectionWithSummary({
+      paths: {
+        changesDir: legacy.paths.changes,
+        summariesDir: legacy.paths.summariesDir,
+      },
+      changeId,
+      operationId,
+      payloadHash,
+      stateRevision,
+      authority: { kind: "temporal", mutationReceiptId: operationId },
+      mutationKind,
+      mutateLatest: (latest) => projectTemporalStateOntoLatest(latest, state),
+      verify: ({ readback }) => (readback.state_revision ?? 0) >= stateRevision,
+    });
+    switch (summary.kind) {
+      case "committed":
+      case "idempotent":
+        return {
+          kind: summary.kind,
+          snapshotRevision: summary.snapshotRevision,
+          shard: summary.shard,
+          pointer: summary.pointer,
+        };
+      case "conflict":
+        return {
+          kind: "conflict",
+          reason: summary.error ?? "summary conflict",
+        };
+      case "error":
+        return {
+          kind: "error",
+          reason: summary.error ?? "summary error",
+        };
+      default:
+        return { kind: "error", reason: "unknown summary outcome" };
+    }
+  };
+}
+
+export interface ChangeCommandOptions {
+  deps: StoreDeps;
+  changeId: string;
+  operationId: string;
+  commandKind: string;
+  payloadHash: string;
+  signal: unknown;
+  signalArgs: unknown[];
+  /**
+   * Caller-provided projection commit. Must be built from the same operationId
+   * and payloadHash so the projection audit trail matches the command proof.
+   * The `stateRevision` is the authoritative workflow revision recorded in the
+   * accepted ledger entry; the projection must acknowledge it.
+   */
+  commitProjection: (
+    state: ChangeWorkflowState,
+    stateRevision: number,
+  ) => Promise<CommandProjectionCommitOutcome>;
+  /**
+   * Optional hook invoked after the primary signal is acknowledged but before
+   * the ledger outcome is polled. Used for deterministic companion signals
+   * (e.g., artifact metadata) that must be processed before the command's
+   * projection commit.
+   */
+  postSignal?: (handle: WorkflowHandleLike) => Promise<void>;
+  /**
+   * Optional SC4 eligibility diagnostic. When supplied, the command is
+   * refused against a mutation-ineligible workflow before any signal fires.
+   */
+  eligibility?: import("../../temporal/mutation-safety").TemporalWorkflowDiagnostic;
+}
+
+/**
+ * Stable command identity fallback for adapters that do not receive a
+ * caller-supplied operation id. It is explicit, deterministic, and derived from
+ * the command payload so retries hash to the same id — but it is NOT
+ * authoritative; callers should supply their own operation id whenever the
+ * command semantics matter.
+ */
+export function fallbackOperationId(
+  commandKind: string,
+  payload: unknown,
+): string {
+  const toolContext = getToolOperationContext();
+  if (toolContext) {
+    // The tool boundary already binds this invocation to session/message/name
+    // and normalized args. A command-kind child survives regenerated adapter
+    // timestamps and remains stable across the host retry of this invocation.
+    return `${toolContext.baseOperationId}:${commandKind}`;
+  }
+  // Direct/internal callers have no host invocation identity. Deliberately do
+  // not dedupe by payload: append commands with identical content are distinct
+  // unless the caller supplies its own authoritative operationId.
+  void payload;
+  return `legacy:${commandKind}:${randomUUID()}`;
+}
+
+/**
+ * Typed ChangeWorkflow command primitive: signal, poll the operation ledger for
+ * an accepted/idempotent/rejected outcome, read the confirmed state, and commit
+ * the disk projection atomically. The result is derived from confirmed state
+ * rather than a second unverified read.
+ *
+ * This is the canonical adapter path for task/gate/wisdom/delta/epic/close
+ * commands; content updates use the same ledger-aware workflow reducers but may
+ * batch multiple content signals in one adapter call.
+ */
+export async function changeCommand(
+  options: ChangeCommandOptions,
+): Promise<ChangeCommandOutcome> {
+  const {
+    deps,
+    changeId,
+    operationId,
+    commandKind,
+    payloadHash,
+    signal,
+    signalArgs,
+    commitProjection,
+    postSignal,
+    eligibility,
+  } = options;
+  const handle = await getGuardedChangeHandle(deps.input, changeId);
+  try {
+    if (eligibility) {
+      requireMutationEligible(eligibility);
+    }
+    await runTemporal(async () => {
+      await handle.signal(signal, ...signalArgs);
+      if (postSignal) {
+        await postSignal(handle);
+      }
+    });
+  } catch (err) {
+    const outcome = classifyMutationOutcome({ signalError: err });
+    if (outcome === "outcome_unknown_readback_unavailable") {
+      return {
+        kind: "outcome_unknown_readback_unavailable",
+        reason: `${commandKind} signal failed and readback is unavailable: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+    return {
+      kind: "operator_required",
+      reason: `${commandKind} signal rejected: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  let ledger: OperationLedgerEntry | undefined;
+  try {
+    ledger = await waitForQueryPredicate(
+      () =>
+        handle.query(getOperationLedgerOutcomeQuery, operationId) as Promise<
+          OperationLedgerEntry | undefined
+        >,
+      (entry) =>
+        entry?.outcome === "accepted" ||
+        entry?.outcome === "idempotent_replay" ||
+        entry?.outcome === "rejected",
+      { attempts: 30, delayMs: 200 },
+    );
+  } catch (err) {
+    return {
+      kind: "outcome_unknown_readback_unavailable",
+      reason: `${commandKind} operation ${operationId} ledger query failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  if (!ledger) {
+    return {
+      kind: "outcome_unknown_readback_unavailable",
+      reason: `${commandKind} operation ${operationId} was not confirmed via the operation ledger`,
+    };
+  }
+  if (ledger.outcome === "rejected") {
+    return {
+      kind: "rejected",
+      reason: `${commandKind} operation ${operationId} was rejected by the workflow`,
+    };
+  }
+  if (ledger.command_kind !== commandKind) {
+    return {
+      kind: "rejected",
+      reason: `${commandKind} operation ${operationId} ledger mismatch: command_kind ${ledger.command_kind}`,
+    };
+  }
+  if (ledger.payload_hash !== payloadHash) {
+    return {
+      kind: "rejected",
+      reason: `${commandKind} operation ${operationId} ledger mismatch: payload_hash`,
+    };
+  }
+
+  let state: ChangeWorkflowState;
+  try {
+    state = (await runTemporal(async () =>
+      handle.query(changeStateQuery),
+    )) as ChangeWorkflowState;
+  } catch (err) {
+    return {
+      kind: "outcome_unknown_readback_unavailable",
+      reason: `${commandKind} state readback failed after confirmed operation: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  if ((state.state_revision ?? 0) < ledger.state_revision) {
+    return {
+      kind: "projection_failure",
+      reason: `${commandKind} operation ${operationId} readback state_revision ${state.state_revision} is behind ledger state_revision ${ledger.state_revision}`,
+    };
+  }
+
+  let commit: CommandProjectionCommitOutcome;
+  try {
+    commit = await commitProjection(state, ledger.state_revision);
+  } catch (err) {
+    if (err instanceof DiskProjectionPersistError) {
+      throw err;
+    }
+    return {
+      kind: "projection_failure",
+      reason: `${commandKind} projection commit threw: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+  if (commit.kind === "committed" || commit.kind === "idempotent") {
+    deps.setCachedChange(state);
+    return {
+      kind:
+        ledger.outcome === "idempotent_replay"
+          ? "idempotent_replay"
+          : "accepted",
+      state,
+    };
+  }
+  if (commit.kind === "operator_required") {
+    return { kind: "operator_required", reason: commit.reason };
+  }
+  return {
+    kind: "projection_failure",
+    reason: `${commandKind} projection commit outcome: ${commit.kind}`,
+  };
+}
+
 export {
   createTemporalReadDeadline,
   remainingDeadlineMs,
@@ -641,6 +930,10 @@ export interface StoreDeps {
   ) => Promise<ChangeWorkflowState>;
   indexTasksFromState: (state: ChangeWorkflowState) => void;
   resolveChangeId: (taskId: string) => Promise<string | null>;
+  /** Disk-only authoritative snapshot read for routine ReadStore methods. */
+  readChangeSnapshot: (
+    changeId: string,
+  ) => Promise<import("./read-model").ChangeReadSnapshot>;
   getTemporalChange: (
     changeId: string,
     opts?: {

@@ -1,0 +1,118 @@
+/**
+ * RED-phase runtime + classification table tests for read-model-aware Tier-4
+ * MCP degradation.
+ *
+ * Desired contract:
+ *   - Classifications are exactly: pure, needs-read-model,
+ *     needs-temporal-diagnostics, or existing host-only classes
+ *     (needs-host-git / needs-host-probe).
+ *   - Read-model outage degrades only needs-read-model tools.
+ *   - Temporal outage degrades only needs-temporal-diagnostics tools.
+ *   - Pure tools are unaffected by either outage.
+ *   - There is no fallback / catch-all classification such as needs-context.
+ */
+import { describe, expect, it, vi, afterEach } from "vitest";
+import {
+  TOOL_CLASSIFICATIONS,
+  executeTier4Tool,
+  type Tier4ToolName,
+} from "./tools/index.js";
+import { wrapTier4Tool } from "./degradation.js";
+import { createDiskStore } from "../storage/store-disk.js";
+
+vi.mock("../storage/store-disk.js", () => ({
+  createDiskStore: vi.fn(),
+}));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+const ALLOWED_CLASSIFICATIONS = new Set([
+  "pure",
+  "needs-read-model",
+  "needs-temporal-diagnostics",
+  "needs-host-git",
+  "needs-host-probe",
+]);
+
+describe("Tier-4 tool classification table", () => {
+  it("uses only allowed classifications", () => {
+    const bad: { tool: Tier4ToolName; classification: string }[] = [];
+    for (const [tool, classes] of Object.entries(TOOL_CLASSIFICATIONS) as [
+      Tier4ToolName,
+      string[],
+    ][]) {
+      for (const c of classes) {
+        if (!ALLOWED_CLASSIFICATIONS.has(c)) {
+          bad.push({ tool, classification: c });
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("status is read-model-backed and temporal-diagnostics-backed", () => {
+    expect(TOOL_CLASSIFICATIONS.status).toContain("needs-read-model");
+    expect(TOOL_CLASSIFICATIONS.status).toContain("needs-temporal-diagnostics");
+    expect(TOOL_CLASSIFICATIONS.status).not.toContain("needs-host-probe");
+  });
+
+  it("read-model tools are not mixed with host-probe or legacy temporal classes", () => {
+    const bad: { tool: Tier4ToolName; classes: string[] }[] = [];
+    for (const [tool, classes] of Object.entries(TOOL_CLASSIFICATIONS) as [
+      Tier4ToolName,
+      string[],
+    ][]) {
+      if (!classes.includes("needs-read-model")) continue;
+      if (
+        classes.includes("needs-host-probe") ||
+        classes.includes("needs-temporal")
+      ) {
+        bad.push({ tool, classes });
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+});
+
+describe("Runtime degradation behavior", () => {
+  it("read-model outage degrades needs-read-model tools", async () => {
+    vi.mocked(createDiskStore).mockRejectedValue(
+      new Error("read-model outage"),
+    );
+
+    const result = await executeTier4Tool(process.cwd(), "epic_list", {});
+    const parsed = JSON.parse(result);
+
+    expect(parsed.degraded).toBe(true);
+    expect(parsed.source).toBe("disk_projection");
+  });
+
+  it("read-model outage does not affect pure tools", async () => {
+    vi.mocked(createDiskStore).mockRejectedValue(
+      new Error("read-model outage"),
+    );
+
+    const result = await executeTier4Tool(process.cwd(), "tool_catalog", {});
+    const parsed = JSON.parse(result);
+
+    expect(parsed.error).toBeUndefined();
+  });
+
+  it("Temporal outage degrades status diagnostics", async () => {
+    const execute = vi.fn().mockResolvedValue(JSON.stringify({ ok: true }));
+    const wrapped = wrapTier4Tool(
+      "status",
+      TOOL_CLASSIFICATIONS.status,
+      execute,
+      { temporalReachable: () => Promise.resolve(false) },
+    );
+
+    const result = await wrapped({});
+    const parsed = JSON.parse(result);
+
+    expect(parsed.degraded).toBe(true);
+    expect(parsed.source).toBe("disk_projection");
+  });
+});

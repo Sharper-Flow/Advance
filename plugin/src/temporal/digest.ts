@@ -71,3 +71,77 @@ export function describePayloadDigest(payload: unknown): SignalPayloadDigest {
     payload_fnv1a: fnv1a32(rendered),
   };
 }
+
+/**
+ * Reviewed transport-generated retry variants only. These paths are emitted by
+ * the listed host adapters, not user/audit/business input:
+ *
+ * - tasks: updatedAt, addedAt, cancelledAt, task.created_at
+ * - gates: completedAt, reenteredAt
+ * - wisdom: addedAt, entry.recorded_at
+ * - spec deltas: addedAt, modifiedAt, amendedAt, retractedAt, removedAt,
+ *   renamedAt
+ * - content: updatedAt
+ *
+ * Do not replace this with a suffix rule: timestamps at any other path remain
+ * business payload and must change the command hash.
+ */
+const TRANSPORT_ONLY_COMMAND_PATHS = new Set([
+  "updatedAt",
+  "addedAt",
+  "cancelledAt",
+  "completedAt",
+  "reenteredAt",
+  "modifiedAt",
+  "amendedAt",
+  "retractedAt",
+  "removedAt",
+  "renamedAt",
+  "task.created_at",
+  "entry.recorded_at",
+]);
+
+const COMMAND_ENVELOPE_KEYS = new Set([
+  "operation_id",
+  "command_kind",
+  "payload_hash",
+  "mutationReceiptId",
+]);
+
+function sanitizeForCommandHash(value: unknown, path: string[] = []): unknown {
+  if (value === null || typeof value !== "object") return value;
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeForCommandHash(entry, path));
+  }
+  const record = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const key of Object.keys(record).sort()) {
+    const keyPath = [...path, key].join(".");
+    if (
+      TRANSPORT_ONLY_COMMAND_PATHS.has(keyPath) ||
+      COMMAND_ENVELOPE_KEYS.has(key)
+    )
+      continue;
+    out[key] = sanitizeForCommandHash(record[key], [...path, key]);
+  }
+  return out;
+}
+
+/**
+ * Workflow-safe canonical command-payload serialization.
+ *
+ * Host adapters apply SHA-256 to this exact representation before signaling.
+ * Workflow code may safely use it for comparison and legacy compatibility.
+ */
+export function canonicalCommandPayloadString(payload: unknown): string {
+  return stableStringify(sanitizeForCommandHash(payload));
+}
+
+/**
+ * Non-authoritative compatibility only: legacy signals that predate a supplied
+ * SHA-256 `payload_hash` receive this workflow-safe FNV fallback. New host
+ * adapters must use the host SHA-256 helper, never this function.
+ */
+export function computeLegacyWorkflowPayloadHash(payload: unknown): string {
+  return fnv1a32(canonicalCommandPayloadString(payload));
+}

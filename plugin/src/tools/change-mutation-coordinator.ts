@@ -593,5 +593,10 @@ function mapCommitOutcome(
       };
     case "operator_required":
       return { kind: "operator_required", reason: commit.reason };
+    default:
+      return {
+        kind: "operator_required",
+        reason: `Projection commit returned unhandled outcome kind ${(commit as { kind: string }).kind}.`,
+      };
   }
 }

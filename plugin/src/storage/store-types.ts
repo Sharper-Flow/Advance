@@ -42,8 +42,10 @@ import type {
 } from "../types";
 import type { GateProgress } from "./store-temporal-memo";
 import type { TemporalReadContext } from "./store-temporal/read-context";
-import type { ProjectPaths, LoadResult } from "./json";
+import type { ProjectPaths } from "./json";
+import type { LoadResult } from "./change-projection-reader";
 import type { ProductContext } from "./product-context";
+import { z } from "zod";
 
 export interface ResolvedChangeList {
   changes: Change[];
@@ -193,7 +195,444 @@ export interface WisdomSearchResult {
   highlight?: string;
 }
 
-export interface Store {
+// =============================================================================
+// ReadSnapshot<T> — projection read model contract
+// =============================================================================
+
+export const ReadSnapshotFoundSchema = <T extends z.ZodTypeAny>(
+  snapshotSchema: T,
+) =>
+  z.object({
+    found: z.literal(true),
+    snapshot: snapshotSchema,
+    stateRevision: z.number(),
+    projectionRevision: z.number(),
+    source: z.literal("read_model"),
+    degraded: z.object({ reason: z.string() }).optional(),
+  });
+
+export const ReadSnapshotNotFoundSchema = z.object({
+  found: z.literal(false),
+  reason: z.literal("not_found"),
+  source: z.literal("read_model"),
+});
+
+export const ReadSnapshotSchema = <T extends z.ZodTypeAny>(snapshotSchema: T) =>
+  z.union([
+    ReadSnapshotFoundSchema(snapshotSchema),
+    ReadSnapshotNotFoundSchema,
+  ]);
+
+export type ReadSnapshot<T> =
+  | {
+      found: true;
+      snapshot: T;
+      stateRevision: number;
+      projectionRevision: number;
+      source: "read_model";
+      degraded?: { reason: string };
+    }
+  | { found: false; reason: "not_found"; source: "read_model" };
+
+// =============================================================================
+// Store authority split: read surface vs command surface
+// =============================================================================
+
+interface StoreBase {
+  paths: ProjectPaths;
+  config: ProjectConfig | null;
+  /** Product-link identity context. Omitted for legacy/mock stores. */
+  productContext?: ProductContext;
+
+  // Lifecycle
+  init: () => Promise<void>;
+  sync: () => Promise<void>;
+  close: () => void;
+  flush: () => Promise<void>;
+}
+
+/** Read-only projection surface. No command authority. */
+export interface ReadStore extends StoreBase {
+  // Specs
+  specs: {
+    list: (filter?: {
+      capability?: string;
+      tag?: string;
+    }) => Promise<SpecListResponse>;
+    get: (capability: string) => Promise<LoadResult<Spec | null>>;
+    search: (query: string, limit?: number) => Promise<SearchResult[]>;
+  };
+
+  // Changes
+  changes: {
+    list: (filter?: {
+      status?: string;
+      includeArchived?: boolean;
+      includeClosed?: boolean;
+      prefix?: string;
+      titleContains?: string;
+      createdBefore?: string;
+      lastActivityBefore?: string;
+      sort?: "recency" | "stalest" | "default";
+      limit?: number;
+      offset?: number;
+      /** Internal caller-specific cap for per-change hydration. */
+      validationConcurrency?: number;
+    }) => Promise<ChangeListResponse>;
+    get: (
+      changeId: string,
+      opts?: { context?: TemporalReadContext },
+    ) => Promise<LoadResult<Change | null>>;
+    listSummary?: (filter?: {
+      status?: string;
+      includeArchived?: boolean;
+      includeClosed?: boolean;
+      prefix?: string;
+      titleContains?: string;
+      createdBefore?: string;
+      lastActivityBefore?: string;
+      sort?: "recency" | "stalest" | "default";
+      limit?: number;
+      offset?: number;
+    }) => Promise<
+      ChangeListResponse & {
+        hydrationStats?: {
+          totalIds: number;
+          fromMemo: number;
+          fromCache: number;
+          fromHydration: number;
+          deadlineExceeded?: boolean;
+        };
+      }
+    >;
+    listConflictAuthority?: (options?: {
+      deadline?: TemporalReadDeadline;
+      /** Benchmark-only fact-load concurrency. */
+      concurrency?: number;
+    }) => Promise<ChangeConflictAuthority>;
+  };
+
+  // Tasks
+  tasks: {
+    list: (
+      changeId: string,
+      status?: string,
+      filter?: string,
+    ) => Promise<Task[]>;
+    ready: (changeId: string) => Promise<TaskReadyResponse>;
+    get: (taskId: string) => Promise<Task | null>;
+    show: (taskId: string) => Promise<{ task: Task; changeId: string } | null>;
+  };
+
+  // Wisdom
+  wisdom: {
+    list: (changeId: string) => Promise<WisdomEntry[]>;
+    search: (
+      query: string,
+      options?: { changeId?: string; type?: WisdomType },
+    ) => Promise<WisdomSearchResult[]>;
+    listAll: (options?: {
+      type?: WisdomType;
+    }) => Promise<Array<WisdomEntry & { scope: string; change_id?: string }>>;
+  };
+
+  // Gates
+  gates: {
+    get: (changeId: string) => Promise<Gates | null>;
+  };
+
+  // Status
+  status: (options?: StatusReadOptions) => Promise<ProjectStatus>;
+
+  // Epics
+  epics: {
+    list: (filter?: { status?: "active" | "all" }) => Promise<Epic[]>;
+    get: (epicId: string) => Promise<LoadResult<Epic | null>>;
+    getRetiredProjection: (
+      epicId: string,
+    ) => Promise<LoadResult<RetiredEpicProjection | null>>;
+  };
+}
+
+/** Command (mutation) surface. Carries Temporal-backed write authority. */
+export interface CommandStore extends StoreBase {
+  // Specs
+  specs: {
+    save: (spec: Spec) => Promise<void>;
+  };
+
+  // Changes
+  changes: {
+    create: (
+      summary: string,
+      options?: ChangeCreateOptionsBag,
+    ) => Promise<ChangeCreateResult>;
+    save: (change: Change) => Promise<void>;
+    updateArtifacts: (
+      changeId: string,
+      artifacts: ArtifactPayload,
+    ) => Promise<UpdateArtifactsResult>;
+    close: (changeId: string, closure: ChangeClosure) => Promise<Change | null>;
+    closeBatch: (
+      changeIds: string[],
+      closure: ChangeClosure,
+    ) => Promise<BulkCloseResult>;
+    refresh: (changeId: string) => Promise<void>;
+    invalidate: (changeId: string) => Promise<void>;
+    setEpicMembership: (
+      changeId: string,
+      input: {
+        membership: NonNullable<Change["epic_membership"]>;
+        expectedCurrent?: { epic_id: string; entry_id: string };
+        setAt?: string;
+      },
+    ) => Promise<Change | null>;
+    clearEpicMembership: (
+      changeId: string,
+      input: {
+        expected: { epic_id: string; entry_id: string };
+        clearedAt?: string;
+      },
+    ) => Promise<Change | null>;
+  };
+
+  // Tasks
+  tasks: {
+    add: (
+      changeId: string,
+      content: string,
+      options?: {
+        blockedBy?: string[];
+        section?: string;
+        type?: TaskType;
+        metadata?: Record<string, string>;
+      },
+    ) => Promise<Task>;
+    update: (
+      taskId: string,
+      status: string,
+      notes?: string,
+      implementationSummary?: string,
+      errorRecovery?: Task["error_recovery"],
+      touchedFiles?: string[],
+    ) => Promise<Task | null>;
+    cancel: (
+      taskId: string,
+      cancellation: Cancellation,
+    ) => Promise<Task | null>;
+    reclassifyTdd: (
+      taskId: string,
+      reclassification: TddReclassification,
+    ) => Promise<Task | null>;
+  };
+
+  // Wisdom
+  wisdom: {
+    add: (
+      changeId: string,
+      type: WisdomType,
+      content: string,
+      sourceTask?: string,
+      origin?: ProductOriginTags,
+    ) => Promise<WisdomEntry>;
+  };
+
+  // Spec deltas
+  specDeltas: {
+    add: (
+      changeId: string,
+      capability: string,
+      delta: DeltaAdd,
+      options?: { addedBy?: string },
+    ) => Promise<DeltaAdd>;
+    modify: (
+      changeId: string,
+      capability: string,
+      delta: DeltaModify,
+      options?: { modifiedBy?: string },
+    ) => Promise<DeltaModify>;
+    amend: (
+      changeId: string,
+      capability: string,
+      deltaId: string,
+      delta: Delta,
+      options?: { amendedBy?: string },
+    ) => Promise<Delta>;
+    retract: (
+      changeId: string,
+      capability: string,
+      deltaId: string,
+      options?: { retractedBy?: string },
+    ) => Promise<void>;
+    remove: (
+      changeId: string,
+      capability: string,
+      delta: DeltaRemove,
+      options?: { removedBy?: string },
+    ) => Promise<DeltaRemove>;
+    rename: (
+      changeId: string,
+      capability: string,
+      delta: DeltaRename,
+      options?: { renamedBy?: string },
+    ) => Promise<DeltaRename>;
+  };
+
+  // Gates
+  gates: {
+    complete: (
+      changeId: string,
+      gateId: GateId,
+      notes?: string,
+    ) => Promise<void>;
+    reopenFrom: (
+      changeId: string,
+      fromGate: GateId,
+      reason: string,
+      scopeDelta?: string,
+      reopenedBy?: string,
+      approvalEvidence?: string,
+    ) => Promise<void>;
+  };
+
+  // Epics
+  epics: {
+    create: (
+      epicId: string,
+      title: string,
+      narrative: string,
+      options?: { epicScope?: Epic["epic_scope"] },
+    ) => Promise<Epic>;
+    update: (
+      epicId: string,
+      input: {
+        title?: string;
+        narrative?: string;
+        expectedVersion: number;
+      },
+    ) => Promise<Epic>;
+    updateScope: (
+      epicId: string,
+      input: {
+        epicScope?: Epic["epic_scope"];
+        expectedVersion: number;
+        updatedBy?: string;
+        auditEvidence: string;
+      },
+    ) => Promise<Epic>;
+    markMerged: (
+      epicId: string,
+      input: {
+        mergedInto: NonNullable<Epic["merged_into"]>;
+        expectedVersion: number;
+      },
+    ) => Promise<Epic>;
+    addShell: (
+      epicId: string,
+      input: {
+        entryId?: string;
+        title: string;
+        successHint: string;
+        order?: number;
+        importedFrom?: { backlog_id: string; imported_at: string };
+        blockedBy?: WorkNodeRef[];
+        context_packet?: import("../types/future-work").FutureWorkContextPacket;
+      },
+    ) => Promise<EpicEntry>;
+    promoteShell: (
+      epicId: string,
+      entryId: string,
+      changeId: string,
+      promotedBy: string,
+    ) => Promise<{ entryId: string; changeId: string }>;
+    linkChange: (
+      epicId: string,
+      input: {
+        entryId?: string;
+        changeId: string;
+        title: string;
+        order?: number;
+        linkedBy?: string;
+        linkEvidence?: string;
+        changeProjectId?: string;
+        repoId?: string;
+        targetPath?: string;
+      },
+    ) => Promise<EpicEntry>;
+    retargetChange: (
+      epicId: string,
+      input: {
+        entryId: string;
+        fromChangeId: string;
+        toChangeId: string;
+        title?: string;
+        changeRef?: EpicChangeRef;
+        membershipStatus?: EpicMembershipStatus;
+        retargetedBy?: string;
+        retargetEvidence?: string;
+      },
+    ) => Promise<EpicEntry>;
+    unlinkChange: (
+      epicId: string,
+      entryId: string,
+      unlinkEvidence: string,
+    ) => Promise<void>;
+    setEntryMembershipStatus: (
+      epicId: string,
+      input: {
+        entryId: string;
+        membershipStatus: EpicMembershipStatus;
+        evidence: string;
+      },
+    ) => Promise<EpicEntry>;
+    setEntryTerminalSummary: (
+      epicId: string,
+      input: {
+        entryId: string;
+        status: "archived" | "closed";
+        completedAt: string;
+      },
+    ) => Promise<EpicEntry>;
+    reorder: (
+      epicId: string,
+      entryIds: string[],
+      expectedVersion: number,
+    ) => Promise<Epic>;
+    saveRetiredProjection: (
+      epicId: string,
+      projection: RetiredEpicProjection,
+    ) => Promise<void>;
+    retire: (
+      epicId: string,
+      input: {
+        expectedVersion: number;
+        evidence: string;
+        retiredBy: string;
+        dryRun?: boolean;
+      },
+    ) => Promise<RetiredEpicProjection>;
+    repairIndex: (input: { evidence: string; dryRun?: boolean }) => Promise<{
+      total: number;
+      refreshed: number;
+      unverified: number;
+      skipped: number;
+      unreachable: number;
+      epics: Array<{
+        epic_id: string;
+        status: string;
+        action:
+          | "would_refresh"
+          | "refreshed"
+          | "unverified"
+          | "skipped"
+          | "unreachable";
+        error?: string;
+      }>;
+    }>;
+  };
+}
+
+export interface Store extends ReadStore, CommandStore {
   paths: ProjectPaths;
   config: ProjectConfig | null;
   /** Product-link identity context. Omitted for legacy/mock stores. */
@@ -363,6 +802,9 @@ export interface Store {
       titleContains?: string;
       createdBefore?: string;
       lastActivityBefore?: string;
+      sort?: "recency" | "stalest" | "default";
+      limit?: number;
+      offset?: number;
     }) => Promise<
       ChangeListResponse & {
         hydrationStats?: {

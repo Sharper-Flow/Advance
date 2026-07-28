@@ -11,8 +11,9 @@ import { wrapTier4Tool, type DegradationOptions } from "../degradation.js";
 
 export type ToolClassification =
   | "pure"
-  | "needs-context"
+  | "needs-read-model"
   | "needs-temporal"
+  | "needs-temporal-diagnostics"
   | "needs-host-git"
   | "needs-host-probe";
 
@@ -21,19 +22,19 @@ export type ToolClassification =
  * per-tool runtime degradation wrapper added in task tk-951c84c42397.
  */
 export const TOOL_CLASSIFICATIONS = {
-  status: ["needs-temporal", "needs-host-probe"],
-  spec: ["needs-context"],
-  wisdom_list: ["needs-context"],
-  reflection_list: ["needs-context"],
-  backlog_list: ["needs-context"],
-  backlog_show: ["needs-context"],
-  epic_list: ["needs-temporal"],
-  epic_show: ["needs-temporal"],
-  wip_state: ["needs-temporal"],
+  status: ["needs-read-model", "needs-temporal-diagnostics"],
+  spec: ["needs-read-model"],
+  wisdom_list: ["needs-read-model"],
+  reflection_list: ["needs-read-model"],
+  backlog_list: ["needs-read-model"],
+  backlog_show: ["needs-read-model"],
+  epic_list: ["needs-read-model"],
+  epic_show: ["needs-read-model"],
+  wip_state: ["needs-read-model"],
   worktree_triage: ["needs-host-git"],
   tool_catalog: ["pure"],
   tool_describe: ["pure"],
-  project_context: ["needs-context"],
+  project_context: ["needs-read-model"],
 } as const satisfies Record<string, ToolClassification[]>;
 
 export type Tier4ToolName = keyof typeof TOOL_CLASSIFICATIONS;
@@ -81,12 +82,47 @@ export async function executeTier4Tool(
     });
   }
 
-  const run = async (): Promise<string> => {
-    const { createToolMap } = await import("../../tool-registry.js");
-    const { createDiskStore } = await import("../../storage/store-disk.js");
+  const isPure = (classifications as readonly ToolClassification[]).includes(
+    "pure",
+  );
+  const needsReadModel = (
+    classifications as readonly ToolClassification[]
+  ).includes("needs-read-model");
 
-    const store = (await createDiskStore(cwd)) as Store;
+  const run = async (): Promise<string> => {
+    let store: Store;
+
+    if (isPure) {
+      // Pure tools (catalog/describe) do not touch disk state; a minimal
+      // stand-in store is enough because their execute handlers ignore it.
+      store = {
+        paths: { root: cwd },
+        config: {},
+        close: () => undefined,
+      } as unknown as Store;
+    } else {
+      const { createDiskStore } = await import("../../storage/store-disk.js");
+      try {
+        store = (await createDiskStore(cwd)) as Store;
+      } catch (err) {
+        if (needsReadModel) {
+          return JSON.stringify({
+            degraded: true,
+            source: "disk_projection",
+            tool: toolName,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+        return JSON.stringify({
+          error: "TOOL_EXECUTION_ERROR",
+          tool: toolName,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
+
     try {
+      const { createToolMap } = await import("../../tool-registry.js");
       const tools = createToolMap(store, cwd) as Record<
         string,
         { execute?: (args: Record<string, unknown>, ctx?: unknown) => unknown }
@@ -126,7 +162,9 @@ export async function executeTier4Tool(
         message: err instanceof Error ? err.message : String(err),
       });
     } finally {
-      store.close();
+      if (!isPure) {
+        store.close();
+      }
     }
   };
 
