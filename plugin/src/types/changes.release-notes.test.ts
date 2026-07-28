@@ -187,6 +187,23 @@ describe("ReleaseNotesArchiveEnvelopeSchema", () => {
       /32768/,
     );
   });
+
+  test("enforces the envelope byte cap for multibyte UTF-8 content", () => {
+    const envelope = {
+      schema_version: "1.0",
+      change_id: "addReleaseNotesData",
+      title: "Add release notes data schemas",
+      release_notes: {
+        ...validContent,
+        highlights: Array.from({ length: 9 }, () => "😀".repeat(1024)),
+      },
+    };
+    const bytes = new TextEncoder().encode(JSON.stringify(envelope)).length;
+    expect(bytes).toBeGreaterThan(RELEASE_NOTES_ENVELOPE_MAX_BYTES);
+    expect(() => ReleaseNotesArchiveEnvelopeSchema.parse(envelope)).toThrow(
+      /32768/,
+    );
+  });
 });
 
 describe("ChangeSchema release_notes passthrough", () => {

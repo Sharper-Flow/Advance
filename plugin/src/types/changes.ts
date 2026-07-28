@@ -138,6 +138,9 @@ export const ReleaseNotesArchiveEnvelopeSchema = z
     title: z.string(),
     release_notes: ReleaseNotesContentSchema,
   })
+  .describe(
+    "Versioned release-notes archive envelope. Runtime validation also rejects a serialized UTF-8 envelope larger than 32768 bytes; this byte limit is not representable in JSON Schema.",
+  )
   .refine(
     (envelope) => {
       const bytes = new TextEncoder().encode(JSON.stringify(envelope)).length;

@@ -1091,7 +1091,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const recordedAt = setAt ?? new Date().toISOString();
       invalidateChange(changeId);
       const commandKind = "releaseNotesSet";
-      const payload = { release_notes, setAt: recordedAt };
+      const payload = { release_notes, set_at: recordedAt };
       const { operationId, payloadHash } = buildChangeCommandIdentity(
         commandKind,
         payload,
