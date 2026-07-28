@@ -11,6 +11,7 @@
  * createDegradedToolMap) when initError is non-null.
  */
 
+import { Client } from "@temporalio/client";
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
@@ -407,19 +408,10 @@ export async function tryInitStore(
         duration_ms: Number((performance.now() - bundleStartedAt).toFixed(3)),
       });
       if (worker) {
-        registerInProcessTemporalWorker(worker);
-        // rq-isolSessionTaskQueue05: instantiate the adopter once worker +
-        // temporalBundle are ready. The heartbeat onBeat calls adoptNextOrphan()
-        // on each tick (10s cadence). Gated by the ADV_ORPHAN_QUEUE_ADOPTION
-        // kill-switch (default ON; "0" disables) — adoption is always-on in
-        // production; the flag is an emergency escape hatch only.
-        if (temporalBundle && isOrphanQueueAdoptionEnabled()) {
-          activeOrphanQueueAdopter = new OrphanQueueAdopter({
-            client: temporalBundle.client,
-            projectId,
-            worker,
-          });
-        }
+        attachWorkerWithAdoption(worker, {
+          projectId,
+          client: temporalBundle?.client ?? null,
+        });
       }
     }
 
@@ -494,6 +486,17 @@ let currentWorkerRole: WorkerRole = "degraded";
 /** Module-level adopter reference for diagnostics + heartbeat callback. */
 let activeOrphanQueueAdopter: OrphanQueueAdopter | null = null;
 
+interface WorkerAdoptionAttachment {
+  worker: InProcessWorker;
+  adopter: OrphanQueueAdopter | null;
+  stopDriver: (() => void) | null;
+}
+
+const workerAdoptionAttachments = new Map<
+  InProcessWorker,
+  WorkerAdoptionAttachment
+>();
+
 /**
  * Return orphan-queue adoption diagnostics for adv_doctor +
  * adv_status health view (rq-isolSessionTaskQueue05 / AC7).
@@ -523,6 +526,35 @@ async function handleWorkerExhausted(
  */
 export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
   inProcessTemporalWorkers.add(worker);
+}
+
+/**
+ * Register a worker and, if a Temporal client is available and orphan-queue
+ * adoption is enabled, attach an `OrphanQueueAdopter`. This is the single
+ * composition helper for worker-creation sites so both spawn and restart paths
+ * can share ownership behavior (T2). T3 will route the restart path through
+ * this helper; T4 will populate `stopDriver`.
+ */
+export function attachWorkerWithAdoption(
+  worker: InProcessWorker,
+  opts: { projectId: string; client: Client | null },
+): void {
+  registerInProcessTemporalWorker(worker);
+  const attachment: WorkerAdoptionAttachment = {
+    worker,
+    adopter: null,
+    stopDriver: null,
+  };
+  workerAdoptionAttachments.set(worker, attachment);
+  if (opts.client && isOrphanQueueAdoptionEnabled()) {
+    const adopter = new OrphanQueueAdopter({
+      client: opts.client,
+      projectId: opts.projectId,
+      worker,
+    });
+    activeOrphanQueueAdopter = adopter;
+    attachment.adopter = adopter;
+  }
 }
 
 function registerWorkerLockHeartbeat(
