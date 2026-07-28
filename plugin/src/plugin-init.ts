@@ -602,7 +602,7 @@ async function handleWorkerExhausted(
  * process — shutdown is cooperative (`worker.shutdown()` signals drain,
  * `connection.close()` tears down the gRPC channel).
  */
-export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
+function registerInProcessTemporalWorker(worker: InProcessWorker): void {
   inProcessTemporalWorkers.add(worker);
 }
 

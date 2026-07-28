@@ -80,12 +80,13 @@ vi.mock("./temporal/service", () => ({
 }));
 
 vi.mock("./temporal/orphan-queue-adopter", async () => {
-  const actual =
-    await vi.importActual<typeof import("./temporal/orphan-queue-adopter")>(
-      "./temporal/orphan-queue-adopter",
-    );
+  const actual = await vi.importActual<
+    typeof import("./temporal/orphan-queue-adopter")
+  >("./temporal/orphan-queue-adopter");
   class MockOrphanQueueAdopter extends actual.OrphanQueueAdopter {
-    constructor(options: ConstructorParameters<typeof actual.OrphanQueueAdopter>[0]) {
+    constructor(
+      options: ConstructorParameters<typeof actual.OrphanQueueAdopter>[0],
+    ) {
       if (mocks.shouldThrowConstruction) {
         throw new Error("construction failure");
       }
@@ -96,12 +97,14 @@ vi.mock("./temporal/orphan-queue-adopter", async () => {
 });
 
 import {
+  attachWorkerWithAdoption,
   getOrphanQueueAdoptionDiagnostics,
   getOrphanQueueAdoptionStatus,
   getWorkerAdoptionAttachmentCount,
   restartCurrentProjectTemporalWorker,
 } from "./plugin-init";
 import { OrphanQueueAdopter } from "./temporal/orphan-queue-adopter";
+import type { InProcessWorker } from "./temporal/in-process-worker";
 
 describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () => {
   let tempDirs: string[] = [];
@@ -284,5 +287,57 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
     vi.useRealTimers();
     mocks.fakeWorker.shutdown.mockReset();
     mocks.fakeWorker.shutdown.mockResolvedValue(undefined);
+  });
+
+  test("AC7: attachWorkerWithAdoption keeps only one active adopter", async () => {
+    vi.useFakeTimers();
+
+    const workerOne: InProcessWorker = {
+      queues: ["adv-test-queue-one"],
+      shutdown: vi.fn(async () => {}),
+      registerQueue: vi.fn(async () => {}),
+    };
+    const workerTwo: InProcessWorker = {
+      queues: ["adv-test-queue-two"],
+      shutdown: vi.fn(async () => {}),
+      registerQueue: vi.fn(async () => {}),
+    };
+
+    attachWorkerWithAdoption(workerOne, {
+      projectId: "proj-one",
+      client: {} as any,
+    });
+    attachWorkerWithAdoption(workerTwo, {
+      projectId: "proj-two",
+      client: {} as any,
+    });
+
+    // Only one active adopter exists despite two attachments.
+    expect(getOrphanQueueAdoptionStatus().enabled).toBe(true);
+    expect(getOrphanQueueAdoptionDiagnostics()).not.toBeNull();
+    expect(getWorkerAdoptionAttachmentCount()).toBeGreaterThanOrEqual(1);
+
+    vi.useRealTimers();
+  });
+
+  test("AC8: kill-switch disables adopter construction", async () => {
+    process.env.ADV_ORPHAN_QUEUE_ADOPTION = "0";
+
+    const worker: InProcessWorker = {
+      queues: ["adv-test-queue-kill"],
+      shutdown: vi.fn(async () => {}),
+      registerQueue: vi.fn(async () => {}),
+    };
+
+    attachWorkerWithAdoption(worker, {
+      projectId: "proj-kill",
+      client: {} as any,
+    });
+
+    const status = getOrphanQueueAdoptionStatus();
+    expect(status.enabled).toBe(false);
+    expect(status.reason).toBe("kill_switch");
+    expect(status.diagnostics).toBeNull();
+    expect(getOrphanQueueAdoptionDiagnostics()).toBeNull();
   });
 });
