@@ -722,6 +722,7 @@ export function buildChangeWorkflowContinueAsNewSeed(
       same_project_dependencies: state.same_project_dependencies,
       worker_bundle_impact: state.worker_bundle_impact,
       workerBundleProvenance: state.workerBundleProvenance,
+      release_notes: state.release_notes,
       testRuns: state.testRuns,
       state_revision: state.state_revision,
       operation_ledger: state.operation_ledger,
@@ -1655,8 +1656,10 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     releaseNotesSetSignal,
-    signalMutation("releaseNotesSet", (payload) =>
-      applyReleaseNotesSetToState(state, payload),
+    signalMutation(
+      "releaseNotesSet",
+      (payload) => applyReleaseNotesSetToState(state, payload),
+      { projectAfter: true },
     ),
   );
   wf.setHandler(
