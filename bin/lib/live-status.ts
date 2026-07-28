@@ -5,8 +5,6 @@
  * may contribute terminal counts, but never active rows.
  */
 
-import type { Client } from "@temporalio/client";
-
 import {
   buildGateProgress,
   classifyRecency,
@@ -22,28 +20,11 @@ import type {
   LiveStatusPayload,
 } from "./types";
 import {
-  buildChangeWorkflowId,
-  CHANGE_WORKFLOW_QUERY_NAMES,
   createTemporalClientBundle,
   escapeVisibilityValue,
-  listChangeWorkflowIds,
 } from "../../plugin/src/cli/temporal-boundary";
 
 export const QUERY_TIMEOUT_MS = 5_000;
-
-export interface LiveStatusClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{ workflowId: string }>;
-    getHandle: (workflowId: string) => {
-      query: (queryName: string) => Promise<unknown>;
-    };
-  };
-}
-
-export interface ListLiveChangeStatesOptions {
-  projectId: string;
-  timeoutMs?: number;
-}
 
 function withTimeout<T>(
   promise: Promise<T>,
@@ -60,55 +41,6 @@ function withTimeout<T>(
   return Promise.race([promise, timeoutPromise]).finally(() => {
     if (timeout) clearTimeout(timeout);
   });
-}
-
-function normalizeWorkflowState(raw: any): ChangeRecord {
-  return {
-    id: String(raw.id ?? raw.changeId ?? ""),
-    title: String(raw.title ?? raw.id ?? raw.changeId ?? "(untitled)"),
-    status: String(raw.status ?? "draft"),
-    lifecycleState: String(raw.lifecycleState ?? "open"),
-    created_at: String(
-      raw.created_at ??
-        raw.createdAt ??
-        raw.initializedAt ??
-        new Date(0).toISOString(),
-    ),
-    tasks: Array.isArray(raw.tasks) ? raw.tasks : [],
-    gates: raw.gates && typeof raw.gates === "object" ? raw.gates : {},
-    wisdom: Array.isArray(raw.wisdom) ? raw.wisdom : [],
-    validation: raw.validation,
-    fast_follow_of: raw.fast_follow_of,
-    lastSignalAt: raw.lastSignalAt,
-    epic_membership: raw.epic_membership,
-  };
-}
-
-export async function listLiveChangeStates(
-  client: LiveStatusClient,
-  options: ListLiveChangeStatesOptions,
-): Promise<ChangeRecord[]> {
-  const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
-  const ids = await withTimeout(
-    listChangeWorkflowIds(client, { projectId: options.projectId }),
-    timeoutMs,
-    "Temporal Visibility list",
-  );
-
-  const changes: ChangeRecord[] = [];
-  for (const id of ids) {
-    const workflowId = buildChangeWorkflowId(options.projectId, id);
-    const raw = await withTimeout(
-      client.workflow
-        .getHandle(workflowId)
-        .query(CHANGE_WORKFLOW_QUERY_NAMES.getState),
-      timeoutMs,
-      `Temporal query ${id}`,
-    );
-    changes.push(normalizeWorkflowState(raw));
-  }
-
-  return changes;
 }
 
 export function summarizeLiveChanges(
@@ -412,21 +344,4 @@ export async function loadLiveSummaries(
   }
 }
 
-export async function loadLiveStatus(
-  projectId: string,
-  timeoutMs = QUERY_TIMEOUT_MS,
-): Promise<ChangeRecord[]> {
-  const bundle = await withTimeout(
-    createTemporalClientBundle(),
-    timeoutMs,
-    "Temporal connection",
-  );
-  try {
-    return await listLiveChangeStates(bundle.client as Client, {
-      projectId,
-      timeoutMs,
-    });
-  } finally {
-    await bundle.connection.close();
-  }
-}
+
