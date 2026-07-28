@@ -988,7 +988,8 @@ function applyContentWithSizeGuard(
   // the same payload is an idempotent replay; same operation_id with a different
   // payload is a typed conflict.
   if (operation_id && command_kind) {
-    ledgerHash = options?.payload_hash ?? computeLegacyDocumentPayloadHash(text);
+    ledgerHash =
+      options?.payload_hash ?? computeLegacyDocumentPayloadHash(text);
     const existing = state.operation_ledger?.[operation_id];
     if (existing) {
       if (isOperationIdempotentReplay(existing, command_kind, ledgerHash)) {
