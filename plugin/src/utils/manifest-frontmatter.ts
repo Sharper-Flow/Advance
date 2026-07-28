@@ -252,9 +252,7 @@ export function runtimeFrontmatterCheck(
         if (!result.ok) {
           failures++;
           // eslint-disable-next-line no-console
-          console.warn(
-            `[ADV] frontmatter: ${fullPath} — ${result.error}`,
-          );
+          console.warn(`[ADV] frontmatter: ${fullPath} — ${result.error}`);
         }
       }
     }
