@@ -3,7 +3,7 @@
 **Change ID:** addReleaseNotesData
 **Title:** Add release notes data
 **Status:** archived
-**Generated:** 2026-07-28T18:04:36.166Z
+**Generated:** 2026-07-28T18:07:42.700Z
 
 ## Identity Anchors
 
@@ -24,7 +24,7 @@
 | planning | done |
 | execution | done |
 | acceptance | done |
-| release | pending |
+| release | stuck |
 
 ## Epic Context
 

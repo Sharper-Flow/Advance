@@ -2590,24 +2590,6 @@
     ],
     "tk-e1fc14279113": [
       {
-        "runId": "tr_ms4urda8_a0a60551",
-        "phase": "verify",
-        "exitCode": 0,
-        "classification": "passed",
-        "command": "bin/oc-test smoke",
-        "durationMs": 62784.01847400144,
-        "recordedAt": "2026-07-28T16:10:45.648Z"
-      },
-      {
-        "runId": "tr_ms4uxvy8_130f5383",
-        "phase": "verify",
-        "exitCode": 1,
-        "classification": "timed_out",
-        "command": "bin/oc-test full",
-        "durationMs": 300131.28642199934,
-        "recordedAt": "2026-07-28T16:15:49.791Z"
-      },
-      {
         "runId": "tr_ms4vki9i_07fb866c",
         "phase": "red",
         "exitCode": 0,
@@ -2768,6 +2750,24 @@
         "command": "bin/oc-test targeted -- src/adv-verifier-assets.test.ts src/optimized-handoff-assets.test.ts src/__tests__/spec-citation-invariant.test.ts src/storage/save-change-allow-list.test.ts src/temporal/activities.disk-projection.test.ts src/tools/status-health-integration-blockers.test.ts src/storage/store-temporal/active-conflict-authority-benchmark.test.ts src/storage/store-temporal/active-conflict-authority.test.ts src/storage/store-temporal/convergent-read-disk-authoritative.test.ts src/storage/store-temporal/index.test.ts src/storage/store-temporal/read-context.test.ts src/storage/store-temporal/schema-error-propagation.test.ts src/temporal/__tests__/archive-phase9-splitbrain.itest.ts",
         "durationMs": 26798.06169500202,
         "recordedAt": "2026-07-28T17:03:58.534Z"
+      },
+      {
+        "runId": "tr_ms4ywww9_8c399a13",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build:worker",
+        "durationMs": 8111.089983999729,
+        "recordedAt": "2026-07-28T18:07:02.811Z"
+      },
+      {
+        "runId": "tr_ms4yxg5h_90a49fbe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/__tests__/replay-determinism.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+        "durationMs": 18322.86507999897,
+        "recordedAt": "2026-07-28T18:07:27.792Z"
       }
     ]
   },
@@ -2944,7 +2944,17 @@
       }
     },
     "release": {
-      "status": "pending"
+      "status": "stuck",
+      "stuck_reason": "WORKER_BUNDLE_PROVENANCE_MISSING: Worker-bundle provenance is required because worker_bundle_impact is 'required' (rq-workerBundleReleaseProvenance01).",
+      "readiness_blockers": [
+        {
+          "code": "WORKER_BUNDLE_PROVENANCE_MISSING",
+          "gateId": "release",
+          "message": "Worker-bundle provenance is required because worker_bundle_impact is 'required' (rq-workerBundleReleaseProvenance01).",
+          "remediation": "Record workerBundleProvenance with source_sha, build_run_id, and replay_run_id."
+        }
+      ],
+      "started_at": "2026-07-28T18:05:42.469Z"
     }
   },
   "contract": {
@@ -3637,7 +3647,7 @@
     }
   ],
   "same_project_dependencies": [],
-  "lastSignalAt": "2026-07-28T17:55:48.645Z",
+  "lastSignalAt": "2026-07-28T18:07:33.898Z",
   "origin": {
     "kind": "adhoc"
   },
@@ -3686,24 +3696,8 @@
     "confirmed_at": "2026-07-28T08:35:17.845Z"
   },
   "creation_request_hash": "b6a38575dd739c2a92bf03e625f73dc184da379baa2f52726448ce9c666d0cdf",
-  "projection_revision": 85,
+  "projection_revision": 87,
   "projection_commits": [
-    {
-      "mutation_kind": "temporal_dual_write_projection",
-      "authority_kind": "temporal",
-      "mutation_receipt_id": "addReleaseNotesData",
-      "prior_revision": 35,
-      "new_revision": 36,
-      "committed_at": "2026-07-28T14:19:35.071Z"
-    },
-    {
-      "mutation_kind": "temporal_dual_write_projection",
-      "authority_kind": "temporal",
-      "mutation_receipt_id": "addReleaseNotesData",
-      "prior_revision": 36,
-      "new_revision": 37,
-      "committed_at": "2026-07-28T14:20:34.673Z"
-    },
     {
       "mutation_kind": "temporal_dual_write_projection",
       "authority_kind": "temporal",
@@ -4096,6 +4090,22 @@
       "prior_revision": 84,
       "new_revision": 85,
       "committed_at": "2026-07-28T17:59:39.143Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addReleaseNotesData",
+      "prior_revision": 85,
+      "new_revision": 86,
+      "committed_at": "2026-07-28T18:04:35.343Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addReleaseNotesData",
+      "prior_revision": 86,
+      "new_revision": 87,
+      "committed_at": "2026-07-28T18:07:34.037Z"
     }
   ],
   "state_revision": 15
