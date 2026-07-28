@@ -1421,7 +1421,7 @@ refresh_deployed_temporal_workers() {
 	# Replay-verification gate: refuse to bounce if the candidate bundle
 	# fails replay against committed histories. ADV_FORCE_DEPLOY=1 overrides.
 	if [ "${ADV_FORCE_DEPLOY:-0}" != "1" ]; then
-		if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run verify:worker-bundle >/dev/null 2>&1); then
+		if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && pnpm run verify:worker-bundle); then
 			echo "    ✗  Candidate worker bundle failed replay verification — refusing to bounce"
 			echo "    Set ADV_FORCE_DEPLOY=1 to override (operator accepts poisoning risk)"
 			return 1
