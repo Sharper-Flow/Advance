@@ -573,6 +573,7 @@ Rules:
 - Missing scanner/sub-agent output needed for a release-owned row is `warning` or `blocked` with evidence `harden evidence unavailable`; never render it as `n/a`.
 - Do not include raw logs, diffs, task spam, or full scanner reports.
 - Persist by reading current `_executiveSummary` (`adv_change_show include: { executiveSummary: true }`), appending/replacing `## Release Readiness Summary` and the rendered `Approval Consequence Context`, then calling `adv_change_update changeId: {id} executiveSummary: "{updated markdown}"`.
+- After the executive summary is persisted, full-replace or refine the existing release notes block via `adv_change_set_release_notes changeId: {id} release_notes: { ... }`. Read current `change.release_notes` from `adv_change_show`; preserve its optional narrative and keep it as one `ReleaseNotesContent` block. Apply harden evidence to add or refine fields such as `breaking`, `area`, or `links.pr` only when now known. Do not ask a new question; unsupported semantic fields remain absent.
 - Verify with `adv_change_show include: { executiveSummary: true }` before archive begins; if verification fails, block archive and surface remediation.
 
 ### Report Display
