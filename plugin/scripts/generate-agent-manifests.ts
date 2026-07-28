@@ -258,22 +258,64 @@ export function generateManifestContent(
 }
 
 /**
- * Append the Tier-4 Code Mode note to the hand-owned invoke-routing
- * paragraph. The paragraph is outside the generated block, but the note is
- * part of the contract surface the generator keeps synchronized.
+ * Synchronise the Tier-4 Code Mode note on the hand-owned invoke-routing
+ * paragraph.
+ *
+ * Frontmatter-aware (rq-advOwnedFrontmatterValid01): the note MUST live in
+ * the prompt body (after the closing `---`), never inside frontmatter. A `>`
+ * line inside YAML frontmatter is parsed as a folded-block-scalar indicator
+ * with no key, which silently discards the entire `tools:` map. This function
+ * detects such misplacement and relocates the note to the body.
+ *
+ * Idempotent: re-runs with a changed TIER_4_INVOKE_ROUTING_NOTE do not
+ * accumulate duplicates.
  */
-function injectTier4InvokeRoutingNote(content: string): string {
-  // Strip any previously-injected Tier-4 note (idempotent across note edits so
-  // re-runs with a changed note don't accumulate), then append the canonical
-  // note after the "for schemas." anchor.
-  const cleaned = content.replace(
-    /(> \*\*Invoke routing:\*\*.*?for schemas\.) Tier-4[^\n]*/,
-    "$1",
-  );
-  return cleaned.replace(
-    /(> \*\*Invoke routing:\*\*.*?for schemas\.)(\n?)/,
-    `$1${TIER_4_INVOKE_ROUTING_NOTE}$2`,
-  );
+export function injectTier4InvokeRoutingNote(content: string): string {
+  const lines = content.split("\n");
+
+  // Locate the closing --- of frontmatter.
+  let fmEnd = -1;
+  if (lines[0]?.trim() === "---") {
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === "---") {
+        fmEnd = i;
+        break;
+      }
+    }
+  }
+
+  // Locate the invoke-routing note line anywhere in the content.
+  const noteRe = /^> \*\*Invoke routing:\*\*/;
+  let noteIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (noteRe.test(lines[i])) {
+      noteIdx = i;
+      break;
+    }
+  }
+
+  // No hand-owned note paragraph — nothing to manage.
+  if (noteIdx < 0) return content;
+
+  // Strip any previously-injected Tier-4 suffix (idempotent), keeping the
+  // base paragraph up to and including the "for schemas." anchor.
+  const baseNote = lines[noteIdx].replace(/(for schemas\.).*$/s, "$1");
+  const fullNote = baseNote + TIER_4_INVOKE_ROUTING_NOTE;
+
+  // If the note is inside frontmatter, relocate it to the body (after `---`).
+  if (fmEnd >= 0 && noteIdx <= fmEnd) {
+    const withoutNote = lines.filter((_, i) => i !== noteIdx);
+    const adjustedFmEnd = noteIdx < fmEnd ? fmEnd - 1 : fmEnd;
+    return [
+      ...withoutNote.slice(0, adjustedFmEnd + 1),
+      fullNote,
+      ...withoutNote.slice(adjustedFmEnd + 1),
+    ].join("\n");
+  }
+
+  // Note is already in the body — update in place.
+  lines[noteIdx] = fullNote;
+  return lines.join("\n");
 }
 
 function resolveAgentsDir(): string {
