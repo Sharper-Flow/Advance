@@ -977,6 +977,7 @@ function applyContentWithSizeGuard(
   options?: {
     operation_id?: string;
     command_kind?: string;
+    payload_hash?: string;
   },
 ): { state: ChangeWorkflowState; applied: boolean } {
   const operation_id = options?.operation_id;
@@ -987,7 +988,7 @@ function applyContentWithSizeGuard(
   // the same payload is an idempotent replay; same operation_id with a different
   // payload is a typed conflict.
   if (operation_id && command_kind) {
-    ledgerHash = computeLegacyDocumentPayloadHash(text);
+    ledgerHash = options?.payload_hash ?? computeLegacyDocumentPayloadHash(text);
     const existing = state.operation_ledger?.[operation_id];
     if (existing) {
       if (isOperationIdempotentReplay(existing, command_kind, ledgerHash)) {
@@ -1107,6 +1108,7 @@ export function applyProposalUpdatedToState(
     {
       operation_id: payload.operation_id,
       command_kind: "proposalUpdated",
+      payload_hash: payload.payload_hash,
     },
   ).state;
 }
@@ -1123,6 +1125,7 @@ export function applyProblemStatementUpdatedToState(
     {
       operation_id: payload.operation_id,
       command_kind: "problemStatementUpdated",
+      payload_hash: payload.payload_hash,
     },
   ).state;
 }
@@ -1139,6 +1142,7 @@ export function applyAgreementUpdatedToState(
     {
       operation_id: payload.operation_id,
       command_kind: "agreementUpdated",
+      payload_hash: payload.payload_hash,
     },
   ).state;
 }
@@ -1155,6 +1159,7 @@ export function applyDesignUpdatedToState(
     {
       operation_id: payload.operation_id,
       command_kind: "designUpdated",
+      payload_hash: payload.payload_hash,
     },
   );
   // rq-readinessMutationReceipt01: design content affects acceptance
@@ -1182,6 +1187,7 @@ export function applyExecutiveSummaryUpdatedToState(
     {
       operation_id: payload.operation_id,
       command_kind: "executiveSummaryUpdated",
+      payload_hash: payload.payload_hash,
     },
   );
   // rq-readinessMutationReceipt01: executive summary content gates
@@ -1208,6 +1214,7 @@ export function applyAcceptanceUpdatedToState(
     {
       operation_id: payload.operation_id,
       command_kind: "acceptanceUpdated",
+      payload_hash: payload.payload_hash,
     },
   );
   // rq-readinessMutationReceipt01: acceptance proof content gates

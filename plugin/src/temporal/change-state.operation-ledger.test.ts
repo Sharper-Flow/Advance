@@ -7,9 +7,11 @@
  * preservation across Continue-As-New.
  */
 import { describe, expect, it } from "vitest";
+import { createHash } from "crypto";
 import {
   applyAcceptanceUpdatedToState,
   applyDesignUpdatedToState,
+  applyProposalUpdatedToState,
   changeSeedStateFromChange,
   createChangeWorkflowState,
 } from "./change-state";
@@ -17,6 +19,7 @@ import type {
   AcceptanceUpdatedSignalPayload,
   Change,
   DesignUpdatedSignalPayload,
+  ProposalUpdatedSignalPayload,
 } from "../types";
 import type { OperationLedgerEntry } from "./contracts";
 
@@ -199,5 +202,71 @@ describe("operation identity and state revision (AC3)", () => {
 
     expect(seed.state_revision).toBe(7);
     expect(seed.operation_ledger?.["op-legacy"].outcome).toBe("accepted");
+  });
+});
+
+describe("content-signal payload_hash passthrough (SHA-256 host hash)", () => {
+  it("uses host-provided payload_hash (SHA-256) when supplied, not legacy FNV", () => {
+    const state = baseState();
+    const sha256Hash = createHash("sha256")
+      .update("# proposal body")
+      .digest("hex");
+
+    applyProposalUpdatedToState(state, {
+      text: "# proposal body",
+      updatedAt: "2026-01-01T00:00:01.000Z",
+      operation_id: "op-sha256",
+      command_kind: "proposalUpdated",
+      payload_hash: sha256Hash,
+    } as ProposalUpdatedSignalPayload);
+
+    const ledgerEntry = state.operation_ledger?.["op-sha256"];
+    expect(ledgerEntry).toBeDefined();
+    expect(ledgerEntry?.payload_hash).toBe(sha256Hash);
+    expect(ledgerEntry?.payload_hash).toHaveLength(64);
+  });
+
+  it("falls back to legacy FNV hash when payload_hash is not supplied", () => {
+    const state = baseState();
+
+    applyProposalUpdatedToState(state, {
+      text: "# proposal body",
+      updatedAt: "2026-01-01T00:00:01.000Z",
+      operation_id: "op-legacy-fallback",
+      command_kind: "proposalUpdated",
+    } as ProposalUpdatedSignalPayload);
+
+    const ledgerEntry = state.operation_ledger?.["op-legacy-fallback"];
+    expect(ledgerEntry).toBeDefined();
+    expect(ledgerEntry?.payload_hash).toHaveLength(8);
+  });
+
+  it("idempotent replay matches when host SHA-256 hash is stable across retries", () => {
+    const state = baseState();
+    const sha256Hash = createHash("sha256").update("stable").digest("hex");
+
+    applyProposalUpdatedToState(state, {
+      text: "stable",
+      updatedAt: "2026-01-01T00:00:01.000Z",
+      operation_id: "op-idempotent",
+      command_kind: "proposalUpdated",
+      payload_hash: sha256Hash,
+    } as ProposalUpdatedSignalPayload);
+
+    applyProposalUpdatedToState(state, {
+      text: "stable",
+      updatedAt: "2026-01-01T00:00:02.000Z",
+      operation_id: "op-idempotent",
+      command_kind: "proposalUpdated",
+      payload_hash: sha256Hash,
+    } as ProposalUpdatedSignalPayload);
+
+    expect(state.state_revision).toBe(1);
+    expect(state.operation_ledger?.["op-idempotent"].outcome).toBe(
+      "idempotent_replay",
+    );
+    expect(state.operation_ledger?.["op-idempotent"].payload_hash).toBe(
+      sha256Hash,
+    );
   });
 });
