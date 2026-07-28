@@ -361,4 +361,137 @@ describe("worker bundle roll monitor", () => {
 
     await heartbeat.stop();
   });
+
+  // --- Replay-verification gate tests (preventRedeployWorkflow) ---
+
+  test("verification failure blocks the roll — restartChild NOT called", async () => {
+    const { stateDir, bundleDir } = await setup({
+      lockGeneration: "gen-stale",
+    });
+    const restartChild = vi.fn(async () => {});
+    const verifyCandidateBundle = vi.fn(async () => ({
+      passed: false,
+    }));
+
+    const monitor = createWorkerBundleRollMonitor({
+      projectStateDir: stateDir,
+      bundleDir,
+      restartChild,
+      verifyCandidateBundle,
+    });
+
+    const result = await monitor.checkNow();
+
+    expect(result.rolled).toBe(false);
+    if (!result.rolled) {
+      expect(result.reason).toBe("roll_failed");
+      expect(result.error).toMatch(/replay verification/i);
+    }
+    expect(restartChild).not.toHaveBeenCalled();
+    expect(verifyCandidateBundle).toHaveBeenCalledTimes(1);
+  });
+
+  test("verification pass allows the roll — restartChild IS called", async () => {
+    const { stateDir, bundleDir } = await setup({
+      lockGeneration: "gen-stale",
+    });
+    const restartChild = vi.fn(async () => {});
+    const verifyCandidateBundle = vi.fn(async () => ({
+      passed: true,
+    }));
+
+    const monitor = createWorkerBundleRollMonitor({
+      projectStateDir: stateDir,
+      bundleDir,
+      restartChild,
+      verifyCandidateBundle,
+      setBundleGeneration: vi.fn(),
+    });
+
+    const result = await monitor.checkNow();
+
+    expect(result.rolled).toBe(true);
+    expect(restartChild).toHaveBeenCalledTimes(1);
+    expect(verifyCandidateBundle).toHaveBeenCalledTimes(1);
+  });
+
+  test("ADV_FORCE_DEPLOY=1 skips verification and proceeds with roll", async () => {
+    const { stateDir, bundleDir } = await setup({
+      lockGeneration: "gen-stale",
+    });
+    const restartChild = vi.fn(async () => {});
+    const verifyCandidateBundle = vi.fn(async () => ({
+      passed: false,
+    }));
+
+    const monitor = createWorkerBundleRollMonitor({
+      projectStateDir: stateDir,
+      bundleDir,
+      restartChild,
+      verifyCandidateBundle,
+      setBundleGeneration: vi.fn(),
+    });
+
+    const prev = process.env.ADV_FORCE_DEPLOY;
+    process.env.ADV_FORCE_DEPLOY = "1";
+    try {
+      const result = await monitor.checkNow();
+      expect(result.rolled).toBe(true);
+      expect(restartChild).toHaveBeenCalledTimes(1);
+      // Verification callback must NOT be called when override is active
+      expect(verifyCandidateBundle).not.toHaveBeenCalled();
+    } finally {
+      if (prev === undefined) delete process.env.ADV_FORCE_DEPLOY;
+      else process.env.ADV_FORCE_DEPLOY = prev;
+    }
+  });
+
+  test("omitted verifyCandidateBundle preserves back-compat — roll proceeds", async () => {
+    const { stateDir, bundleDir } = await setup({
+      lockGeneration: "gen-stale",
+    });
+    const restartChild = vi.fn(async () => {});
+
+    const monitor = createWorkerBundleRollMonitor({
+      projectStateDir: stateDir,
+      bundleDir,
+      restartChild,
+      setBundleGeneration: vi.fn(),
+    });
+
+    const result = await monitor.checkNow();
+
+    expect(result.rolled).toBe(true);
+    expect(restartChild).toHaveBeenCalledTimes(1);
+  });
+
+  test("verification throwing blocks the roll and calls onRollError", async () => {
+    const { stateDir, bundleDir } = await setup({
+      lockGeneration: "gen-stale",
+    });
+    const restartChild = vi.fn(async () => {});
+    const verifyError = new Error("replay worker crashed");
+    const verifyCandidateBundle = vi.fn(async () => {
+      throw verifyError;
+    });
+    const onRollError = vi.fn();
+
+    const monitor = createWorkerBundleRollMonitor({
+      projectStateDir: stateDir,
+      bundleDir,
+      restartChild,
+      verifyCandidateBundle,
+      onRollError,
+    });
+
+    const result = await monitor.checkNow();
+
+    expect(result.rolled).toBe(false);
+    if (!result.rolled) {
+      expect(result.reason).toBe("roll_failed");
+      expect(result.error).toMatch(/replay worker crashed/);
+    }
+    expect(restartChild).not.toHaveBeenCalled();
+    expect(onRollError).toHaveBeenCalledWith(verifyError);
+  });
 });
