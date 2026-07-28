@@ -57,9 +57,9 @@ Use this order. Do not skip to Temporal repair because a file path is missing.
 2. If `adv_change_show` + `adv_gate_status` load state, classify `state_reachable_not_phantom`; tell primary ADV to resume from gate state.
 3. If target project is ambiguous, compare packet `TARGET_PATH` with `_projectContext` from ADV tools. Classify `target_path_confusion` when the wrong project/shard was queried.
 4. If artifact metadata says `readable:false`, or a presumed sidecar is missing, classify `artifact_readability_mismatch`. Artifact content must come from `adv_change_show include:{proposal|problemStatement|agreement|design|executiveSummary|acceptance:true}` or packet content, not filesystem fallback.
-5. Use `adv_doctor` for worker/STSL/change-workflow reachability evidence. It diagnoses, applies safe fixes automatically, and verifies. If the queue is peer-serviceable while the local worker is down, classify `peer_serviceable_local_worker_dead` and do not recommend blind restart.
-6. Use `adv_wip_state` when broad worktree/poisoned-workflow evidence is needed.
-7. Recommend `adv_doctor` only as a primary-ADV action for phantom-pointer cleanup. The tool clears a confirmed-phantom session active pointer automatically; it is current-session cleanup only, not persistent state repair.
+5. Use `adv_tool_invoke({name: "adv_doctor", args: {}})` for worker/STSL/change-workflow reachability evidence. It diagnoses, applies safe fixes automatically, and verifies. If the queue is peer-serviceable while the local worker is down, classify `peer_serviceable_local_worker_dead` and do not recommend blind restart.
+6. Use `adv_tool_invoke({name: "adv_wip_state", args: {}})` when broad worktree/poisoned-workflow evidence is needed.
+7. Recommend `adv_tool_invoke({name: "adv_doctor", args: {}})` only as a primary-ADV action for phantom-pointer cleanup. The tool clears a confirmed-phantom session active pointer automatically; it is current-session cleanup only, not persistent state repair.
 8. If evidence is only a failed filesystem read, classify `inconclusive_filesystem_only` and rerun with ADV tools.
 
 ## ADV State Access Policy
@@ -73,10 +73,10 @@ Use ADV tools instead:
 | Change details + tasks | `adv_change_show` |
 | Artifact content | `adv_change_show include: { proposal: true, problemStatement: true, agreement: true, design: true, executiveSummary: true, acceptance: true }` |
 | Gate state | `adv_gate_status` |
-| Active/WIP state | `adv_wip_state` |
-| Specs | `adv_spec` |
-| Project context | `adv_project_context` |
-| Conformance state | Ask primary ADV to run `adv_conformance action: "status"` if needed; this specialist is not granted conformance mutation tools. |
+| Active/WIP state | `adv_tool_invoke({name: "adv_wip_state", args: {}})` |
+| Specs | `adv_tool_invoke({name: "adv_spec", args: { action: "show", capability: "..." }})` |
+| Project context | `adv_tool_invoke({name: "adv_project_context", args: {}})` |
+| Conformance state | Ask primary ADV to run `adv_tool_invoke({name: "adv_conformance", args: { action: "status" }})` if needed; this specialist is not granted conformance mutation tools. |
 
 If a direct read attempt fails with file-not-found or wrong path, do not retry alternate paths. Stop and call `adv_change_show` with include flags. Do not dereference `artifacts.*.path` unless metadata explicitly says `readable:true` and the repair task truly needs a materialized file path.
 
@@ -98,4 +98,4 @@ DO_NOT_DO:
 
 V1 does not define a bespoke `adv-temporal-repair` report schema. If the orchestrator explicitly requests durable report submission and provides a change-scoped report packet, reuse the existing `adv-researcher` `RESEARCHER_REPORT` transport with topic `Temporal repair classification`. Otherwise, final text is sufficient.
 
-When submitting through `adv_subagent_report_submit`, do not invent identity anchors. Missing `CHANGE`, `SCOPE KEY`, or `ATTEMPT` is a packet defect.
+When submitting through `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: RESEARCHER_REPORT }})`, do not invent identity anchors. Missing `CHANGE`, `SCOPE KEY`, or `ATTEMPT` is a packet defect.
