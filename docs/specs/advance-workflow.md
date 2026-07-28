@@ -1,6 +1,6 @@
 # Advance Workflow
 
-> **Version:** 1.40.0
+> **Version:** 1.41.0
 > **Updated:** 2026-07-28
 
 ## Purpose
@@ -7040,5 +7040,42 @@ ADV state-changing commands must carry stable operation identity, be validated a
 - The prior outcome and revision are returned
 - The reducer is not applied again
 - The state revision and projection revision do not increment again
+
+---
+
+### Release-note data is captured as optional typed change state
+
+**ID:** `rq-releaseNotesCapture01` | **Priority:** **[MUST]**
+
+Advance SHALL support an optional, bounded, schema-validated release_notes content block on a change. Existing review and harden synthesis MAY set or refine the block through a dedicated typed full-replacement command using the canonical Temporal operation ledger. Fast-track release preparation SHALL synthesize a minimum evidence-backed block when absent without adding a user prompt. Absence remains valid and no inference heuristic may own audience, category, breaking status, or action-required correctness.
+
+**Tags:** `release-notes`, `workflow`, `temporal`, `schema`
+
+#### Scenarios
+
+**Existing synthesis phases persist typed release-note data** (`rq-releaseNotesCapture01.1`)
+
+**Given:**
+- A change has approved agreement evidence and reaches review or harden
+- The release-notes setter receives a schema-valid complete content block
+
+**When:** The agent persists or refines release-note data
+
+**Then:**
+- The workflow records the full replacement through the canonical operation ledger
+- Readback returns the same typed block
+- No new prompt, gate, task, or release authority is introduced
+
+**Missing release-note data remains compatible** (`rq-releaseNotesCapture01.2`)
+
+**Given:**
+- A legacy or current change has no release_notes block
+
+**When:** The change is read, validated, replayed, or prepared for release
+
+**Then:**
+- The change remains schema-valid
+- Existing workflow behavior is unchanged
+- Fast-track synthesis may populate the block using available evidence without prompting
 
 ---

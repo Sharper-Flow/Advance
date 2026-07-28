@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.40.0",
-  "updated_at": "2026-07-28T00:01:33.539Z",
+  "version": "1.41.0",
+  "updated_at": "2026-07-28T17:57:32.173Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -7865,6 +7865,47 @@
             "The prior outcome and revision are returned",
             "The reducer is not applied again",
             "The state revision and projection revision do not increment again"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-releaseNotesCapture01",
+      "title": "Release-note data is captured as optional typed change state",
+      "body": "Advance SHALL support an optional, bounded, schema-validated release_notes content block on a change. Existing review and harden synthesis MAY set or refine the block through a dedicated typed full-replacement command using the canonical Temporal operation ledger. Fast-track release preparation SHALL synthesize a minimum evidence-backed block when absent without adding a user prompt. Absence remains valid and no inference heuristic may own audience, category, breaking status, or action-required correctness.",
+      "priority": "must",
+      "tags": [
+        "release-notes",
+        "workflow",
+        "temporal",
+        "schema"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-releaseNotesCapture01.1",
+          "title": "Existing synthesis phases persist typed release-note data",
+          "given": [
+            "A change has approved agreement evidence and reaches review or harden",
+            "The release-notes setter receives a schema-valid complete content block"
+          ],
+          "when": "The agent persists or refines release-note data",
+          "then": [
+            "The workflow records the full replacement through the canonical operation ledger",
+            "Readback returns the same typed block",
+            "No new prompt, gate, task, or release authority is introduced"
+          ]
+        },
+        {
+          "id": "rq-releaseNotesCapture01.2",
+          "title": "Missing release-note data remains compatible",
+          "given": [
+            "A legacy or current change has no release_notes block"
+          ],
+          "when": "The change is read, validated, replayed, or prepared for release",
+          "then": [
+            "The change remains schema-valid",
+            "Existing workflow behavior is unchanged",
+            "Fast-track synthesis may populate the block using available evidence without prompting"
           ]
         }
       ]

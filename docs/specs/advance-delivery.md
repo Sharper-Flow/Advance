@@ -1,7 +1,7 @@
 # Advance Delivery
 
-> **Version:** 1.4.0
-> **Updated:** 2026-07-11
+> **Version:** 1.6.0
+> **Updated:** 2026-07-28
 
 ## Purpose
 
@@ -40,6 +40,8 @@ For ordinary inline TDD work, /adv-apply MUST explicitly name editing tools (edi
 **Then:**
 - At least one supported editing tool is named for test-file creation or modification
 - Raw shell file-writing is not presented as the normal path
+
+---
 
 ### Apply Contract Regression Anchors
 
@@ -115,7 +117,7 @@ During active inline-TDD work, runtime enforcement MUST treat shell-authored tes
 
 **ID:** `rq-ADVEXEC04` | **Priority:** **[MUST]**
 
-ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. `adv_run_test` is the normal inline TDD path because it provides executable proof for the current agent run; durable workflow evidence is the final task verification claim recorded by `taskCompletedSignal`. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.
+ADV command and instruction guidance MUST justify prescribed evidence tooling by durable user value. adv_run_test is the normal inline TDD path because it provides executable proof for the current agent run; durable workflow evidence is the final task verification claim recorded by taskCompletedSignal. Retired fallback evidence tools MUST NOT be reintroduced as ordinary inline-TDD ceremony.
 
 **Tags:** `workflow`, `execution`, `tdd`, `evidence`, `value`
 
@@ -182,39 +184,33 @@ ADV execution guidance MUST align with the normalized task evidence plan (rq-TDD
 **Quality proxies are advisory only** (`rq-ADVEXEC06.1`)
 
 **Given:**
-
 - A task has low assertion density, high mock surface, or low file-level coverage
 
 **When:** Evidence is evaluated
 
 **Then:**
-
 - The quality signal is surfaced as advisory input
 - The signal does not by itself complete or block the task or gate
 
 **Non-test route for logic-bearing work requires rationale and review conclusion** (`rq-ADVEXEC06.2`)
 
 **Given:**
-
 - A behavior-critical task selects a non-test evidence route
 
 **When:** The task is executed and completed
 
 **Then:**
-
 - A bounded rationale is recorded in the evidence plan
 - A linked review conclusion is recorded before completion
 
 **Legacy tasks remain readable with explicit compatibility** (`rq-ADVEXEC06.3`)
 
 **Given:**
-
 - An in-flight task predates the normalized evidence-plan model
 
 **When:** The task is executed or completed
 
 **Then:**
-
 - The task is normalized on read with compatibility `legacy`
 - No heuristic cutover is performed
 
@@ -307,58 +303,6 @@ adv_change_bulk_close must support closing multiple changes in a single approved
 
 **Then:**
 - Its signature and behavior remain identical to before adv_change_bulk_close was added
-
----
-
-### Checkpoint Workflow Recording
-
-**ID:** `rq-checkpointLedger01` | **Priority:** **[MUST]**
-
-adv_task_checkpoint MUST surface workflow completion recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but `taskCompletedSignal` is not durably reflected in workflow state. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint recording path, and only proceeds after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.
-
-**Tags:** `checkpoint`, `ledger`, `task-run`, `apply-flow`, `recovery`
-
-#### Scenarios
-
-**Committed checkpoint with ledger failure surfaces checkpointRecorded:false** (`rq-checkpointLedger01.1`)
-
-**Given:**
-- An /adv-apply task has dirty tree changes that pass branch and HEAD guards
-- The git commit phase succeeds but the taskCompletedSignal completion record is not durably reflected in workflow state
-
-**When:** adv_task_checkpoint executes in mode complete or cancel
-
-**Then:**
-- The tool returns status `committed` with the new commit sha
-- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
-- The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
-- The result MUST NOT be silently treated as task completion
-
-**Clean-tree checkpoint with ledger failure surfaces checkpointRecorded:false** (`rq-checkpointLedger01.2`)
-
-**Given:**
-- An /adv-apply task has no dirty tree changes
-- The clean-tree path executes but the taskCompletedSignal completion record is not durably reflected in workflow state
-
-**When:** adv_task_checkpoint executes in mode complete
-
-**Then:**
-- The tool returns status `clean` with no new commit
-- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
-- The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
-
-**Apply guidance treats checkpointRecorded:false as blocking task completion** (`rq-checkpointLedger01.3`)
-
-**Given:**
-- An /adv-apply task has received `checkpointRecorded: false` from adv_task_checkpoint
-
-**When:** The agent prepares to mark the task done
-
-**Then:**
-- The agent MUST run adv_task_show to inspect workflow task state
-- The agent MUST retry the checkpoint recording path before treating the task as done
-- The agent MUST NOT call adv_task_update with status done in normal apply flow
-- Existing doom-loop and blocker semantics apply if recovery cannot be achieved within the retry budget
 
 ---
 
@@ -589,11 +533,112 @@ Checkpoint commits are local rollback/audit points only. Publication, merge, and
 
 ---
 
+### Checkpoint workflow recording blocks task completion when recording fails
+
+**ID:** `rq-checkpointLedger01` | **Priority:** **[MUST]**
+
+adv_task_checkpoint MUST surface workflow completion recording failures via `checkpointRecorded: false` when the git commit (or clean-tree result) succeeds but `taskCompletedSignal` is not durably reflected in workflow state. /adv-apply MUST treat `checkpointRecorded: false` as blocking task completion: the agent runs adv_task_show, retries the checkpoint recording path, and only proceeds after `checkpointRecorded: true` is observed. Returning `checkpointRecorded: false` MUST include actionable remediation guidance and MUST NOT be silently treated as success.
+
+**Tags:** `checkpoint`, `ledger`, `task-run`, `apply-flow`, `recovery`
+
+#### Scenarios
+
+**Committed checkpoint with ledger failure surfaces checkpointRecorded:false** (`rq-checkpointLedger01.1`)
+
+**Given:**
+- An /adv-apply task has dirty tree changes that pass branch and HEAD guards
+- The git commit phase succeeds but the taskCompletedSignal completion record is not durably reflected in workflow state
+
+**When:** adv_task_checkpoint executes in mode complete or cancel
+
+**Then:**
+- The tool returns status `committed` with the new commit sha
+- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
+- The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
+- The result MUST NOT be silently treated as task completion
+
+**Clean-tree checkpoint with ledger failure surfaces checkpointRecorded:false** (`rq-checkpointLedger01.2`)
+
+**Given:**
+- An /adv-apply task has no dirty tree changes
+- The clean-tree path executes but the taskCompletedSignal completion record is not durably reflected in workflow state
+
+**When:** adv_task_checkpoint executes in mode complete
+
+**Then:**
+- The tool returns status `clean` with no new commit
+- The tool returns `checkpointRecorded: false` to indicate the workflow completion record was not durably reflected
+- The remediation guidance names adv_task_show and a retry path for checkpoint recording recovery
+
+**Apply guidance treats checkpointRecorded:false as blocking task completion** (`rq-checkpointLedger01.3`)
+
+**Given:**
+- An /adv-apply task has received `checkpointRecorded: false` from adv_task_checkpoint
+
+**When:** The agent prepares to mark the task done
+
+**Then:**
+- The agent MUST run adv_task_show to inspect workflow task state
+- The agent MUST retry the checkpoint recording path before treating the task as done
+- The agent MUST NOT call adv_task_update with status done in normal apply flow
+- Existing doom-loop and blocker semantics apply if recovery cannot be achieved within the retry budget
+
+---
+
+### Archive Completeness Validation
+
+**ID:** `rq-archiveValidate01` | **Priority:** **[MUST]**
+
+adv_change_archive MUST run validateChange before creating the archive bundle. Validation errors block the archive; warnings are included in the response but do not block. Validation runs before the idempotent bundle-existence check so that retries also validate.
+
+**Tags:** `workflow`, `archive`, `validation`, `completeness`
+
+#### Scenarios
+
+**Validation errors block archive** (`rq-archiveValidate01.1`)
+
+**Given:**
+- A change passing archive preflight (all tasks done/cancelled, all gates satisfied)
+- validateChange returns one or more errors
+
+**When:** adv_change_archive is invoked
+
+**Then:**
+- The archive is rejected with a structured error response
+- The error response includes validator error codes and messages
+- No archive bundle is written
+
+**Validation warnings do not block archive** (`rq-archiveValidate01.2`)
+
+**Given:**
+- A change passing archive preflight
+- validateChange returns warnings but no errors
+
+**When:** adv_change_archive is invoked
+
+**Then:**
+- Validation warnings are included in the archive response
+- The archive proceeds normally
+
+**Idempotent retry still validates** (`rq-archiveValidate01.3`)
+
+**Given:**
+- A previous archive attempt wrote a bundle but failed status transition
+- The bundle exists on disk
+
+**When:** adv_change_archive is invoked again
+
+**Then:**
+- validateChange runs before the bundle-existence short-circuit
+- A previously-written bundle does not bypass validation
+
+---
+
 ### Archive Contract Proof Gate
 
 **ID:** `rq-contractArchiveProof01` | **Priority:** **[MUST]**
 
-When a change has `change.contract`, archive MUST verify structural contract proof before bundle creation or existing-bundle recovery. Archive checks proof completeness rather than re-reviewing product semantics. Passing contract archives include `CONTRACT_TRACEABILITY.md` in the archive bundle.
+When a change has change.contract, archive MUST verify structural contract proof before bundle creation or existing-bundle recovery. Archive checks proof completeness rather than re-reviewing product semantics. Passing contract archives include CONTRACT_TRACEABILITY.md in the archive bundle.
 
 **Tags:** `archive`, `contract`, `traceability`, `validation`
 
@@ -646,7 +691,52 @@ When a change has `change.contract`, archive MUST verify structural contract pro
 
 ---
 
-### Loop Ledger Readback via adv_change_show Include Flags
+### adv_change_show accepts opt-in include flags
+
+**ID:** `rq-advChangeShowInclude01` | **Priority:** **[MUST]**
+
+adv_change_show must accept an optional include argument with shape { ledger?: boolean, snapshot?: boolean, readyTasks?: boolean, readyTasksLimit?: number }. When include is omitted, the response shape is unchanged (backward compatible). When include.snapshot is true, the rendered context snapshot is attached as top-level _contextSnapshot, matching the mutation-tool convention. When include.ledger is true, the in-progress task's TaskRunState (or null) is attached as _ledger. When include.readyTasks is true, the unblocked ready queue is attached as _readyTasks (top-N by priority then created_at; default 10, max 50) along with _readyTasksMeta. Cross-project target_path routing is preserved.
+
+**Tags:** `delivery`, `tools`, `context-emission`
+
+#### Scenarios
+
+**Default behavior preserved when include is omitted** (`rq-advChangeShowInclude01.1`)
+
+**Given:**
+- A change exists with completed and pending tasks
+
+**When:** adv_change_show is called without include
+
+**Then:**
+- The response does NOT contain _contextSnapshot, _ledger, or _readyTasks
+- All previously documented fields remain unchanged
+
+**include.snapshot attaches _contextSnapshot** (`rq-advChangeShowInclude01.2`)
+
+**Given:**
+- A change exists
+
+**When:** adv_change_show is called with include: { snapshot: true }
+
+**Then:**
+- The response includes top-level _contextSnapshot string
+- The snapshot uses the same formatter as live system-block emission
+
+**include.readyTasksLimit accepts 1-50** (`rq-advChangeShowInclude01.3`)
+
+**Given:**
+- A request includes readyTasks:true with readyTasksLimit:N
+
+**When:** Zod validates the args
+
+**Then:**
+- Values 1-50 inclusive are accepted
+- Values <1 or >50 are rejected at the schema layer
+
+---
+
+### Loop ledger readback via adv_change_show include flags
 
 **ID:** `rq-loopLedger01` | **Priority:** **[MUST]**
 
@@ -726,6 +816,293 @@ adv_change_show MUST expose an opt-in typed loop-ledger readback over existing A
 **Then:**
 - _loopLedger is returned from the target store or terminal disk projection
 - No live/running workflow is required for the read
+
+---
+
+### adv_status accepts optional view selector
+
+**ID:** `rq-advStatusView01` | **Priority:** **[MUST]**
+
+adv_status must accept an optional view argument of type 'summary' | 'health' | 'changes' | 'hygiene' (default: 'summary'). The summary view returns specs.count, simplified changes.recent (id+title+recency+minutesSinceActivity only), recommendations, temporal_health_ok (boolean), and worktree_count — explicitly omitting hygiene-archaeology fields like _healthSnapshot. The health view returns full temporal_health, search_attributes, opencode_session_debt, diagnostics, and the metrics counters. The changes view returns full status.changes detail. The hygiene view returns _healthSnapshot, opencode_session_debt detail, project_metadata, recommendations, and migration_status. The formatted block is preserved across all views.
+
+**Tags:** `delivery`, `tools`, `context-emission`
+
+#### Scenarios
+
+**Default view is summary** (`rq-advStatusView01.1`)
+
+**Given:**
+- adv_status is called with no view arg
+
+**When:** The tool runs
+
+**Then:**
+- The response includes view:'summary'
+- Hygiene archaeology fields (_healthSnapshot, search_attributes, opencode_session_debt, diagnostics) are absent
+
+**Health view exposes full diagnostics** (`rq-advStatusView01.2`)
+
+**Given:**
+- adv_status is called with view:'health'
+
+**When:** The tool runs
+
+**Then:**
+- The response includes temporal_health, search_attributes, opencode_session_debt, diagnostics
+- Summary-only fields (temporal_health_ok, worktree_count) are absent
+
+---
+
+### Per-phase metrics counters surfaced via health view
+
+**ID:** `rq-advMetricsBaseline01` | **Priority:** **[MUST]**
+
+The plugin must maintain in-memory counters for the session: adv_tool_calls (total adv_* tool invocations), adv_tool_call_count_by_name (Record<string, number> breakdown), system_block_bytes (cumulative bytes appended to output.system[0]), subagent_spawns (count of `task` tool invocations from main), and wall_time_ms. Counters reset on plugin init. They are surfaced as the metrics field on adv_status view:'health'. Per JC-1, persistence across sessions is OUT of scope for this baseline.
+
+**Tags:** `delivery`, `metrics`, `observability`
+
+#### Scenarios
+
+**Counters reset on plugin init** (`rq-advMetricsBaseline01.1`)
+
+**Given:**
+- The plugin factory runs
+
+**When:** resetMetrics is called
+
+**Then:**
+- All five counters are zero
+- adv_tool_call_count_by_name is empty
+
+**Health view exposes counters** (`rq-advMetricsBaseline01.2`)
+
+**Given:**
+- adv_status is called with view:'health'
+
+**When:** The tool runs
+
+**Then:**
+- The response includes a metrics object with the five fields
+- The counters reflect activity since the most recent plugin init
+
+---
+
+### Tool-Layer Cache Refresh After Signal Fire
+
+**ID:** `rq-cacheRefresh01` | **Priority:** **[MUST]**
+
+Tool-layer code SHALL use fireSignalAndRefresh(handle, store, changeId, signal, ...args) for any Temporal signal targeting a change workflow. The helper fires the signal AND invalidates the in-memory changeCache so subsequent store.changes.get() calls return fresh state. Direct fireSignal use is permitted ONLY for signals not associated with a single change; any such call MUST be annotated with // rq-cacheRefresh01-exempt: <reason>. Cross-project: when mutating a change in another project via target_path, the helper invalidates the TARGET projects cache via the store argument; tools MUST resolve the target store via withTargetPathStore(...) upstream before calling the helper.
+
+**Tags:** `cache-discipline`, `execution`, `tool-layer`, `signal-driven`
+
+#### Scenarios
+
+**Tool fires signal targeting change workflow** (`rq-cacheRefresh01.1`)
+
+**Given:**
+- A tool-layer function fires a Temporal signal
+- The signal is associated with a changeId
+
+**When:** The tool issues the signal
+
+**Then:**
+- It MUST use fireSignalAndRefresh(handle, store, changeId, signal, ...)
+- Direct fireSignal(handle, signal, ...) is forbidden in this case
+
+**Code review identifies a non-exempt direct fireSignal call** (`rq-cacheRefresh01.2`)
+
+**Given:**
+- A tool-layer source file contains fireSignal(handle, ...)
+- The signal is associated with a changeId
+
+**When:** The grep gate runs (grep -rn "fireSignal(handle" plugin/src/tools/ | grep -v .test.ts | grep -v rq-cacheRefresh01-exempt)
+
+**Then:**
+- The gate MUST return zero non-exempt matches
+- CI MUST fail if matches are present
+
+**Cross-project mutation via target_path** (`rq-cacheRefresh01.3`)
+
+**Given:**
+- A tool mutates a change in project B from project As session
+- The mutation requires a Temporal signal
+
+**When:** The tool resolves the workflow handle and store
+
+**Then:**
+- The store argument to fireSignalAndRefresh MUST be the target projects store
+- The store MUST be obtained via withTargetPathStore(...) upstream
+
+**Documented exemption for change-less signals** (`rq-cacheRefresh01.4`)
+
+**Given:**
+- A tool-layer function fires a signal not associated with any changeId
+
+**When:** The function uses fireSignal directly
+
+**Then:**
+- The call site MUST include a // rq-cacheRefresh01-exempt: <reason> comment
+- The reason MUST explain why no changeId association exists
+
+---
+
+### Poisoned Workflow History Read Fallback
+
+**ID:** `rq-replayFallback01` | **Priority:** **[MUST]**
+
+When a change workflow read fails with a known poisoned-history replay error (TMPRL1100, nondeterminism, or no-command replay shape), ADV read surfaces SHALL attempt durable projection fallback before failing. If an active source snapshot or archive bundle exists, read tools SHALL return projection-backed change data with a recovery marker instead of requiring manual bundle assembly. Terminal projections (archived or closed) MUST NOT recreate change workflows during fallback.
+
+**Tags:** `temporal`, `replay`, `recovery`, `read-tools`
+
+#### Scenarios
+
+**Poisoned history has archive projection** (`rq-replayFallback01.1`)
+
+**Given:**
+- A change workflow query fails with a known poisoned-history replay error
+- An archive bundle exists for the change
+
+**When:** A read tool loads the change
+
+**Then:**
+- The tool returns archive-backed change data
+- The returned data includes a recovery/source marker
+- The workflow is not re-created for the archived change
+
+**Poisoned history has no projection** (`rq-replayFallback01.2`)
+
+**Given:**
+- A change workflow query fails with a known poisoned-history replay error
+- No active source snapshot or archive bundle exists
+
+**When:** A read tool loads the change
+
+**Then:**
+- The original error remains visible
+- No synthetic change state is invented
+
+**Poisoned history with non-terminal change and active source snapshot** (`rq-replayFallback01.3`)
+
+**Given:**
+- A change workflow query fails with a known poisoned-history replay error
+- The change status is non-terminal (active, draft, pending)
+- An active source snapshot exists
+- Re-seeding the workflow itself fails
+
+**When:** A read tool loads the change
+
+**Then:**
+- The tool returns disk-backed change data
+- The returned data includes recovery markers (_source: 'disk', _recovery.reason: 'poisoned_history')
+- No new workflow run is started
+- No ChangeSummary signal is emitted
+
+---
+
+### Change Workflow Signal-Only Mutation Surface
+
+**ID:** `rq-changeWorkflowSignalOnly01` | **Priority:** **[MUST]**
+
+Production change workflow code SHALL remain signal/query based and SHALL NOT reintroduce defineUpdate handlers unless a future spec explicitly defines migration handling for existing workflow histories. Regression tests MUST fail if workflow-reachable production code defines update handlers on the change workflow surface.
+
+**Tags:** `temporal`, `signal-driven`, `workflow-surface`, `regression`
+
+#### Scenarios
+
+**Workflow surface scan detects update handler drift** (`rq-changeWorkflowSignalOnly01.1`)
+
+**Given:**
+- Production code is reachable from plugin/src/temporal/workflows.ts
+
+**When:** The workflow boundary regression tests run
+
+**Then:**
+- The scan fails on wf.defineUpdate or defineUpdate usage
+- The scan does not fail merely because Temporal TypeScript patched Date or random APIs are used
+
+---
+
+### Temporal TypeScript Determinism Guidance
+
+**ID:** `rq-temporalTsDeterminismDocs01` | **Priority:** **[SHOULD]**
+
+Agent-facing repository guidance SHALL state that Temporal TypeScript workflows patch Date.now(), new Date(), and Math.random() to deterministic sandbox values. Guidance SHALL direct workflow timers to Temporal workflow APIs such as sleep() or condition(), and SHALL distinguish official Temporal TypeScript determinism behavior from project-specific restrictions such as the signal-only change workflow surface.
+
+**Tags:** `temporal`, `documentation`, `agent-guidance`, `determinism`
+
+#### Scenarios
+
+**Agent docs avoid false Date/random ban** (`rq-temporalTsDeterminismDocs01.1`)
+
+**Given:**
+- An agent reads repository implementation guidance
+
+**When:** It inspects Temporal workflow determinism guidance
+
+**Then:**
+- The docs say Date.now(), new Date(), and Math.random() are deterministic in Temporal TypeScript workflow sandbox
+- The docs identify signal/query-only change workflows as the project-specific replay guardrail
+
+---
+
+### Runtime Provenance Diagnostic Surface
+
+**ID:** `rq-runtimeProvenance01` | **Priority:** **[MUST]**
+
+ADV SHALL expose plugin loaded-module provenance via the adv_status health view: dist mtime/path, source mtime/path, source-vs-dist freshness verdict (one of fresh, source_ahead_of_dist, dist_ahead_of_process, unknown), plugin checkout git branch and HEAD SHA when probable, cwd-vs-plugin-root relation (match/child/outside), and a structured recovery hint when not fresh. Filesystem stat failures and git probe failures MUST degrade gracefully to null rather than throwing. The recovery hint MUST be structured as { action, commands[], paths } so callers can render verbatim or extract commands programmatically. ADV SHALL NOT perform rebuild orchestration, session restart, or workflow-cache invalidation as part of this surface — those concerns are owned by external tooling.
+
+**Tags:** `diagnostics`, `runtime`, `self-update`
+
+#### Scenarios
+
+**Fresh plugin emits no recovery hint** (`rq-runtimeProvenance01.1`)
+
+**Given:**
+- source_index_mtime <= dist_mtime AND dist_mtime <= process_started_at
+
+**When:** adv_status view: health is read
+
+**Then:**
+- source_dist_freshness is 'fresh'
+- recovery_hint is null
+- Formatted healthSection contains no plugin freshness line
+
+**Source ahead of dist instructs rebuild** (`rq-runtimeProvenance01.2`)
+
+**Given:**
+- source_index_mtime > dist_mtime
+
+**When:** adv_status view: health is read
+
+**Then:**
+- source_dist_freshness is 'source_ahead_of_dist'
+- recovery_hint.action mentions rebuild
+- recovery_hint.commands includes 'pnpm run build'
+- Formatted healthSection contains the verdict and command lines
+
+**Dist ahead of process instructs session restart** (`rq-runtimeProvenance01.3`)
+
+**Given:**
+- source_index_mtime <= dist_mtime AND dist_mtime > process_started_at
+
+**When:** adv_status view: health is read
+
+**Then:**
+- source_dist_freshness is 'dist_ahead_of_process'
+- recovery_hint.action mentions session restart
+- Formatted healthSection contains the verdict and restart guidance
+
+**Unknown freshness on probe failure** (`rq-runtimeProvenance01.4`)
+
+**Given:**
+- Filesystem stat or git probe failed for the plugin checkout
+
+**When:** adv_status view: health is read
+
+**Then:**
+- source_dist_freshness is 'unknown'
+- recovery_hint.action indicates degraded mode
+- plugin_checkout_branch and plugin_checkout_head_sha are null when git probe failed
 
 ---
 
@@ -882,5 +1259,54 @@ ADV retains `adv_store_cleanup` indefinitely as an operator-only maintenance too
 - adv_store_cleanup remains available indefinitely for removing provably obsolete legacy agenda files
 - The tool is operator-only: discoverable, but never a routine autonomous agent action
 - Every deletion remains approval-gated with a manifest audit trail
+
+---
+
+### Archive emits an additive versioned release-notes sidecar
+
+**ID:** `rq-releaseNotesSidecar01` | **Priority:** **[MUST]**
+
+When a change carries release_notes data, the authoritative archive bundle writer SHALL emit release-notes.json as a versioned envelope containing change identity and the typed content block. The filename SHALL be protected as generated output. When data is absent, no sidecar is emitted and all existing bundle files and release behavior remain unchanged. The sidecar SHALL travel as an ordinary file through existing archive-PR and git-tree CI/CD flows; Advance SHALL require no PokeEdge, PokeEdge-Web, or Corded workflow/configuration mutation.
+
+**Tags:** `release-notes`, `archive`, `ci-cd`, `compatibility`
+
+#### Scenarios
+
+**Populated change emits schema-valid sidecar** (`rq-releaseNotesSidecar01.1`)
+
+**Given:**
+- A change has schema-valid release_notes content
+- Archive bundle creation has started
+
+**When:** The authoritative bundle writer writes generated artifacts
+
+**Then:**
+- The bundle contains release-notes.json with schema_version, change_id, title, and release_notes
+- The envelope validates against the published release-notes schema
+- Existing change.json and executive-summary.md content is unchanged
+
+**Absent data emits no sidecar** (`rq-releaseNotesSidecar01.2`)
+
+**Given:**
+- A change has no release_notes content
+
+**When:** The archive bundle is created
+
+**Then:**
+- The bundle does not contain release-notes.json
+- Validation and archive otherwise follow existing behavior
+
+**Existing CI/CD carries sidecar without integration changes** (`rq-releaseNotesSidecar01.3`)
+
+**Given:**
+- A repository archives through its existing PR-based .adv/archive layout
+- The release-notes sidecar is committed in the archive bundle
+
+**When:** Existing PokeEdge or PokeEdge-Web branch promotion, tagging, and deployment runs
+
+**Then:**
+- The sidecar remains in the promoted git tree and relevant deployment commit range
+- Current consumers may ignore the additive file safely
+- No Corded source, endpoint, trigger, client, or PokeEdge/PokeEdge-Web workflow/configuration change is required
 
 ---
