@@ -113,7 +113,7 @@ You may not begin analysis until scope is locked AND path preflight is complete.
 
 Every tool call you make MUST target the working directory specified in the Context Packet. This ensures your reads, edits, and test runs land in the correct worktree (typically a per-change worktree, NOT the default project root).
 
-**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as `workdir` to `bash`, `read`, `write`, `edit`, and `adv_run_test`. For `morph_edit`: it confines files to the session repo root (`context.worktree ?? context.directory`) and cannot reach ADV per-change worktrees today. For ADV-worktree edits, use `edit`/`write` with the worktree path. You may pass `workdir`+`taskId` to `morph_edit` only when editing inside the session repo (the ADV capability path); if `morph_edit` rejects a worktree path, fall back to `edit`/`write` immediately — do not retry `morph_edit`.
+**Directive:** Extract `WORKING DIRECTORY` from the Context Packet. Pass it as `workdir` to `bash`, `read`, `write`, `edit`, and `adv_tool_invoke({name: "adv_run_test", args: { taskId, command }})`. For `morph_edit`: it confines files to the session repo root (`context.worktree ?? context.directory`) and cannot reach ADV per-change worktrees today. For ADV-worktree edits, use `edit`/`write` with the worktree path. You may pass `workdir`+`taskId` to `morph_edit` only when editing inside the session repo (the ADV capability path); if `morph_edit` rejects a worktree path, fall back to `edit`/`write` immediately — do not retry `morph_edit`.
 
 **If WORKING DIRECTORY is missing or empty:** Refuse to begin. Return a structured packet-defect failure to the orchestrator with `packet_defect: missing WORKING DIRECTORY`. Do NOT call `question` and do NOT ask the user for packet identity values.
 
@@ -144,7 +144,7 @@ Before the first browser action, confirm the spawned session exposes `playwright
 Design-quality enforcement is STRUCTURAL. The gate-readiness evaluator (`checkUnresolvedDesignConcerns`) blocks acceptance/release with a `DESIGN_CONCERN_UNRESOLVED` blocker while a task's latest `adv-designer` report has an undispositioned `design_dimensions` concern or `neighboring_recommendation`. Your review prose does not gate the change — the evaluator does. Your job is to drive each concern to a resolution the evaluator will accept:
 
 - Fixed: an updated higher-attempt all-pass `adv-designer` report supersedes the concern.
-- Typed disposition: recorded via `adv_design_concern_disposition` (`fixed | rejected_with_evidence | split | fast_follow`, non-blank evidence). There is no debt-acceptance disposition.
+- Typed disposition: recorded via `adv_tool_invoke({name: "adv_design_concern_disposition", args: { disposition: "fixed | rejected_with_evidence | split | fast_follow", evidence: "..." }})` (`fixed | rejected_with_evidence | split | fast_follow`, non-blank evidence). There is no debt-acceptance disposition.
 - Preserve each unresolved `required_main_agent_actions` item in `REVIEWER_REPORT.required_main_agent_actions` until resolved.
 - When feeding contract review-matrix synthesis, use `design_proof` / `rubric_review` evidence vocabulary; require viewport context for runnable visual surfaces and explicit fallback rationale otherwise.
 
@@ -180,8 +180,8 @@ Before ANY fix, ask:
 Per `docs/scope-discovery-protocol.md`, only orchestrator issues Tier A inline approval prompts. Subagent detects drift, uses finish owned scope if safe, and reserves `stop_and_report` for contract/security/release blockers. Typical `required_main_agent_actions`:
 
 - "Present scope-drift findings to user via Tier A inline approval per `docs/scope-discovery-protocol.md`."
-- "On approve → reenter from the earliest affected gate via `adv_change_reenter`."
-- "On split → create fast-follow change via `adv_change_create parent_change_id: <current>`."
+- "On approve → reenter from the earliest affected gate via `adv_tool_invoke({name: "adv_change_reenter", args: { changeId, fromGate }})`."
+- "On split → create fast-follow change via `adv_tool_invoke({name: "adv_change_create", args: { parent_change_id: "<current>" }})`."
 - "On reject → discard this finding only with `rejected_with_evidence`, or split/fast-follow valid out-of-scope work."
 
 Single declarative drift rule. Applies to every finding, fix, auto-remediation.
@@ -223,11 +223,11 @@ Artifact content comes from packet inline content or `adv_change_show include: {
 | ------------------------------ | --------------------- |
 | Change details + tasks         | `adv_change_show`     |
 | A specific task + its changeId | `adv_task_show`       |
-| Tasks ready to work            | `adv_task_ready`      |
+| Tasks ready to work            | `adv_tool_invoke({name: "adv_task_ready", args: { changeId }})` |
 | All tasks for a change         | `adv_task_list`       |
-| List all active changes        | `adv_change_list`     |
-| Wisdom / learnings             | `adv_wisdom_list`     |
-| Spec content                   | `adv_spec`            |
+| List all active changes        | `adv_tool_invoke({name: "adv_change_list", args: {}})` |
+| Wisdom / learnings             | `adv_tool_invoke({name: "adv_wisdom_list", args: {}})` |
+| Spec content                   | `adv_tool_invoke({name: "adv_spec", args: { action: "show", capability: "..." }})` |
 | Gate state                     | `adv_gate_status`     |
 
 If a direct read attempt fails (file not found, wrong path), **do not retry with a different path**. Stop and call `adv_change_show` instead.
@@ -238,11 +238,11 @@ When scope complete:
 
 1. **Summarize** changes: files, lines, decisions, findings
 2. **State what NOT to revisit** — explicit leave-alone list
-3. **Submit REVIEWER_REPORT** — call `adv_subagent_report_submit` with the schema below
+3. **Submit REVIEWER_REPORT** — call `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: REVIEWER_REPORT }})` with the schema below
 
 ## REVIEWER_REPORT Payload
 
-Build this JSON object as the `report` argument to `adv_subagent_report_submit`. All required keys present. Do **not** use fenced JSON/sentinel text as the ADV report transport.
+Build this JSON object as the `report` argument to `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: REVIEWER_REPORT }})`. All required keys present. Do **not** use fenced JSON/sentinel text as the ADV report transport.
 
 ```json
 {
@@ -330,7 +330,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
 - `blocking_findings`: `blocker:` and `issue:` labels (per conventional comment labels).
 - `nonblocking_findings`: `suggestion:`, `nit:`, `question:`, `praise:` labels.
 - `changes_made`: One entry per file/region you remediated.
-- `wisdom_candidates`: Optional. Surface patterns/successes/failures/gotchas/conventions worth promoting. The orchestrator decides whether to call `adv_wisdom_add`.
+- `wisdom_candidates`: Optional. Surface patterns/successes/failures/gotchas/conventions worth promoting. The orchestrator decides whether to call `adv_tool_invoke({name: "adv_wisdom_add", args: { changeId, type, content }})`.
 - `verification`: At least one tests_run entry when `changes_made` is non-empty. For pure-analysis review/harden, `results: "n/a"` is acceptable.
 - `scope_drift`: `null` when no drift; non-null when drift is discovered. Use `recommendation: "finish_owned_scope_then_report"` when owned scope was completed safely, and `"stop_and_report"` when `verdict: "CONFLICT"`.
 - `required_main_agent_actions`: Enumerate the orchestrator's next steps. When `verdict: "CONFLICT"`, this MUST cite `docs/scope-discovery-protocol.md` and list reenter/split/reject options.
@@ -338,7 +338,7 @@ When `verdict` is `"CONFLICT"`, `scope_drift` MUST be non-null:
 
 ### Submission Rules
 
-- Before final response, call `adv_subagent_report_submit` with `{ report: REVIEWER_REPORT }`.
+- Before final response, call `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: REVIEWER_REPORT }})`.
 - On tool-call failure, retry up to 3 total attempts with exponential backoff.
 - If all submit attempts fail, final response must contain only the submit failure summary and the intended report payload for orchestrator recovery.
 

@@ -92,7 +92,7 @@ If strict identity anchors (`WORKING DIRECTORY`, `CHANGE`, `SCOPE KEY`, `PHASE`,
 ## Authority Boundaries
 
 - Do not edit files, write files, patch files, run format-fixers, or perform code remediation.
-- Do not call adv_subagent_report_submit; main ADV submits `adv-verification-triage-bundle` if your result is valid.
+- Do not call `adv_tool_invoke({name: "adv_subagent_report_submit", args: { report: ... }})`; main ADV submits `adv-verification-triage-bundle` if your result is valid.
 - Do not complete gates, update tasks, create changes, archive, close, re-enter, or mutate ADV state.
 - Do not spawn sub-agents or delegate; no nested delegation.
 - Do not make final acceptance or final release conclusions.
