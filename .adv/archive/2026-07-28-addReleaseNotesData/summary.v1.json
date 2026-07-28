@@ -1,10 +1,10 @@
 {
-  "archived_at": "2026-07-28T18:04:35.939Z",
+  "archived_at": "2026-07-28T18:07:42.496Z",
   "capabilities": [
     "advance-delivery",
     "advance-workflow"
   ],
-  "change_hash": "8427b671a6a08dcc6ae226e0368300dcda6ac5dea3266754a60d93b79026a29b",
+  "change_hash": "14dca0c42ebe180bb051f25b2cb021372520fd189023680ae0504674f003dd24",
   "change_id": "addReleaseNotesData",
   "completed_tasks": 6,
   "created_at": "2026-07-28T07:25:24.958Z",
@@ -12,7 +12,7 @@
   "last_activity_at": "2026-07-28T17:38:52.469Z",
   "lifecycle_state": "open",
   "status": "archived",
-  "summary_hash": "188a56e3061a514c24864c0c234b3103cbb855b07b8a60b56540a133f781bab8",
+  "summary_hash": "4fc2c70506d24291856b474ef2af6d1200d54eb24cc58d8f863e5c933f9a72d3",
   "task_count": 6,
   "title": "Add release notes data",
   "version": "1"
