@@ -228,14 +228,16 @@ describe("AC7 pre-rewrite evidence (pinned fixture)", () => {
     },
     {
       lane: "adv-verifier",
-      source: ".opencode/agents/adv-verifier.md (§ Submission — representative)",
+      source:
+        ".opencode/agents/adv-verifier.md (§ Submission — representative)",
       excerpt:
         "Submit your findings by calling `adv_subagent_report_submit` with the Verification Triage Result.",
       expectedTool: "adv_subagent_report_submit",
     },
     {
       lane: "adv-reviewer",
-      source: ".opencode/agents/adv-reviewer.md (§ Submission — representative)",
+      source:
+        ".opencode/agents/adv-reviewer.md (§ Submission — representative)",
       excerpt:
         "Record evidence via `adv_run_test` and bind the runId to your report.",
       expectedTool: "adv_run_test",
