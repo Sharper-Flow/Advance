@@ -111,11 +111,7 @@ export function assertPolicyMatch(
   }
 
   const tools = doc.tools;
-  if (
-    !tools ||
-    typeof tools !== "object" ||
-    Array.isArray(tools)
-  ) {
+  if (!tools || typeof tools !== "object" || Array.isArray(tools)) {
     return { ok: false, drift: ["tools map is empty or absent"] };
   }
 
@@ -164,7 +160,7 @@ export interface ScanResult {
  */
 export function scanDir(
   dir: string,
-  opts?: { includePolicyCheck?: boolean },
+  _opts?: { includePolicyCheck?: boolean },
 ): ScanResult {
   let checked = 0;
   const failures: ScanFailure[] = [];

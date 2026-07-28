@@ -1,6 +1,6 @@
 ---
 name: adv-task
-description: Fast-track small changes: assess spec-law impact, prep, and hand off
+description: "Fast-track small changes: assess spec-law impact, prep, and hand off"
 ---
 # ADV Task — Fast-Track Small Changes
 Fast-track a small, well-understood durable change through proposal, discovery, design, and planning, then hand off to Build. Use when user and agent already agree on what needs doing and need tracked change/task state before implementation.

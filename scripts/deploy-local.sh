@@ -607,79 +607,57 @@ PY
 
 # Agent Frontmatter Structural Check
 #
-# OpenCode uses gray-matter/js-yaml for agent frontmatter. Duplicate YAML keys
-# make gray-matter reject the frontmatter, after which the agent degrades to an
-# `all`-mode shell with the raw frontmatter embedded in the prompt. Detect the
-# simple mapping shape used by agent files before sync/deploy says everything is
-# healthy.
+# OpenCode uses gray-matter/js-yaml for agent frontmatter. A duplicate YAML key
+# (duplicate mapping key) makes gray-matter reject the frontmatter, after which
+# the agent degrades to an `all`-mode shell with the raw frontmatter embedded in
+# the prompt. We now shell out to the CI check script for real YAML validation,
+# which reports duplicate YAML key errors and confirms an agent has unique mapping keys.
 # ---------------------------------------------------------------------------
 check_agent_frontmatter() {
-	local agent_file="$1"
-
-	if [ ! -f "$agent_file" ]; then
-		echo "    ✗  frontmatter: missing agent file $agent_file"
+	local asset_dir="$1"
+	if [ -z "$asset_dir" ]; then
+		echo "    ✗  frontmatter: no asset directory provided"
 		((config_issues++)) || true
 		return
 	fi
+	# Shell out to the TS check script for real YAML validation
+	if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && ./node_modules/.bin/tsx scripts/check-frontmatter.ts --deploy "$asset_dir" >/dev/null 2>/dev/null); then
+		echo "    ✗  frontmatter: unparseable YAML in $asset_dir"
+		((config_issues++)) || true
+	fi
+}
 
-	python3 - "$agent_file" <<'PY' || ((config_issues++)) || true
-import re
-import sys
-from pathlib import Path
+# Check a single ADV-owned asset by copying it into a temporary directory
+# so the directory-scoped CI script validates only that file. This avoids
+# treating user-owned overlay targets (build.md, general.md, plan.md) as
+# hard-blocking ADV assets.
+_check_single_asset_frontmatter() {
+	local asset_file="$1"
+	if [ -z "$asset_file" ] || [ ! -f "$asset_file" ]; then
+		echo "    ✗  frontmatter: missing asset file $asset_file"
+		((config_issues++)) || true
+		return
+	fi
+	local tmp_dir
+	tmp_dir=$(mktemp -d)
+	cp "$asset_file" "$tmp_dir/"
+	check_agent_frontmatter "$tmp_dir"
+	rm -rf "$tmp_dir"
+}
 
-agent_path = Path(sys.argv[1])
-text = agent_path.read_text()
-agent_name = agent_path.name
-
-if not text.startswith("---\n"):
-    print(f"    ✗  frontmatter: {agent_name} missing YAML frontmatter")
-    sys.exit(1)
-
-end = text.find("\n---\n", 4)
-if end == -1:
-    print(f"    ✗  frontmatter: {agent_name} frontmatter not terminated")
-    sys.exit(1)
-
-seen: set[tuple[tuple[str, ...], str]] = set()
-parents: list[tuple[int, str]] = []
-duplicates: list[tuple[int, str, str]] = []
-
-for line_no, line in enumerate(text[4:end].splitlines(), start=2):
-    stripped = line.strip()
-    if not stripped or stripped.startswith("#") or stripped.startswith("-"):
-        continue
-    if ":" not in line:
-        continue
-
-    indent = len(line) - len(line.lstrip(" "))
-    key_match = re.match(r"^\s*([A-Za-z0-9_*.-]+)\s*:", line)
-    if not key_match:
-        continue
-
-    while parents and parents[-1][0] >= indent:
-        parents.pop()
-
-    key = key_match.group(1)
-    parent_path = tuple(parent for _, parent in parents)
-    marker = (parent_path, key)
-    if marker in seen:
-        scope = ".".join((*parent_path, key)) if parent_path else key
-        duplicates.append((line_no, scope, line.strip()))
-    else:
-        seen.add(marker)
-
-    remainder = line.split(":", 1)[1].strip()
-    if remainder == "" or remainder in {"|", ">", "|-", ">-"}:
-        parents.append((indent, key))
-
-if duplicates:
-    print(f"    ✗  frontmatter: {agent_name} has duplicate YAML key(s)")
-    for line_no, scope, raw in duplicates:
-        print(f"       line {line_no}: {scope} — {raw}")
-    sys.exit(1)
-
-print(f"    ✓  frontmatter: {agent_name} has unique mapping keys")
-PY
+# Non-blocking frontmatter warning for user-owned shared-agent overlays.
+warn_overlay_frontmatter() {
+	local overlay_file="$1"
+	if [ -z "$overlay_file" ] || [ ! -f "$overlay_file" ]; then
+		return
+	fi
+	local tmp_dir
+	tmp_dir=$(mktemp -d)
+	cp "$overlay_file" "$tmp_dir/"
+	if ! (cd "$ADV_SOURCE_PLUGIN_PATH" && ./node_modules/.bin/tsx scripts/check-frontmatter.ts --deploy "$tmp_dir" >/dev/null 2>/dev/null); then
+		echo "    ⚠  frontmatter: possible unparseable YAML in overlay $overlay_file (review manually)"
+	fi
+	rm -rf "$tmp_dir"
 }
 
 # Agent Tool Allowlist Drift Check
@@ -880,7 +858,7 @@ check_config() {
 	done
 
 	# Cross-check agent tool allowlist against plugin registry
-	check_agent_frontmatter "$REPO_AGENTS/adv.md"
+	_check_single_asset_frontmatter "$REPO_AGENTS/adv.md"
 	check_tool_drift
 
 	# Warn about stale global copy (wastes ~7K tokens per prompt)
@@ -1556,6 +1534,7 @@ copied=0
 for src in "$REPO_COMMANDS"/adv-*.md; do
 	[ -f "$src" ] || continue
 	dest="$GLOBAL_COMMANDS/$(basename "$src")"
+	_check_single_asset_frontmatter "$src"
 	if [ "$DRY_RUN" = true ]; then
 		echo "    dry-run copy: $(basename "$src")"
 	else
@@ -1683,9 +1662,11 @@ if [ -d "$REPO_AGENTS" ]; then
 		# Skip shared agents that are overlay-managed
 		if echo " $SHARED_OVERLAY_ONLY " | grep -q " $name "; then
 			echo "    skipped (overlay-managed): $name"
+			warn_overlay_frontmatter "$src"
 			continue
 		fi
 		dest="$GLOBAL_AGENTS/$name"
+		_check_single_asset_frontmatter "$src"
 		if [ "$DRY_RUN" = true ]; then
 			echo "    dry-run copy agent: $name"
 		else

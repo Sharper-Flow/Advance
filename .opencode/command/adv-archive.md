@@ -1,6 +1,6 @@
 ---
 name: adv-archive
-description: Archive completed change: apply spec deltas and finalize git
+description: "Archive completed change: apply spec deltas and finalize git"
 phaseGoal: "Promote change from contract to law: apply spec deltas, capture wisdom, clean up."
 ---
 
