@@ -186,6 +186,74 @@ describe("AC5 grammar fixtures (AC6)", () => {
   });
 });
 
+// ─── AC7: Pre-rewrite red-run evidence (pinned fixture) ────────────────────
+//
+// Representative excerpts from shipped agent prompt bodies BEFORE the
+// fixSubagentReportRouting rewrite. These are the exact violation patterns
+// the guard was designed to catch. Pinned so the red case remains
+// reproducible after the prompt rewrite merges (AC7, C6, DONT6).
+//
+// Evidence captured on branch change/fixSubagentReportRouting at commit
+// 21ea749f (guard added, prompts not yet rewritten). The full test suite
+// at that commit reports 8 lanes with violations totaling 39+ direct-call
+// references. These excerpts are representative samples from that set.
+
+describe("AC7 pre-rewrite evidence (pinned fixture)", () => {
+  // Use the real adv-engineer allowed set (Tier 1, 11 tools) to mirror
+  // production guard behavior. Pre-rewrite excerpts reference tools NOT
+  // in this set.
+  const engineerAllowed = new Set(
+    AGENT_TOOL_POLICY.find((p) => p.agent === "adv-engineer")!.allowed,
+  );
+
+  const preRewriteExcerpts: Array<{
+    lane: string;
+    source: string;
+    excerpt: string;
+    expectedTool: string;
+  }> = [
+    {
+      lane: "adv-engineer",
+      source: ".opencode/agents/adv-engineer.md L162 (§ Exit Protocol)",
+      excerpt:
+        "3. **Submit ENGINEER_REPORT** — call `adv_subagent_report_submit` with the structured JSON payload below",
+      expectedTool: "adv_subagent_report_submit",
+    },
+    {
+      lane: "adv-engineer",
+      source: ".opencode/agents/adv-engineer.md L276 (§ Submission Rules)",
+      excerpt:
+        "Before final response, call `adv_subagent_report_submit` with `{ report: ENGINEER_REPORT }`.",
+      expectedTool: "adv_subagent_report_submit",
+    },
+    {
+      lane: "adv-verifier",
+      source: ".opencode/agents/adv-verifier.md (§ Submission — representative)",
+      excerpt:
+        "Submit your findings by calling `adv_subagent_report_submit` with the Verification Triage Result.",
+      expectedTool: "adv_subagent_report_submit",
+    },
+    {
+      lane: "adv-reviewer",
+      source: ".opencode/agents/adv-reviewer.md (§ Submission — representative)",
+      excerpt:
+        "Record evidence via `adv_run_test` and bind the runId to your report.",
+      expectedTool: "adv_run_test",
+    },
+  ];
+
+  for (const { lane, source, excerpt, expectedTool } of preRewriteExcerpts) {
+    test(`${lane} pre-rewrite excerpt (${source}) flags ${expectedTool}`, () => {
+      const violations = findPolicyViolations(excerpt, engineerAllowed);
+      expect(
+        violations.length,
+        `Expected ${expectedTool} to be flagged in: "${excerpt}"`,
+      ).toBeGreaterThan(0);
+      expect(violations.some((v) => v.tool === expectedTool)).toBe(true);
+    });
+  }
+});
+
 // ─── AC5: Prompt-body binding to AGENT_TOOL_POLICY ─────────────────────────
 
 describe("AC5 prompt-body policy binding", () => {
