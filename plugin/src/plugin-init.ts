@@ -613,10 +613,15 @@ function registerInProcessTemporalWorker(worker: InProcessWorker): void {
  * can share ownership behavior (T2). T3 will route the restart path through
  * this helper. T4 populates `stopDriver` with the attachment tick driver.
  */
+export interface WorkerAdoptionHandle {
+  /** Stop the orphan-queue adoption driver interval, if one was started. */
+  stopDriver: (() => void) | null;
+}
+
 export function attachWorkerWithAdoption(
   worker: InProcessWorker,
   opts: { projectId: string; client: Client | null },
-): void {
+): WorkerAdoptionHandle {
   registerInProcessTemporalWorker(worker);
   const attachment: WorkerAdoptionAttachment = {
     worker,
@@ -627,7 +632,7 @@ export function attachWorkerWithAdoption(
   if (!isOrphanQueueAdoptionEnabled()) {
     adoptionConstructionState = { kind: "disabled" };
     activeOrphanQueueAdopter = null;
-    return;
+    return { stopDriver: null };
   }
   if (!opts.client) {
     adoptionConstructionState = {
@@ -635,7 +640,7 @@ export function attachWorkerWithAdoption(
       reason: "no_temporal_client",
     };
     activeOrphanQueueAdopter = null;
-    return;
+    return { stopDriver: null };
   }
   try {
     const adopter = new OrphanQueueAdopter({
@@ -657,6 +662,7 @@ export function attachWorkerWithAdoption(
       });
     }, 10_000);
     attachment.stopDriver = () => clearInterval(driverHandle);
+    return { stopDriver: attachment.stopDriver };
   } catch (e) {
     adoptionConstructionState = {
       kind: "construction_failed",
@@ -665,6 +671,7 @@ export function attachWorkerWithAdoption(
     activeOrphanQueueAdopter = null;
     attachment.adopter = null;
     attachment.stopDriver = null;
+    return { stopDriver: null };
   }
 }
 
