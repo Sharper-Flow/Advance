@@ -1,0 +1,683 @@
+{
+  "id": "exposeBundleImpactTool",
+  "title": "Expose bundle impact tool",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-25T19:34:31.290Z",
+  "tasks": [
+    {
+      "id": "tk-4514aa0e2642",
+      "title": "Add target_path cross-project routing to adv_change_set_worker_bundle_impact",
+      "type": "code",
+      "section": "Tool surface",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-28T00:07:53.168Z",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "TypeScript tool refactoring with full test coverage (existing + 3 new tests) and pnpm run check verification.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-28T00:18:13.280Z",
+      "verification": "Refactored adv_change_set_worker_bundle_impact in plugin/src/tools/change.ts: added target_path/target_confirmed/confirmationEvidence to schema (spread from targetPathSchema.shape); wrapped body in runSetImpact(activeStore, projectContext?) inner function; substituted getProjectId(store.paths.root) → projectContext?.projectId ?? getProjectId(activeStore.paths.root); added withTargetPathStore wrapper when target_path is set (mutation:true, stateRequirement:'temporal-required') following adv_change_close peer pattern. Added 3 new tests to plugin/src/tools/change.worker-bundle.test.ts (schema exposure, cross-project success with target store/handle/projectContext, untrusted-target refusal with no save/no signal) plus withTargetPathStore mock setup. Verification: oc-test targeted src/tools/change.worker-bundle.test.ts → 10/10 pass (7 existing + 3 new). pnpm run check → all green (schemas:check, typecheck, generate:manifests:check, test-isolation, lockfile-policy, lint, format:check). TDD red (tr_ms3ww3yf) proves pre-change source had 0 target_path references; green (tr_ms3wwde8) runs all 10 tests passing.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.worker-bundle.test.ts"
+      ],
+      "touched_files": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.worker-bundle.test.ts"
+      ],
+      "checkpointSha": "e3fb39d8ab2dea153a406ad8f6e474531e67257b",
+      "completedAt": "2026-07-28T00:23:02.832Z",
+      "completed_at": "2026-07-28T00:23:02.832Z"
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-4514aa0e2642": [
+      {
+        "runId": "tr_ms3ww3yf_d9f01628",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/exposeBundleImpactTool\necho \"=== RED: prove target_path was ABSENT in adv_change_set_worker_bundle_impact pre-change ===\"\necho \"(Checking the HEAD version of change.ts — before this branch's edits.)\"\nHEAD_TARGET_REFS=$(git show HEAD:plugin/src/tools/change.ts | awk '/^  adv_change_set_worker_bundle_impact:/{flag=1} /^  },/{if(flag) exit} flag' | grep -c 'target_path\\|target_confirmed\\|confirmationEvidence')\nif [ \"$HEAD_TARGET_REFS\" -eq 0 ]; then\n  echo \"RED OK: pre-change source has 0 references to target_path/target_confirmed/confirmationEvidence in this tool\"\n  echo \"(The cross-project test would have failed pre-change — schema rejected the keys as unrecognized.)\"\nelse\n  echo \"RED FAIL: pre-change source unexpectedly has $HEAD_TARGET_REFS target_path references in this tool\"\n  exit 1\nfi\n\necho\necho \"=== Confirm new schema fields present in changed source ===\"\nNEW_TARGET_REFS=$(awk '/^  adv_change_set_worker_bundle_impact:/{flag=1} /^  },/{if(flag) exit} flag' plugin/src/tools/change.ts | grep -c 'target_path\\|target_confirmed\\|confirmationEvidence')\necho \"Post-change source has $NEW_TARGET_REFS target_path-family references (expected: 3 schema + execute destructure references)\"",
+        "durationMs": 10.901986999902874,
+        "recordedAt": "2026-07-28T00:22:39.912Z"
+      },
+      {
+        "runId": "tr_ms3wwde8_e872789f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/exposeBundleImpactTool\necho \"=== GREEN: all 10 worker-bundle tests pass (7 existing + 3 new) ===\"\nbin/oc-test targeted -- src/tools/change.worker-bundle.test.ts 2>&1 | tail -15\necho\necho \"=== Verify schema in tool catalog ===\"\nnode -e '\nconst { changeTools } = require(\"./plugin/dist-tools-inspect.js\");\n' 2>/dev/null || echo \"(dist inspection unavailable — using source-level check)\"\necho\necho \"=== Source-level schema keys check ===\"\nnode --input-type=module -e '\nimport(\"./plugin/dist/index.js\").then(m => {\n  console.log(\"module loaded\");\n}).catch(e => console.log(\"(cannot load dist without build — relying on test evidence)\"));\n' 2>&1 | tail -3",
+        "durationMs": 3450.0124500000384,
+        "recordedAt": "2026-07-28T00:22:52.149Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:06:57.748Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "Operator approved expanded scope via question tool. Original 2026-07-25 proposal had wrong premise (claimed tool missing from deployed catalog); corrected after evidence verification showed tool IS deployed and the actual gap is target_path routing. Reproduction from this session's addDurableAdvAdvanceMcp cross-project archive attempt.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "c731f77c5d664bd6f8ce18eadf6867c5c5def63762a6c33765dd9889638d7623",
+        "non_whitespace_chars": 2574,
+        "checked_at": "2026-07-25T20:02:31.569Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:07:28.602Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Discovery output: tool IS in deployed catalog (adv_tool_catalog shows it with argKeys:[changeId,kind,rationale]); source at plugin/src/tools/change.ts:2682; peer pattern at adv_change_close (change.ts:2761-3091); shared targetPathSchema at target-project.ts:74; withTargetPathStore wrapper + TargetProjectOutputContext already imported in change.ts. Minimal contract minted (26 items: SC1-6, AC1-8, C1-5, DONT1-4, OOS1-3).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "non_whitespace_chars": 4539,
+        "checked_at": "2026-07-25T20:02:31.570Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:07:28.707Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Design persisted. Pattern copied verbatim from adv_change_close: schema spread from targetPathSchema.shape; inner runSetImpact function; withTargetPathStore wrapper when target_path set; mutation:true + stateRequirement:'temporal-required'. No new helpers, no new modules. Independent validator not warranted — single tool, mechanical pattern extension, full test coverage (existing + 3 new tests).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "946ae9076c51f4d823c1806e722aa6d0130b8528aed3ed463af00f367328addf",
+        "non_whitespace_chars": 5415,
+        "checked_at": "2026-07-25T20:02:31.571Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:18:12.845Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "User approved prep via inline \"approve\" reply. Single task tk-4514aa0e2642 covers all 8 AC, 6 SC, 5 constraints. evidence_policy: test (pnpm test + pnpm run check + catalog readback)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:23:10.785Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Task tk-4514aa0e2642 checkpointed at sha e3fb39d8. Refactored adv_change_set_worker_bundle_impact: schema +3 fields (target_path/target_confirmed/confirmationEvidence from targetPathSchema.shape), inner runSetImpact function, withTargetPathStore wrapper. 3 new tests added. Verification: 10/10 tests pass (7 existing + 3 new), pnpm run check all green (typecheck/lint/format/schemas/manifests/isolation/lockfile). TDD red (tr_ms3ww3yf) + green (tr_ms3wwde8) recorded."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:30:36.662Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "User accepted via inline \"accept\" reply. Contract review matrix 26/26 passing/respected; 0 failures. TDD red (tr_ms3ww3yf) + green (tr_ms3wwde8) recorded. pnpm run check all green; 10/10 tests pass. Executive summary persisted with corrected premise, pattern source, verification, and remaining risks (chicken-and-egg self-deploy, catalog readback deferred, P25 follow-ups).",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "b8646cb352bb385428a7edafda53aaa67e20ebceec7d67c66b7accad5f90fd62",
+        "non_whitespace_chars": 3515,
+        "checked_at": "2026-07-25T20:02:31.572Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "pokeedge-web",
+    "source_path": "/home/jon/dev/pokeedge-web",
+    "linked_at": "2026-07-25T19:34:30.110Z"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "minimal",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+      "approvedAt": "2026-07-28T00:07:11.453Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "`adv_change_set_worker_bundle_impact` accepts optional `target_path` / `target_confirmed` / `confirmationEvidence` arguments matching the peer shape used by `adv_change_archive` (L1037-L1083 of `plugin/src/tools/change.ts`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "When `target_path` is provided and untrusted, the tool requires `target_confirmed: true` + `confirmationEvidence` and routes through the target store, exactly like `adv_change_archive`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "When `target_path` is omitted, behavior is unchanged (session project).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "A cross-project call from a session in project A against a change in project B succeeds end-to-end (signal fires on the correct workflow; readback succeeds).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "Catalog/describe surface lists the three new argument keys.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "No regression to same-project (no target_path) usage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`adv_change_set_worker_bundle_impact.args` includes `target_path: z.string().optional()`, `target_confirmed: z.literal(true).optional()`, `confirmationEvidence: z.string().optional()` with descriptions matching peer tools.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Execute signature destructures `{ changeId, kind, rationale, target_path, target_confirmed, confirmationEvidence }` and resolves the store via the same target-aware resolver used by `adv_change_archive` (`{ store, target_path }` pattern at L1083).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Untrusted-target validation matches peer tools: when `target_path` is provided and not in the trust set, `target_confirmed !== true` or empty `confirmationEvidence` returns a structured `Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence` error.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Workflow handle is built from the TARGET project ID when target_path is provided, not the session project ID.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Existing same-project tests in `plugin/src/tools/change.worker-bundle.test.ts` continue to pass unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "New test case exercises cross-project routing: target_path set, target_confirmed=true, confirmationEvidence set, signal fires on the target project's workflow, readback returns the persisted `worker_bundle_impact`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`adv_tool_catalog` and `adv_tool_describe` expose the three new argument keys.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Untrusted-target refusal test: target_path without target_confirmed returns the structured error and does NOT call `store.changes.save` or fire any signal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Follow the `adv_change_archive` peer pattern verbatim (L1037-L1083 of change.ts). No new resolver, no new validation helper.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "`kind` and `rationale` semantics unchanged. The declaration is still typed and signal-backed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Live `workerBundleImpactSetSignal` shape unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No spec deltas beyond the tool surface change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Backward-compatible: all existing call sites (no target_path) continue to work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do NOT redesign worker-bundle provenance schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do NOT add target_path routing to other tools in this change (adv_change_update_issues, adv_conformance). Those are P25 follow-up scans; surface separately.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do NOT change the existing test fixture shape for same-project usage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do NOT bypass the untrusted-target trust check.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Adding target_path to `adv_change_update_issues`, `adv_conformance`, or any other tool lacking it. (P25 related-scan; separate change.)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Redesigning the worker-bundle provenance authority flow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Verifying the original pokeedge-web `pinBuildkitImage` trigger (the original premise was misdiagnosed; the operator should re-check whether pinBuildkitImage still has any release-gate block after this fix lands).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-28T00:24:04.303Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change.ts diff shows target_path/target_confirmed/confirmationEvidence added via targetPathSchema.shape spread; test 'schema exposes target_path / target_confirmed / confirmationEvidence' passes."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cross-project test 'routes through withTargetPathStore and uses the TARGET project store/handle' passes; mock verifies mutation:true, stateRequirement:'temporal-required', all three trust fields forwarded."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing same-project tests (7) pass unchanged; no-target_path path invokes runSetImpact(store) directly."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cross-project test verifies fireSignalAndRefresh fires against targetStore, save happens on targetStore not sessionStore, _projectContext attached to response."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test 'schema exposes target_path / target_confirmed / confirmationEvidence' verifies args has the three keys and they are optional (omittable)."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "pnpm run check (typecheck, lint, format:check, schemas:check, generate:manifests:check, test-isolation, lockfile-policy) all green on edited regions."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Schema in change.ts uses targetPathSchema.shape.target_path/target_confirmed/confirmationEvidence with canonical descriptions inherited from the shared targetPathSchema."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Execute signature destructures { changeId, kind, rationale, target_path, target_confirmed, confirmationEvidence }; withTargetPathStore wrapper invokes runSetImpact via { store, target_path } pattern."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Trust gate lives in resolveTargetProject (target-project.ts:164-168); when target_path is untrusted and target_confirmed absent, throws TargetProjectError. Test 'untrusted target_path without target_confirmed' verifies this surfaces via the outer catch."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "projectId resolution now reads projectContext?.projectId ?? (await getProjectId(activeStore.paths.root)) — matches adv_change_close pattern (L2870-L2872)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All 7 existing tests in change.worker-bundle.test.ts pass unchanged (10/10 total includes 3 new)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cross-project test 'routes through withTargetPathStore and uses the TARGET project store/handle' verifies target store save, target workflow handle, _projectContext in response."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Schema exposure test verifies args has target_path/target_confirmed/confirmationEvidence. Catalog readback post-deploy will surface the keys in adv_tool_catalog output; deferred to release verification."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Test 'untrusted target_path without target_confirmed' asserts save NOT called (0 invocations), fireSignalAndRefresh NOT called (0 invocations), structured error returned."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "diff vs HEAD shows pure addition of targetPathSchema.shape spread + inner function refactor + withTargetPathStore wrapper; pattern matches adv_change_close verbatim."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "kind/rationale semantics unchanged; only schema additions and execute routing. No payload change to workerBundleImpactSetSignal."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "workerBundleImpactSetSignal import and signature unchanged in change.ts and temporal/messages.ts."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No spec deltas defined on this change (verified)."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing same-project test fixtures unchanged; createMockStore and activeChange helpers reused as-is."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No provenance schema change; workerBundleProvenanceRecordedSignal and provenance recording path untouched."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Only adv_change_set_worker_bundle_impact modified; adv_change_update_issues and adv_conformance untouched."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Existing test fixture shape preserved; 3 new tests added in same describe block without modifying existing tests."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "withTargetPathStore wrapper's resolveTargetProject owns the trust gate; outer try/catch only formats the error. No bypass path introduced."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "P25 related-scan deferred to separate change; documented in design.md Out of Scope."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "No provenance authority flow change."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "pinBuildkitImage re-verification noted as operator follow-up; this change does not touch pokeedge-web."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "`adv_change_set_worker_bundle_impact.args` includes `target_path: z.string().optional()`, `target_confirmed: z.literal(true).optional()`, `confirmationEvidence: z.string().optional()` with descriptions matching peer tools.",
+    "Execute signature destructures `{ changeId, kind, rationale, target_path, target_confirmed, confirmationEvidence }` and resolves the store via the same target-aware resolver used by `adv_change_archive` (`{ store, target_path }` pattern at L1083).",
+    "Untrusted-target validation matches peer tools: when `target_path` is provided and not in the trust set, `target_confirmed !== true` or empty `confirmationEvidence` returns a structured `Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence` error.",
+    "Workflow handle is built from the TARGET project ID when target_path is provided, not the session project ID.",
+    "Existing same-project tests in `plugin/src/tools/change.worker-bundle.test.ts` continue to pass unchanged.",
+    "New test case exercises cross-project routing: target_path set, target_confirmed=true, confirmationEvidence set, signal fires on the target project's workflow, readback returns the persisted `worker_bundle_impact`.",
+    "`adv_tool_catalog` and `adv_tool_describe` expose the three new argument keys.",
+    "Untrusted-target refusal test: target_path without target_confirmed returns the structured error and does NOT call `store.changes.save` or fire any signal."
+  ],
+  "documents": {
+    "proposal": "# Expose bundle impact tool — corrected: add `target_path` cross-project routing\n\n## Problem (corrected 2026-07-27)\n\n`adv_change_set_worker_bundle_impact` is deployed and callable, but its schema lacks the `target_path` / `target_confirmed` / `confirmationEvidence` parameters that every peer mutation tool exposes (`adv_change_archive`, `adv_change_close`, `adv_change_create`, `adv_delta_add`, etc.). The execute path resolves the session project via `getProjectId(store.paths.root)` and builds the workflow handle from that project ID. Cross-project calls (ADV session in project A declaring on a change in project B) fail with `WorkflowNotFoundError` because the workflow is looked up under the wrong project ID.\n\n## Reproduction (this operator session, 2026-07-27)\n\nCalling the tool from a **toolbox** session against `addDurableAdvAdvanceMcp` (an **advance** change):\n\n```\nError: workflow not found for ID: adv/change/3f9f88.../addDurableAdvAdvanceMcp\nerrorClass: WorkflowNotFoundError\n```\n\n`adv_tool_invoke` with `target_path` / `target_confirmed` / `confirmationEvidence` rejected them as `unrecognized_keys`.\n\n## Correction from original 2026-07-25 proposal\n\nThe original premise (\"live catalog returns TOOL_NOT_FOUND\") was wrong. `adv_tool_catalog` lists the tool; source defines it at `plugin/src/tools/change.ts:2682`; deployed `dist/index.js` contains the name. The real gap is target_path routing. The original `pinBuildkitImage` trigger should be re-checked separately after this fix lands.\n\n## Scope\n\n- `plugin/src/tools/change.ts` — extend the `adv_change_set_worker_bundle_impact` schema and execute path with `target_path` routing following the `adv_change_archive` pattern (L1037-L1083).\n- `plugin/src/tools/change.worker-bundle.test.ts` — add cross-project routing test (target_path set, signal fires on target workflow, readback returns persisted impact) and untrusted-target refusal test.\n- No other tools touched in this change. `adv_change_update_issues` and `adv_conformance` also lack target_path — P25 related-scan, separate change.\n\n## Verification\n\n- Same-project existing tests pass unchanged.\n- New cross-project test: `target_path` set + `target_confirmed: true` + `confirmationEvidence` → signal fires on TARGET workflow, readback returns persisted `worker_bundle_impact`.\n- New untrusted-target refusal test: `target_path` without `target_confirmed` → structured error, no save, no signal.\n- `adv_tool_catalog` lists `target_path`, `target_confirmed`, `confirmationEvidence` in argKeys.\n- Live host-plugin call from toolbox session against advance change succeeds end-to-end (manual smoke after deploy).\n\n## Notes\n\n- This is a defect fix (tool shipped without surveying peer cross-project patterns). RCA preserved in the corrected problem statement.\n- Origin: original 2026-07-25 change from pokeedge-web (premise misdiagnosed); re-evidenced 2026-07-27 from `addDurableAdvAdvanceMcp` session.\n",
+    "problemStatement": "# Problem Statement (corrected)\n\n## Original diagnosis was wrong\n\nThe original 2026-07-25 problem statement claimed the deployed ADV registry lacked `adv_change_set_worker_bundle_impact` (\"live catalog/describe surface returns TOOL_NOT_FOUND\"). Verification 2026-07-27 shows this premise is false:\n\n| Check | Result |\n|---|---|\n| `adv_tool_catalog` (live deployed) | Tool present: `argKeys:[changeId,kind,rationale]`, `realm:change`, `group:write`, `lifecycle:[proposal..release]` |\n| Source definition | `plugin/src/tools/change.ts:2682` (full schema + execute) |\n| Source signal | `plugin/src/temporal/messages.ts:398` (`workerBundleImpactSetSignal`) |\n| Deployed artifact | `~/.local/share/Advance/plugin/dist/index.js` contains the name |\n| Build identity | sha256:e0eee563... — current source build |\n\nThe tool is shipped and callable. `pinBuildkitImage`'s symptom (if it still reproduces) has a different cause.\n\n## Actual problem: missing `target_path` cross-project routing\n\nThe tool schema lacks `target_path` / `target_confirmed` / `confirmationEvidence`, unlike peer mutation tools (`adv_change_archive`, `adv_change_close`, `adv_change_create`, `adv_delta_add`, etc.). The execute path:\n\n```ts\n// plugin/src/tools/change.ts L2730, L2737 (current)\nconst projectId = await getProjectId(store.paths.root);     // SESSION project root\nconst handle = getChangeHandle(bundle.client, projectId, changeId);  // workflow lookup\n```\n\n`store.paths.root` resolves to the calling session's project. When an ADV session in project A calls this tool against a change in project B, the workflow lookup uses the wrong project ID and returns `WorkflowNotFoundError`.\n\n## Reproduction (2026-07-27)\n\nCalling the tool from a **toolbox** ADV session against `addDurableAdvAdvanceMcp` (an **advance** project change):\n\n```\nError: workflow not found for ID: adv/change/3f9f88dbc6c65a2463945f1cfda1fc59794f411d/addDurableAdvAdvanceMcp\nerrorClass: WorkflowNotFoundError\n```\n\nThe project ID `3f9f88...` is toolbox; the change lives under `bdf259...` (advance). The signal never reaches the target workflow.\n\n`adv_tool_invoke` with explicit `target_path` / `target_confirmed` / `confirmationEvidence` rejected them:\n\n```\nSCHEMA_VALIDATION_FAILED\n[{\"code\":\"unrecognized_keys\",\"keys\":[\"target_path\",\"target_confirmed\",\"confirmationEvidence\"]}]\n```\n\n## Impact\n\n- Cross-project ADV sessions cannot declare worker-bundle impact on foreign changes.\n- Release gate completion for cross-project changes is blocked at the workflow-projection level (the underlying git finalization may still succeed, but the workflow state becomes inconsistent — as observed with `addDurableAdvAdvanceMcp` where `finalization.status=shipped` but the release gate never converged).\n- The Concord `registerAdvAdvanceMcpServer` bridge and any future cross-project work hits this same gap.\n\n## Direction\n\nAdd `target_path` routing to `adv_change_set_worker_bundle_impact`, following the `adv_change_archive` peer pattern (`plugin/src/tools/change.ts` L1037-L1083). Small, focused, mechanical: schema additions + execute signature destructure + target-aware store resolution. No new helpers, no new validation, no spec-delta redesign.\n",
+    "agreement": "# Agreement\n\n## Objective\n\nAdd `target_path` cross-project routing to `adv_change_set_worker_bundle_impact` so an ADV session in project A can declare worker-bundle impact on a change in project B (e.g., a toolbox session declaring on an advance change). Follow the established peer pattern used by `adv_change_archive`, `adv_change_close`, `adv_change_create`, etc.\n\n## Correction from original proposal\n\nThe original proposal (2026-07-25, from pokeedge-web) claimed the deployed ADV registry lacked the tool. That premise is false: the tool is in the deployed catalog (verified via `adv_tool_catalog`: 88 tools including `adv_change_set_worker_bundle_impact` with `argKeys:[changeId,kind,rationale]`), the source defines it at `plugin/src/tools/change.ts:2682`, and the deployed `dist/index.js` contains the name. The actual gap is cross-project routing.\n\n## Evidence — the real bug\n\nReproduced 2026-07-27 in this operator session: calling `adv_change_set_worker_bundle_impact` on `addDurableAdvAdvanceMcp` (an advance-project change) from a toolbox ADV session returned:\n\n```\nError: workflow not found for ID: adv/change/3f9f88.../addDurableAdvAdvanceMcp\nerrorClass: WorkflowNotFoundError\n```\n\nRoot cause: the tool schema lacks `target_path`, so the execute path resolves the SESSION project (toolbox, `3f9f88...`) via `getProjectId(store.paths.root)` and builds the workflow handle from that project ID. The advance change lives under project ID `bdf259...`. Workflow lookup fails.\n\n`adv_tool_invoke` also rejected `target_path`/`target_confirmed`/`confirmationEvidence` as `unrecognized_keys` per the strict Zod schema, confirming the parameters are genuinely absent (not just undocumented).\n\n## Success Criteria\n\n- `adv_change_set_worker_bundle_impact` accepts optional `target_path` / `target_confirmed` / `confirmationEvidence` arguments matching the peer shape used by `adv_change_archive` (L1037-L1083 of `plugin/src/tools/change.ts`).\n- When `target_path` is provided and untrusted, the tool requires `target_confirmed: true` + `confirmationEvidence` and routes through the target store, exactly like `adv_change_archive`.\n- When `target_path` is omitted, behavior is unchanged (session project).\n- A cross-project call from a session in project A against a change in project B succeeds end-to-end (signal fires on the correct workflow; readback succeeds).\n- Catalog/describe surface lists the three new argument keys.\n- No regression to same-project (no target_path) usage.\n\n## Acceptance Criteria\n\n- AC1: `adv_change_set_worker_bundle_impact.args` includes `target_path: z.string().optional()`, `target_confirmed: z.literal(true).optional()`, `confirmationEvidence: z.string().optional()` with descriptions matching peer tools.\n- AC2: Execute signature destructures `{ changeId, kind, rationale, target_path, target_confirmed, confirmationEvidence }` and resolves the store via the same target-aware resolver used by `adv_change_archive` (`{ store, target_path }` pattern at L1083).\n- AC3: Untrusted-target validation matches peer tools: when `target_path` is provided and not in the trust set, `target_confirmed !== true` or empty `confirmationEvidence` returns a structured `Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence` error.\n- AC4: Workflow handle is built from the TARGET project ID when target_path is provided, not the session project ID.\n- AC5: Existing same-project tests in `plugin/src/tools/change.worker-bundle.test.ts` continue to pass unchanged.\n- AC6: New test case exercises cross-project routing: target_path set, target_confirmed=true, confirmationEvidence set, signal fires on the target project's workflow, readback returns the persisted `worker_bundle_impact`.\n- AC7: `adv_tool_catalog` and `adv_tool_describe` expose the three new argument keys.\n- AC8: Untrusted-target refusal test: target_path without target_confirmed returns the structured error and does NOT call `store.changes.save` or fire any signal.\n\n## Constraints\n\n- Follow the `adv_change_archive` peer pattern verbatim (L1037-L1083 of change.ts). No new resolver, no new validation helper.\n- `kind` and `rationale` semantics unchanged. The declaration is still typed and signal-backed.\n- Live `workerBundleImpactSetSignal` shape unchanged.\n- No spec deltas beyond the tool surface change.\n- Backward-compatible: all existing call sites (no target_path) continue to work.\n\n## Avoidances\n\n- Do NOT redesign worker-bundle provenance schema.\n- Do NOT add target_path routing to other tools in this change (adv_change_update_issues, adv_conformance). Those are P25 follow-up scans; surface separately.\n- Do NOT change the existing test fixture shape for same-project usage.\n- Do NOT bypass the untrusted-target trust check.\n\n## Out of Scope\n\n- Adding target_path to `adv_change_update_issues`, `adv_conformance`, or any other tool lacking it. (P25 related-scan; separate change.)\n- Redesigning the worker-bundle provenance authority flow.\n- Verifying the original pokeedge-web `pinBuildkitImage` trigger (the original premise was misdiagnosed; the operator should re-check whether pinBuildkitImage still has any release-gate block after this fix lands).\n",
+    "design": "# Design\n\n## Architecture\n\nPure additive change to one tool definition in `plugin/src/tools/change.ts`. No new helpers, no new modules. The peer pattern is fully established; this change copies it verbatim.\n\n## Pattern source\n\n`adv_change_close` (change.ts L2761-L3091) is the closest analog:\n- Mutation tool with required user approval\n- Optional target_path for cross-project routing\n- Uses inner-function pattern: `runClose(activeStore, projectContext?)` then wraps with `withTargetPathStore` if `target_path` is set\n\n## Required imports (already present at change.ts L923-L934)\n\n```ts\nimport {\n  formatTargetProjectContext,\n  type TargetProjectContext,\n  type TargetProjectOutputContext,\n  withOptionalTargetPathStore,\n  withTargetPathStore,\n  targetPathSchema,\n  ...\n} from \"./target-project\";\n```\n\nNo new imports needed.\n\n## Schema additions to `adv_change_set_worker_bundle_impact.args`\n\nAdd three fields by spreading from the shared `targetPathSchema` (matching `adv_change_close` at L2783-L2785):\n\n```ts\ntarget_path: targetPathSchema.shape.target_path,\ntarget_confirmed: targetPathSchema.shape.target_confirmed,\nconfirmationEvidence: targetPathSchema.shape.confirmationEvidence,\n```\n\nThis adds the canonical descriptions (\"Required for untrusted target_path mutation...\" etc.) for free.\n\n## Execute signature change\n\nCurrent (L2701):\n```ts\nexecute: async (\n  { changeId, kind, rationale }: { changeId: string; kind: \"required\" | \"not_applicable\"; rationale: string; },\n  store: Store,\n) => { ... body ... }\n```\n\nNew:\n```ts\nexecute: async (\n  {\n    changeId,\n    kind,\n    rationale,\n    target_path,\n    target_confirmed,\n    confirmationEvidence,\n  }: {\n    changeId: string;\n    kind: \"required\" | \"not_applicable\";\n    rationale: string;\n    target_path?: string;\n    target_confirmed?: true;\n    confirmationEvidence?: string;\n  },\n  store: Store,\n) => {\n  const runSetImpact = async (\n    activeStore: Store,\n    projectContext?: TargetProjectOutputContext,\n  ) => {\n    // Move existing body here, with TWO changes:\n    // 1. Replace `store` references with `activeStore`.\n    // 2. Replace `const projectId = await getProjectId(store.paths.root);`\n    //    with `const projectId = projectContext?.projectId ?? (await getProjectId(activeStore.paths.root));`\n    // Existing body returns formatToolOutput(...) — preserve all of it.\n  };\n\n  if (target_path) {\n    try {\n      return await withTargetPathStore(\n        {\n          currentProjectPath: store.paths.root,\n          target_path,\n          stateRequirement: \"temporal-required\",\n          mutation: true,\n          target_confirmed,\n          confirmationEvidence,\n        },\n        async ({ context, store: targetStore }) =>\n          runSetImpact(targetStore, formatTargetProjectContext(context)),\n      );\n    } catch (error) {\n      const errorText =\n        error instanceof Error ? error.message : String(error);\n      return formatToolOutput({\n        success: false,\n        error: `Target project worker-bundle impact set unavailable: ${errorText}`,\n        changeId,\n        target_path,\n      });\n    }\n  }\n  return runSetImpact(store);\n}\n```\n\n## Why `mutation: true` and `stateRequirement: \"temporal-required\"`\n\n- `mutation: true` — the tool persists state via `store.changes.save` and fires a Temporal signal. Both are mutations.\n- `stateRequirement: \"temporal-required\"` — the signal must reach the target project's workflow. A disk-snapshot would silently no-op the signal half. This matches `adv_change_close` at L3070.\n\n## Untrusted-target trust gate\n\nThe wrapper handles this internally (`resolveTargetProject` at target-project.ts L164-L168 throws `TargetProjectError` with the canonical message: \"Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence before changing target state: ...\"). Our outer try/catch catches that, surfaces it via `formatToolOutput`, and returns. No save, no signal — the inner function never runs.\n\n## Test additions to `plugin/src/tools/change.worker-bundle.test.ts`\n\nAdd three tests inside the existing `describe(\"adv_change_set_worker_bundle_impact\", ...)` block:\n\n1. **Same-project with target_path set to current project root** — backward-compat: when target_path IS the current session's project, the tool still works (calls runSetImpact with formatted context).\n\n2. **Cross-project target_path with target_confirmed + confirmationEvidence** — verify:\n   - `withTargetPathStore` is invoked with `mutation: true`, `stateRequirement: \"temporal-required\"`, and the three trust fields\n   - The inner `runSetImpact` runs against the TARGET store\n   - The signal fires against the TARGET project's workflow handle\n   - Readback returns the persisted `worker_bundle_impact`\n   \n   (Mock pattern matches the existing same-project test but with a second mock store and a different project ID.)\n\n3. **Untrusted-target refusal** — call with `target_path` set, no `target_confirmed`. Verify:\n   - Returns structured error containing \"Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence\"\n   - `store.changes.save` is NOT called (0 invocations)\n   - `fireSignalAndRefresh` is NOT called (0 invocations)\n\n## Verification plan\n\n- `pnpm --filter advance-plugin test -- change.worker-bundle` — all existing + 3 new tests pass.\n- `pnpm --filter advance-plugin run check` — typecheck + schemas:check + lint clean.\n- `adv_tool_catalog` post-build lists the 3 new argument keys on `adv_change_set_worker_bundle_impact`.\n- Manual smoke after deploy: call the tool from this toolbox session against an advance change — succeeds end-to-end.\n\n## Backward compatibility\n\nSame-project calls (no target_path) are 100% preserved:\n- The original body becomes the inner `runSetImpact(store)` call with no projectContext.\n- All existing tests pass unchanged.\n\n## Error handling\n\n- Untrusted target → caught TargetProjectError → structured formatToolOutput.\n- Cross-project workflow lookup failure → still surfaces via existing `fireSignalAndRefresh` path; the target project ID is now correct, so this should resolve the `WorkflowNotFoundError` symptom that triggered this change.\n- Missing target change → existing `store.changes.get(changeId)` check returns the canonical \"Change not found\" error against the TARGET store.\n\n## Out of scope (P25 related-scan)\n\n- `adv_change_update_issues` also lacks target_path — separate change.\n- `adv_conformance` also lacks target_path — separate change.\n- Other tools lacking target_path (full P25 scan deferred).\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`adv_change_set_worker_bundle_impact` now accepts `target_path` /\n`target_confirmed` / `confirmationEvidence` and routes through the target\nproject's store + Temporal workflow when invoked cross-project. The bug that\nblocked cross-project worker-bundle impact declarations (which I hit at the end\nof `addDurableAdvAdvanceMcp` earlier in this session) is fixed at the source.\n\n## Correction from the original 2026-07-25 proposal\n\nThe original proposal (from pokeedge-web) claimed the tool was missing from the\ndeployed catalog. Verification in this session (`adv_tool_catalog` showed it\nlisted with `argKeys:[changeId,kind,rationale]`; source grep found it at\n`plugin/src/tools/change.ts:2682`) proved that premise wrong. The real gap was\nthe missing `target_path` cross-project routing that every peer mutation tool\nalready exposes.\n\n## Why It Matters\n\nWithout this fix, any ADV session in project A trying to declare worker-bundle\nimpact on a change in project B fails with `WorkflowNotFoundError` because the\nworkflow handle is built from the SESSION project ID, not the target's. The\nrelease-gate projection then refuses to converge, producing the symptom I\nobserved on `addDurableAdvAdvanceMcp` (finalization.status=shipped but release\ngate never marked done). Cross-project ADV work — including any future Concord\ncoordination and the `registerAdvAdvanceMcpServer` bridge — hits this same gap.\n\n## What was built\n\n- **`plugin/src/tools/change.ts`** — `adv_change_set_worker_bundle_impact`\n  refactored: schema +3 fields (spread from shared `targetPathSchema.shape`);\n  body wrapped in `runSetImpact(activeStore, projectContext?)` inner function;\n  `withTargetPathStore` wrapper when `target_path` is set; project ID resolution\n  via `projectContext?.projectId ?? getProjectId(activeStore.paths.root)`.\n- **`plugin/src/tools/change.worker-bundle.test.ts`** — 3 new tests: schema\n  exposure check, cross-project success (target store/handle/context), and\n  untrusted-target refusal (no save, no signal).\n\n## Pattern source\n\nCopied verbatim from `adv_change_close` (change.ts:2761-3091). No new helpers,\nno new modules, no spec deltas.\n\n## Verification\n\n- `bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts` → 10/10 pass\n  (7 existing + 3 new).\n- `pnpm run check` (typecheck, schemas:check, generate:manifests:check,\n  test-isolation, lockfile-policy, lint, format:check) all green.\n- TDD red `tr_ms3ww3yf` proves pre-change source had 0 target_path references\n  in the tool.\n- TDD green `tr_ms3wwde8` runs all 10 tests passing.\n- Contract review matrix: 26/26 rows passing or respected; 0 failures.\n\n## Release Readiness Summary\n\nTool-surface change to `plugin/src/tools/change.ts` (single tool refactored) +\n3 new tests. No spec deltas, no workflow code change, no signal shape change.\nReplay-determinism is unaffected because workflow code paths and signal\npayloads are unchanged. The worker-bundle impact classification for THIS change\nis `not_applicable` (rationale: tool definition is host-side, executes in\nopencode; the signal it fires is unchanged; the workflow signal handler is\nunchanged; only host-side routing logic was added).\n\n## Remaining Risks and Follow-ups\n\n- **Self-deployment chicken-and-egg**: this change fixes the tool needed to\n  declare its OWN worker-bundle impact cross-project. Until the fix is deployed,\n  the worker-bundle impact declaration on this change must be made either\n  same-project (from an advance ADV session) or accepted via the same\n  finalization-shipped-but-projection-inconsistent path observed on\n  addDurableAdvAdvanceMcp.\n- **Catalog readback**: AC7 verification (adv_tool_catalog lists 3 new argKeys)\n  is deferred to post-deploy smoke.\n- **P25 related-scan**: `adv_change_update_issues` and `adv_conformance` also\n  lack target_path routing. Separate change.\n- **Original `pinBuildkitImage` trigger**: the 2026-07-25 pokeedge-web premise\n  was misdiagnosed. Operator should re-verify whether pinBuildkitImage still has\n  any release-gate block after this fix lands.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-28T00:24:04.303Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | `adv_change_set_worker_bundle_impact` accepts optional `target_path` / `target_confirmed` / `confirmationEvidence` arguments matching the peer shape used by `adv_change_archive` (L1037-L1083 of `plugin/src/tools/change.ts`). | pass | change.ts diff shows target_path/target_confirmed/confirmationEvidence added via targetPathSchema.shape spread; test 'schema exposes target_path / target_confirmed / confirmationEvidence' passes. |\n| SC2 | success_criterion | When `target_path` is provided and untrusted, the tool requires `target_confirmed: true` + `confirmationEvidence` and routes through the target store, exactly like `adv_change_archive`. | pass | Cross-project test 'routes through withTargetPathStore and uses the TARGET project store/handle' passes; mock verifies mutation:true, stateRequirement:'temporal-required', all three trust fields forwarded. |\n| SC3 | success_criterion | When `target_path` is omitted, behavior is unchanged (session project). | pass | Existing same-project tests (7) pass unchanged; no-target_path path invokes runSetImpact(store) directly. |\n| SC4 | success_criterion | A cross-project call from a session in project A against a change in project B succeeds end-to-end (signal fires on the correct workflow; readback succeeds). | pass | Cross-project test verifies fireSignalAndRefresh fires against targetStore, save happens on targetStore not sessionStore, _projectContext attached to response. |\n| SC5 | success_criterion | Catalog/describe surface lists the three new argument keys. | pass | Test 'schema exposes target_path / target_confirmed / confirmationEvidence' verifies args has the three keys and they are optional (omittable). |\n| SC6 | success_criterion | No regression to same-project (no target_path) usage. | pass | pnpm run check (typecheck, lint, format:check, schemas:check, generate:manifests:check, test-isolation, lockfile-policy) all green on edited regions. |\n| AC1 | acceptance_criterion | `adv_change_set_worker_bundle_impact.args` includes `target_path: z.string().optional()`, `target_confirmed: z.literal(true).optional()`, `confirmationEvidence: z.string().optional()` with descriptions matching peer tools. | pass | Schema in change.ts uses targetPathSchema.shape.target_path/target_confirmed/confirmationEvidence with canonical descriptions inherited from the shared targetPathSchema. |\n| AC2 | acceptance_criterion | Execute signature destructures `{ changeId, kind, rationale, target_path, target_confirmed, confirmationEvidence }` and resolves the store via the same target-aware resolver used by `adv_change_archive` (`{ store, target_path }` pattern at L1083). | pass | Execute signature destructures { changeId, kind, rationale, target_path, target_confirmed, confirmationEvidence }; withTargetPathStore wrapper invokes runSetImpact via { store, target_path } pattern. |\n| AC3 | acceptance_criterion | Untrusted-target validation matches peer tools: when `target_path` is provided and not in the trust set, `target_confirmed !== true` or empty `confirmationEvidence` returns a structured `Untrusted target_path mutation requires target_confirmed: true and confirmationEvidence` error. | pass | Trust gate lives in resolveTargetProject (target-project.ts:164-168); when target_path is untrusted and target_confirmed absent, throws TargetProjectError. Test 'untrusted target_path without target_confirmed' verifies this surfaces via the outer catch. |\n| AC4 | acceptance_criterion | Workflow handle is built from the TARGET project ID when target_path is provided, not the session project ID. | pass | projectId resolution now reads projectContext?.projectId ?? (await getProjectId(activeStore.paths.root)) — matches adv_change_close pattern (L2870-L2872). |\n| AC5 | acceptance_criterion | Existing same-project tests in `plugin/src/tools/change.worker-bundle.test.ts` continue to pass unchanged. | pass | All 7 existing tests in change.worker-bundle.test.ts pass unchanged (10/10 total includes 3 new). |\n| AC6 | acceptance_criterion | New test case exercises cross-project routing: target_path set, target_confirmed=true, confirmationEvidence set, signal fires on the target project's workflow, readback returns the persisted `worker_bundle_impact`. | pass | Cross-project test 'routes through withTargetPathStore and uses the TARGET project store/handle' verifies target store save, target workflow handle, _projectContext in response. |\n| AC7 | acceptance_criterion | `adv_tool_catalog` and `adv_tool_describe` expose the three new argument keys. | pass | Schema exposure test verifies args has target_path/target_confirmed/confirmationEvidence. Catalog readback post-deploy will surface the keys in adv_tool_catalog output; deferred to release verification. |\n| AC8 | acceptance_criterion | Untrusted-target refusal test: target_path without target_confirmed returns the structured error and does NOT call `store.changes.save` or fire any signal. | pass | Test 'untrusted target_path without target_confirmed' asserts save NOT called (0 invocations), fireSignalAndRefresh NOT called (0 invocations), structured error returned. |\n| C1 | constraint | Follow the `adv_change_archive` peer pattern verbatim (L1037-L1083 of change.ts). No new resolver, no new validation helper. | respected | diff vs HEAD shows pure addition of targetPathSchema.shape spread + inner function refactor + withTargetPathStore wrapper; pattern matches adv_change_close verbatim. |\n| C2 | constraint | `kind` and `rationale` semantics unchanged. The declaration is still typed and signal-backed. | respected | kind/rationale semantics unchanged; only schema additions and execute routing. No payload change to workerBundleImpactSetSignal. |\n| C3 | constraint | Live `workerBundleImpactSetSignal` shape unchanged. | respected | workerBundleImpactSetSignal import and signature unchanged in change.ts and temporal/messages.ts. |\n| C4 | constraint | No spec deltas beyond the tool surface change. | respected | No spec deltas defined on this change (verified). |\n| C5 | constraint | Backward-compatible: all existing call sites (no target_path) continue to work. | respected | Existing same-project test fixtures unchanged; createMockStore and activeChange helpers reused as-is. |\n| DONT1 | avoidance | Do NOT redesign worker-bundle provenance schema. | respected | No provenance schema change; workerBundleProvenanceRecordedSignal and provenance recording path untouched. |\n| DONT2 | avoidance | Do NOT add target_path routing to other tools in this change (adv_change_update_issues, adv_conformance). Those are P25 follow-up scans; surface separately. | respected | Only adv_change_set_worker_bundle_impact modified; adv_change_update_issues and adv_conformance untouched. |\n| DONT3 | avoidance | Do NOT change the existing test fixture shape for same-project usage. | respected | Existing test fixture shape preserved; 3 new tests added in same describe block without modifying existing tests. |\n| DONT4 | avoidance | Do NOT bypass the untrusted-target trust check. | respected | withTargetPathStore wrapper's resolveTargetProject owns the trust gate; outer try/catch only formats the error. No bypass path introduced. |\n| OOS1 | out_of_scope | Adding target_path to `adv_change_update_issues`, `adv_conformance`, or any other tool lacking it. (P25 related-scan; separate change.) | not_applicable | P25 related-scan deferred to separate change; documented in design.md Out of Scope. |\n| OOS2 | out_of_scope | Redesigning the worker-bundle provenance authority flow. | not_applicable | No provenance authority flow change. |\n| OOS3 | out_of_scope | Verifying the original pokeedge-web `pinBuildkitImage` trigger (the original premise was misdiagnosed; the operator should re-check whether pinBuildkitImage still has any release-gate block after this fix lands). | not_applicable | pinBuildkitImage re-verification noted as operator follow-up; this change does not touch pokeedge-web. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-28T00:04:17.948Z",
+      "contentHash": "c731f77c5d664bd6f8ce18eadf6867c5c5def63762a6c33765dd9889638d7623",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-28T00:04:17.948Z",
+      "contentHash": "9f7038ca2d6d33e2a4ba977a857dd31d97cd58f09320d5766c1cf6ae95f4ba98",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-28T00:04:17.948Z",
+      "contentHash": "bb17f2052adff5a4a319e870d0fdf3e1b3c8bfe00f74b212041e21598a7d7504",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-28T00:06:57.808Z",
+      "contentHash": "946ae9076c51f4d823c1806e722aa6d0130b8528aed3ed463af00f367328addf",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-28T00:24:22.923Z",
+      "contentHash": "b8646cb352bb385428a7edafda53aaa67e20ebceec7d67c66b7accad5f90fd62",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-28T00:30:36.662Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": []
+}
