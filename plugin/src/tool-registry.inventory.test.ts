@@ -129,6 +129,8 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // execution-time provenance recording tool.
   "adv_change_set_worker_bundle_impact",
   "adv_worker_bundle_provenance_record",
+  // addReleaseNotesData adds the typed release-note full-replacement setter.
+  "adv_change_set_release_notes",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;
@@ -338,9 +340,10 @@ describe("public tool inventory — SC1 baseline/final counts", () => {
     // adv_resume_projection; addAdvLauncherReadProjection added
     // adv_launcher_projection_rebuild; fixOpsResolutionProjection added
     // adv_ops_followup_resolution_upsert; addWorkerBundleFreshness added the
-    // worker-bundle impact setter and provenance recorder. Net tracked totals:
-    // 10 named removals + 1 unnamed (roadmap) removal, 18 additions
-    // => 87 = 80 - 10 - 1 + 18.
+    // worker-bundle impact setter and provenance recorder. addReleaseNotesData
+    // added the release-note full-replacement setter. Net tracked totals:
+    // 10 named removals + 1 unnamed (roadmap) removal, 19 additions
+    // => 88 = 80 - 10 - 1 + 19.
     expect(ADV_TOOL_NAMES.length).toBe(
       (baseline as number) -
         landedRemovals -

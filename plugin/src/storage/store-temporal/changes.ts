@@ -31,6 +31,7 @@ import {
   epicMembershipClearedSignal,
   epicMembershipSetSignal,
   executiveSummaryUpdatedSignal,
+  releaseNotesSetSignal,
   problemStatementUpdatedSignal,
   proposalUpdatedSignal,
   updateArtifactMetadataSignal,
@@ -1084,6 +1085,46 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       );
       indexTasksFromState(state);
       updateOverlay(changeId, { epic_membership: state.epic_membership });
+      return state as unknown as Change;
+    },
+    setReleaseNotes: async (changeId, { release_notes, setAt }) => {
+      const recordedAt = setAt ?? new Date().toISOString();
+      invalidateChange(changeId);
+      const commandKind = "releaseNotesSet";
+      const payload = { release_notes, set_at: recordedAt };
+      const { operationId, payloadHash } = buildChangeCommandIdentity(
+        commandKind,
+        payload,
+      );
+      const outcome = await changeCommand({
+        deps,
+        changeId,
+        operationId,
+        commandKind,
+        payloadHash,
+        signal: releaseNotesSetSignal,
+        signalArgs: [
+          {
+            ...payload,
+            operation_id: operationId,
+            command_kind: commandKind,
+            payload_hash: payloadHash,
+          },
+        ],
+        commitProjection: buildSummaryCommitProjection(
+          legacy,
+          changeId,
+          operationId,
+          payloadHash,
+          commandKind,
+        ),
+      });
+      const state = unwrapCommandOutcome(
+        outcome,
+        `changes.setReleaseNotes(${changeId})`,
+      );
+      indexTasksFromState(state);
+      updateOverlay(changeId, { release_notes: state.release_notes });
       return state as unknown as Change;
     },
     close: async (changeId: string, closure: ChangeClosure) => {

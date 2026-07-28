@@ -601,6 +601,16 @@ Before acceptance prompt, persist durable executive summary for non-technical re
    ```
 3. `adv_change_update changeId: {id} executiveSummary: "{composed markdown}"`
 4. Verify: `adv_change_show changeId: {id} include: { executiveSummary: true }` → `_executiveSummary` present and workflow-visible executive-summary artifact metadata exists with content-hash evidence.
+5. At the same executive-summary synthesis point, compose one evidence-backed `ReleaseNotesContent` block and persist it with `adv_change_set_release_notes changeId: {id} release_notes: { ... }`. Use approved contract, task, review, and origin evidence already loaded. Required fields:
+   - `audience`: "external" for user-visible change, "internal" for operator-only, "both" when both.
+   - `category`: deterministic map only — `feat` → "added", `fix` → "fixed", `perf` → "changed". `deprecated`/`removed`/`security` require explicit evidence. If no conventional commit type is available, derive from change evidence; do not guess.
+   Optional fields only with evidence:
+   - `highlights`: one-line bullets from task `implementation_summary` or review findings.
+   - `area`: subsystem/area when clear from `affectedPaths` or tasks.
+   - `breaking`: only if review/harden evidence proves a breaking change; include `description` and optional `migration`.
+   - `links.issue`: `#N` from `change.origin.issue_number` when present.
+   - `links.pr`: only when a PR is already known.
+   Do not require `headline_internal`/`headline_external`. Unsupported semantic fields stay absent; no heuristic authority.
 
 After user accepts, artifact already exists and is workflow-visible. No extra acceptance-step write. If the executive-summary write or metadata signal fails, stop before the acceptance prompt; chat approval alone is not durable acceptance proof.
 

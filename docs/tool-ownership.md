@@ -105,6 +105,7 @@ class rather than operator-only.
 | `adv_change_update_issues` | orchestrator | Issue linkage update |
 | `adv_change_reenter` | orchestrator | Gate re-entry |
 | `adv_change_set_worker_bundle_impact` | orchestrator | Typed worker-bundle impact declaration at planning |
+| `adv_change_set_release_notes` | orchestrator | Workflow-bound release-note data setter |
 
 ### Lightweight change profile
 

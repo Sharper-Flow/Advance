@@ -399,6 +399,10 @@ export const workerBundleImpactSetSignal = wf.defineSignal<
   [WorkerBundleImpactSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleImpactSet);
 
+export const releaseNotesSetSignal = wf.defineSignal<
+  [import("../types").ReleaseNotesSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.releaseNotesSet);
+
 // Epic workflow bindings
 export const getEpicStateQuery = wf.defineQuery<EpicWorkflowState>(
   EPIC_WORKFLOW_QUERY_NAMES.getState,

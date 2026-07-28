@@ -499,6 +499,11 @@ export function createToolMap(
       "adv_change_set_worker_bundle_impact",
       store,
     ),
+    adv_change_set_release_notes: bindTool(
+      changeTools.adv_change_set_release_notes,
+      "adv_change_set_release_notes",
+      store,
+    ),
     adv_change_close: bindTool(
       changeTools.adv_change_close,
       "adv_change_close",

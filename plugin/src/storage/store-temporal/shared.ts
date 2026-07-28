@@ -123,6 +123,7 @@ export function mapTemporalChangeStateToChange(
     ops_followup_links: safeState.ops_followup_links,
     epic_membership: safeState.epic_membership,
     lightweight_profile: safeState.lightweight_profile,
+    release_notes: safeState.release_notes,
   };
 }
 
@@ -162,6 +163,7 @@ const TEMPORAL_OWNED_PROJECTION_FIELDS = [
   "ops_followup_links",
   "epic_membership",
   "lightweight_profile",
+  "release_notes",
 ] as const satisfies readonly (keyof Change)[];
 
 /**

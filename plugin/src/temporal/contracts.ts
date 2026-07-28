@@ -139,6 +139,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   originRepaired: "adv.change.originRepaired",
   workerBundleProvenanceRecorded: "adv.change.workerBundleProvenanceRecorded",
   workerBundleImpactSet: "adv.change.workerBundleImpactSet",
+  releaseNotesSet: "adv.change.releaseNotesSet",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
   prepareBatchClose: "adv.change.prepareBatchClose",
@@ -329,6 +330,7 @@ export interface ChangeWorkflowInput {
       | "creation_request_hash"
       | "worker_bundle_impact"
       | "workerBundleProvenance"
+      | "release_notes"
       | "testRuns"
     >
   >;
@@ -721,6 +723,12 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * `ChangeSchema.worker_bundle_impact`. Optional for backward compatibility.
    */
   worker_bundle_impact?: Change["worker_bundle_impact"];
+  /**
+   * Optional typed release-note content block, mirroring
+   * `ChangeSchema.release_notes`. Full replacement via releaseNotesSetSignal.
+   * Absence remains valid for legacy and current changes without release notes.
+   */
+  release_notes?: Change["release_notes"];
   /**
    * Worker-bundle provenance receipt recorded by
    * workerBundleProvenanceRecordedSignal. Mirrors the signal payload shape.

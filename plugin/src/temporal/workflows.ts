@@ -107,6 +107,7 @@ import {
   updateArtifactMetadataInChangeState,
   applyWorkerBundleProvenanceRecordedToState,
   applyWorkerBundleImpactSetToState,
+  applyReleaseNotesSetToState,
 } from "./change-state";
 import {
   applyChangeLinkedToState,
@@ -363,6 +364,9 @@ const workerBundleProvenanceRecordedSignal = wf.defineSignal<
 const workerBundleImpactSetSignal = wf.defineSignal<
   [import("../types").WorkerBundleImpactSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.workerBundleImpactSet);
+const releaseNotesSetSignal = wf.defineSignal<
+  [import("../types").ReleaseNotesSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.releaseNotesSet);
 const subagentReportSubmittedSignal = wf.defineSignal<
   [import("../types").SubagentReportSubmittedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
@@ -718,6 +722,7 @@ export function buildChangeWorkflowContinueAsNewSeed(
       same_project_dependencies: state.same_project_dependencies,
       worker_bundle_impact: state.worker_bundle_impact,
       workerBundleProvenance: state.workerBundleProvenance,
+      release_notes: state.release_notes,
       testRuns: state.testRuns,
       state_revision: state.state_revision,
       operation_ledger: state.operation_ledger,
@@ -882,6 +887,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.workerBundleProvenance) {
       state.workerBundleProvenance = input.seedState.workerBundleProvenance;
+    }
+    if (input.seedState.release_notes) {
+      state.release_notes = input.seedState.release_notes;
     }
     if (input.seedState.testRuns) {
       state.testRuns = input.seedState.testRuns;
@@ -1644,6 +1652,14 @@ export async function changeWorkflow(
     workerBundleImpactSetSignal,
     signalMutation("workerBundleImpactSet", (payload) =>
       applyWorkerBundleImpactSetToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    releaseNotesSetSignal,
+    signalMutation(
+      "releaseNotesSet",
+      (payload) => applyReleaseNotesSetToState(state, payload),
+      { projectAfter: true },
     ),
   );
   wf.setHandler(

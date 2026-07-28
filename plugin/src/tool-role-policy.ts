@@ -213,6 +213,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Typed worker-bundle impact declaration at planning.",
   },
+  adv_change_set_release_notes: {
+    class: "orchestrator",
+    rationale: "Typed release-note full-replacement setter.",
+  },
   adv_change_update_issues: {
     class: "orchestrator",
     rationale: "Issue linkage update.",
@@ -528,7 +532,7 @@ const TIER_1_ALLOWLIST: readonly string[] = Object.freeze([
 ]);
 
 /**
- * Tier 2 — orchestrator-only top-level (7 tools).
+ * Tier 2 — orchestrator-only top-level (8 tools).
  * Change lifecycle and task creation surface driven by the orchestrator
  * through gate/command workflows. Sub-agents invoke these via
  * adv_tool_invoke when needed.
@@ -537,6 +541,7 @@ const TIER_2_ALLOWLIST: readonly string[] = Object.freeze([
   "adv_change_close",
   "adv_change_create",
   "adv_change_list",
+  "adv_change_set_release_notes",
   "adv_change_update",
   "adv_run_test",
   "adv_task_add",

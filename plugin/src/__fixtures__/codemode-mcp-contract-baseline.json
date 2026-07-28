@@ -1,7 +1,7 @@
 {
-  "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerate only via a deliberate, reviewed migration. Migrated 2026-07-17 (gateAgentToolsRole release): re-frozen from the change/gateAgentToolsRole + trunk merge tree because generated role-policy tools frontmatter (AGENT_TOOL_POLICY manifests) added 343-578 bytes per agent prompt, which the 400-byte mode-guidance budget is not meant to measure. Same class as the 2026-07-15 tk-edda3d10b529 migration. External MCP grants verified byte-identical across the migration. Re-frozen 2026-07-24 (fixArchiveConvergence): +792 bytes/agent CI path-length drift.",
-  "frozenFrom": "change/gateAgentToolsRole merged with origin/trunk 3fc12c67 (post role-policy manifest generation)",
-  "frozenAt": "2026-07-24",
+  "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerate only via a deliberate, reviewed migration. Migrated 2026-07-17 (gateAgentToolsRole release): re-frozen from the change/gateAgentToolsRole + trunk merge tree because generated role-policy tools frontmatter (AGENT_TOOL_POLICY manifests) added 343-578 bytes per agent prompt, which the 400-byte mode-guidance budget is not meant to measure. Same class as the 2026-07-15 tk-edda3d10b529 migration. External MCP grants verified byte-identical across the migration. Re-frozen 2026-07-24 (fixArchiveConvergence): +792 bytes/agent CI path-length drift. Re-frozen 2026-07-28 (addReleaseNotesData): +816 bytes adv-engineer from generated orchestrator frontmatter line for adv_change_set_release_notes.",
+  "frozenFrom": "change/addReleaseNotesData: generated orchestrator frontmatter adds adv_change_set_release_notes",
+  "frozenAt": "2026-07-28",
   "byteBudget": 500,
   "contractBytes": 305,
   "prompts": {
@@ -32,7 +32,7 @@
       ]
     },
     "adv-engineer": {
-      "bytes": 17738,
+      "bytes": 18554,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -148,7 +148,7 @@
       ]
     },
     "adv": {
-      "bytes": 29331,
+      "bytes": 29835,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",

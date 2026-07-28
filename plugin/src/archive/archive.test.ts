@@ -14,6 +14,7 @@ import {
   getArchiveContractProofErrors,
   reconcileInRepoArchive,
 } from "./archive";
+import { ReleaseNotesArchiveEnvelopeSchema } from "../types";
 import {
   TERMINAL_SUMMARY_FILE,
   validateTerminalArchiveSummary,
@@ -516,6 +517,109 @@ describe("contract archive traceability", () => {
 
       expect(existsSync(join(archivePath, "change.json"))).toBe(true);
       expect(existsSync(join(archivePath, "ARCHIVE_SUMMARY.md"))).toBe(true);
+    });
+  });
+
+  describe("release-notes archive sidecar", () => {
+    const releaseNotes = {
+      audience: "external" as const,
+      category: "added" as const,
+      headline_external: "Archives release notes as a sidecar",
+      area: "archive",
+      user_action_required: false,
+    };
+
+    test("writes a validated, newline-terminated release-notes envelope without a PR link", async () => {
+      const root = await tempProject();
+      const change = changeWithContract({
+        id: "release-notes-populated",
+        title: "Release notes populated",
+        release_notes: releaseNotes,
+      });
+      const result = await archiveChange({
+        change,
+        specs: new Map(),
+        paths: {
+          specs: join(root, "specs"),
+          docs: join(root, "docs"),
+          archive: join(root, "archive"),
+        },
+      });
+
+      expect(result.success).toBe(true);
+      const raw = await readFile(
+        join(result.archivePath, "release-notes.json"),
+        "utf-8",
+      );
+      expect(raw.endsWith("\n")).toBe(true);
+      expect(raw.endsWith("\n\n")).toBe(false);
+      expect(ReleaseNotesArchiveEnvelopeSchema.parse(JSON.parse(raw))).toEqual({
+        schema_version: "1.0",
+        change_id: "release-notes-populated",
+        title: "Release notes populated",
+        release_notes: releaseNotes,
+      });
+    });
+
+    test("omits the sidecar when release notes are absent without changing legacy artifacts", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const sourceChangeDir = join(root, "changes", "release-notes-absent");
+      await mkdir(sourceChangeDir, { recursive: true });
+      const executiveSummary =
+        "# Executive Summary\n\nLegacy source artifact.\n";
+      await writeFile(
+        join(sourceChangeDir, "executive-summary.md"),
+        executiveSummary,
+      );
+      const change = changeWithContract({
+        id: "release-notes-absent",
+        title: "Release notes absent",
+      });
+
+      const archivePath = await createInRepoArchive(
+        change,
+        archiveDir,
+        sourceChangeDir,
+      );
+
+      expect(existsSync(join(archivePath, "release-notes.json"))).toBe(false);
+      expect(await readFile(join(archivePath, "change.json"), "utf-8")).toBe(
+        bundleJsonStringify({ ...change, status: "archived" }),
+      );
+      expect(
+        await readFile(join(archivePath, "executive-summary.md"), "utf-8"),
+      ).toBe(executiveSummary);
+    });
+
+    test("does not let a sibling release-notes.json clobber generated release notes", async () => {
+      const root = await tempProject();
+      const archiveDir = join(root, "archive");
+      const sourceChangeDir = join(root, "changes", "release-notes-preserve");
+      await mkdir(sourceChangeDir, { recursive: true });
+      await writeFile(
+        join(sourceChangeDir, "release-notes.json"),
+        JSON.stringify({ bogus: "source content" }),
+      );
+
+      const archivePath = await createInRepoArchive(
+        changeWithContract({
+          id: "release-notes-preserve",
+          title: "Release notes preserve",
+          release_notes: releaseNotes,
+        }),
+        archiveDir,
+        sourceChangeDir,
+      );
+
+      const envelope = ReleaseNotesArchiveEnvelopeSchema.parse(
+        JSON.parse(
+          await readFile(join(archivePath, "release-notes.json"), "utf-8"),
+        ),
+      );
+      expect(envelope.change_id).toBe("release-notes-preserve");
+      expect(envelope.release_notes).toEqual(releaseNotes);
+      expect(envelope).not.toHaveProperty("bogus");
     });
   });
 

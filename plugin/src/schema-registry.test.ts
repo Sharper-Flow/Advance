@@ -18,6 +18,7 @@ describe("generated ADV JSON schema registry", () => {
       "change",
       "delta",
       "project",
+      "release-notes",
       "requirement",
       "scenario",
       "spec",

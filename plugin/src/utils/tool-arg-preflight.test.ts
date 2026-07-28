@@ -9,6 +9,7 @@ import {
 import { createToolMap } from "../tool-registry";
 import { createLegacyStore } from "../storage/store";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
+import { ReleaseNotesContentSchema } from "../types";
 
 type RegressionMatrixCase = {
   label: string;
@@ -1429,6 +1430,68 @@ const PLACEHOLDER_POLICY_REGRESSION_MATRIX: RegressionMatrixCase[] = [
     rawArgs: { maxEntries: 8 },
     ok: true,
     normalizedArgs: { maxEntries: 8 },
+  },
+  {
+    label: "release-notes setter accepts valid payload",
+    toolName: "adv_change_set_release_notes",
+    schema: {
+      changeId: z.string(),
+      release_notes: ReleaseNotesContentSchema,
+    },
+    rawArgs: {
+      changeId: "c",
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
+    },
+    ok: true,
+  },
+  {
+    label: "release-notes setter rejects blank changeId",
+    toolName: "adv_change_set_release_notes",
+    schema: {
+      changeId: z.string(),
+      release_notes: ReleaseNotesContentSchema,
+    },
+    rawArgs: {
+      changeId: " ",
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
+    },
+    ok: false,
+    fields: ["changeId"],
+  },
+  {
+    label: "release-notes setter normalizes blank target_path",
+    toolName: "adv_change_set_release_notes",
+    schema: {
+      changeId: z.string(),
+      release_notes: ReleaseNotesContentSchema,
+      target_path: z.string().optional(),
+    },
+    rawArgs: {
+      changeId: "c",
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
+      target_path: " ",
+    },
+    ok: true,
+    normalizedArgs: {
+      changeId: "c",
+      release_notes: {
+        audience: "external",
+        category: "added",
+        headline_external: "x",
+      },
+    },
   },
 ];
 
