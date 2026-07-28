@@ -108,6 +108,11 @@ export interface LiveStatusPayload {
   };
   changes: ChangeSummary[];
   resume_projection?: unknown;
+  /**
+   * Always present. Explains whether `resume_projection` can be trusted as a
+   * full answer, so an absent projection is never silently ambiguous.
+   */
+  resume_projection_state?: unknown;
   error?: string;
   remediation?: string;
 }

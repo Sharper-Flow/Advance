@@ -59,6 +59,7 @@ import {
 import { loadLiveResumeProjection } from "./lib/resume-projection-live";
 import { runRoadmapCommand } from "./lib/roadmap";
 import { settleWithinBudget } from "./lib/optional-enrichment";
+import { buildResumeProjectionState } from "./lib/resume-projection-state";
 
 // =============================================================================
 // Constants
@@ -157,6 +158,12 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       now,
       ...terminalCounts,
     });
+    // Always emit the state, even on success. An absent projection must be
+    // explicable, never silently missing (DONT5).
+    payload.resume_projection_state = buildResumeProjectionState(
+      resumeOutcome,
+      now,
+    );
     if (
       resumeOutcome.settled &&
       resumeOutcome.value.live &&
@@ -248,6 +255,10 @@ async function runEpicListCommand(json: boolean): Promise<number> {
       ),
     ]);
     const payload = buildLiveEpicListPayload(epics, { projectId, now });
+    payload.resume_projection_state = buildResumeProjectionState(
+      resumeOutcome,
+      now,
+    );
     if (
       resumeOutcome.settled &&
       resumeOutcome.value.live &&

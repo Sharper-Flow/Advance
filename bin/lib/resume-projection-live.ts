@@ -80,6 +80,14 @@ export interface LiveResumeProjectionResult {
   resume_projection?: ResumeProjection;
   error?: string;
   remediation?: string;
+  /** Source timestamp of the underlying data, when known. */
+  freshness?: string;
+  /**
+   * Explicit truncation signal. Set when a capped source dropped records, so
+   * the omission is reported rather than silently absorbed (DONT5).
+   */
+  truncated?: boolean;
+  truncated_count?: number;
 }
 
 export async function loadLiveResumeProjection(
