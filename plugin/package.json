@@ -36,7 +36,8 @@
     "schemas:check": "tsx scripts/generate-json-schemas.ts --check",
     "generate:manifests": "tsx scripts/generate-agent-manifests.ts",
     "generate:manifests:check": "tsx scripts/generate-agent-manifests.ts --check",
-    "bench:latency": "bun --smol scripts/bench-adv-latency.ts"
+    "bench:latency": "bun --smol scripts/bench-adv-latency.ts",
+    "verify:worker-bundle": "tsx scripts/verify-candidate-worker-bundle.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-28T01:44:36.948Z",
+  "capabilities": [],
+  "change_hash": "8e94079565127fd156fced72ad2a54e8a788bc56b08bfe98bc507859a88927b9",
+  "change_id": "preventRedeployWorkflow",
+  "completed_tasks": 3,
+  "created_at": "2026-07-27T22:58:21.970Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-28T01:16:32.072Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "43a6ea7bb75f6d2324ef05fe14cf4770f6d2f987f9fd89bec769590e00795d9f",
+  "task_count": 5,
+  "title": "Prevent redeploy workflow poisoning",
+  "version": "1"
+}

@@ -50,6 +50,19 @@ export interface WorkerBundleRollMonitorOptions {
    */
   restartChild: () => Promise<void>;
   /**
+   * Optional replay-verification gate. When provided, called before
+   * restartChild() on every detected drift. If it returns
+   * { passed: false }, the roll is refused. Skipped when
+   * ADV_FORCE_DEPLOY=1 is set in the environment.
+   *
+   * When omitted (tests, back-compat, in-process workers), verification
+   * is skipped — same fail-open posture as before this change.
+   */
+  verifyCandidateBundle?: (input: {
+    workflowsPath: string;
+    historiesDir: string;
+  }) => Promise<{ passed: boolean; report?: unknown }>;
+  /**
    * Sole-writer handoff: the worker.lock heartbeat controller's
    * `stampBundleGeneration`. Invoked with the generation the current child
    * is running — at spawn (via `initWorkerBundleRoll`) and after every
@@ -139,6 +152,46 @@ export function createWorkerBundleRollMonitor(
       currentGeneration ?? lock.bundle_generation ?? null;
     if (runningGeneration === manifestGeneration) {
       return { rolled: false, reason: "same_generation" };
+    }
+
+    // Replay-verification gate: verify candidate bundle before rolling.
+    // Skipped when ADV_FORCE_DEPLOY=1 or when no callback is provided
+    // (tests, back-compat, in-process workers).
+    if (process.env.ADV_FORCE_DEPLOY !== "1") {
+      if (options.verifyCandidateBundle) {
+        const workflowsPath = join(options.bundleDir, "workflows.js");
+        const historiesDir = join(
+          options.bundleDir,
+          "..",
+          "src",
+          "temporal",
+          "__tests__",
+          "replay",
+          "histories",
+        );
+        try {
+          const result = await options.verifyCandidateBundle({
+            workflowsPath,
+            historiesDir,
+          });
+          if (!result.passed) {
+            return {
+              rolled: false,
+              reason: "roll_failed",
+              error:
+                "Candidate worker bundle failed replay verification — refusing to roll. Set ADV_FORCE_DEPLOY=1 to override.",
+            };
+          }
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err));
+          options.onRollError?.(error);
+          return {
+            rolled: false,
+            reason: "roll_failed",
+            error: `Replay verification threw: ${error.message}`,
+          };
+        }
+      }
     }
 
     try {

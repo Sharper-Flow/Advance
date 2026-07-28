@@ -356,6 +356,15 @@ export async function tryInitStore(
             projectStateDir,
             bundleDir: dirname(workerScriptPath),
             restartChild: () => outOfProcessWorker.restartChild(),
+            verifyCandidateBundle: async ({ workflowsPath, historiesDir }) => {
+              const { verifyCommittedReplayFixtures } =
+                await import("./migration/replay-verification");
+              return verifyCommittedReplayFixtures({
+                workflowsPath,
+                historiesDir,
+                replayNamePrefix: "self-roll-gate",
+              });
+            },
             stampBundleGeneration: async (generation) => {
               await workerHeartbeat?.stampBundleGeneration(generation);
             },
