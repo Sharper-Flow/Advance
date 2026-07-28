@@ -35,6 +35,7 @@ import type {
   OpsRunEvidenceAppendedSignalPayload,
   OpsRunUpsertedSignalPayload,
   OriginRepairedSignalPayload,
+  ReleaseNotesSetSignalPayload,
   LightweightProfileEvaluatedSignalPayload,
   LightweightProfileRequestedSignalPayload,
   ProblemStatementUpdatedSignalPayload,
@@ -71,6 +72,7 @@ import type {
 import {
   createDefaultGates,
   GATE_ORDER,
+  ReleaseNotesSetSignalPayloadSchema,
   SpecDeltaAmendedSignalPayloadSchema,
   SpecDeltaModifiedSignalPayloadSchema,
   SpecDeltaRemovedSignalPayloadSchema,
@@ -254,6 +256,7 @@ export function changeSeedStateFromChange(
     creation_request_hash: safeChange.creation_request_hash,
     worker_bundle_impact: safeChange.worker_bundle_impact,
     workerBundleProvenance: safeChange.workerBundleProvenance,
+    release_notes: safeChange.release_notes,
     testRuns: safeChange.test_runs as ChangeWorkflowState["testRuns"],
   };
 }
@@ -1447,6 +1450,59 @@ export function applyWorkerBundleImpactSetToState(
 ): ChangeWorkflowState {
   state.worker_bundle_impact = payload.worker_bundle_impact;
   setLastSignalAt(state, payload.set_at);
+  return state;
+}
+
+export function applyReleaseNotesSetToState(
+  state: ChangeWorkflowState,
+  payload: ReleaseNotesSetSignalPayload,
+): ChangeWorkflowState {
+  const parsed = ReleaseNotesSetSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    const at =
+      typeof payload.set_at === "string"
+        ? payload.set_at
+        : new Date().toISOString();
+    applySignalRejectionToState(state, {
+      signalName: "releaseNotesSet",
+      error: new Error(
+        `Invalid releaseNotesSet payload: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+      ),
+      payload,
+      rejectedAt: at,
+    });
+    const operation_id =
+      typeof payload.operation_id === "string"
+        ? payload.operation_id
+        : undefined;
+    const payload_hash =
+      typeof payload.payload_hash === "string"
+        ? payload.payload_hash
+        : undefined;
+    if (operation_id && payload_hash) {
+      recordOperationRejected(
+        state,
+        operation_id,
+        payload.command_kind ?? "releaseNotesSet",
+        payload_hash,
+        at,
+      );
+    }
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  const validated = parsed.data;
+  withChangeCommandOperation(
+    state,
+    validated,
+    "releaseNotesSet",
+    validated.set_at,
+    () => {
+      state.release_notes = validated.release_notes;
+      setLastSignalAt(state, validated.set_at);
+    },
+  );
   return state;
 }
 

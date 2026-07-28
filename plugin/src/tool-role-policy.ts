@@ -213,6 +213,10 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     class: "orchestrator",
     rationale: "Typed worker-bundle impact declaration at planning.",
   },
+  adv_change_set_release_notes: {
+    class: "orchestrator",
+    rationale: "Typed release-note full-replacement setter.",
+  },
   adv_change_update_issues: {
     class: "orchestrator",
     rationale: "Issue linkage update.",

@@ -54,6 +54,7 @@ export const CHANGE_WORKFLOW_COMMAND_ADAPTERS: readonly ChangeWorkflowAdapterRow
         "closeBatch",
         "setEpicMembership",
         "clearEpicMembership",
+        "setReleaseNotes",
       ],
       signals: [
         "proposalUpdatedSignal",
@@ -73,6 +74,7 @@ export const CHANGE_WORKFLOW_COMMAND_ADAPTERS: readonly ChangeWorkflowAdapterRow
         "epicMembershipSetSignal",
         "epicMembershipClearedSignal",
         "crossProjectCoordinationUpdatedSignal",
+        "releaseNotesSetSignal",
       ],
       migrated: true,
       core: true,

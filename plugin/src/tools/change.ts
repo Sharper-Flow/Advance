@@ -19,6 +19,7 @@ import {
   BriefingPacketLaneSchema,
   BRIEFING_PACKET_SESSION_METADATA_MAX_LENGTH,
   WorkNodeRefSchema,
+  ReleaseNotesContentSchema,
   type GateId,
   type ArtifactKind,
   type Change,
@@ -28,6 +29,7 @@ import {
   type BriefingPacketLane,
   type GateCompletion,
   type WorkerBundleImpact,
+  type ReleaseNotesContent,
 } from "../types";
 import { ChangeSchema } from "../types/changes";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
@@ -2799,6 +2801,142 @@ export const changeTools = {
         }
       }
       return runSetImpact(store);
+    },
+  },
+
+  adv_change_set_release_notes: {
+    description:
+      "Set or replace the typed release-note content block for a change. Full replacement only — omitted optional fields are removed. Validates the payload against the canonical ReleaseNotesContentSchema before signaling. Does not complete gates or authorize archive.",
+    args: {
+      changeId: z
+        .string()
+        .min(1)
+        .describe("Change ID to set release notes on."),
+      release_notes: z
+        .array(ReleaseNotesContentSchema)
+        .min(1)
+        .describe(
+          "Complete release-note content block(s) to replace any existing release_notes. Each entry requires audience and category; all other fields are optional.",
+        ),
+      target_path: targetPathSchema.shape.target_path,
+      target_confirmed: targetPathSchema.shape.target_confirmed,
+      confirmationEvidence: targetPathSchema.shape.confirmationEvidence,
+    },
+    execute: async (
+      {
+        changeId,
+        release_notes,
+        target_path,
+        target_confirmed,
+        confirmationEvidence,
+      }: {
+        changeId: string;
+        release_notes: ReleaseNotesContent[];
+        target_path?: string;
+        target_confirmed?: true;
+        confirmationEvidence?: string;
+      },
+      store: Store,
+    ) => {
+      const runSetReleaseNotes = async (
+        activeStore: Store,
+        projectContext?: TargetProjectOutputContext,
+      ) => {
+        if (!changeId || changeId.trim().length === 0) {
+          return formatToolOutput({
+            success: false,
+            error: "changeId is required",
+            code: "INVALID_TOOL_ARGS",
+          });
+        }
+
+        const existing = await activeStore.changes.get(changeId);
+        if (!existing.success || !existing.data) {
+          return formatToolOutput({
+            success: false,
+            error: existing.success
+              ? `Change '${changeId}' not found.`
+              : existing.error,
+            hint: "Use adv_change_list to find valid change IDs.",
+          });
+        }
+
+        const notesValidation = z
+          .array(ReleaseNotesContentSchema)
+          .min(1)
+          .safeParse(release_notes);
+        if (!notesValidation.success) {
+          return formatToolOutput({
+            success: false,
+            error: "Invalid release_notes content",
+            code: "INVALID_TOOL_ARGS",
+            issues: notesValidation.error.issues.map((issue) => ({
+              path: issue.path,
+              message: issue.message,
+            })),
+          });
+        }
+
+        const setAt = new Date().toISOString();
+        try {
+          const updated = await activeStore.changes.setReleaseNotes(changeId, {
+            release_notes: notesValidation.data,
+            setAt,
+          });
+
+          if (!updated) {
+            return formatToolOutput({
+              success: false,
+              error: `Failed to set release notes for change '${changeId}'.`,
+              changeId,
+            });
+          }
+
+          return formatToolOutput({
+            success: true,
+            changeId,
+            release_notes: updated.release_notes,
+            set_at: setAt,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
+        } catch (error) {
+          return formatToolOutput({
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+            changeId,
+          });
+        }
+      };
+
+      if (target_path) {
+        try {
+          return await withTargetPathStore(
+            {
+              currentProjectPath: store.paths.root,
+              target_path,
+              stateRequirement: "temporal-required",
+              mutation: true,
+              target_confirmed,
+              confirmationEvidence,
+            },
+            async ({ context, store: targetStore }) =>
+              runSetReleaseNotes(
+                targetStore,
+                formatTargetProjectContext(context),
+              ),
+          );
+        } catch (error) {
+          const errorText =
+            error instanceof Error ? error.message : String(error);
+          return formatToolOutput({
+            success: false,
+            error: `Target project release-notes set unavailable: ${errorText}`,
+            changeId,
+            target_path,
+          });
+        }
+      }
+      return runSetReleaseNotes(store);
     },
   },
 

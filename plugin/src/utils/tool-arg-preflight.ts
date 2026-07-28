@@ -190,6 +190,12 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // Contextually-validated: handler checks only when target_path present.
     confirmationEvidence: { blank: "omit" },
   },
+  adv_change_set_release_notes: {
+    changeId: { blank: "reject" },
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+  },
   adv_run_test: {
     command: { blank: "reject" }, // required-when-present
     phase: { blank: "omit" }, // optional descriptive metadata

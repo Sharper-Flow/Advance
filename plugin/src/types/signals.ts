@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { WorkerBundleImpactSchema } from "./changes";
+import { ReleaseNotesContentSchema, WorkerBundleImpactSchema } from "./changes";
 import { ArchiveProjectionProofReceiptSchema } from "./archive-projection";
 import {
   EpicChangeRefSchema,
@@ -279,6 +279,16 @@ export const WorkerBundleImpactSetSignalPayloadSchema = z.object({
 });
 export type WorkerBundleImpactSetSignalPayload = z.infer<
   typeof WorkerBundleImpactSetSignalPayloadSchema
+>;
+
+export const ReleaseNotesSetSignalPayloadSchema = z
+  .object({
+    release_notes: z.array(ReleaseNotesContentSchema),
+    set_at: IsoTimestampSchema,
+  })
+  .merge(CommandOperationEnvelopeSchema);
+export type ReleaseNotesSetSignalPayload = z.infer<
+  typeof ReleaseNotesSetSignalPayloadSchema
 >;
 
 export const SubagentReportSubmittedSignalPayloadSchema = z.object({

@@ -44,7 +44,10 @@ describe("ReleaseNotesContentSchema", () => {
 
   test("rejects invalid audience", () => {
     expect(() =>
-      ReleaseNotesContentSchema.parse({ audience: "public", category: "added" }),
+      ReleaseNotesContentSchema.parse({
+        audience: "public",
+        category: "added",
+      }),
     ).toThrow();
   });
 
@@ -210,12 +213,8 @@ describe("mapConventionalCommitToReleaseNoteCategory", () => {
   });
 
   test("returns undefined for unmapped types", () => {
-    expect(
-      mapConventionalCommitToReleaseNoteCategory("chore"),
-    ).toBeUndefined();
-    expect(
-      mapConventionalCommitToReleaseNoteCategory("docs"),
-    ).toBeUndefined();
+    expect(mapConventionalCommitToReleaseNoteCategory("chore")).toBeUndefined();
+    expect(mapConventionalCommitToReleaseNoteCategory("docs")).toBeUndefined();
     expect(
       mapConventionalCommitToReleaseNoteCategory("refactor"),
     ).toBeUndefined();
