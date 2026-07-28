@@ -1,0 +1,962 @@
+{
+  "id": "preventRedeployWorkflow",
+  "title": "Prevent redeploy workflow poisoning",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-27T22:58:21.970Z",
+  "tasks": [
+    {
+      "id": "tk-1d825d9ffd5f",
+      "title": "Add `verify:worker-bundle` script to plugin/package.json and CI step to .github/workflows/ci.yml",
+      "type": "code",
+      "section": "CI + Package Script",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-28T00:01:50.152Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "DONT2"
+        ],
+        "verifies": [
+          "AC7"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Script + CI step — verifiable via pnpm run exit code and CI execution.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-28T00:30:51.741Z",
+      "verification": "pnpm run verify:worker-bundle exits 0 against built candidate bundle (tr_ms3x89m1_754f9749). Script added to package.json. CI step added to .github/workflows/ci.yml after build:worker.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".github/workflows/ci.yml",
+        "plugin/package.json"
+      ],
+      "touched_files": [
+        ".github/workflows/ci.yml",
+        "plugin/package.json"
+      ],
+      "checkpointSha": "ebfbe18e1bd6c1a15b604c0d25412fcc3bfe6b6b",
+      "completedAt": "2026-07-28T00:32:14.821Z",
+      "completed_at": "2026-07-28T00:32:14.821Z",
+      "updatedAt": "2026-07-28T01:44:09.457Z"
+    },
+    {
+      "id": "tk-13996d4e854a",
+      "title": "Add replay-verification gate to the self-roll monitor before restartChild()",
+      "type": "code",
+      "section": "Self-Roll Gate",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-28T00:02:05.886Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C2",
+          "C4",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Logic-bearing: gate must block roll on verification failure. Unit tests prove the gate fires and blocks correctly.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-28T00:33:35.800Z",
+      "verification": "All 16 tests pass (11 existing + 5 new gate tests). Typecheck clean. Changes: (1) worker-roll.ts — added verifyCandidateBundle option + gate in checkAndRoll() before restartChild(); (2) plugin-init.ts — threaded callback with dynamic import of verifyCommittedReplayFixtures; (3) worker-roll.test.ts — 5 new tests covering block-on-fail, pass-allows-roll, ADV_FORCE_DEPLOY override, back-compat omitted, and throw-blocks.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/worker-roll.test.ts",
+        "plugin/src/temporal/worker-roll.ts"
+      ],
+      "touched_files": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/worker-roll.test.ts",
+        "plugin/src/temporal/worker-roll.ts"
+      ],
+      "checkpointSha": "4da401ddef24212dd0182ffaaac6b91d14c5cefd",
+      "completedAt": "2026-07-28T00:38:26.027Z",
+      "completed_at": "2026-07-28T00:38:26.027Z"
+    },
+    {
+      "id": "tk-d1e48bb474fd",
+      "title": "Add replay-verification gate to deploy-local.sh bounce path + reconcile grace + residual-risk documentation",
+      "type": "code",
+      "section": "Bounce Gate + Grace",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-28T00:02:49.180Z",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "verifies": [
+          "SC1"
+        ],
+        "respects": [
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Bash script — verifiable via fixture-based test or manual reproduction of failure/pass scenarios.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-28T00:38:32.964Z",
+      "verification": "Bash syntax check passed (bash -n). Changes: (1) bounce_grace_seconds 2→6 (reconciled with SDK 5s grace); (2) replay-verification gate inserted before legacy bounce block — shells out to pnpm run verify:worker-bundle with correct cwd ($ADV_SOURCE_PLUGIN_PATH); (3) ADV_FORCE_DEPLOY=1 override with risk log; (4) residual-risk line always printed before bounce.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "scripts/deploy-local.sh"
+      ],
+      "touched_files": [
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "a640f567a00240e6dea210592a0a2054a403a227",
+      "completedAt": "2026-07-28T00:39:46.830Z",
+      "completed_at": "2026-07-28T00:39:46.830Z"
+    },
+    {
+      "id": "tk-6b1d3ce7db5e",
+      "title": "Add replay-verification gate to deploy-local.sh bounce path + reconcile grace + residual-risk doc",
+      "type": "code",
+      "section": "Bounce Gate + Grace",
+      "status": "cancelled",
+      "priority": 3,
+      "created_at": "2026-07-28T00:03:11.610Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C4",
+          "DONT1"
+        ],
+        "verifies": [
+          "SC1"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Bash script — verifiable via fixture-based or manual reproduction.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "cancelApproval": "User selected \"Cancel duplicate (Recommended)\" via question tool after reviewing the duplicate task pair.",
+      "cancelledAt": "2026-07-28T00:20:35.441Z",
+      "completed_at": "2026-07-28T00:20:35.441Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-d1e48bb474fd — created by timeout retry when the first task_add timed out but actually persisted. Same title, same contract refs, same scope.",
+        "approved_by_user": true,
+        "approval_evidence": "User selected \"Cancel duplicate (Recommended)\" via question tool after reviewing the duplicate task pair.",
+        "approved_at": "2026-07-28T00:20:35.441Z"
+      }
+    },
+    {
+      "id": "tk-6b5e7b629da3",
+      "title": "Static verification: Worker Deployments remain disabled and constraints C1-C3 respected",
+      "type": "verification",
+      "section": "Constraint Verification",
+      "status": "cancelled",
+      "priority": 4,
+      "created_at": "2026-07-28T00:03:37.330Z",
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "not_applicable"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC7",
+          "C1",
+          "C2",
+          "C3"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Negative constraints — verified by static diff inspection and conformance check, not runtime tests.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-28T00:39:52.658Z",
+      "cancelApproval": "User selected \"Cancel — redundant with review (Recommended)\" via question tool.",
+      "cancelledAt": "2026-07-28T00:45:35.693Z",
+      "completed_at": "2026-07-28T00:45:35.693Z",
+      "cancellation": {
+        "reason": "Static-check evidence policy blocks execution-gate completion without reviewer evidence. The constraints it verifies (C1-C3, AC7) are negative constraints that /adv-review will verify structurally at acceptance. The verification work itself is complete — git diff confirms workflows.ts, worker-deployment-readiness.ts, and release-path gate tools are untouched; topology is still singleton_replace_in_place. Redundant with acceptance review.",
+        "approved_by_user": true,
+        "approval_evidence": "User selected \"Cancel — redundant with review (Recommended)\" via question tool.",
+        "approved_at": "2026-07-28T00:45:35.693Z"
+      }
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "preventRedeployWorkflow",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:temporal-drain-semantics"
+      },
+      "agent": "adv-researcher",
+      "topic": "Temporal TypeScript Worker shutdown and replay semantics",
+      "sources": [
+        {
+          "label": "Temporal TypeScript Worker processes — shutdown",
+          "locator": "https://docs.temporal.io/develop/typescript/workers/run-worker-process",
+          "summary": "Official docs: shutdown signal/request stops polling, lets tasks drain to shutdownGraceTime, then remaining activities stop; shutdownForceTime guarantees eventual shutdown; lists worker states."
+        },
+        {
+          "label": "Installed @temporalio/worker 1.17.2 WorkerOptions",
+          "locator": "/home/jon/dev/advance/plugin/node_modules/@temporalio/worker/lib/worker-options.d.ts (v1.17.2, lines 117-136)",
+          "summary": "Authoritative installed API declaration: grace drains pending tasks; remaining in-flight activities are cancelled; shutdownForceTime throws GracefulShutdownPeriodExpiredError and does not clean work up."
+        },
+        {
+          "label": "Installed @temporalio/worker 1.17.2 Runtime and Worker",
+          "locator": "/home/jon/dev/advance/plugin/node_modules/@temporalio/worker/lib/runtime-options.d.ts (lines 39-46); runtime.js (lines 316-340); worker.js (lines 590-636, 1513-1564)",
+          "summary": "Default signal set includes SIGTERM; runtime installs process handlers and Worker registers callback to invoke shutdown. Worker exposes shutdown state and force-time behavior."
+        },
+        {
+          "label": "Installed @temporalio/worker 1.17.2 Worker status API",
+          "locator": "/home/jon/dev/advance/plugin/node_modules/@temporalio/worker/lib/worker.d.ts (lines 137-186, 309-327); worker.js (lines 480-522)",
+          "summary": "getStatus reports numInFlightWorkflowActivations, poller state, in-flight activities; Observables expose activation/activity count changes."
+        },
+        {
+          "label": "Temporal Worker task/replay documentation",
+          "locator": "https://docs.temporal.io/tasks; https://docs.temporal.io/encyclopedia/detecting-workflow-failures; https://docs.temporal.io/workflow-definition",
+          "summary": "A worker crash during a Workflow Task is recovered by another worker replaying history; Workflow Task timeout detects a down worker; nondeterminism is a generated-command/history mismatch, commonly from changed code or intrinsic nondeterminism."
+        },
+        {
+          "label": "Temporal Worker Versioning and patching",
+          "locator": "https://docs.temporal.io/worker-versioning; https://docs.temporal.io/patching",
+          "summary": "Pinned workflows complete on one Worker Deployment Version; Auto-Upgrade moves versions and must remain replay-safe. Patching records a marker in event history."
+        },
+        {
+          "label": "Installed @temporalio/workflow 1.17.2 patch API",
+          "locator": "/home/jon/dev/advance/plugin/node_modules/@temporalio/workflow/lib/workflow.d.ts (lines 337-371)",
+          "summary": "patched(patchId) returns history-dependent true/false on replay and true for new execution, enabling old/new deterministic branches."
+        }
+      ],
+      "architecture_assessment": "The installed 1.17.2 SDK automatically converts SIGTERM into Worker.shutdown() (unless Runtime shutdownSignals is overridden). Its documented drain primitive is a configured shutdownGraceTime plus awaiting worker.run() to STOPPED. A 2-second SIGKILL after SIGTERM would truncate the documented grace window if grace exceeds 2 seconds. However, killing a WorkflowTask does not itself create nondeterminism: recovery replays recorded history; non-determinism occurs only when replay-generated commands do not match that history. Therefore replay compatibility is the primary workflow-code deployment safeguard; drain prevents avoidable task interruption and activity disruption.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Authoritative official documentation and installed 1.17.2 source answer all six questions. Important qualification: shutdownGraceTime is a drain/cancellation window, not a process-level hard-exit guarantee; shutdownForceTime or an external deadline is required for a bounded exit."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Graceful drain avoids needless WorkflowTask interruption and Activity cancellation but delays replacement by up to the configured window.",
+          "Worker Versioning with Pinned workflows reduces replay-compatibility risk but requires deployment/version routing operations and retaining old-version capacity until pinned executions finish.",
+          "Patching supports compatible code evolution without deployment routing but retains old/new branches until histories age out."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "SIGTERM then fixed 2-second SIGKILL",
+            "disposition": "rejected",
+            "rationale": "It can terminate the SDK's automatic graceful drain before configured shutdownGraceTime expires."
+          },
+          {
+            "option": "SDK-managed SIGTERM/Worker.shutdown plus await worker.run(); external hard deadline greater than grace",
+            "disposition": "preferred",
+            "rationale": "Matches documented Worker state machine and preserves a bounded fallback."
+          },
+          {
+            "option": "No drain; rely only on task retry",
+            "disposition": "rejected",
+            "rationale": "WorkflowTask recovery is durable, but no-drain needlessly interrupts work and cancels/reschedules Activities."
+          },
+          {
+            "option": "Worker Deployments with Pinned behavior",
+            "disposition": "preferred",
+            "rationale": "Pinned workflows are documented to complete on one Worker Deployment Version; Auto-Upgrade still requires replay-safe code."
+          }
+        ],
+        "recommendation": "Keep the external hard-kill deadline strictly greater than shutdownGraceTime (current repository constants show 10s > 5s). Do not use 2s after SIGTERM. Treat SIGTERM as an automatic SDK drain trigger, await child exit/worker.run() where process control permits, and add SDK-side getStatus() IPC/reporting if exact zero in-flight confirmation is required. Keep replay verification as the primary guard for workflow-code changes; add Pinned Worker Deployments or wf.patched() for compatibility depending operational support."
+      },
+      "recommendation": "Answers by question: (1) shutdownGraceTime waits for pending tasks; it stops polling immediately and permits in-flight tasks until grace. On expiry, remaining activities are cancelled; shutdownForceTime, not grace alone, is documented to guarantee forceful termination. (2) SIGTERM/SIGINT are automatic defaults via Runtime.shutdownSignals; no explicit application shutdown call is needed unless signals were overridden/disabled. runUntil starts run(), shuts down after its inner promise completes, and handles early shutdown with promiseCompletionTimeout. (3) Correct drain: set WorkerOptions.shutdownGraceTime, invoke worker.shutdown() or allow SIGTERM, and await worker.run() to STOPPED; configure shutdownForceTime only when a bounded eventual exit is required. (4) SDK gives getStatus().numInFlightWorkflowActivations and numInFlightActivations$; DescribeTaskQueue exposes pollers/backlog/rates, not a documented exact per-worker execution counter, so it cannot substitute for SDK-local zero-in-flight observation. (5) SIGKILL mid-WorkflowTask is recovered by WorkflowTask timeout/retry and replay; it alone is not a determinism violation. Changed/intrinsically nondeterministic workflow code causing command/history mismatch is what creates nondeterminism. (6) patched is history-marker/code branching; Worker Deployments route builds. Only Pinned behavior guarantees original deployment version; Auto-Upgrade explicitly moves versions and must stay replay-safe.",
+      "follow_ups": [
+        "Packet SCOPE KEY was discovery/temporal-drain-semantics, which is not accepted by the persisted-report schema; report persisted under required schema key researcher:temporal-drain-semantics."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "preventRedeployWorkflow",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: prevent redeploy workflow poisoning",
+      "sources": [
+        {
+          "label": "Temporal TypeScript replay guidance",
+          "locator": "https://docs.temporal.io/develop/typescript/best-practices/testing-suite",
+          "summary": "Temporal documents replay as a compatibility check against event history and recommends replaying relevant task-queue histories before deployment."
+        },
+        {
+          "label": "Temporal safe deployments",
+          "locator": "https://docs.temporal.io/develop/safe-deployments",
+          "summary": "Temporal recommends a verification phase using replay testing before actual worker deployment."
+        },
+        {
+          "label": "Temporal TypeScript Worker source",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/worker/src/worker.ts",
+          "summary": "Official SDK implementation is the source linked by Context7 for replay-worker behavior."
+        },
+        {
+          "label": "Local deployment evidence",
+          "locator": "/home/jon/dev/advance/scripts/deploy-local.sh:1467-1535",
+          "summary": "Deployment rsyncs the complete plugin directory and does not change into plugin before worker refresh."
+        }
+      ],
+      "architecture_assessment": "Reuse of committed-fixture replay verification matches Temporal's recommended pre-deployment verification phase. The self-roll location is structurally correct. KD5's bare pnpm command is not cwd-safe, and KD4's assertion that deployed plugin lacks src/ is false under current whole-plugin rsync.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "KD5's bare `pnpm run verify:worker-bundle` cannot reliably execute the proposed plugin-only script, so the bounce gate cannot satisfy AC2 as designed.",
+            "contract_ids": [
+              "AC2",
+              "C4"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Specify `(cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run verify:worker-bundle)` before the SIGTERM loop, fail closed on exit 1 or 2 unless ADV_FORCE_DEPLOY=1, and test invocation from a non-plugin cwd.",
+            "source": {
+              "label": "Local package and deploy script evidence",
+              "locator": "/home/jon/dev/advance/plugin/package.json:18-40; /home/jon/dev/advance/scripts/deploy-local.sh:77-79,125-137,1467-1535",
+              "summary": "Scripts are defined only in plugin/package.json; deploy-local.sh retains caller CWD and does not cd into plugin before refresh."
+            }
+          }
+        ],
+        "notes": "worker-roll.ts returns same_generation before restartChild and checkNow single-flights. plugin-init supplies restartChild and stampBundleGeneration. The replay verifier returns a report containing passed:boolean. The script's bounce grace is 2 seconds; worker shutdown grace is 5,000ms; CI builds the worker. adv_spec was role-firewalled, so rq-workerEvolutionSafety01 could not be independently queried."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Committed fixtures are deterministic but do not cover active histories absent from the corpus.",
+          "Dual gates prevent bypass but need one shared path/cwd contract.",
+          "Copying fixtures to dist is explicit but redundant while whole-plugin deployment includes src."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Use Temporal Worker Deployments/Worker Versioning",
+            "disposition": "rejected",
+            "rationale": "C1 forbids Worker Deployments; replay gating is the simpler allowed control."
+          },
+          {
+            "option": "Fetch/replay live histories at deploy time",
+            "disposition": "rejected",
+            "rationale": "Stronger coverage but exceeds committed-fixture scope and adds a service dependency."
+          },
+          {
+            "option": "Retain deployed src fixture path",
+            "disposition": "preferred",
+            "rationale": "Current rsync mirrors plugin/src, so copying to dist is unnecessary unless packaging becomes dist-only."
+          }
+        ],
+        "recommendation": "Revise KD5 with an explicit plugin cwd and test non-plugin CWD execution. Reassess KD4 against actual deployment semantics."
+      },
+      "recommendation": "Do not approve unchanged. Repair KD5's cwd contract and test it; retain the self-roll insertion point. Reconsider KD4 because src is deployed.",
+      "follow_ups": [
+        "Orchestrator should run adv_spec show advance-workflow or change validation before gate completion.",
+        "No direct test run was performed."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-1d825d9ffd5f": [
+      {
+        "runId": "tr_ms3x7bsa_f71fc4d0",
+        "phase": "green",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run verify:worker-bundle",
+        "durationMs": 859.7445180006325,
+        "recordedAt": "2026-07-28T00:31:23.279Z"
+      },
+      {
+        "runId": "tr_ms3x7puo_55231b67",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build:worker",
+        "durationMs": 7608.948077000678,
+        "recordedAt": "2026-07-28T00:31:41.503Z"
+      },
+      {
+        "runId": "tr_ms3x89m1_754f9749",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run verify:worker-bundle",
+        "durationMs": 15249.223391000181,
+        "recordedAt": "2026-07-28T00:32:07.098Z"
+      }
+    ],
+    "tk-13996d4e854a": [
+      {
+        "runId": "tr_ms3xedqb_e9126cac",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/temporal/worker-roll.test.ts --reporter=verbose 2>&1 | tail -40",
+        "durationMs": 60013.45959400013,
+        "recordedAt": "2026-07-28T00:36:52.428Z"
+      },
+      {
+        "runId": "tr_ms3xejpt_f2bb962b",
+        "phase": "green",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "../../bin/oc-test targeted -- src/temporal/worker-roll.test.ts",
+        "durationMs": 2.6087870001792908,
+        "recordedAt": "2026-07-28T00:37:00.202Z"
+      },
+      {
+        "runId": "tr_ms3xepwj_b79d7c96",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/temporal/worker-roll.test.ts --reporter=verbose 2>&1 | tail -40",
+        "durationMs": 1170.0232810005546,
+        "recordedAt": "2026-07-28T00:37:08.167Z"
+      },
+      {
+        "runId": "tr_ms3xf5bq_ff310e77",
+        "phase": "green",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "npx tsc --noEmit --pretty 2>&1 | tail -5",
+        "durationMs": 9475.274003002793,
+        "recordedAt": "2026-07-28T00:37:28.161Z"
+      },
+      {
+        "runId": "tr_ms3xg78b_83594ce5",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx tsc --noEmit --pretty 2>&1 | tail -5",
+        "durationMs": 8359.220542997122,
+        "recordedAt": "2026-07-28T00:38:17.307Z"
+      },
+      {
+        "runId": "tr_ms3xrxps_16a8ae0a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/temporal/worker-roll.test.ts 2>&1 | tail -5",
+        "durationMs": 1143.0798860006034,
+        "recordedAt": "2026-07-28T00:47:24.823Z"
+      }
+    ],
+    "tk-d1e48bb474fd": [
+      {
+        "runId": "tr_ms3xhxva_5c4e4395",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bash -n scripts/deploy-local.sh && echo \"syntax OK\" || echo \"syntax FAIL\"",
+        "durationMs": 7.396609000861645,
+        "recordedAt": "2026-07-28T00:39:38.485Z"
+      },
+      {
+        "runId": "tr_ms3xrkyk_be496655",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bash -n scripts/deploy-local.sh && echo \"syntax OK\"",
+        "durationMs": 7.142180997878313,
+        "recordedAt": "2026-07-28T00:47:08.309Z"
+      }
+    ],
+    "tk-6b5e7b629da3": [
+      {
+        "runId": "tr_ms3xjnid_d90f18ea",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/temporal/worker-roll.test.ts 2>&1 | tail -10",
+        "durationMs": 990.2307739965618,
+        "recordedAt": "2026-07-28T00:40:58.335Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:20:31.159Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved proposal 2026-07-27 via Tier A inline approval (\"approve\"). Problem statement confirmed against spec law rq-workerEvolutionSafety01 (.adv/specs/advance-workflow/spec.json:7691) — change scoped as closing the unenforced deploy-path half of an existing `must`, not new capability. Overlap with archived hardenWorkflowRecovery (2026-07-26) explicitly reconciled: replay verifier, Worker Deployment readiness evaluator, evolution guard, patch markers, and release-path provenance gate are all already shipped and listed no-rebuild. Scenario .2 forbids enabling Worker Deployments while prerequisites unproven — recorded as a Must Not. B/F/S scan: B clean, F clean, S 2 non-blocking findings (MEDIUM drain bound unspecified — tracked in Discovery Agenda; LOW hedged exit-code contract). No CRITICAL findings. Concord classified REQUIRED_STABILIZATION / blocks; zero Concord files modified.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "80752f59a28dc0f287d3c818473885e921db434ad7aa08dd02ab3f6bf251002b",
+        "non_whitespace_chars": 9073,
+        "checked_at": "2026-07-27T22:58:22.008Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:46:47.656Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery resolved 10/10 agenda items. Key correction: original RCA (drain-truncation theory) was falsified by adv-researcher report — no SIGKILL exists in bounce path; truncation is harmless; changed code is the sole poisoning agent. Scope expanded from bounce-only to dual-surface (bounce + self-roll) after tracing worker-roll.ts — self-roll is the dominant path and has zero replay verification. Three user decisions: block+override on incompatibility, no latency cap, track per-project adoption. Agreement persisted with 16 contract items. No ambiguity findings (B:C F:C S:C M:C).",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "non_whitespace_chars": 5130,
+        "checked_at": "2026-07-27T22:58:22.009Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:59:56.844Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design wires existing verifyCommittedReplayFixtures into two bundle-swap surfaces (self-roll worker-roll.ts:147 + bounce deploy-local.sh:1396). Independent validator (adv-researcher) returned validation.status: fail (advisory-only) with two in-scope findings, BOTH FIXED in design before gate completion: (1) KD5 cwd bug — deploy-local.sh runs from repo root but verify:worker-bundle lives in plugin/package.json; fixed with (cd \"$ADV_SOURCE_PLUGIN_PATH\" && ...) matching existing pattern at :254. (2) KD4 unnecessary build step — validator correctly identified that the deployed plugin includes src/ (verified ~/.local/share/Advance/plugin/src/temporal/__tests__/replay/histories/ exists); fixture-copy build step removed. Validator cited docs.temporal.io/develop/safe-deployments supporting replay verification before worker deployment. All constraints respected: C1 no Worker Deployments, C2 no workflow code changes, C3 no release-gate weakening, C4 verification failure blocks or requires override. 7 ACs traceable to 6 affected components with lever citations (call sites, not declarations).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "ef6b6e421f56fc1de5df51190d97db4a83dab45215e8f076557b4ca908ce94b0",
+        "non_whitespace_chars": 9157,
+        "checked_at": "2026-07-27T22:58:22.010Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:30:22.993Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via Tier A inline approval (\"approve\"). 4 tasks covering 16/16 contract items (AC1-7 implemented/verified, SC1-2 verified, C1-4 respected, DONT1-3 respected). Duplicate task tk-6b1d3ce7db5e cancelled (timeout-retry artifact of tk-d1e48bb474fd). Validation passed (0 errors, 3 non-blocking warnings: NO_DELTAS expected pre-execution, CONFLICT_INVENTORY_DEGRADED on archived hardenWorkflowRecovery stale signal). Task graph: tk-1d825d9f (CI script, delegate_allowed) → tk-13996d4e (self-roll gate, inline_required) → tk-d1e48bb4 (bounce gate, inline_required) → tk-6b5e7b62 (static verification, delegate_allowed). No blockedBy dependencies — all tasks are independent (different files)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:45:48.263Z",
+      "completed_by": "agent",
+      "approval_evidence": "3 tasks done, 1 cancelled (tk-6b5e7b629da3 static verification — redundant with acceptance review; constraints C1-C3/AC7 verified via git diff). 3 implementation commits: ebfbe18e (package.json+ci.yml), 4da401dd (worker-roll.ts+plugin-init.ts+5 new tests), a640f567 (deploy-local.sh gate+grace). 16/16 worker-roll tests pass. Typecheck clean. Bash syntax valid. Implementation: (1) self-roll gate in worker-roll.ts blocks restartChild on replay failure with ADV_FORCE_DEPLOY override; (2) bounce gate in deploy-local.sh blocks SIGTERM on replay failure with same override; (3) grace reconciled 2s→6s; (4) verify:worker-bundle script + CI step; (5) residual-risk line in deploy output. No workflow code altered. No Worker Deployments enabled."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-28T01:16:32.072Z",
+      "completed_by": "agent",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Acceptance review APPROVED. 1 issue found and fixed during review (verifier output suppression). 12 dimensions all pass. 16/16 contract review matrix rows pass/respected with 0 failing. Executive summary persisted with consequence context. User approved via Tier A inline approval (\"approve\")."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "bl-F5_tYP9R"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+      "approvedAt": "2026-07-27T23:46:39.658Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Redeploying the ADV plugin while change-workflows are in flight does not poison those workflows, regardless of whether the deploy fires via self-roll or the bounce path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The dominant deploy path (owner-driven self-roll on bundle drift) is gated by replay verification — not just the legacy bounce path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "When a candidate worker bundle contains workflow-reachable code that fails replay against any committed fixture, the self-roll monitor (`worker-roll.ts:checkAndRoll`) refuses to call `restartChild()` and reports the incompatibility with TMPRL1100-class evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "When the same incompatibility is detected on the bounce path, `deploy-local.sh` refuses to SIGTERM the running worker and exits non-zero with the incompatibility named.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "An operator can bypass the verification gate by setting an explicit override (e.g. `ADV_FORCE_DEPLOY=1`); the override is recorded in deploy output with a stated-risk line.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "CI runs `verify-candidate-worker-bundle` against the built candidate bundle after `build:worker`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "The bounce liveness probe (`bounce_grace_seconds`) no longer misreports a healthy drain as failure — it waits at least as long as `TEMPORAL_WORKER_SHUTDOWN_GRACE_MS`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "A change that passes the committed fixture corpus but would break a cross-project workflow shape not represented in the corpus is documented as a known residual risk in deploy output, not silently allowed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`worker-deployment-readiness.ts` continues to return `ready:false` — Worker Deployments remain disabled.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "MUST NOT enable Worker Deployments, Build ID routing, or `useVersioning` — spec-forbidden by `rq-workerEvolutionSafety01` scenario `.2` while prerequisites are unproven.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "MUST NOT alter workflow-reachable code (`workflows.ts`) — doing so would require patch markers and new fixtures, creating a bootstrapping dependency.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "MUST NOT weaken or bypass the existing release-path provenance gate (`adv_change_set_worker_bundle_impact` / `adv_worker_bundle_provenance_record`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Verification failure never degrades to a silent no-op — it blocks or requires explicit override with recorded risk.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not build drain machinery — the SDK already drains correctly on SIGTERM and the existing 5s grace / 10s hard-deadline ordering is correct.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not re-implement the replay verifier, readiness evaluator, evolution guard, or patch markers — all shipped by `hardenWorkflowRecovery`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not expand the fixture corpus to cover cross-project histories — recorded as known residual risk; expanding the corpus is a separate effort.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-28T00:48:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Both deploy surfaces (self-roll worker-roll.ts:154-196, bounce deploy-local.sh:1421-1432) now gate on replay verification before swapping worker bundles. 5 unit tests prove block-on-fail and pass-allows-roll. ADV_FORCE_DEPLOY override tested in both paths."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Self-roll monitor (worker-roll.ts:checkAndRoll) carries the verifyCandidateBundle gate. deploy-local.sh:1362,1370 skips self-roll workers, confirming self-roll is the dominant path. The gate is in the self-roll code path, not just the bounce."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Unit test 'verification failure blocks the roll' (worker-roll.test.ts): mock returns {passed:false} → restartChild NOT called, result is {rolled:false, reason:roll_failed, error matches /replay verification/i}. Run tr_ms3xrxps_16a8ae0a."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "deploy-local.sh:1421-1432 inserts verification gate before SIGTERM loop. Bash syntax valid (tr_ms3xrkyk_be496655). Gate returns 1 on failure, preventing bounce. Verifier output now visible (review fix e1f4cc30)."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "ADV_FORCE_DEPLOY=1 tested in unit test (worker-roll.test.ts): override set → verifyCandidateBundle NOT called, restartChild IS called. Bash gate checks ADV_FORCE_DEPLOY at deploy-local.sh:1421. Both paths log risk statement."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin/package.json has verify:worker-bundle script. .github/workflows/ci.yml has 'Verify candidate worker bundle' step after build:worker. Script exits 0 against built bundle (tr_ms3x89m1_754f9749)."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bounce_grace_seconds changed from 2 to 6 (deploy-local.sh:1362). SDK TEMPORAL_WORKER_SHUTDOWN_GRACE_MS=5000 (worker.ts:29). 6s > 5s grace. Probe at :1432 now fires after drain completes."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "deploy-local.sh:1433 prints [ADV:RESIDUAL_RISK] line before every bounce: 'Fixture corpus is advance-repo-only; cross-project workflow shapes may not be represented.'"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "worker-deployment-readiness.ts:17 topology is singleton_replace_in_place (unpinned). File NOT touched by any implementation commit (git diff confirmed). Readiness returns ready:false."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No Worker.create call site modified. No buildId/useVersioning/deploymentOptions added. worker-deployment-readiness.ts untouched. git diff confirms zero changes to worker versioning config."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "workflows.ts NOT touched by any implementation commit (git diff trunk..HEAD -- workflows.ts is empty for my commits). The change only touches deployment plumbing."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Release-path provenance gate (adv_change_set_worker_bundle_impact, adv_worker_bundle_provenance_record) NOT modified. change.ts diff is trunk drift, not my commits."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Both gates return non-zero/block on verification failure. ADV_FORCE_DEPLOY override requires explicit env var set + logs risk statement. No silent no-op path exists."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No drain machinery built. SDK SIGTERM drain (shutdownGraceTime=5s) used as-is. bounce_grace_seconds changed to accommodate existing drain, not replace it."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "verifyCommittedReplayFixtures imported from existing module (replay-verification.ts:144). No reimplementation. Worker-deployment-readiness.ts not modified. Evolution guard not touched."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No new fixtures added. Existing 10-fixture corpus used as-is. Residual risk documented in deploy output (AC6)."
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "When a candidate worker bundle contains workflow-reachable code that fails replay against any committed fixture, the self-roll monitor (`worker-roll.ts:checkAndRoll`) refuses to call `restartChild()` and reports the incompatibility with TMPRL1100-class evidence.",
+    "When the same incompatibility is detected on the bounce path, `deploy-local.sh` refuses to SIGTERM the running worker and exits non-zero with the incompatibility named.",
+    "An operator can bypass the verification gate by setting an explicit override (e.g. `ADV_FORCE_DEPLOY=1`); the override is recorded in deploy output with a stated-risk line.",
+    "CI runs `verify-candidate-worker-bundle` against the built candidate bundle after `build:worker`.",
+    "The bounce liveness probe (`bounce_grace_seconds`) no longer misreports a healthy drain as failure — it waits at least as long as `TEMPORAL_WORKER_SHUTDOWN_GRACE_MS`.",
+    "A change that passes the committed fixture corpus but would break a cross-project workflow shape not represented in the corpus is documented as a known residual risk in deploy output, not silently allowed.",
+    "`worker-deployment-readiness.ts` continues to return `ready:false` — Worker Deployments remain disabled."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\n`rq-workerEvolutionSafety01` (`.adv/specs/advance-workflow/spec.json:7691`) requires: \"ADV MUST prevent **ordinary plugin or worker deployment** from replaying active workflow histories against incompatible workflow code.\"\n\nAll three scenarios constrain the ADV change **release** path. Nothing constrains the local **deploy** path. Both deploy surfaces (the `deploy-local.sh` bounce and the owner-driven self-roll monitor) swap worker code with zero replay verification.\n\n## Root Cause Analysis\n\n**Defect origin.** A spec `must` covering \"ordinary plugin or worker deployment\" is enforced only on the release path, leaving both deploy paths able to do precisely what the requirement forbids.\n\n### Corrected causal chain (discovery revised this)\n\n```\npnpm run build → new worker bundle containing CHANGED workflow code\n  → deploy (bounce OR self-roll) swaps to the new bundle with NO replay verification\n  → new worker replays existing history against the changed code\n  → emitted command sequence diverges from recorded history\n  → NonDeterministicError → workflow permanently wedged\n```\n\nThe poisoning agent is **code incompatibility alone**. Worker restart is merely the moment the incompatible code first meets the old history.\n\n### Claims disproven during discovery\n\n| Original claim | Verified finding | Evidence |\n|---|---|---|\n| `deploy-local.sh` SIGKILLs at 2s, truncating drain | **False.** No SIGKILL in the bounce function. `kill -TERM` → `sleep 2` → `kill -0` (liveness probe, sends nothing) → report failure. | `deploy-local.sh:1396,1403,1407,1413` |\n| Truncating a WorkflowTask causes non-determinism | **False.** A killed task is re-delivered and replayed; this is the documented recovery path. Non-determinism comes only from changed code. | Temporal docs `/tasks`, `/encyclopedia/detecting-workflow-failures`; adv-researcher report confidence high |\n\n`bl-F5_tYP9R` carries the same incorrect SIGKILL claim — superseded by this analysis.\n\n### Confirmed findings\n\n| Finding | Evidence |\n|---|---|\n| **Two deploy surfaces, both uncovered** | Bounce: `deploy-local.sh:1396` SIGTERMs with no replay check. Self-roll: `worker-roll.ts:147` calls `restartChild()` with no replay check; `worker-multi.ts:499-558` SIGTERMs → drains to `RESTART_HARD_KILL_DEADLINE_MS` → SIGKILL fallback → spawns replacement, all with no replay check. |\n| **Self-roll is the dominant path** | `deploy-local.sh:1362,1370` skips self-roll workers entirely. Modern sessions set `ADV_TEMPORAL_WORKER_SELF_ROLL=1` (`runtime-manager.ts:298-330`). The bounce path only fires for legacy/non-self-roll workers. |\n| **Release-path gate is hard-blocking** | `adv_change_set_worker_bundle_impact` description: \"the authority for the release gate.\" Provenance required for release. But release ≠ deploy — the deploy path needs its own independent block. |\n| **Replay verifier exists, unwired** | `plugin/scripts/verify-candidate-worker-bundle.ts` — absent from `package.json`, CI, `deploy-local.sh`, and self-roll. |\n| **Bounce probe false-negative** | `bounce_grace_seconds=2` (`:1333`) < `TEMPORAL_WORKER_SHUTDOWN_GRACE_MS = 5_000` (`worker.ts:29`). Healthy draining worker misreported as un-bounceable; deploy returns 1. |\n| **Fixture corpus is advance-repo-only** | 10 fixture scenarios (patch markers, gate failures, archive scale, scope-repo, acceptance readiness) — all from advance's own changes. No cross-project (pokeedge, pokeedge-web) histories. Honest residual risk: a change that passes advance's corpus could still break another project's in-flight workflow shapes. |\n\n### Drain work — confirmed unnecessary\n\nBoth paths already drain correctly. Bounce: SIGTERM only, SDK drains 5s. Self-roll: SIGTERM → bounded drain to `RESTART_HARD_KILL_DEADLINE_MS` (> grace) → SIGKILL fallback. No drain machinery to build.\n\n## What Changes\n\n1. **Self-roll path** verifies replay compatibility before rolling to a new bundle — the primary fix for the dominant path.\n2. **Bounce path** verifies replay compatibility before bouncing — parallel fix for legacy workers.\n3. **CI** runs the verifier against the built candidate bundle.\n4. **Bounce liveness probe** stops misreporting a healthy drain as failure.\n5. **Operator override** for deliberate force-deploy, with risk stated at point of use.\n\n## User Outcomes\n\n- Redeploying the plugin cannot silently wedge work that is in flight, regardless of which deploy path fires.\n- A deploy carrying incompatible workflow code is refused, naming the incompatibility, instead of proceeding.\n- Operators retain a deliberate override when they accept the risk.\n- A normal deploy stops reporting spurious worker-bounce failures.\n- No change to how ADV changes are released.\n\n## Scope\n\n### In Scope\n\n- `plugin/src/temporal/worker-roll.ts` — replay-verification gate in `checkAndRoll()` before `restartChild()` (`:147`)\n- `plugin/src/temporal/worker-multi.ts` — `restartChild()` (`:499-558`) may need to surface verification result\n- `scripts/deploy-local.sh` — replay-verification step before worker bounce (`:1392`); reconcile `bounce_grace_seconds` (`:1333`) with SDK grace (`worker.ts:29`)\n- `plugin/package.json` — expose the existing verifier as a first-class script\n- `.github/workflows/ci.yml` — run the verifier against the built candidate bundle\n- `plugin/scripts/verify-candidate-worker-bundle.ts` — exit-code/reporting contract for automated use\n- Operator override mechanism for deliberate force-deploy\n\n### Out of Scope\n\n- **Building drain machinery** — the SDK already drains on SIGTERM and existing ordering is correct.\n- Detection of already-poisoned workflows — separate change `detectPoisonedOrphaned`.\n- Recovery/termination tooling — `adv_change_workflow_terminate` unchanged.\n- The ADV change release gate — already satisfies scenario `.1`.\n- Re-implementing the verifier, readiness evaluator, evolution guard, or patch markers.\n- Any modification to Concord documentation.\n- Expanding the fixture corpus to cover cross-project histories — recorded as residual risk.\n\n### Must Not\n\n- **MUST NOT enable Temporal Worker Deployments, Build ID routing, or `useVersioning`.** Scenario `.2` forbids pinned routing while prerequisites are unproven.\n- MUST NOT weaken or bypass the existing release-path provenance gate.\n- MUST NOT let verification failure degrade to a silent no-op — it blocks or requires explicit override.\n- MUST NOT reduce `shutdownGraceTime` or invert the grace < hard-deadline ordering.\n- MUST NOT alter workflow-reachable code — that would itself require patch markers and new fixtures.\n\n## Discovery Findings\n\n### Skills Considered\nNone available — no skill in `~/.config/opencode/skills/` matches Temporal worker deployment / replay verification domain. No gap-creation triggered (domain is internal-ADV-specific, not a reusable external pattern).\n\n### Extends\n- `bl-F5_tYP9R` (backlog, 2026-07-16) — identified the root cause; its SIGKILL claim is superseded. New finding: the dominant path (self-roll) was not identified in the original backlog item.\n- `hardenWorkflowRecovery` (archived 2026-07-26) — shipped the replay verifier, readiness evaluator, evolution guard, and release-path gate. New finding: none of these cover the deploy path; the deferral was explicit but the deploy-path half was never picked up.\n- adv-researcher report `preventRedeployWorkflow|change:researcher:temporal-drain-semantics|adv-researcher|1` — confirmed SIGTERM auto-drains, truncation is harmless, changed code is the sole poisoning agent.\n\n### Conflict Scan\n- `adv_change_validate`: NO_TASKS / NO_DELTAS (pre-planning, expected, not conflicts). CONFLICT_INVENTORY_DEGRADED on `hardenWorkflowRecovery` (archived but workflow fallback returned draft) — stale signal, not a real conflict; overlap explicitly reconciled in proposal.\n- No active change covers deploy-path replay verification.\n\n### Edge Cases\n1. **Fixture corpus insufficiency.** Verifier passes on advance's 10 fixtures but a pokeedge in-flight workflow has a shape not in the corpus → verifier passes, deploy proceeds, pokeedge workflow still poisoned. Edge case demands an honest residual-risk statement, not a false guarantee.\n2. **Self-roll during active heartbeat.** Heartbeat fires every N seconds; if a deploy lands mid-heartbeat, the roll monitor sees drift and rolls immediately. If verification is slow, the heartbeat may fire again before verification completes — single-flight (`worker-roll.ts:180-189`) prevents double-roll but the verification gate must be inside the single-flight boundary.\n3. **Verifier itself changes workflow-reachable code.** If wiring the verifier requires modifying `workflows.ts`, the change itself needs patch markers + fixtures — bootstrapping problem. Mitigation: the verifier already exists; wiring it is configuration, not workflow-code change.\n4. **First deploy after this change ships.** The change itself modifies `worker-roll.ts` and `deploy-local.sh` — neither is workflow-reachable code, so the change can be deployed via the normal path without needing its own protection.\n\n### Open Design Questions\n\n| # | Question | Trust model | Blast radius | Alternatives |\n|---|---|---|---|---|\n| 1 | On detected incompatibility: block, warn, or prompt? | Joint (operator decides policy; agent executes) | High — blocking stops all deploys until fixed; warning allows silent poisoning | (a) Block by default, override with env flag; (b) Warn + continue; (c) Interactive prompt. **Recommend (a)** — matches the release-path gate's blocking semantics. |\n| 2 | Should verification run on every self-roll, or only when workflow-reachable code changed? | Agent-resolved (LBP) | Medium — every-roll adds latency to every heartbeat-triggered roll; only-on-change requires a diff mechanism | **Agent decision: verify on every roll.** The generation comparison already fires on every beat; adding verification to the same path is proportional. The verifier runs against committed fixtures, which is bounded. |\n| 3 | Acceptable deploy latency budget for verification? | Joint (operator tolerance) | Medium — verification adds wall-clock time to every deploy | Defer to design: measure actual verifier runtime, then bound it. |\n| 4 | Should the deploy-path control apply across projects? | Joint | High — one cluster serves all projects; a verification gate in advance's self-roll protects advance's workers but not pokeedge's | **Out of scope for this change** — the self-roll path is per-project (each project's worker monitors its own bundle dir). Cross-project protection requires each project to adopt the same gate. Recorded as residual risk. |\n\n### Draft Spec Deltas\n\n**rq-deployReplayVerification01** (new requirement, `must`):\n\n```\nGiven: A plugin or worker deployment replaces a running worker bundle\nWhen: The replacement bundle contains workflow-reachable code\nThen: Replay-determinism verification MUST pass against the committed fixture corpus before the replacement worker begins processing workflow tasks\nAnd: A verification failure MUST block the replacement unless an explicit operator override is recorded\nAnd: The override MUST state the accepted risk at the point of use\n```\n\nThis complements `rq-workerEvolutionSafety01` (which governs the release path) by governing the deploy path. Scenario `.1` of the existing requirement covers \"candidate worker bundle replays supported histories\" for release; this new requirement adds the same scenario for deployment.\n\n### Related Pattern Scan (P25)\n- **Release-path provenance gate** (`adv_change_set_worker_bundle_impact` / `adv_worker_bundle_provenance_record`) — same pattern (verify before proceeding), different surface (release vs deploy). The deploy-path gate should mirror its blocking semantics.\n- **Bundle manifest validation** (`deploy-local.sh:349-397`) — same pattern (validate before bounce), different check (SHA-256 disk integrity vs replay compatibility). The replay gate extends this existing validation step.\n- **Evolution guard** (`workflow-evolution-guard.ts`) — same pattern (check compatibility before proceeding), different layer (source-code-level vs runtime-deploy-level).\n\n### Completeness Verification\n\n**Problem-completeness:** ✓ The full problem is identified. Initial framing covered only the bounce path; discovery expanded it to include the self-roll path (the dominant mechanism). Both surfaces are now in scope. Confidence: high.\n\n**Solution-scope:** ✓ The full intended solution is scoped. The claim \"two surfaces, both must be covered\" is verified by P25 scan — no third deploy/roll surface exists. The self-roll path (`worker-roll.ts:147`) and bounce path (`deploy-local.sh:1396`) are the only two code paths that swap worker bundles at runtime. Confidence: high.\n\n**Sole-chokepoint claim:** N/A — this is a dual-surface claim, not sole-chokepoint. Both surfaces verified.\n\n**Secondary-surface disposition:** The self-roll path was a secondary surface discovered during discovery. Disposition: **In scope** (the dominant path; gating only the bounce would protect a path most deploys no longer take).\n\n### LBP Check\n\n**Direction matches long-term best practice.** The fix mirrors the release-path provenance gate's pattern (verify-before-proceed, block-on-fail, override-with-evidence) at the deploy surface. This is the same structural approach the codebase already uses for release. No external solution is viable — this is internal-ADV plumbing. External-Solution Check skipped (purely internal change).\n\n### Recommended Objectives\n\n1. Self-roll path verifies replay compatibility before rolling to a new bundle.\n2. Bounce path verifies replay compatibility before bouncing.\n3. CI runs the verifier against the built candidate bundle.\n4. Bounce liveness probe reconciled with SDK grace time.\n5. Operator override available with risk stated at point of use.\n6. Residual risk (fixture corpus is advance-repo-only) documented honestly.\n\n## AMBIGUITY ANALYSIS — no ambiguity findings. Coverage: B:C F:C S:C M:C",
+    "problemStatement": "`rq-workerEvolutionSafety01` (`.adv/specs/advance-workflow/spec.json:7691`) states: \"ADV MUST prevent **ordinary plugin or worker deployment** from replaying active workflow histories against incompatible workflow code.\"\n\nIts three scenarios all constrain the ADV change **release** path. Nothing constrains the local **deploy** path. `scripts/deploy-local.sh` is ordinary plugin deployment and it performs no replay verification before bouncing a running worker — so it can replay active histories against incompatible workflow code, which is exactly what the MUST forbids.\n\nA secondary, independent defect: the bounce liveness probe waits 2s (`deploy-local.sh:1333`) while the SDK's graceful shutdown grace is 5s (`worker.ts:29`), so a correctly-draining worker is misreported as un-bounceable and the deploy returns non-zero.\n\n**Superseded framing (recorded for audit).** This change was proposed on the theory that `deploy-local.sh` SIGKILLed workers mid-replay and that truncation caused the non-determinism. Discovery disproved both halves — see the proposal's Root Cause Analysis. The spec-conformance gap is real; the drain-truncation mechanism was not.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Self-roll path verifies replay compatibility before rolling to a new bundle — primary fix for the dominant deploy mechanism.\n2. Bounce path verifies replay compatibility before bouncing — parallel fix for legacy/non-self-roll workers.\n3. CI runs the verifier against the built candidate bundle after `build:worker`.\n4. Bounce liveness probe reconciled with SDK grace time — no more false-negative drain reporting.\n5. Operator override available with risk stated at point of use.\n6. Residual risk (fixture corpus is advance-repo-only; cross-project histories not represented) documented honestly in deploy output.\n7. Track per-project adoption: advance is the pattern; pokeedge, pokeedge-web, pokeedge-admin, pokeedge-business need the same gate (inherited via globally-deployed plugin on next session restart).\n\n## Success Criteria\n\n1. SC1: Redeploying the ADV plugin while change-workflows are in flight does not poison those workflows, regardless of whether the deploy fires via self-roll or the bounce path.\n2. SC2: The dominant deploy path (owner-driven self-roll on bundle drift) is gated by replay verification — not just the legacy bounce path.\n\n## Acceptance Criteria\n\n1. AC1: When a candidate worker bundle contains workflow-reachable code that fails replay against any committed fixture, the self-roll monitor (`worker-roll.ts:checkAndRoll`) refuses to call `restartChild()` and reports the incompatibility with TMPRL1100-class evidence.\n2. AC2: When the same incompatibility is detected on the bounce path, `deploy-local.sh` refuses to SIGTERM the running worker and exits non-zero with the incompatibility named.\n3. AC3: An operator can bypass the verification gate by setting an explicit override (e.g. `ADV_FORCE_DEPLOY=1`); the override is recorded in deploy output with a stated-risk line.\n4. AC4: CI runs `verify-candidate-worker-bundle` against the built candidate bundle after `build:worker`.\n5. AC5: The bounce liveness probe (`bounce_grace_seconds`) no longer misreports a healthy drain as failure — it waits at least as long as `TEMPORAL_WORKER_SHUTDOWN_GRACE_MS`.\n6. AC6: A change that passes the committed fixture corpus but would break a cross-project workflow shape not represented in the corpus is documented as a known residual risk in deploy output, not silently allowed.\n7. AC7: `worker-deployment-readiness.ts` continues to return `ready:false` — Worker Deployments remain disabled.\n\n## Constraints\n\n- C1: MUST NOT enable Worker Deployments, Build ID routing, or `useVersioning` — spec-forbidden by `rq-workerEvolutionSafety01` scenario `.2` while prerequisites are unproven.\n- C2: MUST NOT alter workflow-reachable code (`workflows.ts`) — doing so would require patch markers and new fixtures, creating a bootstrapping dependency.\n- C3: MUST NOT weaken or bypass the existing release-path provenance gate (`adv_change_set_worker_bundle_impact` / `adv_worker_bundle_provenance_record`).\n- C4: Verification failure never degrades to a silent no-op — it blocks or requires explicit override with recorded risk.\n\n## Avoidances\n\n- DONT1: Do not build drain machinery — the SDK already drains correctly on SIGTERM and the existing 5s grace / 10s hard-deadline ordering is correct.\n- DONT2: Do not re-implement the replay verifier, readiness evaluator, evolution guard, or patch markers — all shipped by `hardenWorkflowRecovery`.\n- DONT3: Do not expand the fixture corpus to cover cross-project histories — recorded as known residual risk; expanding the corpus is a separate effort.\n\n## Preview Applicability\n\n- `visual_surface: false`\n- Rationale: this change affects Temporal worker deployment plumbing (`worker-roll.ts`, `worker-multi.ts`, `deploy-local.sh`, `package.json`, CI). No frontend, browser, or visual output is affected.\n- `preview_expectation`:\n  - `exact_route_required`: not_applicable\n  - `data_state_expectation`: not_applicable\n  - `viewport_expectation`: not_applicable\n\n## Decisions\n\n### User Decisions\n\n1. **On detected incompatibility: Block + override flag.** Matches release-path gate semantics. Deploy refuses; operator overrides with env flag recording accepted risk. Prevents silent poisoning while preserving operator authority for deliberate risk acceptance.\n2. **Deploy latency tolerance: No cap, correctness first.** Verification runs to completion regardless of wall-clock time. A deploy is not time-critical enough to trade for safety.\n3. **Cross-project scope: Track per-project adoption.** Advance's fix is the pattern. Explicitly track that pokeedge, pokeedge-web, pokeedge-admin, pokeedge-business need the same gate. They inherit via globally-deployed plugin on next session restart; the residual risk (old plugin generation until restart) is made explicit.\n\n### Agent Decisions (LBP)\n\n1. **Verification runs on every roll, not only when workflow-reachable code changed.** The generation comparison already fires on every heartbeat beat; adding verification to the same path is proportional. The verifier runs against 10 committed offline fixtures — bounded. Building a diff mechanism to skip verification when non-workflow code changed adds complexity without meaningful savings; the verifier is fast enough for offline fixtures.\n2. **Dual-surface gate, not sole-chokepoint.** Both the self-roll path (`worker-roll.ts:147`) and bounce path (`deploy-local.sh:1396`) must be gated. P25 scan confirmed no third surface exists. The self-roll path is higher-leverage because `deploy-local.sh` skips self-roll workers entirely.\n3. **No external solution viable.** This is internal-ADV plumbing. External-Solution Check skipped — no external tool, library, or service can gate ADV's own deploy path.\n\n## Deferred Questions\n\nNone. All open design questions resolved or carried as explicit constraints.\n\n## Sign-Off\n\nUser approved acceptance criteria and success criteria via Tier A inline approval (\"approve\") at Phase 4.5.1 on 2026-07-27. Agreement persisted at Phase 4.6.",
+    "design": "# Design\n\n## Architecture Overview\n\nThe design adds a replay-verification gate to **two existing bundle-swap surfaces**, reusing the verifier and fixture corpus already shipped by `hardenWorkflowRecovery`. No new verification logic is built; the design wires an existing function into two existing call paths.\n\n```\n                    ┌─────────────────────────────────┐\n                    │ verifyCommittedReplayFixtures()  │\n                    │ (migration/replay-verification)  │\n                    │ Input: workflowsPath, historiesDir│\n                    │ Output: { passed: boolean, ... } │\n                    └──────────────┬──────────────────┘\n                                   │\n                    ┌──────────────┴──────────────────┐\n                    │                                 │\n              ┌─────▼──────────┐            ┌─────────▼─────────┐\n              │ SELF-ROLL GATE │            │  BOUNCE GATE      │\n              │ worker-roll.ts │            │ deploy-local.sh   │\n              │ checkAndRoll() │            │ refresh_deployed_ │\n              │ :143-147       │            │ temporal_workers  │\n              │                │            │ :1392-1396        │\n              └────────────────┘            └───────────────────┘\n                    │                                 │\n              ┌─────▼──────────┐            ┌─────────▼─────────┐\n              │ ADV_FORCE_     │            │ ADV_FORCE_        │\n              │ DEPLOY=1       │            │ DEPLOY=1          │\n              │ → override +   │            │ → override +      │\n              │   log risk     │            │   log risk        │\n              └────────────────┘            └───────────────────┘\n```\n\nThe gate fires **after** generation drift is confirmed but **before** the bundle swap (either `restartChild()` or `kill -TERM`). On failure it blocks; on override it proceeds with a logged risk line.\n\n## Key Decisions\n\n### KD1: Gate location — inside `checkAndRoll()`, before `restartChild()`\n\n**Lever citation:** `plugin/src/temporal/worker-roll.ts:144-147`\n\nThe gate inserts between line 142 (`runningGeneration === manifestGeneration` check returns `same_generation`) and line 147 (`restartChild()` call). At this point generation drift is confirmed and the candidate bundle is already on disk. This is inside the single-flight boundary (`rollInFlight` latch at `:180-189`), so concurrent heartbeat beats won't stack a second verification.\n\n### KD2: Verification callback, not inline import\n\nThe worker-roll monitor runs in the host plugin process. The design adds a `verifyCandidateBundle` callback to `WorkerBundleRollMonitorOptions`:\n\n```typescript\nverifyCandidateBundle?: (input: {\n  workflowsPath: string;\n  historiesDir: string;\n}) => Promise<{ passed: boolean; report?: unknown }>;\n```\n\nThreaded from `plugin-init.ts:355-369`. When omitted (tests, back-compat), verification is skipped — same fail-open posture as today, not a regression.\n\n### KD3: Override mechanism — `ADV_FORCE_DEPLOY=1` environment variable\n\nChecked at gate time via `process.env.ADV_FORCE_DEPLOY === \"1\"`. When set, the gate logs a `[ADV:FORCE_DEPLOY] Replays skipped — operator accepted poisoning risk` line and proceeds. Read in both the TypeScript gate (self-roll) and the shell gate (bounce). Env vars work across both surfaces without a shared config file; session-scoped (don't persist accidentally); visible in shell history.\n\n### KD4: historiesDir — already deployed with the plugin (no build change needed)\n\n**Validation correction (2026-07-27):** The deploy rsync copies the entire `plugin/` tree including `src/` to `~/.local/share/Advance/plugin/`. Verified: `~/.local/share/Advance/plugin/src/temporal/__tests__/replay/histories/` exists in the deployed location. The runtime verifier resolves `historiesDir` from the deployed plugin's `src/` tree — no build-step fixture copy is needed.\n\n**Lever citation:** `scripts/deploy-local.sh` runtime plugin rsync (copies `plugin/` → `$ADV_RUNTIME_PLUGIN_PATH`); consuming call site is the verifier's `historiesDir` argument. The `bundleDir` option on the roll monitor (`plugin-init.ts:357` = `dirname(workerScriptPath)`) already points to the deployed plugin's `dist/temporal/`; the histories resolve relative to the plugin root as `../src/temporal/__tests__/replay/histories/`.\n\n### KD5: Bounce path gate — shell invocation with correct working directory\n\n`deploy-local.sh` runs from the repo root; `verify:worker-bundle` lives in `plugin/package.json`. The gate must enter the plugin directory — mirroring how the deploy script already wraps build commands (`:254`: `(cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run build)`):\n\n```bash\nif ! (cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run verify:worker-bundle); then\n  if [ \"${ADV_FORCE_DEPLOY:-0}\" = \"1\" ]; then\n    echo \"    [ADV:FORCE_DEPLOY] Replay verification failed — operator accepted poisoning risk\"\n  else\n    echo \"    ✗  Candidate worker bundle failed replay verification — refusing to bounce\"\n    echo \"    Set ADV_FORCE_DEPLOY=1 to override (operator accepts poisoning risk)\"\n    return 1\n  fi\nfi\n```\n\nExit codes: `0` → pass, proceed with bounce; `1` → replay failure, refuse unless `ADV_FORCE_DEPLOY=1`; `2` → preconditions unmet (bundle not found), refuse unconditionally.\n\n**Lever citation:** `scripts/deploy-local.sh:1392` (the `echo \"bouncing legacy...\"` line). The gate inserts between the self-roll advisory block (`:1369-1375`) and the legacy bounce block (`:1387-1418`). `$ADV_SOURCE_PLUGIN_PATH` is defined at `:166`.\n\n### KD6: Bounce grace reconciliation\n\n**Lever citation:** `scripts/deploy-local.sh:1333` (`bounce_grace_seconds=2`) and `plugin/src/temporal/worker.ts:29` (`TEMPORAL_WORKER_SHUTDOWN_GRACE_MS = 5_000`).\n\nChange `bounce_grace_seconds=2` to `bounce_grace_seconds=6` (5s SDK grace + 1s margin). The probe at `:1407` (`kill -0`) then waits long enough for the SDK drain to complete before checking liveness.\n\n### KD7: CI integration\n\n**Lever citation:** `.github/workflows/ci.yml:67-69` (`pnpm run build:worker` step). Add a new step after `build:worker`:\n\n```yaml\n- name: Verify candidate worker bundle\n  run: pnpm run verify:worker-bundle\n  working-directory: plugin\n```\n\nAnd add to `plugin/package.json` scripts:\n```json\n\"verify:worker-bundle\": \"tsx scripts/verify-candidate-worker-bundle.ts\"\n```\n\n## Implementation Strategy\n\n### Sequencing (dependency-ordered)\n\n1. **Package script: `verify:worker-bundle`** (`package.json`). Prerequisite for CI and deploy gate.\n2. **CI step** (`.github/workflows/ci.yml`). Independent of runtime gates; ships first to catch regressions early.\n3. **Self-roll gate** (`worker-roll.ts` + `plugin-init.ts`). The primary fix. Adds `verifyCandidateBundle` option, threads callback, inserts gate in `checkAndRoll()`.\n4. **Bounce gate** (`deploy-local.sh`). Parallel fix for legacy workers. Shells out to the verifier script with correct cwd.\n5. **Bounce grace reconciliation** (`deploy-local.sh:1333`). `2` → `6`.\n6. **Override mechanism** (`ADV_FORCE_DEPLOY=1`). Threaded into both gates.\n\n### Test strategy\n\n- **Self-roll gate unit test:** mock `verifyCandidateBundle` to return `{ passed: false }` → assert `restartChild()` NOT called. Mock `{ passed: true }` → assert `restartChild()` IS called.\n- **Override test:** set `ADV_FORCE_DEPLOY=1` → verification skipped, `restartChild()` proceeds.\n- **Bounce gate test:** fixture-based bash test or manual verification.\n- **CI test:** verifier already runs in vitest; new CI step is the same verifier against built bundle — tested by CI itself.\n\n## LBP Analysis\n\nMirrors the release-path gate pattern from `hardenWorkflowRecovery`:\n\n| Release path (existing) | Deploy path (this design) |\n|---|---|\n| `adv_change_set_worker_bundle_impact` declares impact at planning | `verifyCandidateBundle` callback checks at roll time |\n| `adv_worker_bundle_provenance_record` blocks release | Gate blocks roll/bounce without verification passing |\n\nReuses existing verifier (DONT2). Reuses existing gate pattern (verify-before-proceed, block-on-fail, override-with-flag). Does not alter workflow code (C2). Does not enable Worker Deployments (C1).\n\n## Affected Components\n\n| Component | Change | Lever citation |\n|---|---|---|\n| `plugin/src/temporal/worker-roll.ts` | Add `verifyCandidateBundle` option; insert gate in `checkAndRoll()` between `:142` and `:147` | Call site: `:147` `await options.restartChild()` |\n| `plugin/src/plugin-init.ts` | Thread `verifyCandidateBundle` callback into `initWorkerBundleRoll()` at `:355-369` | Call site: `:355` |\n| `plugin/scripts/verify-candidate-worker-bundle.ts` | Export a reusable function for the callback | Call site: `:44` |\n| `plugin/package.json` | Add `verify:worker-bundle` script | Script block |\n| `.github/workflows/ci.yml` | Add post-`build:worker` step | After `:67-69` |\n| `scripts/deploy-local.sh` | Verification gate before `:1392` (with cwd wrap); change `bounce_grace_seconds` at `:1333` from `2` to `6` | `:1396`, `:1333` |\n\n## Design-Derived Criteria\n\n- **DDC1:** The fixture corpus is already deployed with the plugin (validated: `~/.local/share/Advance/plugin/src/temporal/__tests__/replay/histories/` exists). No build-step change needed.\n- **DDC2:** The `verifyCandidateBundle` callback, when provided, MUST complete before the roll proceeds. No timeout (user decision: \"no cap, correctness first\"). If the verifier hangs, the roll hangs — documented in the callback's docstring.\n- **DDC3:** `ADV_FORCE_DEPLOY=1` override MUST be logged with a risk statement at both gate sites.\n- **DDC4:** Bounce grace (6s) MUST NOT exceed the self-roll hard-kill deadline; the two are independent but the ordering invariant must hold.\n\n## Risks / Mitigations\n\n| Risk | Likelihood | Impact | Mitigation |\n|---|---|---|---|\n| Fixture corpus insufficient — advance-only | High | Medium — false confidence | AC6 requires residual-risk statement; DONT3 defers expansion |\n| Verifier hangs on edge-case fixture | Low | High — blocks all deploys | User accepted \"no cap\"; override is escape hatch |\n| Bounce gate invoked outside plugin cwd | Fixed | — | KD5 uses `(cd \"$ADV_SOURCE_PLUGIN_PATH\" && ...)` matching existing pattern at `:254` |\n| `ADV_FORCE_DEPLOY=1` left set in environment | Low | Medium — silent poisoning | Session-scoped; logged at every gate fire |\n\n## Validation Result\n\nIndependent validator (adv-researcher, 2026-07-27): `validation.status: fail` (advisory-only). Two in-scope findings, both fixed:\n\n1. **KD5 cwd bug** — fixed: gate now wraps in `(cd \"$ADV_SOURCE_PLUGIN_PATH\" && pnpm run verify:worker-bundle)`, matching the existing build-command pattern at `deploy-local.sh:254`.\n2. **KD4 unnecessary build step** — fixed: validated that the deployed plugin includes `src/` (verified `~/.local/share/Advance/plugin/src/temporal/__tests__/replay/histories/` exists); KD4's fixture-copy build step removed.\n\nValidator also cited https://docs.temporal.io/develop/safe-deployments as authoritative support for replay verification before worker deployment — design aligns with documented Temporal best practice.\n\n## Design Leverage Scout\n\nScout: skipped — change scope is narrow (wire existing verifier into two known call sites). No parallelism or simplification opportunities beyond agreed scope.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV's deploy paths (self-roll and bounce) now verify replay compatibility before swapping worker bundles, preventing the NonDeterministicError workflow poisoning that destroyed two production workflows on 2026-07-15/16.\n\n## Why It Matters\n\nRedeploying the plugin while change-workflows are in flight no longer risks permanently wedging those workflows. The fix closes the unenforced deploy-path half of `rq-workerEvolutionSafety01` — a spec MUST that was already enforced on the release path but not on the deploy path.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. **Self-roll replay gate** — the dominant deploy path (owner-driven bundle-drift roll on every heartbeat) now verifies replay against committed fixtures before restarting the worker child. Blocks on failure; `ADV_FORCE_DEPLOY=1` overrides with logged risk.\n2. **Bounce replay gate** — the legacy deploy path (non-self-roll workers) now verifies replay before SIGTERM. Same override semantics.\n3. **CI verification step** — `verify:worker-bundle` script runs after `build:worker` in CI, catching determinism breaks before merge.\n4. **Grace reconciliation** — bounce probe window reconciled with SDK drain time (2s→6s), eliminating false-negative \"could not be bounced\" reports.\n5. **Residual risk documentation** — deploy output explicitly states the fixture corpus is advance-repo-only.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers, 0 issues (1 issue fixed during review — verifier output suppression removed)\n- Tests: 16/16 pass (11 existing + 5 new gate tests). Typecheck clean. Bash syntax valid.\n- Preview URL: not_applicable (no frontend/visual output affected)\n- Contract matrix: 16/16 rows pass/respected, 0 failing\n\n## Remaining Concerns\n\n- **Fixture corpus is advance-repo-only.** A change that passes all 10 fixtures could still break a cross-project (pokeedge/pokeedge-web) workflow shape not represented in the corpus. Documented as residual risk in deploy output; corpus expansion is a separate effort (DONT3).\n- **Verification latency.** No cap (user decision). The verifier takes ~15s against 10 offline fixtures. If the corpus grows, deploy latency grows proportionally.\n- **Cross-project adoption.** The gate is in advance's plugin, globally deployed. Pokeedge projects inherit on next session restart. Until then, sessions running old plugin generation are exposed.\n\n## Supporting Evidence\n\n- Tasks: tk-1d825d9f (CI script, done), tk-13996d4e (self-roll gate, done), tk-d1e48bb4 (bounce gate, done)\n- Test runs: tr_ms3xrxps_16a8ae0a (16/16 pass), tr_ms3x89m1_754f9749 (verifier exit 0)\n- Commits: ebfbe18e, 4da401dd, a640f567, e1f4cc30 (review fix)\n- Contract review matrix: 16 rows, 0 failing\n\n## Consequence Context\n\n1. **Delivered value:** Deploy-path replay verification prevents workflow poisoning — the exact failure that destroyed two production workflows. Both deploy surfaces gated.\n2. **Enabling-only/follow-up dependency:** None blocking. Cross-project adoption (pokeedge/pokeedge-web/pokeedge-admin/pokeedge-business) inherits via global plugin deploy on next session restart.\n3. **Ops readiness:** pending — harden owns release/deploy/production/docs/cleanup readiness.\n4. **Migration/data impact:** n/a — no data migration; deploy-script behavior change only.\n5. **Frontend/preview impact:** n/a — no visual surface affected (visual_surface: false).\n6. **Collision/release risk:** low — change is additive (optional callback, env-var override); existing behavior preserved when callback omitted.\n7. **Open follow-ups:** Fixture corpus expansion (separate effort, DONT3). Per-project adoption tracking for pokeedge projects.\n8. **Next action:** acceptance approval proceeds inline to /adv-harden."
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-27T23:38:37.201Z",
+      "contentHash": "bc40535e256d4519e9810ac44aa755261fb62fa731528ced23018c285db661aa",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-27T23:28:04.404Z",
+      "contentHash": "3cc0b91b534b64e2e7b1b66aa318e349402e6c0043cb5465d58d97383777d31c",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-27T23:46:35.028Z",
+      "contentHash": "f04233ae486d7ae073171fbfa74d7882926cecc40924ef89cebe23956328e8c9",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-27T23:59:44.346Z",
+      "contentHash": "ef6b6e421f56fc1de5df51190d97db4a83dab45215e8f076557b4ca908ce94b0",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-28T00:48:26.038Z",
+      "contentHash": "708e175092451912ab5a07287d996533db4c0b7f4eebfd965b0501966ee2b69f",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-28T01:44:09.457Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "worktree_auto_managed": true
+}
