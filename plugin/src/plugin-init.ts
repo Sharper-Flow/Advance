@@ -452,6 +452,7 @@ export async function tryInitStore(
 
     if (worker) {
       try {
+        teardownWorkerAttachment(worker);
         await worker.shutdown();
       } catch (shutdownError) {
         debugLog(
@@ -512,6 +513,10 @@ function teardownWorkerAttachment(worker: InProcessWorker): void {
   if (attachment) {
     attachment.stopDriver?.();
     workerAdoptionAttachments.delete(worker);
+    if (attachment.adopter && attachment.adopter === activeOrphanQueueAdopter) {
+      activeOrphanQueueAdopter = null;
+      adoptionConstructionState = { kind: "not_attempted" };
+    }
   }
 }
 
@@ -808,6 +813,11 @@ async function drainInProcessTemporalWorkers(): Promise<void> {
       }
     }),
   );
+}
+
+/** Test-only accessor to drain workers for teardown-state verification. */
+export async function __drainInProcessTemporalWorkersForTest(): Promise<void> {
+  return drainInProcessTemporalWorkers();
 }
 
 async function drainWorkerLockHeartbeats(): Promise<void> {

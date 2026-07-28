@@ -97,6 +97,7 @@ vi.mock("./temporal/orphan-queue-adopter", async () => {
 });
 
 import {
+  __drainInProcessTemporalWorkersForTest,
   attachWorkerWithAdoption,
   getOrphanQueueAdoptionDiagnostics,
   getOrphanQueueAdoptionStatus,
@@ -287,6 +288,27 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
     vi.useRealTimers();
     mocks.fakeWorker.shutdown.mockReset();
     mocks.fakeWorker.shutdown.mockResolvedValue(undefined);
+  });
+
+  test("teardown clears adoption state — no stale active after drain (AC5/AC9)", async () => {
+    const projectDir = await createTempDir("adv-teardown-state-");
+    tempDirs.push(projectDir);
+
+    vi.useFakeTimers();
+
+    await restartCurrentProjectTemporalWorker(projectDir);
+    expect(getOrphanQueueAdoptionStatus().enabled).toBe(true);
+    expect(getWorkerAdoptionAttachmentCount()).toBe(1);
+
+    await __drainInProcessTemporalWorkersForTest();
+
+    const status = getOrphanQueueAdoptionStatus();
+    expect(status.enabled).toBe(false);
+    expect(status.reason).toBe("no_worker_attached");
+    expect(status.diagnostics).toBeNull();
+    expect(getWorkerAdoptionAttachmentCount()).toBe(0);
+
+    vi.useRealTimers();
   });
 
   test("AC7: attachWorkerWithAdoption keeps only one active adopter", async () => {
