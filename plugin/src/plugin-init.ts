@@ -208,6 +208,15 @@ export async function tryInitStore(
     const sessionId = getCurrentSessionId() ?? generateSessionId();
     setCurrentSessionId(sessionId);
 
+    // rq-advOwnedFrontmatterValid01 / DDC1: bounded runtime frontmatter
+    // check. Warn-only, never throws — init resilience takes precedence.
+    try {
+      const { runtimeFrontmatterCheck } = await import("./utils/manifest-frontmatter");
+      runtimeFrontmatterCheck(300);
+    } catch {
+      // Swallow — frontmatter check is advisory at init time.
+    }
+
     let temporalBundle: Awaited<ReturnType<typeof initStsl>> | undefined;
     profilePluginInit("backend_mode_detected", {
       backend_mode: "temporal",

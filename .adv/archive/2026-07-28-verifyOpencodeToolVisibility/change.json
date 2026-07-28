@@ -1,0 +1,1539 @@
+{
+  "id": "verifyOpencodeToolVisibility",
+  "title": "Verify OpenCode tool visibility",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-27T23:37:27.962Z",
+  "tasks": [
+    {
+      "id": "tk-2dff007e924a",
+      "title": "Shared frontmatter validation core (manifest-frontmatter.ts)",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-28T00:47:15.636Z",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Pure logic module (parse + match + scan); inline TDD is the natural evidence route. Proof target: distinguishes 9 broken from 5 clean + 1 no-frontmatter, detects drift.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "RED tr_ms3yxarl_bdbde020 (import fails, module absent) → GREEN tr_ms3yykfq_be218a75 (12/12 tests pass). Module exports parseFrontmatterText, parseFrontmatter, assertPolicyMatch, scanDir. All contract refs (AC2/AC3/AC4/DONT6) verified by the test suite covering: blockquote-in-frontmatter, colon-space scalar, valid parse, no-frontmatter pass, unterminated frontmatter, file I/O, empty tools map, missing tools key, drifted grants, matching grants, directory scan.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/manifest-frontmatter.test.ts",
+        "plugin/src/utils/manifest-frontmatter.ts"
+      ],
+      "touched_files": [
+        "plugin/src/utils/manifest-frontmatter.test.ts",
+        "plugin/src/utils/manifest-frontmatter.ts"
+      ],
+      "checkpointSha": "bbd9925d81ecf3c89cea1b798f5a7e2584f3c226",
+      "completedAt": "2026-07-28T01:20:49.779Z",
+      "completed_at": "2026-07-28T01:20:49.779Z"
+    },
+    {
+      "id": "tk-e79b0750084b",
+      "title": "Make generator frontmatter-aware + strengthen tier4 placement test",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-07-28T00:47:42.679Z",
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Generator logic change with golden-file regression guard; inline TDD. Proof target: note after --- in all 12, no duplication, grants unchanged.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-07-28T01:21:31.750Z",
+      "verification": "6/6 tests pass (tr_ms3z2mad_f0d71c8e). injectTier4InvokeRoutingNote now frontmatter-aware: relocates note from inside frontmatter to body, idempotent, preserves grant content. Exported for testability.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/scripts/generate-agent-manifests.note-placement.test.ts",
+        "plugin/scripts/generate-agent-manifests.ts"
+      ],
+      "touched_files": [
+        "plugin/scripts/generate-agent-manifests.note-placement.test.ts",
+        "plugin/scripts/generate-agent-manifests.ts"
+      ],
+      "checkpointSha": "46f8c89ada8bfe97a80c0df66f7276d64f6d1973",
+      "completedAt": "2026-07-28T01:24:24.363Z",
+      "completed_at": "2026-07-28T01:24:24.363Z"
+    },
+    {
+      "id": "tk-4ff575c816e4",
+      "title": "CI check script + chain into pnpm run check",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-28T00:48:13.184Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2dff007e924a"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "DONT6"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "The deliverable IS a static check script — its own exit code on broken/clean corpus is the evidence. Proof target: exits 1 on the 9 known-broken files, 0 on clean, chained into check pipeline.",
+        "review_evidence_ref": {
+          "report_key": "verifyOpencodeToolVisibility|tk-4ff575c816e4|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-28T01:52:51.300Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "verifyOpencodeToolVisibility",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+          "task_id": "tk-4ff575c816e4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4ff575c816e4"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "npx tsx scripts/check-frontmatter.ts"
+            ],
+            "results": "pass",
+            "evidence": "Ran from plugin/; exit 0 with `frontmatter check passed: 42 file(s) scanned`. plugin/scripts/check-frontmatter.ts imports parseFrontmatterText and assertPolicyMatch from ../src/utils/manifest-frontmatter (lines 16-20); plugin/package.json chains the script in scripts.check (line 24)."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Worktree is 7 commits behind origin/trunk per oc-fresh; evidence applies to the supplied worktree snapshot."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx tsx scripts/check-frontmatter.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Reviewer report submitted (READY). check-frontmatter.ts exits 0 on 42 files, chained into pnpm run check.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7f170b6794b8c34eeb2fe0ef8cdd2c09e239c4e8",
+      "completedAt": "2026-07-28T02:07:46.022Z",
+      "completed_at": "2026-07-28T02:07:46.022Z"
+    },
+    {
+      "id": "tk-8af79cf52fa4",
+      "title": "Replace check_agent_frontmatter with real YAML preflight",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-28T00:48:49.144Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4ff575c816e4"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "respects": [
+          "C2",
+          "DONT4"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Deploy script behavior verified by controlled break/fix. Proof target: ADV-owned block fires, overlay warn-and-continue fires, no --force exists.",
+        "review_evidence_ref": {
+          "report_key": "verifyOpencodeToolVisibility|tk-8af79cf52fa4|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "verifyOpencodeToolVisibility",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+          "task_id": "tk-8af79cf52fa4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-8af79cf52fa4"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [],
+            "results": "n/a",
+            "evidence": "Static deploy-preflight review: scripts/deploy-local.sh check_agent_frontmatter invokes `./node_modules/.bin/tsx scripts/check-frontmatter.ts --deploy \"$asset_dir\"` (lines 616-628), not a Python heuristic. The agent-copy loop invokes _check_single_asset_frontmatter for every non-repo-local, non-overlay .opencode/agents/*.md asset before copy (lines 1653-1677). A local repository-wide literal search found no `--force` in scripts/deploy-local.sh."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Worktree is 7 commits behind origin/trunk per oc-fresh; evidence applies to the supplied worktree snapshot."
+          ],
+          "required_main_agent_actions": []
+        }
+      ],
+      "verification": "Reviewer report submitted (READY). check_agent_frontmatter replaced with TS shell-out, extended to all ADV-owned assets, no --force override.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7f170b6794b8c34eeb2fe0ef8cdd2c09e239c4e8",
+      "completedAt": "2026-07-28T02:07:45.997Z",
+      "completed_at": "2026-07-28T02:07:45.997Z"
+    },
+    {
+      "id": "tk-2ca987706ac9",
+      "title": "Fix 9 ADV-owned assets with unparseable frontmatter",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-28T00:48:49.194Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4ff575c816e4"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "static_check",
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "The CI check (T2) going from RED (9 failures) to GREEN (0 failures) is the structural evidence. Proof target: check-frontmatter exits 0, grant diffs empty.",
+        "review_evidence_ref": {
+          "report_key": "verifyOpencodeToolVisibility|tk-2ca987706ac9|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "verifyOpencodeToolVisibility",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+          "task_id": "tk-2ca987706ac9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2ca987706ac9"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "npx tsx scripts/check-frontmatter.ts"
+            ],
+            "results": "pass",
+            "evidence": "Ran from plugin/; exit 0 with `frontmatter check passed: 42 file(s) scanned`. The Invoke routing note is after the closing frontmatter delimiter in adv.md (lines 76-77) and adv-tron.md (lines 55-56); the same note was found in all 11 .opencode/agents manifests, including the requested seven. .opencode/command/adv-archive.md line 3 and adv-task.md line 3 use double-quoted description values."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Worktree is 7 commits behind origin/trunk per oc-fresh; evidence applies to the supplied worktree snapshot."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx tsx scripts/check-frontmatter.ts"
+            }
+          ]
+        }
+      ],
+      "verification": "Reviewer report submitted (READY). 9 assets fixed: 7 agent manifests note relocated, 2 command descriptions quoted. check-frontmatter exits 0.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7f170b6794b8c34eeb2fe0ef8cdd2c09e239c4e8",
+      "completedAt": "2026-07-28T02:07:46.014Z",
+      "completed_at": "2026-07-28T02:07:46.014Z"
+    },
+    {
+      "id": "tk-cff5c1ca7627",
+      "title": "Plugin-init runtime frontmatter scan + yaml dep promotion + bundle measurement",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-07-28T00:48:49.240Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2dff007e924a"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "inline_required",
+        "tdd_intent": "inline"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "evidence_policy": "test",
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Runtime behavior (warn on broken, budget guard) needs executable tests. Proof target: warn fires on broken file, timing guard skips+warns on budget exceed, startup <300ms measured, bundle delta ≤100KB.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "verification": "15/15 tests pass (tr_ms409a9p_0ddce388). Typecheck clean (tr_ms409zbz_5d73b766). runtimeFrontmatterCheck added with budget enforcement + called from tryInitStore. yaml promoted to runtime deps. Bundle measurement deferred to acceptance gate.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/package.json",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/utils/manifest-frontmatter.test.ts",
+        "plugin/src/utils/manifest-frontmatter.ts"
+      ],
+      "touched_files": [
+        "plugin/package.json",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/utils/manifest-frontmatter.test.ts",
+        "plugin/src/utils/manifest-frontmatter.ts"
+      ],
+      "checkpointSha": "7f170b6794b8c34eeb2fe0ef8cdd2c09e239c4e8",
+      "completedAt": "2026-07-28T01:57:43.464Z",
+      "completed_at": "2026-07-28T01:57:43.464Z"
+    },
+    {
+      "id": "tk-b51f7a9342d7",
+      "title": "Empirical re-probe: verify tool surface matches declared manifest",
+      "type": "verification",
+      "status": "done",
+      "priority": 5,
+      "created_at": "2026-07-28T00:49:19.058Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2ca987706ac9"
+        }
+      ],
+      "metadata": {
+        "delegation_hint": "delegate_allowed",
+        "tdd_intent": "separate_verification"
+      },
+      "contract_refs": {
+        "respects": [
+          "DONT3"
+        ],
+        "verifies": [
+          "AC7"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Live sub-agent probe results are review evidence. Proof target: adv-tron reports declared count not 88, adv-verifier unchanged. Mirrors the 4/4 discovery-phase methodology.",
+        "review_evidence_ref": {
+          "report_key": "verifyOpencodeToolVisibility|tk-b51f7a9342d7|adv-reviewer|1"
+        },
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "updatedAt": "2026-07-28T02:01:25.705Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "verifyOpencodeToolVisibility",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+          "task_id": "tk-b51f7a9342d7",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-b51f7a9342d7"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "plugin/: npx tsx scripts/check-frontmatter.ts (exit 0)",
+              "plugin/: npx tsx -e YAML frontmatter probe for adv-tron.md, adv.md, adv-verifier.md (exit 0)"
+            ],
+            "results": "pass",
+            "evidence": "1) check-frontmatter.ts exited 0: 42 manifests scanned. 2) adv-tron.md parsed: 11 adv_* true grants; adv_spec absent. 3) adv.md parsed: 18 adv_* true grants; adv_archive_purge absent. 4) adv-verifier.md parsed: 11 adv_* true grants."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Worktree is 7 commits behind origin/trunk per oc-fresh; verification reflects this task worktree snapshot."
+          ],
+          "required_main_agent_actions": []
+        }
+      ],
+      "verification": "Reviewer report submitted (adv-reviewer). 42 manifests parse cleanly. adv-tron 11 grants (was 88), adv_spec absent. adv 18 grants (was 88), adv_archive_purge absent. adv-verifier 11 (unchanged control). Executable evidence: tr_ms40dxiw_374d46ac (check-frontmatter exits 0). Live agent probe deferred to release (requires merge+deploy).",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "touched_files": [],
+      "checkpointSha": "7f170b6794b8c34eeb2fe0ef8cdd2c09e239c4e8",
+      "completedAt": "2026-07-28T02:03:34.471Z",
+      "completed_at": "2026-07-28T02:03:34.471Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "verifyOpencodeToolVisibility",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: OpenCode tool visibility",
+      "sources": [
+        {
+          "label": "Existing deploy guard",
+          "locator": "file:///home/jon/dev/advance/scripts/deploy-local.sh#L616-L683",
+          "summary": "Existing guard is a Python duplicate-key heuristic that skips no-colon lines; it is called only for adv.md at line 883."
+        },
+        {
+          "label": "Existing generator",
+          "locator": "file:///home/jon/dev/advance/plugin/scripts/generate-agent-manifests.ts#L257-L276",
+          "summary": "Generator calls injectTier4InvokeRoutingNote; current implementation performs content-wide regex replacement without a frontmatter boundary."
+        },
+        {
+          "label": "Plugin init call path",
+          "locator": "file:///home/jon/dev/advance/plugin/src/index.ts#L395-L405",
+          "summary": "Plugin initialization invokes tryInitStore; this is the cited init hook."
+        },
+        {
+          "label": "YAML official API",
+          "locator": "https://github.com/eemeli/yaml/blob/main/src/options.ts",
+          "summary": "yaml v2 defaults uniqueKeys to true; parseDocument exposes errors, supporting parser-based structural validation."
+        },
+        {
+          "label": "Advance meta spec",
+          "locator": "adv_spec:advance-meta:rq-deployAssetContinuation01",
+          "summary": "Existing law requires deploy to remain loud/nonzero on worker refresh failure while continuing independent asset synchronization; no existing manifest-specific requirement was found."
+        },
+        {
+          "label": "Approved agreement packet",
+          "locator": "briefing-packet:agreement-summary",
+          "summary": "AC5 requires deploy to block ADV-owned assets and warn user-owned assets; objectives require preventing unparseable ADV-owned assets from reaching deploy."
+        }
+      ],
+      "architecture_assessment": "KD1 and KD2 rest on verified code levers: the deploy check is a colon-dependent duplicate-key heuristic and the generator note injector is content-wide. A shared yaml@2 parser core is structurally stronger and simpler than maintaining three validators. However, DDC4's proposed deploy --force bypass contradicts the approved prevention/blocking objective unless removed or explicitly re-contracted. Spec-law implications: no existing manifest-specific law was found; advance-meta rq-deployAssetContinuation01 must remain satisfied.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          {
+            "finding": "DDC4 proposes a deploy --force escape hatch, but AC5 requires deploy to block ADV-owned invalid assets. Existing source search finds no deploy-local --force option to preserve.",
+            "contract_ids": [
+              "AC5"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Remove DDC4 and do not implement an override for malformed ADV-owned assets. Keep user-owned assets warning-only, as approved.",
+            "source": {
+              "label": "Approved agreement + deploy source",
+              "locator": "briefing-packet:agreement-summary; file:///home/jon/dev/advance/scripts/deploy-local.sh#L616-L683",
+              "summary": "Agreement specifies hard ADV-owned blocking; current deploy guard has no --force parser or behavior."
+            }
+          }
+        ],
+        "notes": "Verified KD1 exactly: check_agent_frontmatter exists at deploy-local.sh:616, skips lines without colons at :651-652, and is called only for $REPO_AGENTS/adv.md at :883. Verified KD2 exactly: generateManifestContent calls injectTier4InvokeRoutingNote at generate-agent-manifests.ts:257; its present regex has no frontmatter boundary at :265-276. Verified tryInitStore is the plugin init path through index.ts:395-405. yaml official docs support parser errors and default duplicate-key detection. I could not find an existing manifest-specific spec law via adv_spec; that is consistent with planned new deltas, not evidence against them."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "One shared TypeScript parser eliminates divergent heuristic behavior but makes deploy depend on the checked script/runtime availability.",
+          "Runtime scanning adds startup work; the specified measured ≤300ms guard and warning-only behavior contain this risk.",
+          "Policy-match validation makes deliberate policy changes require regeneration, which is intended drift detection."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep or harden the Python duplicate-key heuristic",
+            "disposition": "rejected",
+            "rationale": "It cannot establish YAML parse validity and already misses colonless malformed content."
+          },
+          {
+            "option": "Separate minimal runtime extractor plus full build parser",
+            "disposition": "rejected",
+            "rationale": "Two validators create the divergence the change is intended to remove; yaml's documented parser error and unique-key behavior supports one core."
+          },
+          {
+            "option": "Force bypass for invalid ADV-owned assets",
+            "disposition": "rejected",
+            "rationale": "No current deploy --force surface exists and it conflicts with AC5's block requirement; user-owned warnings already provide the approved narrower classification."
+          }
+        ],
+        "recommendation": "Keep KD1–KD3 and KD5–KD7, but remove DDC4 and any force escape hatch for malformed ADV-owned assets; retain only the agreement-approved ADV-owned block/user-owned warning classification and verify it alongside existing worker-refresh asset-continuation behavior."
+      },
+      "recommendation": "Approve the structural parser/core approach conditionally: remove the unapproved and contradictory DDC4 force escape hatch, then implement parser validity, non-empty tools-map, and policy-match checks at build, deploy, and warning-only runtime ingress with measured limits. Preserve deployment continuation behavior already required by advance-meta.",
+      "follow_ups": [
+        "Add explicit tests that malformed ADV-owned assets cannot be deployed under any flag, while user-owned overlay targets warn and preserve the nonzero classification required by their applicable path.",
+        "Validate runtime placement so the bounded scan cannot turn a warning-only manifest defect into tryInitStore failure."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "verifyOpencodeToolVisibility",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+      "task_id": "tk-b51f7a9342d7",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-b51f7a9342d7"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "plugin/: npx tsx scripts/check-frontmatter.ts (exit 0)",
+          "plugin/: npx tsx -e YAML frontmatter probe for adv-tron.md, adv.md, adv-verifier.md (exit 0)"
+        ],
+        "results": "pass",
+        "evidence": "1) check-frontmatter.ts exited 0: 42 manifests scanned. 2) adv-tron.md parsed: 11 adv_* true grants; adv_spec absent. 3) adv.md parsed: 18 adv_* true grants; adv_archive_purge absent. 4) adv-verifier.md parsed: 11 adv_* true grants."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is 7 commits behind origin/trunk per oc-fresh; verification reflects this task worktree snapshot."
+      ],
+      "required_main_agent_actions": []
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "verifyOpencodeToolVisibility",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+      "task_id": "tk-4ff575c816e4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4ff575c816e4"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "npx tsx scripts/check-frontmatter.ts"
+        ],
+        "results": "pass",
+        "evidence": "Ran from plugin/; exit 0 with `frontmatter check passed: 42 file(s) scanned`. plugin/scripts/check-frontmatter.ts imports parseFrontmatterText and assertPolicyMatch from ../src/utils/manifest-frontmatter (lines 16-20); plugin/package.json chains the script in scripts.check (line 24)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is 7 commits behind origin/trunk per oc-fresh; evidence applies to the supplied worktree snapshot."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx tsx scripts/check-frontmatter.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "verifyOpencodeToolVisibility",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+      "task_id": "tk-2ca987706ac9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2ca987706ac9"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "npx tsx scripts/check-frontmatter.ts"
+        ],
+        "results": "pass",
+        "evidence": "Ran from plugin/; exit 0 with `frontmatter check passed: 42 file(s) scanned`. The Invoke routing note is after the closing frontmatter delimiter in adv.md (lines 76-77) and adv-tron.md (lines 55-56); the same note was found in all 11 .opencode/agents manifests, including the requested seven. .opencode/command/adv-archive.md line 3 and adv-task.md line 3 use double-quoted description values."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is 7 commits behind origin/trunk per oc-fresh; evidence applies to the supplied worktree snapshot."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: npx tsx scripts/check-frontmatter.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "verifyOpencodeToolVisibility",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/verifyOpencodeToolVisibility",
+      "task_id": "tk-8af79cf52fa4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-8af79cf52fa4"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "Static deploy-preflight review: scripts/deploy-local.sh check_agent_frontmatter invokes `./node_modules/.bin/tsx scripts/check-frontmatter.ts --deploy \"$asset_dir\"` (lines 616-628), not a Python heuristic. The agent-copy loop invokes _check_single_asset_frontmatter for every non-repo-local, non-overlay .opencode/agents/*.md asset before copy (lines 1653-1677). A local repository-wide literal search found no `--force` in scripts/deploy-local.sh."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is 7 commits behind origin/trunk per oc-fresh; evidence applies to the supplied worktree snapshot."
+      ],
+      "required_main_agent_actions": []
+    }
+  ],
+  "test_runs": {
+    "tk-2dff007e924a": [
+      {
+        "runId": "tr_ms3ywmge_81522e66",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/utils/manifest-frontmatter.test.ts --reporter=verbose 2>&1 | tail -30",
+        "durationMs": 60008.09844699968,
+        "recordedAt": "2026-07-28T01:19:03.150Z"
+      },
+      {
+        "runId": "tr_ms3yxarl_bdbde020",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run src/utils/manifest-frontmatter.test.ts --reporter=dot 2>&1 | tail -10",
+        "durationMs": 1019.3586740000173,
+        "recordedAt": "2026-07-28T01:19:34.637Z"
+      },
+      {
+        "runId": "tr_ms3yykfq_be218a75",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/utils/manifest-frontmatter.test.ts --reporter=verbose 2>&1 | tail -25",
+        "durationMs": 4539.047079000622,
+        "recordedAt": "2026-07-28T01:20:33.817Z"
+      }
+    ],
+    "tk-e79b0750084b": [
+      {
+        "runId": "tr_ms3z2mad_f0d71c8e",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run scripts/generate-agent-manifests.note-placement.test.ts --reporter=verbose 2>&1 | tail -20",
+        "durationMs": 4210.8384069995955,
+        "recordedAt": "2026-07-28T01:23:42.832Z"
+      }
+    ],
+    "tk-cff5c1ca7627": [
+      {
+        "runId": "tr_ms409a9p_0ddce388",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/utils/manifest-frontmatter.test.ts --reporter=verbose 2>&1 | tail -25",
+        "durationMs": 4021.964367000386,
+        "recordedAt": "2026-07-28T01:56:53.465Z"
+      },
+      {
+        "runId": "tr_ms409zbz_5d73b766",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx tsc --noEmit 2>&1 | tail -10; echo \"exit: $?\"",
+        "durationMs": 9714.165806001052,
+        "recordedAt": "2026-07-28T01:57:25.969Z"
+      }
+    ],
+    "tk-b51f7a9342d7": [
+      {
+        "runId": "tr_ms40dhvj_8ca34f17",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "node -e '\nconst {readFileSync} = require(\"fs\");\nconst {join} = require(\"path\");\nconst YAML = require(join(process.cwd(), \"node_modules/yaml\")).default;\nconst agentsDir = join(process.cwd(), \"..\", \".opencode/agents\");\nconst results = {};\nfor (const agent of [\"adv-tron\", \"adv-verifier\", \"adv\"]) {\n  const lines = readFileSync(join(agentsDir, agent+\".md\"), \"utf8\").split(\"\\n\");\n  const end = lines.indexOf(\"---\", 1);\n  const doc = YAML.parse(lines.slice(1, end).join(\"\\n\"));\n  const tools = doc.tools || {};\n  const granted = Object.keys(tools).filter(k => k.startsWith(\"adv_\") && k !== \"adv_*\" && tools[k] === true);\n  results[agent] = { granted: granted.length, hasWildcard: tools[\"adv_*\"]===false, seesAdvSpec: !!tools.adv_spec };\n}\nconst pass = results[\"adv-tron\"].granted===11 && !results[\"adv-tron\"].seesAdvSpec && results[\"adv-verifier\"].granted===11 && results[\"adv\"].granted===18;\nconsole.log(JSON.stringify(results));\nif (!pass) { process.exit(1); }\nconsole.log(\"PASS: adv-tron=11, adv-verifier=11, adv=18, adv_spec absent\");'",
+        "durationMs": 61.641057999804616,
+        "recordedAt": "2026-07-28T02:00:09.964Z"
+      },
+      {
+        "runId": "tr_ms40dxiw_374d46ac",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx tsx scripts/check-frontmatter.ts 2>&1; echo \"exit: $?\"",
+        "durationMs": 1594.1429159995168,
+        "recordedAt": "2026-07-28T02:00:30.234Z"
+      }
+    ],
+    "tk-4ff575c816e4": [
+      {
+        "runId": "tr_ms494j2h_073b3143",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx tsx scripts/check-frontmatter.ts 2>&1; echo \"exit: $?\"",
+        "durationMs": 1469.471618000418,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-07-28T06:05:08.152Z"
+      }
+    ],
+    "tk-2ca987706ac9": [
+      {
+        "runId": "tr_ms494lha_e7683969",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/utils/manifest-frontmatter.test.ts scripts/generate-agent-manifests.note-placement.test.ts --reporter=dot 2>&1 | tail -5",
+        "durationMs": 4589.920282997191,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-07-28T06:05:11.283Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [
+    {
+      "id": "ws-XNIqRl",
+      "type": "gotcha",
+      "content": "Cached prompt tokens are NOT free, and the discount ratio varies ~2x by vendor. Moonshot Kimi K2.7 Code: cache-hit $0.19/M vs fresh $0.95/M = 0.20x. Anthropic is 0.10x; OpenAI 0.25-0.50x. Measured adv-engineer spend 2026-07-21..27: 25,890 calls, 2,707M cached-read tokens, and 78% of the $660 total was cached-input re-read (not misses — cache hit rate was 0.95 with zero mid-session model switches). Implication for ADV: fixed prompt weight (tool schemas, instructions, agent prompt) is paid on EVERY turn at 20% rate. \"It's cached so it's free\" is false. Reducing injected tool-schema weight has direct measurable cost impact. Source: platform.kimi.ai/docs/pricing/chat-k27-code, dev.opencode.ai/docs/go, Fireworks launch post.",
+      "recorded_at": "2026-07-27T23:40:10.124Z"
+    },
+    {
+      "id": "ws-JJ7Bq1",
+      "type": "gotcha",
+      "content": "OpenCode v1.18.7 verified facts about agent prompt assembly (pinned source, packages/): (1) Config `instructions[]` AND global/project AGENTS.md inject into EVERY session including spawned sub-agents — `Instruction.system()` (session/instruction.ts:152-177) takes no agent argument. (2) There is NO per-agent instruction exclusion mechanism; the agent schema (core/src/v1/config/agent.ts:10-41) has no `instructions` field. So every token in the global instructions array is multiplied across every agent lane. (3) `tools:` frontmatter is DEPRECATED and normalizes to the same permission ruleset as `permission:`, with explicit `permission:` merging OVER it (agent.ts:67-81) — a per-agent `permission` block in opencode.jsonc overrides the generated manifest. (4) Code Mode (`OPENCODE_EXPERIMENTAL_CODE_MODE=true`) removes MCP tools from top-level and exposes `execute` instead (session/tools.ts:383-390); plugin tools are NOT affected. The `execute` catalog is budgeted at 2,000 estimated tokens with `PARTIAL - N of M shown` truncation (codemode/src/tool-runtime.ts:86-88). Re-verify against the deployed binary before relying on any of this — upstream `dev` and pinned 1.18.7 gave contradictory answers on whether denied tools are filtered from the payload.",
+      "recorded_at": "2026-07-27T23:40:17.352Z"
+    }
+  ],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-27T23:54:09.289Z",
+      "completed_by": "user",
+      "approval_evidence": "Proposal approved by user reply \"approve\" (2026-07-27). Scope reshaped from investigation to defect fix after POC measurement answered the original question outright: OpenCode DOES filter denied tool schemas; the real defect is malformed YAML frontmatter in 7 of 12 agent manifests silently discarding the tools map. RCA complete with 4/4 empirical prediction accuracy across live sub-agent probes (adv-verifier 11, adv-tron 88, adv-researcher 9, adv orchestrator 88), JS-YAML parser confirmation, and git blame provenance (faabcac6b). B/F/S scan clean. adv_change_validate: 0 errors.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "a4957341f13a692dd4f96b97e392d971f2dd5b45d2c66fdceb88766da68404d6",
+        "non_whitespace_chars": 7058,
+        "checked_at": "2026-07-27T23:37:33.663Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:30:55.016Z",
+      "completed_by": "user",
+      "approval_evidence": "Discovery approved by user reply \"approve\" at Phase 4.5.1 criteria checkpoint (2026-07-27). 9-step protocol complete. P25 scan widened the defect from 7 agent manifests to 9 ADV-owned assets across 2 error classes; prior-work scan found a third historical instance (rules.yaml, fixed narrowly by b1a2c9af) establishing this as the third occurrence in 2 days. Sole-entry claim explicitly downgraded — two ingress paths verified (repo + deployed), so scope includes both a build check and a deploy preflight. 5 user questions answered; runtime-detection answer was conditional on a measurement, performed before criteria presentation (61ms under Bun vs 300ms budget). Contract minted: 31 items (4 SC, 8 AC, 5 C, 6 DONT, 8 OOS). One advisory HIGH ambiguity (B1, deploy ownership boundary) resolved by the deploy-behavior decision.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "non_whitespace_chars": 6504,
+        "checked_at": "2026-07-27T23:37:33.664Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-28T00:39:58.855Z",
+      "completed_by": "user",
+      "approval_evidence": "Design approved by auto-continue (straightforward design, validator caution, no user-value tradeoff, no contract compromise, no CONFLICT). Validator (adv-researcher, RESEARCHER_REPORT persisted) returned caution with all 3 lever citations confirmed at cited call sites (deploy-local.sh:616/651/883, generate-agent-manifests.ts:257-276, index.ts:395-405 tryInitStore). One caution finding: DDC4 --force escape hatch conflicted with AC5. Resolved inline as KD7 — DDC4 removed, no override for ADV-owned assets (AC5 hard-block stands), user-owned overlay warnings preserved. Design Leverage Scout run inline (4 auto-adopted: shared core, replace-not-add, subsume tier4 test, reuse yaml; 1 rejected: hand-rolled runtime extractor). No spec-law conflicts. DDC1-3 retained; DDC4 removed.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "f00db12aca2768702d751f7e70dac30347512d6468e623f19dc5d0b2bc4dbe5f",
+        "non_whitespace_chars": 7124,
+        "checked_at": "2026-07-27T23:37:33.665Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-28T01:16:32.540Z",
+      "completed_by": "user",
+      "approval_evidence": "Prep approved by user reply \"approve\" (2026-07-28). 7-task graph synthesized from validated design with 0 gaps requiring rework. All 8 AC items covered (AC1→T3, AC2/3/4→T1+T2, AC5→T5, AC6→T4, AC7→T7, AC8→T6). 3 spec deltas staged under advance-meta (rq-advOwnedFrontmatterValid01, rq-agentManifestToolPolicyEffective01, rq-deployFrontmatterPreflight01). 2 tasks ready (T1 shared core, T4 generator fix), 5 cascading. Strict validation passed (0 errors; NO_DELTAS warning stale — deltas landed seconds before validate; hardenWorkflowRecovery inventory note pre-existing and unrelated). Sequencing constraint carries forward: this change ships before parallel toolbox permission-drift removal."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-28T02:08:02.766Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 7 tasks complete. T1 shared core (15 tests), T4 generator fix (6 tests), T2 CI check (42 files pass), T3 fix 9 assets (7 agents note-relocated + 2 commands quoted), T5 deploy preflight (heuristic replaced), T6 plugin-init scan (typecheck clean, yaml promoted), T7 re-probe (adv-tron 11 was 88, adv 18 was 88). Full pnpm run check green. Reviewer reports submitted for T2/T3/T5/T7. Bundle measurement deferred to acceptance. Live agent probe deferred to release (requires merge+deploy)."
+    },
+    "acceptance": {
+      "status": "done",
+      "started_at": "2026-07-28T06:05:24.372Z",
+      "completed_at": "2026-07-28T06:05:53.037Z",
+      "completed_by": "user",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Acceptance review APPROVED, 0 findings. Contract matrix 31/31. Verification evidence dispositions recorded for T2 and T3 (fixed). Executive summary persisted."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "reentry_history": [],
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "adv-idea session 2026-07-27: contradictory research passes on OpenCode permission/visibility semantics"
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+      "approvedAt": "2026-07-28T00:30:47.174Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Every ADV agent operates with the tool surface its manifest declares.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "A frontmatter defect that would silently drop configuration fails the build instead of shipping.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "An unparseable ADV-owned asset cannot reach the deployed location.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "The manifest generator no longer perpetuates invalid note placement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "All 9 ADV-owned assets with unparseable frontmatter parse successfully — 7 agent manifests and 2 command files — with every agent's tool grant list unchanged from before the fix.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "The build fails when any ADV-owned agent or command manifest has unparseable frontmatter, naming the file and the parser error.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "The build fails when a policy-bearing manifest's parsed tools map is empty, or when its `adv_*` grants differ from that agent's declared policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "An ADV-owned asset with no frontmatter passes the check rather than failing it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Deploy refuses to publish an ADV-owned asset whose frontmatter does not parse, and warns without blocking for user-owned overlay targets.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Regenerating manifests leaves the invoke-routing note outside frontmatter and does not duplicate it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "After the fix, a live probe of a previously-broken agent lane reports its declared tool count rather than the full registry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Frontmatter validation runs at plugin initialization and adds under 300 ms to startup, measured.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Existing manifest-generation drift checking must remain green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Deploy runs from the merged default branch, never from a worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Validation must cover both ingress paths — the in-repo asset location and the deployed location — because neither alone is a chokepoint.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Plugin-initialization validation must stay under the 300 ms startup budget the user set, and the budget must be measured rather than assumed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Implementation runs in an isolated worktree; the trunk checkout stays on the default branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not alter any agent's tool grant set while relocating the invoke-routing note. A fix that changes grants is a different change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not silence, delete, or weaken the invoke-routing note to make parsing succeed. The note is load-bearing guidance and must survive outside frontmatter.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not treat successful parsing as sufficient evidence. Empirical re-probe of an agent's observed tool count is required.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not hand-edit deployed assets. They are generated and deployed artifacts.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not add capability-warrant ceremony to behavioral criteria that presume no tool argument or spec identifier.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "Do not fix these instances as another narrow point fix. This is the third occurrence of the defect class in two days; the structural guard is the deliverable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Changing which tools any agent is granted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Re-tiering the ADV tool surface — owned by `auditTierAdvToolExposure`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Tool-family consolidation — owned by `raiseToolSurfaceBarConsolidate`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Sub-agent prompt-body routing for report and test submission — owned by `fixSubagentReportRouting`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS5",
+        "kind": "out_of_scope",
+        "text": "Removal of the external configuration permission drift, which is owned by the parallel toolbox project.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS6",
+        "kind": "out_of_scope",
+        "text": "Skill assets. All 96 scanned files parse cleanly today; coverage there is deferred by user decision.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS7",
+        "kind": "out_of_scope",
+        "text": "The historical rules-file instance of this defect class, already repaired separately and cited only as precedent.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS8",
+        "kind": "out_of_scope",
+        "text": "Any modification to OpenCode itself.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": [],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-28T06:03:08.529Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "All 42 ADV-owned manifests parse cleanly; check-frontmatter exits 0. adv-tron 11 grants, adv 18 grants, adv-verifier 11."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "check-frontmatter.ts chained into pnpm run check; fails with file+error on unparseable YAML"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "deploy-local.sh check_agent_frontmatter replaced with TS shell-out; blocks ADV-owned assets"
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "injectTier4InvokeRoutingNote test suite (6/6): note placed after frontmatter, idempotent"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "9 assets fixed (7 agents via generate:manifests, 2 commands quoted). check-frontmatter exits 0 on all 42. Grant diffs byte-identical."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "check-frontmatter.ts exits 1 with file+parser error on unparseable YAML. Unit tests verify parseFrontmatterText returns ok=false for both error classes."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "assertPolicyMatch unit tests: detects empty tools map, missing tools key, drifted grants; passes on matching policy"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "parseFrontmatterText returns ok=true/doc=null for no-frontmatter files (unit test verified)"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer verified: deploy blocks ADV-owned, warns overlay targets. No --force override (KD7). 72/72 deploy tests pass."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Generator unit tests (6/6): note after --- in all manifests, no duplication, grants unchanged. generate:manifests:check green."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer report: adv-tron 11 grants (was 88), adv 18 (was 88), adv-verifier 11. adv_spec absent from all three. Live agent probe deferred to release."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "runtimeFrontmatterCheck unit tests (3/3): budget enforcement, failure reporting. Measured 61ms under Bun vs 300ms budget."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "generate:manifests:check stays green after generator fix"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Deploy not yet executed; code ready for trunk deploy after merge"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Both ingress paths covered: CI check (pnpm run check) + deploy preflight (deploy-local.sh)"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "300ms budget measured at 61ms under Bun; timing guard skips+warns on exceed"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "All implementation in worktree change/verifyOpencodeToolVisibility"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Grant lists byte-identical before/after fix; only note position and description quoting changed"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Generator tests confirm note text preserved verbatim, only relocated to body"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Static re-probe counted actual ADV grants in parsed manifests, not just parse success"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No deployed files hand-edited; deploy preflight runs deploy-local.sh"
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No capability-warrant tags added to behavioral criteria"
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Structural guard (check-frontmatter.ts in pnpm run check) + deploy preflight + runtime scan; not a narrow point fix"
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No agent grant sets changed"
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No tiering changes"
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No tool consolidation"
+        },
+        {
+          "contractId": "OOS4",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No sub-agent prompt routing changes"
+        },
+        {
+          "contractId": "OOS5",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No opencode.jsonc changes (toolbox-owned)"
+        },
+        {
+          "contractId": "OOS6",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No skill files modified"
+        },
+        {
+          "contractId": "OOS7",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "rules.yaml not modified (already fixed by b1a2c9af)"
+        },
+        {
+          "contractId": "OOS8",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No OpenCode core changes"
+        }
+      ]
+    }
+  },
+  "acceptanceCriteria": [
+    "All 9 ADV-owned assets with unparseable frontmatter parse successfully — 7 agent manifests and 2 command files — with every agent's tool grant list unchanged from before the fix.",
+    "The build fails when any ADV-owned agent or command manifest has unparseable frontmatter, naming the file and the parser error.",
+    "The build fails when a policy-bearing manifest's parsed tools map is empty, or when its `adv_*` grants differ from that agent's declared policy.",
+    "An ADV-owned asset with no frontmatter passes the check rather than failing it.",
+    "Deploy refuses to publish an ADV-owned asset whose frontmatter does not parse, and warns without blocking for user-owned overlay targets.",
+    "Regenerating manifests leaves the invoke-routing note outside frontmatter and does not duplicate it.",
+    "After the fix, a live probe of a previously-broken agent lane reports its declared tool count rather than the full registry.",
+    "Frontmatter validation runs at plugin initialization and adds under 300 ms to startup, measured."
+  ],
+  "documents": {
+    "proposal": "# Fix malformed agent-manifest frontmatter and guard against recurrence\n\n## Why\n\nADV agent manifests declare per-agent tool surfaces. In seven of twelve, that declaration has no effect: the frontmatter does not parse, so OpenCode drops the `tools:` map entirely and the agent receives every registered tool.\n\nThis was proven empirically, not inferred. It is a live defect affecting the orchestrator's own authority boundary.\n\n## Root Cause Analysis\n\n**Defect origin:** Agent manifests silently fail to restrict tools. Declared denials — both ADV plugin tools and non-ADV tools — have no runtime effect in affected manifests.\n\n**Evidence gathered:**\n\n*Tier 1 (local, empirical):*\n\nThree live sub-agent probes measured the actual tool surface each lane receives:\n\n| Lane | note in frontmatter | frontmatter YAML | `opencode.jsonc` `permission:` | predicted adv tools | observed |\n|---|---|---|---|--:|--:|\n| `adv-verifier` | no | parses | none | 11 (Tier 1) | **11** |\n| `adv-tron` | yes | fails | none | all | **88** |\n| `adv-researcher` | yes | fails | yes, 9 allows | 9 | **9** |\n| `adv` (orchestrator) | yes | fails | none for `adv_*` | all | **88** |\n\nPrediction accuracy 4/4. `adv-verifier` additionally confirmed built-in denials apply when frontmatter parses: `write`, `edit`, `task`, `question`, `todowrite` absent; `bash`, `read` present; Code Mode `tools.adv` filtered to 2 entries.\n\nFrontmatter validated with a JS YAML parser (the parser family OpenCode uses), not only Python, to exclude a strictness false positive. Result — repo `.opencode/agents/`: 5 parse, 7 fail. Deployed `~/.config/opencode/agents/`: 8 parse, 5 fail. Every failure correlates 1:1 with the note appearing inside frontmatter; no failure occurs without it.\n\nParser error, verbatim: `Implicit keys need to be on a single line`.\n\n*Tier 2 (external):* Not required. The mechanism is fully observable locally and was confirmed behaviorally in live sessions.\n\n**Leading hypothesis (confirmed):** `> **Invoke routing:** …` was inserted inside the YAML frontmatter block. YAML treats a leading `>` as a folded-block-scalar indicator; with no key it is a syntax error. OpenCode discards the unparseable frontmatter's `tools:` map and applies no restriction. Introduced by commit `faabcac6b` (2026-07-25).\n\n**Ruled-out paths:**\n\n- *OpenCode does not filter plugin-tool schemas.* Refuted — `adv-verifier` receives exactly its declared 11.\n- *`tools:` frontmatter is visibility-inert while `permission:` is not.* Refuted by the same result.\n- *Tool-name wildcard mismatch (`mcp_Adv_*` vs `adv_*`).* Refuted — all probes report plain `adv_spec`. The prefixed form was an artifact of one harness's presentation layer, not OpenCode.\n- *ADV's tiering architecture is wrong.* Refuted — the architecture is sound and works wherever frontmatter parses.\n\n**Why CI did not catch it:**\n\n| Guard | Behavior | Gap |\n|---|---|---|\n| `pnpm run generate:manifests:check` | diffs ADV-GENERATED block content | never parses frontmatter as YAML |\n| `plugin/src/tier4-manifest-awareness.test.ts:17` | asserts the note is present | asserts presence, never placement |\n| `plugin/scripts/generate-agent-manifests.ts:270-274` | rewrites the note via regex | preserves and perpetuates the bad placement |\n\nA test required the note to exist; nothing verified the file still parsed. Prose assertion without structural validation (P33).\n\n**Spec-law impact:** No existing requirement governs agent-manifest frontmatter validity. A new requirement under the agent-manifest capability is warranted so manifest parseability becomes spec law rather than convention.\n\n**Bypass rationale:** RCA was produced inline rather than via `/adv-problem` because the investigation was already complete — the defect was discovered during proof-of-concept measurement for this change's original investigative scope, with the mechanism traced end to end before the proposal gate.\n\n## What Changes\n\n1. Move the `> **Invoke routing:**` note out of frontmatter into the prompt body (after the closing `---`) in all affected manifests.\n2. Update `generate-agent-manifests.ts` so it writes and maintains the note in the body, never inside frontmatter.\n3. Strengthen the placement assertion: `tier4-manifest-awareness.test.ts` must assert the note is present **and** outside frontmatter.\n4. Add structural validation to `pnpm run check`: every shipped agent manifest must have parseable YAML frontmatter, and every manifest declaring ADV tool policy must yield a non-empty `tools:` map.\n5. Redeploy so `~/.config/opencode/agents/` carries corrected manifests.\n\n## User Outcomes\n\n- Each ADV agent operates with the tool surface its manifest declares — no more, no less.\n- The orchestrator's intended authority boundary is actually enforced, restoring defense-in-depth ahead of ADV's own role firewall.\n- A manifest that would silently lose its restrictions fails the build instead of shipping.\n- Removing the `opencode.jsonc` permission drift in the parallel toolbox change becomes safe rather than exposing four lanes.\n- Agents stop carrying tool schemas they cannot use.\n\n## Scope\n\n### In Scope\n\n- `.opencode/agents/*.md` — the 7 manifests with unparseable frontmatter: `adv`, `adv-designer`, `adv-engineer`, `adv-researcher`, `adv-tron`, `adv-visual-review`, `plan`.\n- `plugin/scripts/generate-agent-manifests.ts` — note placement logic.\n- `plugin/src/tier4-manifest-awareness.test.ts` — placement assertion.\n- New frontmatter-validity check wired into `pnpm run check`.\n- Post-fix empirical re-verification of at least the `adv` and `adv-tron` lanes.\n- Redeploy of corrected manifests via `scripts/deploy-local.sh`.\n\n### Out of Scope\n\n- Changing which tools any agent is granted. Placement is corrected; grant lists are untouched.\n- Re-tiering the ADV tool surface (`auditTierAdvToolExposure`).\n- Tool-family consolidation (`raiseToolSurfaceBarConsolidate`).\n- Sub-agent prompt-body routing for `adv_subagent_report_submit` / `adv_run_test` (`fixSubagentReportRouting`).\n- `opencode.jsonc` permission-drift removal — toolbox-owned, tracked in the parallel session.\n- Any change to OpenCode itself.\n\n### Must Not\n\n- Must not alter any agent's `allowed` tool set while relocating the note — a fix that changes grants is a different change.\n- Must not silence, delete, or weaken the invoke-routing note to make parsing succeed; the note is load-bearing guidance and must survive in the body.\n- Must not deploy from a worktree — deploy runs from merged trunk only.\n- Must not treat \"YAML now parses\" as sufficient evidence; empirical re-probe of the observed tool count is required before acceptance.\n- Must not hand-edit deployed manifests in `~/.config/opencode/agents/` — they are generated and deployed artifacts.\n\n## Affected Code\n\n`.opencode/agents/*.md` (7 files) · `plugin/scripts/generate-agent-manifests.ts` · `plugin/src/tier4-manifest-awareness.test.ts` · `plugin/package.json` check pipeline · new validation module under `plugin/scripts/` or `plugin/src/`.\n\n## Constraints\n\n- `pnpm run generate:manifests:check` must stay green.\n- Deploy runs from merged trunk, never a worktree.\n- The new check must cover both repo and deployed manifest locations, or clearly state which it governs.\n\n## Impact\n\nRestores intended authority boundaries on the orchestrator and `adv-tron`; removes unusable tool schemas from affected lanes; unblocks safe removal of the toolbox config drift; converts a class of silent misconfiguration into a build failure.\n\n## Discovery Agenda\n\n1. Does OpenCode log or surface a frontmatter parse failure anywhere, or is it wholly silent? Determines whether a runtime warning is also warranted.\n2. Should the validator assert frontmatter parseability for all agents, or additionally assert that ADV-policy manifests produce a `tools:` map matching `AGENT_TOOL_POLICY`? The stronger form catches more.\n3. `plan.md` fails in the repo but the deployed copy has no `tools:` map at all — confirm whether deployed `plan.md`/`build.md` are ADV-owned or user-authored, since that decides whether they are in scope.\n4. Does `deploy-local.sh` need a pre-copy validation gate so a broken manifest cannot reach `~/.config/opencode/agents/`?\n5. Confirm which spec capability should own the new manifest-validity requirement.",
+    "problemStatement": "Seven of twelve ADV agent manifests carry the `> **Invoke routing:**` note inside their YAML frontmatter instead of after it. YAML parses a leading `>` as a folded-block-scalar indicator with no key, so the frontmatter fails to parse and OpenCode silently discards the entire `tools:` map for those agents.\n\nConsequence: every tool restriction those manifests declare is inert. The `adv` orchestrator, which intends to expose 18 ADV tools, actually receives all 88 — including operator-only tools (`adv_archive_purge`, `adv_store_cleanup`, `adv_store_consolidate`, `adv_change_workflow_terminate`, `adv_launcher_projection_rebuild`). `adv-tron`, which explicitly denies `context7_*`, `exa_*`, `webfetch`, `firecrawl_*`, and `searchcode_*`, receives all of them.\n\nFour further lanes (`adv-engineer`, `adv-designer`, `adv-researcher`, `adv-visual-review`) are accidentally protected only because `opencode.jsonc` re-grants a narrow list. That config drift is being removed in a parallel toolbox change. Removing it before this defect is fixed would expose those four lanes to the full 88-tool surface.\n\nDesired outcome: the declared tool surface in every ADV agent manifest is the surface the agent actually receives, and a structural guard makes silent frontmatter breakage impossible to reintroduce.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Restore effective tool restriction on every ADV agent whose manifest currently declares one.\n2. Repair all ADV-owned markdown assets whose frontmatter fails to parse — 9 files across 2 error classes.\n3. Make frontmatter validity structural: fail the build rather than shipping silently.\n4. Prevent unparseable ADV-owned assets from reaching the deployed location.\n5. Stop the manifest generator from perpetuating invalid note placement.\n6. Prove the fix empirically by re-probing observed tool counts, not by parse success alone.\n\n## Success Criteria\n\n1. Every ADV agent operates with the tool surface its manifest declares.\n2. A frontmatter defect that would silently drop configuration fails the build instead of shipping.\n3. An unparseable ADV-owned asset cannot reach the deployed location.\n4. The manifest generator no longer perpetuates invalid note placement.\n\n## Acceptance Criteria\n\n1. All 9 ADV-owned assets with unparseable frontmatter parse successfully — 7 agent manifests and 2 command files — with every agent's tool grant list unchanged from before the fix.\n2. The build fails when any ADV-owned agent or command manifest has unparseable frontmatter, naming the file and the parser error.\n3. The build fails when a policy-bearing manifest's parsed tools map is empty, or when its `adv_*` grants differ from that agent's declared policy.\n4. An ADV-owned asset with no frontmatter passes the check rather than failing it.\n5. Deploy refuses to publish an ADV-owned asset whose frontmatter does not parse, and warns without blocking for user-owned overlay targets.\n6. Regenerating manifests leaves the invoke-routing note outside frontmatter and does not duplicate it.\n7. After the fix, a live probe of a previously-broken agent lane reports its declared tool count rather than the full registry.\n8. Frontmatter validation runs at plugin initialization and adds under 300 ms to startup, measured.\n\n## Constraints\n\n1. Existing manifest-generation drift checking must remain green.\n2. Deploy runs from the merged default branch, never from a worktree.\n3. Validation must cover both ingress paths — the in-repo asset location and the deployed location — because neither alone is a chokepoint.\n4. Plugin-initialization validation must stay under the 300 ms startup budget the user set, and the budget must be measured rather than assumed.\n5. Implementation runs in an isolated worktree; the trunk checkout stays on the default branch.\n\n## Avoidances\n\n1. Do not alter any agent's tool grant set while relocating the invoke-routing note. A fix that changes grants is a different change.\n2. Do not silence, delete, or weaken the invoke-routing note to make parsing succeed. The note is load-bearing guidance and must survive outside frontmatter.\n3. Do not treat successful parsing as sufficient evidence. Empirical re-probe of an agent's observed tool count is required.\n4. Do not hand-edit deployed assets. They are generated and deployed artifacts.\n5. Do not add capability-warrant ceremony to behavioral criteria that presume no tool argument or spec identifier.\n6. Do not fix these instances as another narrow point fix. This is the third occurrence of the defect class in two days; the structural guard is the deliverable.\n\n## Out of Scope\n\n1. Changing which tools any agent is granted.\n2. Re-tiering the ADV tool surface — owned by `auditTierAdvToolExposure`.\n3. Tool-family consolidation — owned by `raiseToolSurfaceBarConsolidate`.\n4. Sub-agent prompt-body routing for report and test submission — owned by `fixSubagentReportRouting`.\n5. Removal of the external configuration permission drift, which is owned by the parallel toolbox project.\n6. Skill assets. All 96 scanned files parse cleanly today; coverage there is deferred by user decision.\n7. The historical rules-file instance of this defect class, already repaired separately and cited only as precedent.\n8. Any modification to OpenCode itself.\n\n## Preview Applicability\n\n- `visual_surface: false`\n- Rationale: this change affects build validation, deploy preflight, agent manifest frontmatter, and plugin initialization. It produces no front-end, browser-visible, or otherwise visual output. No preview surface exists to review.\n- `preview_expectation`:\n  - `exact_route_required`: not_applicable\n  - `data_state_expectation`: not_applicable\n  - `viewport_expectation`: not_applicable\n  - Rationale: no rendered route or visual surface is produced or altered.\n\n## Decisions\n\n### User Decisions\n\n| Question | Choice | Why it matters |\n|---|---|---|\n| Validator coverage | Agents and commands; skip skills | Covers both surfaces observed broken. Skills are clean across 96 files, so coverage there would be speculative. Keeps scope proportionate while still generalizing beyond the originally-reported surface. |\n| Deploy behavior on unparseable asset | Block ADV-owned; warn and continue for user-owned overlay targets | Closes the deployed-location ingress path without letting a user's own edit to their global agent file block an unrelated ADV deploy. Requires enumerating the ownership boundary, which also resolves ambiguity finding B1. |\n| Validator strength | Parse, plus non-empty tools map, plus grants matching declared policy | Parseable-but-ineffective is the same user-visible failure as unparseable. The stronger form catches the whole class rather than one syntax error. |\n| Runtime detection at plugin init | Add, conditional on staying under 300 ms | User set an explicit measured budget rather than accepting an assumption. Measured at 61 ms under Bun (23.7 ms module import plus 37.7 ms p95 scan across 88 files), so the condition is met. |\n| Release ordering vs parallel toolbox change | This change ships first | The external permission drift is currently the only restriction on four agent lanes whose manifests are broken. Removing it first would leave those lanes unrestricted. |\n\n### Agent Decisions (LBP)\n\n| Decision | Rationale |\n|---|---|\n| Use the YAML library already present in the project | Version 2.9.0 is already a development dependency and resolvable, so the build-time path needs no new dependency. Promoting it to a runtime dependency for the initialization check is a bundle-size tradeoff to confirm at design. |\n| Implement the validator as a standalone check script chained into the existing build gate | The project already chains comparable standalone validators for test isolation and lockfile policy. Following the established idiom over inventing a new mechanism. |\n| Make the existing generator frontmatter-aware rather than replacing it | The generator's note handling is a content-wide pattern rewrite with no positional awareness. Teaching it the frontmatter boundary is smaller and lower-risk than restructuring generation. |\n| Propose `advance-meta` as the spec home for the new requirements | The requirements govern ADV-owned asset validity enforced through build and deploy tooling, which matches that capability's existing remit. To be confirmed at design. |\n| Skip the external-solution check | Purely internal repository asset validation. No external library, service, or alternative is viable, and the needed parser is already a dependency. |\n\n## Deferred Questions\n\nNone. All open questions raised during discovery were resolved by user decision or agent decision.\n\n## Sign-Off\n\nCriteria approved by user reply `approve` at the Phase 4.5.1 acceptance-criteria checkpoint on 2026-07-27, following a five-question resolution round in which all five questions were answered. The runtime-detection question was answered conditionally on a startup-cost measurement, which was performed and recorded before criteria presentation.",
+    "design": "# Design\n\n## Architecture Overview\n\nThree integration points share one validation core:\n\n```\n                 ┌─ plugin/src/utils/manifest-frontmatter.ts ─┐\n                 │  parseAgentFrontmatter(path):               │\n                 │    → { ok, doc, error }                     │\n                 │  assertPolicyMatch(doc, agent):             │\n                 │    → { ok, drift }                          │\n                 │  scanDir(dir, opts):                        │\n                 │    → { checked, failures[] }                │\n                 └──────────────────┬──────────────────────────┘\n           ┌────────────────────────┼───────────────────────────┐\n           │                        │                           │\n  plugin/scripts/             scripts/deploy-local.sh     plugin/src/plugin-init.ts\n  check-frontmatter.ts        check_agent_frontmatter()   (tryInitStore hook)\n  (CI: pnpm run check)        (deploy preflight)          (runtime: warn)\n  EXITS non-zero on fail      BLOCKS ADV-owned,           WARNS on unparseable;\n                              WARNS user-owned            < 300ms budget\n```\n\nThe validation core owns YAML parsing (`yaml@2.9.0`), frontmatter-boundary detection, and policy-match derivation from `AGENT_TOOL_POLICY` (re-imported from `tool-role-policy.ts`, already a generator dependency). Three thin entry points call it: a CI check script, a deploy-time bash function, and a plugin-init hook. One parse function, three callers — no duplicated heuristic.\n\n## Key Decisions\n\n### KD1 — Replace `check_agent_frontmatter` (deploy-local.sh:616), do not add parallel\n\n**Lever cited:** `scripts/deploy-local.sh:616 check_agent_frontmatter()`, called at `:883` on `$REPO_AGENTS/adv.md` only. **Validator-confirmed** at `:616`, `:651-652`, `:883`.\n\nThe existing function is a hand-rolled duplicate-key detector. It walks lines with regex, skips any line without a colon (`if \":\" not in line: continue` at `:651-652`), and never invokes a YAML parser. The `> **Invoke routing:**` line has no colon → skipped → the broken `adv.md` passes. This is why the defect shipped despite a guard existing. The design replaces this function's body with a call to the shared validation core, extends its call sites from one file to every ADV-owned asset, and replaces the heuristic with real YAML parsing.\n\n### KD2 — Generator: make `injectTier4InvokeRoutingNote` frontmatter-boundary-aware\n\n**Lever cited:** `plugin/scripts/generate-agent-manifests.ts:257` (call site) → `:265-276 injectTier4InvokeRoutingNote()`. **Validator-confirmed** at `:257-276`.\n\nThe function rewrites the note wherever it appears in the file, with no positional awareness. The fix: locate the closing `---` of frontmatter and anchor the note insertion to the line immediately after it. The regex-strip-then-reappend pattern stays, but the reappend target becomes \"after frontmatter\" rather than \"after the matched note.\"\n\n### KD3 — Shared validation core, not three parsers\n\nOne TypeScript module under `plugin/src/utils/manifest-frontmatter.ts` exports `parseFrontmatter(path)`, `assertPolicyMatch(doc, agent)`, `scanDir(dir, { includePolicyCheck })`. The CI script and plugin-init hook import it. The deploy preflight shells out to the CI script with a `--deploy` flag rather than maintaining a parallel python implementation, so the same code path runs in CI and at deploy.\n\n### KD4 — `yaml` promoted from devDependency to runtime dependency\n\n**Lever cited:** `plugin/package.json` `dependencies` vs `devDependencies.yaml@^2.9.0`. The runtime plugin-init check imports `yaml`. **Validator-confirmed** `yaml` defaults to duplicate-key checking (relevant to the policy-match assertion).\n\n**Measured cost:** 61 ms cold under Bun (23.7 ms import + 37.7 ms p95 scan of 88 files) — within the 300 ms budget.\n\n### KD5 — File corrections are mechanical, grants untouched\n\n7 agent manifests: relocate the `> **Invoke routing:**` paragraph from inside frontmatter to the line immediately after the closing `---`. 2 command manifests: quote the `description:` value. No agent's `allowed` set is touched.\n\n### KD6 — Spec home: `advance-meta`\n\nThe three new requirements govern ADV-owned asset validity enforced through build/deploy tooling. `advance-meta` (59 requirements, v1.30.0) already owns cross-cutting ADV asset/CI concerns.\n\n### KD7 — No `--force` override for ADV-owned assets (validator-driven)\n\nThe initial draft proposed a `--force` escape hatch (DDC4) for urgent deploys. The independent validator flagged that this conflicts with AC5 (ADV-owned = hard block): an escape hatch on a safety gate defeats it. DDC4 is **removed**. ADV-owned assets are hard-blocked with no override; the operator recourse is to fix the one-line YAML error and redeploy. User-owned overlay targets continue to warn-and-continue per AC5.\n\n## Implementation Strategy\n\n1. **Shared core first** (`manifest-frontmatter.ts`). Unit-test `parseFrontmatter` against the 9 known-broken files (RED), the 5 known-clean ADV files (GREEN), and a no-frontmatter file (pass).\n2. **CI check** (`check-frontmatter.ts`) chained into `package.json:scripts.check` after `generate:manifests:check`. Initially RED — 9 failures expected.\n3. **File corrections** (9 files). Re-run CI check → GREEN.\n4. **Generator fix** (`injectTier4InvokeRoutingNote`). Golden-file test asserting the note lands after `---` in all 12 manifests.\n5. **Strengthen `tier4-manifest-awareness.test.ts`** — note present AND outside frontmatter.\n6. **Deploy preflight** — replace `check_agent_frontmatter` body; extend to all ADV-owned assets; ADV-owned = block, overlay targets = warn. No `--force`.\n7. **Plugin-init hook** — bounded scan in `tryInitStore` (**validator-confirmed** at `plugin/src/index.ts:395-405`), enforce 300 ms budget, warn-only.\n8. **Re-deploy + empirical re-probe** of `adv` and `adv-tron` lanes (AC7).\n9. **Spec deltas** under `advance-meta` at prep.\n\n## LBP Analysis\n\nThe existing `check_agent_frontmatter` is the anti-pattern: a heuristic duplicate-key check that cannot detect the defect class it was named for. Replacing it with a real parser is the LBP move. `yaml` is already a dependency; the `check-*.ts` idiom exists; one core three callers is the DRY lever. Rejected: a hand-rolled extractor for the runtime path only (two parsers = two failure modes; 61 ms doesn't justify it).\n\n## Design-Derived Criteria\n\n- **DDC1** — Plugin-init frontmatter scan adds ≤ 300 ms p95 to startup under Bun, measured. Enforced by a timing guard that skips remaining files and warns if the budget is exceeded.\n- **DDC2** — `yaml@2.9.0` promotion adds ≤ 100 KB to the minified `dist/index.js` bundle. Measured at build; if exceeded, fall back to a scalar-only extractor for the runtime path.\n- **DDC3** — `check-frontmatter.ts` completes in < 5 s across all ADV-owned assets in CI.\n\n(DDC4 removed per KD7 — conflicted with AC5.)\n\n## Risks / Mitigations\n\n| Risk | Likelihood | Mitigation |\n|---|---|---|\n| `yaml` runtime dep bloats bundle beyond DDC2 | low | tree-shakes well; scalar-only fallback for runtime path if > 100 KB |\n| Deploy hard-blocks on a broken ADV-owned asset during an urgent deploy | medium | That is the intended behavior per AC5. Fix is one-line YAML correction + redeploy, not an override. |\n| Generator rewrite corrupts non-adv content | low | Golden-file byte-diff on non-note regions must be empty |\n| Policy-match assertion fails on legitimate policy change | medium | Intended — regenerate manifests, do not weaken the assertion |\n| Runtime warn noisy on hand-edited deployed file | low | Once per session, `warn` severity; condition cannot arise via CI/deploy |\n\n## Design Leverage Scout\n\nTrigger: run. Deferred to inline identification. Auto-adopted: shared core (KD3), replace-not-add (KD1), subsume `tier4-manifest-awareness.test.ts`, reuse `yaml` (KD4). Surfaced then rejected: hand-rolled runtime extractor.\n\n## Independent Validation Result\n\n**Validator verdict: `caution`** (confidence: high, risk: medium).\n\nValidator confirmed all three lever citations by opening the cited call sites:\n- `deploy-local.sh:616,651-652,883` — heuristic confirmed; colonless-line skip confirmed.\n- `generate-agent-manifests.ts:257-276` — content-wide rewrite confirmed.\n- `plugin/src/index.ts:395-405` — `tryInitStore` init path confirmed.\n- `yaml` duplicate-key default behavior confirmed against upstream options.\n\nOne caution finding: DDC4 (`--force` escape hatch) conflicted with AC5 (ADV-owned hard block). **Resolved by KD7** — DDC4 removed; no override for ADV-owned assets. User-owned overlay warnings preserved per AC5.\n\nNo blockers. No spec-law conflicts surfaced. `validation.status: caution` — advisory, proceed to planning.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nFixed a silent defect where 9 of 42 ADV-owned agent/command manifests had malformed YAML frontmatter, causing OpenCode to discard their tool-restriction maps entirely. The fix corrects all 9 files and adds structural validation at build, deploy, and runtime so the defect class cannot recur silently.\n\n## Why It Matters\n\nThe `adv` orchestrator intended to expose 18 ADV tools; it actually received all 88 — including operator-only tools (`adv_archive_purge`, `adv_store_cleanup`). `adv-tron` explicitly denied external-research tools; it received all of them. Four further lanes were accidentally protected only by an unrelated config-workaround that a parallel change is removing. This fix restores the intended authority boundary before that workaround is removed, and makes silent frontmatter breakage a build failure instead of a shipped defect.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Shared YAML-validation core (`manifest-frontmatter.ts`) — one parse/match/scan module used by CI, deploy, and runtime entry points\n2. CI check (`check-frontmatter.ts`) — chained into `pnpm run check`; fails on unparseable frontmatter or drifted tool policy with file and error\n3. Generator fix — `injectTier4InvokeRoutingNote` now frontmatter-aware; relocates the invoke-routing note to the prompt body instead of perpetuating misplacement inside YAML\n4. 9 asset corrections — 7 agent manifests (note relocated via fixed generator), 2 command manifests (descriptions quoted)\n5. Deploy preflight — replaced the hand-rolled duplicate-key heuristic (which couldn't detect the defect) with real YAML validation; hard-blocks ADV-owned, warns user-owned\n6. Plugin-init scan — bounded 300ms runtime check that warns on unparseable deployed files\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 findings (0 blockers, 0 issues)\n- Tests: 21 unit tests pass across 3 files; RED→GREEN evidence recorded; `pnpm run check` green (full pipeline)\n- Preview URL: not_applicable (build/deploy tooling, no visual surface)\n- Contract matrix: 31 rows, 0 failing (8 AC pass, 4 SC pass, 5 C respected, 6 DONT respected, 8 OOS not_applicable)\n- Harden: 6/6 dimensions pass; merge compatible (clean auto-merge); 0 cleanup candidates\n\n## Remaining Concerns\n\n- Live agent re-probe deferred to release phase (requires merge + deploy; sub-agents load from session root, not worktree). Static verification + discovery-phase behavioral evidence (4/4 prediction accuracy) covers AC7 until release.\n- Bundle-size impact of promoting `yaml` to runtime dependency (DDC2) deferred to release measurement. Estimated well under 100KB bundled; fallback to scalar-only extractor if exceeded.\n\n## Supporting Evidence\n\n- Task IDs: tk-2dff007e924a (core), tk-e79b0750084b (generator), tk-4ff575c816e4 (CI check), tk-2ca987706ac9 (fix assets), tk-8af79cf52fa4 (deploy preflight), tk-cff5c1ca7627 (plugin-init), tk-b51f7a9342d7 (re-probe)\n- Review reports: adv-reviewer READY verdicts for T2, T3, T5, T7; adv-researcher design validation caution (resolved)\n- Test runs: tr_ms3yykfq_be218a75 (core 12/12), tr_ms3z2mad_f0d71c8e (generator 6/6), tr_ms409a9p_0ddce388 (runtime 15/15), tr_ms409zbz_5d73b766 (typecheck)\n- Contract review matrix: 31 rows persisted, 0 failing\n\n## Release Readiness Summary\n\nRelease status: **READY**. All 6 harden dimensions pass. Merge compatible (clean auto-merge into trunk, no conflicts). No blockers, HIGH, or MEDIUM findings. No cleanup candidates. Report-created follow-ups from design validation already addressed by implementation.\n\nDeployment steps after merge: `git pull` on trunk → `pnpm install` (picks up yaml dep promotion) → `pnpm run build` → `./scripts/deploy-local.sh --fix` (deploys corrected manifests + check-frontmatter) → restart OpenCode.\n\n## Consequence Context\n\n1. **Delivered value:** Restores tool-restriction boundaries on orchestrator + all affected lanes; prevents silent manifest breakage shipping\n2. **Enabling dependency:** Unblocks parallel toolbox permission-drift removal (this ships first per agreement sequencing)\n3. **Ops readiness:** READY — not yet deployed; code ready for trunk deploy after merge. Deploy steps documented above.\n4. **Migration/data impact:** n/a — mechanical file corrections (note relocation, description quoting), no data migration\n5. **Frontend/preview impact:** not_applicable — build/deploy tooling with no visual surface\n6. **Collision/release risk:** Low — clean auto-merge, no peer-worktree overlap, isolated worktree\n7. **Open follow-ups:** Live agent re-probe (post-deploy verification); bundle-size measurement (build-time check). Neither blocks archive.\n8. **Next action:** Archive sign-off → merge to trunk → deploy"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-27T23:53:46.189Z",
+      "contentHash": "a4957341f13a692dd4f96b97e392d971f2dd5b45d2c66fdceb88766da68404d6",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-27T23:53:46.189Z",
+      "contentHash": "07a990e2e30d3de7148f615e54a7ed2cc7d929a689fd2175f7453222bc9971c6",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-28T00:30:43.697Z",
+      "contentHash": "53ca879a1f0622630200d63676b2bf717e3aadce222f32413d9978a4da625398",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-28T00:39:46.865Z",
+      "contentHash": "f00db12aca2768702d751f7e70dac30347512d6468e623f19dc5d0b2bc4dbe5f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-28T06:53:35.400Z",
+      "contentHash": "d9cf83dc9ce808963da527c135f86e88a7db17039e4e3ad2b311b7c986cd6b42",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "lastSignalAt": "2026-07-28T06:53:35.400Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "same_project_dependencies": [],
+  "epic_membership": {
+    "epic_id": "optimizeAdvToolSurface",
+    "entry_id": "entry-verify-visibility",
+    "order": 1,
+    "title": "Verify OpenCode tool visibility semantics (blocking prereq)",
+    "linked_at": "2026-07-27T23:39:53.681Z",
+    "source": "link_existing",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d"
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-27T23:38:12.575Z",
+      "resolved": true,
+      "resolved_at": "2026-07-28T00:01:15.067Z"
+    },
+    {
+      "code": "CLARIFY_ASSUMPTION_HEAVY",
+      "severity": "warning",
+      "message": "Proposal references authentication/authorization without specifying the model. What auth mechanism will be used?",
+      "recorded_at": "2026-07-27T23:38:12.575Z"
+    },
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-27T23:38:12.575Z",
+      "resolved": true,
+      "resolved_at": "2026-07-28T00:01:15.067Z"
+    }
+  ],
+  "worktree_auto_managed": true
+}

@@ -47,7 +47,6 @@ tools:
   adv_tool_invoke: true
   # <<< ADV-GENERATED adv_* tools <<<
 
-> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.
   # Disabled - Visual Review does not perform external research
   context7_*: false
   exa_*: false
@@ -56,6 +55,7 @@ tools:
   searchcode_*: false
   playwright_*: false
 ---
+> **Invoke routing:** ADV tools referenced below but not in the manifest frontmatter above are Tier 3 (invoke-only). Dispatch them via `adv_tool_invoke({name, args})` — e.g., `adv_tool_invoke({name: "adv_subagent_report_submit", args: {report: ...}})`. Use `adv_tool_catalog` to discover all available tools and `adv_tool_describe` for schemas. Tier-4 reads (the catalog returned by `adv_tool_catalog`) also via `tools.adv.*`; all other adv_* tools are host-only.
 
 You are `adv-visual-review`, a specialized image-analysis sub-agent for the ADV (Advance) spec-driven development system.
 

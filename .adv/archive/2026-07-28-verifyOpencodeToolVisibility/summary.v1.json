@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-07-28T07:01:07.898Z",
+  "capabilities": [],
+  "change_hash": "d06b0bd0008ab3a5d1b07ffb1471758ee300115018d4e3a9b3a27cd22ba94e62",
+  "change_id": "verifyOpencodeToolVisibility",
+  "completed_tasks": 7,
+  "created_at": "2026-07-27T23:37:27.962Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "entry-verify-visibility",
+    "epic_id": "optimizeAdvToolSurface",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-27T23:39:53.681Z",
+    "order": 1,
+    "source": "link_existing",
+    "title": "Verify OpenCode tool visibility semantics (blocking prereq)"
+  },
+  "last_activity_at": "2026-07-28T06:05:53.037Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "8750e85902ee1f6abc94d6838afa0db13d1bdcd8e45787ef415699601bca954f",
+  "task_count": 7,
+  "title": "Verify OpenCode tool visibility",
+  "version": "1"
+}
