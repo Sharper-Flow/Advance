@@ -27,6 +27,7 @@ import {
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   OrphanQueueAdopter,
+  describeError,
   isOrphanQueueAdoptionEnabled,
   type OrphanQueueAdoptionDiagnostics,
 } from "./temporal/orphan-queue-adopter";
@@ -487,7 +488,9 @@ export type AdoptionConstructionState =
   | { kind: "not_attempted" }
   | { kind: "active"; adopter: OrphanQueueAdopter }
   | { kind: "unavailable"; reason: string }
-  | { kind: "disabled" };
+  | { kind: "disabled" }
+  | { kind: "driver_error"; lastError: string; since: number }
+  | { kind: "construction_failed"; lastError: string };
 
 let adoptionConstructionState: AdoptionConstructionState = {
   kind: "not_attempted",
@@ -503,6 +506,19 @@ const workerAdoptionAttachments = new Map<
   InProcessWorker,
   WorkerAdoptionAttachment
 >();
+
+function teardownWorkerAttachment(worker: InProcessWorker): void {
+  const attachment = workerAdoptionAttachments.get(worker);
+  if (attachment) {
+    attachment.stopDriver?.();
+    workerAdoptionAttachments.delete(worker);
+  }
+}
+
+/** Test-only accessor for the number of live worker adoption attachments. */
+export function getWorkerAdoptionAttachmentCount(): number {
+  return workerAdoptionAttachments.size;
+}
 
 /**
  * Return orphan-queue adoption diagnostics for adv_doctor +
@@ -540,7 +556,28 @@ export function getOrphanQueueAdoptionStatus(): OrphanQueueAdoptionStatus {
         diagnostics: null,
         reason: "no_worker_attached",
       };
+    case "driver_error":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: `driver_error: ${adoptionConstructionState.lastError}`,
+      };
+    case "construction_failed":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: `construction_failed: ${adoptionConstructionState.lastError}`,
+      };
   }
+}
+
+function recordAdoptionDriverError(err: unknown): void {
+  adoptionConstructionState = {
+    kind: "driver_error",
+    lastError: describeError(err),
+    since: Date.now(),
+  };
+  debugLog(`Orphan-queue adoption driver error: ${describeError(err)}`);
 }
 
 const exhaustedWorkerDirs = new Set<string>();
@@ -553,7 +590,10 @@ async function handleWorkerExhausted(
   exhaustedWorkerDirs.add(projectStateDir);
 
   recordWorkerRunFailure("<all>", new Error("worker exhausted"));
-  if (worker) inProcessTemporalWorkers.delete(worker);
+  if (worker) {
+    inProcessTemporalWorkers.delete(worker);
+    teardownWorkerAttachment(worker);
+  }
 }
 
 /**
@@ -597,23 +637,35 @@ export function attachWorkerWithAdoption(
     activeOrphanQueueAdopter = null;
     return;
   }
-  const adopter = new OrphanQueueAdopter({
-    client: opts.client,
-    projectId: opts.projectId,
-    worker,
-  });
-  activeOrphanQueueAdopter = adopter;
-  attachment.adopter = adopter;
-  adoptionConstructionState = { kind: "active", adopter };
+  try {
+    const adopter = new OrphanQueueAdopter({
+      client: opts.client,
+      projectId: opts.projectId,
+      worker,
+    });
+    activeOrphanQueueAdopter = adopter;
+    attachment.adopter = adopter;
+    adoptionConstructionState = { kind: "active", adopter };
 
-  // T4: drive the adopter from the attachment itself so both spawn and restart
-  // paths adopt orphans even when there is no worker-lock heartbeat (AC3).
-  // The closure captures this adopter, not the module-level variable that may
-  // be replaced by a later attachment.
-  const driverHandle = setInterval(() => {
-    void adopter.adoptNextOrphan().catch(() => undefined);
-  }, 10_000);
-  attachment.stopDriver = () => clearInterval(driverHandle);
+    // T4: drive the adopter from the attachment itself so both spawn and restart
+    // paths adopt orphans even when there is no worker-lock heartbeat (AC3).
+    // The closure captures this adopter, not the module-level variable that may
+    // be replaced by a later attachment.
+    const driverHandle = setInterval(() => {
+      adopter.adoptNextOrphan().catch((e) => {
+        recordAdoptionDriverError(e);
+      });
+    }, 10_000);
+    attachment.stopDriver = () => clearInterval(driverHandle);
+  } catch (e) {
+    adoptionConstructionState = {
+      kind: "construction_failed",
+      lastError: describeError(e),
+    };
+    activeOrphanQueueAdopter = null;
+    attachment.adopter = null;
+    attachment.stopDriver = null;
+  }
 }
 
 function registerWorkerLockHeartbeat(
@@ -735,6 +787,11 @@ export function getTemporalWorkerAliveness(): boolean {
 async function drainInProcessTemporalWorkers(): Promise<void> {
   const workers = [...inProcessTemporalWorkers];
   inProcessTemporalWorkers.clear();
+  // C6: stop drivers BEFORE shutdown — a driver outliving its worker targets a
+  // drained worker.
+  for (const worker of workers) {
+    teardownWorkerAttachment(worker);
+  }
   await Promise.all(
     workers.map(async (worker) => {
       try {

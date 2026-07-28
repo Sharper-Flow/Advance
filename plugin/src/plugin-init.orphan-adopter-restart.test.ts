@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
     queues: ["adv-test-queue"],
     shutdown: vi.fn(async () => {}),
   } as const,
+  shouldThrowConstruction: false,
 }));
 
 vi.mock("node:fs", async () => {
@@ -78,9 +79,26 @@ vi.mock("./temporal/service", () => ({
   closeStsl: mocks.closeStsl,
 }));
 
+vi.mock("./temporal/orphan-queue-adopter", async () => {
+  const actual =
+    await vi.importActual<typeof import("./temporal/orphan-queue-adopter")>(
+      "./temporal/orphan-queue-adopter",
+    );
+  class MockOrphanQueueAdopter extends actual.OrphanQueueAdopter {
+    constructor(options: ConstructorParameters<typeof actual.OrphanQueueAdopter>[0]) {
+      if (mocks.shouldThrowConstruction) {
+        throw new Error("construction failure");
+      }
+      super(options);
+    }
+  }
+  return { ...actual, OrphanQueueAdopter: MockOrphanQueueAdopter };
+});
+
 import {
   getOrphanQueueAdoptionDiagnostics,
   getOrphanQueueAdoptionStatus,
+  getWorkerAdoptionAttachmentCount,
   restartCurrentProjectTemporalWorker,
 } from "./plugin-init";
 import { OrphanQueueAdopter } from "./temporal/orphan-queue-adopter";
@@ -184,5 +202,87 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
 
     expect(adoptSpy).toHaveBeenCalled(); // AC3: tick occurred, not just construction
     adoptSpy.mockRestore();
+  });
+
+  test("driver tick error is recorded and driver continues (C7)", async () => {
+    const projectDir = await createTempDir("adv-restart-driver-error-");
+    tempDirs.push(projectDir);
+
+    const adoptSpy = vi
+      .spyOn(OrphanQueueAdopter.prototype, "adoptNextOrphan")
+      .mockRejectedValueOnce(new Error("tick failure"));
+
+    vi.useFakeTimers();
+    await restartCurrentProjectTemporalWorker(projectDir);
+
+    await vi.advanceTimersByTimeAsync(10_500);
+    const status = getOrphanQueueAdoptionStatus();
+    expect(status.enabled).toBe(false);
+    expect(status.reason).toMatch(/^driver_error: tick failure/);
+
+    // Driver interval is still alive — C3 fail-soft.
+    expect(vi.getTimerCount()).toBe(1);
+
+    vi.useRealTimers();
+    adoptSpy.mockRestore();
+  });
+
+  test("adopter construction failure does not break worker startup (C3)", async () => {
+    const projectDir = await createTempDir("adv-restart-construction-fail-");
+    tempDirs.push(projectDir);
+
+    mocks.shouldThrowConstruction = true;
+
+    await expect(
+      restartCurrentProjectTemporalWorker(projectDir),
+    ).resolves.toBeDefined();
+
+    const status = getOrphanQueueAdoptionStatus();
+    expect(status.enabled).toBe(false);
+    expect(status.reason).toMatch(/^construction_failed: construction failure/);
+    expect(getOrphanQueueAdoptionDiagnostics()).toBeNull();
+
+    mocks.shouldThrowConstruction = false;
+  });
+
+  test("consecutive restarts do not leak adoption attachments or timers (AC9)", async () => {
+    const projectDir = await createTempDir("adv-restart-no-leak-");
+    tempDirs.push(projectDir);
+
+    vi.useFakeTimers();
+
+    for (let i = 0; i < 3; i++) {
+      await restartCurrentProjectTemporalWorker(projectDir);
+      expect(getWorkerAdoptionAttachmentCount()).toBe(1);
+      expect(vi.getTimerCount()).toBe(1);
+    }
+
+    expect(getWorkerAdoptionAttachmentCount()).toBe(1);
+    expect(vi.getTimerCount()).toBe(1);
+
+    vi.useRealTimers();
+  });
+
+  test("drain stops driver before worker shutdown (C6)", async () => {
+    const projectDir = await createTempDir("adv-restart-drain-order-");
+    tempDirs.push(projectDir);
+
+    vi.useFakeTimers();
+
+    await restartCurrentProjectTemporalWorker(projectDir);
+    expect(vi.getTimerCount()).toBe(1);
+
+    mocks.fakeWorker.shutdown.mockImplementation(async () => {
+      // When shutdown is invoked, the old driver must already be cleared.
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    await restartCurrentProjectTemporalWorker(projectDir);
+    expect(mocks.fakeWorker.shutdown).toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(1); // new driver scheduled after restart
+
+    vi.useRealTimers();
+    mocks.fakeWorker.shutdown.mockReset();
+    mocks.fakeWorker.shutdown.mockResolvedValue(undefined);
   });
 });
