@@ -42,9 +42,10 @@ vi.mock("node:fs", async () => {
 });
 
 vi.mock("./utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("./utils/project-id")>(
-    "./utils/project-id",
-  );
+  const actual =
+    await vi.importActual<typeof import("./utils/project-id")>(
+      "./utils/project-id",
+    );
   return {
     ...actual,
     getProjectId: mocks.getProjectId,
@@ -79,6 +80,7 @@ vi.mock("./temporal/service", () => ({
 
 import {
   getOrphanQueueAdoptionDiagnostics,
+  getOrphanQueueAdoptionStatus,
   restartCurrentProjectTemporalWorker,
 } from "./plugin-init";
 
@@ -147,5 +149,19 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
 
     const diag = getOrphanQueueAdoptionDiagnostics();
     expect(diag).not.toBeNull();
+  });
+
+  test("restart with no temporal client reports typed unavailable adoption (AC10)", async () => {
+    mocks.getService.mockReturnValue(null); // no STSL bundle
+
+    const projectDir = await createTempDir("adv-restart-no-client-");
+    tempDirs.push(projectDir);
+
+    await restartCurrentProjectTemporalWorker(projectDir);
+
+    const status = getOrphanQueueAdoptionStatus();
+    expect(status.enabled).toBe(false);
+    expect(status.reason).toBe("no_temporal_client"); // typed, not silent null
+    expect(status.diagnostics).toBeNull();
   });
 });

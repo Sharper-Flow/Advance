@@ -486,6 +486,16 @@ let currentWorkerRole: WorkerRole = "degraded";
 /** Module-level adopter reference for diagnostics + heartbeat callback. */
 let activeOrphanQueueAdopter: OrphanQueueAdopter | null = null;
 
+export type AdoptionConstructionState =
+  | { kind: "not_attempted" }
+  | { kind: "active"; adopter: OrphanQueueAdopter }
+  | { kind: "unavailable"; reason: string }
+  | { kind: "disabled" };
+
+let adoptionConstructionState: AdoptionConstructionState = {
+  kind: "not_attempted",
+};
+
 interface WorkerAdoptionAttachment {
   worker: InProcessWorker;
   adopter: OrphanQueueAdopter | null;
@@ -503,6 +513,37 @@ const workerAdoptionAttachments = new Map<
  */
 export function getOrphanQueueAdoptionDiagnostics(): OrphanQueueAdoptionDiagnostics | null {
   return activeOrphanQueueAdopter?.getDiagnostics() ?? null;
+}
+
+export interface OrphanQueueAdoptionStatus {
+  enabled: boolean;
+  diagnostics: OrphanQueueAdoptionDiagnostics | null;
+  /** Present when enabled is false — distinguishes kill-switch / no-client / not-attached. */
+  reason?: string;
+}
+
+export function getOrphanQueueAdoptionStatus(): OrphanQueueAdoptionStatus {
+  switch (adoptionConstructionState.kind) {
+    case "active":
+      return {
+        enabled: true,
+        diagnostics: adoptionConstructionState.adopter.getDiagnostics(),
+      };
+    case "unavailable":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: adoptionConstructionState.reason,
+      };
+    case "disabled":
+      return { enabled: false, diagnostics: null, reason: "kill_switch" };
+    case "not_attempted":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: "no_worker_attached",
+      };
+  }
 }
 
 const exhaustedWorkerDirs = new Set<string>();
@@ -546,15 +587,27 @@ export function attachWorkerWithAdoption(
     stopDriver: null,
   };
   workerAdoptionAttachments.set(worker, attachment);
-  if (opts.client && isOrphanQueueAdoptionEnabled()) {
-    const adopter = new OrphanQueueAdopter({
-      client: opts.client,
-      projectId: opts.projectId,
-      worker,
-    });
-    activeOrphanQueueAdopter = adopter;
-    attachment.adopter = adopter;
+  if (!isOrphanQueueAdoptionEnabled()) {
+    adoptionConstructionState = { kind: "disabled" };
+    activeOrphanQueueAdopter = null;
+    return;
   }
+  if (!opts.client) {
+    adoptionConstructionState = {
+      kind: "unavailable",
+      reason: "no_temporal_client",
+    };
+    activeOrphanQueueAdopter = null;
+    return;
+  }
+  const adopter = new OrphanQueueAdopter({
+    client: opts.client,
+    projectId: opts.projectId,
+    worker,
+  });
+  activeOrphanQueueAdopter = adopter;
+  attachment.adopter = adopter;
+  adoptionConstructionState = { kind: "active", adopter };
 }
 
 function registerWorkerLockHeartbeat(
@@ -825,7 +878,10 @@ export async function restartCurrentProjectTemporalWorker(
         onWorkerExhausted,
       });
   workerRef.current = worker;
-  registerInProcessTemporalWorker(worker);
+  attachWorkerWithAdoption(worker, {
+    projectId,
+    client: getService()?.client ?? null,
+  });
   return {
     projectId,
     queues: [...worker.queues],
