@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.39.0",
-  "updated_at": "2026-07-26T04:10:51.040Z",
+  "version": "1.40.0",
+  "updated_at": "2026-07-28T00:01:33.539Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -7795,6 +7795,76 @@
             "It reads the persisted projection from the same authority downstream readiness will consume",
             "It verifies the mutation-specific postcondition",
             "Unverifiable convergence returns a blocking recovered-unverified outcome instead of success"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-projectionCommandProof01",
+      "title": "Projection-Proven Command Success",
+      "body": "ADV state-changing commands must carry stable operation identity, be validated and applied by the authoritative Temporal workflow reducer, and return success only after the accepted monotonic state revision is committed to and verified in the durable projection. Routine read state must never authorize a mutation. Signal-based command confirmation may use a bounded workflow Query; routine reads may not.",
+      "priority": "must",
+      "tags": [
+        "temporal",
+        "projection",
+        "command-receipt",
+        "idempotency",
+        "cqrs"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-projectionCommandProof01.1",
+          "title": "Accepted command proves durable projection",
+          "given": [
+            "A state-changing command has a stable operation id and payload hash",
+            "The workflow reducer accepts the command and records a new state revision"
+          ],
+          "when": "The command adapter reports success",
+          "then": [
+            "The durable full projection contains at least the accepted state revision",
+            "The matching operation id and payload identity are verified by readback",
+            "The durable summary shard points to the same state revision"
+          ]
+        },
+        {
+          "id": "rq-projectionCommandProof01.2",
+          "title": "Projection failure prevents false success",
+          "given": [
+            "The workflow reducer accepted a command",
+            "The projection commit or verification fails"
+          ],
+          "when": "The command adapter returns",
+          "then": [
+            "The result is typed as accepted-but-not-durably-projected or outcome-unknown",
+            "The result does not claim success",
+            "The operation id and accepted revision support deterministic repair without blind retry"
+          ]
+        },
+        {
+          "id": "rq-projectionCommandProof01.3",
+          "title": "Reducer owns lifecycle authorization",
+          "given": [
+            "Host preflight state is stale or advisory",
+            "A close or batch-close command targets an ineligible lifecycle state"
+          ],
+          "when": "The workflow reducer handles the command",
+          "then": [
+            "The command is rejected with a typed ledger outcome",
+            "Lifecycle state and state revision remain unchanged",
+            "No lifecycle disk projection is written before reducer acceptance"
+          ]
+        },
+        {
+          "id": "rq-projectionCommandProof01.4",
+          "title": "Stable operation replay is idempotent",
+          "given": [
+            "An operation id and payload hash were previously accepted or rejected"
+          ],
+          "when": "The same operation is retried",
+          "then": [
+            "The prior outcome and revision are returned",
+            "The reducer is not applied again",
+            "The state revision and projection revision do not increment again"
           ]
         }
       ]
