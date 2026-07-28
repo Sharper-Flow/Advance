@@ -83,6 +83,7 @@ import {
   getOrphanQueueAdoptionStatus,
   restartCurrentProjectTemporalWorker,
 } from "./plugin-init";
+import { OrphanQueueAdopter } from "./temporal/orphan-queue-adopter";
 
 describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () => {
   let tempDirs: string[] = [];
@@ -163,5 +164,25 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
     expect(status.enabled).toBe(false);
     expect(status.reason).toBe("no_temporal_client"); // typed, not silent null
     expect(status.diagnostics).toBeNull();
+  });
+
+  test("restart-path adopter is driven by attachment tick driver (AC3)", async () => {
+    const projectDir = await createTempDir("adv-restart-driven-");
+    tempDirs.push(projectDir);
+
+    // Spy on adoptNextOrphan via the real OrphanQueueAdopter prototype.
+    const adoptSpy = vi.spyOn(OrphanQueueAdopter.prototype, "adoptNextOrphan");
+    adoptSpy.mockResolvedValue(undefined);
+
+    // Use fake timers *before* restart so the attachment's setInterval is
+    // created under fake time and can be advanced deterministically.
+    vi.useFakeTimers();
+    await restartCurrentProjectTemporalWorker(projectDir);
+
+    await vi.advanceTimersByTimeAsync(10_500); // one tick
+    vi.useRealTimers();
+
+    expect(adoptSpy).toHaveBeenCalled(); // AC3: tick occurred, not just construction
+    adoptSpy.mockRestore();
   });
 });

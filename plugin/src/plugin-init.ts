@@ -299,9 +299,6 @@ export async function tryInitStore(
             // beats must never block on a roll.
             onBeat: () => {
               void workerBundleRollMonitor?.checkNow().catch(() => undefined);
-              void activeOrphanQueueAdopter
-                ?.adoptNextOrphan()
-                .catch(() => undefined);
             },
           });
           registerWorkerLockHeartbeat(workerHeartbeat);
@@ -574,7 +571,7 @@ export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
  * adoption is enabled, attach an `OrphanQueueAdopter`. This is the single
  * composition helper for worker-creation sites so both spawn and restart paths
  * can share ownership behavior (T2). T3 will route the restart path through
- * this helper; T4 will populate `stopDriver`.
+ * this helper. T4 populates `stopDriver` with the attachment tick driver.
  */
 export function attachWorkerWithAdoption(
   worker: InProcessWorker,
@@ -608,6 +605,15 @@ export function attachWorkerWithAdoption(
   activeOrphanQueueAdopter = adopter;
   attachment.adopter = adopter;
   adoptionConstructionState = { kind: "active", adopter };
+
+  // T4: drive the adopter from the attachment itself so both spawn and restart
+  // paths adopt orphans even when there is no worker-lock heartbeat (AC3).
+  // The closure captures this adopter, not the module-level variable that may
+  // be replaced by a later attachment.
+  const driverHandle = setInterval(() => {
+    void adopter.adoptNextOrphan().catch(() => undefined);
+  }, 10_000);
+  attachment.stopDriver = () => clearInterval(driverHandle);
 }
 
 function registerWorkerLockHeartbeat(
