@@ -21,6 +21,8 @@ import type {
 import type { GitFinalizeOutcome } from "./archive-helpers/git-finalize";
 import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import * as storageJson from "../storage/json";
+import * as worktree from "./worktree";
+import * as gitFinalize from "./archive-helpers/git-finalize";
 
 const mocks = vi.hoisted(() => {
   const workflow = {
@@ -437,6 +439,47 @@ describe("adv_change_archive Phase 9 behavior", () => {
       completed_by: "adv-archive",
     });
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
+  });
+
+  test("AC7 regression: WORKTREE_IN_USE from targeted cleanup skips branch deletion", async () => {
+    const worktreeDeleteSpy = vi
+      .spyOn(worktree, "advWorktreeDelete")
+      .mockResolvedValue({
+        ok: false,
+        error: "WORKTREE_IN_USE",
+        branch: "change/example",
+        path: "/tmp/worktree",
+        hint: "Worktree is still in use",
+      });
+    const deleteBranchSpy = vi
+      .spyOn(gitFinalize, "deleteChangeBranch")
+      .mockReturnValue({ localDeleted: true, remoteDeleted: true });
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(worktreeDeleteSpy).toHaveBeenCalledWith(
+      "change/example",
+      { force: false },
+      expect.objectContaining({
+        projectRoot: "/tmp/main",
+        worktreePath: "/tmp/worktree",
+      }),
+    );
+    expect(deleteBranchSpy).not.toHaveBeenCalled();
+    expect(parsed.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("Branch cleanup skipped"),
+      ]),
+    );
+
+    worktreeDeleteSpy.mockRestore();
+    deleteBranchSpy.mockRestore();
   });
 
   test("threads explicit prTitleType into finalizeRelease context for conventional target", async () => {

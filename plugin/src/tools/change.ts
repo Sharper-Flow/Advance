@@ -46,7 +46,7 @@ import {
   subagentReportKey,
 } from "../types/subagent-reports";
 import { projectLoopLedger } from "../utils/loop-ledger";
-import { advWorktreeCleanup } from "./worktree";
+import { advWorktreeDelete } from "./worktree";
 import { initStateDb as initWorktreeStateDb } from "./worktree/state";
 import {
   compactOpsFollowupAnnotation,
@@ -4809,10 +4809,46 @@ export const changeTools = {
             }
           }
           // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
-          // This prevents the archive flow from deleting changes/<id>/ and then
-          // recreating it via store.changes.save(change). Cleanup failures are
-          // warning-only after durable archive + status transition; sweep can
-          // retry the disk removal later.
+          // Cleanup ordering is structural: durable archive + status saved → targeted
+          // worktree removal → source dir removal → branch deletion. Source dir removal
+          // is deferred until after the targeted worktree deletion has had a chance to
+          // read the durable terminal projection, and the change/{id} branch is deleted
+          // only when the targeted worktree removal succeeded or verified the worktree
+          // is already absent (WORKTREE_NOT_FOUND). Cleanup failures are warning-only
+          // after durable archive + status transition; sweep can retry later.
+          let targetedWorktreeDeleteResult:
+            | Awaited<ReturnType<typeof advWorktreeDelete>>
+            | undefined;
+          if (worktreePath) {
+            try {
+              const database = await initWorktreeStateDb(store.paths.root);
+              targetedWorktreeDeleteResult = await advWorktreeDelete(
+                `change/${change.id}`,
+                { force: false },
+                {
+                  projectRoot: store.paths.root,
+                  database,
+                  log: logger,
+                  store,
+                  worktreePath,
+                },
+              );
+            } catch (err) {
+              const reason = err instanceof Error ? err.message : String(err);
+              targetedWorktreeDeleteResult = {
+                ok: false,
+                error: "REMOVE_FAILED",
+                reason,
+              };
+              archiveResult.errors.push(
+                `Targeted worktree cleanup warning: failed to remove change/${change.id} worktree: ${reason}`,
+              );
+            }
+          }
+
+          // Only remove the change source directory after the targeted worktree
+          // deletion has verified terminal state, so the projection it may need is
+          // still on disk.
           try {
             await removeChangeDir(store.paths.changes, change.id);
           } catch (err) {
@@ -4820,49 +4856,56 @@ export const changeTools = {
               `Source cleanup warning: failed to remove changes/${change.id}: ${err instanceof Error ? err.message : String(err)}`,
             );
           }
-          try {
-            await advWorktreeCleanup("archive", {
-              projectRoot: store.paths.root,
-              database: await initWorktreeStateDb(store.paths.root),
-              log: logger,
-              store,
-              forceAttempts: false,
-            });
-          } catch (err) {
-            archiveResult.errors.push(
-              `Worktree cleanup warning: failed to run archive cleanup discovery: ${err instanceof Error ? err.message : String(err)}`,
-            );
-          }
+
           // Branch cleanup — delete change/{changeId} from local + remote.
           // Only in direct/merge mode; PR-mode branches must survive for PR creation.
-          // Runs after worktree removal (can't delete a checked-out branch).
+          // Runs after targeted worktree removal; do not delete the branch if the
+          // worktree is still present, in use, or otherwise failed removal.
           if (
             finalization?.status === "shipped" &&
             finalization.mainCheckout &&
             finalization.route !== "pr_auto_merge" &&
             archiveMode === "direct"
           ) {
-            try {
-              const branchResult = deleteChangeBranch(
-                finalization.mainCheckout,
-                change.id,
-              );
-              if (!branchResult.localDeleted && branchResult.error) {
-                archiveResult.errors.push(
-                  `Branch cleanup warning: ${branchResult.error}`,
+            const worktreeAbsent =
+              !targetedWorktreeDeleteResult ||
+              targetedWorktreeDeleteResult.ok ||
+              targetedWorktreeDeleteResult.error === "WORKTREE_NOT_FOUND";
+            if (worktreeAbsent) {
+              try {
+                const branchResult = deleteChangeBranch(
+                  finalization.mainCheckout,
+                  change.id,
                 );
-              } else if (
-                branchResult.localDeleted &&
-                !branchResult.remoteDeleted &&
-                branchResult.error
-              ) {
+                if (!branchResult.localDeleted && branchResult.error) {
+                  archiveResult.errors.push(
+                    `Branch cleanup warning: ${branchResult.error}`,
+                  );
+                } else if (
+                  branchResult.localDeleted &&
+                  !branchResult.remoteDeleted &&
+                  branchResult.error
+                ) {
+                  archiveResult.errors.push(
+                    `Branch cleanup warning (remote): ${branchResult.error}`,
+                  );
+                }
+              } catch (err) {
                 archiveResult.errors.push(
-                  `Branch cleanup warning (remote): ${branchResult.error}`,
+                  `Branch cleanup warning: ${err instanceof Error ? err.message : String(err)}`,
                 );
               }
-            } catch (err) {
+            } else if (targetedWorktreeDeleteResult) {
+              const code =
+                "error" in targetedWorktreeDeleteResult
+                  ? targetedWorktreeDeleteResult.error
+                  : "UNKNOWN";
               archiveResult.errors.push(
-                `Branch cleanup warning: ${err instanceof Error ? err.message : String(err)}`,
+                `Branch cleanup skipped: change/${change.id} worktree deletion returned ${code}`,
+              );
+            } else {
+              archiveResult.errors.push(
+                `Branch cleanup skipped: change/${change.id} worktree deletion result unavailable`,
               );
             }
           }

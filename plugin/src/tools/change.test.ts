@@ -5457,9 +5457,13 @@ describe("change tools — signal-driven lifecycle", () => {
         const deleteBranchSpy = vi
           .spyOn(gitFinalize, "deleteChangeBranch")
           .mockReturnValue({ localDeleted: true, remoteDeleted: false });
-        const worktreeCleanupSpy = vi
-          .spyOn(worktree, "advWorktreeCleanup")
-          .mockResolvedValue(undefined);
+        const worktreeDeleteSpy = vi
+          .spyOn(worktree, "advWorktreeDelete")
+          .mockResolvedValue({
+            ok: false,
+            error: "WORKTREE_NOT_FOUND",
+            branch: "change/test-change",
+          });
 
         const result = await changeTools.adv_change_archive.execute(
           { changeId: "test-change" },
@@ -5472,7 +5476,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(parsed.archivePath).toContain("test-change");
         expect(finalizeSpy).not.toHaveBeenCalled();
         expect(deleteBranchSpy).not.toHaveBeenCalled();
-        expect(worktreeCleanupSpy).not.toHaveBeenCalled();
+        expect(worktreeDeleteSpy).not.toHaveBeenCalled();
         expect(mocks.removeChangeDir).not.toHaveBeenCalled();
         expect(mocks.execGh).not.toHaveBeenCalled();
         expect(mocks.execGit).not.toHaveBeenCalled();
