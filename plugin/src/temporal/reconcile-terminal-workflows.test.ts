@@ -16,7 +16,12 @@ import {
   type TerminalReconcileClient,
   type TerminalReconcileDeps,
 } from "./reconcile-terminal-workflows";
-import { archiveDirToChangeId } from "./reconcile-terminal-deps";
+import {
+  activeChangeIdsFromStatuses,
+  archiveDirToChangeId,
+  isTerminalChangeStatus,
+  terminalChangeIdsFromStatuses,
+} from "./reconcile-terminal-deps";
 
 const PROJECT = "proj1";
 const WF = (changeId: string) => `adv/change/${PROJECT}/${changeId}`;
@@ -251,6 +256,50 @@ describe("reconcileTerminalWorkflows", () => {
 
     expect(fireTerminal).not.toHaveBeenCalled();
     expect(result.reconciled).toEqual([]);
+  });
+});
+
+describe("change-status authority (presence is not liveness)", () => {
+  // Measured in production: the projection directory held 96 draft, 28
+  // archived and 4 closed changes side by side. Treating directory PRESENCE as
+  // "active" vetoed every archived change that had not been pruned, which made
+  // reconciliation inert.
+  const projection = new Map<string, string>([
+    ["stillDrafting", "draft"],
+    ["archivedButPresent", "archived"],
+    ["closedButPresent", "closed"],
+    ["corruptEntry", "unknown"],
+  ]);
+
+  it("classifies archived and closed as terminal", () => {
+    expect(isTerminalChangeStatus("archived")).toBe(true);
+    expect(isTerminalChangeStatus("closed")).toBe(true);
+  });
+
+  it("classifies everything else as non-terminal", () => {
+    expect(isTerminalChangeStatus("draft")).toBe(false);
+    expect(isTerminalChangeStatus("unknown")).toBe(false);
+    expect(isTerminalChangeStatus("")).toBe(false);
+  });
+
+  it("treats a present-but-archived change as terminal, not active", () => {
+    expect([...terminalChangeIdsFromStatuses(projection)].sort()).toEqual([
+      "archivedButPresent",
+      "closedButPresent",
+    ]);
+    expect([...activeChangeIdsFromStatuses(projection)].sort()).toEqual([
+      "corruptEntry",
+      "stillDrafting",
+    ]);
+  });
+
+  it("fails closed: an unreadable entry counts as active and is vetoed", () => {
+    expect(activeChangeIdsFromStatuses(projection).has("corruptEntry")).toBe(
+      true,
+    );
+    expect(terminalChangeIdsFromStatuses(projection).has("corruptEntry")).toBe(
+      false,
+    );
   });
 });
 
