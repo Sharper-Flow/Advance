@@ -29,6 +29,8 @@ async function connectToServer() {
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
   await startServer({ transport: serverTransport });
+  await clientTransport.start();
+  await serverTransport.start();
   const client = new Client({ name: "test-client", version: "1.0.0" });
   await client.connect(clientTransport);
   return { client, clientTransport, serverTransport };

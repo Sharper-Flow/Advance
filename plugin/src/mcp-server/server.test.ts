@@ -11,8 +11,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { writeFile } from "fs/promises";
 import { join } from "path";
 import { startServer } from "./index.js";
-import { handleProjectContext } from "./tools/project_context.js";
 import { HANDSHAKE_TIER4_TOOLS, ADV_CONTRACT_VERSION } from "./handshake.js";
+import { executeTier4Tool } from "./tools/index.js";
 import { createDiskStore } from "../storage/store-disk.js";
 import { projectTools } from "../tools/project.js";
 import {
@@ -291,15 +291,15 @@ describe("adv mcp server", () => {
   });
 });
 
-// Also verify the project_context handler directly so parity failures are
-// isolated from transport wiring.
-describe("handleProjectContext", () => {
+// Also verify project_context is dispatched by the generic Tier-4 handler
+// so parity failures are isolated from transport wiring.
+describe("executeTier4Tool project_context dispatch", () => {
   let tempDir: string;
   let originalCwd: string;
 
   beforeEach(async () => {
     originalCwd = process.cwd();
-    tempDir = await createTempDir("adv-mcp-handle-");
+    tempDir = await createTempDir("adv-mcp-dispatch-");
     await createTestProject(tempDir, {
       withSpecs: false,
       withChanges: false,
@@ -318,7 +318,7 @@ describe("handleProjectContext", () => {
   });
 
   it("matches the direct plugin tool output", async () => {
-    const text = await handleProjectContext(tempDir, {});
+    const text = await executeTier4Tool(tempDir, "project_context", {});
 
     const store = await createDiskStore(tempDir);
     try {
