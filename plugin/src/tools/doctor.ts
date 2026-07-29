@@ -42,6 +42,15 @@ import {
 } from "../plugin-init";
 import { probeTaskQueuePollers } from "../temporal/queue-serviceability";
 import { evaluateOrphanAdoptionHealth } from "../temporal/orphan-queue-adopter";
+import {
+  reconcileTerminalWorkflows,
+  type TerminalReconcileClient,
+  type TerminalReconcileResult,
+} from "../temporal/reconcile-terminal-workflows";
+import {
+  buildTerminalReconcileDeps,
+  type TerminalSignalClient,
+} from "../temporal/reconcile-terminal-deps";
 import { buildProjectTaskQueue } from "../temporal/client";
 import { basename, join } from "path";
 import { existsSync } from "fs";
@@ -66,6 +75,7 @@ export type DoctorFindingClass =
   | "ambiguous_ownership"
   | "phantom_pointer"
   | "orphan_queue_adoption_degraded"
+  | "leaked_terminal_workflow"
   | "unhealthy";
 
 /**
@@ -77,7 +87,8 @@ export interface DoctorFixApplied {
     | "stsl_reinit"
     | "register_missing"
     | "worker_restart"
-    | "clear_session_pointer";
+    | "clear_session_pointer"
+    | "reconcile_terminal_workflows";
   outcome: "applied" | "no_op" | "failed";
   before?: unknown;
   after?: unknown;
@@ -439,6 +450,52 @@ export const doctorTools = {
         }
       }
 
+      // Settle workflows leaked by archive's disk-recovery fallback. That path
+      // writes the bundle and converges disk state but never fires the terminal
+      // signal, so the workflow blocks in `wf.condition` forever and keeps its
+      // session queue alive in the orphan enumeration permanently. It cannot be
+      // settled passively — nothing touches an archived change again — so an
+      // active sweep is required. Idempotent, and gated on positive archive
+      // evidence plus an active-change veto.
+      let terminalReconcile: TerminalReconcileResult | null = null;
+      const reconcileClient = bundle?.client as unknown;
+      if (reconcileClient && projectId) {
+        try {
+          terminalReconcile = await reconcileTerminalWorkflows(
+            reconcileClient as TerminalReconcileClient,
+            projectId,
+            buildTerminalReconcileDeps({
+              projectId,
+              archiveDir: store.paths.archive,
+              changesDir: store.paths.changes,
+              client: reconcileClient as TerminalSignalClient,
+            }),
+          );
+          if (terminalReconcile.reconciled.length > 0) {
+            fixesApplied.push({
+              class: "leaked_terminal_workflow",
+              action: "reconcile_terminal_workflows",
+              outcome: "applied",
+              after: { reconciled: terminalReconcile.reconciled.length },
+              evidence: `sent terminal signal to ${terminalReconcile.reconciled.length} RUNNING workflow(s) whose change is archived on disk`,
+            });
+          }
+          if (terminalReconcile.failed.length > 0) {
+            findings.push({
+              class: "leaked_terminal_workflow",
+              finding: "terminal_reconcile_partial",
+              detail: `${terminalReconcile.failed.length} terminal signal(s) failed; rerun adv_doctor once the worker is reachable`,
+            });
+          }
+        } catch (err) {
+          findings.push({
+            class: "leaked_terminal_workflow",
+            finding: "terminal_reconcile_failed",
+            detail: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
       if (findings.length === 0) {
         findings.push({ class: "healthy", detail: "All checks passed" });
       }
@@ -791,6 +848,17 @@ export const doctorTools = {
                 : {}),
               note: "orphan-queue adoption: disabled (no active adopter)",
             },
+        ...(terminalReconcile
+          ? {
+              terminal_reconciliation: {
+                inspected: terminalReconcile.inspected,
+                reconciled: terminalReconcile.reconciled.length,
+                skipped: terminalReconcile.skipped.length,
+                failed: terminalReconcile.failed.length,
+                capped: terminalReconcile.capped,
+              },
+            }
+          : {}),
         recommendedNextAction:
           refusedCount > 0
             ? `${refusedCount} approval-required proposal(s) returned — operator must resolve manually; rerun adv_doctor after the operator action.`
