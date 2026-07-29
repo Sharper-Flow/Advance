@@ -19,6 +19,100 @@ const LOCK_COEFFICIENT = 2;
 const STALE_LOCK_MS = 30000;
 
 // =============================================================================
+// Bounded Backoff Retry
+// =============================================================================
+
+export interface BoundedRetryOptions<T> {
+  /** Returns a successful value to stop retrying, or a miss to backoff. */
+  attempt: (attempt: number) => Promise<{ ok: true; value: T } | { ok: false }>;
+  /** Total wall-clock budget in milliseconds. */
+  budgetMs: number;
+  /** Initial backoff base in milliseconds. */
+  baseMs: number;
+  /** Maximum backoff in milliseconds. */
+  capMs: number;
+  /**
+   * Jitter strength (0 = none, 1 = full). Delay is computed as
+   * `base * (0.5 + random() * jitter * 0.5)` so it always stays within
+   * `[base * 0.5, base * (0.5 + jitter * 0.5)]`.
+   */
+  jitter?: number;
+  now?: () => number;
+  sleep?: (ms: number) => Promise<void>;
+  random?: () => number;
+}
+
+export interface BoundedRetrySuccess<T> {
+  ok: true;
+  value: T;
+  attempts: number;
+  elapsedMs: number;
+}
+
+export interface BoundedRetryFailure {
+  ok: false;
+  attempts: number;
+  elapsedMs: number;
+}
+
+export type BoundedRetryResult<T> =
+  | BoundedRetrySuccess<T>
+  | BoundedRetryFailure;
+
+/**
+ * Retry an attempt with bounded exponential backoff and jitter.
+ *
+ * The first attempt is made immediately; each miss sleeps before the next
+ * attempt until the budget is exhausted. The final return value always
+ * includes the number of attempts and elapsed time, so callers can surface
+ * structured diagnostics instead of a bare failure.
+ */
+export async function boundedRetry<T>(
+  options: BoundedRetryOptions<T>,
+): Promise<BoundedRetryResult<T>> {
+  const {
+    attempt,
+    budgetMs,
+    baseMs,
+    capMs,
+    jitter = 1,
+    now = Date.now,
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    random = Math.random,
+  } = options;
+  const start = now();
+  let attempts = 0;
+
+  while (true) {
+    attempts += 1;
+    const result = await attempt(attempts);
+    if (result.ok) {
+      return {
+        ok: true,
+        value: result.value,
+        attempts,
+        elapsedMs: now() - start,
+      };
+    }
+
+    const elapsed = now() - start;
+    if (elapsed >= budgetMs) {
+      return { ok: false, attempts, elapsedMs: elapsed };
+    }
+
+    const base = Math.min(capMs, baseMs * 2 ** (attempts - 1));
+    const delay = Math.min(
+      budgetMs - elapsed,
+      base * (0.5 + random() * jitter * 0.5),
+    );
+    if (delay <= 0) {
+      return { ok: false, attempts, elapsedMs: now() - start };
+    }
+    await sleep(delay);
+  }
+}
+
+// =============================================================================
 // Atomic Write
 // =============================================================================
 

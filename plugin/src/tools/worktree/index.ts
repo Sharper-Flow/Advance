@@ -36,6 +36,7 @@ import {
 } from "node:fs/promises";
 import * as path from "node:path";
 import { execFileGitCb } from "../../utils/git-binary";
+import { boundedRetry } from "../../utils/fs";
 import { type Plugin, tool } from "@opencode-ai/plugin";
 import type {
   OpencodeClient,
@@ -942,6 +943,20 @@ export interface AdvWorktreeCreateDeps {
       dir: string,
     ) => Promise<{ owned: boolean; release: () => Promise<void> }>;
   };
+  /**
+   * Injectables for the bounded worktree-create contention retry loop.
+   * In production these default to a 1,500 ms budget with 25 ms base and
+   * 250 ms cap; tests supply deterministic clock/sleep/random.
+   */
+  contention?: {
+    budgetMs?: number;
+    baseMs?: number;
+    capMs?: number;
+    jitter?: number;
+    now?: () => number;
+    sleep?: (ms: number) => Promise<void>;
+    random?: () => number;
+  };
 }
 
 export type AdvWorktreeCreateResult =
@@ -955,7 +970,13 @@ export type AdvWorktreeCreateResult =
     }
   | { ok: false; error: "DEFAULT_BRANCH_UNRESOLVABLE"; hint: string }
   | { ok: false; error: "STALE_BASE"; reason: string; suggestion: string }
-  | { ok: false; error: "BRANCH_LOCKED"; hint: string }
+  | {
+      ok: false;
+      error: "BRANCH_LOCKED";
+      hint: string;
+      attempts: number;
+      elapsedMs: number;
+    }
   | {
       ok: false;
       error: "BRANCH_IN_USE";
@@ -1141,15 +1162,76 @@ export async function advWorktreeCreate(
         release: async () => releaseGitWorktreeFlock(dir),
       };
     });
-  const lock = await flockAcquireFn(projectStateDir);
-  if (!lock.owned) {
+  const contention = deps.contention ?? {};
+  const lockResult = await boundedRetry<{ release: () => Promise<void> }>({
+    attempt: async () => {
+      const acquired = await flockAcquireFn(projectStateDir);
+      if (acquired.owned) {
+        return { ok: true, value: { release: acquired.release } };
+      }
+      return { ok: false };
+    },
+    budgetMs: contention.budgetMs ?? 1500,
+    baseMs: contention.baseMs ?? 25,
+    capMs: contention.capMs ?? 250,
+    jitter: contention.jitter,
+    now: contention.now,
+    sleep: contention.sleep,
+    random: contention.random,
+  });
+  if (!lockResult.ok) {
     return {
       ok: false,
       error: "BRANCH_LOCKED",
       hint: "Another session is creating a worktree; retry in a moment",
+      attempts: lockResult.attempts,
+      elapsedMs: lockResult.elapsedMs,
     };
   }
+  const lockRelease = lockResult.value.release;
   try {
+    // A peer session may have created the worktree while we were waiting.
+    // Re-check locally to avoid duplicate branch/path registration.
+    const existingWorktreeAfterLock = await findGitWorktreeByBranch(
+      repoRoot,
+      branch,
+    );
+    if (
+      existingWorktreeAfterLock &&
+      (await pathExists(existingWorktreeAfterLock.path))
+    ) {
+      const headSha = (
+        await execGit(["rev-parse", "HEAD"], existingWorktreeAfterLock.path)
+      ).trim();
+      const baseRef = opts.base ?? "existing";
+
+      const record = await getWorktreeRecord(deps.database, branch);
+      if (!record) {
+        await fireWorktreeSignal(
+          repoRoot,
+          deps.store,
+          inferredChangeId ?? undefined,
+          worktreeRegistrationRepairedSignal,
+          {
+            branch,
+            path: existingWorktreeAfterLock.path,
+            baseRef,
+            headSha,
+            repairedAt: new Date().toISOString(),
+          },
+        );
+      }
+
+      return {
+        ok: true,
+        branch,
+        path: existingWorktreeAfterLock.path,
+        baseRef,
+        headSha,
+        reused: true,
+      };
+    }
+
     // Step 4: execute git worktree add explicitly with the resolved base.
     const worktreePath = await getWorktreePath(repoRoot, branch);
     await mkdir(path.dirname(worktreePath), { recursive: true });
@@ -1275,7 +1357,7 @@ export async function advWorktreeCreate(
       reused: false,
     };
   } finally {
-    await lock.release();
+    await lockRelease();
   }
 }
 

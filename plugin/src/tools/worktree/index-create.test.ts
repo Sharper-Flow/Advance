@@ -129,6 +129,23 @@ function createMockDeps(repoRoot: string): AdvWorktreeCreateDeps {
   };
 }
 
+function createContentionDeps(): NonNullable<
+  AdvWorktreeCreateDeps["contention"]
+> {
+  let clock = 0;
+  return {
+    budgetMs: 1500,
+    baseMs: 25,
+    capMs: 250,
+    now: () => clock,
+    sleep: (ms) => {
+      clock += ms;
+      return Promise.resolve();
+    },
+    random: () => 0,
+  };
+}
+
 describe.skipIf(!isLinux)(
   "ADV-safe worktree create (T10)",
   { sequence: { concurrent: false } },
@@ -832,25 +849,142 @@ describe.skipIf(!isLinux)(
       );
     });
 
-    it("BRANCH_LOCKED — blocks when flock is held by another session", async () => {
+    it("BRANCH_LOCKED — exhausts bounded retry and reports attempts/elapsed", async () => {
       const deps = createMockDeps(repoRoot);
       deps.resolveDefaultBranch = async () => "main";
       deps.detectStaleBasis = async () => ({ stale: false });
+      deps.contention = createContentionDeps();
       deps.flock = {
         acquire: async () => ({ owned: false, release: async () => {} }),
       };
 
       const result = await advWorktreeCreate("feature/test", {}, deps);
 
-      expect(result).toEqual({
+      expect(result.ok).toBe(false);
+      if (!result.ok && result.error === "BRANCH_LOCKED") {
+        expect(result.attempts).toBeGreaterThan(1);
+        expect(result.elapsedMs).toBeGreaterThanOrEqual(0);
+        expect(result.elapsedMs).toBeLessThanOrEqual(1500);
+      }
+      expect(result).toMatchObject({
         ok: false,
         error: "BRANCH_LOCKED",
         hint: "Another session is creating a worktree; retry in a moment",
+        attempts: expect.any(Number),
+        elapsedMs: expect.any(Number),
       });
 
       // Worktree should NOT be created
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).not.toContain("feature/test");
+    });
+
+    it("absorbs brief contention and acquires the lock", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      deps.contention = createContentionDeps();
+      let calls = 0;
+      deps.flock = {
+        acquire: async () => {
+          calls += 1;
+          if (calls < 3) {
+            return { owned: false, release: async () => {} };
+          }
+          return { owned: true, release: async () => {} };
+        },
+      };
+
+      const result = await advWorktreeCreate(
+        "change/brief-contention",
+        {},
+        deps,
+      );
+
+      expect(result.ok).toBe(true);
+      expect(calls).toBe(3);
+      if (result.ok) {
+        expect(result.branch).toBe("change/brief-contention");
+        expect(result.reused).toBe(false);
+      }
+
+      const list = execSync("git worktree list", { cwd: repoRoot }).toString();
+      expect(list).toContain("change/brief-contention");
+    });
+
+    it("reuses a worktree created by a peer while waiting — no duplicate registration", async () => {
+      const deps = createMockDeps(repoRoot);
+      deps.resolveDefaultBranch = async () => "main";
+      deps.detectStaleBasis = async () => ({ stale: false });
+      deps.contention = createContentionDeps();
+      const peerBranch = "change/peer-created";
+      const peerPath = await getWorktreePath(repoRoot, peerBranch);
+      let calls = 0;
+      deps.flock = {
+        acquire: async () => {
+          calls += 1;
+          if (calls === 1) {
+            // Peer session creates the worktree while this session is waiting.
+            rmSync(peerPath, { recursive: true, force: true });
+            execSync(`git worktree add -b ${peerBranch} ${peerPath} main`, {
+              cwd: repoRoot,
+            });
+            cleanupPaths.push(peerPath);
+            return { owned: false, release: async () => {} };
+          }
+          return { owned: true, release: async () => {} };
+        },
+      };
+
+      // Registry already has a record for the peer-created worktree, so no
+      // repair signal should be needed.
+      workflowQuery.mockResolvedValue({
+        session_registry: {},
+        worktree_registry: {
+          [peerBranch]: {
+            branch: peerBranch,
+            path: peerPath,
+            materialized: true,
+            changeId: "peer-created",
+            status: "created",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            lastSeenAt: "2026-01-01T00:00:00.000Z",
+            baseRef: "main",
+            headSha: "abc123",
+            source: "tool",
+            sourceVersion: 1,
+            setupReady: true,
+          },
+        },
+        pending_worktree_deletes: {},
+        change_summaries: {},
+      });
+
+      const result = await advWorktreeCreate(peerBranch, {}, deps);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.branch).toBe(peerBranch);
+        expect(result.reused).toBe(true);
+      }
+
+      // No duplicate branch or path in the git worktree list.
+      const list = execSync("git worktree list --porcelain", {
+        cwd: repoRoot,
+      }).toString();
+      const entries = list
+        .split("\n")
+        .filter((line) => line.startsWith("worktree "));
+      const matchingEntries = entries.filter((line) =>
+        line.includes(peerBranch),
+      );
+      expect(matchingEntries.length).toBe(1);
+
+      // No duplicate created signal.
+      expect(workflowSignal).not.toHaveBeenCalledWith(
+        worktreeCreatedSignal,
+        expect.anything(),
+      );
     });
 
     it("releases the acquired flock through the returned release callback", async () => {
