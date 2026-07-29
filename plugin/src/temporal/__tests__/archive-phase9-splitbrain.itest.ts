@@ -272,6 +272,13 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
             await handle.query(getChangeStateQuery);
           expect(stateAfter.gates.release?.status).toBe("done");
 
+          // AC1: the poll-confirmed release gate is durably projected into the
+          // active disk snapshot so the store.gates.get proof observes done
+          // without a second workflow query.
+          const gatesAfter = await store.gates.get(CHANGE_ID);
+          expect(gatesAfter?.release?.status).toBe("done");
+          expect(gatesAfter?.release?.approval_evidence).toBeTruthy();
+
           // AC3 core: phase9_status is durably recorded as done via the live
           // Temporal phase9StatusUpdatedSignal. RED against the unfixed guard
           // (unset phase9_status is skipped), GREEN once recorded.
