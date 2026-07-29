@@ -40,7 +40,10 @@ import {
   type StatusQueueServiceabilitySnapshot,
 } from "./status-health";
 import { loadProjectConfigWithDiagnostics } from "../storage/json";
-import { withStabilityFeatureDefaults } from "../types";
+import {
+  resolveProjectFeaturePolicy,
+  type FeaturePolicySource,
+} from "../types";
 import { listPeerSessions } from "./session/index";
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 import { getToolSchemaManifest } from "../utils/tool-schema-telemetry";
@@ -107,7 +110,7 @@ export interface HealthStatusOutput {
     | undefined;
   plugin_runtime: unknown;
   feature_flags: Record<string, unknown>;
-  feature_flag_sources: Record<string, "default" | "explicit">;
+  feature_flag_sources: Record<string, FeaturePolicySource>;
   auto_managed_changes: Record<string, number>;
   terminal_cleanup_retained: PendingDeleteSummary;
   migration_status: unknown;
@@ -346,13 +349,20 @@ export async function runHealthStatus(
           const rawFeatures = configResult.success
             ? (configResult.data.features as Record<string, unknown>)
             : undefined;
-          const featureFlags = withStabilityFeatureDefaults(rawFeatures);
-          const featureFlagSources: Record<string, "default" | "explicit"> = {};
+          const policy = resolveProjectFeaturePolicy(rawFeatures);
+          const featureFlags = {
+            ...(rawFeatures ?? {}),
+            worker_singleton_enforce: policy.worker_singleton_enforce.value,
+            worktree_guard_enforce: policy.worktree_guard_enforce.value,
+          };
+          const featureFlagSources: Record<string, FeaturePolicySource> = {
+            worker_singleton_enforce: policy.worker_singleton_enforce.source,
+            worktree_guard_enforce: policy.worktree_guard_enforce.source,
+          };
           for (const key of Object.keys(featureFlags)) {
-            featureFlagSources[key] =
-              rawFeatures && typeof rawFeatures[key] !== "undefined"
-                ? "explicit"
-                : "default";
+            if (!(key in featureFlagSources)) {
+              featureFlagSources[key] = "explicit";
+            }
           }
           captureValue("project_config", {
             value: {
@@ -685,7 +695,7 @@ export async function runHealthStatus(
   const projectConfig = getCaptured<{
     configResult: Awaited<ReturnType<typeof loadProjectConfigWithDiagnostics>>;
     featureFlags: Record<string, unknown>;
-    featureFlagSources: Record<string, "default" | "explicit">;
+    featureFlagSources: Record<string, FeaturePolicySource>;
   }>("project_config");
 
   const queueServiceability = getCaptured<StatusQueueServiceabilitySnapshot>(
@@ -746,7 +756,14 @@ export async function runHealthStatus(
     peer_sessions: peerSessions,
     plugin_runtime: pluginRuntime,
     feature_flags:
-      projectConfig?.featureFlags ?? withStabilityFeatureDefaults(undefined),
+      projectConfig?.featureFlags ??
+      (() => {
+        const policy = resolveProjectFeaturePolicy(undefined);
+        return {
+          worker_singleton_enforce: policy.worker_singleton_enforce.value,
+          worktree_guard_enforce: policy.worktree_guard_enforce.value,
+        };
+      })(),
     feature_flag_sources: projectConfig?.featureFlagSources ?? {},
     auto_managed_changes: input.autoManagedCensus,
     terminal_cleanup_retained: getCaptured<PendingDeleteSummary>(

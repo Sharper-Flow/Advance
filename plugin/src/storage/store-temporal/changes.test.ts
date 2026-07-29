@@ -195,6 +195,7 @@ describe("createChangeOps", () => {
       expect.objectContaining({
         seedState: expect.objectContaining({ origin }),
       }),
+      { workflowQueueMode: "session" },
     );
   });
 
@@ -248,6 +249,7 @@ describe("createChangeOps", () => {
       expect.objectContaining({
         sessionId: "sess_test_routing_id",
       }),
+      { workflowQueueMode: "session" },
     );
 
     getCurrentSessionIdMock.mockReset();
@@ -329,6 +331,7 @@ describe("createChangeOps", () => {
           cross_project_origin: crossProjectOrigin,
         }),
       }),
+      { workflowQueueMode: "session" },
     );
   });
 
@@ -392,6 +395,7 @@ describe("createChangeOps", () => {
       expect.objectContaining({
         seedState: expect.objectContaining({ worktree_auto_managed: true }),
       }),
+      { workflowQueueMode: "session" },
     );
 
     // 2. Disk projection save includes the marker (changeWithOwner).

@@ -166,19 +166,71 @@ export const FeatureFlagsSchema = z
 
 export type FeatureFlags = z.infer<typeof FeatureFlagsSchema>;
 
+/** How a feature flag value was chosen. */
+export type FeaturePolicySource = "explicit" | "default" | "invalid_fallback";
+
+/** A single resolved feature flag with provenance. */
+export interface ResolvedFeatureFlag<T> {
+  value: T;
+  source: FeaturePolicySource;
+}
+
+/** Single source of truth for per-project feature policy values. */
+export interface ResolvedProjectFeaturePolicy {
+  worker_singleton_enforce: ResolvedFeatureFlag<boolean>;
+  worktree_guard_enforce: ResolvedFeatureFlag<boolean>;
+  /** Derived queue mode consumed by worker and workflow-start routing. */
+  workflowQueueMode: "session" | "project";
+}
+
+/**
+ * Resolve feature flags into typed effective values with provenance.
+ * Omitted keys get ADV stability defaults; non-boolean values fall back to
+ * the default with `invalid_fallback` source so callers and diagnostics can
+ * surface the discrepancy.
+ */
+export function resolveProjectFeaturePolicy(
+  rawFeatures: unknown,
+): ResolvedProjectFeaturePolicy {
+  const resolveBoolean = (
+    key: "worker_singleton_enforce" | "worktree_guard_enforce",
+    defaultValue: boolean,
+  ): ResolvedFeatureFlag<boolean> => {
+    const raw =
+      rawFeatures && typeof rawFeatures === "object"
+        ? (rawFeatures as Record<string, unknown>)[key]
+        : undefined;
+    if (typeof raw === "boolean") {
+      return { value: raw, source: "explicit" };
+    }
+    if (raw === undefined) {
+      return { value: defaultValue, source: "default" };
+    }
+    return { value: defaultValue, source: "invalid_fallback" };
+  };
+
+  const workerSingleton = resolveBoolean("worker_singleton_enforce", false);
+  const worktreeGuard = resolveBoolean("worktree_guard_enforce", true);
+
+  return {
+    worker_singleton_enforce: workerSingleton,
+    worktree_guard_enforce: worktreeGuard,
+    workflowQueueMode: workerSingleton.value ? "project" : "session",
+  };
+}
+
+/**
+ * Backward-compatible record view of the stability policy.
+ * New code should prefer {@link resolveProjectFeaturePolicy}.
+ */
 export function withStabilityFeatureDefaults(
   features: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
+  const policy = resolveProjectFeaturePolicy(features);
   return {
     ...(features ?? {}),
-    worker_singleton_enforce:
-      typeof features?.worker_singleton_enforce === "boolean"
-        ? features.worker_singleton_enforce
-        : false,
-    worktree_guard_enforce:
-      typeof features?.worktree_guard_enforce === "boolean"
-        ? features.worktree_guard_enforce
-        : true,
+    worker_singleton_enforce: policy.worker_singleton_enforce.value,
+    worktree_guard_enforce: policy.worktree_guard_enforce.value,
   };
 }
 

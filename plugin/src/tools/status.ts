@@ -19,7 +19,8 @@ import { listPeerSessions } from "./session/index";
 import {
   type FeatureFlags,
   type ProjectStatus,
-  withStabilityFeatureDefaults,
+  type FeaturePolicySource,
+  resolveProjectFeaturePolicy,
 } from "../types";
 import { loadProjectConfigWithDiagnostics } from "../storage/json";
 import { readProjectMetadata } from "../storage/project-metadata";
@@ -491,10 +492,15 @@ export const statusTools = {
             | undefined;
           let workerProcesses: WorkerProcessesSnapshot | undefined;
           let searchAttributes: SearchAttributesSnapshot | undefined;
-          let featureFlags: Record<string, unknown> =
-            withStabilityFeatureDefaults(undefined);
+          let featureFlags: Record<string, unknown> = (() => {
+            const policy = resolveProjectFeaturePolicy(undefined);
+            return {
+              worker_singleton_enforce: policy.worker_singleton_enforce.value,
+              worktree_guard_enforce: policy.worktree_guard_enforce.value,
+            };
+          })();
           let rawFeatures: Record<string, unknown> | undefined;
-          let featureFlagSources: Record<string, "default" | "explicit"> = {};
+          let featureFlagSources: Record<string, FeaturePolicySource> = {};
           let terminalCleanupRetained: PendingDeleteSummary = {
             total: 0,
             classes: {},
@@ -675,15 +681,25 @@ export const statusTools = {
                 rawFeatures = configResult.data.features as
                   | Record<string, unknown>
                   | undefined;
-                featureFlags = withStabilityFeatureDefaults(rawFeatures);
+                const policy = resolveProjectFeaturePolicy(rawFeatures);
+                featureFlags = {
+                  ...(rawFeatures ?? {}),
+                  worker_singleton_enforce:
+                    policy.worker_singleton_enforce.value,
+                  worktree_guard_enforce: policy.worktree_guard_enforce.value,
+                };
+                featureFlagSources = {
+                  worker_singleton_enforce:
+                    policy.worker_singleton_enforce.source,
+                  worktree_guard_enforce: policy.worktree_guard_enforce.source,
+                };
               }
             }
 
             for (const key of Object.keys(featureFlags)) {
-              featureFlagSources[key] =
-                rawFeatures && typeof rawFeatures[key] !== "undefined"
-                  ? "explicit"
-                  : "default";
+              if (!(key in featureFlagSources)) {
+                featureFlagSources[key] = "explicit";
+              }
             }
 
             if (plan.worktreeCleanup) {

@@ -3,7 +3,8 @@ import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import { hasArchiveBundle } from "../json";
+import { hasArchiveBundle, loadProjectConfig } from "../json";
+import { resolveProjectFeaturePolicy } from "../../types";
 import {
   isSchemaError,
   listChangeDirs,
@@ -459,6 +460,11 @@ export function createTemporalStoreBackend(
     workflow: {
       start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
       getHandle: (workflowId: string) => WorkflowHandleLike;
+      list?: (opts: { query: string }) => AsyncIterable<{
+        workflowId: string;
+        taskQueue: string;
+        status: { name: string };
+      }>;
     };
   } => {
     const bundle = input.temporal as {
@@ -466,6 +472,11 @@ export function createTemporalStoreBackend(
         workflow: {
           start?: (...args: unknown[]) => Promise<WorkflowHandleLike>;
           getHandle: (workflowId: string) => WorkflowHandleLike;
+          list?: (opts: { query: string }) => AsyncIterable<{
+            workflowId: string;
+            taskQueue: string;
+            status: { name: string };
+          }>;
         };
       };
     };
@@ -484,6 +495,11 @@ export function createTemporalStoreBackend(
       workflow: bundle.client.workflow as {
         start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
         getHandle: (workflowId: string) => WorkflowHandleLike;
+        list?: (opts: { query: string }) => AsyncIterable<{
+          workflowId: string;
+          taskQueue: string;
+          status: { name: string };
+        }>;
       },
     };
   };
@@ -683,11 +699,21 @@ export function createTemporalStoreBackend(
     if (change.status === "archived" || change.status === "closed") {
       return withProjectionRecovery(change, "disk", reason);
     }
+    const projectConfig = await loadProjectConfig(legacy.paths.root).catch(
+      () => null,
+    );
+    const featurePolicy = resolveProjectFeaturePolicy(projectConfig?.features);
+
     try {
       const client = {
         workflow: input.temporal.client.workflow as {
           start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
           getHandle: (workflowId: string) => WorkflowHandleLike;
+          list?: (opts: { query: string }) => AsyncIterable<{
+            workflowId: string;
+            taskQueue: string;
+            status: { name: string };
+          }>;
         },
       };
       // Defensively fill in fields that the workflow seed schema requires
@@ -695,19 +721,23 @@ export function createTemporalStoreBackend(
       // snapshots on disk can be minimal (draft state, no gates/tasks
       // yet); the workflow state machine still expects well-formed
       // collections, so supply empty defaults rather than undefined.
-      await ensureChangeWorkflowStarted(client, {
-        projectId: input.projectId,
-        changeId: change.id,
-        title: change.title,
-        initializedAt: change.created_at,
-        projectionChangesDir: legacy.paths.changes,
-        archiveProjects: [{ projectPath: legacy.paths.root }],
-        // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
-        // the orphan-rescue re-seed lands on the same session queue the
-        // current process is polling. Undefined falls back to project queue.
-        sessionId: getCurrentSessionId(),
-        seedState: changeSeedStateFromChange(change),
-      });
+      await ensureChangeWorkflowStarted(
+        client,
+        {
+          projectId: input.projectId,
+          changeId: change.id,
+          title: change.title,
+          initializedAt: change.created_at,
+          projectionChangesDir: legacy.paths.changes,
+          archiveProjects: [{ projectPath: legacy.paths.root }],
+          // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
+          // the orphan-rescue re-seed lands on the same session queue the
+          // current process is polling. Undefined falls back to project queue.
+          sessionId: getCurrentSessionId(),
+          seedState: changeSeedStateFromChange(change),
+        },
+        { workflowQueueMode: featurePolicy.workflowQueueMode },
+      );
     } catch (err) {
       // Re-seed itself failed — surface the original not-found to callers
       // rather than masking it with a seed error. Log so operators can

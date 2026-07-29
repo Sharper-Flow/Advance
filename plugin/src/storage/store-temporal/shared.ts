@@ -924,6 +924,16 @@ export interface StoreDeps {
     workflow: {
       start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
       getHandle: (workflowId: string) => WorkflowHandleLike;
+      /**
+       * Optional Visibility enumeration. Forwarded from the underlying
+       * Temporal Client when available; absent in test fixtures that only
+       * stub start/getHandle.
+       */
+      list?: (opts: { query: string }) => AsyncIterable<{
+        workflowId: string;
+        taskQueue: string;
+        status: { name: string };
+      }>;
     };
   };
   resolveStateOrQuery: (

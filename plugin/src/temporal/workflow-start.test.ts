@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import {
   ensureChangeWorkflowStarted,
   reImportChangeState,
+  IncompatibleActiveSessionQueuesError,
 } from "./workflow-start";
 import {
   ChangeCreationHashConflictError,
@@ -136,6 +137,110 @@ describe("ensureChangeWorkflowStarted", () => {
         taskQueue: "advance-pid-abc",
       }),
     );
+  });
+
+  test("KD-2 explicit singleton routes to project queue even when sessionId is present", async () => {
+    const handle = { query: vi.fn() };
+    const start = vi.fn().mockResolvedValue(handle);
+    const list = vi.fn().mockReturnValue([]);
+    const client = { workflow: { start, getHandle: vi.fn(), list } };
+
+    await ensureChangeWorkflowStarted(
+      client,
+      {
+        projectId: "pid-abc",
+        changeId: "singletonRoute",
+        title: "Singleton route",
+        initializedAt: "2026-07-21T00:00:00Z",
+        sessionId: "sess_SingletonTest",
+      },
+      { workflowQueueMode: "project" },
+    );
+
+    expect(start).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        taskQueue: "advance-pid-abc",
+      }),
+    );
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.stringContaining("AdvAffectedProjects"),
+      }),
+    );
+  });
+
+  test("KD-2 default session mode routes to session queue when sessionId is present", async () => {
+    const handle = { query: vi.fn() };
+    const start = vi.fn().mockResolvedValue(handle);
+    const client = { workflow: { start, getHandle: vi.fn() } };
+
+    await ensureChangeWorkflowStarted(
+      client,
+      {
+        projectId: "pid-abc",
+        changeId: "sessionMode",
+        title: "Session mode",
+        initializedAt: "2026-07-21T00:00:00Z",
+        sessionId: "sess_DefaultSession",
+      },
+      { workflowQueueMode: "session" },
+    );
+
+    expect(start).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({
+        taskQueue: "advance-pid-abc-sess_DefaultSession",
+      }),
+    );
+  });
+
+  test("KD-2 explicit singleton refuses when active session-pinned workflows exist", async () => {
+    const start = vi.fn().mockResolvedValue({ query: vi.fn() });
+    const list = vi.fn().mockReturnValue([
+      {
+        workflowId: "adv/change/pid-abc/existingSessionPinned",
+        taskQueue: "advance-pid-abc-sess_existing",
+        status: { name: "RUNNING" },
+      },
+    ]);
+    const client = { workflow: { start, getHandle: vi.fn(), list } };
+
+    await expect(
+      ensureChangeWorkflowStarted(
+        client,
+        {
+          projectId: "pid-abc",
+          changeId: "singletonBlocked",
+          title: "Singleton blocked",
+          initializedAt: "2026-07-21T00:00:00Z",
+          sessionId: "sess_singletonBlocked",
+        },
+        { workflowQueueMode: "project" },
+      ),
+    ).rejects.toBeInstanceOf(IncompatibleActiveSessionQueuesError);
+
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  test("KD-2 explicit singleton skips safe-refusal when client lacks workflow.list", async () => {
+    const handle = { query: vi.fn() };
+    const start = vi.fn().mockResolvedValue(handle);
+    const client = { workflow: { start, getHandle: vi.fn() } };
+
+    await ensureChangeWorkflowStarted(
+      client,
+      {
+        projectId: "pid-abc",
+        changeId: "singletonNoList",
+        title: "Singleton no list",
+        initializedAt: "2026-07-21T00:00:00Z",
+        sessionId: "sess_singletonNoList",
+      },
+      { workflowQueueMode: "project" },
+    );
+
+    expect(start).toHaveBeenCalled();
   });
 
   describe("creation_request_hash idempotency on already-started path (rq-creationRequestHash01, tk-74c358188ffb)", () => {

@@ -80,6 +80,7 @@ import {
   type EnsureWorktreeForMutationDeps,
 } from "./worktree-auto-manage";
 import type { Change } from "../types";
+import { resolveProjectFeaturePolicy } from "../types";
 import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
 import { logRecoveryProbeDiagnostics } from "./recovery-probe";
 import {
@@ -188,12 +189,8 @@ export function evaluateTaskAddWorktreeIsolation(input: {
   // assert sync behavior. This branch can never land on auto_manage
   // because the activation helper reads the marker off `change`.
   if (input.change === undefined && input.autoManageDeps === undefined) {
-    const flag = readBooleanFeatureFlagLocal(
-      input.features,
-      "worktree_guard_enforce",
-      true,
-    );
-    if (!flag) return { decision: "ALLOW" };
+    const policy = resolveProjectFeaturePolicy(input.features);
+    if (!policy.worktree_guard_enforce.value) return { decision: "ALLOW" };
     return checkWorktreeIsolation(input.cwd, {
       getSessionContext: input.getSessionContext,
     });
@@ -265,12 +262,8 @@ export function evaluateTaskUpdateWorktreeIsolation(input: {
     return { decision: "ALLOW" };
   }
   if (input.change === undefined && input.autoManageDeps === undefined) {
-    const flag = readBooleanFeatureFlagLocal(
-      input.features,
-      "worktree_guard_enforce",
-      true,
-    );
-    if (!flag) return { decision: "ALLOW" };
+    const policy = resolveProjectFeaturePolicy(input.features);
+    if (!policy.worktree_guard_enforce.value) return { decision: "ALLOW" };
     return checkWorktreeIsolation(input.cwd, {
       getSessionContext: input.getSessionContext,
     });
@@ -287,16 +280,6 @@ export function evaluateTaskUpdateWorktreeIsolation(input: {
         input.autoManageDeps?.getSessionContext ?? input.getSessionContext,
     },
   });
-}
-
-function readBooleanFeatureFlagLocal(
-  features: unknown,
-  key: string,
-  defaultValue: boolean,
-): boolean {
-  if (!features || typeof features !== "object") return defaultValue;
-  const value = (features as Record<string, unknown>)[key];
-  return typeof value === "boolean" ? value : defaultValue;
 }
 
 async function resolveChangeId(

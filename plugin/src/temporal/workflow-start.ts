@@ -16,6 +16,10 @@ import {
   resolveCreationIdempotency,
   ChangeCreationHashConflictError,
 } from "../storage/store-temporal/creation-hash";
+import {
+  hasActiveSessionPinnedWorkflows,
+  type OrphanListClient,
+} from "./list-orphan-session-queues";
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -32,6 +36,31 @@ export interface WorkflowClientLike {
     },
   ) => Promise<WorkflowHandleLike>;
   getHandle: (workflowId: string) => WorkflowHandleLike;
+  /**
+   * Optional Visibility enumeration surface. When present and
+   * `workflowQueueMode` is `project`, `ensureChangeWorkflowStarted` checks
+   * for active session-pinned workflows before entering singleton mode.
+   */
+  list?: (opts: { query: string }) => AsyncIterable<{
+    workflowId: string;
+    taskQueue: string;
+    status: { name: string };
+  }>;
+}
+
+/**
+ * Thrown when explicit singleton routing would strand existing session-pinned
+ * workflows by moving new workflows to the project queue while a session
+ * queue still has running workflows and no poller.
+ */
+export class IncompatibleActiveSessionQueuesError extends Error {
+  readonly name = "IncompatibleActiveSessionQueuesError";
+  readonly code = "INCOMPATIBLE_ACTIVE_SESSION_QUEUES";
+  constructor(
+    message = "Cannot activate project-queue singleton mode while session-pinned workflows are still running.",
+  ) {
+    super(message);
+  }
 }
 
 function isAlreadyStartedError(error: unknown): boolean {
@@ -44,15 +73,32 @@ function isAlreadyStartedError(error: unknown): boolean {
 export async function ensureChangeWorkflowStarted(
   client: { workflow: WorkflowClientLike },
   input: ChangeWorkflowInput,
+  options?: { workflowQueueMode?: "session" | "project" },
 ): Promise<WorkflowHandleLike> {
   const workflowId = buildChangeWorkflowId(input.projectId, input.changeId);
   // KD-10 / rq-isolSessionTaskQueue01: route to per-session task queue when
   // the caller provides a sessionId. rq-isolSessionTaskQueue05: orphaned
   // session queues (from dead sessions) are adopted at runtime by the
   // OrphanQueueAdopter heartbeat coordinator.
-  const taskQueue = input.sessionId
-    ? buildSessionTaskQueue(input.projectId, input.sessionId)
-    : buildProjectTaskQueue(input.projectId);
+  // KD-2: explicit singleton mode (`workflowQueueMode: "project"`) routes
+  // new workflows to the permanent project queue so the single elected host
+  // can poll them.
+  const taskQueue =
+    options?.workflowQueueMode === "project" || !input.sessionId
+      ? buildProjectTaskQueue(input.projectId)
+      : buildSessionTaskQueue(input.projectId, input.sessionId);
+
+  if (options?.workflowQueueMode === "project" && client.workflow.list) {
+    const hasSessionPinned = await hasActiveSessionPinnedWorkflows(
+      client as unknown as OrphanListClient,
+      input.projectId,
+    );
+    if (hasSessionPinned) {
+      throw new IncompatibleActiveSessionQueuesError(
+        `Project-queue singleton mode is incompatible with active session-pinned workflows for project ${input.projectId}.`,
+      );
+    }
+  }
 
   // KD-5 workflow-start hydration: when starting a workflow for a pre-
   // migration change whose disk artifacts pre-date Temporal-first writes,

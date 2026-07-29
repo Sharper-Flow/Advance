@@ -64,6 +64,30 @@ export interface OrphanSessionQueue {
   oldestStartTime: Date;
 }
 
+/**
+ * True if any open change workflow is pinned to a session-scoped task queue.
+ *
+ * Used by KD-2 singleton routing to refuse project-queue activation while
+ * existing session-pinned workflows would be stranded without a poller.
+ */
+export async function hasActiveSessionPinnedWorkflows(
+  client: OrphanListClient,
+  projectId: string,
+): Promise<boolean> {
+  const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
+  const sessionPrefix = buildSessionQueuePrefix(projectId);
+  const safeProjectId = escapeVisibilityValue(projectId);
+  const query = `AdvAffectedProjects = "${safeProjectId}"`;
+
+  for await (const wf of client.workflow.list({ query })) {
+    if (wf.status.name !== "RUNNING") continue;
+    if (!wf.workflowId.startsWith(projectPrefix)) continue;
+    if (!wf.taskQueue.startsWith(sessionPrefix)) continue;
+    return true;
+  }
+  return false;
+}
+
 export interface ListOrphanSessionQueuesOptions {
   /**
    * Cancels the underlying Visibility gRPC calls when aborted (routed through

@@ -4,6 +4,7 @@ import {
   FeatureFlagsSchema,
   ProjectConfigSchema,
   withStabilityFeatureDefaults,
+  resolveProjectFeaturePolicy,
 } from "./project";
 
 describe("FeatureFlagsSchema stability defaults", () => {
@@ -37,6 +38,68 @@ describe("FeatureFlagsSchema stability defaults", () => {
     ).toMatchObject({
       worker_singleton_enforce: false,
       worktree_guard_enforce: false,
+    });
+  });
+});
+
+describe("resolveProjectFeaturePolicy", () => {
+  test("classifies omitted values as default with correct booleans", () => {
+    const policy = resolveProjectFeaturePolicy(undefined);
+    expect(policy.worker_singleton_enforce).toEqual({
+      value: false,
+      source: "default",
+    });
+    expect(policy.worktree_guard_enforce).toEqual({
+      value: true,
+      source: "default",
+    });
+    expect(policy.workflowQueueMode).toBe("session");
+  });
+
+  test("classifies explicit values and derives project queue mode", () => {
+    const policy = resolveProjectFeaturePolicy({
+      worker_singleton_enforce: true,
+      worktree_guard_enforce: false,
+    });
+    expect(policy.worker_singleton_enforce).toEqual({
+      value: true,
+      source: "explicit",
+    });
+    expect(policy.worktree_guard_enforce).toEqual({
+      value: false,
+      source: "explicit",
+    });
+    expect(policy.workflowQueueMode).toBe("project");
+  });
+
+  test("classifies invalid values as invalid_fallback", () => {
+    const policy = resolveProjectFeaturePolicy({
+      worker_singleton_enforce: "yes",
+      worktree_guard_enforce: 1,
+    });
+    expect(policy.worker_singleton_enforce).toEqual({
+      value: false,
+      source: "invalid_fallback",
+    });
+    expect(policy.worktree_guard_enforce).toEqual({
+      value: true,
+      source: "invalid_fallback",
+    });
+    expect(policy.workflowQueueMode).toBe("session");
+  });
+
+  test("withStabilityFeatureDefaults consumes resolver values", () => {
+    expect(
+      withStabilityFeatureDefaults({ worker_singleton_enforce: "nope" }),
+    ).toMatchObject({
+      worker_singleton_enforce: false,
+      worktree_guard_enforce: true,
+    });
+    expect(
+      withStabilityFeatureDefaults({ worktree_guard_enforce: null }),
+    ).toMatchObject({
+      worker_singleton_enforce: false,
+      worktree_guard_enforce: true,
     });
   });
 });

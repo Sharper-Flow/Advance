@@ -902,11 +902,12 @@ Vague in-flight work.
 
       expect(health.feature_flag_sources).toBeDefined();
       // Each key in feature_flags has a corresponding source entry that is
-      // either "default" (no explicit project.json override) or "explicit"
-      // (set in project.json). The fixture may or may not set
-      // worktree_guard_enforce explicitly — either source is valid.
+      // either "default" (no explicit project.json override), "explicit"
+      // (set in project.json), or "invalid_fallback" (non-boolean value
+      // provided and was coerced to the default). The fixture does not set
+      // invalid values, so only default/explicit are expected here.
       for (const key of Object.keys(health.feature_flags)) {
-        expect(["default", "explicit"]).toContain(
+        expect(["default", "explicit", "invalid_fallback"]).toContain(
           health.feature_flag_sources[key],
         );
       }
@@ -914,10 +915,10 @@ Vague in-flight work.
       // resolve (they have withStabilityFeatureDefaults coverage), so their
       // source entries must be present.
       expect(health.feature_flag_sources.worktree_guard_enforce).toMatch(
-        /^(default|explicit)$/,
+        /^(default|explicit|invalid_fallback)$/,
       );
       expect(health.feature_flag_sources.worker_singleton_enforce).toMatch(
-        /^(default|explicit)$/,
+        /^(default|explicit|invalid_fallback)$/,
       );
     });
 

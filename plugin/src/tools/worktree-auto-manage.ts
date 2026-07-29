@@ -24,6 +24,7 @@
  */
 
 import type { Change } from "../types";
+import { resolveProjectFeaturePolicy } from "../types";
 import type { Store } from "../storage/store";
 import { createLogger } from "../utils/debug-log";
 import { resolveGitSessionContext } from "../utils/git-session";
@@ -77,19 +78,9 @@ export function evaluateWorktreeGuardActivation(
   if (change?.worktree_auto_managed === true) {
     return { mode: "auto_manage" };
   }
-  const flag = readBooleanFeatureFlag(features, "worktree_guard_enforce", true);
-  if (flag) return { mode: "block_only" };
+  const policy = resolveProjectFeaturePolicy(features);
+  if (policy.worktree_guard_enforce.value) return { mode: "block_only" };
   return { mode: "off" };
-}
-
-function readBooleanFeatureFlag(
-  features: unknown,
-  key: string,
-  defaultValue: boolean,
-): boolean {
-  if (!features || typeof features !== "object") return defaultValue;
-  const value = (features as Record<string, unknown>)[key];
-  return typeof value === "boolean" ? value : defaultValue;
 }
 
 // ---------------------------------------------------------------------------

@@ -47,6 +47,8 @@ import {
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { getCurrentSessionId } from "../../utils/session-id";
 import { removeChangeDir } from "../json";
+import { loadProjectConfig } from "../json";
+import { resolveProjectFeaturePolicy } from "../../types";
 import { isSchemaError, loadChange } from "../change-projection-reader";
 import {
   listSummaryChanges,
@@ -637,6 +639,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         );
       }
 
+      const projectConfig = await loadProjectConfig(legacy.paths.root).catch(
+        () => null,
+      );
+      const featurePolicy = resolveProjectFeaturePolicy(
+        projectConfig?.features,
+      );
+
       // P1.4 transactional guard: if Temporal workflow start fails,
       // the disk scaffold (proposal.md, change.json, etc.) would
       // otherwise persist as an orphan that confuses subsequent tool
@@ -646,47 +655,51 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // See design.md § KD-7.
       try {
         const client = getTemporalWorkflowClient();
-        await ensureChangeWorkflowStarted(client, {
-          projectId: input.projectId,
-          changeId: created.data.id,
-          title: created.data.title,
-          initializedAt: created.data.created_at,
-          projectionChangesDir: legacy.paths.changes,
-          archiveProjects: [{ projectPath: legacy.paths.root }],
-          // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
-          // ensureChangeWorkflowStarted can route to advance-{projectId}-{sess}.
-          // Undefined falls back to project queue (legacy / pre-init / tests).
-          sessionId: getCurrentSessionId(),
-          // rq-creationRequestHash01: enables the "already started" hash
-          // reconciliation. Without this, the existing workflow's handle
-          // is returned silently on retry — masking any divergence between
-          // the original and retried request.
-          creationRequestHash,
-          seedState: {
-            status: created.data.status,
-            tasks: created.data.tasks,
-            deltas: created.data.deltas,
-            wisdom: created.data.wisdom,
-            gates: created.data.gates,
-            reentry_history: created.data.reentry_history,
-            fast_follow_of: created.data.fast_follow_of,
-            cross_project_origin: created.data.cross_project_origin,
-            origin: created.data.origin,
-            same_project_dependencies:
-              initialMetadata?.same_project_dependencies ??
-              created.data.same_project_dependencies ??
-              [],
-            // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
-            // by default. Seed the workflow state with the marker so the
-            // first read sees it; lazy migration (A4) covers legacy changes
-            // that pre-date this field.
-            worktree_auto_managed: true,
-            // rq-creationRequestHash01: stamp the hash onto the workflow
-            // state so future retries / Continue-As-New can reconcile.
-            creation_request_hash: creationRequestHash,
-            ...(epicMembership ? { epic_membership: epicMembership } : {}),
+        await ensureChangeWorkflowStarted(
+          client,
+          {
+            projectId: input.projectId,
+            changeId: created.data.id,
+            title: created.data.title,
+            initializedAt: created.data.created_at,
+            projectionChangesDir: legacy.paths.changes,
+            archiveProjects: [{ projectPath: legacy.paths.root }],
+            // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
+            // ensureChangeWorkflowStarted can route to advance-{projectId}-{sess}.
+            // Undefined falls back to project queue (legacy / pre-init / tests).
+            sessionId: getCurrentSessionId(),
+            // rq-creationRequestHash01: enables the "already started" hash
+            // reconciliation. Without this, the existing workflow's handle
+            // is returned silently on retry — masking any divergence between
+            // the original and retried request.
+            creationRequestHash,
+            seedState: {
+              status: created.data.status,
+              tasks: created.data.tasks,
+              deltas: created.data.deltas,
+              wisdom: created.data.wisdom,
+              gates: created.data.gates,
+              reentry_history: created.data.reentry_history,
+              fast_follow_of: created.data.fast_follow_of,
+              cross_project_origin: created.data.cross_project_origin,
+              origin: created.data.origin,
+              same_project_dependencies:
+                initialMetadata?.same_project_dependencies ??
+                created.data.same_project_dependencies ??
+                [],
+              // rq-autoManageAdvWorktrees AC3 — new changes are auto-managed
+              // by default. Seed the workflow state with the marker so the
+              // first read sees it; lazy migration (A4) covers legacy changes
+              // that pre-date this field.
+              worktree_auto_managed: true,
+              // rq-creationRequestHash01: stamp the hash onto the workflow
+              // state so future retries / Continue-As-New can reconcile.
+              creation_request_hash: creationRequestHash,
+              ...(epicMembership ? { epic_membership: epicMembership } : {}),
+            },
           },
-        });
+          { workflowQueueMode: featurePolicy.workflowQueueMode },
+        );
       } catch (err) {
         // rq-creationRequestHash01: a hash conflict is a deterministic,
         // caller-induced refusal — the just-written disk scaffold must be

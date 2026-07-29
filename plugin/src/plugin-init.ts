@@ -24,6 +24,7 @@ import {
 } from "./temporal/reconcile-terminal-deps";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
+import { resolveProjectFeaturePolicy } from "./types";
 import {
   buildProjectTaskQueue,
   buildSessionTaskQueue,
@@ -158,16 +159,6 @@ function buildTemporalClientEnv(input: {
   };
 }
 
-function readBooleanFeatureFlag(
-  features: unknown,
-  key: string,
-  defaultValue: boolean,
-): boolean {
-  if (!features || typeof features !== "object") return defaultValue;
-  const value = (features as Record<string, unknown>)[key];
-  return typeof value === "boolean" ? value : defaultValue;
-}
-
 /**
  * Resolve the worker script path used by the OOP Node child process.
  *
@@ -270,17 +261,20 @@ export async function tryInitStore(
       const sessionQueue = sessionId
         ? buildSessionTaskQueue(projectId, sessionId)
         : undefined;
-      const workerQueues = sessionQueue
-        ? [sessionQueue, expectedQueue]
-        : [expectedQueue];
       const projectConfig = await loadProjectConfig(effectiveDir).catch(
         () => null,
       );
-      const workerSingletonEnforce = readBooleanFeatureFlag(
+      const featurePolicy = resolveProjectFeaturePolicy(
         projectConfig?.features,
-        "worker_singleton_enforce",
-        true,
       );
+      const workerSingletonEnforce =
+        featurePolicy.worker_singleton_enforce.value;
+      // KD-2: default (false) polls the per-session queue plus the permanent
+      // project queue; explicit singleton (true) polls only the project queue.
+      const workerQueues =
+        featurePolicy.workflowQueueMode === "project" || !sessionQueue
+          ? [expectedQueue]
+          : [sessionQueue, expectedQueue];
       const singletonPlan = await resolveWorkerSingletonPlan({
         projectStateDir,
         expectedQueue,
