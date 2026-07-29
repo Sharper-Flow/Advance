@@ -150,6 +150,8 @@ export function enclosingContextNames(node: ts.Node): string[] {
   while (current) {
     if (ts.isFunctionDeclaration(current) && current.name) {
       names.push(current.name.text);
+    } else if (ts.isMethodDeclaration(current) && current.name) {
+      names.push(current.name.getText().replace(/["']/g, ""));
     } else if (
       (ts.isArrowFunction(current) || ts.isFunctionExpression(current)) &&
       current.parent
@@ -220,7 +222,7 @@ export function collectSaveChangeCallSitesFromText(
 export async function findExecutableSaveChangeCalls(
   repoRoot: string,
 ): Promise<SaveChangeCallSite[]> {
-  const output = execSync('rg --vimgrep "saveChange\\(" plugin/src --type ts', {
+  const output = execSync("rg --files plugin/src --type ts", {
     cwd: repoRoot,
     encoding: "utf-8",
   });

@@ -44,16 +44,28 @@ describe("saveChange AST call detection", () => {
       function suspiciousWriter() {
         saveChange("plugin/src/storage/unknown.ts", {});
       }
+      function spacedSuspiciousWriter() {
+        saveChange ("plugin/src/storage/unknown.ts", {});
+      }
+      class Writer {
+        suspiciousMethod() {
+          saveChange("plugin/src/storage/unknown.ts", {});
+        }
+      }
     `;
     const calls = collectSaveChangeCallSitesFromText(
       source,
       "plugin/src/storage/unknown-fixture.ts",
     );
 
-    expect(calls).toHaveLength(1);
+    expect(calls).toHaveLength(3);
     expect(calls[0].contexts).toContain("suspiciousWriter");
-    expect(
-      isAllowedSaveChangeCaller(calls[0].file, calls[0].contexts).allowed,
-    ).toBe(false);
+    expect(calls[1].contexts).toContain("spacedSuspiciousWriter");
+    expect(calls[2].contexts).toContain("suspiciousMethod");
+    for (const call of calls) {
+      expect(isAllowedSaveChangeCaller(call.file, call.contexts).allowed).toBe(
+        false,
+      );
+    }
   });
 });
