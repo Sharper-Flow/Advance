@@ -517,7 +517,16 @@ export async function reconcileArchivedBundleRetry(input: {
       ok: true;
     }
   >;
-  if (durableProof.ok) {
+  // rq-releaseProjectionDurability01 / fixReleaseGateProjection AC3: a
+  // shipped-finalization proof (e.g. no_remote + skipped push) is structural
+  // evidence the change reached the default branch, but it does NOT prove the
+  // live workflow has already processed the release gate. For a live workflow
+  // we must still signal and poll so phase9_status can be recorded via the
+  // workflow; for a terminal workflow completeReleaseGateAfterFinalization
+  // falls back to the recovery writer and sets recoveryMutation so we skip the
+  // phase9 signal. Store/disk sources mean the gate is already durably done,
+  // so we can safely short-circuit.
+  if (durableProof.ok && durableProof.source !== "shipped-finalization") {
     releaseResult = {
       ok: true,
       gate:
@@ -795,7 +804,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       prNumber: reachability.prNumber,
       prUrl: input.change?.phase9_status?.prUrl,
       autoMergeArmed: false,
-      pushStatus: "pushed",
+      pushStatus: route.route === "no_remote" ? "skipped" : "pushed",
     };
   }
   if (reachability.proof === "origin_push_unverified") {
