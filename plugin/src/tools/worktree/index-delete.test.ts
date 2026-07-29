@@ -960,6 +960,37 @@ describe.skipIf(!isLinux)("ADV-safe worktree delete (T9)", () => {
     ).not.toContain(branch);
   });
 
+  it("AC5 accepts archived merged clean change via durable readback when ordinary projection is stale", async () => {
+    const branch = "change/ac5-durable-readback";
+    const wtPath = addWorktree(repoRoot, branch);
+    writeFileSync(join(wtPath, "ac5.txt"), "ac5");
+    execSync("git add ac5.txt", { cwd: wtPath });
+    execSync("git commit -m 'ac5 work'", { cwd: wtPath });
+    execSync(`git merge --no-ff ${branch} -m 'merge ${branch}'`, {
+      cwd: repoRoot,
+    });
+
+    const deps = createMockDeps(repoRoot, wtPath);
+    deps.registry = [
+      { branch, changeId: "ac5-durable-readback", path: wtPath },
+    ];
+    // Exercise production verifyBranchIntegration; the project-workflow-helper
+    // mock returns an empty registry snapshot, simulating a stale/unavailable
+    // ordinary projection immediately after archive terminal convergence.
+    deps.integrationCheck = undefined;
+    attachChangeStatus(deps, "archived");
+
+    const result = await advWorktreeDelete(branch, {}, deps);
+
+    expect(result).toEqual({ ok: true, branch, path: wtPath });
+    expect(deps.store?.changes.get).toHaveBeenCalledWith(
+      "ac5-durable-readback",
+    );
+    expect(
+      execSync("git worktree list", { cwd: repoRoot }).toString(),
+    ).not.toContain(branch);
+  });
+
   it("#55 follow-up deletes missing-registry CLOSED merged clean change branch without force", async () => {
     // Closed is a terminal status produced by adv_change_close
     // (cancelled, superseded, not_planned). Drift-recovery must accept it

@@ -43,6 +43,11 @@ export type BranchIntegrationResult =
 
 export interface BranchIntegrationDeps {
   changeStatusReader?: (changeId: string) => Promise<string | undefined>;
+  /**
+   * Durable terminal-status readback used when the ordinary projection/memo
+   * is stale or unavailable. Returns "archived" | "closed" | undefined.
+   */
+  terminalStatusReader?: (changeId: string) => Promise<string | undefined>;
   mergedBranches?: (
     defaultBranch: string,
     repoRoot: string,
@@ -122,7 +127,10 @@ export async function verifyBranchIntegration(
     );
   }
 
-  // --- 3. Condition A: Archived -------------------------------------------------
+  // --- 3. Condition A: Terminal -----------------------------------------------
+  const isTerminalStatus = (status: string | undefined): boolean =>
+    status === "archived" || status === "closed";
+
   let changeStatus: string | undefined;
   if (deps?.changeStatusReader) {
     changeStatus = await deps.changeStatusReader(changeId);
@@ -132,24 +140,30 @@ export async function verifyBranchIntegration(
         const access = await initStateDb(repoRoot);
         registrySnapshot = await getWorktreeRegistrySnapshot(access);
       }
-      if (registrySnapshot.unavailable) {
+      if (!registrySnapshot.unavailable) {
+        changeStatus = registrySnapshot.changeSummaries[changeId]?.status;
+      }
+      // If the snapshot is unavailable or the status is nonterminal, fall
+      // through to the durable readback below (when provided).
+    } catch (err) {
+      if (!deps?.terminalStatusReader) {
         return fail(
           "git_failed",
-          "Failed to query change summaries: Temporal worktree registry snapshot unavailable.",
+          `Failed to query change summaries: ${String(err)}`,
           "Verify Temporal project workflow is reachable.",
         );
       }
-      changeStatus = registrySnapshot.changeSummaries[changeId]?.status;
-    } catch (err) {
-      return fail(
-        "git_failed",
-        `Failed to query change summaries: ${String(err)}`,
-        "Verify Temporal project workflow is reachable.",
-      );
     }
   }
 
-  if (changeStatus !== "archived" && changeStatus !== "closed") {
+  if (!isTerminalStatus(changeStatus) && deps?.terminalStatusReader) {
+    const durableStatus = await deps.terminalStatusReader(changeId);
+    if (isTerminalStatus(durableStatus)) {
+      changeStatus = durableStatus;
+    }
+  }
+
+  if (!isTerminalStatus(changeStatus)) {
     return fail(
       "change_not_terminal",
       `Change "${changeId}" has status "${changeStatus ?? "undefined"}" (expected "archived" or "closed").`,

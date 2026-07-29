@@ -67,6 +67,46 @@ describe("verifyBranchIntegration (T29)", () => {
     });
   });
 
+  it("durable terminal readback overrides stale ordinary projection", async () => {
+    // AC5: immediately after archive terminal convergence the ordinary
+    // workflow/memo projection can still show a nonterminal status, but the
+    // durable disk readback is already archived. The gate must accept the
+    // durable terminal proof when merged + clean.
+    const result = await verifyBranchIntegration(
+      "feature/test",
+      "/fake/repo",
+      {},
+      makeDeps({
+        changeStatusReader: async () => "active",
+        terminalStatusReader: async () => "archived",
+      }),
+    );
+
+    expect(result).toEqual({
+      ok: true,
+      branch: "feature/test",
+      changeId: "change-abc123",
+      defaultBranch: "main",
+    });
+  });
+
+  it("durable terminal readback still rejects nonterminal status", async () => {
+    const result = await verifyBranchIntegration(
+      "feature/test",
+      "/fake/repo",
+      {},
+      makeDeps({
+        changeStatusReader: async () => "active",
+        terminalStatusReader: async () => "draft",
+      }),
+    );
+
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "change_not_terminal",
+    });
+  });
+
   it("branch not in registry → branch_not_in_registry", async () => {
     const result = await verifyBranchIntegration(
       "feature/unknown",

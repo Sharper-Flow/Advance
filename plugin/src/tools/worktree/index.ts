@@ -245,6 +245,25 @@ async function readChangeStatusWithCleanupTimeout(
   }
 }
 
+/**
+ * Build a durable terminal-status reader for branch integration.
+ * Reads directly from the Store's disk-backed change projection, bypassing
+ * any stale workflow/memo state after archive terminal convergence.
+ */
+function makeDurableTerminalStatusReader(
+  deps: AdvWorktreeDeleteDeps,
+): (changeId: string) => Promise<string | undefined> {
+  return async (changeId: string) => {
+    if (!deps.store) return undefined;
+    const result = await readChangeStatusWithCleanupTimeout(
+      deps.store,
+      changeId,
+      deps.signalTimeoutMs ?? DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS,
+    );
+    return result.ok ? result.status : undefined;
+  };
+}
+
 /** Automatic pending-delete retry cap; manual worktree_cleanup can retry after remediation. */
 const MAX_PENDING_DELETE_ATTEMPTS = 5;
 
@@ -2217,7 +2236,6 @@ export async function advWorktreeDelete(
       `force-deleting non-registered branch ${branch} (merged-to-default verified)`,
     );
   } else {
-    const integrationFn = deps.integrationCheck ?? verifyBranchIntegration;
     const remainingMs = getRemainingDeleteOperationMs(
       deleteStartedAt,
       deleteTimeoutMs,
@@ -2233,7 +2251,12 @@ export async function advWorktreeDelete(
     let integration: Awaited<ReturnType<typeof verifyBranchIntegration>>;
     try {
       integration = await withTimeout(
-        integrationFn(branch, deps.projectRoot),
+        deps.integrationCheck
+          ? deps.integrationCheck(branch, deps.projectRoot)
+          : verifyBranchIntegration(branch, deps.projectRoot, {}, {
+              terminalStatusReader: makeDurableTerminalStatusReader(deps),
+              registry: registryEntry ? [registryEntry] : undefined,
+            }),
         remainingMs,
         "Worktree branch integration check timed out",
       );
