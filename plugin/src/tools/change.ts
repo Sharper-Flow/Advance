@@ -4867,10 +4867,12 @@ export const changeTools = {
             finalization.route !== "pr_auto_merge" &&
             archiveMode === "direct"
           ) {
+            // An omitted worktreePath means targeted cleanup did not run. It
+            // is not proof that no managed worktree owns the branch, so retain
+            // the branch until a retry supplies the trusted worktree path.
             const worktreeAbsent =
-              !targetedWorktreeDeleteResult ||
-              targetedWorktreeDeleteResult.ok ||
-              targetedWorktreeDeleteResult.error === "WORKTREE_NOT_FOUND";
+              targetedWorktreeDeleteResult?.ok ||
+              targetedWorktreeDeleteResult?.error === "WORKTREE_NOT_FOUND";
             if (worktreeAbsent) {
               try {
                 const branchResult = deleteChangeBranch(

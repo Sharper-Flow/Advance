@@ -1431,6 +1431,33 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
   });
 
+  test("existing-bundle retry without worktreePath retains the branch", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    const worktreeDeleteSpy = vi.spyOn(worktree, "advWorktreeDelete");
+    const deleteBranchSpy = vi
+      .spyOn(gitFinalize, "deleteChangeBranch")
+      .mockReturnValue({ localDeleted: true, remoteDeleted: true });
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(worktreeDeleteSpy).not.toHaveBeenCalled();
+    expect(deleteBranchSpy).not.toHaveBeenCalled();
+    expect(parsed.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("worktree deletion result unavailable"),
+      ]),
+    );
+
+    worktreeDeleteSpy.mockRestore();
+    deleteBranchSpy.mockRestore();
+  });
+
   test("finalizes PR-merged pending_merge from existing bundle and records phase9 done", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.resolveReleaseReachability.mockReturnValueOnce({
