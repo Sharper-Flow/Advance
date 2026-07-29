@@ -94,9 +94,14 @@ describe("Runtime degradation behavior", () => {
       new Error("read-model outage"),
     );
 
-    const result = await executeTier4Tool(process.cwd(), "epic_list", {}, {
-      createToolMap: mockFactory(),
-    });
+    const result = await executeTier4Tool(
+      process.cwd(),
+      "epic_list",
+      {},
+      {
+        createToolMap: mockFactory(),
+      },
+    );
     const parsed = JSON.parse(result);
 
     expect(parsed.degraded).toBe(true);
@@ -108,9 +113,14 @@ describe("Runtime degradation behavior", () => {
       new Error("read-model outage"),
     );
 
-    const result = await executeTier4Tool(process.cwd(), "tool_catalog", {}, {
-      createToolMap: mockFactory(),
-    });
+    const result = await executeTier4Tool(
+      process.cwd(),
+      "tool_catalog",
+      {},
+      {
+        createToolMap: mockFactory(),
+      },
+    );
     const parsed = JSON.parse(result);
 
     expect(parsed.error).toBeUndefined();

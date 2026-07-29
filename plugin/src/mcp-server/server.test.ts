@@ -319,9 +319,14 @@ describe("executeTier4Tool project_context dispatch", () => {
   });
 
   it("matches the direct plugin tool output", async () => {
-    const text = await executeTier4Tool(tempDir, "project_context", {}, {
-      createToolMap: createTier4ToolMap,
-    });
+    const text = await executeTier4Tool(
+      tempDir,
+      "project_context",
+      {},
+      {
+        createToolMap: createTier4ToolMap,
+      },
+    );
 
     const store = await createDiskStore(tempDir);
     try {
