@@ -87,7 +87,13 @@ COMMANDS:
   - {exact command or orchestrator-approved intent/tier}
 ```
 
-If strict identity anchors (`WORKING DIRECTORY`, `CHANGE`, `SCOPE KEY`, `PHASE`, `ATTEMPT`) are missing, stop with `status: "inconclusive"`, `error_class: "UNKNOWN"`, and `recommended_next_action: "ask_user"`.
+If identity anchors are missing, never discard completed verification work. Anchors are orchestrator-owned, so a packet defect is an internal defect — never escalate one to the user, and never infer an anchor heuristically.
+
+- `WORKING DIRECTORY` is the only hard prerequisite. Without it there is no safe place to run commands, so stop with `status: "inconclusive"`, `error_class: "UNKNOWN"`, and `recommended_next_action: "ask_user"`.
+- If `PHASE` is absent, assume `local_verify`, because that is the only mode that can proceed without supplied check evidence.
+- If `CHANGE`, `SCOPE KEY`, or `ATTEMPT` are absent, proceed anyway. They are identity labels that do not change what must be verified.
+
+Whenever you proceed with a defective packet, still perform the verification and return the normal typed result, prefixed with a `## PACKET DEFECT` section listing the missing anchors so the orchestrator can correct the spawn pattern. Do not call `question` for packet identity values.
 
 ## Authority Boundaries
 
