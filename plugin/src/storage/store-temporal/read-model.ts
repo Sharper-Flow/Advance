@@ -17,8 +17,21 @@ export type ChangeReadSnapshot =
   | ReadSnapshot<Change>
   | {
       found: false;
+      reason: "not_found";
+      source: "read_model";
+    }
+  | {
+      found: false;
       reason: "corrupt";
       source: "read_model";
+      error: string;
+      degraded: { reason: "corrupt_projection"; repair: "repair_snapshot" };
+    }
+  | {
+      found: false;
+      reason: "schema_error";
+      source: "read_model";
+      error: string;
       degraded: { reason: "corrupt_projection"; repair: "repair_snapshot" };
     };
 
@@ -43,10 +56,20 @@ export async function readChangeSnapshot(
   if (!result.success && result.type === "not_found") {
     return { found: false, reason: "not_found", source: "read_model" };
   }
+  if (!result.success && result.type === "schema_error") {
+    return {
+      found: false,
+      reason: "schema_error",
+      source: "read_model",
+      error: result.error,
+      degraded: { reason: "corrupt_projection", repair: "repair_snapshot" },
+    };
+  }
   return {
     found: false,
     reason: "corrupt",
     source: "read_model",
+    error: result.error,
     degraded: { reason: "corrupt_projection", repair: "repair_snapshot" },
   };
 }
@@ -66,10 +89,19 @@ export function snapshotToLoadResult(
       source: "read_model",
     };
   }
+  if (snapshot.reason === "schema_error") {
+    return {
+      success: false,
+      error: snapshot.error,
+      type: "schema_error",
+      source: "read_model",
+      degraded: snapshot.degraded,
+    };
+  }
   return {
     success: false,
-    error: "corrupt_projection: repair_snapshot",
-    type: "schema_error",
+    error: snapshot.error,
+    type: "read_error",
     source: "read_model",
     degraded: snapshot.degraded,
   };

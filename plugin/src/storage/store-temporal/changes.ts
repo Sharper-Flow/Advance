@@ -987,7 +987,14 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // Routine show/get is deliberately distinct from command/preflight
       // getTemporalChange: absence or corruption of a projection must never
       // obtain a workflow handle or trigger orphan hydration.
-      return snapshotToLoadResult(await readChangeSnapshot(changeId));
+      const result = snapshotToLoadResult(await readChangeSnapshot(changeId));
+      // Schema errors are not recoverable through a workflow round-trip;
+      // surface them verbatim so callers do not mistake corruption for
+      // "not found" or a generic Temporal failure.
+      if (!result.success && result.type === "schema_error") {
+        throw new Error(result.error);
+      }
+      return result;
     },
     refresh: async (changeId: string): Promise<void> => {
       // R1 follow-on: tool-layer code paths that mutate workflow state

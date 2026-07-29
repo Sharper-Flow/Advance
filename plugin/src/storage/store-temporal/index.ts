@@ -831,18 +831,23 @@ export function createTemporalStoreBackend(
     changeId: string,
     deadline: TemporalReadDeadline,
   ): Promise<Change | null> => {
+    let diskResult: Awaited<ReturnType<typeof legacy.changes.get>>;
     try {
-      const diskResult = await raceWithTemporalDeadline(
+      diskResult = await raceWithTemporalDeadline(
         legacy.changes.get(changeId),
         deadline,
       );
-      if (isSchemaError(diskResult)) {
-        throw new Error(diskResult.error);
-      }
-      return diskResult.success && diskResult.data ? diskResult.data : null;
     } catch {
+      // Genuine I/O / deadline failures degrade to the Temporal path rather
+      // than aborting the whole read.
       return null;
     }
+    // Schema errors are not recoverable through a workflow round-trip;
+    // rethrow them verbatim instead of masking them as a missing projection.
+    if (isSchemaError(diskResult)) {
+      throw new Error(diskResult.error);
+    }
+    return diskResult.success && diskResult.data ? diskResult.data : null;
   };
 
   const getTemporalChange = async (
@@ -1890,6 +1895,84 @@ export function createTemporalStoreBackend(
       specsDir: legacy.paths.specs,
     });
     const specCapabilities = specsResult.ok ? specsResult.specs : [];
+
+    // Source-ranked health orientation: rank globally from Visibility + disk
+    // before hydrating only the bounded top-N. This prevents the old path
+    // from hydrating every candidate and then slicing afterwards.
+    if (options?.sourceRanked) {
+      const rawLimit = options.recentLimit ?? 10;
+      if (!Number.isInteger(rawLimit) || rawLimit <= 0) {
+        throw new Error(
+          `sourceRanked status requires a positive integer recentLimit; received ${String(rawLimit)}`,
+        );
+      }
+      const candidateLimit = Math.min(rawLimit, 10);
+      const ctx = createTemporalReadContext(options.deadline?.budgetMs);
+      const resolved = await listResolvedChanges(
+        { includeArchived: false, includeClosed: false },
+        ctx,
+        { candidateLimit, sourceRanked: true },
+      );
+
+      const changesById = new Map(
+        resolved.changes.map((change) => [change.id, change]),
+      );
+      const rankedIds = resolved.rankedIds ?? [];
+      const now = new Date();
+      const recent = rankedIds
+        .filter((id) => changesById.has(id))
+        .map((id) => {
+          const change = changesById.get(id)!;
+          const completedTasks =
+            change.tasks?.filter((task) => task.status === "done").length ?? 0;
+          const taskCount = change.tasks?.length ?? 0;
+          const lastActivityAt =
+            (change as { lastSignalAt?: string }).lastSignalAt ??
+            change.created_at;
+          return {
+            id: change.id,
+            title: change.title,
+            status: change.status,
+            completedTasks,
+            taskCount,
+            lastActivityAt,
+            minutesSinceActivity: Math.max(
+              0,
+              Math.floor(
+                (now.getTime() - new Date(lastActivityAt).getTime()) / 60_000,
+              ),
+            ),
+          };
+        });
+
+      const byStatus: Record<ChangeStatus, number> = {
+        draft: 0,
+        archived: 0,
+        closed: 0,
+      };
+      for (const change of resolved.changes) {
+        byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
+      }
+
+      const warnings = resolved.warnings ?? [];
+      const hydrationStats = resolved.hydrationStats ?? {};
+
+      return {
+        specs: {
+          count: specCapabilities.length,
+          capabilities: specCapabilities,
+        },
+        changes: {
+          active: recent.length,
+          byStatus,
+          recent,
+        },
+        recommendations: [],
+        resolvedChanges: new Map(),
+        ...(warnings.length > 0 ? { warnings } : {}),
+        ...(Object.keys(hydrationStats).length > 0 ? { hydrationStats } : {}),
+      };
+    }
 
     // Status needs the full unbounded summary set for accurate counts.
     // The recent list is sliced afterwards and any truncation is typed.
