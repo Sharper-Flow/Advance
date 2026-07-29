@@ -7,10 +7,64 @@
  * from it).
  */
 
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { listChangeDirs } from "../storage/change-projection-reader";
 import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
 import { archiveChangeSignal } from "./messages";
 import type { TerminalReconcileDeps } from "./reconcile-terminal-workflows";
+
+/** Change statuses that mean the workflow SHOULD have completed. */
+const TERMINAL_STATUSES = new Set(["archived", "closed"]);
+
+/**
+ * Status of every change present in the projection directory.
+ *
+ * Directory PRESENCE is not a liveness signal: the projection retains terminal
+ * changes (measured in production: 96 draft, 28 archived, 4 closed all sitting
+ * side by side). Reading the authoritative `status` field is the only correct
+ * way to tell an active change from a terminal one — inferring it from the
+ * directory listing silently vetoes every archived change that has not been
+ * pruned yet.
+ *
+ * Unreadable or unparseable entries map to `"unknown"`, which is treated as
+ * ACTIVE downstream so the sweep fails closed.
+ */
+async function readChangeStatuses(
+  changesDir: string | undefined,
+): Promise<Map<string, string>> {
+  const statuses = new Map<string, string>();
+  if (!changesDir) return statuses;
+  let dirs: string[];
+  try {
+    dirs = await listChangeDirs(changesDir);
+  } catch {
+    return statuses;
+  }
+  await Promise.all(
+    dirs.map(async (changeId) => {
+      try {
+        const raw = await readFile(
+          join(changesDir, changeId, "change.json"),
+          "utf8",
+        );
+        const parsed = JSON.parse(raw) as { status?: unknown };
+        statuses.set(
+          changeId,
+          typeof parsed.status === "string" ? parsed.status : "unknown",
+        );
+      } catch {
+        statuses.set(changeId, "unknown");
+      }
+    }),
+  );
+  return statuses;
+}
+
+/** True when this projected status means the workflow should be completed. */
+export function isTerminalChangeStatus(status: string): boolean {
+  return TERMINAL_STATUSES.has(status);
+}
 
 /** Archive bundle directories are `YYYY-MM-DD-<changeId>`. */
 const ARCHIVE_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}-/;
@@ -51,17 +105,31 @@ export async function listArchivedChangeIdsFromDisk(
   return ids;
 }
 
-/** Change ids still present as active changes (absolute veto). */
-export async function listActiveChangeIdsFromDisk(
-  changesDir: string | undefined,
-): Promise<ReadonlySet<string>> {
-  if (!changesDir) return new Set();
-  try {
-    return new Set(await listChangeDirs(changesDir));
-  } catch {
-    // Unknown active set — treat as "cannot prove inactive" by vetoing all.
-    return new Set();
+/**
+ * Change ids that are NOT terminal, from the projection's `status` field.
+ *
+ * Anything whose status is missing, unreadable or unrecognised counts as
+ * active, so ambiguity always vetoes rather than completes a workflow.
+ */
+export function activeChangeIdsFromStatuses(
+  statuses: ReadonlyMap<string, string>,
+): ReadonlySet<string> {
+  const active = new Set<string>();
+  for (const [changeId, status] of statuses) {
+    if (!isTerminalChangeStatus(status)) active.add(changeId);
   }
+  return active;
+}
+
+/** Change ids the projection marks terminal (positive evidence). */
+export function terminalChangeIdsFromStatuses(
+  statuses: ReadonlyMap<string, string>,
+): ReadonlySet<string> {
+  const terminal = new Set<string>();
+  for (const [changeId, status] of statuses) {
+    if (isTerminalChangeStatus(status)) terminal.add(changeId);
+  }
+  return terminal;
 }
 
 export interface TerminalSignalClient {
@@ -94,10 +162,28 @@ export function buildTerminalReconcileDeps(input: {
   changesDir: string | undefined;
   client: TerminalSignalClient;
 }): TerminalReconcileDeps {
+  // One projection read per sweep, shared by both lookups.
+  let statusesPromise: Promise<Map<string, string>> | null = null;
+  const statuses = () => {
+    statusesPromise ??= readChangeStatuses(input.changesDir);
+    return statusesPromise;
+  };
+
   return {
-    listArchivedChangeIds: () =>
-      listArchivedChangeIdsFromDisk(input.archiveDir),
-    listActiveChangeIds: () => listActiveChangeIdsFromDisk(input.changesDir),
+    listArchivedChangeIds: async () => {
+      const ids = new Set(
+        await listArchivedChangeIdsFromDisk(input.archiveDir),
+      );
+      // The projection's own `status` is stronger evidence than a bundle
+      // directory name: it survives legacy bundle naming, and it is exactly
+      // what the workflow itself would have observed had the signal landed.
+      for (const id of terminalChangeIdsFromStatuses(await statuses())) {
+        ids.add(id);
+      }
+      return ids;
+    },
+    listActiveChangeIds: async () =>
+      activeChangeIdsFromStatuses(await statuses()),
     fireTerminal: async (changeId: string) => {
       const handle = input.client.workflow.getHandle(
         buildChangeWorkflowId(input.projectId, changeId),
