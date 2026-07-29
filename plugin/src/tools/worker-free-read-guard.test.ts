@@ -46,6 +46,18 @@ const ROUTINE_READ_HANDLERS: ReadHandlerBoundary[] = [
     startMarker: "adv_gate_status: {",
     endMarker: "adv_gate_complete: {",
   },
+  {
+    tool: "adv_epic_list",
+    file: "plugin/src/tools/epic.ts",
+    startMarker: "adv_epic_list: {",
+    endMarker: "adv_epic_update: {",
+  },
+  {
+    tool: "adv_epic_show",
+    file: "plugin/src/tools/epic.ts",
+    startMarker: "adv_epic_show: {",
+    endMarker: "adv_epic_list: {",
+  },
 ];
 
 /**
