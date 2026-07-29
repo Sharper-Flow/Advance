@@ -14,6 +14,7 @@ import {
   isTemporalReadExpired,
   type TemporalReadContext,
 } from "../storage/store-temporal/read-context";
+import { classifyTemporalWorkflowFailure } from "../temporal/diagnostics";
 import type { Store } from "../storage/store-types";
 import { deriveEpicScopeLabel, WorkNodeRefSchema } from "../types";
 import type {
@@ -587,6 +588,49 @@ function formatEpicCompactWithRetired(
   };
 }
 
+function renderEpic(
+  epic: import("../types").Epic,
+  view: "compact" | "full",
+  retiredProjection?: RetiredEpicProjection,
+) {
+  if (view === "full") {
+    return retiredProjection
+      ? formatEpicWithRetired(epic, retiredProjection)
+      : formatEpic(epic);
+  }
+  return retiredProjection
+    ? formatEpicCompactWithRetired(epic, retiredProjection)
+    : formatEpicCompact(epic);
+}
+
+/**
+ * Store-level retire dry-run errors that are expected business rejections,
+ * not live-evaluation unavailability.
+ */
+const EPIC_RETIRE_STORE_ERROR_CODES = new Set([
+  "epic_not_found",
+  "epic_incomplete",
+  "stale_version",
+]);
+
+/**
+ * True when a retire dry-run failure indicates the live Epic workflow is
+ * unreachable, as opposed to a per-Epic business blocker such as incomplete
+ * entries or stale version.
+ */
+function isEpicRetirementEvaluationUnavailableError(err: unknown): boolean {
+  const typed = err as { code?: string };
+  if (typed.code && EPIC_RETIRE_STORE_ERROR_CODES.has(typed.code)) {
+    return false;
+  }
+  const diagnostic = classifyTemporalWorkflowFailure(err);
+  return (
+    !diagnostic.reachable &&
+    diagnostic.class !== "not_found" &&
+    diagnostic.class !== "poisoned_history"
+  );
+}
+
 async function loadEpic(store: Store, epicId: string) {
   const result = await store.epics.get(epicId);
   if (!result.success || !result.data) return null;
@@ -993,7 +1037,18 @@ async function convergeEpicOnShow(
       childObservation = change
         ? { kind: "present", change }
         : { kind: "absent" };
-    } catch {
+    } catch (err) {
+      // AC4: distinguish global live-evaluation unavailability from a
+      // per-change "not found" or transient per-entry failure. Global
+      // unavailability must not be silently rendered as target_unreachable.
+      const diagnostic = classifyTemporalWorkflowFailure(err);
+      if (
+        !diagnostic.reachable &&
+        diagnostic.class !== "not_found" &&
+        diagnostic.class !== "poisoned_history"
+      ) {
+        throw err;
+      }
       childObservation = { kind: "unreachable" };
     }
 
@@ -1219,32 +1274,72 @@ export const epicTools = {
           epic_id,
         );
         if (!loaded) return epicNotFound(epic_id);
-        // rq-epicDirectConvergence01: bounded direct convergence for active
-        // Epics. Retired Epics are read-only snapshots and skip convergence.
-        const converged =
-          loaded.retiredProjection == null
-            ? await convergeEpicOnShow(owner.store, loaded.epic)
-            : { epic: loaded.epic, repairs: [] };
-        const rendered =
-          view === "full"
-            ? loaded.retiredProjection
-              ? formatEpicWithRetired(converged.epic, loaded.retiredProjection)
-              : formatEpic(converged.epic)
-            : loaded.retiredProjection
-              ? formatEpicCompactWithRetired(
-                  converged.epic,
-                  loaded.retiredProjection,
-                )
-              : formatEpicCompact(converged.epic);
+
+        const isRetired = loaded.retiredProjection != null;
+        const baseEpic = loaded.epic;
+
+        // Render durable projection facts first. Retired snapshots are
+        // read-only and skip convergence; the base render is always
+        // available even when live evaluation is unreachable.
+        let rendered = renderEpic(
+          baseEpic,
+          view ?? "compact",
+          loaded.retiredProjection,
+        );
+
+        // rq-epicDirectConvergence01: advisory bounded direct convergence for
+        // active Epics. This is best-effort and cannot block the base read.
+        // Cross-project members and retired snapshots are skipped inside
+        // convergeEpicOnShow.
+        const unavailable: Array<{
+          scope: string;
+          status: "unavailable";
+          reason: string;
+        }> = [];
+        if (!isRetired) {
+          try {
+            const converged = await convergeEpicOnShow(owner.store, baseEpic);
+            if (converged.repairs.length > 0) {
+              // Preserve existing post-convergence rendering: repaired entries
+              // are reflected in member_status and terminal summaries.
+              rendered = renderEpic(
+                converged.epic,
+                view ?? "compact",
+                loaded.retiredProjection,
+              );
+            }
+          } catch (err) {
+            const reason =
+              err instanceof Error ? err.message : String(err ?? "");
+            unavailable.push({
+              scope: "membership_convergence",
+              status: "unavailable",
+              reason: `Live membership convergence is unreachable: ${reason}`,
+            });
+          }
+        }
+
         // Advisory-only fast-follow lineage projection. Bounded by Epic entry
         // count, additive (never reorders/removes fields), and best-effort:
         // child-change load failures simply omit lineage for that entry.
         const enriched = await enrichEpicRenderWithFastFollowLineage(
           rendered,
           owner.store,
-          loaded.epic.entries,
+          baseEpic.entries,
         );
-        const output = formatToolOutput({ success: true, epic: enriched });
+        const outputPayload: {
+          success: true;
+          epic: unknown;
+          _unavailable?: Array<{
+            scope: string;
+            status: "unavailable";
+            reason: string;
+          }>;
+        } = { success: true, epic: enriched };
+        if (unavailable.length > 0) {
+          outputPayload._unavailable = unavailable;
+        }
+        const output = formatToolOutput(outputPayload);
         return formatEpicRoutingOutput(output, owner, owner);
       } catch (err) {
         return epicError(err);
@@ -1320,6 +1415,9 @@ export const epicTools = {
         // Completed-candidate dry-run report: use the existing store retirement
         // dry-run path to verify eligibility without mutating state. Eligible
         // Epics become candidates; ineligible Epics are reported as blocked.
+        // AC4: if the live evaluation is unreachable, the entire completed-mode
+        // report is typed as unavailable rather than returning an empty-success
+        // result with zero candidates.
         const allRunning = await owner.store.epics.list({ status: "all" });
         const candidates: Array<{
           id: string;
@@ -1362,6 +1460,27 @@ export const epicTools = {
                 reason: string;
               }>;
             };
+            if (isEpicRetirementEvaluationUnavailableError(err)) {
+              return formatEpicRoutingOutput(
+                formatToolOutput({
+                  success: false,
+                  error: `Completed-candidate evaluation is unavailable: ${typed.message ?? String(err)}`,
+                  code: "epic_retirement_unavailable",
+                  status_filter: "completed",
+                  _unavailable: [
+                    {
+                      scope: "completed_candidate_evaluation",
+                      status: "unavailable",
+                      reason:
+                        typed.message ??
+                        "Live Epic workflow is unreachable; cannot evaluate retirement candidates.",
+                    },
+                  ],
+                }),
+                owner,
+                owner,
+              );
+            }
             blocked.push({
               id: epic.id,
               title: epic.title,

@@ -1907,13 +1907,9 @@ describe("gate tools — signal-driven lifecycle", () => {
   });
 
   describe("adv_gate_status", () => {
-    test("falls back to disk gates with _recovery annotation on poisoned workflow", async () => {
-      // rq-fix-gate-tools-recovery AC1.
-      //
-      // C2 (fixPoisonedRecovery reviewer-block remediation): describe() is no
-      // longer consulted as poison authority in this path — the queryError
-      // must carry poisoned-history markers (TMPRL1100 / Nondeterminism /
-      // No command scheduled for event) for poisonedFallback to flip.
+    test("returns disk gates without issuing a workflow query", async () => {
+      // AC1: adv_gate_status is a durable-projection read. Even when the
+      // workflow is poisoned/completed, the tool must never query it.
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -1935,7 +1931,6 @@ describe("gate tools — signal-driven lifecycle", () => {
         } as Partial<import("../types").Change>,
       });
 
-      // C2: error CLASS authority — TMPRL1100 marker in error text.
       mocks.querySignal.mockRejectedValueOnce(
         new Error("Failed to query Workflow: TMPRL1100 Nondeterminism error"),
       );
@@ -1948,14 +1943,14 @@ describe("gate tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.gates.planning.status).toBe("pending");
       expect(parsed.gates.discovery.status).toBe("done");
-      expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
-      // C2: describe() is no longer consulted in this path.
+      expect(mocks.querySignal).not.toHaveBeenCalled();
+      expect(mocks.getChangeHandle).not.toHaveBeenCalled();
+      // Worker-free reads no longer emit a poisoned-history recovery marker.
+      expect(parsed._recovery).toBeUndefined();
     });
 
-    test("propagates query errors when error class is not poisoned/completed (C2)", async () => {
-      // C2 (fixPoisonedRecovery reviewer-block remediation): a generic query
-      // error must propagate even if describe() would carry poisoned markers.
-      // describe() is not authoritative for the poisonedFallback decision.
+    test("ignores mocked workflow query errors and returns disk projection", async () => {
+      // AC1: a generic query error must not propagate because no query is made.
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "pending" },
@@ -1970,54 +1965,19 @@ describe("gate tools — signal-driven lifecycle", () => {
       mocks.querySignal.mockRejectedValueOnce(
         new Error("Failed to query Workflow"),
       );
-      const describeMock = vi.fn(async () => ({
-        searchAttributes: {
-          TemporalReportedProblems: [
-            "cause=WorkflowTaskFailedCauseNonDeterministicError",
-          ],
-        },
-      }));
-      mocks.handleMock.describe = describeMock;
 
-      await expect(
-        gateTools.adv_gate_status.execute({ changeId: "test-change" }, store),
-      ).rejects.toThrow(/Failed to query Workflow/);
-      // describe() may still be called for advisory diagnostics elsewhere,
-      // but it MUST NOT authorize recovery. The thrown error proves it didn't.
-
-      delete (mocks.handleMock as { describe?: unknown }).describe;
-    });
-
-    test("propagates query errors when describe does not show poisoned evidence", async () => {
-      // rq-fix-gate-tools-recovery AC6: no recovery without evidence.
-      const gates = {
-        proposal: { status: "done" },
-        discovery: { status: "pending" },
-        design: { status: "pending" },
-        planning: { status: "pending" },
-        execution: { status: "pending" },
-        acceptance: { status: "pending" },
-        release: { status: "pending" },
-      } as import("../types").Gates;
-      const store = createMockStore({ gates });
-
-      mocks.querySignal.mockRejectedValueOnce(
-        new Error("Failed to query Workflow"),
+      const result = await gateTools.adv_gate_status.execute(
+        { changeId: "test-change" },
+        store,
       );
-      const describeMock = vi.fn(async () => ({
-        searchAttributes: { AdvChangeStatus: ["draft"] },
-        status: "RUNNING",
-      }));
-      mocks.handleMock.describe = describeMock;
 
-      await expect(
-        gateTools.adv_gate_status.execute({ changeId: "test-change" }, store),
-      ).rejects.toThrow(/Failed to query Workflow/);
-
-      delete (mocks.handleMock as { describe?: unknown }).describe;
+      const parsed = JSON.parse(result);
+      expect(parsed.gates.discovery.status).toBe("pending");
+      expect(parsed.nextGate).toBe("discovery");
+      expect(mocks.querySignal).not.toHaveBeenCalled();
     });
 
-    test("uses workflow gates when query succeeds", async () => {
+    test("uses disk gates and ignores mocked workflow state", async () => {
       const diskGates = {
         proposal: { status: "done" },
         discovery: { status: "pending" },
@@ -2027,12 +1987,12 @@ describe("gate tools — signal-driven lifecycle", () => {
         acceptance: { status: "pending" },
         release: { status: "pending" },
       } as import("../types").Gates;
+      const store = createMockStore({ gates: diskGates });
+
       const workflowGates = {
         ...diskGates,
         discovery: { status: "done" },
       } as import("../types").Gates;
-      const store = createMockStore({ gates: diskGates });
-
       mocks.querySignal.mockResolvedValueOnce(workflowGates);
 
       const result = await gateTools.adv_gate_status.execute(
@@ -2041,8 +2001,9 @@ describe("gate tools — signal-driven lifecycle", () => {
       );
 
       const parsed = JSON.parse(result);
-      expect(parsed.gates.discovery.status).toBe("done");
-      expect(parsed._recovery).toBeUndefined();
+      expect(parsed.gates.discovery.status).toBe("pending");
+      expect(parsed.nextGate).toBe("discovery");
+      expect(mocks.querySignal).not.toHaveBeenCalled();
     });
 
     test("includes _directive and derives nextGate/canArchive from it", async () => {
@@ -2101,23 +2062,19 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(parsed._directive.action.command).toBe("adv-archive");
     });
 
-    test("prefers audited disk recovery gates over stale workflow gates", async () => {
+    test("returns audited disk recovery gates without querying workflow", async () => {
       const tmp = await mkdtemp(join(tmpdir(), "adv-gate-recovery-audit-"));
       const changesDir = join(tmp, "changes");
       const changeDir = join(changesDir, "test-change");
 
       try {
-        const workflowGates = {
+        const recoveredDiskGates = {
           proposal: { status: "done" },
           discovery: { status: "done" },
           design: { status: "done" },
           planning: { status: "done" },
           execution: { status: "done" },
           acceptance: { status: "done" },
-          release: { status: "pending" },
-        } as import("../types").Gates;
-        const recoveredDiskGates = {
-          ...workflowGates,
           release: {
             status: "done",
             completed_at: "2026-01-01T00:00:00Z",
@@ -2152,8 +2109,6 @@ describe("gate tools — signal-driven lifecycle", () => {
           ),
         );
 
-        mocks.querySignal.mockResolvedValueOnce(workflowGates);
-
         const result = await gateTools.adv_gate_status.execute(
           { changeId: "test-change" },
           store,
@@ -2162,35 +2117,26 @@ describe("gate tools — signal-driven lifecycle", () => {
         const parsed = JSON.parse(result);
         expect(parsed.gates.release.status).toBe("done");
         expect(parsed.canArchive).toBe(true);
-        expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
+        expect(mocks.querySignal).not.toHaveBeenCalled();
+        expect(mocks.getChangeHandle).not.toHaveBeenCalled();
       } finally {
         await rm(tmp, { recursive: true, force: true });
       }
     });
 
-    test("prefers audited disk release recovery when workflow release lacks recovery evidence at equal done-count", async () => {
+    test("preserves audited disk release recovery evidence in projection-only read", async () => {
       const tmp = await mkdtemp(join(tmpdir(), "adv-gate-release-evidence-"));
       const changesDir = join(tmp, "changes");
       const changeDir = join(changesDir, "test-change");
 
       try {
-        const workflowGates = {
+        const recoveredDiskGates = {
           proposal: { status: "done" },
           discovery: { status: "done" },
           design: { status: "done" },
           planning: { status: "done" },
           execution: { status: "done" },
           acceptance: { status: "done" },
-          release: {
-            status: "done",
-            completed_at: "2026-01-01T00:00:00Z",
-            completed_by: "adv-archive",
-            approval_evidence:
-              "legacy release completion without Phase 9 proof",
-          },
-        } as import("../types").Gates;
-        const recoveredDiskGates = {
-          ...workflowGates,
           release: {
             status: "done",
             completed_at: "2026-01-01T00:00:00Z",
@@ -2225,8 +2171,6 @@ describe("gate tools — signal-driven lifecycle", () => {
           ),
         );
 
-        mocks.querySignal.mockResolvedValueOnce(workflowGates);
-
         const result = await gateTools.adv_gate_status.execute(
           { changeId: "test-change" },
           store,
@@ -2240,7 +2184,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           }),
         });
         expect(parsed.canArchive).toBe(true);
-        expect(parsed._recovery).toEqual({ reason: "poisoned_history" });
+        expect(mocks.querySignal).not.toHaveBeenCalled();
       } finally {
         await rm(tmp, { recursive: true, force: true });
       }

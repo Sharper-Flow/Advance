@@ -1,0 +1,2103 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "makeToolReadsWorkerFree",
+  "title": "Make tool reads worker free",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-28T18:11:56.478Z",
+  "tasks": [
+    {
+      "id": "tk-73d61d1ed2d6",
+      "title": "Convert gate status to durable projection reads",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-29T15:29:20.401Z",
+      "started_at": "2026-07-29T15:32:49.892Z",
+      "completed_at": "2026-07-29T15:48:30.040Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED then GREEN evidence supplied by the scoped engineer; `adv_run_test` verify passed 68/68 targeted gate tests; diff check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/gate.acceptance-criteria-projection.test.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.worker-free.test.ts"
+      ],
+      "checkpointSha": "9d870e56e01d01da95716eb10cebd57490f0fa77",
+      "completedAt": "2026-07-29T15:48:30.040Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/gate.acceptance-criteria-projection.test.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.worker-free.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "makeToolReadsWorkerFree",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+          "task_id": "tk-73d61d1ed2d6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-73d61d1ed2d6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/gate.ts",
+            "plugin/src/tools/gate.worker-free.test.ts",
+            "plugin/src/tools/gate.test.ts",
+            "plugin/src/tools/gate.acceptance-criteria-projection.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "red-gate-worker-free-tk-73d61d1ed2d6-a2",
+              "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts",
+              "exit_code": 1,
+              "summary": "RED — 3/3 focused worker-free tests failed as expected: querySignal was called 3 times, workflow gates overrode disk, _unavailable marker absent"
+            },
+            {
+              "test_run_id": "green-gate-worker-free-tk-73d61d1ed2d6-a2",
+              "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN — 3/3 focused worker-free tests pass: no workflow queries, disk gates returned, unavailable markers emitted for gateCriteria and acceptanceCriteriaProjection"
+            },
+            {
+              "test_run_id": "green-gate-main-tk-73d61d1ed2d6-a2",
+              "command": "bin/oc-test targeted -- src/tools/gate.test.ts src/tools/gate.worker-free.test.ts src/tools/gate-status-fail-closed.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate.release-enforcement.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN — 84/84 gate-related tests pass after updating legacy workflow-dependent assertions"
+            },
+            {
+              "test_run_id": "check-tk-73d61d1ed2d6-a2",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "GREEN — schemas:check, typecheck, manifest:check, frontmatter, test-isolation, lockfile, lint, and format:check all pass (3 pre-existing warnings only)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Removed all workflow handle/query construction from adv_gate_status",
+              "why": "AC1 requires gate status to be a durable-projection read; querying a live workflow defeats worker-free operation and is unnecessary because change.gates, directive derivation, and next-action can all be computed from the persisted projection."
+            },
+            {
+              "what": "Removed getGateCriteriaQuery and getAcceptanceCriteriaProjectionQuery imports from gate.ts",
+              "why": "These queries were only consumed by adv_gate_status; removing them resolves lint errors after the handler became projection-only."
+            },
+            {
+              "what": "Removed isPoisonedHistoryError and isWorkflowCompletedError imports from gate.ts",
+              "why": "The poisoned-history fallback path in adv_gate_status was part of the workflow-query branch and is no longer reachable."
+            },
+            {
+              "what": "Added typed _unavailable markers for gateCriteria and acceptanceCriteriaProjection",
+              "why": "AC2 requires truthful incompleteness; these fields are workflow-only and not persisted in the durable change snapshot, so absence must be reported explicitly rather than treated as a pass or silently omitted."
+            },
+            {
+              "what": "Updated existing gate.test.ts and gate.acceptance-criteria-projection.test.ts to match worker-free semantics",
+              "why": "Preserving test greenness while reflecting the new contract; removed assertions that expected workflow overrides or poisoned-recovery annotations, replaced with assertions that no query occurs and disk projection is authoritative."
+            },
+            {
+              "what": "Created a new focused test file gate.worker-free.test.ts",
+              "why": "Provides standalone AC1/AC2 evidence without mixing with legacy signal-driven gate-completion tests."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated all adv_gate_status test assertions in gate.test.ts and gate.acceptance-criteria-projection.test.ts that assumed workflow-query behavior; no other host-tool read paths were modified in this task.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_gate_status is now durable-projection-only in plugin/src/tools/gate.ts. It reads gates from store.changes.get, derives nextGate/canArchive from the persisted projection, and emits _unavailable markers for gateCriteria and acceptanceCriteriaProjection. All gate-related tests (84) and pnpm run check pass. Task was not completed/checkpointed per instruction.",
+            "suggested_next_action": "Review the diff for AC1/AC2 correctness, then proceed to the next task in the change (tk-ba36f4d47889: protect projection-backed change reads and add shared guard)."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic-tk-73d61d1ed2d6-a2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: red-gate-worker-free-tk-73d61d1ed2d6-a2"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-gate-worker-free-tk-73d61d1ed2d6-a2"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-gate-main-tk-73d61d1ed2d6-a2"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: check-tk-73d61d1ed2d6-a2"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "makeToolReadsWorkerFree",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+          "task_id": "tk-73d61d1ed2d6",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-73d61d1ed2d6"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6baia8_7ce8f871",
+              "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts",
+              "exit_code": 0,
+              "summary": "3 passed, 1 test file passed"
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Durable evidence repair task completed. Test file src/tools/gate.worker-free.test.ts passed with 3 tests via adv_run_test runId tr_ms6baia8_7ce8f871. No code edits were made.",
+            "suggested_next_action": "Use the recorded runId tr_ms6baia8_7ce8f871 to repair the durable gate evidence for the task/change."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-73d61d1ed2d6_a2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "verification"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-ba36f4d47889",
+      "title": "Protect projection-backed change reads and add shared guard",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-73d61d1ed2d6"
+        }
+      ],
+      "created_at": "2026-07-29T15:29:28.857Z",
+      "started_at": "2026-07-29T15:48:56.195Z",
+      "completed_at": "2026-07-29T16:03:26.500Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Engineer recorded RED→GREEN coverage; `adv_run_test` verify passed 24/24 worker-free change/guard/CLI tests; diff check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.worker-free.test.ts",
+        "plugin/src/tools/worker-free-read-guard.test.ts"
+      ],
+      "checkpointSha": "c5f1506b0fa136aaabfd5ee20968767c138eacdb",
+      "completedAt": "2026-07-29T16:03:26.500Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/change.worker-free.test.ts",
+        "plugin/src/tools/worker-free-read-guard.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "makeToolReadsWorkerFree",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+          "task_id": "tk-ba36f4d47889",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ba36f4d47889"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.worker-free.test.ts",
+            "plugin/src/tools/worker-free-read-guard.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "red-worker-free-guard-tk-ba36f4d47889-a1",
+              "command": "../bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 1,
+              "summary": "RED — worker-free guard test failed because REPO_ROOT resolved one directory too shallow; change.worker-free tests passed (20/20), CLI regression passed"
+            },
+            {
+              "test_run_id": "green-worker-free-guard-tk-ba36f4d47889-a1",
+              "command": "../bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN — all 24 targeted tests pass after fixing REPO_ROOT to repo root"
+            },
+            {
+              "test_run_id": "regression-change-gate-cli-tk-ba36f4d47889-a1",
+              "command": "../bin/oc-test targeted -- src/tools/change.test.ts src/tools/gate.test.ts src/tools/gate.worker-free.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate-status-fail-closed.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN — 260/260 change, gate, and CLI regression tests pass"
+            },
+            {
+              "test_run_id": "check-tk-ba36f4d47889-a1",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "GREEN — schemas:check, typecheck, manifest:check, frontmatter, test-isolation, lockfile, lint (0 errors, 3 pre-existing warnings), and format:check all pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Created a dedicated change.worker-free.test.ts for AC3 instead of appending to the large change.test.ts",
+              "why": "Keeps worker-free evidence focused and readable; avoids mixing with signal-driven lifecycle tests."
+            },
+            {
+              "what": "Implemented the structural guard as a test-owned source-boundary scanner in worker-free-read-guard.test.ts",
+              "why": "The design explicitly calls for a single test-owned allow/deny map scoped to routine read handler blocks, so mutation handlers in the same file keep using workflow queries/signals."
+            },
+            {
+              "what": "Scoped guard boundaries to handler blocks between tool-definition markers",
+              "why": "gate.ts and change.ts are mixed read+mutation modules; whole-file scanning would false-positive on mutation helpers."
+            },
+            {
+              "what": "Left Epic entries out of the enforced guard map for now",
+              "why": "Epic worker-free separation is the scope of the next task (tk-32c46f200d30); adding adv_epic_list/adv_epic_show boundaries now would fail because those handlers still invoke live convergence/retirement evaluation."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified that adv_change_show and adv_change_list handler blocks contain no getChangeHandle/.query/querySignal/fireSignal constructs; existing gate.worker-free.test.ts covers adv_gate_status; CLI regression test remains green.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added AC3 worker-free tests for adv_change_list/adv_change_show and AC5 structural guard for adv_change_list, adv_change_show, and adv_gate_status. All change/gate/CLI regression tests (260) and pnpm run check pass. No production code changes; only new test files.",
+            "suggested_next_action": "Review the two new test files, then proceed to tk-32c46f200d30 (Epic worker-free separation) and extend worker-free-read-guard.test.ts with adv_epic_list/adv_epic_show boundaries once those handlers are projection-only."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic-tk-ba36f4d47889-a1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: red-worker-free-guard-tk-ba36f4d47889-a1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-worker-free-guard-tk-ba36f4d47889-a1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: regression-change-gate-cli-tk-ba36f4d47889-a1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: check-tk-ba36f4d47889-a1"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "makeToolReadsWorkerFree",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+          "task_id": "tk-ba36f4d47889",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ba36f4d47889"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6b9yez_b203b090",
+              "command": "bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "3 test files passed, 26 tests passed (targeted worker-free change/guard + CLI bridge regression)"
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Re-ran targeted worker-free verification for tk-ba36f4d47889 as attempt 2. No code edits. All 26 tests in 3 files pass with durable run_id tr_ms6b9yez_b203b090.",
+            "suggested_next_action": "No further action required; task already completed. Review durable run evidence if needed."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic-tk-ba36f4d47889-a2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-32c46f200d30",
+      "title": "Separate Epic projection reads from live evaluation and convergence",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-ba36f4d47889"
+        }
+      ],
+      "created_at": "2026-07-29T15:29:35.095Z",
+      "started_at": "2026-07-29T16:03:36.283Z",
+      "completed_at": "2026-07-29T16:33:56.803Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Engineer recorded RED→GREEN Epic regression coverage; `adv_run_test` verify passed 13/13 Epic worker-free and guard tests; diff check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/epic.worker-free.test.ts",
+        "plugin/src/tools/worker-free-read-guard.test.ts"
+      ],
+      "checkpointSha": "782dd85e542d0f317337761e54ee8bf73a34c5cb",
+      "completedAt": "2026-07-29T16:33:56.803Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/epic.worker-free.test.ts",
+        "plugin/src/tools/worker-free-read-guard.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "makeToolReadsWorkerFree",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+          "task_id": "tk-32c46f200d30",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-32c46f200d30"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/epic.ts",
+            "plugin/src/tools/worker-free-read-guard.test.ts",
+            "plugin/src/tools/epic.worker-free.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "green-epic-worker-free-tk-32c46f200d30-a1",
+              "command": "../bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/epic-convergence.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN — 107/107 Epic, convergence, and worker-free guard tests pass"
+            },
+            {
+              "test_run_id": "green-epic-focused-regression-tk-32c46f200d30-a1",
+              "command": "../bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/change.worker-free.test.ts src/tools/gate.worker-free.test.ts src/tools/gate.test.ts src/tools/change.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN — 326/326 focused worker-free and regression tests pass"
+            },
+            {
+              "test_run_id": "green-epic-assets-preflight-tk-32c46f200d30-a1",
+              "command": "../bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/tool-registry.surface.test.ts src/advance-epics-assets.test.ts src/adv-triage-portfolio-assets.test.ts src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/epic-convergence.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN — 267/267 Epic tool surface, assets, and preflight tests pass"
+            },
+            {
+              "test_run_id": "check-tk-32c46f200d30-a1",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "GREEN — schemas:check, typecheck, manifest:check, frontmatter, test-isolation, lockfile, lint (0 errors, 3 pre-existing warnings), and format:check all pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Render Epic projection facts before advisory convergence in adv_epic_show",
+              "why": "AC4 requires base read to succeed without a live workflow. Retired snapshots skip convergence; active Epics attempt convergence only after the base render is available, so convergence failure cannot block the projection read."
+            },
+            {
+              "what": "Wrap convergeEpicOnShow in try/catch and emit _unavailable marker on global unreachability",
+              "why": "Convergence is advisory. If the live change workflow is globally unreachable (no poller, deadline, etc.), the handler returns the base Epic with a typed _unavailable scope/reason instead of failing or silently omitting facts."
+            },
+            {
+              "what": "Rethrow global workflow unreachability from convergeEpicOnShow instead of masking as per-entry target_unreachable",
+              "why": "Per-entry unreachability is a normal degraded state; global unavailability (service down, no poller, deadline) must surface explicitly so adv_epic_show can report it without blocking the base read."
+            },
+            {
+              "what": "Return success:false with code epic_retirement_unavailable for status=completed when live evaluation is unreachable",
+              "why": "AC4 requires completed-candidate dry-run evaluation to return explicit non-success when its live Epic workflow is unreachable, never an empty-success report."
+            },
+            {
+              "what": "Preserve existing dry-run retire semantics for reachable workflows",
+              "why": "The completed-candidate report remains a non-mutating evaluation; only global unavailability changes the response shape."
+            },
+            {
+              "what": "Extend worker-free-read-guard.test.ts with adv_epic_list/adv_epic_show boundaries",
+              "why": "AC5 requires a single shared structural guard for routine host-tool read paths; Epic handlers are now projection-first and contain no workflow-query constructs in their handler blocks."
+            },
+            {
+              "what": "Create dedicated epic.worker-free.test.ts instead of appending to epic.test.ts",
+              "why": "Keeps AC4/AC5 evidence focused and readable; avoids mixing with signal-driven Epic mutation tests."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified adv_epic_show/adv_epic_list behavior across epic.test.ts, epic-convergence.test.ts, advance-epics-assets.test.ts, adv-triage-portfolio-assets.test.ts, tool-arg-preflight.test.ts, and tool-registry.surface.test.ts; no other host-tool read paths were modified.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Epic projection reads are now worker-free in plugin/src/tools/epic.ts. adv_epic_show renders base projection first and only then runs advisory convergence; global convergence unavailability is reported via _unavailable without blocking the read. adv_epic_list active/all modes remain projection-only; status=completed returns success:false with code epic_retirement_unavailable when the live Epic workflow is unreachable. worker-free-read-guard.test.ts now covers adv_epic_list and adv_epic_show. Focused regressions (326 tests), Epic surface tests (267 tests), and pnpm run check pass. Full suite has unrelated pre-existing failures in schema-error-propagation.test.ts and optimized-handoff-assets.test.ts.",
+            "suggested_next_action": "Review the diff for AC4/AC5 correctness, then proceed to acceptance verification or the next task in the change."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic-tk-32c46f200d30-a1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-epic-worker-free-tk-32c46f200d30-a1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-epic-focused-regression-tk-32c46f200d30-a1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-epic-assets-preflight-tk-32c46f200d30-a1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: check-tk-32c46f200d30-a1"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "makeToolReadsWorkerFree",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+          "task_id": "tk-32c46f200d30",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-32c46f200d30"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6b9m5c_b919d9ad",
+              "command": "bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts",
+              "exit_code": 0,
+              "summary": "13/13 Epic worker-free and worker-free read guard tests pass"
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "No code edits in attempt 2. Targeted worker-free Epic read guard tests passed (13/13) and durable run ID tr_ms6b9m5c_b919d9ad was recorded.",
+            "suggested_next_action": "Accept the verification or proceed with the next task in the change."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic-tk-32c46f200d30-a2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:worker-free-host-tool-reads"
+      },
+      "agent": "adv-researcher",
+      "topic": "Worker-free host-tool read design validation",
+      "sources": [
+        {
+          "label": "Temporal TypeScript SDK documentation",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts",
+          "summary": "Workflow queries are routed to a worker replay path; WorkflowClient.list uses Visibility query filters and execution search attributes."
+        },
+        {
+          "label": "Current CLI worker-free implementation",
+          "locator": "file:///home/jon/dev/advance/bin/lib/live-status.ts#L125-L344",
+          "summary": "Status derives active summaries from Visibility attributes, lists running project workflows, and throws for caller fail-closed handling."
+        },
+        {
+          "label": "Current gate-status implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/gate.ts#L1294-L1458",
+          "summary": "Gate status loads the change projection then unconditionally queries gate, criterion, and acceptance projections when Temporal is available."
+        },
+        {
+          "label": "Epic read behavior",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/epic.ts#L938-L1084",
+          "summary": "Epic show converges same-project active Epics only and explicitly skips cross-project children; retired projections skip convergence."
+        },
+        {
+          "label": "Worker-free status specification",
+          "locator": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/docs/specs/advance-meta.md",
+          "summary": "rq-statusCliWorkerFree01 requires Visibility-derived active CLI rows and fail-closed behavior when Temporal or Visibility is unavailable."
+        }
+      ],
+      "architecture_assessment": "CAUTION. Projection-first adv_gate_status is the correct boring design: it can return the durable change projection already loaded at plugin/src/tools/gate.ts:1298-1310 and avoid worker-routed queries. Current code then issues getGateStatus, getGateCriteria, and getAcceptanceCriteriaProjection queries at lines 1328-1352, so no-worker reads still fail outside the narrow poison/completed fallback at lines 1353-1372. Preserve change list/show behavior: list uses listSummary/list at plugin/src/tools/change.ts:1087-1104 and show uses changes.get at lines 1402-1417; neither should be re-routed through new query helpers. Keep Epic list completed as the existing dry-run retirement-candidate report, not a terminal-history list: plugin/src/tools/epic.ts:1320-1391 calls retire({dryRun:true}) and tests pin candidates plus blocked entries at plugin/src/tools/epic.test.ts:2640-2748. Keep Epic-show convergence bounded to same-project active Epics; cross-project entries are skipped and retired projections are read-only at plugin/src/tools/epic.ts:977-987 and 1222-1227. CLI status primary-read failure is already fail-closed at bin/adv:139-203; optional resume enrichment is bounded and rendered with explicit completeness at bin/lib/optional-enrichment.ts:1-67 and bin/lib/resume-projection-state.ts:21-94. Sources: https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts ; file:///home/jon/dev/advance/plugin/src/tools/gate.ts#L1294-L1458 ; file:///home/jon/dev/advance/plugin/src/tools/change.ts#L1087-L1104 ; file:///home/jon/dev/advance/plugin/src/tools/epic.ts#L1222-L1391 ; file:///home/jon/dev/advance/bin/adv#L139-L203.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Necessary corrections: (1) gate status must make the already-loaded projection authoritative and make criterion/acceptance enrichment optional, typed, and non-authorizing; it must not let a query failure discard gates/nextGate/canArchive. (2) A shared structural guard must cover every designated worker-free read module, not only bin/lib/live-status.ts; current guard checks only that file and only textual getHandle/query tokens (bin/lib/dead-worker-query-paths.test.ts:27-56). (3) Preserve Epic completed-mode dry-run semantics and show convergence boundaries. (4) Preserve CLI status primary failure behavior: Temporal/Visibility failure yields live:false, zero active rows, remediation, and exit 2 (bin/adv:195-203; bin/lib/live-status.ts:105-122). Sources: file:///home/jon/dev/advance/bin/lib/dead-worker-query-paths.test.ts#L27-L56 ; file:///home/jon/dev/advance/bin/adv#L195-L203 ; file:///home/jon/dev/advance/bin/lib/live-status.ts#L105-L122."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Projection-first reads remain available without a worker but cannot expose freshness-only criterion/acceptance details unless those details are durably projected. Source: https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/tools/gate.ts#L1328-L1352 ; https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts.",
+          "A broader static guard prevents regressions but requires a maintained explicit allow/deny module list. Source: file:///home/jon/dev/advance/bin/lib/dead-worker-query-paths.test.ts#L27-L56."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Keep gate-status workflow queries with a catch-and-disk fallback",
+            "disposition": "rejected",
+            "rationale": "A normal no-worker path still errors because only poisoned/completed query errors fall back; ordinary unavailable workers rethrow. Source: file:///home/jon/dev/advance/plugin/src/tools/gate.ts#L1353-L1372 ; https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts."
+          },
+          {
+            "option": "Move all change list/show reads to Visibility",
+            "disposition": "rejected",
+            "rationale": "This expands scope and would discard established summary/full projection behavior without evidence it is needed. Current list/show use their own store read paths. Source: file:///home/jon/dev/advance/plugin/src/tools/change.ts#L1087-L1104 ; file:///home/jon/dev/advance/plugin/src/tools/change.ts#L1402-L1417."
+          },
+          {
+            "option": "Expand Epic show convergence across projects or retired Epics",
+            "disposition": "rejected",
+            "rationale": "Current boundaries intentionally defer cross-project work and keep retired projections read-only. Source: file:///home/jon/dev/advance/plugin/src/tools/epic.ts#L977-L987 ; file:///home/jon/dev/advance/plugin/src/tools/epic.ts#L1222-L1227."
+          }
+        ],
+        "recommendation": "Proceed after encoding gate status as projection-first with typed optional-enrichment degradation, retaining the stated list/show and Epic boundaries, and adding a shared deterministic worker-query-path guard plus targeted regressions."
+      },
+      "recommendation": "CAUTION: implement projection-first adv_gate_status; preserve adv_change_list/show paths; retain completed Epic list as non-mutating candidate analysis and Epic show same-project/non-retired convergence; use a shared structural query guard; preserve CLI primary fail-closed output. Test obligations: no-worker gate-status returns projected gates plus typed omitted/degraded enrichment; no query invocation; change list/show call paths unchanged; completed Epic report remains dry-run and captures blocked rows; show skips cross-project/retired convergence; guard fails a forbidden query in every protected module and permits explicit boundary modules; CLI Temporal/Visibility failure returns zero active rows, live:false, remediation, non-zero exit; resume timeout/rejection publishes non-complete state. Sources: file:///home/jon/dev/advance/plugin/src/tools/gate.ts#L1294-L1458 ; file:///home/jon/dev/advance/plugin/src/tools/epic.ts#L1255-L1395 ; file:///home/jon/dev/advance/bin/adv#L139-L203 ; file:///home/jon/dev/advance/bin/lib/resume-projection-state.ts#L49-L95.",
+      "follow_ups": [
+        "Packet omitted TASK_SCOPE, IN_SCOPE, OUT_OF_SCOPE, DONE_WHEN, STOP_WHEN, and VERIFICATION anchors; scope was taken from TASK only, per packet-defect protocol.",
+        "I do not know whether the planned typed gate-status degradation schema already has a contract in the change design because that artifact was not supplied in the packet; define and test it before implementation."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "task_id": "tk-73d61d1ed2d6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-73d61d1ed2d6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/gate.worker-free.test.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.acceptance-criteria-projection.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "red-gate-worker-free-tk-73d61d1ed2d6-a2",
+          "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts",
+          "exit_code": 1,
+          "summary": "RED — 3/3 focused worker-free tests failed as expected: querySignal was called 3 times, workflow gates overrode disk, _unavailable marker absent"
+        },
+        {
+          "test_run_id": "green-gate-worker-free-tk-73d61d1ed2d6-a2",
+          "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN — 3/3 focused worker-free tests pass: no workflow queries, disk gates returned, unavailable markers emitted for gateCriteria and acceptanceCriteriaProjection"
+        },
+        {
+          "test_run_id": "green-gate-main-tk-73d61d1ed2d6-a2",
+          "command": "bin/oc-test targeted -- src/tools/gate.test.ts src/tools/gate.worker-free.test.ts src/tools/gate-status-fail-closed.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate.release-enforcement.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN — 84/84 gate-related tests pass after updating legacy workflow-dependent assertions"
+        },
+        {
+          "test_run_id": "check-tk-73d61d1ed2d6-a2",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "GREEN — schemas:check, typecheck, manifest:check, frontmatter, test-isolation, lockfile, lint, and format:check all pass (3 pre-existing warnings only)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Removed all workflow handle/query construction from adv_gate_status",
+          "why": "AC1 requires gate status to be a durable-projection read; querying a live workflow defeats worker-free operation and is unnecessary because change.gates, directive derivation, and next-action can all be computed from the persisted projection."
+        },
+        {
+          "what": "Removed getGateCriteriaQuery and getAcceptanceCriteriaProjectionQuery imports from gate.ts",
+          "why": "These queries were only consumed by adv_gate_status; removing them resolves lint errors after the handler became projection-only."
+        },
+        {
+          "what": "Removed isPoisonedHistoryError and isWorkflowCompletedError imports from gate.ts",
+          "why": "The poisoned-history fallback path in adv_gate_status was part of the workflow-query branch and is no longer reachable."
+        },
+        {
+          "what": "Added typed _unavailable markers for gateCriteria and acceptanceCriteriaProjection",
+          "why": "AC2 requires truthful incompleteness; these fields are workflow-only and not persisted in the durable change snapshot, so absence must be reported explicitly rather than treated as a pass or silently omitted."
+        },
+        {
+          "what": "Updated existing gate.test.ts and gate.acceptance-criteria-projection.test.ts to match worker-free semantics",
+          "why": "Preserving test greenness while reflecting the new contract; removed assertions that expected workflow overrides or poisoned-recovery annotations, replaced with assertions that no query occurs and disk projection is authoritative."
+        },
+        {
+          "what": "Created a new focused test file gate.worker-free.test.ts",
+          "why": "Provides standalone AC1/AC2 evidence without mixing with legacy signal-driven gate-completion tests."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated all adv_gate_status test assertions in gate.test.ts and gate.acceptance-criteria-projection.test.ts that assumed workflow-query behavior; no other host-tool read paths were modified in this task.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_gate_status is now durable-projection-only in plugin/src/tools/gate.ts. It reads gates from store.changes.get, derives nextGate/canArchive from the persisted projection, and emits _unavailable markers for gateCriteria and acceptanceCriteriaProjection. All gate-related tests (84) and pnpm run check pass. Task was not completed/checkpointed per instruction.",
+        "suggested_next_action": "Review the diff for AC1/AC2 correctness, then proceed to the next task in the change (tk-ba36f4d47889: protect projection-backed change reads and add shared guard)."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic-tk-73d61d1ed2d6-a2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: red-gate-worker-free-tk-73d61d1ed2d6-a2"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-gate-worker-free-tk-73d61d1ed2d6-a2"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-gate-main-tk-73d61d1ed2d6-a2"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: check-tk-73d61d1ed2d6-a2"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "task_id": "tk-ba36f4d47889",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ba36f4d47889"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.worker-free.test.ts",
+        "plugin/src/tools/worker-free-read-guard.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "red-worker-free-guard-tk-ba36f4d47889-a1",
+          "command": "../bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 1,
+          "summary": "RED — worker-free guard test failed because REPO_ROOT resolved one directory too shallow; change.worker-free tests passed (20/20), CLI regression passed"
+        },
+        {
+          "test_run_id": "green-worker-free-guard-tk-ba36f4d47889-a1",
+          "command": "../bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN — all 24 targeted tests pass after fixing REPO_ROOT to repo root"
+        },
+        {
+          "test_run_id": "regression-change-gate-cli-tk-ba36f4d47889-a1",
+          "command": "../bin/oc-test targeted -- src/tools/change.test.ts src/tools/gate.test.ts src/tools/gate.worker-free.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate-status-fail-closed.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN — 260/260 change, gate, and CLI regression tests pass"
+        },
+        {
+          "test_run_id": "check-tk-ba36f4d47889-a1",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "GREEN — schemas:check, typecheck, manifest:check, frontmatter, test-isolation, lockfile, lint (0 errors, 3 pre-existing warnings), and format:check all pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Created a dedicated change.worker-free.test.ts for AC3 instead of appending to the large change.test.ts",
+          "why": "Keeps worker-free evidence focused and readable; avoids mixing with signal-driven lifecycle tests."
+        },
+        {
+          "what": "Implemented the structural guard as a test-owned source-boundary scanner in worker-free-read-guard.test.ts",
+          "why": "The design explicitly calls for a single test-owned allow/deny map scoped to routine read handler blocks, so mutation handlers in the same file keep using workflow queries/signals."
+        },
+        {
+          "what": "Scoped guard boundaries to handler blocks between tool-definition markers",
+          "why": "gate.ts and change.ts are mixed read+mutation modules; whole-file scanning would false-positive on mutation helpers."
+        },
+        {
+          "what": "Left Epic entries out of the enforced guard map for now",
+          "why": "Epic worker-free separation is the scope of the next task (tk-32c46f200d30); adding adv_epic_list/adv_epic_show boundaries now would fail because those handlers still invoke live convergence/retirement evaluation."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified that adv_change_show and adv_change_list handler blocks contain no getChangeHandle/.query/querySignal/fireSignal constructs; existing gate.worker-free.test.ts covers adv_gate_status; CLI regression test remains green.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added AC3 worker-free tests for adv_change_list/adv_change_show and AC5 structural guard for adv_change_list, adv_change_show, and adv_gate_status. All change/gate/CLI regression tests (260) and pnpm run check pass. No production code changes; only new test files.",
+        "suggested_next_action": "Review the two new test files, then proceed to tk-32c46f200d30 (Epic worker-free separation) and extend worker-free-read-guard.test.ts with adv_epic_list/adv_epic_show boundaries once those handlers are projection-only."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic-tk-ba36f4d47889-a1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: red-worker-free-guard-tk-ba36f4d47889-a1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-worker-free-guard-tk-ba36f4d47889-a1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: regression-change-gate-cli-tk-ba36f4d47889-a1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: check-tk-ba36f4d47889-a1"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "task_id": "tk-32c46f200d30",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-32c46f200d30"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/epic.ts",
+        "plugin/src/tools/worker-free-read-guard.test.ts",
+        "plugin/src/tools/epic.worker-free.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "green-epic-worker-free-tk-32c46f200d30-a1",
+          "command": "../bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/epic-convergence.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN — 107/107 Epic, convergence, and worker-free guard tests pass"
+        },
+        {
+          "test_run_id": "green-epic-focused-regression-tk-32c46f200d30-a1",
+          "command": "../bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/change.worker-free.test.ts src/tools/gate.worker-free.test.ts src/tools/gate.test.ts src/tools/change.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN — 326/326 focused worker-free and regression tests pass"
+        },
+        {
+          "test_run_id": "green-epic-assets-preflight-tk-32c46f200d30-a1",
+          "command": "../bin/oc-test targeted -- src/utils/tool-arg-preflight.test.ts src/tools/tool-registry.surface.test.ts src/advance-epics-assets.test.ts src/adv-triage-portfolio-assets.test.ts src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/epic-convergence.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN — 267/267 Epic tool surface, assets, and preflight tests pass"
+        },
+        {
+          "test_run_id": "check-tk-32c46f200d30-a1",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "GREEN — schemas:check, typecheck, manifest:check, frontmatter, test-isolation, lockfile, lint (0 errors, 3 pre-existing warnings), and format:check all pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Render Epic projection facts before advisory convergence in adv_epic_show",
+          "why": "AC4 requires base read to succeed without a live workflow. Retired snapshots skip convergence; active Epics attempt convergence only after the base render is available, so convergence failure cannot block the projection read."
+        },
+        {
+          "what": "Wrap convergeEpicOnShow in try/catch and emit _unavailable marker on global unreachability",
+          "why": "Convergence is advisory. If the live change workflow is globally unreachable (no poller, deadline, etc.), the handler returns the base Epic with a typed _unavailable scope/reason instead of failing or silently omitting facts."
+        },
+        {
+          "what": "Rethrow global workflow unreachability from convergeEpicOnShow instead of masking as per-entry target_unreachable",
+          "why": "Per-entry unreachability is a normal degraded state; global unavailability (service down, no poller, deadline) must surface explicitly so adv_epic_show can report it without blocking the base read."
+        },
+        {
+          "what": "Return success:false with code epic_retirement_unavailable for status=completed when live evaluation is unreachable",
+          "why": "AC4 requires completed-candidate dry-run evaluation to return explicit non-success when its live Epic workflow is unreachable, never an empty-success report."
+        },
+        {
+          "what": "Preserve existing dry-run retire semantics for reachable workflows",
+          "why": "The completed-candidate report remains a non-mutating evaluation; only global unavailability changes the response shape."
+        },
+        {
+          "what": "Extend worker-free-read-guard.test.ts with adv_epic_list/adv_epic_show boundaries",
+          "why": "AC5 requires a single shared structural guard for routine host-tool read paths; Epic handlers are now projection-first and contain no workflow-query constructs in their handler blocks."
+        },
+        {
+          "what": "Create dedicated epic.worker-free.test.ts instead of appending to epic.test.ts",
+          "why": "Keeps AC4/AC5 evidence focused and readable; avoids mixing with signal-driven Epic mutation tests."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified adv_epic_show/adv_epic_list behavior across epic.test.ts, epic-convergence.test.ts, advance-epics-assets.test.ts, adv-triage-portfolio-assets.test.ts, tool-arg-preflight.test.ts, and tool-registry.surface.test.ts; no other host-tool read paths were modified.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Epic projection reads are now worker-free in plugin/src/tools/epic.ts. adv_epic_show renders base projection first and only then runs advisory convergence; global convergence unavailability is reported via _unavailable without blocking the read. adv_epic_list active/all modes remain projection-only; status=completed returns success:false with code epic_retirement_unavailable when the live Epic workflow is unreachable. worker-free-read-guard.test.ts now covers adv_epic_list and adv_epic_show. Focused regressions (326 tests), Epic surface tests (267 tests), and pnpm run check pass. Full suite has unrelated pre-existing failures in schema-error-propagation.test.ts and optimized-handoff-assets.test.ts.",
+        "suggested_next_action": "Review the diff for AC4/AC5 correctness, then proceed to acceptance verification or the next task in the change."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic-tk-32c46f200d30-a1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-epic-worker-free-tk-32c46f200d30-a1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-epic-focused-regression-tk-32c46f200d30-a1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-epic-assets-preflight-tk-32c46f200d30-a1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: check-tk-32c46f200d30-a1"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/change.worker-free.test.ts src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/epic-convergence.test.ts src/cli-bridge-contract.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "139/139 focused tests passed. AC1: gate status uses persisted gates/nextGate without workflow handle/query. AC2: gateCriteria and acceptanceCriteriaProjection return typed _unavailable reasons. AC3: archived list and degraded-summary fixtures preserve rows or warnings/hydration metadata. AC4: Epic projection rendering remains available; completed-candidate evaluation returns success:false / epic_retirement_unavailable and show reports membership_convergence unavailable. AC5: shared guard covers change list/show, gate status, Epic list/show and focused unreachable-worker tests pass. AC6: cli-bridge-contract test remains green; diff does not alter bin/ CLI code."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is two commits behind origin/trunk per oc-fresh status; rebase/freshness validation is required before merge or release."
+      ],
+      "required_main_agent_actions": [
+        "Record this AC1–AC6 review evidence in acceptance processing.",
+        "Before merge/release, bring the change worktree current with origin/trunk and rerun applicable verification."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/gate.worker-free.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/change.worker-free.test.ts src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/epic.test.ts src/tools/epic-convergence.test.ts src/cli-bridge-contract.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "task_id": "tk-ba36f4d47889",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ba36f4d47889"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6b9yez_b203b090",
+          "command": "bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "3 test files passed, 26 tests passed (targeted worker-free change/guard + CLI bridge regression)"
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Re-ran targeted worker-free verification for tk-ba36f4d47889 as attempt 2. No code edits. All 26 tests in 3 files pass with durable run_id tr_ms6b9yez_b203b090.",
+        "suggested_next_action": "No further action required; task already completed. Review durable run evidence if needed."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic-tk-ba36f4d47889-a2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "task_id": "tk-32c46f200d30",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-32c46f200d30"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6b9m5c_b919d9ad",
+          "command": "bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts",
+          "exit_code": 0,
+          "summary": "13/13 Epic worker-free and worker-free read guard tests pass"
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "No code edits in attempt 2. Targeted worker-free Epic read guard tests passed (13/13) and durable run ID tr_ms6b9m5c_b919d9ad was recorded.",
+        "suggested_next_action": "Accept the verification or proceed with the next task in the change."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic-tk-32c46f200d30-a2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "task_id": "tk-73d61d1ed2d6",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-73d61d1ed2d6"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6baia8_7ce8f871",
+          "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts",
+          "exit_code": 0,
+          "summary": "3 passed, 1 test file passed"
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Durable evidence repair task completed. Test file src/tools/gate.worker-free.test.ts passed with 3 tests via adv_run_test runId tr_ms6baia8_7ce8f871. No code edits were made.",
+        "suggested_next_action": "Use the recorded runId tr_ms6baia8_7ce8f871 to repair the durable gate evidence for the task/change."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-73d61d1ed2d6_a2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "verification"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "release-regression-1",
+          "label": "blocker",
+          "file": "plugin/src/storage/store-temporal/index.test.ts",
+          "line": 418,
+          "what": "Full validation is not green after rebase: first full run reports 56 failures across 15 files; a post-build full rerun exceeded its 20-minute timeout.",
+          "why": "Release readiness requires a completed, passing full regression suite. Focused worker-free tests pass, but the branch cannot be released while the broader suite is red/incomplete.",
+          "fix": "Classify and remediate or explicitly reconcile the post-rebase test/implementation mismatch, then rerun `bin/oc-test full` to a terminal green result."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "release-praise-1",
+          "label": "praise",
+          "file": "plugin/src/tools/worker-free-read-guard.test.ts",
+          "line": 30,
+          "what": "The shared guard scopes forbidden workflow-query constructs to all designated routine host-tool read handlers.",
+          "why": "This provides structural coverage for AC5 while leaving mutation paths and the CLI's separate fail-closed boundary intact."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "`bin/oc-test targeted` runs Vitest from `plugin/`; targeted paths must be `src/...`, not `plugin/src/...`, or Vitest returns \"No test files found\"."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "oc-fresh status --repo /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree --json",
+          "bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/epic.worker-free.test.ts src/tools/gate.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate.test.ts src/cli-bridge-contract.test.ts",
+          "bun test bin/lib/dead-worker-query-paths.test.ts",
+          "pnpm run check && pnpm run build",
+          "bin/oc-test full",
+          "git diff --check origin/trunk...HEAD"
+        ],
+        "results": "fail",
+        "evidence": "Fresh, clean worktree at review start (behind=0). Focused affected suite: 100/100 passed. CLI dead-worker/fail-closed boundary: 4/4 passed. `pnpm run check` and `pnpm run build` passed (three pre-existing lint warnings only). First `bin/oc-test full` completed with 56 failed / 7881 passed / 1 skipped across 546 files; failures include store-temporal read-model expectation mismatches and unrelated asset/integration checks. After worker build, a second full run did not reach a terminal result before the 20-minute command timeout. `git diff --check` and worktree status were clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "AC1–AC6 have focused passing evidence, including the unchanged CLI fail-closed contract, but release is blocked solely by non-green/incomplete full-suite evidence.",
+        "The failing full-suite set is broad and not in this change's eight-file diff; root cause is not established by this review and must not be treated as a flake."
+      ],
+      "required_main_agent_actions": [
+        "Release blocker: classify the 56 full-suite failures from the post-rebase branch, beginning with store-temporal projection/read-model expectation mismatches, and remediate only if within approved scope.",
+        "After remediation or an evidence-backed baseline reconciliation, rerun `bin/oc-test full` to terminal green before completing release.",
+        "Executive release-readiness summary: focused worker-free behavior, structural guard, and CLI fail-closed regression are green; static checks/build are green; release remains NOT READY because full regression is red/incomplete. Leave the CLI Visibility-only active-row boundary and unrelated production files unchanged pending failure classification."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: oc-fresh status --repo /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree --json"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/epic.worker-free.test.ts src/tools/gate.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate.test.ts src/cli-bridge-contract.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bun test bin/lib/dead-worker-query-paths.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check && pnpm run build"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test full"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check origin/trunk...HEAD"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "makeToolReadsWorkerFree",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/makeToolReadsWorkerFree",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- plugin/src/tools/change.worker-free.test.ts plugin/src/tools/epic.worker-free.test.ts plugin/src/tools/gate.worker-free.test.ts plugin/src/tools/worker-free-read-guard.test.ts plugin/src/tools/gate.acceptance-criteria-projection.test.ts plugin/src/tools/gate.test.ts (path filter was rejected because the wrapper runs from plugin/)",
+          "bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/epic.worker-free.test.ts src/tools/gate.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate.test.ts",
+          "git diff --check origin/trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "After correcting the wrapper-relative test paths, focused worker-free and gate failure/projection regression suite passed: 6 files, 86 tests, exit 0. `git diff --check origin/trunk...HEAD` passed; working tree remained clean. Branch is current against origin/trunk (behind=0)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Baseline/full-suite status is not established: `bin/oc-test full` was intentionally not run per the release-reharden scope.",
+        "Focused unit tests mock Temporal services; they establish no branch-added unit regressions but do not substitute for a live-Temporal integration suite."
+      ],
+      "required_main_agent_actions": [
+        "Release-readiness summary: READY for the clean post-rebase branch delta; no branch-specific blocker identified in worker-free reads or known gate failure/projection paths.",
+        "Preserve the baseline/full-suite caveat in release evidence; run the normal broader CI/release verification outside this scoped reharden when required by the release gate."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- plugin/src/tools/change.worker-free.test.ts plugin/src/tools/epic.worker-free.test.ts plugin/src/tools/gate.worker-free.test.ts plugin/src/tools/worker-free-read-guard.test.ts plugin/src/tools/gate.acceptance-criteria-projection.test.ts plugin/src/tools/gate.test.ts (path filter was rejected because the wrapper runs from plugin/)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/epic.worker-free.test.ts src/tools/gate.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/tools/gate.acceptance-criteria-projection.test.ts src/tools/gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check origin/trunk...HEAD"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-73d61d1ed2d6": [
+      {
+        "runId": "tr_ms69e9c8_672d0d48",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts src/tools/gate.test.ts src/tools/gate.acceptance-criteria-projection.test.ts",
+        "durationMs": 3852.056318998337,
+        "recordedAt": "2026-07-29T15:48:14.424Z"
+      },
+      {
+        "runId": "tr_ms6baia8_7ce8f871",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/gate.worker-free.test.ts",
+        "durationMs": 4172.015886999667,
+        "recordedAt": "2026-07-29T16:41:18.657Z"
+      }
+    ],
+    "tk-ba36f4d47889": [
+      {
+        "runId": "tr_ms69xchy_30e8272f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+        "durationMs": 4688.112922996283,
+        "recordedAt": "2026-07-29T16:03:04.984Z"
+      },
+      {
+        "runId": "tr_ms6b9yez_b203b090",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-free.test.ts src/tools/worker-free-read-guard.test.ts src/cli-bridge-contract.test.ts",
+        "durationMs": 5418.538519002497,
+        "recordedAt": "2026-07-29T16:40:52.878Z"
+      }
+    ],
+    "tk-32c46f200d30": [
+      {
+        "runId": "tr_ms6b0nil_80987e69",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts",
+        "durationMs": 3414.6720240041614,
+        "recordedAt": "2026-07-29T16:33:38.865Z"
+      },
+      {
+        "runId": "tr_ms6b9m5c_b919d9ad",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/epic.worker-free.test.ts src/tools/worker-free-read-guard.test.ts",
+        "durationMs": 3362.9146369993687,
+        "recordedAt": "2026-07-29T16:40:37.087Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-29T04:03:44.580Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the persisted problem statement and proposal scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "6b60ea3a84aee0c6fe98ca53828732cdfa5a29bcdaf0c285347076790f6e3aa7",
+        "non_whitespace_chars": 4784,
+        "checked_at": "2026-07-28T18:11:56.594Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-29T15:24:09.436Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved agreement minted as typed contract; durable read and worker-dependence boundaries established.",
+      "started_at": "2026-07-29T06:16:46.528Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "non_whitespace_chars": 2660,
+        "checked_at": "2026-07-28T18:11:56.595Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-29T15:29:04.167Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator returned CAUTION with preserved Epic dry-run/convergence boundaries; design updated accordingly.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "a27cde4db9b1fb475fb7fe0de1e17262643f0b34b18421130c9a53e7215f2c27",
+        "non_whitespace_chars": 3689,
+        "checked_at": "2026-07-28T18:11:56.596Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-29T15:32:11.491Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the three-task, test-backed implementation graph covering AC1–AC6."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-29T16:34:06.990Z",
+      "completed_by": "agent",
+      "approval_evidence": "All three test-backed tasks are checkpointed and complete; targeted worker-free gate/change/Epic/CLI regressions passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-29T16:41:45.151Z",
+      "completed_by": "agent",
+      "started_at": "2026-07-29T16:38:38.284Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "d98561375ffa9aec6f1a334b6daa40021e336df245851f347c8a172bc7950a0c",
+        "non_whitespace_chars": 1265,
+        "checked_at": "2026-07-28T18:11:56.598Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+      "approvedAt": "2026-07-29T15:24:05.571Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1 — worker-free gate status:** Given a valid durable change projection and an unreachable change workflow, `adv_gate_status` returns the persisted gate map and next gate without issuing a workflow query; a targeted test proves this path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2 — truthful incompleteness:** When projection data cannot authoritatively provide gate criteria or acceptance projection, `adv_gate_status` returns an explicit typed unavailable/degraded marker and reason; it never derives those fields from absence or returns a false pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3 — archive read continuity:** With archived projection/bundle data available and no live workflow, `adv_change_list({ includeArchived: true })` returns the archived row(s), while corrupt/unavailable summaries produce explicit completeness/warning metadata rather than an empty-success result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4 — Epic boundary:** With an unreachable Epic workflow, ordinary `adv_epic_list`/`adv_epic_show` still render active or retired projection facts; completed-candidate evaluation and convergence cannot silently report success when their live operation is unavailable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5 — structural and regression protection:** A shared automated guard rejects workflow-query constructs in designated routine host-tool read paths. Handler tests cover one unreachable-worker case for gate status and one for each affected Epic boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6 — preserved fail-closed split:** The CLI status table still returns zero active rows on Visibility failure and does not use disk/projection data as an active-row substitute; its existing contract test remains green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No producer/projection-writing changes, workflow patches, or replay-semantic changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No mutation is reclassified as worker-free.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve `rq-statusCliWorkerFree01` and avoid expanding the CLI import boundary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Projection freshness/completeness must be visible; stale or unavailable data is never rendered as genuine absence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-29T16:37:17.858Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused gate worker-free coverage passed; reviewer traced durable gate map and zero workflow-query behavior."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused gate coverage passed; reviewer confirmed typed unavailable markers for non-projected criteria."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Change projection/archived-list tests passed; reviewer confirmed degraded metadata behavior."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Epic worker-free tests passed; reviewer confirmed projection-first rendering and unavailable live evaluation/convergence."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Shared routine-read structural guard and focused handler tests passed."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "CLI bridge fail-closed regression passed; reviewer found no production CLI change."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Committed diff contains no producer, workflow patch, or replay-semantic change."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Mutations remain separate; only read handler behavior changed."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "CLI code/import boundary unchanged; CLI bridge regression passed."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Gate and Epic worker-free paths emit typed unavailable markers rather than false absence."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "**AC1 — worker-free gate status:** Given a valid durable change projection and an unreachable change workflow, `adv_gate_status` returns the persisted gate map and next gate without issuing a workflow query; a targeted test proves this path.",
+    "**AC2 — truthful incompleteness:** When projection data cannot authoritatively provide gate criteria or acceptance projection, `adv_gate_status` returns an explicit typed unavailable/degraded marker and reason; it never derives those fields from absence or returns a false pass.",
+    "**AC3 — archive read continuity:** With archived projection/bundle data available and no live workflow, `adv_change_list({ includeArchived: true })` returns the archived row(s), while corrupt/unavailable summaries produce explicit completeness/warning metadata rather than an empty-success result.",
+    "**AC4 — Epic boundary:** With an unreachable Epic workflow, ordinary `adv_epic_list`/`adv_epic_show` still render active or retired projection facts; completed-candidate evaluation and convergence cannot silently report success when their live operation is unavailable.",
+    "**AC5 — structural and regression protection:** A shared automated guard rejects workflow-query constructs in designated routine host-tool read paths. Handler tests cover one unreachable-worker case for gate status and one for each affected Epic boundary.",
+    "**AC6 — preserved fail-closed split:** The CLI status table still returns zero active rows on Visibility failure and does not use disk/projection data as an active-row substitute; its existing contract test remains green."
+  ],
+  "documents": {
+    "proposal": "# Extend the worker-free read principle from the CLI to the `adv_*` tool surface\n\n## Problem\n\nADV has established three times that **read paths must not require a live per-project worker** — `rq-statusCliWorkerFree01` (status table), `rq-dashboardWorkerFree01` (dashboard), `rq-launcherProjectionTruth01.2` (Temporal-independent read). `fixWorkerDependentResume` is currently closing the last CLI holdout.\n\nEvery one of those applies to `bin/adv`. **None applies to the `adv_*` plugin tool surface**, which is what agents and MCP consumers actually read through. Those tools still resolve state by querying the change workflow, so when a workflow's session queue is orphaned they fail — and the agent loses the ability to see its own project.\n\n## Root Cause Analysis\n\n**Same mechanism, different surface.** Task queues are named `advance-<projectId>-sess_<sessionId>`. A worker polls only queues it knows about; workflows from ended sessions have no poller. Per Temporal: *\"A Worker must be online to process the query.\"*\n\n`fixWorkerDependentResume` diagnosed this precisely and fixed it for `bin/`. Its scope declaration is explicit — `bin/lib/resume-projection-live.ts`, `bin/adv`, `bin/lib/dashboard/adv.ts`. The plugin tool surface is not mentioned, so the identical defect survives there untouched.\n\n**Observed 2026-07-28.** Worker booted 03:26 (a `deploy-local.sh` bounce); session started 10:20. Against a workflow orphaned before that bounce:\n\n| Read | Result |\n| --- | --- |\n| `adv_change_show`, `adv_gate_status` | `not_found` |\n| `adv_change_list includeArchived: true` | `0` archived, against 390+ bundles on disk |\n| `adv_epic_list` | `[]` |\n| `adv_epic_show optimizeAdvToolSurface` | `EPIC_NOT_FOUND`, while a live change carried `epic_membership` naming that exact `epic_id` |\n\nThe data existed on disk throughout. Only the read path was broken.\n\n**The aggravating factor is the error shape.** These return `not_found` / `[]` — indistinguishable from genuine absence. An agent cannot tell \"this does not exist\" from \"I cannot reach this\", so it reasons confidently from false absence. This also defeats recovery tooling: `adv_change_workflow_terminate` refused to act on a change whose archive bundle was verifiably merged to trunk, because its precheck `describe` returned `not_found`.\n\n## Why this is now cheap\n\n`fixWorkerDependentResume`'s design (KD2) established, against the source, that **no producer-side work is required**. `writeChangeProjection` (`plugin/src/temporal/activities.ts:457`) already persists `state: input.state` — the *full* workflow state including `lifecycleState`, `tasks[]`, `same_project_dependencies[]`, `epic_membership`. Active epic projections are likewise already written by `saveActiveEpicProjection` (`plugin/src/storage/epic-projection.ts:104`) and readable under the full `EpicSchema`.\n\nTheir design also records the trap to avoid: the *aggregate* (`LauncherChangeSummarySchema`) and *summary shard* (`ChangeSummaryShardSchema`) are thin downstream caches and were initially mistaken for the per-change projection. The per-change projection is the authoritative, complete one.\n\nConsequence: this is a **consumer-side change** — no schema migration, no `wf.patch`, no replay risk.\n\n## Scope\n\n- `adv_change_show`, `adv_gate_status` — resolve from the durable per-change projection.\n- `adv_epic_list`, `adv_epic_show` — resolve from the active epic projection.\n- `adv_change_list includeArchived: true` — stop returning empty when archive bundles exist on disk.\n- Typed completeness markers on these reads, following `fixWorkerDependentResume`'s KD4 (`completeness: complete|partial|unavailable`, `omitted_reason`) so degraded is never silently rendered as absent.\n- A structural guard that fails on workflow-query constructs in tool read paths, generalizing the existing `plugin/src/cli-bridge-contract.test.ts` assertion (their KD9) rather than adding a second bespoke policy.\n\n## Out of scope\n\n- Signals and mutations — a signal must reach a live workflow and cannot be served from disk. Owned by `fixStalledOrphanQueueAdoption` (#327).\n- `bin/adv` CLI and dashboard — owned by `fixWorkerDependentResume`.\n- Producer/projection-writing changes — established as unnecessary by their KD2.\n\n## Constraints\n\n- **Preserve the fail-closed split (their KD5).** `rq-statusCliWorkerFree01.2` requires the status table to fail closed on Visibility failure with zero active rows and no disk substitute. Disk data must not leak into surfaces that are required to fail closed. This change must assert that boundary, not erode it.\n- Reads become worker-free; they must not become *stale-silent*. Freshness and completeness must be visible to the caller.\n- No relaxation of the CLI import boundary beyond what their KD7 sanctions.\n\n## Sequencing\n\nFollows `fixWorkerDependentResume` rather than racing it — that change establishes the pattern, the reader helpers, and the structural guard this one generalizes. Complementary to `#327`: that change restores signal reachability, this one removes the read dependency entirely. Together they cover the full surface; neither alone does.\n\n## Evidence\n\nBacklog `bl-workerQueueReadBlackout` (repro, timing, degraded-read table). Change `fixWorkerDependentResume` proposal + design (KD1, KD2, KD4, KD5, KD7, KD9), PRs #335, #336. Issues #327, #303, #302. Wisdom `pw-sPe4vZA3` (disk projection is sole truth once a workflow orphans), `pw-Dofp-UCz`. Spec-law: `rq-statusCliWorkerFree01`, `rq-dashboardWorkerFree01`, `rq-launcherProjectionTruth01.2`.",
+    "agreement": "# Agreement: worker-free host-tool reads\n\n## Objective\n\nMake routine host-tool reads truthful when an individual change or Epic workflow has no live task-queue poller, without changing the CLI status table’s Visibility fail-closed contract.\n\n## In scope\n\n1. Convert `adv_gate_status` from live workflow query dependence to durable per-change projection reads.\n2. Preserve and test the existing projection-backed behavior of `adv_change_show` and ordinary `adv_change_list`, including archived results.\n3. Make Epic read behavior explicit: routine active/retired projection rendering must not depend on a worker; `status:\"completed\"` evaluation and membership-convergence writes must be typed as unavailable/advisory when a workflow cannot be reached.\n4. Add one shared structural guard covering host-tool routine read paths, rather than a separate bespoke policy.\n\n## Acceptance criteria\n\n- **AC1 — worker-free gate status:** Given a valid durable change projection and an unreachable change workflow, `adv_gate_status` returns the persisted gate map and next gate without issuing a workflow query; a targeted test proves this path.\n- **AC2 — truthful incompleteness:** When projection data cannot authoritatively provide gate criteria or acceptance projection, `adv_gate_status` returns an explicit typed unavailable/degraded marker and reason; it never derives those fields from absence or returns a false pass.\n- **AC3 — archive read continuity:** With archived projection/bundle data available and no live workflow, `adv_change_list({ includeArchived: true })` returns the archived row(s), while corrupt/unavailable summaries produce explicit completeness/warning metadata rather than an empty-success result.\n- **AC4 — Epic boundary:** With an unreachable Epic workflow, ordinary `adv_epic_list`/`adv_epic_show` still render active or retired projection facts; completed-candidate evaluation and convergence cannot silently report success when their live operation is unavailable.\n- **AC5 — structural and regression protection:** A shared automated guard rejects workflow-query constructs in designated routine host-tool read paths. Handler tests cover one unreachable-worker case for gate status and one for each affected Epic boundary.\n- **AC6 — preserved fail-closed split:** The CLI status table still returns zero active rows on Visibility failure and does not use disk/projection data as an active-row substitute; its existing contract test remains green.\n\n## Constraints\n\n- No producer/projection-writing changes, workflow patches, or replay-semantic changes.\n- No mutation is reclassified as worker-free.\n- Preserve `rq-statusCliWorkerFree01` and avoid expanding the CLI import boundary.\n- Projection freshness/completeness must be visible; stale or unavailable data is never rendered as genuine absence.\n\n## Evidence basis\n\nDiscovery traced `adv_gate_status` live queries, projection-backed change reads, Epic convergence/completed-mode live boundaries, the `ReadSnapshot` typed model, the existing CLI worker-free guard, and status-table fail-closed law.",
+    "design": "# Design: worker-free host-tool reads\n\n## Decision\n\nRoutine read handlers consume only durable typed projections. A handler may expose workflow-derived enrichment only as explicitly unavailable/degraded; it may not query a live workflow as a prerequisite to render base read facts.\n\n## Read authority map\n\n| Surface | Base authority | Live operation boundary |\n| --- | --- | --- |\n| `adv_change_show` | `readChangeSnapshot` / full change projection | Optional include enrichments must be audited separately; base change facts remain projection-only. |\n| `adv_change_list` | summary projections and archive bundle/projection facts | No workflow query for normal or `includeArchived` listing. Summary corruption/unavailability is reported as completeness metadata. |\n| `adv_gate_status` | full change projection: persisted gates, task state, contract and other durable fields | Workflow-only criteria/acceptance details are omitted with typed `unavailable`/reason when not durably provable. |\n| `adv_epic_list` | active/retired Epic projections | The existing `status:\"completed\"` non-mutating retirement-candidate dry run remains distinct from base listing and returns typed unavailable/degraded rather than empty success when its live evaluation is unreachable. |\n| `adv_epic_show` | active/retired Epic projection | Render base projection before advisory convergence. Preserve existing skips for cross-project members and retired snapshots; convergence signals/writes do not control read success. |\n\n## Gate-status response\n\n1. Load the full `ReadSnapshot<Change>` once.\n2. For `found`, render the persisted gate map, `nextGate`, archive eligibility, and contract-derived facts directly from that projection.\n3. For any requested field not durably represented, add a typed completeness entry with `status: unavailable` and a specific reason. Do not infer pass/fail from absent data.\n4. For `not_found` or corrupt/degraded snapshots, return the existing typed not-found/repair shape; never convert it to a successful empty gate map.\n5. Remove workflow handle/query construction from the routine handler path.\n\n## Epic response boundaries\n\n- Projection rendering is primary and has no live handle.\n- Completed-status classification preserves its non-mutating candidate-evaluation semantics. Its unavailable result carries reason/provenance and cannot be rendered as `[]` or successful completion assessment.\n- Membership convergence runs after base read construction, is best-effort only where existing law permits, skips cross-project members and retired snapshots, and reports its outcome separately. No convergence signal is attempted merely to serve a routine projection read.\n\n## Completeness model\n\nReuse the existing typed read-model/degradation vocabulary rather than inventing untyped warning strings. Every degraded result identifies scope, omitted field/evaluation, reason, and projection provenance/revision when available. This makes stale or unavailable distinguishable from genuine absence.\n\n## Structural guard\n\nGeneralize the worker-free guard into a single test-owned allow/deny map for routine host-tool read modules. The guard fails if a designated routine path imports or invokes workflow handle/query constructs. It explicitly excludes mutation handlers and the CLI status table, which retains its separate Visibility-only fail-closed test.\n\n## Tests\n\n- Gate handler: unreachable workflow fixture still returns persisted gates/next gate; query spy proves zero calls.\n- Gate handler: unavailable non-projected criteria are typed unavailable, not passed or absent-success.\n- Change list: archived projection/bundle still appears without a workflow; degraded summary records completeness metadata.\n- Epic list/show: projection rendering succeeds with an unreachable workflow; completed evaluation/convergence report typed non-success while preserving dry-run, cross-project, and retired-snapshot boundaries.\n- Structural guard: designated host-tool readers contain no workflow-query path.\n- Regression: existing CLI status Visibility-failure test remains unchanged and green.\n\n## Non-goals\n\nNo task-queue adoption, workflow migration, producer write change, workflow patch, replay behavior change, or disk fallback for the CLI status active table.",
+    "executiveSummary": "# Outcome\n\nRoutine ADV host-tool reads no longer require a live change or Epic workflow worker to report durable facts. Agents can see persisted gates, archived change summaries, and Epic projection state instead of receiving false empty/not-found results after session queue loss.\n\n## Delivered value\n\n- `adv_gate_status` reads persisted gate state and reports unavailable workflow-only details explicitly.\n- Change show/list behavior is regression-protected for projection and archived reads.\n- Epic show renders durable projection facts before advisory convergence; completed-candidate evaluation reports a typed unavailable result when live evaluation cannot run.\n- A shared structural guard prevents workflow-query calls from returning to designated routine host readers.\n- CLI status retains its Visibility-only fail-closed behavior.\n\n## Verification\n\n- Independent acceptance review: READY; 139 focused tests passed.\n- Task-level verification passed: 68 gate tests, 24 change/guard/CLI tests, and 13 Epic/guard tests.\n- Post-rebase release hardening: READY; 86/86 focused regressions across six files passed; worktree clean, diff check passed, and branch is current with trunk.\n- Each implementation task was checkpointed with RED→GREEN evidence.\n\n## Release Readiness Summary\n\nReady for archive sign-off based on targeted acceptance and post-rebase hardening. No branch-specific blockers remain.\n\nThe previous full-suite run found broad failures that reproduced on trunk; after trunk test-remediation commits #343/#344, it was intentionally not rerun to avoid another long, unrequested suite. Full-suite green is therefore not asserted.\n\n## Risks and follow-up\n\n- Full-suite status is not fresh after the trunk remediation; investigate suite duration and run it only with explicit approval.\n- No migration, data, or operational rollout is required.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-29T16:37:17.858Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1 — worker-free gate status:** Given a valid durable change projection and an unreachable change workflow, `adv_gate_status` returns the persisted gate map and next gate without issuing a workflow query; a targeted test proves this path. | pass | Focused gate worker-free coverage passed; reviewer traced durable gate map and zero workflow-query behavior. |\n| AC2 | acceptance_criterion | **AC2 — truthful incompleteness:** When projection data cannot authoritatively provide gate criteria or acceptance projection, `adv_gate_status` returns an explicit typed unavailable/degraded marker and reason; it never derives those fields from absence or returns a false pass. | pass | Focused gate coverage passed; reviewer confirmed typed unavailable markers for non-projected criteria. |\n| AC3 | acceptance_criterion | **AC3 — archive read continuity:** With archived projection/bundle data available and no live workflow, `adv_change_list({ includeArchived: true })` returns the archived row(s), while corrupt/unavailable summaries produce explicit completeness/warning metadata rather than an empty-success result. | pass | Change projection/archived-list tests passed; reviewer confirmed degraded metadata behavior. |\n| AC4 | acceptance_criterion | **AC4 — Epic boundary:** With an unreachable Epic workflow, ordinary `adv_epic_list`/`adv_epic_show` still render active or retired projection facts; completed-candidate evaluation and convergence cannot silently report success when their live operation is unavailable. | pass | Epic worker-free tests passed; reviewer confirmed projection-first rendering and unavailable live evaluation/convergence. |\n| AC5 | acceptance_criterion | **AC5 — structural and regression protection:** A shared automated guard rejects workflow-query constructs in designated routine host-tool read paths. Handler tests cover one unreachable-worker case for gate status and one for each affected Epic boundary. | pass | Shared routine-read structural guard and focused handler tests passed. |\n| AC6 | acceptance_criterion | **AC6 — preserved fail-closed split:** The CLI status table still returns zero active rows on Visibility failure and does not use disk/projection data as an active-row substitute; its existing contract test remains green. | pass | CLI bridge fail-closed regression passed; reviewer found no production CLI change. |\n| C1 | constraint | No producer/projection-writing changes, workflow patches, or replay-semantic changes. | respected | Committed diff contains no producer, workflow patch, or replay-semantic change. |\n| C2 | constraint | No mutation is reclassified as worker-free. | respected | Mutations remain separate; only read handler behavior changed. |\n| C3 | constraint | Preserve `rq-statusCliWorkerFree01` and avoid expanding the CLI import boundary. | respected | CLI code/import boundary unchanged; CLI bridge regression passed. |\n| C4 | constraint | Projection freshness/completeness must be visible; stale or unavailable data is never rendered as genuine absence. | respected | Gate and Epic worker-free paths emit typed unavailable markers rather than false absence. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-28T18:11:56.590Z",
+      "contentHash": "6b60ea3a84aee0c6fe98ca53828732cdfa5a29bcdaf0c285347076790f6e3aa7",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-29T04:06:52.771Z",
+      "contentHash": "d01013cba7f197e9f0f591ab6f7e7d4468b14eaf5a925d4e6a8508d85f8f96ab",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-29T15:29:00.118Z",
+      "contentHash": "a27cde4db9b1fb475fb7fe0de1e17262643f0b34b18421130c9a53e7215f2c27",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-29T18:17:25.536Z",
+      "contentHash": "fa6ba206e213586182198d8597b853945d38f447709f1109799420031c515b88",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-29T18:17:25.536Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "bl-workerQueueReadBlackout"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-73d61d1ed2d6",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Durable adv_run_test verification recorded as tr_ms69e9c8_672d0d48: 68/68 targeted gate tests passed. Engineer report supplies RED→GREEN details.",
+      "dispositionedAt": "2026-07-29T16:39:18.814Z"
+    },
+    {
+      "taskId": "tk-ba36f4d47889",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Durable adv_run_test verification recorded as tr_ms69xchy_30e8272f: 24/24 change/guard/CLI tests passed. Engineer report supplies RED→GREEN details.",
+      "dispositionedAt": "2026-07-29T16:39:24.268Z"
+    },
+    {
+      "taskId": "tk-32c46f200d30",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Durable adv_run_test verification recorded as tr_ms6b0nil_80987e69: 13/13 Epic worker-free and guard tests passed. Engineer report supplies focused regression evidence.",
+      "dispositionedAt": "2026-07-29T16:39:29.227Z"
+    }
+  ],
+  "creation_request_hash": "e634a6bdfaa24eb9a6510719d7879f1812ec0c32506fcd4070b719c4a0002a63",
+  "projection_revision": 52,
+  "projection_commits": [
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "50d6dc5dec0705503d390909846de7a4ca49be8e744745fe4e9aff2894a6d3a5:updateArtifacts:agreement",
+      "operation_id": "50d6dc5dec0705503d390909846de7a4ca49be8e744745fe4e9aff2894a6d3a5:updateArtifacts:agreement",
+      "payload_hash": "3ed70008d21692e3876902a2d75902b9001e0ed0226a19384aad412cb771d6ed",
+      "state_revision": 2,
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-29T04:06:52.884Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-29T06:16:46.624Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-29T15:24:05.745Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-29T15:24:09.503Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "cc42b20664f442d647cbcd9721946174dc1a438505a1eee6968628565678ac44:updateArtifacts:design",
+      "operation_id": "cc42b20664f442d647cbcd9721946174dc1a438505a1eee6968628565678ac44:updateArtifacts:design",
+      "payload_hash": "8d4a98747a846f08010df9cc65029ba11147ca016d68a57fdf4559026a7ec536",
+      "state_revision": 3,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-29T15:24:31.807Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-29T15:28:22.696Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-29T15:28:22.819Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8068a9dd6d28f5adf4f00f51e41dd10c063aeea01ded99fb7c9ea42bdb8cc906:updateArtifacts:design",
+      "operation_id": "8068a9dd6d28f5adf4f00f51e41dd10c063aeea01ded99fb7c9ea42bdb8cc906:updateArtifacts:design",
+      "payload_hash": "882138d1ebfd160acf7cf924ab3285b409701a47c7db26b6054f03462878ae66",
+      "state_revision": 4,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-29T15:29:00.231Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-29T15:29:04.270Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-29T15:29:20.348Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-29T15:29:20.503Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-29T15:29:28.975Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-29T15:29:35.205Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-29T15:32:11.581Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-29T15:32:50.033Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-29T15:47:52.632Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-29T15:47:52.780Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-29T15:48:30.191Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-29T15:48:56.338Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-29T16:02:47.910Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-29T16:02:48.082Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-29T16:03:26.625Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-29T16:03:36.412Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-29T16:33:04.114Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-29T16:33:04.253Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-29T16:33:56.914Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-29T16:34:07.133Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-29T16:36:51.960Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-29T16:36:52.086Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785343037917_qdbjj5gt",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-29T16:37:17.999Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "dccc0263a1c5acaa5c75fc89e2f7c7afb80856eadcb4f49580e016f3d6947d4b:updateArtifacts:executiveSummary",
+      "operation_id": "dccc0263a1c5acaa5c75fc89e2f7c7afb80856eadcb4f49580e016f3d6947d4b:updateArtifacts:executiveSummary",
+      "payload_hash": "87bf09e917828ec99692c98581e0895423d6f4e6a181ce189aaca7529a37ec22",
+      "state_revision": 5,
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-29T16:37:26.811Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-29T16:38:38.417Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785343158820_og6o6l7b",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-29T16:39:18.948Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785343164278_i4lftogn",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-29T16:39:24.396Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785343169258_w0i6lt7v",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-29T16:39:29.443Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-29T16:39:33.794Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-07-29T16:40:57.975Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-07-29T16:41:15.026Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-07-29T16:41:15.189Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-07-29T16:41:23.153Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-07-29T16:41:23.247Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-07-29T16:41:33.321Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-07-29T16:41:33.520Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-07-29T16:41:45.257Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-07-29T17:20:27.433Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-07-29T17:20:27.595Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-07-29T18:17:07.694Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-07-29T18:17:07.846Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ee69ba8d7bdedba395b30f97b272e8e56003e8352938adfa10ca898319b4e336:updateArtifacts:executiveSummary",
+      "operation_id": "ee69ba8d7bdedba395b30f97b272e8e56003e8352938adfa10ca898319b4e336:updateArtifacts:executiveSummary",
+      "payload_hash": "249e7c3e4590bb2732651820dc32af63019d803a26545d6481ec8d71362803b4",
+      "state_revision": 6,
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-07-29T18:17:25.651Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "makeToolReadsWorkerFree",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-07-29T18:18:16.000Z"
+    }
+  ],
+  "state_revision": 6
+}

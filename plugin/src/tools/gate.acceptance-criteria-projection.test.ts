@@ -1,11 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Store } from "../storage/store";
 import { gateTools } from "./gate";
-import {
-  getAcceptanceCriteriaProjectionQuery,
-  getGateCriteriaQuery,
-  getGateStatusQuery,
-} from "../temporal/messages";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -91,15 +86,6 @@ const HEALTHY_GATES = {
   release: { status: "pending" },
 } as import("../types").Gates;
 
-const GATE_CRITERIA_SNAPSHOT: import("../types").GateCriterion[] = [
-  {
-    id: "REVIEW_MATRIX_COMPLETE",
-    label: "Review matrix complete",
-    status: "pass",
-    evaluatedAt: "2026-05-20T00:00:00.000Z",
-  },
-];
-
 function createMockStore(
   overrides: {
     change?: Partial<import("../types").Change>;
@@ -154,27 +140,13 @@ function createMockStore(
 describe("adv_gate_status acceptance criteria projection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.querySignal.mockImplementation(async (_handle, query) => {
-      if (query === getGateStatusQuery) return HEALTHY_GATES;
-      if (query === getGateCriteriaQuery)
-        return { acceptance: GATE_CRITERIA_SNAPSHOT };
-      if (query === getAcceptanceCriteriaProjectionQuery) {
-        return {
-          current: GATE_CRITERIA_SNAPSHOT,
-          snapshot: GATE_CRITERIA_SNAPSHOT,
-          freshness: "fresh",
-          basisRevision: 1,
-        };
-      }
-      return undefined;
-    });
   });
 
   afterEach(() => {
     delete process.env.ADV_PLAN_ROUTING_FAIL_CLOSED;
   });
 
-  test("surfaces acceptanceCriteriaProjection with current, snapshot, freshness, and basisRevision", async () => {
+  test("AC2 — acceptanceCriteriaProjection is unavailable in worker-free read", async () => {
     const store = createMockStore();
     const result = await gateTools.adv_gate_status.execute(
       { changeId: "test-change" },
@@ -182,18 +154,20 @@ describe("adv_gate_status acceptance criteria projection", () => {
     );
     const parsed = JSON.parse(result);
 
-    expect(parsed.acceptanceCriteriaProjection).toBeDefined();
-    expect(parsed.acceptanceCriteriaProjection.current).toEqual(
-      GATE_CRITERIA_SNAPSHOT,
+    expect(parsed.acceptanceCriteriaProjection).toBeUndefined();
+    expect(parsed._unavailable).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scope: "acceptanceCriteriaProjection",
+          status: "unavailable",
+          reason: expect.stringContaining("workflow-only"),
+        }),
+      ]),
     );
-    expect(parsed.acceptanceCriteriaProjection.snapshot).toEqual(
-      GATE_CRITERIA_SNAPSHOT,
-    );
-    expect(parsed.acceptanceCriteriaProjection.freshness).toBe("fresh");
-    expect(parsed.acceptanceCriteriaProjection.basisRevision).toBe(1);
+    expect(mocks.querySignal).not.toHaveBeenCalled();
   });
 
-  test("preserves gateCriteria as audit evidence alongside the projection", async () => {
+  test("AC2 — gateCriteria is unavailable in worker-free read", async () => {
     const store = createMockStore();
     const result = await gateTools.adv_gate_status.execute(
       { changeId: "test-change" },
@@ -201,35 +175,32 @@ describe("adv_gate_status acceptance criteria projection", () => {
     );
     const parsed = JSON.parse(result);
 
-    expect(parsed.gateCriteria).toEqual({ acceptance: GATE_CRITERIA_SNAPSHOT });
-    expect(parsed.acceptanceCriteriaProjection.snapshot).toEqual(
-      GATE_CRITERIA_SNAPSHOT,
+    expect(parsed.gateCriteria).toBeUndefined();
+    expect(parsed._unavailable).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          scope: "gateCriteria",
+          status: "unavailable",
+          reason: expect.stringContaining("workflow-only"),
+        }),
+      ]),
     );
+    expect(mocks.querySignal).not.toHaveBeenCalled();
   });
 
-  test("exposes stale projection when snapshot revision differs from current", async () => {
-    mocks.querySignal.mockImplementation(async (_handle, query) => {
-      if (query === getGateStatusQuery) return HEALTHY_GATES;
-      if (query === getGateCriteriaQuery)
-        return { acceptance: GATE_CRITERIA_SNAPSHOT };
-      if (query === getAcceptanceCriteriaProjectionQuery) {
-        return {
-          current: [
-            {
-              id: "REVIEW_MATRIX_COMPLETE",
-              label: "Review matrix complete",
-              status: "fail",
-              evaluatedAt: "2026-05-20T00:00:00.000Z",
-            },
-          ],
-          snapshot: GATE_CRITERIA_SNAPSHOT,
-          freshness: "stale",
-          basisRevision: 2,
-          staleReason:
-            "Acceptance criteria snapshot captured at revision 1; current revision is 2",
-        };
-      }
-      return undefined;
+  test("AC2 — ignores mocked workflow criteria/projection and still reports unavailable", async () => {
+    mocks.querySignal.mockResolvedValue({
+      current: [
+        {
+          id: "REVIEW_MATRIX_COMPLETE",
+          label: "Review matrix complete",
+          status: "fail",
+          evaluatedAt: "2026-05-20T00:00:00.000Z",
+        },
+      ],
+      snapshot: [],
+      freshness: "stale",
+      basisRevision: 2,
     });
 
     const store = createMockStore();
@@ -239,15 +210,8 @@ describe("adv_gate_status acceptance criteria projection", () => {
     );
     const parsed = JSON.parse(result);
 
-    expect(parsed.acceptanceCriteriaProjection.freshness).toBe("stale");
-    const current = parsed.acceptanceCriteriaProjection
-      .current as import("../types").GateCriterion[];
-    const matrix = current.find((c) => c.id === "REVIEW_MATRIX_COMPLETE");
-    expect(matrix?.status).toBe("fail");
-    // Snapshot must remain the stale audit evidence, not current truth.
-    expect(parsed.acceptanceCriteriaProjection.snapshot).toEqual(
-      GATE_CRITERIA_SNAPSHOT,
-    );
-    expect(parsed.gateCriteria).toEqual({ acceptance: GATE_CRITERIA_SNAPSHOT });
+    expect(parsed.gateCriteria).toBeUndefined();
+    expect(parsed.acceptanceCriteriaProjection).toBeUndefined();
+    expect(mocks.querySignal).not.toHaveBeenCalled();
   });
 });

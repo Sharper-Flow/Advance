@@ -52,8 +52,6 @@ import {
   changeTasksQuery,
   gateCompletedSignal,
   getGateStatusQuery,
-  getGateCriteriaQuery,
-  getAcceptanceCriteriaProjectionQuery,
 } from "../temporal/messages";
 import {
   type WorktreeIsolationDeps,
@@ -100,9 +98,7 @@ import { checkPlanRoutingGuard } from "../migration/routing-guard";
 import { createLogger } from "../utils/debug-log";
 import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
-  isPoisonedHistoryError,
   isPreciseWorkflowRecoveryEvidence,
-  isWorkflowCompletedError,
   RECOVERY_RECONCILIATION_WARNING,
 } from "../temporal/recovery-classification";
 import { hasGateRecoveryAudit } from "./recovery-audit";
@@ -1305,88 +1301,23 @@ export const gateTools = {
               });
             }
 
-            // Get or create gates
-            let gates = result.data.gates ?? createDefaultGates();
-            let gateCriteria:
-              | Partial<Record<GateId, import("../types").GateCriterion[]>>
-              | undefined;
-            let acceptanceCriteriaProjection:
-              | import("../types").AcceptanceCriteriaProjection
-              | undefined;
-            let poisonedFallback = false;
-            const bundle = getService();
-            const projectId = bundle
-              ? await getProjectId(activeStore.paths.root)
-              : null;
-            if (bundle && projectId) {
-              const handle = getChangeHandle(
-                bundle.client,
-                projectId,
-                changeId,
-              );
-              try {
-                const queriedGates = await querySignal<Gates>(
-                  handle,
-                  getGateStatusQuery,
-                  undefined,
-                );
-                if (queriedGates && typeof queriedGates === "object") {
-                  gates = queriedGates;
-                  const reconciliation = await reconcileRecoveredGates({
-                    store: activeStore,
-                    changeId,
-                    current: gates,
-                  });
-                  if (reconciliation.recovered) {
-                    gates = reconciliation.gates;
-                    poisonedFallback = true;
-                  }
-                }
-                // Query persisted gate criteria
-                gateCriteria = await querySignal<
-                  Partial<Record<GateId, import("../types").GateCriterion[]>>
-                >(handle, getGateCriteriaQuery);
-                // Query fresh acceptance criteria projection keyed to readiness revision
-                acceptanceCriteriaProjection = await querySignal<
-                  import("../types").AcceptanceCriteriaProjection
-                >(handle, getAcceptanceCriteriaProjectionQuery);
-              } catch (queryError) {
-                // rq-fix-gate-tools-recovery AC1: poisoned-history fallback.
-                // The store's changes.get already returned a disk projection
-                // (likely via temporal_query_fallback). Honour that disk
-                // projection when the workflow is poisoned/completed, instead
-                // of propagating the generic "Failed to query Workflow" error.
-                //
-                // C2 (fixPoisonedRecovery reviewer-block remediation):
-                // describe() must NOT be consulted for poison authority —
-                // even as a fallback. Error class is the sole authority here.
-                // describe() remains in use elsewhere for run identity /
-                // open-closed detection only.
-                if (
-                  isPoisonedHistoryError(queryError) ||
-                  isWorkflowCompletedError(queryError)
-                ) {
-                  poisonedFallback = true;
-                } else {
-                  throw queryError;
-                }
-              }
-            }
+            // AC1: gate status is a durable-projection read. Do not construct a
+            // workflow handle or issue querySignal calls for routine status.
+            const gates = result.data.gates ?? createDefaultGates();
             const normalizedGates =
               (await normalizeGateArtifactEvidenceForReadback(gates)) ?? gates;
             const incomplete = getIncompleteGates(normalizedGates);
+
             // Single directive projection: next-action (nextGate/canArchive)
-            // is sourced from deriveWorkflowDirective (via the best-effort
-            // wrapper), the same derivation the workflow's getDirectiveQuery
-            // and status enrichment consume. On derivation failure we fall
-            // back to gate-derived next-action so gate-status stays useful.
+            // is derived from the persisted projection, matching the same
+            // derivation the workflow's getDirectiveQuery consumes.
             //
             // AC9/DDC7 fail-closed: after an active build-bound cutover
             // receipt, a degraded plan instead stops plan-dependent consumer
             // routing — no gate-derived next action (DONT4), typed degraded
             // diagnostics only, and zero Temporal signals/writes (DONT5).
             const directiveState = changeToDirectiveState({
-              projectId: projectId ?? result.data.adv_project_id ?? "unknown",
+              projectId: result.data.adv_project_id ?? "unknown",
               change: result.data,
               gates: normalizedGates,
             });
@@ -1431,12 +1362,32 @@ export const gateTools = {
                 ? null
                 : fallbackNextGate;
 
+            // AC2: gateCriteria and acceptanceCriteriaProjection are not
+            // durably represented in the per-change projection. Report them as
+            // explicitly unavailable rather than deriving a false pass or
+            // silently omitting them.
+            const unavailable = [
+              {
+                scope: "gateCriteria",
+                status: "unavailable",
+                reason:
+                  "workflow-only projection; not persisted in durable change snapshot",
+              },
+              {
+                scope: "acceptanceCriteriaProjection",
+                status: "unavailable",
+                reason:
+                  "workflow-only projection; not persisted in durable change snapshot",
+              },
+            ];
+
             return formatToolOutput({
               changeId,
               gates: normalizedGates,
               incomplete,
               canArchive,
               nextGate,
+              _unavailable: unavailable,
               ...(directive ? { _directive: directive } : {}),
               ...(failClosedPlan
                 ? {
@@ -1446,13 +1397,6 @@ export const gateTools = {
                       basis: failClosedBasis,
                     },
                   }
-                : {}),
-              ...(gateCriteria ? { gateCriteria } : {}),
-              ...(acceptanceCriteriaProjection
-                ? { acceptanceCriteriaProjection }
-                : {}),
-              ...(poisonedFallback
-                ? { _recovery: { reason: "poisoned_history" } }
                 : {}),
               ...(projectContext ? { _projectContext: projectContext } : {}),
             });
