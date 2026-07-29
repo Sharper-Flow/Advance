@@ -237,9 +237,12 @@ describe("read-only lane packet-defect policy (lane-aware)", () => {
       // The new policy explicitly directs the worker to skip the typed
       // submission call when anchors are missing (rather than submit a
       // malformed persisted report).
-      expect(content).toMatch(
-        /do not call `adv_subagent_report_submit`|do NOT call `adv_subagent_report_submit`/i,
-      );
+      //
+      // Match the POLICY, not the call syntax: submission is now dispatched
+      // through the Tier-3 `adv_tool_invoke` wrapper, so pinning the
+      // pre-migration literal made this fail while the prohibition was fully
+      // present and correct.
+      expect(content).toMatch(/do not call[^.\n]*adv_subagent_report_submit/i);
     });
   }
 });

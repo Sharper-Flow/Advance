@@ -406,6 +406,11 @@ export async function commitChangeProjection(
       };
     }
 
+    // Command success is only reportable once the accepted monotonic revision
+    // is committed AND verified in the durable projection: the readback must
+    // carry this exact operation identity, payload hash and state revision.
+    // Anything else downgrades to committed_unverified rather than success.
+    // rq-projectionCommandProof01
     if (
       operationId &&
       (readback.projection_commits?.[readback.projection_commits.length - 1]

@@ -53,6 +53,12 @@ import {
   type PendingDeleteSummary,
 } from "./worktree/state";
 
+// One request-scoped absolute budget for `adv_status view:health`. The cutoff
+// closes provider admission early enough to reserve bounded composition time
+// (cutoff + reserve = deadline), and concurrency/candidate limits are fixed and
+// explicit rather than derived. Deadline expiry yields typed partial output;
+// late provider completion must not mutate the returned result.
+// rq-statusHealthAggregateBudget01
 export const HEALTH_RESPONSE_DEADLINE_MS = 8_000;
 export const HEALTH_EXECUTION_CUTOFF_MS = 7_500;
 export const HEALTH_COMPOSITION_RESERVE_MS = 500;
