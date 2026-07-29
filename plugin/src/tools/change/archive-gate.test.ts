@@ -18,6 +18,7 @@ import {
   verifyReleaseGateDurableForArchive,
   waitForArchiveReleaseGateCompletion,
   type ArchiveGateState,
+  persistConfirmedReleaseGateReadback,
 } from "./archive-gate";
 import * as gitFinalize from "../archive-helpers/git-finalize";
 import { getService, reinitStsl } from "../../temporal/service";
@@ -25,12 +26,15 @@ import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { TemporalQueryTimeoutError } from "../../temporal/retry-wrapper";
 import { getGateStatusQuery } from "../../temporal/messages";
 import { getProjectId } from "../../utils/project-id";
-import type { Change, Store } from "../../types";
+import type { Change, GateCompletion, Store } from "../../types";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type {
   GitFinalizeDeps,
   GitFinalizeOutcome,
   ReleaseFinalizationRouteName,
 } from "../archive-helpers/git-finalize";
+import { join } from "path";
+import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 
 vi.mock("../../temporal/service", () => ({
   getService: vi.fn(),
@@ -52,8 +56,13 @@ vi.mock("../_recovery-writers", () => ({
   saveRecoveredGateCompletion: recoveryWriterMocks.saveRecoveredGateCompletion,
 }));
 
+const actualJsonRef = vi.hoisted<{
+  value: typeof import("../../storage/json") | null;
+}>(() => ({ value: null }));
+
 const diskLoadMocks = vi.hoisted(() => ({
   loadChange: vi.fn(),
+  saveChange: vi.fn(async () => "/tmp/.adv/changes/dummy/change.json"),
 }));
 
 vi.mock("../../storage/json", async () => {
@@ -61,8 +70,43 @@ vi.mock("../../storage/json", async () => {
     await vi.importActual<typeof import("../../storage/json")>(
       "../../storage/json",
     );
-  return { ...actual, loadChange: diskLoadMocks.loadChange };
+  actualJsonRef.value = actual;
+  return {
+    ...actual,
+    loadChange: diskLoadMocks.loadChange,
+    saveChange: diskLoadMocks.saveChange,
+  };
 });
+
+const commitProjectionMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../../storage/change-projection-transaction", () => ({
+  commitChangeProjection: commitProjectionMock,
+}));
+
+const archiveMock = vi.hoisted(() => ({
+  findArchiveBundle: vi.fn(async () => null as string | null),
+  bundleJsonStringify: vi.fn(
+    (value: unknown) => `${JSON.stringify(value, null, 2)}\n`,
+  ),
+}));
+
+vi.mock("../../archive/archive", async () => {
+  const actual = await vi.importActual<typeof import("../../archive/archive")>(
+    "../../archive/archive",
+  );
+  return {
+    ...actual,
+    findArchiveBundle: archiveMock.findArchiveBundle,
+    bundleJsonStringify: archiveMock.bundleJsonStringify,
+  };
+});
+
+vi.mock("../../archive/projection-lock", () => ({
+  withArchiveProjectionLock: vi.fn(
+    async (_worktree: string, operation: () => Promise<unknown>) => operation(),
+  ),
+}));
 
 function createStore(repoRoot: string): Store {
   return {
@@ -77,6 +121,17 @@ function createStore(repoRoot: string): Store {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  commitProjectionMock.mockResolvedValue({
+    kind: "committed",
+    value: {} as unknown as Change,
+    revision: 1,
+    readback: {} as unknown as Change,
+    audit: {} as never,
+  });
+  archiveMock.findArchiveBundle.mockResolvedValue(null);
+  diskLoadMocks.saveChange.mockResolvedValue(
+    "/tmp/.adv/changes/dummy/change.json",
+  );
 });
 
 function createChange(options: {
@@ -1804,5 +1859,177 @@ describe("worker-bundle provenance chokepoint (fixArchivedProvenanceRecovery)", 
         b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
       ),
     ).toBe(true);
+describe("persistConfirmedReleaseGateReadback", () => {
+  const doneGate: GateCompletion = {
+    status: "done",
+    completed_at: "2026-01-01T00:00:00Z",
+    completed_by: "adv-archive",
+    approval_evidence: "Phase 9 finalization shipped",
+  };
+
+  function buildStore(root: string): Store {
+    return {
+      paths: {
+        root,
+        changes: join(root, "changes"),
+        archive: join(root, "archive"),
+      },
+      config: { name: "test", features: {} },
+      changes: { invalidate: vi.fn() },
+    } as unknown as Store;
+  }
+
+  function makeChange(id: string): Change {
+    return {
+      ...createChange({}),
+      id,
+    };
+  }
+
+  it("refuses to persist a non-done gate", async () => {
+    const store = buildStore("/tmp");
+    const result = await persistConfirmedReleaseGateReadback({
+      store,
+      change: makeChange("c1"),
+      changeId: "c1",
+      gate: { status: "pending" } as GateCompletion,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("non-done");
+  });
+
+  it("refuses to persist a done gate missing required proof fields", async () => {
+    const store = buildStore("/tmp");
+    const result = await persistConfirmedReleaseGateReadback({
+      store,
+      change: makeChange("c1"),
+      changeId: "c1",
+      gate: {
+        status: "done",
+        completed_at: "2026-01-01T00:00:00Z",
+      } as GateCompletion,
+    });
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("missing required proof");
+  });
+
+  it("commits the release gate to the active projection and invalidates cache", async () => {
+    const tempDir = await createTempDir("persist-release-");
+    try {
+      const store = buildStore(tempDir);
+      const result = await persistConfirmedReleaseGateReadback({
+        store,
+        change: makeChange("c1"),
+        changeId: "c1",
+        gate: doneGate,
+      });
+      expect(result.ok).toBe(true);
+      expect(commitProjectionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          changeId: "c1",
+          mutationKind: "poll_confirmed_release_gate_projection",
+        }),
+      );
+      expect(store.changes.invalidate).toHaveBeenCalledWith("c1");
+    } finally {
+      await cleanupTempDir(tempDir);
+    }
+  });
+
+  it("creates the active projection when it is missing", async () => {
+    const tempDir = await createTempDir("persist-release-missing-");
+    try {
+      const store = buildStore(tempDir);
+      const changeWithGate = {
+        ...makeChange("c1"),
+        gates: { release: doneGate },
+      } as Change;
+      commitProjectionMock.mockResolvedValueOnce({
+        kind: "operator_required",
+        reason: "Cannot commit projection for c1: change not found.",
+      });
+      diskLoadMocks.saveChange.mockResolvedValue(
+        "/tmp/.adv/changes/c1/change.json",
+      );
+      diskLoadMocks.loadChange.mockResolvedValue({
+        success: true,
+        data: changeWithGate,
+      });
+
+      const result = await persistConfirmedReleaseGateReadback({
+        store,
+        change: makeChange("c1"),
+        changeId: "c1",
+        gate: doneGate,
+      });
+
+      expect(result.error).toBeUndefined();
+      expect(result.ok).toBe(true);
+      expect(diskLoadMocks.saveChange).toHaveBeenCalledWith(
+        store.paths.changes,
+        expect.objectContaining({
+          id: "c1",
+          gates: expect.objectContaining({ release: doneGate }),
+        }),
+      );
+      expect(store.changes.invalidate).toHaveBeenCalledWith("c1");
+    } finally {
+      await cleanupTempDir(tempDir);
+    }
+  });
+
+  it("returns a retryable error when the active projection commit fails", async () => {
+    const tempDir = await createTempDir("persist-release-fail-");
+    try {
+      const store = buildStore(tempDir);
+      commitProjectionMock.mockResolvedValueOnce({
+        kind: "stale_revision",
+        expected: 1,
+        actual: 2,
+      });
+      const result = await persistConfirmedReleaseGateReadback({
+        store,
+        change: makeChange("c1"),
+        changeId: "c1",
+        gate: doneGate,
+      });
+      expect(result.ok).toBe(false);
+      expect(result.retryable).toBe(true);
+      expect(store.changes.invalidate).not.toHaveBeenCalled();
+    } finally {
+      await cleanupTempDir(tempDir);
+    }
+  });
+
+  it("updates the archive bundle projection when one exists", async () => {
+    const tempDir = await createTempDir("persist-release-bundle-");
+    try {
+      const store = buildStore(tempDir);
+      const bundleDir = join(store.paths.archive, "c1");
+      await mkdir(bundleDir, { recursive: true });
+      await writeFile(
+        join(bundleDir, "change.json"),
+        JSON.stringify(makeChange("c1"), null, 2),
+      );
+      archiveMock.findArchiveBundle.mockResolvedValue(bundleDir);
+
+      const result = await persistConfirmedReleaseGateReadback({
+        store,
+        change: makeChange("c1"),
+        changeId: "c1",
+        gate: doneGate,
+      });
+
+      expect(result.ok).toBe(true);
+      const raw = await readFile(join(bundleDir, "change.json"), "utf-8");
+      const parsed = JSON.parse(raw);
+      expect(parsed.gates?.release?.status).toBe("done");
+      expect(parsed.gates?.release?.approval_evidence).toBe(
+        doneGate.approval_evidence,
+      );
+      expect(store.changes.invalidate).toHaveBeenCalledWith("c1");
+    } finally {
+      await cleanupTempDir(tempDir);
+    }
   });
 });
