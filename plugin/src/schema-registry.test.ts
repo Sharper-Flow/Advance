@@ -7,6 +7,7 @@ import {
   PUBLIC_JSON_SCHEMAS,
   renderAllJsonSchemas,
   renderJsonSchemaFile,
+  renderJsonSchemaObject,
 } from "./schema-registry";
 
 const PLUGIN_ROOT = resolve(__dirname, "..");
@@ -50,5 +51,42 @@ describe("generated ADV JSON schema registry", () => {
       );
       expect(current).toBe(rendered);
     }
+  });
+
+  test("AC8: generated change schema keeps contract-item variant optional", () => {
+    const changeEntry = PUBLIC_JSON_SCHEMAS.find(
+      (entry) => entry.name === "change",
+    );
+    expect(changeEntry).toBeDefined();
+
+    const schema = renderJsonSchemaObject(changeEntry!);
+    const itemsSchema = schema.properties?.contract?.properties?.items;
+    expect(itemsSchema).toBeDefined();
+
+    const itemProperties = (itemsSchema as any).items.properties;
+    expect(itemProperties).toHaveProperty("variant");
+    expect(itemProperties).toHaveProperty("text");
+    expect((itemsSchema as any).items.required).toContain("text");
+    expect((itemsSchema as any).items.required).not.toContain("variant");
+  });
+
+  test("AC8: generated change schema variant includes all four criterion kinds", () => {
+    const changeEntry = PUBLIC_JSON_SCHEMAS.find(
+      (entry) => entry.name === "change",
+    );
+    const schema = renderJsonSchemaObject(changeEntry!);
+    const variantSchema = (
+      schema.properties?.contract?.properties?.items as any
+    ).items.properties.variant;
+
+    const kinds = new Set(
+      (variantSchema.oneOf as any[]).map(
+        (variant: any) => variant.properties.kind.const,
+      ),
+    );
+
+    expect(kinds).toEqual(
+      new Set(["behavioral", "evidence", "spec_law", "constraint"]),
+    );
   });
 });

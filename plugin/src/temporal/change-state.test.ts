@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
+  acceptanceCriteriaFromContract,
   applyEpicMembershipClearedToState,
   applyEpicMembershipSetToState,
   applySubagentReportSubmittedToState,
@@ -2910,5 +2911,138 @@ describe("archive convergence split-state invariant", () => {
     expect(state.terminated).toBe(true);
     expect(state.gates.release?.status).toBe("done");
     expect(state.phase9_status?.status).toBe("done");
+  });
+});
+
+// =============================================================================
+// AC3 / SC3 — Legacy acceptance-criteria projection from contract
+// =============================================================================
+
+describe("AC3/SC3 — acceptanceCriteriaFromContract legacy projection", () => {
+  function makeContract(
+    items: Array<{ id: string; kind: string; text: string; variant?: unknown }>,
+  ) {
+    return {
+      version: 1 as const,
+      rigor: "standard" as const,
+      source: {
+        artifact: "agreement" as const,
+        approvedAt: "2026-05-08T00:00:00.000Z",
+      },
+      items: items.map((item) => ({
+        ...item,
+        sourceArtifact: "agreement" as const,
+        verificationRequired: true,
+        evidencePolicy: "test" as const,
+        status: "approved" as const,
+      })),
+      amendments: [],
+    };
+  }
+
+  it("AC3: projects only canonical text for flat-text acceptance criteria", () => {
+    const contract = makeContract([
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "First flat criterion.",
+      },
+      {
+        id: "AC2",
+        kind: "acceptance_criterion",
+        text: "Second flat criterion.",
+      },
+    ]);
+
+    expect(acceptanceCriteriaFromContract(contract as any)).toEqual([
+      "First flat criterion.",
+      "Second flat criterion.",
+    ]);
+  });
+
+  it("SC3: projects only canonical text for variant-bearing criteria", () => {
+    const contract = makeContract([
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "Given a request, when valid, then it succeeds.",
+        variant: {
+          kind: "behavioral",
+          context: "a request",
+          trigger: "valid",
+          outcome: "it succeeds",
+        },
+      },
+      {
+        id: "AC2",
+        kind: "acceptance_criterion",
+        text: "Coverage is proven by passing tests.",
+        variant: {
+          kind: "evidence",
+          subject: "Coverage is proven",
+          method: "passing tests",
+        },
+      },
+    ]);
+
+    expect(acceptanceCriteriaFromContract(contract as any)).toEqual([
+      "Given a request, when valid, then it succeeds.",
+      "Coverage is proven by passing tests.",
+    ]);
+  });
+
+  it("SC3: ignores non-acceptance-criterion items in the projection", () => {
+    const contract = makeContract([
+      { id: "SC1", kind: "success_criterion", text: "Success criterion." },
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "Acceptance criterion.",
+      },
+      { id: "C1", kind: "constraint", text: "Constraint." },
+      { id: "DONT1", kind: "avoidance", text: "Avoidance." },
+    ]);
+
+    expect(acceptanceCriteriaFromContract(contract as any)).toEqual([
+      "Acceptance criterion.",
+    ]);
+  });
+
+  it("AC3: applyContractSetToState preserves the contract and projects text-only acceptanceCriteria", () => {
+    const state = createChangeWorkflowState({
+      changeId: "ac3-projection",
+      title: "AC3 projection",
+      createdAt: "2026-05-08T00:00:00.000Z",
+    });
+
+    const contract = makeContract([
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "Given a signal, when valid, then state updates.",
+        variant: {
+          kind: "behavioral",
+          context: "a signal",
+          trigger: "valid",
+          outcome: "state updates",
+        },
+      },
+      { id: "C1", kind: "constraint", text: "Preserve compatibility." },
+    ]);
+
+    applyContractSetToState(state, {
+      contract: contract as any,
+      updatedAt: "2026-05-08T00:00:01.000Z",
+    });
+
+    expect(state.contract?.items[0].variant).toEqual({
+      kind: "behavioral",
+      context: "a signal",
+      trigger: "valid",
+      outcome: "state updates",
+    });
+    expect(state.acceptanceCriteria).toEqual([
+      "Given a signal, when valid, then state updates.",
+    ]);
   });
 });

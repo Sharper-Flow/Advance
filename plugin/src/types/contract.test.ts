@@ -187,3 +187,181 @@ describe("change contract schemas", () => {
     expect(item.requiredCritical).toBeUndefined();
   });
 });
+
+// =============================================================================
+// AC3 / AC8 / SC3 — Criterion variant compatibility
+// =============================================================================
+
+describe("AC3/AC8/SC3 — criterion variant schema compatibility", () => {
+  test("AC3: legacy flat-text contract items validate without a variant", () => {
+    const item = ContractItemSchema.parse({
+      id: "AC1",
+      kind: "acceptance_criterion",
+      text: "Legacy flat-text criterion.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "test",
+      status: "approved",
+    });
+
+    expect(item.variant).toBeUndefined();
+    expect(item.text).toBe("Legacy flat-text criterion.");
+  });
+
+  test("AC8: behavioral variant validates and preserves canonical text", () => {
+    const item = ContractItemSchema.parse({
+      id: "AC1",
+      kind: "acceptance_criterion",
+      text: "Given a state, when signaled, then it updates.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "test",
+      status: "approved",
+      variant: {
+        kind: "behavioral",
+        context: "a state",
+        trigger: "signaled",
+        outcome: "it updates",
+      },
+    });
+
+    expect(item.variant).toEqual({
+      kind: "behavioral",
+      context: "a state",
+      trigger: "signaled",
+      outcome: "it updates",
+    });
+  });
+
+  test("AC8: evidence variant validates", () => {
+    const item = ContractItemSchema.parse({
+      id: "AC2",
+      kind: "acceptance_criterion",
+      text: "Coverage is proven by tests.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "test",
+      status: "approved",
+      variant: {
+        kind: "evidence",
+        subject: "Coverage is proven",
+        method: "tests",
+      },
+    });
+
+    expect(item.variant?.kind).toBe("evidence");
+  });
+
+  test("AC8: spec-law variant validates", () => {
+    const item = ContractItemSchema.parse({
+      id: "C1",
+      kind: "constraint",
+      text: "Spec-law rq-foo requires typed variants.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "static_check",
+      status: "approved",
+      variant: {
+        kind: "spec_law",
+        spec: "rq-foo",
+        requirement: "typed variants",
+      },
+    });
+
+    expect(item.variant?.kind).toBe("spec_law");
+  });
+
+  test("AC8: constraint variant validates", () => {
+    const item = ContractItemSchema.parse({
+      id: "C2",
+      kind: "constraint",
+      text: "Must not break compatibility.",
+      sourceArtifact: "agreement",
+      verificationRequired: true,
+      evidencePolicy: "static_check",
+      status: "approved",
+      variant: {
+        kind: "constraint",
+        obligation: "Must not break compatibility",
+      },
+    });
+
+    expect(item.variant?.kind).toBe("constraint");
+  });
+
+  test("SC3: full ChangeSchema accepts legacy contract without variants", () => {
+    const change = ChangeSchema.parse({
+      id: "legacyCompat",
+      title: "Legacy contract compatibility",
+      status: "draft",
+      created_at: "2026-05-08T00:00:00.000Z",
+      contract: {
+        version: 1,
+        rigor: "standard",
+        source: {
+          artifact: "agreement",
+          approvedAt: "2026-05-08T00:00:00.000Z",
+        },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion",
+            text: "Legacy criterion without variant.",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+          },
+        ],
+        amendments: [],
+      },
+      acceptanceCriteria: ["Legacy criterion without variant."],
+    });
+
+    expect(change.contract?.items[0].variant).toBeUndefined();
+    expect(change.acceptanceCriteria).toEqual([
+      "Legacy criterion without variant.",
+    ]);
+  });
+
+  test("SC3: full ChangeSchema accepts structured contract with variants", () => {
+    const change = ChangeSchema.parse({
+      id: "structuredCompat",
+      title: "Structured contract compatibility",
+      status: "draft",
+      created_at: "2026-05-08T00:00:00.000Z",
+      contract: {
+        version: 1,
+        rigor: "standard",
+        source: {
+          artifact: "agreement",
+          approvedAt: "2026-05-08T00:00:00.000Z",
+        },
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion",
+            text: "Given a request, when valid, then it succeeds.",
+            sourceArtifact: "agreement",
+            verificationRequired: true,
+            evidencePolicy: "test",
+            status: "approved",
+            variant: {
+              kind: "behavioral",
+              context: "a request",
+              trigger: "valid",
+              outcome: "it succeeds",
+            },
+          },
+        ],
+        amendments: [],
+      },
+      acceptanceCriteria: ["Given a request, when valid, then it succeeds."],
+    });
+
+    expect(change.contract?.items[0].variant?.kind).toBe("behavioral");
+    expect(change.acceptanceCriteria).toEqual([
+      "Given a request, when valid, then it succeeds.",
+    ]);
+  });
+});
