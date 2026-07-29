@@ -69,7 +69,7 @@ beforeEach(() => {
 });
 
 describe("OrphanQueueAdopter", () => {
-  it("adopts the first (oldest) orphan via registerQueue", async () => {
+  it("adopts orphans oldest-first via registerQueue", async () => {
     const worker = mockWorker();
     const client = mockClient([
       { queue: Q(2, ""), oldestStartTime: new Date(T0.getTime() + 2000) },
@@ -85,8 +85,12 @@ describe("OrphanQueueAdopter", () => {
       },
     });
     await adopter.adoptNextOrphan();
-    expect(worker.registerQueue).toHaveBeenCalledWith(Q(1, ""));
-    expect(worker.registerQueue).toHaveBeenCalledTimes(1);
+    // FIFO is the invariant that matters: the oldest orphan is registered
+    // FIRST. Both land in one tick now that adoption batches (it was
+    // one-per-tick, which cost ~10s of unreachability per orphan).
+    expect(worker.registerQueue).toHaveBeenNthCalledWith(1, Q(1, ""));
+    expect(worker.registerQueue).toHaveBeenNthCalledWith(2, Q(2, ""));
+    expect(worker.registerQueue).toHaveBeenCalledTimes(2);
   });
 
   it("skips a queue already in worker.queues (idempotent)", async () => {

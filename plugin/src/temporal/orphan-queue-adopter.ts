@@ -40,6 +40,12 @@ export interface OrphanQueueAdopterOptions {
   maxAttempts?: number;
   /** Cooldown duration after the cap (DDC5; default 5 min). */
   cooldownMs?: number;
+  /**
+   * Maximum queues adopted per tick (default 5). Registers run sequentially
+   * and the batch is additionally bounded by `tickTimeoutMs`, so raising this
+   * shortens post-restart recovery without increasing peak worker churn.
+   */
+  maxAdoptionsPerTick?: number;
   /** Injectable clock for deterministic tests. */
   now?: () => number;
 }
@@ -154,6 +160,13 @@ export function evaluateOrphanAdoptionHealth(
 const DEFAULT_TICK_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_COOLDOWN_MS = 5 * 60_000;
+/**
+ * Queues adopted per tick. At one-per-tick a restart with 34 orphans left
+ * prior-session workflows unreachable for ~6 minutes; at 5 that drops to
+ * roughly 70 seconds. Registers remain sequential and the batch is bounded by
+ * `tickTimeoutMs`, so peak worker churn is unchanged.
+ */
+const DEFAULT_MAX_ADOPTIONS_PER_TICK = 5;
 
 /** Error string fragment marking a worker-shutdown refusal (worker-multi.ts). */
 const SHUTDOWN_MARKER = "shutting down";
@@ -170,13 +183,9 @@ export function describeError(err: unknown): string {
   return msg.length > 200 ? `${msg.slice(0, 197)}...` : msg;
 }
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 /**
- * A `delay` whose timer can be cleared once the race is decided, so a fast
- * winner does not leave an 8 s timer pending on every driver tick.
+ * A delay whose timer can be cleared once the race is decided, so a fast
+ * winner does not leave an 8 s timeout pending on every driver tick.
  */
 function cancellableDelay(ms: number): {
   promise: Promise<void>;
@@ -236,6 +245,7 @@ export class OrphanQueueAdopter {
   private readonly tickTimeoutMs: number;
   private readonly maxAttempts: number;
   private readonly cooldownMs: number;
+  private readonly maxAdoptionsPerTick: number;
   private readonly now: () => number;
 
   private scanInFlight = false;
@@ -257,10 +267,15 @@ export class OrphanQueueAdopter {
     this.tickTimeoutMs = options.tickTimeoutMs ?? DEFAULT_TICK_TIMEOUT_MS;
     this.maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
     this.cooldownMs = options.cooldownMs ?? DEFAULT_COOLDOWN_MS;
+    this.maxAdoptionsPerTick =
+      options.maxAdoptionsPerTick ?? DEFAULT_MAX_ADOPTIONS_PER_TICK;
     this.now = options.now ?? (() => Date.now());
   }
 
-  /** Adopt at most one orphan queue. Safe to call every heartbeat tick. */
+  /**
+   * Adopt up to `maxAdoptionsPerTick` orphan queues. Safe to call every
+   * heartbeat tick; overlapping ticks skip via single-flight.
+   */
   async adoptNextOrphan(): Promise<void> {
     // DDC7 — single-flight: overlapping ticks skip.
     if (this.scanInFlight) return;
@@ -292,15 +307,42 @@ export class OrphanQueueAdopter {
     this.recordScanSuccess();
     if (orphans.length === 0) return;
 
-    const now = this.now();
+    const tickStartedAt = this.now();
 
-    // D3 — pick the oldest orphan not currently in cooldown.
-    const target = orphans.find((o) => {
+    // D3 — FIFO order is already established by the helper's sort; keep only
+    // queues that are not in cooldown.
+    const eligible = orphans.filter((o) => {
       const state = this.perQueueState.get(o.queue);
-      return !state || state.cooldownUntil <= now;
+      return !state || state.cooldownUntil <= tickStartedAt;
     });
-    if (!target) return;
+    if (eligible.length === 0) return;
 
+    // Adopt a bounded BATCH per tick rather than exactly one.
+    //
+    // One-per-tick meant a restart with N orphans left prior-session workflows
+    // unreachable for N * driverInterval — measured at ~6 minutes for 34 queues,
+    // during which gate/task/archive signals cannot land. Registers stay
+    // SEQUENTIAL so per-register worker churn is unchanged; only the count per
+    // tick grows. The whole batch stays inside the per-tick budget so a slow
+    // register can never push the tick past the driver interval.
+    let adopted = 0;
+    for (const target of eligible) {
+      if (adopted >= this.maxAdoptionsPerTick) break;
+      if (this.now() - tickStartedAt >= this.tickTimeoutMs) break;
+      const keepGoing = await this.adoptOneQueue(target.queue);
+      adopted++;
+      if (!keepGoing) break;
+    }
+  }
+
+  /**
+   * Attempt a single registration.
+   *
+   * @returns `false` when the batch should stop early — the worker is shutting
+   * down, so every subsequent register in this tick would fail identically.
+   */
+  private async adoptOneQueue(queue: string): Promise<boolean> {
+    const now = this.now();
     try {
       // DDC2 — race the register against the hard per-tick timeout. A LATE
       // settlement of registerQueue (after the timeout wins) is handled by the
@@ -311,47 +353,52 @@ export class OrphanQueueAdopter {
       // (self-healing). During planned shutdown the worker may never reply; the
       // timeout then records a best-effort failure, but the heartbeat is torn
       // down concurrently so impact is bounded (documented limitation, D7).
-      const outcome = await Promise.race([
-        this.worker
-          .registerQueue(target.queue)
-          .then(() => ({ ok: true as const })),
-        delay(this.tickTimeoutMs).then(() => ({ ok: false as const })),
-      ]);
-      if (outcome.ok) {
-        // Success clears retry/cooldown state (and lastError) for this queue.
-        this.perQueueState.set(target.queue, {
-          attemptCount: 0,
-          lastAttemptAt: now,
-          cooldownUntil: 0,
-          lastError: undefined,
-        });
-      } else {
+      const timeout = cancellableDelay(this.tickTimeoutMs);
+      try {
+        const outcome = await Promise.race([
+          this.worker.registerQueue(queue).then(() => ({ ok: true as const })),
+          timeout.promise.then(() => ({ ok: false as const })),
+        ]);
+        if (outcome.ok) {
+          // Success clears retry/cooldown state (and lastError) for this queue.
+          this.perQueueState.set(queue, {
+            attemptCount: 0,
+            lastAttemptAt: now,
+            cooldownUntil: 0,
+            lastError: undefined,
+          });
+          return true;
+        }
         // Worker observed dead/unresponsive during the adoption heartbeat:
         // mark the target queue stale so the readiness barrier re-probes before
         // the next mutation (KD5 / AC4). Existing retry/cooldown accounting
         // continues unchanged (DONT3).
-        markStale(target.queue);
+        markStale(queue);
         this.recordFailure(
-          target.queue,
+          queue,
           now,
           `registerQueue timed out after ${this.tickTimeoutMs}ms`,
         );
+        return true;
+      } finally {
+        timeout.cancel();
       }
     } catch (err) {
       // Worker observed dead during the adoption heartbeat: mark the target
       // queue stale so the readiness barrier re-probes before the next mutation
       // (KD5 / AC4). Existing shutdown-error suppression and retry accounting
       // continue unchanged (DONT3).
-      markStale(target.queue);
+      markStale(queue);
       // D7 — suppress shutdown-class refusals (no retry bump), but COUNT them.
       // Silent suppression is indistinguishable from "no adoption was ever
       // attempted" in diagnostics, which is precisely the ambiguity that made
       // #327 hard to classify.
       if (isShutdownError(err)) {
         this.suppressedShutdownCount += 1;
-        return;
+        return false;
       }
-      this.recordFailure(target.queue, now, describeError(err));
+      this.recordFailure(queue, now, describeError(err));
+      return true;
     }
   }
 
