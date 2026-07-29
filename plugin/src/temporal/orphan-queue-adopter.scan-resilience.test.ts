@@ -441,3 +441,142 @@ describe("evaluateOrphanAdoptionHealth", () => {
     expect(health.state).toBe("failing_scans");
   });
 });
+
+describe("OrphanQueueAdopter — batched adoption", () => {
+  const many = Array.from({ length: 12 }, (_, i) => `advance-P-sess_q${i}`);
+
+  function clientWith(queues: string[]): OrphanListClient {
+    return {
+      workflow: {
+        list: () =>
+          (async function* () {
+            for (let i = 0; i < queues.length; i++) {
+              yield record(queues[i], new Date(T0.getTime() + i * 1000));
+            }
+          })(),
+      },
+    };
+  }
+
+  it("adopts up to maxAdoptionsPerTick in a single tick", async () => {
+    const worker = mockWorker();
+    const adopter = new OrphanQueueAdopter({
+      client: clientWith(many),
+      projectId: PROJECT,
+      worker: {
+        registerQueue: worker.registerQueue,
+        queues: worker.polledQueues,
+      },
+      tickTimeoutMs: TICK_MS,
+      maxAdoptionsPerTick: 4,
+    });
+
+    await adopter.adoptNextOrphan();
+
+    expect(worker.registerQueue).toHaveBeenCalledTimes(4);
+  });
+
+  it("preserves FIFO order across the batch", async () => {
+    const worker = mockWorker();
+    const adopter = new OrphanQueueAdopter({
+      client: clientWith(many),
+      projectId: PROJECT,
+      worker: {
+        registerQueue: worker.registerQueue,
+        queues: worker.polledQueues,
+      },
+      tickTimeoutMs: TICK_MS,
+      maxAdoptionsPerTick: 3,
+    });
+
+    await adopter.adoptNextOrphan();
+
+    expect(worker.registerQueue.mock.calls.map((c) => c[0])).toEqual(
+      many.slice(0, 3),
+    );
+  });
+
+  it("stops the batch early when the worker is shutting down", async () => {
+    const worker = mockWorker();
+    worker.setRegisterImpl(async () => {
+      throw new Error("worker is shutting down");
+    });
+    const adopter = new OrphanQueueAdopter({
+      client: clientWith(many),
+      projectId: PROJECT,
+      worker: {
+        registerQueue: worker.registerQueue,
+        queues: worker.polledQueues,
+      },
+      tickTimeoutMs: TICK_MS,
+      maxAdoptionsPerTick: 5,
+    });
+
+    await adopter.adoptNextOrphan();
+
+    // Every subsequent register would fail identically; hammering the shutting-
+    // down worker 5x per tick is pure noise.
+    expect(worker.registerQueue).toHaveBeenCalledTimes(1);
+    expect(adopter.getDiagnostics().suppressedShutdownCount).toBe(1);
+  });
+
+  it("stops the batch once the per-tick budget is exhausted", async () => {
+    let clock = 0;
+    const worker = mockWorker();
+    worker.setRegisterImpl(async () => {
+      clock += 1000;
+    });
+    const adopter = new OrphanQueueAdopter({
+      client: clientWith(many),
+      projectId: PROJECT,
+      worker: {
+        registerQueue: worker.registerQueue,
+        queues: worker.polledQueues,
+      },
+      tickTimeoutMs: 2_500,
+      maxAdoptionsPerTick: 10,
+      now: () => clock,
+    });
+
+    await adopter.adoptNextOrphan();
+
+    // 1000ms per register against a 2500ms budget: 3 land, then the batch
+    // yields so the tick cannot overrun the driver interval.
+    expect(worker.registerQueue).toHaveBeenCalledTimes(3);
+  });
+
+  it("skips queues still in cooldown when batching", async () => {
+    const worker = mockWorker();
+    let failing = true;
+    worker.setRegisterImpl(async (queue) => {
+      if (failing && queue === many[0]) throw new Error("boom");
+    });
+    const adopter = new OrphanQueueAdopter({
+      client: clientWith(many.slice(0, 3)),
+      projectId: PROJECT,
+      worker: {
+        registerQueue: worker.registerQueue,
+        queues: worker.polledQueues,
+      },
+      tickTimeoutMs: TICK_MS,
+      maxAdoptionsPerTick: 3,
+      maxAttempts: 1,
+      cooldownMs: 60_000,
+    });
+
+    await adopter.adoptNextOrphan();
+    const cooled = adopter
+      .getDiagnostics()
+      .trackedQueues.find((q) => q.queue === many[0]);
+    expect(cooled?.inCooldown).toBe(true);
+
+    failing = false;
+    worker.registerQueue.mockClear();
+    await adopter.adoptNextOrphan();
+
+    // The cooled queue is excluded from the next batch.
+    expect(worker.registerQueue.mock.calls.map((c) => c[0])).not.toContain(
+      many[0],
+    );
+  });
+});
