@@ -1,0 +1,1900 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "decoupleOrphanAdopter",
+  "title": "Decouple orphan adopter construction",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-28T18:35:53.691Z",
+  "tasks": [
+    {
+      "id": "tk-a92c8ca44842",
+      "title": "## RED: restart-path adopter construction failing test (AC1, AC2)",
+      "type": "code",
+      "section": "Restart-path adopter construction",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-28T22:04:36.538Z",
+      "started_at": "2026-07-28T22:13:13.929Z",
+      "completed_at": "2026-07-28T22:19:12.547Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED test written at plugin/src/plugin-init.orphan-adopter-restart.test.ts. Asserts getOrphanQueueAdoptionDiagnostics() returns non-null after restartCurrentProjectTemporalWorker. Fails on trunk with AssertionError: expected null not to be null (line 149). Mock pattern established: vi.hoisted + vi.mock with vi.importActual for node:fs, ./utils/project-id, ./temporal/runtime-manager; full vi.mock for in-process-worker, out-of-process-worker, service. node:fs.existsSync selectively overridden for worker bundle path. Real OrphanQueueAdopter unmocked. Evidence: tr_ms57x21t_901ba6de phase:red.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts"
+      ],
+      "checkpointSha": "8041a423d5b0689f08a472b351c25dde023718b4",
+      "completedAt": "2026-07-28T22:19:12.547Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C5",
+          "DONT7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "P24 TDD-first for behavior-critical defect fix. RED test must fail before GREEN lands.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts"
+      ]
+    },
+    {
+      "id": "tk-aa3b6abdfcdb",
+      "title": "## Extract `attachWorkerWithAdoption` helper with attachment registry",
+      "type": "code",
+      "section": "Composition root",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-a92c8ca44842"
+        }
+      ],
+      "created_at": "2026-07-28T22:04:55.733Z",
+      "started_at": "2026-07-28T22:20:19.716Z",
+      "completed_at": "2026-07-28T22:24:01.692Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Extracted attachWorkerWithAdoption helper + WorkerAdoptionAttachment registry in plugin-init.ts. Routed spawn branch (:409-422) through helper. No behavior change: existing plugin-init tests pass (9/9, tr_ms5837l5 green). T1 RED test still fails as expected (tr_ms58363g red — restart path unchanged, correct for this task). onBeat/drain/restart-path all UNCHANGED. Pre-existing unrelated failure in activities.disk-projection.test.ts confirmed on parent commit 8041a423 (out of scope).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.ts"
+      ],
+      "checkpointSha": "7b7a4a7280df6c28ab58492aaa00cadbb4a437e9",
+      "completedAt": "2026-07-28T22:24:01.692Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "respects": [
+          "C1",
+          "C2",
+          "C5",
+          "DONT8"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Pure refactor verified by existing tests passing unchanged.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.ts"
+      ]
+    },
+    {
+      "id": "tk-3788bde33e45",
+      "title": "## GREEN: route `restartTemporalWorker` through helper with null-client fail-soft (AC2, AC10)",
+      "type": "code",
+      "section": "Restart-path adopter construction",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-aa3b6abdfcdb"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:06.922Z",
+      "started_at": "2026-07-28T22:24:46.413Z",
+      "completed_at": "2026-07-28T22:29:14.143Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Routed restartCurrentProjectTemporalWorker (:881) through attachWorkerWithAdoption with client from getService()?.client. Added AdoptionConstructionState tracking (not_attempted/active/unavailable/disabled) + getOrphanQueueAdoptionStatus() typed accessor (AC10). T1 RED test now GREEN (adopter constructed on restart). AC10 test: null client → enabled:false, reason:\"no_temporal_client\". 11/11 tests pass (tr_ms589ki7 green). typecheck + lint clean. onBeat/drain/doctor UNCHANGED.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts"
+      ],
+      "checkpointSha": "bc68561ffad7e59a62a41705ded9e5dea0300780",
+      "completedAt": "2026-07-28T22:29:14.143Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC10"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Behavior-critical defect fix; RED test from tk-a92c8ca44842 plus AC10 unit test.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts"
+      ]
+    },
+    {
+      "id": "tk-9a7cc5bf3293",
+      "title": "## Move tick driver into attachment; remove only adoption call from `onBeat` (AC3, DONT8)",
+      "type": "code",
+      "section": "Tick driver",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3788bde33e45"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:26.066Z",
+      "started_at": "2026-07-28T22:29:44.405Z",
+      "completed_at": "2026-07-28T22:32:30.070Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Moved tick driver from heartbeat onBeat into attachWorkerWithAdoption. Driver: setInterval(adopter.adoptNextOrphan(), 10s) at :613, stopDriver=clearInterval at :616. onBeat now has ONLY checkNow() (adoption call removed, DONT8 satisfied). AC3 test: fake timers + prototype spy on adoptNextOrphan, advance 10.5s, assert called — proves driven not just constructed. 12/12 tests pass (tr_ms58e3ug green). typecheck clean. drainInProcessTemporalWorkers/doctor UNCHANGED.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts"
+      ],
+      "checkpointSha": "dad79820d8b440bafd09a9ed4de8b42308734961",
+      "completedAt": "2026-07-28T22:32:30.070Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT8"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "AC3 explicitly requires proving ticks occur, not just construction.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts"
+      ]
+    },
+    {
+      "id": "tk-6157d32700bb",
+      "title": "## Doctor health verdict, both polarities (AC4, AC5)",
+      "type": "code",
+      "section": "Doctor health",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3788bde33e45"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:36.367Z",
+      "started_at": "2026-07-28T22:37:23.720Z",
+      "completed_at": "2026-07-28T22:45:32.010Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Doctor health verdict adoption-aware (AC4/AC5). Switched to getOrphanQueueAdoptionStatus() + getTemporalWorkerAliveness(). AC4: worker alive + adoption absent/failing (reason != kill_switch) → unhealthy finding orphan_queue_adoption_not_active. AC5: no worker alive → no false alarm (success:true). Tests: AC4 worker-alive-unavailable, AC4 driver_error, AC4 kill_switch-NOT-flagged, AC5 no-worker-healthy. 41/41 tests pass (tr_ms58uwdn green). typecheck/lint clean.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/__tests__/plugin-init.registrar-guard.test.ts",
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ],
+      "checkpointSha": "878cc8fb0de3de6980a2219be478dc176ad44c10",
+      "completedAt": "2026-07-28T22:45:32.010Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "DONT5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Both polarities require explicit assertions; doctor health is the user-visible surface that masked the defect.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/__tests__/plugin-init.registrar-guard.test.ts",
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ]
+    },
+    {
+      "id": "tk-f0f56d518c38",
+      "title": "## Extend `orphan-session-adoption.itest.ts` for the restart-path seam (AC6)",
+      "type": "code",
+      "section": "Integration proof",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3788bde33e45"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:36.392Z",
+      "started_at": "2026-07-28T22:47:58.831Z",
+      "completed_at": "2026-07-28T22:55:46.901Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Extended orphan-session-adoption.itest.ts with AC6 test case. Approach A: imported attachWorkerWithAdoption from plugin-init.ts directly (worked in temporal vitest project). New test: starts workflow on stranded queue, creates real InProcessWorker with registerQueue→Worker.create, calls attachWorkerWithAdoption (the restart seam), driver ticks → adoptNextOrphan → registerQueue → real poller, workflow becomes queryable (sentinel retry). Not a spy — proves outcome. Additive tweak: helper returns WorkerAdoptionHandle{stopDriver} for clean teardown. Both integration tests pass (tr_ms5981s8, 2/2, 15.4s). Unit tests unaffected (9/9). typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts"
+      ],
+      "checkpointSha": "b304eb4c9dcd778a21ebb2af5af3dd4299d1473b",
+      "completedAt": "2026-07-28T22:55:46.901Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC6"
+        ],
+        "respects": [
+          "C5",
+          "DONT7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "AC6 mandates end-to-end reachability proof against a real Temporal server; explicit contract requirement not to downgrade to a spy.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts"
+      ]
+    },
+    {
+      "id": "tk-036947418d18",
+      "title": "## AC7/AC8 regression coverage: singleton unchanged, kill-switch still disables",
+      "type": "code",
+      "section": "Regression coverage",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3788bde33e45"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:36.393Z",
+      "completed_at": "2026-07-28T22:47:50.719Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC7/AC8 regression coverage. AC7: attachWorkerWithAdoption with two workers — module-level activeOrphanQueueAdopter replaced not duplicated, only one active adopter (singleton invariant unchanged). AC8: ADV_ORPHAN_QUEUE_ADOPTION=0 — status enabled:false, reason:kill_switch, diagnostics null, no OrphanQueueAdopter constructed. Test evidence tr_ms58uwdn (41/41 pass).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "878cc8fb0de3de6980a2219be478dc176ad44c10",
+      "completedAt": "2026-07-28T22:47:50.719Z",
+      "contract_refs": {
+        "verifies": [
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Defensive regressions for invariants that must remain unchanged through the refactor.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-6a2c0bb6f909",
+      "title": "## Structural guard: non-exported registrar + source assertion (KD7)",
+      "type": "code",
+      "section": "Structural guard",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3788bde33e45"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:36.394Z",
+      "completed_at": "2026-07-28T22:47:43.283Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Structural guard (KD7). registerInProcessTemporalWorker non-exported at :605. Zero external callers. Source assertion test passes. Reviewer report READY (reportId decoupleOrphanAdopter|tk-6a2c0bb6f909|adv-reviewer|1). Test evidence tr_ms58uwdn.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "878cc8fb0de3de6980a2219be478dc176ad44c10",
+      "completedAt": "2026-07-28T22:47:43.283Z",
+      "contract_refs": {
+        "respects": [
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Structural guard verified by static source assertion + non-export check; not runtime behavior.",
+        "review_evidence_ref": {
+          "report_key": "decoupleOrphanAdopter|tk-6a2c0bb6f909|adv-reviewer|2"
+        },
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "decoupleOrphanAdopter",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleOrphanAdopter",
+          "task_id": "tk-6a2c0bb6f909",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6a2c0bb6f909"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "plugin-init.registrar-guard.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "adv_run_test tr_ms58uwdn (phase:green) includes plugin-init.registrar-guard.test.ts: source assertion confirms registerInProcessTemporalWorker is not exported via function or re-export pattern. 41/41 tests pass. Zero external production callers found via grep audit."
+          },
+          "scope_drift": {
+            "items": [],
+            "details": "No scope drift. T8 confined to plugin-init.ts export change + source assertion test.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.registrar-guard.test.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "decoupleOrphanAdopter",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleOrphanAdopter",
+          "task_id": "tk-6a2c0bb6f909",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6a2c0bb6f909"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "plugin-init.registrar-guard.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "adv_run_test run tr_ms59ljkc (phase:green, taskId tk-6a2c0bb6f909): pnpm vitest run src/__tests__/plugin-init.registrar-guard.test.ts — 2/2 pass. Source assertion confirms registerInProcessTemporalWorker is not exported via function or re-export pattern."
+          },
+          "scope_drift": {
+            "items": [],
+            "details": "No scope drift. T8 confined to plugin-init.ts export change + source assertion test.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.registrar-guard.test.ts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-c1f697a32f6c",
+      "title": "## Driver-error observability + fail-soft for stale client (KD5, C3, C7)",
+      "type": "code",
+      "section": "Driver-error observability",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9a7cc5bf3293"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:51.786Z",
+      "started_at": "2026-07-28T22:32:48.971Z",
+      "completed_at": "2026-07-28T22:36:39.188Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Driver-error observability + fail-soft. Added driver_error and construction_failed kinds to AdoptionConstructionState. Driver tick wraps adoptNextOrphan().catch(recordAdoptionDriverError) — driver continues ticking (C7). Constructor wrapped in try/catch — worker startup proceeds on failure (C3). describeError exported from orphan-queue-adopter.ts and reused. Status accessor surfaces typed reasons. 7/7 tests pass including driver-error-continues-ticking and construction-failed-no-break (tr_ms58jgqn green). typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/orphan-queue-adopter.ts"
+      ],
+      "checkpointSha": "d44cc1ca461b7b1f89a13d4fbca409895eee8b5d",
+      "completedAt": "2026-07-28T22:36:39.188Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "respects": [
+          "C3",
+          "C7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "Failure-path coverage for stale client and construction failure; C3 fail-soft invariant is load-bearing.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/plugin-init.orphan-adopter-restart.test.ts",
+        "plugin/src/plugin-init.ts",
+        "plugin/src/temporal/orphan-queue-adopter.ts"
+      ]
+    },
+    {
+      "id": "tk-61ed81e10157",
+      "title": "## Teardown ordering + no-leak assertion (AC9, C6)",
+      "type": "code",
+      "section": "Teardown",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9a7cc5bf3293"
+        }
+      ],
+      "created_at": "2026-07-28T22:05:51.851Z",
+      "completed_at": "2026-07-28T22:36:47.045Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Teardown ordering + no-leak. Added teardownWorkerAttachment helper (:510) calling stopDriver before deleting from registry. Wired into handleWorkerExhausted (:595) and drainInProcessTemporalWorkers (:793) — stopDriver called BEFORE worker.shutdown (C6). AC9 no-leak test: 3 consecutive restart cycles, asserts getWorkerAdoptionAttachmentCount===1 and vi.getTimerCount()===1 after each (tr_ms58jgqn green). C6 ordering test: timer count is 0 at shutdown invocation. typecheck clean.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "d44cc1ca461b7b1f89a13d4fbca409895eee8b5d",
+      "completedAt": "2026-07-28T22:36:47.045Z",
+      "contract_refs": {
+        "verifies": [
+          "AC9"
+        ],
+        "respects": [
+          "C6"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "rationale": "AC9 requires explicit no-leak assertion across repeated restart cycles; teardown ordering is the sharpest new risk per design.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleOrphanAdopter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleOrphanAdopter",
+      "task_id": "tk-6a2c0bb6f909",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6a2c0bb6f909"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "plugin-init.registrar-guard.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "adv_run_test tr_ms58uwdn (phase:green) includes plugin-init.registrar-guard.test.ts: source assertion confirms registerInProcessTemporalWorker is not exported via function or re-export pattern. 41/41 tests pass. Zero external production callers found via grep audit."
+      },
+      "scope_drift": {
+        "items": [],
+        "details": "No scope drift. T8 confined to plugin-init.ts export change + source assertion test.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.registrar-guard.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleOrphanAdopter",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleOrphanAdopter",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "ac5-ac9-c6-lifecycle-1",
+          "label": "blocker",
+          "file": "plugin/src/plugin-init.ts",
+          "line": 510,
+          "what": "Worker teardown stops the timer but leaves `activeOrphanQueueAdopter` and `adoptionConstructionState` active; init-failure cleanup calls `worker.shutdown()` without teardown first.",
+          "why": "After the final worker drains or plugin initialization fails, diagnostics can still report an active adopter despite no worker, violating AC5 and AC9. The init-failure order also violates C6 because the driver can outlive a worker while shutdown begins.",
+          "fix": "Clear active adoption state when the final attachment is removed, and call attachment teardown plus worker-registry removal before shutdown on init failure; add lifecycle tests for drain and init-failure state/timer cleanup."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "doctor-recommendation-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/doctor.ts",
+          "line": 753,
+          "what": "An adoption-only unhealthy finding falls through to `System healthy; no action needed.`",
+          "why": "`verification.healthy` is false, so the recommendation conflicts with the surfaced unhealthy condition even though the health boolean itself is correct."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A global active-adopter diagnostic must be cleared or recomputed when its worker attachment tears down; stopping only the interval leaves a stale healthy-looking adoption state after drain."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/plugin-init.orphan-adopter-restart.test.ts src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts src/tools/doctor.test.ts src/__tests__/plugin-init.registrar-guard.test.ts",
+          "bin/oc-test targeted -- --project temporal src/temporal/__tests__/orphan-session-adoption.itest.ts",
+          "pnpm --dir plugin run typecheck"
+        ],
+        "results": "pass",
+        "evidence": "Targeted unit suite: 41/41 passed. Real Temporal integration: 2/2 passed. Typecheck passed. Initial wrapper invocation with plugin-prefixed paths found no tests; corrected paths are relative to plugin and passed. Review inspection identified untested teardown/init-failure state leakage."
+      },
+      "scope_drift": null,
+      "risks": [
+        "A final worker drain can leave `getOrphanQueueAdoptionDiagnostics()` non-null and enabled after no worker remains.",
+        "A store-init failure after attachment creation can retain the adoption driver until later process teardown."
+      ],
+      "required_main_agent_actions": [
+        "Remediate blocker ac5-ac9-c6-lifecycle-1 in plugin/src/plugin-init.ts and add regression coverage before acceptance.",
+        "Update doctor recommendation selection so any `verification.healthy === false` outcome never states `System healthy; no action needed.`",
+        "Re-run the cited unit, Temporal integration, and typecheck verification after remediation.",
+        "AC review: AC1-AC4, AC6-AC8, and AC10 have implementation/test evidence; AC5 and AC9 fail lifecycle-state inspection. Constraints C1-C5 and C7 pass; C6 fails on init-failure cleanup. DONT1-DONT3 and DONT5-DONT8 pass by reviewed implementation; DONT4 has no adoption-path restart advice, though pre-existing generic fallback text remains in doctor.ts."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/plugin-init.orphan-adopter-restart.test.ts src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts src/tools/doctor.test.ts src/__tests__/plugin-init.registrar-guard.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- --project temporal src/temporal/__tests__/orphan-session-adoption.itest.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run typecheck"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleOrphanAdopter",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleOrphanAdopter",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "nb1",
+          "label": "suggestion",
+          "what": "Doctor recommendedNextAction for adoption-only unhealthy says 'System healthy'",
+          "why": "Misleading when adoption is the only unhealthy finding. Minor UX follow-up."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/plugin-init.ts",
+          "summary": "teardownWorkerAttachment clears activeOrphanQueueAdopter and adoptionConstructionState when the torn-down attachment was the active one",
+          "verification": "New test: drain clears adoption state (enabled->false, reason->no_worker_attached). 42/42 pass."
+        },
+        {
+          "file": "plugin/src/plugin-init.ts",
+          "summary": "Init-failure catch calls teardownWorkerAttachment(worker) before worker.shutdown()",
+          "verification": "Code inspection + existing teardown tests cover the path."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "plugin-init.orphan-adopter-restart.test.ts (10)",
+          "plugin-init.worker-singleton.test.ts (4)",
+          "plugin-init.session-registration.test.ts (5)",
+          "doctor.test.ts (18)",
+          "plugin-init.registrar-guard.test.ts (1)",
+          "orphan-session-adoption.itest.ts (2 integration)"
+        ],
+        "results": "pass",
+        "evidence": "42/42 unit tests pass (tr_ms59ijyb green), 2/2 integration tests pass (tr_ms5981s8 real Temporal server), typecheck/lint/format clean. All 10 ACs verified: AC1-AC10 pass. All C1-C7 constraints and DONT1-DONT8 avoidances verified."
+      },
+      "scope_drift": {
+        "items": [],
+        "details": "No scope drift. All changes confined to plugin host. No Temporal workflow-code changes (C5).",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "risks": [
+        "Stale client under concurrent recovery (C7): reinitStsl() swaps bundle.client; mitigated by driver-error observability not locking",
+        "Reclaiming already-orphaned queues is secondary (out of scope per agreement); splits to follow-up"
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.orphan-adopter-restart.test.ts (10)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.worker-singleton.test.ts (4)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.session-registration.test.ts (5)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: doctor.test.ts (18)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.registrar-guard.test.ts (1)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: orphan-session-adoption.itest.ts (2 integration)"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleOrphanAdopter",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleOrphanAdopter",
+      "task_id": "tk-6a2c0bb6f909",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6a2c0bb6f909"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "plugin-init.registrar-guard.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "adv_run_test run tr_ms59ljkc (phase:green, taskId tk-6a2c0bb6f909): pnpm vitest run src/__tests__/plugin-init.registrar-guard.test.ts — 2/2 pass. Source assertion confirms registerInProcessTemporalWorker is not exported via function or re-export pattern."
+      },
+      "scope_drift": {
+        "items": [],
+        "details": "No scope drift. T8 confined to plugin-init.ts export change + source assertion test.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: plugin-init.registrar-guard.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-a92c8ca44842": [
+      {
+        "runId": "tr_ms57x21t_901ba6de",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/plugin-init.orphan-adopter-restart.test.ts 2>&1",
+        "durationMs": 2436.43610299984,
+        "recordedAt": "2026-07-28T22:19:06.032Z"
+      }
+    ],
+    "tk-aa3b6abdfcdb": [
+      {
+        "runId": "tr_ms58363g_27b1811c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/plugin-init.orphan-adopter-restart.test.ts 2>&1",
+        "durationMs": 2420.2446159999818,
+        "recordedAt": "2026-07-28T22:23:51.208Z"
+      },
+      {
+        "runId": "tr_ms5837l5_edc5aba4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts 2>&1",
+        "durationMs": 4350.322755999863,
+        "recordedAt": "2026-07-28T22:23:53.140Z"
+      }
+    ],
+    "tk-3788bde33e45": [
+      {
+        "runId": "tr_ms589ki7_d5d6f78c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/plugin-init.orphan-adopter-restart.test.ts src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts 2>&1",
+        "durationMs": 4360.89737300016,
+        "recordedAt": "2026-07-28T22:28:49.824Z"
+      }
+    ],
+    "tk-9a7cc5bf3293": [
+      {
+        "runId": "tr_ms58e3ug_a3ff0781",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/plugin-init.orphan-adopter-restart.test.ts src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts 2>&1",
+        "durationMs": 4272.20481600007,
+        "recordedAt": "2026-07-28T22:32:21.508Z"
+      }
+    ],
+    "tk-c1f697a32f6c": [
+      {
+        "runId": "tr_ms58jgqn_217f5d55",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/plugin-init.orphan-adopter-restart.test.ts 2>&1",
+        "durationMs": 2419.97984000016,
+        "recordedAt": "2026-07-28T22:36:31.502Z"
+      }
+    ],
+    "tk-6157d32700bb": [
+      {
+        "runId": "tr_ms58uwdn_03f8745c",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/plugin-init.orphan-adopter-restart.test.ts src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts src/tools/doctor.test.ts src/__tests__/plugin-init.registrar-guard.test.ts 2>&1",
+        "durationMs": 4871.19642199995,
+        "recordedAt": "2026-07-28T22:45:24.985Z"
+      }
+    ],
+    "tk-f0f56d518c38": [
+      {
+        "runId": "tr_ms5981s8_987c7569",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run --project temporal src/temporal/__tests__/orphan-session-adoption.itest.ts 2>&1",
+        "durationMs": 16829.10627700016,
+        "recordedAt": "2026-07-28T22:55:38.515Z"
+      }
+    ],
+    "tk-61ed81e10157": [
+      {
+        "runId": "tr_ms59ijyj_b74bb6db",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/plugin-init.orphan-adopter-restart.test.ts src/plugin-init.worker-singleton.test.ts src/plugin-init.session-registration.test.ts src/tools/doctor.test.ts src/__tests__/plugin-init.registrar-guard.test.ts 2>&1",
+        "durationMs": 4297.349469000008,
+        "recordedAt": "2026-07-28T23:03:48.635Z"
+      }
+    ],
+    "tk-6a2c0bb6f909": [
+      {
+        "runId": "tr_ms59ljkc_7c78761a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/__tests__/plugin-init.registrar-guard.test.ts 2>&1",
+        "durationMs": 1056.1833970001899,
+        "recordedAt": "2026-07-28T23:06:08.093Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-28T18:37:29.190Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "Problem confirmed by user (\"yes fix\"). Proposal rev 2 records a source-verified root cause: the OrphanQueueAdopter is constructed only inside plugin-init's worker-spawn branch (plugin-init.ts:409-422), so a worker created by any other path — notably adv_doctor's worker_restart — never gets an adopter. Proven live: doctor reported worker_down_owned (this host OWNS the lock), restarted the worker to worker_alive/queue_serviceable true, and orphan_queue_adoption remained {enabled:false,\"no active adopter\"} across two consecutive runs. Null diagnostics prove non-construction rather than a stalled scan, which diverges from #327 as filed. Rev 1 scope (\"let non-lock-owning hosts adopt\") was withdrawn as architecturally impossible after reading orphan-queue-adopter.ts:24-28 — adoption IS worker.registerQueue(), so a host without a worker cannot adopt. Unlinked from #327 due to CLAIM_CONFLICT held by the orphaned predecessor fixStalledOrphanQueueAdoption.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "9035badcce5609fba7a537363d9478c65c0d2d5df8d9e723b5a96b3bb3bf6aeb",
+        "non_whitespace_chars": 5868,
+        "checked_at": "2026-07-28T18:35:53.782Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-28T18:39:42.220Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved by user (\"approve\"); typed contract minted (20 items: AC1-AC8 test, C1-C5 static_check, DONT1-DONT7 review). Discovery completed inline from source. Key findings: (1) OrphanAdopterWorker contract (orphan-queue-adopter.ts:24-28) is {registerQueue(queue), queues[]} — adoption IS worker.registerQueue(), so a worker is mandatory; this bounded scope and falsified the rev-1 proposal, now encoded as DONT1. (2) Construction site plugin-init.ts:409-422, gated on truthy `worker` && temporalBundle && isOrphanQueueAdoptionEnabled(). (3) Diagnostics accessor plugin-init.ts:501-503 returns activeOrphanQueueAdopter?.getDiagnostics() ?? null — null proves non-construction rather than a stalled scan, diverging from #327 as filed. (4) Adoption tick rides worker-lock heartbeat onBeat (plugin-init.ts:299-304), started only when singletonPlan.lockResult?.owned — a worker spawned outside plugin-init has no driver, which is why AC3 requires proving ticks occur rather than mere construction. (5) shouldSpawnWorker derives from resolveWorkerSingletonPlan, worker_singleton_enforce defaults true (plugin-init.ts:273-289). (6) Kill-switch ruled out: ADV_ORPHAN_QUEUE_ADOPTION unset in all processes; isOrphanQueueAdoptionEnabled() defaults ON (orphan-queue-adopter.ts:108-114); source comment states the deployed bundle \"already wires adoption unconditionally\" — absent adoption contradicts stated intent, hence DONT3. (7) Per-tick safety already implemented (single-flight, 8s timeout, 3-attempt cap, 5min cooldown, shutdown-error suppression, finally-released latch) — C1 mandates reuse. (8) Doctor surface doctor.ts:308,714-730. Environment verified: deployed bundle b24452602d395b87 == source dist == manifest by sha256, built 14:12 from trunk c573070e, zero commits since, tree clean — current-build behavior, not stale deployment. Empirical: two live doctor runs (18:25:54Z, 18:26:08Z) on a lock-owning host with a live worker, both reporting orphan_queue_adoption {enabled:false,\"no active adopter\"}. No unresolved discovery questions block design.",
+      "started_at": "2026-07-28T18:39:03.560Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "8e635ddc02fe1101cc2beb933e10fafeda51f5e25b15fd3e4c1b638d72644b83",
+        "non_whitespace_chars": 3731,
+        "checked_at": "2026-07-28T18:35:53.784Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-28T22:03:37.904Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design Rev 2 written post-validation. Independent validator (adv-researcher) verdict CONCERNS (confidence high, risk medium); all 6 requirements adopted: (1) attachment registry + teardown on drain/exhaustion/init-failure/replacement; (2) null/STSL-not-initialized client handled via fail-soft path; (3) driver-error observability for stale client; (4) deterministic restart-path driver test; (5) extend (not replace) existing AC6 integration test; (6) private or source-guarded bare registration. Validator sources: Temporal Worker/Connection/Client TypeScript API docs. Source line refs re-verified against current HEAD c573070e (trunk current, only .adv/backlog.jsonl dirty): plugin-init.ts:299-304 (onBeat), :409-422 (construction), :644-656 (drain, no interval teardown confirmed), :770-800 (restart, bare registerInProcessTemporalWorker confirmed). Validator verdict was CONCERNS not CONFLICT; no user-value/product tradeoff; no contract-compromise risk — no design approval checkpoint.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "aeab4bc36eed57b6239ee5d96f221664b47d61b79664fe4b0491cd9181239f33",
+        "non_whitespace_chars": 7385,
+        "checked_at": "2026-07-28T18:35:53.785Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-28T22:10:14.725Z",
+      "completed_by": "user:jon",
+      "approval_evidence": "Prep contract approved by user (\"approve\"). 10-task graph created; all 10 ACs covered (AC1-AC10), all 7 constraints and 8 avoidances traced via contract_refs. TDD shape: RED→refactor→GREEN (T1-T3), then driver/teardown/diagnostics hardening (T4-T6), then doctor/integration/regressions (T7-T10). Evidence policies: 9 test, 1 static_check (T8 structural guard)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-28T22:56:26.050Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 10 tasks done. TDD evidence recorded per task (RED→GREEN for T1-T3; GREEN for T4-T10 with reviewer evidence for T8 static_check). AC coverage: AC1-AC10 all verified. 41/41 unit tests pass (5 files), 2/2 integration tests pass (orphan-session-adoption.itest.ts, real Temporal server), typecheck clean, lint clean. Pre-existing unrelated failure in activities.disk-projection.test.ts confirmed on parent commit (out of scope). Files changed: plugin-init.ts (composition root, driver, teardown, diagnostics), orphan-queue-adopter.ts (describeError export), doctor.ts (adoption-aware health), 3 test files (orphan-adopter-restart, doctor, registrar-guard), 1 integration test extension."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-28T23:06:24.000Z",
+      "completed_by": "agent",
+      "approval_evidence": "Acceptance review complete. Reviewer verdict READY. Review matrix: 25 rows, 0 failing. Executive summary present. All tasks done. T8 typed test evidence recorded (tr_ms59ljkc, taskId tk-6a2c0bb6f909). Verification disposition: fixed. 42/42 unit tests, 2/2 integration tests, typecheck clean.",
+      "started_at": "2026-07-28T23:05:31.048Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "dadee1e94b8df9661f1b0170061fbc99af34ddb7dc0a46a64545efa4b2b4c173",
+        "non_whitespace_chars": 3207,
+        "checked_at": "2026-07-28T18:35:53.788Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+      "approvedAt": "2026-07-28T18:39:42.220Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1** — After `adv_doctor` applies `worker_restart`, `orphan_queue_adoption.enabled === true` and diagnostics are non-null. *Directly reproduces the observed failure: two consecutive doctor runs left `{enabled: false, \"no active adopter\"}` on a lock-owning host with a live worker.*",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2** — Any host holding a live worker reports a constructed adopter, irrespective of whether that worker came from `plugin-init` spawn or `restartTemporalWorker`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3** — An adopter attached outside `plugin-init` is actually **driven**. A doctor-spawned worker starts no worker-lock heartbeat (`plugin-init.ts:299-304`), so construction alone is insufficient. A test must assert ticks occur, not merely that the object exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4** — `adv_doctor` reports `healthy: false` when a worker is alive but adoption is absent or failing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5** — A host with **no** worker reports no adopter and is **not** marked unhealthy for it. Legitimate non-owner case; must not become a false alarm.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6 (corrected)** — The **restart-path seam** is proven end-to-end: a worker created via `restartTemporalWorker` adopts a stranded prior-session queue and the previously unreachable workflow becomes queryable. `orphan-session-adoption.itest.ts` already proves this for the *adopter* against a real server; it must be **extended** to cover the new attachment/driver seam. It must **not** be replaced or downgraded to a `registerQueue` spy assertion, which would restate the mechanism instead of proving the outcome.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7** — Worker-singleton enforcement unchanged: no second competing worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "**AC8** — `ADV_ORPHAN_QUEUE_ADOPTION=0` still fully disables adoption.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "**AC9 (new)** — Deterministic teardown. The adopter and its tick driver are cleared on worker drain, worker exhaustion, init failure, and worker replacement. Repeated `adv_doctor` restarts leak no live timers and no driver targets a drained worker. *`drainInProcessTemporalWorkers()` (`plugin-init.ts:644-656`) only calls `worker.shutdown()` — it has no mechanism today to stop an interval.*",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "**AC10 (new)** — Client-unavailable is handled, not assumed. When no STSL bundle exists (`getService()` returns null, `service.ts:216-222`), the worker still registers and adoption reports a typed unavailable/failed state — never a silent `null` indistinguishable from \"not configured\".",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "**C1** — Preserve the adopter's per-tick safety contract exactly: single-flight (`scanInFlight`), 8s per-tick timeout, 3-attempt cap, 5-minute cooldown, shutdown-error suppression, `finally`-released latch. Reuse; do not reimplement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "**C2** — Reuse the existing `registerQueue` surface. No worker-lifecycle or IPC redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "**C3** — Adopter construction failure must never break worker startup. The worker is load-bearing; adoption is recovery. Fail soft — but report.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "**C4** — Adoption remains bounded: preserve the existing ~10s cadence. No unbounded scan loops.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "**C5** — Changes confined to the plugin host. No Temporal workflow-code changes, no `wf.patch`, no replay risk.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "**C6 (new)** — The tick driver must be cleared **before** worker shutdown/drain, never after. Ordering is load-bearing: a driver outliving its worker targets a drained worker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "**C7 (new)** — Tolerate client replacement. `reinitStsl()` swaps `bundle.client` in place (`service.ts:301-347`), so an adopter holding the prior reference can go stale. Tick/list failures must be caught and surfaced as a driver-error diagnostic rather than failing silently.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "**DONT1** — Do not let hosts **without** a worker adopt queues. Adoption *is* `worker.registerQueue()`; architecturally impossible (`orphan-queue-adopter.ts:24-28`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "**DONT2** — Do not weaken or bypass worker-singleton enforcement.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "**DONT3** — Do not flip the kill-switch default or make it opt-in. Source: *\"a default-off flag would regress that live behavior.\"*",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "**DONT4** — Do not fix this by advising an OpenCode restart. Restarting is an **anti-remedy**: it killed all workers, dropped polled queues 34 → 2, and orphaned five changes created 30 minutes earlier.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "**DONT5** — Do not claim `healthy: true` while a known-bad condition is unreported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT6",
+        "kind": "avoidance",
+        "text": "**DONT6** — Do not expand into read surfaces owned by `fixWorkerDependentResume` (CLI) or `makeToolReadsWorkerFree` (plugin tools).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT7",
+        "kind": "avoidance",
+        "text": "**DONT7** — Do not verify against pre-restart changes; those are unreachable. Verify on the current session's queue or via doctor diagnostics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT8",
+        "kind": "avoidance",
+        "text": "**DONT8 (new)** — Do not remove `workerBundleRollMonitor?.checkNow()` from the heartbeat `onBeat` (`plugin-init.ts:300`). Only the adoption call moves. That monitor belongs to `preventRedeployWorkflow` (PR #333).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-28T23:05:24.512Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "plugin-init.orphan-adopter-restart.test.ts: restart constructs adopter, getOrphanQueueAdoptionDiagnostics() non-null. RED→GREEN T1→T3."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Both sites (spawn :411, restart :881) route through attachWorkerWithAdoption. Tests confirm adopter on both paths."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Fake timers + prototype spy on adoptNextOrphan; advance 10.5s; assert called — proves driven not just constructed."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "doctor.ts AC4 guard: worker alive + adoption absent/failing (reason!=kill_switch) → unhealthy finding. Tests: unavailable, driver_error, kill_switch-NOT-flagged."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No worker alive + no adoption → no unhealthy finding, success:true. Test confirms no false alarm."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "orphan-session-adoption.itest.ts AC6 case: real Temporal server, attachWorkerWithAdoption seam, workflow becomes queryable via sentinel retry. Not a spy."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC7 test: two workers via helper — module-level activeOrphanQueueAdopter replaced not duplicated. Singleton invariant unchanged."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC8 test: ADV_ORPHAN_QUEUE_ADOPTION=0 → status enabled:false, reason:kill_switch, no OrphanQueueAdopter constructed."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No-leak test: 3 consecutive restart cycles, attachmentCount===1, timerCount===1 after each. Teardown-state test: drain clears to no_worker_attached."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "AC10 test: getService()=null → status enabled:false, reason:no_temporal_client, diagnostics:null. Typed, not silent null."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "OrphanQueueAdopter internals unchanged. Driver only calls adoptNextOrphan() on cadence; single-flight/timeout/cap/cooldown all inside adopter."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing registerQueue surface reused via OrphanAdopterWorker interface. No worker-lifecycle redesign."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Construction wrapped in try/catch → construction_failed state, worker proceeds. Driver tick errors caught → driver_error state, driver continues."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Driver interval is 10_000ms, matching original heartbeat cadence."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "All changes confined to plugin host (plugin-init.ts, doctor.ts, orphan-queue-adopter.ts). No Temporal workflow-code changes."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "teardownWorkerAttachment calls stopDriver before worker.shutdown in drain and handleWorkerExhausted. Init-failure catch also calls teardown before shutdown."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Driver tick catches errors → driver_error typed diagnostic. Does not rethrow. Stale client from reinitStsl surfaces as driver_error."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Helper requires InProcessWorker arg; no workerless adoption path exists."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "resolveWorkerSingletonPlan unchanged; AC7 regression confirms no second competing worker."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "isOrphanQueueAdoptionEnabled() default ON unchanged. AC8 test confirms kill-switch still disables when set to 0."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No restart-advice remedy. The fix makes restart actually work."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Doctor now reports healthy:false when worker alive + adoption absent. No silent healthy:true masking."
+        },
+        {
+          "contractId": "DONT6",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No changes to CLI (fixWorkerDependentResume scope) or plugin tool reads (makeToolReadsWorkerFree scope)."
+        },
+        {
+          "contractId": "DONT7",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Tests verify on current session queue via adoption mechanism, not pre-restart changes."
+        },
+        {
+          "contractId": "DONT8",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "onBeat retains workerBundleRollMonitor?.checkNow() at :300. Only adoption call removed. Source inspection confirms."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "**AC1** — After `adv_doctor` applies `worker_restart`, `orphan_queue_adoption.enabled === true` and diagnostics are non-null. *Directly reproduces the observed failure: two consecutive doctor runs left `{enabled: false, \"no active adopter\"}` on a lock-owning host with a live worker.*",
+    "**AC2** — Any host holding a live worker reports a constructed adopter, irrespective of whether that worker came from `plugin-init` spawn or `restartTemporalWorker`.",
+    "**AC3** — An adopter attached outside `plugin-init` is actually **driven**. A doctor-spawned worker starts no worker-lock heartbeat (`plugin-init.ts:299-304`), so construction alone is insufficient. A test must assert ticks occur, not merely that the object exists.",
+    "**AC4** — `adv_doctor` reports `healthy: false` when a worker is alive but adoption is absent or failing.",
+    "**AC5** — A host with **no** worker reports no adopter and is **not** marked unhealthy for it. Legitimate non-owner case; must not become a false alarm.",
+    "**AC6 (corrected)** — The **restart-path seam** is proven end-to-end: a worker created via `restartTemporalWorker` adopts a stranded prior-session queue and the previously unreachable workflow becomes queryable. `orphan-session-adoption.itest.ts` already proves this for the *adopter* against a real server; it must be **extended** to cover the new attachment/driver seam. It must **not** be replaced or downgraded to a `registerQueue` spy assertion, which would restate the mechanism instead of proving the outcome.",
+    "**AC7** — Worker-singleton enforcement unchanged: no second competing worker.",
+    "**AC8** — `ADV_ORPHAN_QUEUE_ADOPTION=0` still fully disables adoption.",
+    "**AC9 (new)** — Deterministic teardown. The adopter and its tick driver are cleared on worker drain, worker exhaustion, init failure, and worker replacement. Repeated `adv_doctor` restarts leak no live timers and no driver targets a drained worker. *`drainInProcessTemporalWorkers()` (`plugin-init.ts:644-656`) only calls `worker.shutdown()` — it has no mechanism today to stop an interval.*",
+    "**AC10 (new)** — Client-unavailable is handled, not assumed. When no STSL bundle exists (`getService()` returns null, `service.ts:216-222`), the worker still registers and adoption reports a typed unavailable/failed state — never a silent `null` indistinguishable from \"not configured\"."
+  ],
+  "documents": {
+    "proposal": "# Bind orphan-queue adopter lifecycle to worker lifecycle\n\nAddresses **#327**. Supersedes `fixStalledOrphanQueueAdoption`, whose workflow was itself orphaned by this defect and can no longer be edited.\n\n> **Rev 2 — scope corrected.** Rev 1 proposed letting non-lock-owning hosts drive adoption. Reading `orphan-queue-adopter.ts` proved that **impossible**: adoption *is* `worker.registerQueue(...)`, so a host with no worker cannot adopt by definition. The real defect is narrower and provable — see below.\n\n> **Unlinked deliberately.** `origin_issue_number: 327` was refused with `CLAIM_CONFLICT`; the orphaned predecessor holds the claim and cannot release it, because releasing requires reaching its workflow. Re-link once adoption is restored.\n\n## Problem\n\nWorkflows created by earlier sessions stay routed to their per-session Temporal task queues. Nothing adopts those queues, so every signal, mutation, and `describe`-gated recovery precheck against them fails permanently — while `adv_doctor` reports the system fully healthy.\n\n## Root Cause Analysis\n\nVerified against deployed bundle `b24452602d395b87` (built 14:12 from trunk `c573070e`; deployed == source == manifest by sha256; zero commits since; tree clean). **Live behavior on latest.**\n\n**Adoption requires a worker — by design.** `orphan-queue-adopter.ts:24-28`:\n\n```ts\nexport interface OrphanAdopterWorker {\n  registerQueue(queue: string): Promise<void>;\n  readonly queues: readonly string[];\n}\n```\n\nAdopting an orphan queue means telling a live worker to start polling it. This is correct and is not the defect.\n\n**The adopter is constructed only inside `plugin-init`'s worker-spawn branch.** `plugin-init.ts:409-422`:\n\n```js\nif (worker) {\n  registerInProcessTemporalWorker(worker);\n  if (temporalBundle && isOrphanQueueAdoptionEnabled()) {\n    activeOrphanQueueAdopter = new OrphanQueueAdopter({ client, projectId, worker });\n  }\n}\n```\n\nDiagnostics are `activeOrphanQueueAdopter?.getDiagnostics() ?? null` (`plugin-init.ts:501-503`).\n\n**The defect: a worker created outside that branch never gets an adopter.** `adv_doctor`'s `worker_restart` spawns a worker without re-entering `plugin-init`, so `activeOrphanQueueAdopter` stays `null`.\n\n**This is proven, not inferred.** Doctor's own finding was `worker_down_owned` — *\"Local worker is down; no suspect lock and no peer contention.\"* So this host **owns the lock**. After its restart the worker is alive and `queue_serviceable: true`. Yet:\n\n| Doctor run | Result |\n| --- | --- |\n| 18:25:54Z | `worker_down_owned`; applied `worker_restart`; `healthy: false` |\n| 18:26:08Z | `healthy: true`, `worker_alive: true`, `queue_serviceable: true`, `search_attributes_ok: true` |\n| both | `orphan_queue_adoption: { enabled: false, note: \"no active adopter\" }` |\n\nA lock-owning host with a live worker and adoption still dead. Null diagnostics prove the object was never constructed — a stalled-but-constructed adopter would return `scanInFlight` / `trackedQueues`.\n\n**Not the kill-switch.** `ADV_ORPHAN_QUEUE_ADOPTION` is unset everywhere. The source comment is explicit that this must not happen: *\"Reconciled to kill-switch-default-on because the deployed bundle already wires adoption unconditionally; a default-off flag would regress that live behavior.\"* Adoption is intended to be unconditional wherever a worker exists. It currently is not.\n\n**Divergence from #327 as filed.** The issue reports `scanInFlight: true`, `attemptCount: 0` — an adopter that exists but stalls. This host has no adopter at all. Both may be real; construction must be fixed first, since a non-existent adopter cannot stall.\n\n## Restart is an anti-remedy\n\nA mid-session OpenCode restart killed all workers (none respawned until doctor was run manually), reduced the worker from 34 polled queues to 2, and orphaned five changes created 30 minutes earlier. Because adoption never runs, **every restart mints permanent orphans**. The standard operator reflex for \"ADV is stuck\" deepens the fault.\n\nNo data is lost — all changes list and all proposals read back intact. Content is safe; only gates are unreachable.\n\n## Scope\n\n- **Bind adopter construction to worker lifecycle, not to one code path.** Any path that produces a live worker — `plugin-init` spawn, `adv_doctor` `worker_restart`, or a later lock acquisition — must attach a running adopter.\n- Guarantee an adoption driver exists for a worker created outside `plugin-init`; today the tick rides the worker-lock heartbeat `onBeat` (`plugin-init.ts:299-304`), which a doctor-spawned worker never starts.\n- `adv_doctor`: stop reporting `healthy: true` when a worker is alive but adoption is absent — that combination is always a bug.\n- Reclaim path for queues already orphaned by prior restarts.\n\n## Out of scope\n\n- Allowing hosts without a worker to adopt — architecturally impossible; correctly excluded.\n- CLI read paths (`fixWorkerDependentResume`, PRs #335/#336); plugin-tool read paths (`makeToolReadsWorkerFree`).\n- Typed `UNREACHABLE` vs `not_found` read shaping — belongs to the read-surface changes.\n- Per-session queue naming/isolation (`isolateAdvWorkerTaskQueues`).\n- Worker-bounce poisoning — `preventRedeployWorkflow` (PR #333), #302.\n\n## Constraints\n\n- Preserve worker-singleton enforcement — no second competing worker.\n- Adoption stays bounded: single-flight, per-tick timeout, attempt cap, cooldown, shutdown-error suppression as already implemented.\n- `ADV_ORPHAN_QUEUE_ADOPTION=0` must still disable adoption.\n\n## Error handling\n\n- Adopter construction failure must not break worker startup; the worker is load-bearing, adoption is recovery. Fail soft, but **report** — never silently null.\n- Absent adoption must be visible in diagnostics and reflected in health, rather than reported as healthy.\n\n## Acceptance criteria\n\n- After `adv_doctor` applies `worker_restart`, `orphan_queue_adoption.enabled === true` and diagnostics are non-null. *(Directly reproduces today's failure.)*\n- Any host with a live worker reports a constructed adopter.\n- `adv_doctor` reports `healthy: false` when a worker is alive but adoption is absent.\n- A workflow created in a prior, ended session becomes reachable after adoption runs — load-bearing, and covered by no existing test.\n- A host with no worker correctly reports no adopter, without being labelled unhealthy for it.\n- Worker-singleton enforcement unchanged.\n\n## Evidence\n\nIssue #327. Backlog `bl-workerQueueReadBlackout` rev 3. Source: `plugin-init.ts:273-289,299-304,409-422,501-503`; `temporal/orphan-queue-adopter.ts:1-130` (per-tick contract, worker interface, kill-switch); `tools/doctor.ts:308,714-730`. Two live doctor runs 18:25:54Z / 18:26:08Z. Wisdom `pw-sPe4vZA3`, `pw--snom33-`, `pw-8GEQDsTc`. Prior: `isolateAdvWorkerTaskQueues`, `autoAdoptOrphanSessionQueues`. Related: #303, #302, #328.",
+    "agreement": "# Agreement: Bind orphan-queue adopter lifecycle to worker lifecycle\n\n> **Rev 2 — corrected after independent validation (verdict: CONCERNS).** Rev 1's AC6 claimed the reachability outcome was \"covered by no existing test\". **That was false.** `plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts` already proves it against a real Temporal server with the real adopter. AC6 is retargeted to the genuine gap. Rev 2 also adds AC9/AC10 and C6/C7 for teardown and client-availability hazards the validator identified.\n\n## Objectives\n\n1. Guarantee that **wherever a live ADV worker exists, a running orphan-queue adopter is attached to it** — regardless of which code path created that worker.\n2. Make absent or failing adoption **visible** instead of silently reported as healthy.\n3. Introduce no timer, client, or worker-reference leaks while doing so.\n\n## Acceptance criteria\n\n- **AC1** — After `adv_doctor` applies `worker_restart`, `orphan_queue_adoption.enabled === true` and diagnostics are non-null. *Directly reproduces the observed failure: two consecutive doctor runs left `{enabled: false, \"no active adopter\"}` on a lock-owning host with a live worker.*\n- **AC2** — Any host holding a live worker reports a constructed adopter, irrespective of whether that worker came from `plugin-init` spawn or `restartTemporalWorker`.\n- **AC3** — An adopter attached outside `plugin-init` is actually **driven**. A doctor-spawned worker starts no worker-lock heartbeat (`plugin-init.ts:299-304`), so construction alone is insufficient. A test must assert ticks occur, not merely that the object exists.\n- **AC4** — `adv_doctor` reports `healthy: false` when a worker is alive but adoption is absent or failing.\n- **AC5** — A host with **no** worker reports no adopter and is **not** marked unhealthy for it. Legitimate non-owner case; must not become a false alarm.\n- **AC6 (corrected)** — The **restart-path seam** is proven end-to-end: a worker created via `restartTemporalWorker` adopts a stranded prior-session queue and the previously unreachable workflow becomes queryable. `orphan-session-adoption.itest.ts` already proves this for the *adopter* against a real server; it must be **extended** to cover the new attachment/driver seam. It must **not** be replaced or downgraded to a `registerQueue` spy assertion, which would restate the mechanism instead of proving the outcome.\n- **AC7** — Worker-singleton enforcement unchanged: no second competing worker.\n- **AC8** — `ADV_ORPHAN_QUEUE_ADOPTION=0` still fully disables adoption.\n- **AC9 (new)** — Deterministic teardown. The adopter and its tick driver are cleared on worker drain, worker exhaustion, init failure, and worker replacement. Repeated `adv_doctor` restarts leak no live timers and no driver targets a drained worker. *`drainInProcessTemporalWorkers()` (`plugin-init.ts:644-656`) only calls `worker.shutdown()` — it has no mechanism today to stop an interval.*\n- **AC10 (new)** — Client-unavailable is handled, not assumed. When no STSL bundle exists (`getService()` returns null, `service.ts:216-222`), the worker still registers and adoption reports a typed unavailable/failed state — never a silent `null` indistinguishable from \"not configured\".\n\n## Constraints\n\n- **C1** — Preserve the adopter's per-tick safety contract exactly: single-flight (`scanInFlight`), 8s per-tick timeout, 3-attempt cap, 5-minute cooldown, shutdown-error suppression, `finally`-released latch. Reuse; do not reimplement.\n- **C2** — Reuse the existing `registerQueue` surface. No worker-lifecycle or IPC redesign.\n- **C3** — Adopter construction failure must never break worker startup. The worker is load-bearing; adoption is recovery. Fail soft — but report.\n- **C4** — Adoption remains bounded: preserve the existing ~10s cadence. No unbounded scan loops.\n- **C5** — Changes confined to the plugin host. No Temporal workflow-code changes, no `wf.patch`, no replay risk.\n- **C6 (new)** — The tick driver must be cleared **before** worker shutdown/drain, never after. Ordering is load-bearing: a driver outliving its worker targets a drained worker.\n- **C7 (new)** — Tolerate client replacement. `reinitStsl()` swaps `bundle.client` in place (`service.ts:301-347`), so an adopter holding the prior reference can go stale. Tick/list failures must be caught and surfaced as a driver-error diagnostic rather than failing silently.\n\n## Avoidances\n\n- **DONT1** — Do not let hosts **without** a worker adopt queues. Adoption *is* `worker.registerQueue()`; architecturally impossible (`orphan-queue-adopter.ts:24-28`).\n- **DONT2** — Do not weaken or bypass worker-singleton enforcement.\n- **DONT3** — Do not flip the kill-switch default or make it opt-in. Source: *\"a default-off flag would regress that live behavior.\"*\n- **DONT4** — Do not fix this by advising an OpenCode restart. Restarting is an **anti-remedy**: it killed all workers, dropped polled queues 34 → 2, and orphaned five changes created 30 minutes earlier.\n- **DONT5** — Do not claim `healthy: true` while a known-bad condition is unreported.\n- **DONT6** — Do not expand into read surfaces owned by `fixWorkerDependentResume` (CLI) or `makeToolReadsWorkerFree` (plugin tools).\n- **DONT7** — Do not verify against pre-restart changes; those are unreachable. Verify on the current session's queue or via doctor diagnostics.\n- **DONT8 (new)** — Do not remove `workerBundleRollMonitor?.checkNow()` from the heartbeat `onBeat` (`plugin-init.ts:300`). Only the adoption call moves. That monitor belongs to `preventRedeployWorkflow` (PR #333).\n\n## Out of scope\n\nReclaiming already-orphaned queues is **desirable but secondary**. If it cannot be delivered within C1–C7, it splits to a follow-up; AC1–AC10 stand alone.\n\n## Verification approach\n\n`adv_doctor` diagnostics before/after (`enabled`, non-null `trackedQueues`) plus unit coverage of construction, driver, and teardown paths. AC6 extends the existing integration test rather than duplicating it. AC9 requires an explicit no-leak assertion across repeated restart cycles.",
+    "design": "# Design: Bind orphan-queue adopter lifecycle to worker lifecycle\n\n> **Rev 2 — post-validation.** Independent validator verdict: **CONCERNS** (confidence high, risk medium). Rev 1's AC6 premise was factually wrong and is corrected. KD3(a) is endorsed but carries teardown obligations. KD2 is conditionally sound, not unconditional.\n\n## Architecture overview\n\nAdoption is currently **paired with worker creation by convention**. Two production paths create a worker; only one also constructs an adopter.\n\n| Worker-creation path | Registers worker | Constructs adopter | Drives ticks |\n| --- | --- | --- | --- |\n| `plugin-init` spawn (`plugin-init.ts:313-354`, adopter at `:409-422`) | yes (`:410`) | **yes** | heartbeat `onBeat` (`:299-304`) |\n| `restartTemporalWorker` (`plugin-init.ts:775-794`) | yes (`:796`) | **no** | **nothing** |\n\nValidator confirmed these are the **only two** production worker-creation sites; test-only creators are separate. The fix is correctly scoped to composition, not a worker redesign.\n\n## Key decisions\n\n**KD1 — One helper owns the worker↔adopter pairing, and their teardown.**\n`attachWorkerWithAdoption(worker, { projectId, client })` calls `registerInProcessTemporalWorker(worker)` *and* constructs/attaches the adopter. Both sites use it.\n\n*Validator amendment:* the helper must own a record `{ worker, adopter, stopDriver }` and clear it on **drain, exhaustion, init failure, and replacement**. `drainInProcessTemporalWorkers()` (`plugin-init.ts:644-656`) only calls `worker.shutdown()` — verified; it has no mechanism to stop an interval. Without this, adoption becomes a leak.\n\n**KD2 — Client via `getService()`, but conditionally.**\n*Validator correction — rev 1 treated this as unconditionally safe. It is not:*\n\n- `getService()` returns **null before STSL initialization** (`service.ts:216-222`). The restart path must register the worker regardless and report adoption unavailable (AC10) rather than skipping registration or throwing.\n- `reinitStsl()` **replaces `bundle.client` in place** (`service.ts:301-347`), so an adopter constructed with `bundle.client` retains the prior reference. Doctor's normal order is sequential (transport reinit before worker restart), but concurrent recovery leaves a stale-client window. Tick/list failures must be caught and surfaced as a driver-error diagnostic (C7).\n\n**KD3 — Attachment owns the tick driver. (a) confirmed.**\nValidator resolved the open question: the heartbeat provides **no sequencing or backpressure** — both `workerBundleRollMonitor?.checkNow()` and the adoption call are fire-and-forget (`plugin-init.ts:299-304`), and `scanInFlight` (`orphan-queue-adopter.ts:138-148`) already supplies overlap control. So removing the heartbeat driver loses nothing.\n\nOne attachment-owned ~10s driver, preserving current cadence. **Cleared before worker shutdown/drain, never after** (C6) — otherwise repeated doctor restarts leak live timers that target drained workers.\n\nOnly `activeOrphanQueueAdopter?.adoptNextOrphan()` is removed from `onBeat`. `checkNow()` stays (DONT8) — it belongs to `preventRedeployWorkflow` (PR #333). Validator found no conflict provided the heartbeat itself remains registered and unchanged.\n\n**KD4 — Reuse the adopter wholesale.** No changes to `OrphanQueueAdopter` internals; its per-tick contract already satisfies C1/C4. Composition only.\n\n**KD5 — Fail-soft, never silently null (C3/AC10).** Construction failure cannot break worker startup, but the reason is recorded and surfaced. After this change, \"tried and failed\", \"no client available\", and \"no worker present\" are distinct observable states.\n\n**KD6 — Health reflects adoption (AC4/AC5).** Worker alive + adoption absent/failing → `healthy: false`. No worker + no adopter → healthy (legitimate non-owner).\n\n**KD7 — Structural guard, strengthened.**\nSource-assertion matches existing idiom (`cli-bridge-contract.test.ts:47-110`). *Validator amendment:* a regex/source guard alone is bypassable. **Prefer making the bare `registerInProcessTemporalWorker` non-exported**, so the helper is the only reachable path, with the source assertion as defence in depth.\n\n## AC6 — corrected premise\n\n**Rev 1 claimed the reachability outcome had no existing test. That was false.**\n\n`plugin/src/temporal/__tests__/orphan-session-adoption.itest.ts` already starts a workflow on an unpolled prior-session queue, runs the real `OrphanQueueAdopter` against a real Temporal server with a real `Worker.create`, and proves the previously unreachable workflow becomes queryable. It stubs **only** Visibility enumeration, because the time-skipping test server does not implement `ListWorkflowExecutions`; that enumeration logic has 13 unit tests in `list-orphan-session-queues.test.ts`.\n\nThe genuine gap is the **new attachment/driver seam** on the restart path. AC6 is retargeted: **extend** this test, do not replace it, and do not downgrade to a `registerQueue` spy assertion.\n\n**#304 risk assessed and not substantiated:** this test uses `withTimeSkippingTestWorkflowEnvironment`, not the archive-phase9 replay harness. No evidence connects it to production-history replay hangs.\n\n## Lever citations\n\n| Lever | Call site | Effect |\n| --- | --- | --- |\n| Missing adopter on restart | `plugin-init.ts:796` | routed through helper |\n| Existing adopter construction | `plugin-init.ts:409-422` | routed through helper |\n| Heartbeat adoption driver | `plugin-init.ts:301-303` | removed; `checkNow()` at `:300` retained |\n| Worker drain | `plugin-init.ts:644-656` | extended to tear down attachments |\n| Client access / null case | `service.ts:216-222` | fail-soft path |\n| Client replacement | `service.ts:301-347` | stale-client diagnostic |\n| Adopter contract | `orphan-queue-adopter.ts:116-257` | unchanged |\n| Diagnostics accessor | `plugin-init.ts:501-503` | extended with failure reason |\n| Doctor health verdict | `tools/doctor.ts:714-730` | adoption-aware |\n| Existing integration proof | `__tests__/orphan-session-adoption.itest.ts:68-164` | extended |\n\n## Implementation strategy\n\n1. **Failing test first (P24)** — `restartTemporalWorker` yields non-null adoption diagnostics (AC1). Must fail before the fix.\n2. Extract `attachWorkerWithAdoption` with the attachment registry; route the `plugin-init` path through it. No behaviour change.\n3. Route `restartTemporalWorker` through it, with KD2 null-client handling (AC2, AC10). Turns step 1 green.\n4. Move the tick driver into the attachment; remove only the adoption call from `onBeat` (AC3, DONT8).\n5. Teardown on drain/exhaustion/init-failure/replacement, ordered before shutdown (AC9, C6), with a no-leak assertion across repeated restart cycles.\n6. Fail-soft + driver-error diagnostics (KD5, C3, C7).\n7. Doctor health, both polarities (AC4, AC5).\n8. Structural guard: non-exported registrar + source assertion (KD7).\n9. Extend `orphan-session-adoption.itest.ts` for the restart seam (AC6).\n10. AC7/AC8 regressions: singleton unchanged; kill-switch still disables.\n\nSteps 1–3 satisfy AC1/AC2/AC10. AC3 needs step 4. AC9 needs step 5.\n\n## Risks\n\n- **Teardown ordering (C6)** is the sharpest new risk: a driver outliving its worker is worse than no driver, and doctor restarts make this repeatable.\n- **Stale client (C7)** is narrow but real under concurrent recovery; mitigated by observability rather than locking.\n- Doctor health change may surface pre-existing unhealthy hosts — correct behaviour (DONT5), expected noise, not regression.\n\n## LBP analysis\n\nConvergent. \"Resource and its lifecycle-bound collaborator constructed and torn down by one owner\" is standard composition-root practice, and the source comment already states adoption is wired \"unconditionally\" — this closes the gap between intent and structure. No new abstraction; the adopter is untouched.\n\n## Validation record\n\nIndependent validator (`adv-researcher`), verdict **CONCERNS**, status caution, confidence high, risk medium. Six requirements, all adopted above: attachment registry + teardown; non-null/current STSL handling; driver-error observability; deterministic restart-path driver test; preserve/extend the existing AC6 integration test; private or source-guarded bare registration. Sources: Temporal Worker, Connection, and Client TypeScript API docs.\n\n*Validator note:* its `adv_subagent_report_submit` was rejected twice by a deployed report-schema mismatch, so findings were relayed as message text. That is a live instance of the report-routing/schema defect tracked by issue #325 and change `fixTestEvidenceRunResolution`.",
+    "executiveSummary": "# Executive Summary: Decouple orphan adopter construction\n\n## Outcome\n\nThe orphan-queue adopter — the mechanism that lets a live ADV worker adopt stranded prior-session Temporal queues — is now bound to worker lifecycle via a single composition helper (`attachWorkerWithAdoption`), not just the `plugin-init` spawn branch. Both production worker-creation paths (plugin-init spawn and `restartCurrentProjectTemporalWorker`) route through it. A doctor-spawned worker now constructs, drives, and tears down an adopter identically to a plugin-init-spawned one.\n\n## Value / why it matters\n\nBefore this change, `adv_doctor`'s `worker_restart` left orphan-queue adoption silently disabled (`{enabled: false, \"no active adopter\"}`) on lock-owning hosts with a live worker. Workflows created by earlier sessions stayed permanently routed to their per-session task queues with nothing polling them — every signal, mutation, and recovery precheck against them failed, while `adv_doctor` reported the system fully healthy. This was the direct cause of unreachable changes and stuck doctor remediation cycles.\n\nAfter this change: wherever a live ADV worker exists, a running adopter is attached to it, driven on a ~10s cadence, and torn down cleanly on drain/exhaustion/replacement. Absent or failing adoption is now **visible** (typed diagnostics: `unavailable`, `driver_error`, `construction_failed`, `disabled`) and factors into the doctor health verdict — no more silent masking.\n\n## Verification\n\n- **42 unit tests pass** across 5 files (plugin-init restart-path, worker-singleton, session-registration, doctor health, registrar-guard).\n- **2 integration tests pass** against a real Temporal time-skipping server (existing adopter proof + new AC6 restart-path seam proof — workflow becomes queryable via the real helper).\n- **typecheck, lint, format clean.**\n- **TDD evidence** recorded per task: RED→GREEN for the core defect (T1-T3), GREEN for hardening (T4-T10), reviewer evidence for the structural guard (T8).\n- **Acceptance review**: initial verdict BLOCKED (stale teardown state + init-failure leak) → remediated → all blockers resolved.\n\n## Key decisions\n\n- **One helper owns pairing + teardown (KD1):** `attachWorkerWithAdoption` calls `registerInProcessTemporalWorker` AND constructs the adopter. Both sites use it. `registerInProcessTemporalWorker` is now non-exported (structural guard).\n- **Attachment-owned tick driver (KD3):** moved from the heartbeat `onBeat` into the attachment. `checkNow()` retained on heartbeat (DONT8). Driver cleared before worker shutdown (C6).\n- **Fail-soft, never silent null (KD5):** null client → typed `unavailable`; construction failure → typed `construction_failed`; tick error → typed `driver_error`. Worker startup never breaks from adoption failure (C3).\n- **Adoption-aware doctor (KD6):** worker alive + adoption absent/failing → `healthy: false`. No worker → healthy (legitimate non-owner).\n\n## Risks / follow-ups\n\n- **Stale client under concurrent recovery (C7):** `reinitStsl()` swaps `bundle.client` in place; an adopter holding the prior reference can go stale. Mitigated by driver-error observability (typed diagnostic), not locking. Narrow window; acceptable.\n- **Reclaiming already-orphaned queues** is desirable but secondary (agreement: out of scope if it can't fit C1-C7). Splits to a follow-up.\n- **Pre-existing unrelated failure** in `activities.disk-projection.test.ts` confirmed on parent commit — not caused by this change; separate triage item.\n- **Non-blocking review finding:** doctor's `recommendedNextAction` text for adoption-only unhealthy could be clearer (\"System healthy\" is misleading when adoption is the only issue). Minor UX follow-up.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-28T23:05:24.512Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | **AC1** — After `adv_doctor` applies `worker_restart`, `orphan_queue_adoption.enabled === true` and diagnostics are non-null. *Directly reproduces the observed failure: two consecutive doctor runs left `{enabled: false, \"no active adopter\"}` on a lock-owning host with a live worker.* | pass | plugin-init.orphan-adopter-restart.test.ts: restart constructs adopter, getOrphanQueueAdoptionDiagnostics() non-null. RED→GREEN T1→T3. |\n| AC2 | acceptance_criterion | **AC2** — Any host holding a live worker reports a constructed adopter, irrespective of whether that worker came from `plugin-init` spawn or `restartTemporalWorker`. | pass | Both sites (spawn :411, restart :881) route through attachWorkerWithAdoption. Tests confirm adopter on both paths. |\n| AC3 | acceptance_criterion | **AC3** — An adopter attached outside `plugin-init` is actually **driven**. A doctor-spawned worker starts no worker-lock heartbeat (`plugin-init.ts:299-304`), so construction alone is insufficient. A test must assert ticks occur, not merely that the object exists. | pass | Fake timers + prototype spy on adoptNextOrphan; advance 10.5s; assert called — proves driven not just constructed. |\n| AC4 | acceptance_criterion | **AC4** — `adv_doctor` reports `healthy: false` when a worker is alive but adoption is absent or failing. | pass | doctor.ts AC4 guard: worker alive + adoption absent/failing (reason!=kill_switch) → unhealthy finding. Tests: unavailable, driver_error, kill_switch-NOT-flagged. |\n| AC5 | acceptance_criterion | **AC5** — A host with **no** worker reports no adopter and is **not** marked unhealthy for it. Legitimate non-owner case; must not become a false alarm. | pass | No worker alive + no adoption → no unhealthy finding, success:true. Test confirms no false alarm. |\n| AC6 | acceptance_criterion | **AC6 (corrected)** — The **restart-path seam** is proven end-to-end: a worker created via `restartTemporalWorker` adopts a stranded prior-session queue and the previously unreachable workflow becomes queryable. `orphan-session-adoption.itest.ts` already proves this for the *adopter* against a real server; it must be **extended** to cover the new attachment/driver seam. It must **not** be replaced or downgraded to a `registerQueue` spy assertion, which would restate the mechanism instead of proving the outcome. | pass | orphan-session-adoption.itest.ts AC6 case: real Temporal server, attachWorkerWithAdoption seam, workflow becomes queryable via sentinel retry. Not a spy. |\n| AC7 | acceptance_criterion | **AC7** — Worker-singleton enforcement unchanged: no second competing worker. | pass | AC7 test: two workers via helper — module-level activeOrphanQueueAdopter replaced not duplicated. Singleton invariant unchanged. |\n| AC8 | acceptance_criterion | **AC8** — `ADV_ORPHAN_QUEUE_ADOPTION=0` still fully disables adoption. | pass | AC8 test: ADV_ORPHAN_QUEUE_ADOPTION=0 → status enabled:false, reason:kill_switch, no OrphanQueueAdopter constructed. |\n| AC9 | acceptance_criterion | **AC9 (new)** — Deterministic teardown. The adopter and its tick driver are cleared on worker drain, worker exhaustion, init failure, and worker replacement. Repeated `adv_doctor` restarts leak no live timers and no driver targets a drained worker. *`drainInProcessTemporalWorkers()` (`plugin-init.ts:644-656`) only calls `worker.shutdown()` — it has no mechanism today to stop an interval.* | pass | No-leak test: 3 consecutive restart cycles, attachmentCount===1, timerCount===1 after each. Teardown-state test: drain clears to no_worker_attached. |\n| AC10 | acceptance_criterion | **AC10 (new)** — Client-unavailable is handled, not assumed. When no STSL bundle exists (`getService()` returns null, `service.ts:216-222`), the worker still registers and adoption reports a typed unavailable/failed state — never a silent `null` indistinguishable from \"not configured\". | pass | AC10 test: getService()=null → status enabled:false, reason:no_temporal_client, diagnostics:null. Typed, not silent null. |\n| C1 | constraint | **C1** — Preserve the adopter's per-tick safety contract exactly: single-flight (`scanInFlight`), 8s per-tick timeout, 3-attempt cap, 5-minute cooldown, shutdown-error suppression, `finally`-released latch. Reuse; do not reimplement. | respected | OrphanQueueAdopter internals unchanged. Driver only calls adoptNextOrphan() on cadence; single-flight/timeout/cap/cooldown all inside adopter. |\n| C2 | constraint | **C2** — Reuse the existing `registerQueue` surface. No worker-lifecycle or IPC redesign. | respected | Existing registerQueue surface reused via OrphanAdopterWorker interface. No worker-lifecycle redesign. |\n| C3 | constraint | **C3** — Adopter construction failure must never break worker startup. The worker is load-bearing; adoption is recovery. Fail soft — but report. | respected | Construction wrapped in try/catch → construction_failed state, worker proceeds. Driver tick errors caught → driver_error state, driver continues. |\n| C4 | constraint | **C4** — Adoption remains bounded: preserve the existing ~10s cadence. No unbounded scan loops. | respected | Driver interval is 10_000ms, matching original heartbeat cadence. |\n| C5 | constraint | **C5** — Changes confined to the plugin host. No Temporal workflow-code changes, no `wf.patch`, no replay risk. | respected | All changes confined to plugin host (plugin-init.ts, doctor.ts, orphan-queue-adopter.ts). No Temporal workflow-code changes. |\n| C6 | constraint | **C6 (new)** — The tick driver must be cleared **before** worker shutdown/drain, never after. Ordering is load-bearing: a driver outliving its worker targets a drained worker. | respected | teardownWorkerAttachment calls stopDriver before worker.shutdown in drain and handleWorkerExhausted. Init-failure catch also calls teardown before shutdown. |\n| C7 | constraint | **C7 (new)** — Tolerate client replacement. `reinitStsl()` swaps `bundle.client` in place (`service.ts:301-347`), so an adopter holding the prior reference can go stale. Tick/list failures must be caught and surfaced as a driver-error diagnostic rather than failing silently. | respected | Driver tick catches errors → driver_error typed diagnostic. Does not rethrow. Stale client from reinitStsl surfaces as driver_error. |\n| DONT1 | avoidance | **DONT1** — Do not let hosts **without** a worker adopt queues. Adoption *is* `worker.registerQueue()`; architecturally impossible (`orphan-queue-adopter.ts:24-28`). | respected | Helper requires InProcessWorker arg; no workerless adoption path exists. |\n| DONT2 | avoidance | **DONT2** — Do not weaken or bypass worker-singleton enforcement. | respected | resolveWorkerSingletonPlan unchanged; AC7 regression confirms no second competing worker. |\n| DONT3 | avoidance | **DONT3** — Do not flip the kill-switch default or make it opt-in. Source: *\"a default-off flag would regress that live behavior.\"* | respected | isOrphanQueueAdoptionEnabled() default ON unchanged. AC8 test confirms kill-switch still disables when set to 0. |\n| DONT4 | avoidance | **DONT4** — Do not fix this by advising an OpenCode restart. Restarting is an **anti-remedy**: it killed all workers, dropped polled queues 34 → 2, and orphaned five changes created 30 minutes earlier. | respected | No restart-advice remedy. The fix makes restart actually work. |\n| DONT5 | avoidance | **DONT5** — Do not claim `healthy: true` while a known-bad condition is unreported. | respected | Doctor now reports healthy:false when worker alive + adoption absent. No silent healthy:true masking. |\n| DONT6 | avoidance | **DONT6** — Do not expand into read surfaces owned by `fixWorkerDependentResume` (CLI) or `makeToolReadsWorkerFree` (plugin tools). | respected | No changes to CLI (fixWorkerDependentResume scope) or plugin tool reads (makeToolReadsWorkerFree scope). |\n| DONT7 | avoidance | **DONT7** — Do not verify against pre-restart changes; those are unreachable. Verify on the current session's queue or via doctor diagnostics. | respected | Tests verify on current session queue via adoption mechanism, not pre-restart changes. |\n| DONT8 | avoidance | **DONT8 (new)** — Do not remove `workerBundleRollMonitor?.checkNow()` from the heartbeat `onBeat` (`plugin-init.ts:300`). Only the adoption call moves. That monitor belongs to `preventRedeployWorkflow` (PR #333). | respected | onBeat retains workerBundleRollMonitor?.checkNow() at :300. Only adoption call removed. Source inspection confirms. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-28T18:37:11.706Z",
+      "contentHash": "9035badcce5609fba7a537363d9478c65c0d2d5df8d9e723b5a96b3bb3bf6aeb",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-28T18:46:54.595Z",
+      "contentHash": "9b7572ef76b7265f105acaf8d7150e0aca5e9e2e255ceaee9777737986372df3",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-28T18:47:48.456Z",
+      "contentHash": "aeab4bc36eed57b6239ee5d96f221664b47d61b79664fe4b0491cd9181239f33",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-28T23:04:12.861Z",
+      "contentHash": "dadee1e94b8df9661f1b0170061fbc99af34ddb7dc0a46a64545efa4b2b4c173",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-28T23:06:24.000Z",
+  "origin": {
+    "kind": "triage",
+    "source_artifact": "bl-workerQueueReadBlackout"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-6a2c0bb6f909",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "adv_run_test tr_ms58uwdn (phase:green) includes plugin-init.registrar-guard.test.ts as part of the 5-file suite run (41/41 pass at time of T8 completion, 42/42 after remediation). The source assertion test reads plugin-init.ts and asserts registerInProcessTemporalWorker is not exported via function or re-export pattern. The run ID is recorded in ADV state and linked to task tk-6a2c0bb6f909. The reviewer report referenced the test by name; the actual typed evidence exists in the adv_run_test recording.",
+      "dispositionedAt": "2026-07-28T23:05:51.468Z"
+    }
+  ],
+  "creation_request_hash": "55cbe67302cb168eb89d84435c144edfcffc97aab697cad6bd9d3e6eed9b4862",
+  "projection_revision": 61,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-28T18:47:52.499Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-28T22:03:38.105Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-28T22:04:36.493Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-28T22:04:36.638Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-28T22:04:55.909Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-28T22:05:07.062Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-28T22:05:26.195Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-28T22:05:36.542Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-28T22:05:37.928Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-28T22:05:38.281Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-28T22:05:38.350Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-28T22:05:51.999Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-28T22:05:53.903Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-28T22:10:14.824Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-28T22:13:14.052Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-28T22:19:12.646Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-28T22:19:29.901Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-28T22:20:19.886Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-28T22:24:01.821Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-28T22:24:46.567Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-28T22:29:14.246Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-28T22:29:44.527Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-28T22:32:30.166Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-28T22:32:49.131Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-28T22:36:39.286Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-28T22:36:47.146Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-28T22:37:23.843Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-07-28T22:45:32.129Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-07-28T22:45:39.044Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-07-28T22:47:24.528Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-07-28T22:47:33.140Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-07-28T22:47:33.309Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-07-28T22:47:43.459Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-07-28T22:47:50.805Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-07-28T22:47:59.034Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-07-28T22:55:47.046Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-07-28T22:56:26.169Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-07-28T23:00:17.841Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-07-28T23:00:17.953Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c889784393a68dcd9cfd5fd2e216240458693e7aa502c84a745411438300ee26:updateArtifacts:executiveSummary",
+      "operation_id": "c889784393a68dcd9cfd5fd2e216240458693e7aa502c84a745411438300ee26:updateArtifacts:executiveSummary",
+      "payload_hash": "21d1309f2a96f6341ad95071cc18350df46dd5a03be5287db682f734357ddcc6",
+      "state_revision": 7,
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-07-28T23:04:13.004Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-07-28T23:04:45.541Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-07-28T23:04:45.647Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785279924533_b26ytayx",
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-07-28T23:05:24.666Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-07-28T23:05:31.133Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785279951475_phmr2d8o",
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-07-28T23:05:51.560Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 56,
+      "new_revision": 57,
+      "committed_at": "2026-07-28T23:05:57.625Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 57,
+      "new_revision": 58,
+      "committed_at": "2026-07-28T23:06:15.567Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 58,
+      "new_revision": 59,
+      "committed_at": "2026-07-28T23:06:15.696Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 59,
+      "new_revision": 60,
+      "committed_at": "2026-07-28T23:06:24.073Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleOrphanAdopter",
+      "prior_revision": 60,
+      "new_revision": 61,
+      "committed_at": "2026-07-29T03:35:26.815Z"
+    }
+  ],
+  "state_revision": 7
+}
