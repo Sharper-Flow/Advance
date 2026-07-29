@@ -2253,10 +2253,15 @@ export async function advWorktreeDelete(
       integration = await withTimeout(
         deps.integrationCheck
           ? deps.integrationCheck(branch, deps.projectRoot)
-          : verifyBranchIntegration(branch, deps.projectRoot, {}, {
-              terminalStatusReader: makeDurableTerminalStatusReader(deps),
-              registry: registryEntry ? [registryEntry] : undefined,
-            }),
+          : verifyBranchIntegration(
+              branch,
+              deps.projectRoot,
+              {},
+              {
+                terminalStatusReader: makeDurableTerminalStatusReader(deps),
+                registry: registryEntry ? [registryEntry] : undefined,
+              },
+            ),
         remainingMs,
         "Worktree branch integration check timed out",
       );
