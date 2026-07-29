@@ -170,6 +170,8 @@ export async function createDiskStore(
             // rq-autoManageAdvWorktrees AC2 — default true (post-rollout).
             // Explicit `false` preserves legacy permissive behavior.
             worktree_guard_enforce: true,
+            // Default per-session routing; explicit `true` opts into singleton.
+            worker_singleton_enforce: false,
             gate_enforcement: "strict",
             wisdom_accumulation: true,
             clarify_enforcement: "advisory",

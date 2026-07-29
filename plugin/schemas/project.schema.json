@@ -95,6 +95,7 @@
         },
         "tdd_enforcement": "strict",
         "wisdom_accumulation": true,
+        "worker_singleton_enforce": false,
         "worktree_auto_create": true,
         "worktree_guard_enforce": true
       },
@@ -171,6 +172,10 @@
           "default": true,
           "type": "boolean"
         },
+        "worker_singleton_enforce": {
+          "default": false,
+          "type": "boolean"
+        },
         "worktree_auto_create": {
           "default": true,
           "type": "boolean"
@@ -186,6 +191,7 @@
         "gate_enforcement",
         "wisdom_accumulation",
         "worktree_guard_enforce",
+        "worker_singleton_enforce",
         "clarify_enforcement",
         "slop_scan"
       ],

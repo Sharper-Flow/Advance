@@ -1,6 +1,6 @@
 # Per-Session Task-Queue Routing for ADV Worker Isolation
 
-We adopted per-session task-queue routing (`advance-{projectId}-{sessionId}`) for change workflows, retained the permanent project queue (`advance-{projectId}`) for Epic workflows and legacy migration co-polling, capped every `Worker.create` via a shared `getAdvWorkerTuningOptions()` module, and flipped the `worker_singleton_enforce` default to `false` so every session spawns its own worker. This isolates cross-session dispatch: a wedged worker in session S1 cannot block workflow signals for session S2 because S2's workflows route to S2's own session queue, polled by S2's own worker process.
+We adopted per-session task-queue routing (`advance-{projectId}-{sessionId}`) for change workflows, retained the permanent project queue (`advance-{projectId}`) for Epic workflows and legacy migration co-polling, capped every `Worker.create` via a shared `getAdvWorkerTuningOptions()` module, and flipped the `worker_singleton_enforce` default to `false` so every session spawns its own worker. Singleton mode remains available as an explicit compatibility option (`worker_singleton_enforce: true`): it reactivates the project-scoped worker lock and client-only peers, but is refused while session-pinned workflows are still active. This isolates cross-session dispatch: a wedged worker in session S1 cannot block workflow signals for session S2 because S2's workflows route to S2's own session queue, polled by S2's own worker process. The ten-agent support target is based on historical/current operational evidence (12 overlapping total agents, 6 orchestrators) and the existing host budget, not on a synthetic latency benchmark.
 
 **Status:** proposed (advisory — gate completion for `isolateAdvWorkerTaskQueues` does not depend on ADR merge)
 
@@ -22,6 +22,12 @@ We adopted per-session task-queue routing (`advance-{projectId}-{sessionId}`) fo
 - (−) Worker process count rises from 1/project to 1/session (memory cost; bounded by session count, typically ≤3).
 - (−) One additional queue per session (drains naturally on session end via parent-liveness watchdog — AC8).
 - (−) Users who explicitly set `worker_singleton_enforce: true` get incorrect behavior under per-session routing (only host session's queue is polled); documented as incompatible.
+- (+) Conditional singleton mode: explicit `worker_singleton_enforce: true` is supported as a compatibility opt-in, but activation is refused while session-pinned workflows remain active.
+- (+) Evidence-based support target: ten overlapping agents is a demand/observation boundary derived from historical/current session composition (12 total, 6 orchestrators), queue failure results, and worker memory, not a measured synthetic latency claim.
+
+**Conditional singleton mode:**
+
+When `worker_singleton_enforce` is omitted or explicitly `false`, the default per-session routing applies: each OpenCode session spawns its own worker, change workflows route to `advance-{projectId}-{sessionId}`, and there is no client-only peer requirement. When `worker_singleton_enforce` is explicitly `true`, the project-scoped worker lock from `rq-workerSingleton01` is active, one worker per project polls the project queue, and peer sessions participate as Temporal clients. Activating singleton mode while session-pinned change workflows are still open would strand those histories, so the implementation must detect active session queues and refuse the switch with an `INCOMPATIBLE_ACTIVE_SESSION_QUEUES` diagnostic.
 
 **Rubric check (hard-to-reverse / surprising-without-context / result-of-real-tradeoff):**
 

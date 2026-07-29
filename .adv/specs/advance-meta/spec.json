@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.31.0",
-  "updated_at": "2026-07-28T00:01:33.539Z",
+  "version": "1.32.0",
+  "updated_at": "2026-07-29T22:15:00.000Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -1558,9 +1558,9 @@
     },
     {
       "id": "rq-workerSingleton01",
-      "title": "Singleton Temporal worker per project across sessions",
-      "body": "When multiple plugin instances initialize against the same external state directory for the same project, at most ONE Temporal worker process MUST exist for that project_id at any given time. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership. Subsequent instances participate as Temporal clients only. Heartbeat freshness is the primary liveness signal for v2 worker locks but proves only host liveness, not expected queue serviceability. Dead-PID reclaim remains automatic. For legacy v1 fallback locks, an alive PID protects singleton ownership during passive initialization and when the expected project queue is serviceable. A v1 alive-PID lock with no heartbeat and no serviceable queue is classified as suspect during recovery decisions and may only be reclaimed through an explicit user-approved recovery path. A v2 lock whose holder's local worker is not registered to the expected queue (or whose serviceability is otherwise negative) is also classified as suspect; live unserviceable v1/v2 reclaim requires explicit approval evidence unless dead-PID or stale-heartbeat rules prove the holder stale. When a lock holder's own local worker remains unserviceable past the configured grace window, the holder MUST stop renewing the heartbeat so the v2 lock can age out without manual deletion.",
-      "priority": "must",
+      "title": "Singleton Temporal worker per project when explicitly enabled",
+      "body": "When worker_singleton_enforce is explicitly true, at most ONE Temporal worker process MUST exist for that project_id at any given time when multiple plugin instances initialize against the same external state directory for the same project. A file-lock sentinel at {external-state-dir}/{project-id}/worker.lock coordinates ownership; subsequent instances participate as Temporal clients only. When worker_singleton_enforce is omitted or explicitly false, per-session routing is the default and each session MAY spawn its own worker polling its own session task queue, so no client-only peer requirement applies. Heartbeat freshness is the primary liveness signal for v2 worker locks but proves only host liveness, not expected queue serviceability. Dead-PID reclaim remains automatic. For legacy v1 fallback locks, an alive PID protects singleton ownership during passive initialization and when the expected project queue is serviceable. A v1 alive-PID lock with no heartbeat and no serviceable queue is classified as suspect during recovery decisions and may only be reclaimed through an explicit user-approved recovery path. A v2 lock whose holder's local worker is not registered to the expected queue (or whose serviceability is otherwise negative) is also classified as suspect; live unserviceable v1/v2 reclaim requires explicit approval evidence unless dead-PID or stale-heartbeat rules prove the holder stale. When a lock holder's own local worker remains unserviceable past the configured grace window, the holder MUST stop renewing the heartbeat so the v2 lock can age out without manual deletion.",
+      "priority": "should",
       "scenarios": [
         {
           "id": "rq-workerSingleton01.1",
@@ -2039,7 +2039,7 @@
     {
       "id": "rq-temporalConcurrentLoad01",
       "title": "Temporal Worker Survives Concurrent Client Load and Worker-Kill Respawn-Elect",
-      "body": "The Temporal worker singleton must survive load from at least five concurrent ADV client sessions issuing state-write tool calls without lost updates, deadlocks, or replay-determinism violations. When the worker process is killed mid-load, surviving clients must respawn-elect a new worker via the singleton lock and resume normal operation.",
+      "body": "ADV must support at least ten overlapping same-project agents (orchestrators and sub-agents combined, not ten independent orchestrators) within the existing host budget. Support is established from historical or current operational evidence — session counts, queue failure results, worker memory ranges, and the limits of inference — not from a synthetic latency benchmark. With the default per-session task-queue routing mode, each session's change workflows route to a session-scoped queue and the session's own worker is the normal host; the project task queue remains shared for Epic and legacy workflows. When worker_singleton_enforce is explicitly true, the worker singleton coordinates a single project-scoped worker across sessions per rq-workerSingleton01. In either mode, concurrent state writes on change workflows must not lose updates, deadlock, or violate replay determinism, and a killed worker-lock holder must be reclaimable so a surviving client can respawn-elect a new worker.",
       "priority": "must",
       "tags": [
         "temporal",
@@ -2050,23 +2050,23 @@
       "scenarios": [
         {
           "id": "rq-temporalConcurrentLoad01.1",
-          "title": "Five or more concurrent clients complete state writes with no lost updates",
+          "title": "Ten total overlapping agents are supported by current evidence",
           "given": [
-            "At least five concurrent ADV client sessions issue ADV-mutating tool calls (state writes, change updates, wisdom adds, worktree registers) against change workflows on the same project task queue"
+            "Historical or current operational data shows at least ten overlapping same-project ADV agents, counting both orchestrators and sub-agents",
+            "The existing host RAM and core budget is unchanged"
           ],
-          "when": "The concurrent-clients benchmark mode runs for the configured duration",
+          "when": "The ten-agent evidence boundary is evaluated",
           "then": [
-            "No deadlocks occur",
-            "All issued writes are reflected in the final workflow state",
-            "Monotonic source_version is preserved across all writes (no lost updates)",
-            "Workflow event-history replay reproduces the same final state"
+            "The agent count distinguishes total agents from orchestrators",
+            "The evidence records session composition, queue-failure result, worker-memory range, and limits of inference",
+            "No claim is made that ten independent-orchestrator latency was measured"
           ]
         },
         {
           "id": "rq-temporalConcurrentLoad01.2",
           "title": "Worker-kill mid-load triggers successful respawn-elect",
           "given": [
-            "Five or more concurrent clients are mid-load against change workflows on the same project task queue",
+            "Concurrent ADV client sessions are mid-load against change workflows on the same project task queue",
             "The current worker-lock holder PID is killed via SIGKILL"
           ],
           "when": "The benchmark continues after the kill",
