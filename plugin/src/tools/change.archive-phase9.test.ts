@@ -1315,6 +1315,56 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
+  // AC6: pending PR/auto-merge handoff must keep the change active and must not
+  // run targeted worktree/branch cleanup while waiting for the PR to merge.
+  test("AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal", async () => {
+    const worktreeDeleteSpy = vi
+      .spyOn(worktree, "advWorktreeDelete")
+      .mockResolvedValue({
+        ok: true,
+        branch: "change/example",
+        path: "/tmp/worktree",
+      });
+    const deleteBranchSpy = vi
+      .spyOn(gitFinalize, "deleteChangeBranch")
+      .mockReturnValue({ localDeleted: true, remoteDeleted: true });
+
+    mocks.finalizeRelease.mockResolvedValueOnce({
+      status: "pending_merge",
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+      pushStatus: "pushed",
+      prBranch: "change/example",
+      prNumber: 42,
+      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+      autoMergeArmed: true,
+      route: "pr_auto_merge",
+    });
+
+    const store = createMockStore();
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.phase9).toBe("pending_merge");
+    expect(parsed.finalization).toMatchObject({
+      status: "pending_merge",
+      route: "pr_auto_merge",
+      prNumber: 42,
+      autoMergeArmed: true,
+    });
+    expect(worktreeDeleteSpy).not.toHaveBeenCalled();
+    expect(deleteBranchSpy).not.toHaveBeenCalled();
+    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+
+    worktreeDeleteSpy.mockRestore();
+    deleteBranchSpy.mockRestore();
+  });
+
   // fixArchiveTerminalProjection SC3/AC4: when adv_change_archive is
   // interrupted past the durable bundle write (typed still-finalizing
   // result at the tool boundary), the operator's re-run must skip the
