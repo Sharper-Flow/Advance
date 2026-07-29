@@ -4,6 +4,7 @@ import {
   type ChangeContract,
   type ContractEvidencePolicy,
   type ContractItemKind,
+  type ContractItemVariant,
   type ContractRigor,
 } from "../types";
 // Pure warrant module — keeps contract-mint cycle-free (DDC2): no tool-registry
@@ -154,6 +155,174 @@ function nextFallbackId(
   return `${mapping.fallbackPrefix}${next}`;
 }
 
+const EVIDENCE_PREFIX = /^Evidence:\s*/i;
+const SPECLAW_PREFIX = /^Spec-law:\s*/i;
+
+interface VariantParseResult {
+  variant?: ContractItemVariant;
+  error?: string;
+}
+
+function normalizeClause(raw: string): string {
+  return raw
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[,.;]+$/, "");
+}
+
+function tryParseBehavioralVariant(text: string): VariantParseResult {
+  const lower = text.toLowerCase();
+  const givenIdx = lower.indexOf("given ");
+  if (givenIdx !== 0) return {};
+  const whenIdx = lower.indexOf(" when ");
+  const thenIdx = lower.indexOf(" then ");
+
+  // Incomplete behavioral intent: starts with Given and uses one keyword but
+  // not the other. Fully flat text (Given with no When/Then) is left untyped.
+  if (whenIdx === -1 && thenIdx === -1) return {};
+  if (whenIdx === -1 || thenIdx === -1 || thenIdx < whenIdx) {
+    return {
+      error:
+        "CONTRACT_MALFORMED_VARIANT: behavioral scenario is missing a When or Then clause",
+    };
+  }
+
+  const context = normalizeClause(text.slice("Given ".length, whenIdx));
+  const trigger = normalizeClause(
+    text.slice(whenIdx + " when ".length, thenIdx),
+  );
+  const outcome = normalizeClause(text.slice(thenIdx + " then ".length));
+  if (!context || !trigger || !outcome) {
+    return {
+      error:
+        "CONTRACT_MALFORMED_VARIANT: behavioral scenario is missing a When or Then clause",
+    };
+  }
+  return {
+    variant: {
+      kind: "behavioral",
+      context,
+      trigger,
+      outcome,
+    },
+  };
+}
+
+function tryParseEvidenceVariant(text: string): VariantParseResult {
+  if (!EVIDENCE_PREFIX.test(text)) return {};
+  const body = text.replace(EVIDENCE_PREFIX, "").trim();
+  if (!body) {
+    return {
+      error:
+        "CONTRACT_MALFORMED_VARIANT: evidence variant requires a subject and method/source",
+    };
+  }
+  for (const separator of [" via ", " by ", " from "]) {
+    const idx = body.toLowerCase().indexOf(separator);
+    if (idx !== -1) {
+      const subject = normalizeClause(body.slice(0, idx));
+      const rest = normalizeClause(body.slice(idx + separator.length));
+      return {
+        variant: {
+          kind: "evidence",
+          subject,
+          ...(separator === " from " ? { source: rest } : { method: rest }),
+        },
+      };
+    }
+  }
+  return {
+    error:
+      "CONTRACT_MALFORMED_VARIANT: evidence variant requires a method (via/by) or source (from)",
+  };
+}
+
+function tryParseSpecLawVariant(text: string): VariantParseResult {
+  if (!SPECLAW_PREFIX.test(text)) return {};
+  const body = text.replace(SPECLAW_PREFIX, "").trim();
+  if (!body) {
+    return {
+      error:
+        "CONTRACT_MALFORMED_VARIANT: spec-law variant requires a spec and requirement",
+    };
+  }
+  const separators = [" requires ", " reconciles ", " mandates "];
+  for (const separator of separators) {
+    const idx = body.toLowerCase().indexOf(separator);
+    if (idx !== -1) {
+      const spec = normalizeClause(body.slice(0, idx));
+      const requirement = normalizeClause(body.slice(idx + separator.length));
+      if (!spec || !requirement) {
+        return {
+          error:
+            "CONTRACT_MALFORMED_VARIANT: spec-law variant requires a spec and requirement",
+        };
+      }
+      return {
+        variant: {
+          kind: "spec_law",
+          spec,
+          requirement,
+        },
+      };
+    }
+  }
+  return {
+    error:
+      "CONTRACT_MALFORMED_VARIANT: spec-law variant requires a requirement (requires/reconciles/mandates)",
+  };
+}
+
+function tryParseConstraintVariant(
+  text: string,
+  kind: ContractItemKind,
+): VariantParseResult {
+  if (kind !== "constraint") return {};
+  const lower = text.toLowerCase();
+  if (
+    !lower.startsWith("must ") &&
+    !lower.startsWith("must not ") &&
+    !lower.startsWith("cannot ")
+  ) {
+    return {};
+  }
+  let obligation = text;
+  let scope: string | undefined;
+  for (const separator of [" for ", " within ", " across "]) {
+    const idx = lower.indexOf(separator);
+    if (idx !== -1) {
+      scope = normalizeClause(text.slice(idx + separator.length));
+      obligation = text.slice(0, idx);
+      break;
+    }
+  }
+  return {
+    variant: {
+      kind: "constraint",
+      obligation: normalizeClause(obligation),
+      ...(scope ? { scope } : {}),
+    },
+  };
+}
+
+function tryParseVariant(
+  text: string,
+  kind: ContractItemKind,
+): VariantParseResult {
+  // Explicit prefix variants are checked first so a leading marker cannot be
+  // misread as a behavioral clause.
+  const evidence = tryParseEvidenceVariant(text);
+  if (evidence.variant || evidence.error) return evidence;
+
+  const specLaw = tryParseSpecLawVariant(text);
+  if (specLaw.variant || specLaw.error) return specLaw;
+
+  const behavioral = tryParseBehavioralVariant(text);
+  if (behavioral.variant || behavioral.error) return behavioral;
+
+  return tryParseConstraintVariant(text, kind);
+}
+
 export function buildContractFromAgreement(
   input: BuildContractFromAgreementInput,
 ): ChangeContract {
@@ -217,6 +386,11 @@ export function buildContractFromAgreement(
       }
     }
 
+    const variantResult = tryParseVariant(parsed.text, mapping.kind);
+    if (variantResult.error) {
+      throw new Error(variantResult.error);
+    }
+
     items.push({
       id,
       kind: mapping.kind,
@@ -230,6 +404,7 @@ export function buildContractFromAgreement(
         ? {}
         : { notRequiredReason: "Out-of-scope contract item" }),
       ...(warrantRefs.length > 0 ? { warrants: warrantRefs } : {}),
+      ...(variantResult.variant ? { variant: variantResult.variant } : {}),
     });
   }
 

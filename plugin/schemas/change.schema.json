@@ -317,6 +317,105 @@
               "text": {
                 "type": "string"
               },
+              "variant": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "boundaries": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "context": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "behavioral",
+                        "type": "string"
+                      },
+                      "outcome": {
+                        "type": "string"
+                      },
+                      "trigger": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "context",
+                      "trigger",
+                      "outcome"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "evidence",
+                        "type": "string"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "type": "string"
+                      },
+                      "subject": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "subject"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "spec_law",
+                        "type": "string"
+                      },
+                      "requirement": {
+                        "type": "string"
+                      },
+                      "spec": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "spec",
+                      "requirement"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "constraint",
+                        "type": "string"
+                      },
+                      "obligation": {
+                        "type": "string"
+                      },
+                      "scope": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "obligation"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
               "verificationRequired": {
                 "default": true,
                 "type": "boolean"

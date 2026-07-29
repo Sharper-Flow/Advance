@@ -205,4 +205,130 @@ describe("buildContractFromAgreement", () => {
       }),
     ).toThrow(/WARRANT_MALFORMED/);
   });
+
+  // addStructuredAcceptance: typed criterion variants at the mint boundary.
+  test("AC1: behavioral criterion receives variant annotation while preserving canonical text and id", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Given an approved criterion, when its agreement is minted, then the contract preserves a typed optional variant annotation while retaining canonical text and stable contract ID.
+`,
+      approvedAt,
+    });
+
+    const item = contract.items.find((i) => i.id === "AC1");
+    expect(item).toBeDefined();
+    expect(item?.variant).toEqual({
+      kind: "behavioral",
+      context: "an approved criterion",
+      trigger: "its agreement is minted",
+      outcome:
+        "the contract preserves a typed optional variant annotation while retaining canonical text and stable contract ID",
+    });
+    expect(item?.text).toBe(
+      "Given an approved criterion, when its agreement is minted, then the contract preserves a typed optional variant annotation while retaining canonical text and stable contract ID.",
+    );
+    expect(ChangeContractSchema.parse(contract)).toEqual(contract);
+  });
+
+  test("AC1: evidence and spec-law variants are parsed and stored", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Evidence: review matrix coverage is proven by passing gate-readiness checks.
+- AC2: Spec-law: rq-structuredAc requires typed criterion variants at the mint boundary.
+`,
+      approvedAt,
+    });
+
+    expect(contract.items[0]?.variant).toEqual({
+      kind: "evidence",
+      subject: "review matrix coverage is proven",
+      method: "passing gate-readiness checks",
+    });
+    expect(contract.items[1]?.variant).toEqual({
+      kind: "spec_law",
+      spec: "rq-structuredAc",
+      requirement: "typed criterion variants at the mint boundary",
+    });
+  });
+
+  test("AC1: constraint variant is parsed for constraint-kind items", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Constraints
+- C1: Must preserve signal/query-only workflow surface for temporal workflows.
+`,
+      approvedAt,
+    });
+
+    const item = contract.items.find((i) => i.id === "C1");
+    expect(item?.variant).toEqual({
+      kind: "constraint",
+      obligation: "Must preserve signal/query-only workflow surface",
+      scope: "temporal workflows",
+    });
+  });
+
+  test("AC1: flat-text criteria remain usable without a variant annotation", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Returns an error when input is invalid.
+`,
+      approvedAt,
+    });
+
+    expect(contract.items[0]?.variant).toBeUndefined();
+    expect(contract.items[0]?.text).toBe(
+      "Returns an error when input is invalid.",
+    );
+  });
+
+  test("AC4: structured behavioral criterion retains and validates bracketed warrants", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Given a criterion contains a valid bracketed warrant, when it is minted, then its warrant is retained and validated through the current structural path. [warrant: tool:adv_change_archive#target_path]
+`,
+      approvedAt,
+      warrantLookup,
+    });
+
+    const item = contract.items.find((i) => i.id === "AC1");
+    expect(item?.variant?.kind).toBe("behavioral");
+    expect(item?.warrants).toEqual(["tool:adv_change_archive#target_path"]);
+    expect(item?.text).not.toContain("[warrant:");
+    expect(item?.text).toContain(
+      "validated through the current structural path",
+    );
+  });
+
+  test("AC5: malformed evidence variant is rejected before contract mutation", () => {
+    expect(() =>
+      buildContractFromAgreement({
+        agreement: `## Acceptance Criteria
+- AC1: Evidence: missing separator.
+`,
+        approvedAt,
+      }),
+    ).toThrow(/CONTRACT_MALFORMED_VARIANT/);
+  });
+
+  test("AC5: malformed spec-law variant is rejected before contract mutation", () => {
+    expect(() =>
+      buildContractFromAgreement({
+        agreement: `## Acceptance Criteria
+- AC1: Spec-law: missing requirement.
+`,
+        approvedAt,
+      }),
+    ).toThrow(/CONTRACT_MALFORMED_VARIANT/);
+  });
+
+  test("AC5: incomplete behavioral scenario is rejected before contract mutation", () => {
+    expect(() =>
+      buildContractFromAgreement({
+        agreement: `## Acceptance Criteria
+- AC1: Given an approved criterion, when its agreement is minted.
+`,
+        approvedAt,
+      }),
+    ).toThrow(/CONTRACT_MALFORMED_VARIANT/);
+  });
 });

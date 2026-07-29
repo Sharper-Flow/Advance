@@ -860,6 +860,55 @@ export type ContractEvidenceStatus = z.infer<
   typeof ContractEvidenceStatusSchema
 >;
 
+export const ContractItemVariantKindSchema = z.enum([
+  "behavioral",
+  "evidence",
+  "spec_law",
+  "constraint",
+]);
+export type ContractItemVariantKind = z.infer<
+  typeof ContractItemVariantKindSchema
+>;
+
+export const BehavioralVariantSchema = z.object({
+  kind: z.literal("behavioral"),
+  context: z.string(),
+  trigger: z.string(),
+  outcome: z.string(),
+  boundaries: z.array(z.string()).optional(),
+});
+export type BehavioralVariant = z.infer<typeof BehavioralVariantSchema>;
+
+export const EvidenceVariantSchema = z.object({
+  kind: z.literal("evidence"),
+  subject: z.string(),
+  method: z.string().optional(),
+  source: z.string().optional(),
+});
+export type EvidenceVariant = z.infer<typeof EvidenceVariantSchema>;
+
+export const SpecLawVariantSchema = z.object({
+  kind: z.literal("spec_law"),
+  spec: z.string(),
+  requirement: z.string(),
+});
+export type SpecLawVariant = z.infer<typeof SpecLawVariantSchema>;
+
+export const ConstraintVariantSchema = z.object({
+  kind: z.literal("constraint"),
+  obligation: z.string(),
+  scope: z.string().optional(),
+});
+export type ConstraintVariant = z.infer<typeof ConstraintVariantSchema>;
+
+export const ContractItemVariantSchema = z.discriminatedUnion("kind", [
+  BehavioralVariantSchema,
+  EvidenceVariantSchema,
+  SpecLawVariantSchema,
+  ConstraintVariantSchema,
+]);
+export type ContractItemVariant = z.infer<typeof ContractItemVariantSchema>;
+
 export const ContractSourceSchema = z.object({
   artifact: z.enum(["proposal", "problemStatement", "agreement", "design"]),
   contentHash: z.string().optional(),
@@ -891,6 +940,12 @@ export const ContractItemSchema = z.object({
    * unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT.
    */
   warrants: z.array(z.string()).optional(),
+  /**
+   * Optional structured criterion variant parsed once at mint time. Canonical
+   * `text` remains the compatibility anchor; display parts are advisory and
+   * must not be treated as behavioral proof (C2).
+   */
+  variant: ContractItemVariantSchema.optional(),
 });
 export type ContractItem = z.infer<typeof ContractItemSchema>;
 
