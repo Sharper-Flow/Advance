@@ -1,13 +1,14 @@
 /**
  * MCP Tier-4 tool dispatcher.
  *
- * Table-driven registry for the 12 read tools added in SCOUT-3. Each handler
- * delegates to the plugin's `adv_*` tool. The dispatcher can be injected with a
- * `createToolMap` factory so the MCP server is not forced to dynamically import
- * `../../tool-registry.js` at call time.
+ * Table-driven registry for the 13 read tools declared in the canonical Tier-4
+ * catalog. Each handler delegates to the plugin's `adv_*` tool. The dispatcher
+ * does NOT import the global tool-registry; the host/server registration path
+ * must inject a `createToolMap` factory (see `mcp-server/tier4-tool-map.ts`).
  */
 
 import type { Store } from "../../storage/store-types.js";
+import type { OpencodeClient } from "../../utils/opencode-types.js";
 import { wrapTier4Tool, type DegradationOptions } from "../degradation.js";
 
 export type ToolMap = Record<
@@ -19,22 +20,12 @@ export type CreateToolMapFn = (
   store: Store,
   directory: string,
   serverUrl?: URL,
-  client?: unknown,
+  client?: OpencodeClient,
 ) => ToolMap;
 
 export interface ExecuteTier4ToolOptions extends DegradationOptions {
-  /** Optional factory override so the dispatcher avoids dynamic imports. */
-  createToolMap?: CreateToolMapFn;
-}
-
-let cachedCreateToolMap: CreateToolMapFn | undefined;
-
-async function getCreateToolMap(): Promise<CreateToolMapFn> {
-  if (!cachedCreateToolMap) {
-    const { createToolMap } = await import("../../tool-registry.js");
-    cachedCreateToolMap = createToolMap as CreateToolMapFn;
-  }
-  return cachedCreateToolMap;
+  /** Factory injected by the host/server registration path. */
+  createToolMap: CreateToolMapFn;
 }
 
 export type ToolClassification =
@@ -96,7 +87,7 @@ export async function executeTier4Tool(
   cwd: string,
   toolName: string,
   args: Record<string, unknown>,
-  options?: ExecuteTier4ToolOptions,
+  options: ExecuteTier4ToolOptions,
 ): Promise<string> {
   const classifications = TOOL_CLASSIFICATIONS[toolName as Tier4ToolName];
   if (!classifications) {
@@ -150,9 +141,7 @@ export async function executeTier4Tool(
     }
 
     try {
-      const createToolMap =
-        options?.createToolMap ?? (await getCreateToolMap());
-      const tools = createToolMap(store, cwd) as ToolMap;
+      const tools = options.createToolMap(store, cwd) as ToolMap;
       const hostName = `adv_${toolName}`;
       const toolDef = tools[hostName];
       if (!toolDef) {

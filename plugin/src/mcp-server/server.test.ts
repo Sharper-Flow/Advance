@@ -13,6 +13,7 @@ import { join } from "path";
 import { startServer } from "./index.js";
 import { HANDSHAKE_TIER4_TOOLS, ADV_CONTRACT_VERSION } from "./handshake.js";
 import { executeTier4Tool } from "./tools/index.js";
+import { createTier4ToolMap } from "./tier4-tool-map.js";
 import { createDiskStore } from "../storage/store-disk.js";
 import { projectTools } from "../tools/project.js";
 import {
@@ -318,7 +319,9 @@ describe("executeTier4Tool project_context dispatch", () => {
   });
 
   it("matches the direct plugin tool output", async () => {
-    const text = await executeTier4Tool(tempDir, "project_context", {});
+    const text = await executeTier4Tool(tempDir, "project_context", {}, {
+      createToolMap: createTier4ToolMap,
+    });
 
     const store = await createDiskStore(tempDir);
     try {

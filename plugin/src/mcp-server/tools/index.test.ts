@@ -1,16 +1,17 @@
 /**
  * Tier-4 MCP dispatcher unit tests.
  *
- * Regression: the generic dispatcher must be injectable with a `createToolMap`
- * factory so it is not forced to dynamically import `../../tool-registry.js`.
- * `project_context` is routed through this dispatcher and has no separate
- * global-registry handler.
+ * Regression: the generic dispatcher must receive a `createToolMap` factory
+ * injected by the host/server registration path. It must never statically or
+ * dynamically import `../../tool-registry.js`.
  */
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { executeTier4Tool } from "./index.js";
 
 describe("executeTier4Tool dispatcher injection", () => {
-  it("uses injected createToolMap instead of dynamic import", async () => {
+  it("uses injected createToolMap", async () => {
     const createToolMap = vi.fn(() => ({
       adv_project_context: {
         execute: vi.fn(async () => "injected project context"),
@@ -26,5 +27,16 @@ describe("executeTier4Tool dispatcher injection", () => {
 
     expect(createToolMap).toHaveBeenCalledTimes(1);
     expect(text).toBe("injected project context");
+  });
+
+  it("has no static or dynamic import of global tool-registry", () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, "./index.ts"),
+      "utf-8",
+    );
+    expect(source).not.toMatch(/from\s+["'][^"']*tool-registry[^"']*["']/);
+    expect(source).not.toMatch(
+      /import\s*\(\s*["'][^"']*tool-registry[^"']*["']\s*\)/,
+    );
   });
 });

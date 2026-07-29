@@ -65,8 +65,9 @@ describe("DDC5 — conformance corpus (parity vs plugin)", () => {
     // Re-stated here under the conformance banner for DDC5 accounting.
     //
     // The plugin's adv_project_context.execute(args, store) reads project.md
-    // from the cwd. The MCP handler does the same via dynamic import. Both
-    // resolve to the same project.md file at process.cwd(); therefore
+    // from the cwd. The MCP handler dispatches through the narrow injected
+    // Tier-4 factory, which resolves to the same adv_project_context handler.
+    // Both resolve to the same project.md file at process.cwd(); therefore
     // responses must be deep-equal.
     const { client, clientTransport, serverTransport } =
       await connectToServer();
@@ -77,8 +78,7 @@ describe("DDC5 — conformance corpus (parity vs plugin)", () => {
     });
     const mcpText = extractText(mcpResult);
 
-    // Direct plugin call via dynamic import (matches production code path
-    // in plugin/src/mcp-server/tools/project_context.ts).
+    // Direct plugin call via the full tool map (baseline for parity).
     const { createToolMap } = await import("../tool-registry.js");
     const { createDiskStore } = await import("../storage/store-disk.js");
     const cwd = process.cwd();

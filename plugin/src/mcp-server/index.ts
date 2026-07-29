@@ -3,8 +3,8 @@
  *
  * Exposes a minimal read surface over the Model Context Protocol:
  *   - adv_handshake: capability/version meta-tool
- *   - Tier-4 read tools (including project_context) dispatched through the
- *     generic plugin tool registry
+ *   - Tier-4 read tools (including project_context) dispatched through a
+ *     narrow injected factory covering exactly the 13 catalog tools
  *
  * The server resolves the project id at startup, uses the plugin version as
  * its serverInfo.version, and never accepts per-call project_root overrides
@@ -21,6 +21,7 @@ import { getProjectId } from "../utils/project-id.js";
 import { handleHandshake } from "./handshake.js";
 import { HANDSHAKE_TIER4_TOOLS } from "./handshake.js";
 import { executeTier4Tool, TIER4_TOOL_DESCRIPTIONS } from "./tools/index.js";
+import { createTier4ToolMap } from "./tier4-tool-map.js";
 import { formatArgRejection, rejectMutationShapedArgs } from "./security.js";
 
 export interface StartServerOptions {
@@ -109,7 +110,9 @@ export async function startServer(
           };
         }
 
-        const text = await executeTier4Tool(cwd, toolName, args);
+        const text = await executeTier4Tool(cwd, toolName, args, {
+          createToolMap: createTier4ToolMap,
+        });
         return {
           content: [{ type: "text" as const, text }],
         };
