@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-29T18:18:21.887Z",
+  "capabilities": [],
+  "change_hash": "33d8feab14ab3f35f0d0e3577056907fa251357b77473d32b653f27e45307fbb",
+  "change_id": "makeToolReadsWorkerFree",
+  "completed_tasks": 3,
+  "created_at": "2026-07-28T18:11:56.478Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-29T16:41:45.151Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "03b9c75c4d3483a0b7fdaf78c8259057a8223115ed88e4ebea45e5cc7851b09c",
+  "task_count": 3,
+  "title": "Make tool reads worker free",
+  "version": "1"
+}
