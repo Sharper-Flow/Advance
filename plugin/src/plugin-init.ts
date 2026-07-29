@@ -13,6 +13,15 @@
 
 import { Client } from "@temporalio/client";
 import { createStore } from "./storage/store";
+import {
+  reconcileTerminalWorkflows,
+  type TerminalReconcileClient,
+  type TerminalReconcileResult,
+} from "./temporal/reconcile-terminal-workflows";
+import {
+  buildTerminalReconcileDeps,
+  type TerminalSignalClient,
+} from "./temporal/reconcile-terminal-deps";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
 import {
@@ -433,6 +442,19 @@ export async function tryInitStore(
       duration_ms: Number((performance.now() - storeInitStartedAt).toFixed(3)),
     });
 
+    // Settle workflows leaked by archive's disk-recovery fallback. That path
+    // converges disk state without firing the terminal signal, so the workflow
+    // blocks in `wf.condition` forever and its session queue stays in the
+    // orphan enumeration permanently. Nothing touches an archived change
+    // again, so the debt can only be settled by an active sweep. Deferred off
+    // the init path — this is best-effort repair, never a startup dependency.
+    scheduleTerminalReconcileSweep({
+      projectId: projectId ?? undefined,
+      client: temporalBundle?.client ?? null,
+      archiveDir: store.paths.archive,
+      changesDir: store.paths.changes,
+    });
+
     profilePluginInit("try_init_store_complete", {
       duration_ms: Number((performance.now() - initStartedAt).toFixed(3)),
       backend_mode: "temporal",
@@ -621,6 +643,61 @@ function registerInProcessTemporalWorker(worker: InProcessWorker): void {
 export interface WorkerAdoptionHandle {
   /** Stop the orphan-queue adoption driver interval, if one was started. */
   stopDriver: (() => void) | null;
+}
+
+/** Delay before the one-shot terminal sweep, so Temporal can settle first. */
+const TERMINAL_RECONCILE_DELAY_MS = 15_000;
+/** Cap per sweep; a large historical backlog drains over several startups. */
+const TERMINAL_RECONCILE_MAX_PER_SWEEP = 25;
+
+let terminalReconcileTimer: ReturnType<typeof setTimeout> | null = null;
+let lastTerminalReconcile: TerminalReconcileResult | null = null;
+
+/** Result of the most recent auto sweep, for diagnostics. */
+export function getLastTerminalReconcile(): TerminalReconcileResult | null {
+  return lastTerminalReconcile;
+}
+
+/**
+ * Schedule the one-shot terminal-workflow reconciliation sweep.
+ *
+ * Idempotent and safe to call on every init: the sweep itself requires
+ * positive archive evidence and vetoes any change that is still active, and
+ * the terminal signal is a reducer-only status flip.
+ */
+export function scheduleTerminalReconcileSweep(input: {
+  projectId: string | undefined;
+  client: Client | null;
+  archiveDir: string | undefined;
+  changesDir: string | undefined;
+}): void {
+  const { projectId, client, archiveDir, changesDir } = input;
+  if (!projectId || !client) return;
+  if (terminalReconcileTimer) clearTimeout(terminalReconcileTimer);
+
+  terminalReconcileTimer = setTimeout(() => {
+    terminalReconcileTimer = null;
+    void (async () => {
+      try {
+        lastTerminalReconcile = await reconcileTerminalWorkflows(
+          client as unknown as TerminalReconcileClient,
+          projectId,
+          buildTerminalReconcileDeps({
+            projectId,
+            archiveDir,
+            changesDir,
+            client: client as unknown as TerminalSignalClient,
+          }),
+          { maxPerSweep: TERMINAL_RECONCILE_MAX_PER_SWEEP },
+        );
+      } catch {
+        // Best-effort repair — never surface as a startup failure.
+      }
+    })();
+  }, TERMINAL_RECONCILE_DELAY_MS);
+
+  // Never hold the event loop open for a best-effort repair.
+  (terminalReconcileTimer as { unref?: () => void }).unref?.();
 }
 
 export function attachWorkerWithAdoption(
