@@ -99,7 +99,6 @@ describe("adv-verifier agent asset", () => {
       "VERIFICATION",
       "COMMANDS",
       "Do not edit files",
-      "Do not call adv_subagent_report_submit",
       "Do not complete gates",
       "Do not spawn",
       "final acceptance",
@@ -107,6 +106,15 @@ describe("adv-verifier agent asset", () => {
     ]) {
       expect(body, `missing body anchor ${anchor}`).toContain(anchor);
     }
+
+    // Pin the POLICY, not the call syntax. `adv_subagent_report_submit` is now
+    // dispatched through the Tier-3 `adv_tool_invoke` wrapper, so a literal
+    // "Do not call adv_subagent_report_submit" anchor breaks on a routing
+    // change even though the prohibition is fully intact. Assert a prohibition
+    // that names the tool, tolerant of the wrapper.
+    expect(body, "missing report-submission prohibition").toMatch(
+      /do not call[^.\n]*adv_subagent_report_submit/i,
+    );
   });
 
   test("preserves orchestrator-submitted verification bundle result identity", () => {

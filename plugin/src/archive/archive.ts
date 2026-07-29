@@ -183,6 +183,10 @@ async function writeArchiveBundleFiles(
   }
 
   // Release notes sidecar, when the change carries release-note content.
+  // Additive by construction: absent data emits no sidecar, so every existing
+  // bundle file and release behaviour is unchanged, and the sidecar travels as
+  // an ordinary file through the existing archive-PR / git-tree flows.
+  // rq-releaseNotesSidecar01
   if (change.release_notes !== undefined) {
     await atomicWriteFile(
       join(archivePath, "release-notes.json"),

@@ -6,6 +6,12 @@ import type { ReadSnapshot } from "../store-types";
  * A full active-change projection is the authority for routine reads. This
  * module intentionally has no Temporal dependency: callers can therefore use
  * it safely when a workflow is missing, poisoned, or otherwise unreachable.
+ *
+ * This is the enforcement point for projection-first routine reads: routine
+ * reads resolve from schema-versioned durable projections here and never issue
+ * a workflow Query. Query/Visibility/Describe remain reserved for command
+ * confirmation, reconciliation, diagnostics and repair.
+ * rq-projectionReadModel02
  */
 export type ChangeReadSnapshot =
   | ReadSnapshot<Change>
