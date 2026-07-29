@@ -1677,6 +1677,24 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree" },
+  test("no_remote existing-bundle retry with terminal workflow uses recovery writer", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "no_remote",
+      reason: "origin remote not configured",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "local_merge",
+      releasedCommitSha: "local-trunk-sha",
+    });
+    mocks.workflow.handle.describe = vi.fn(async () => ({
+      status: { name: "COMPLETED" },
+    }));
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
       store,
     );
 
@@ -1695,6 +1713,84 @@ describe("adv_change_archive Phase 9 behavior", () => {
         }),
       }),
     );
+      route: "no_remote",
+      pushStatus: "skipped",
+      releasedCommitSha: "local-trunk-sha",
+    });
+    // Completed workflow must NOT be signaled; recovery writer reconciles the
+    // release gate and phase9_status is skipped.
+    expect(parsed._recoveryMutation).toBe(true);
+    expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
+      }),
+    );
+    const phase9Signals = mocks.workflow.signalPayloads.filter(
+      (p) => p.phase9_status !== undefined,
+    );
+    expect(phase9Signals).toHaveLength(0);
+  });
+
+  test("no_remote existing-bundle retry with healthy workflow uses poll-confirmed projection writer", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "no_remote",
+      reason: "origin remote not configured",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "local_merge",
+      releasedCommitSha: "local-trunk-sha",
+    });
+    mocks.workflow.handle.describe = vi.fn(async () => ({
+      status: { name: "RUNNING" },
+    }));
+    const pendingGate = { status: "pending" };
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) => {
+        if (gateId === "release") {
+          // First call: pre-signal check; second call: poll confirmation.
+          const current = mocks.workflow.gates.release;
+          return current ?? pendingGate;
+        }
+        return mocks.workflow.gates;
+      },
+    );
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      route: "no_remote",
+      pushStatus: "skipped",
+    });
+    // Healthy workflow path must NOT use the recovery writer.
+    expect(parsed._recoveryMutation).toBeUndefined();
+    expect(mocks.saveRecoveredGateCompletion).not.toHaveBeenCalled();
+    // Poll-confirmed projection writer commits the release gate to the active
+    // projection before the second durable proof and phase9 recording.
+    expect(commitProjectionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationKind: "poll_confirmed_release_gate_projection",
+      }),
+    );
+    // phase9_status is recorded via a live Temporal signal.
+    const phase9Signals = mocks.workflow.signalPayloads.filter(
+      (p) => p.phase9_status !== undefined,
+    );
+    expect(phase9Signals).toHaveLength(1);
+    expect(phase9Signals[0]).toMatchObject({
+      phase9_status: expect.objectContaining({ status: "done" }),
+    });
   });
 
   test("re-running after PR-merged pending_merge recovery remains idempotent", async () => {
