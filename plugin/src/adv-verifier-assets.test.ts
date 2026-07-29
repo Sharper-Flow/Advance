@@ -117,6 +117,38 @@ describe("adv-verifier agent asset", () => {
     );
   });
 
+  test("fails soft on a defective packet instead of discarding the work", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+
+    // A missing anchor previously stopped the lane outright: it returned
+    // inconclusive/ask_user having run ZERO commands, so a correctly-scoped
+    // verification was thrown away over an orchestrator-owned label. Anchors
+    // are orchestrator-owned, so a packet defect is an internal defect.
+    expect(body, "must not discard completed work").toMatch(
+      /never discard completed verification work/i,
+    );
+    expect(body, "must report the defect rather than ask the user").toContain(
+      "## PACKET DEFECT",
+    );
+    expect(body, "must not escalate orchestrator-owned identity").toMatch(
+      /do not call `question` for packet identity values/i,
+    );
+
+    // WORKING DIRECTORY is the ONLY anchor that may hard-block: without it
+    // there is nowhere safe to run commands.
+    expect(body, "WORKING DIRECTORY must remain a hard prerequisite").toMatch(
+      /`WORKING DIRECTORY` is the only hard prerequisite/i,
+    );
+    // PHASE must degrade to the mode that can run unaided, not block.
+    expect(body, "PHASE must default rather than block").toMatch(
+      /if `PHASE` is absent, assume `local_verify`/i,
+    );
+    // Pure identity labels must never block verification.
+    expect(body, "identity labels must not block").toMatch(
+      /`CHANGE`, `SCOPE KEY`, or `ATTEMPT` are absent, proceed anyway/i,
+    );
+  });
+
   test("preserves orchestrator-submitted verification bundle result identity", () => {
     const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
 
