@@ -230,6 +230,26 @@ describe("buildContractFromAgreement", () => {
     expect(ChangeContractSchema.parse(contract)).toEqual(contract);
   });
 
+  test("AC2: behavioral criterion separates comma-delimited And boundaries for rendering", () => {
+    const contract = buildContractFromAgreement({
+      agreement: `## Acceptance Criteria
+- AC1: Given a valid contract, when a malformed structured update is minted, then ADV returns a clear validation result, and the existing contract remains unchanged.
+`,
+      approvedAt,
+    });
+
+    expect(contract.items[0]?.variant).toEqual({
+      kind: "behavioral",
+      context: "a valid contract",
+      trigger: "a malformed structured update is minted",
+      outcome: "ADV returns a clear validation result",
+      boundaries: ["the existing contract remains unchanged"],
+    });
+    expect(contract.items[0]?.text).toBe(
+      "Given a valid contract, when a malformed structured update is minted, then ADV returns a clear validation result, and the existing contract remains unchanged.",
+    );
+  });
+
   test("AC1: evidence and spec-law variants are parsed and stored", () => {
     const contract = buildContractFromAgreement({
       agreement: `## Acceptance Criteria

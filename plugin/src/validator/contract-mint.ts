@@ -191,7 +191,11 @@ function tryParseBehavioralVariant(text: string): VariantParseResult {
   const trigger = normalizeClause(
     text.slice(whenIdx + " when ".length, thenIdx),
   );
-  const outcome = normalizeClause(text.slice(thenIdx + " then ".length));
+  const outcomeParts = text
+    .slice(thenIdx + " then ".length)
+    .split(/\s*,\s+and\s+/i)
+    .map(normalizeClause);
+  const [outcome, ...boundaries] = outcomeParts;
   if (!context || !trigger || !outcome) {
     return {
       error:
@@ -204,6 +208,7 @@ function tryParseBehavioralVariant(text: string): VariantParseResult {
       context,
       trigger,
       outcome,
+      ...(boundaries.length > 0 ? { boundaries } : {}),
     },
   };
 }
