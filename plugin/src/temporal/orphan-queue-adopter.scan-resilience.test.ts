@@ -17,7 +17,13 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { OrphanListClient } from "./list-orphan-session-queues";
 import { listOrphanSessionQueues } from "./list-orphan-session-queues";
-import { OrphanQueueAdopter } from "./orphan-queue-adopter";
+import {
+  ORPHAN_MAX_CONSECUTIVE_SCAN_FAILURES,
+  ORPHAN_STUCK_SCAN_MS,
+  OrphanQueueAdopter,
+  evaluateOrphanAdoptionHealth,
+  type OrphanQueueAdoptionDiagnostics,
+} from "./orphan-queue-adopter";
 import { resetReadinessState } from "./session-readiness";
 
 const PROJECT = "P";
@@ -334,5 +340,104 @@ describe("listOrphanSessionQueues — bounded enumeration", () => {
 
     expect(withAbortSignal).not.toHaveBeenCalled();
     expect(result.map((r) => r.queue)).toEqual([Q1]);
+  });
+});
+
+describe("evaluateOrphanAdoptionHealth", () => {
+  const NOW = 1_000_000;
+
+  function diag(
+    over: Partial<OrphanQueueAdoptionDiagnostics> = {},
+  ): OrphanQueueAdoptionDiagnostics {
+    return {
+      scanInFlight: false,
+      scanFailureCount: 0,
+      consecutiveScanFailures: 0,
+      lastScanStartedAt: NOW,
+      lastScanDurationMs: 5,
+      suppressedShutdownCount: 0,
+      trackedQueues: [],
+      ...over,
+    };
+  }
+
+  it("reports ok for a healthy snapshot", () => {
+    expect(evaluateOrphanAdoptionHealth(diag(), NOW)).toEqual({ state: "ok" });
+  });
+
+  it("reports ok while a scan is in flight but still within bounds", () => {
+    const health = evaluateOrphanAdoptionHealth(
+      diag({ scanInFlight: true, lastScanStartedAt: NOW - 1_000 }),
+      NOW,
+    );
+    expect(health.state).toBe("ok");
+  });
+
+  it("reports stuck_scan once the latch is held past the bound", () => {
+    const health = evaluateOrphanAdoptionHealth(
+      diag({
+        scanInFlight: true,
+        lastScanStartedAt: NOW - ORPHAN_STUCK_SCAN_MS - 1,
+      }),
+      NOW,
+    );
+    expect(health).toMatchObject({ state: "stuck_scan" });
+    if (health.state === "stuck_scan") {
+      expect(health.stuckForMs).toBeGreaterThanOrEqual(ORPHAN_STUCK_SCAN_MS);
+    }
+  });
+
+  it("does not report stuck_scan when no scan has ever started", () => {
+    const health = evaluateOrphanAdoptionHealth(
+      diag({ scanInFlight: true, lastScanStartedAt: 0 }),
+      NOW,
+    );
+    expect(health.state).toBe("ok");
+  });
+
+  it("reports failing_scans at the consecutive-failure threshold", () => {
+    const health = evaluateOrphanAdoptionHealth(
+      diag({
+        consecutiveScanFailures: ORPHAN_MAX_CONSECUTIVE_SCAN_FAILURES,
+        lastScanError: "1 CANCELLED: context canceled",
+      }),
+      NOW,
+    );
+    expect(health).toMatchObject({
+      state: "failing_scans",
+      lastScanError: "1 CANCELLED: context canceled",
+    });
+  });
+
+  it("stays ok below the consecutive-failure threshold", () => {
+    const health = evaluateOrphanAdoptionHealth(
+      diag({
+        consecutiveScanFailures: ORPHAN_MAX_CONSECUTIVE_SCAN_FAILURES - 1,
+      }),
+      NOW,
+    );
+    expect(health.state).toBe("ok");
+  });
+
+  it("prefers stuck_scan over failing_scans when both hold", () => {
+    const health = evaluateOrphanAdoptionHealth(
+      diag({
+        scanInFlight: true,
+        lastScanStartedAt: NOW - ORPHAN_STUCK_SCAN_MS - 1,
+        consecutiveScanFailures: 99,
+      }),
+      NOW,
+    );
+    // A held latch is the more actionable signal: nothing else can progress.
+    expect(health.state).toBe("stuck_scan");
+  });
+
+  it("honours injected thresholds", () => {
+    const health = evaluateOrphanAdoptionHealth(
+      diag({ consecutiveScanFailures: 1 }),
+      NOW,
+      { maxConsecutiveScanFailures: 1 },
+    );
+    expect(health.state).toBe("failing_scans");
   });
 });
