@@ -14,6 +14,7 @@ import {
   type BriefingPacket,
   type BriefingPacketLane,
   type BriefingPacketSection,
+  type ContractItemVariant,
   getBriefingPacketArchiveAnchors,
   getBriefingPacketLaneAnchors,
 } from "../types";
@@ -55,6 +56,12 @@ export interface BriefingPacketRendererInput {
         | "violated"
         | "unknown"
         | "not_applicable";
+      /**
+       * Optional structured criterion variant parsed once at mint time. The
+       * renderer surfaces it alongside canonical text; display parts are
+       * advisory and canonical text remains authoritative (C2 / AC6).
+       */
+      variant?: ContractItemVariant;
     }>;
   };
   tasks?: Array<{
@@ -327,12 +334,20 @@ function buildContractSection(
   const { kept, omitted } = omitTail(input.contract.items, MAX_CONTRACT_ITEMS);
   return section("contract", "contract.review_matrix", {
     count: input.contract.items.length,
-    items: kept.map((c) => ({
-      id: c.id,
-      kind: c.kind,
-      text: c.text,
-      status: c.status ?? "unknown",
-    })),
+    items: kept.map((c) => {
+      const base = {
+        id: c.id,
+        kind: c.kind,
+        text: c.text,
+        status: c.status ?? "unknown",
+      };
+      // Surface the optional variant without inventing a second authoritative
+      // representation. AC6: variant kind + canonical text are both visible.
+      if (c.variant) {
+        return { ...base, variant: c.variant };
+      }
+      return base;
+    }),
     omitted,
   });
 }

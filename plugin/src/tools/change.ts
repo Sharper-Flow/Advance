@@ -844,6 +844,7 @@ async function buildBriefingPacketForChange(
         kind: item.kind,
         text: item.text,
         status,
+        variant: item.variant,
       };
     }) ?? [];
 

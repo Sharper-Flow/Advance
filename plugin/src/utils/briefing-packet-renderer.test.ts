@@ -295,4 +295,122 @@ describe("renderBriefingPacket", () => {
     const b = JSON.stringify(render());
     expect(a).toBe(b);
   });
+
+  // =============================================================================
+  // AC2 / AC6 — Structured criterion rendering
+  // =============================================================================
+
+  it("AC2: renders behavioral variant parts distinguishably for review/agent briefing", () => {
+    const packet = render({
+      ...baseInput,
+      contract: {
+        items: [
+          {
+            id: "AC2",
+            kind: "acceptance_criterion",
+            text: "Given a request, when it is valid, then it succeeds.",
+            status: "pass",
+            variant: {
+              kind: "behavioral",
+              context: "a request",
+              trigger: "it is valid",
+              outcome: "it succeeds",
+              boundaries: [
+                "and no side effects leak",
+                "and errors are bounded",
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const contractSection = packet.sections.find((s) => s.kind === "contract");
+    expect(contractSection).toBeDefined();
+    const content = contractSection?.content as {
+      items: Array<{
+        id: string;
+        text: string;
+        variant: {
+          kind: string;
+          context: string;
+          trigger: string;
+          outcome: string;
+          boundaries?: string[];
+        };
+      }>;
+    };
+    expect(content.items).toHaveLength(1);
+    const item = content.items[0]!;
+    expect(item.variant.kind).toBe("behavioral");
+    expect(item.variant.context).toBe("a request");
+    expect(item.variant.trigger).toBe("it is valid");
+    expect(item.variant.outcome).toBe("it succeeds");
+    expect(item.variant.boundaries).toEqual([
+      "and no side effects leak",
+      "and errors are bounded",
+    ]);
+  });
+
+  it("AC6: renders variant kind and canonical obligation without inventing a second authoritative representation", () => {
+    const packet = render({
+      ...baseInput,
+      contract: {
+        items: [
+          {
+            id: "AC6",
+            kind: "acceptance_criterion",
+            text: "Given a request, when it is valid, then it succeeds.",
+            status: "pass",
+            variant: {
+              kind: "behavioral",
+              context: "a request",
+              trigger: "it is valid",
+              outcome: "it succeeds",
+            },
+          },
+        ],
+      },
+    });
+
+    const contractSection = packet.sections.find((s) => s.kind === "contract");
+    const content = contractSection?.content as {
+      items: Array<{ id: string; text: string; variant: { kind: string } }>;
+    };
+    const item = content.items[0]!;
+    // Variant is visible
+    expect(item.variant).toBeDefined();
+    expect(item.variant.kind).toBe("behavioral");
+    // Canonical text remains the authoritative one-line obligation
+    expect(item.text).toBe(
+      "Given a request, when it is valid, then it succeeds.",
+    );
+    // No invented/synthetic secondary text is introduced
+    expect(item).not.toHaveProperty("synthetic_text");
+    expect(item).not.toHaveProperty("display");
+  });
+
+  it("AC3: legacy flat-text contract items render without a variant field", () => {
+    const packet = render({
+      ...baseInput,
+      contract: {
+        items: [
+          {
+            id: "AC3",
+            kind: "acceptance_criterion",
+            text: "Legacy flat-text criterion.",
+            status: "pass",
+          },
+        ],
+      },
+    });
+
+    const contractSection = packet.sections.find((s) => s.kind === "contract");
+    const content = contractSection?.content as {
+      items: Array<{ id: string; text: string; variant?: unknown }>;
+    };
+    expect(content.items).toHaveLength(1);
+    expect(content.items[0]!.text).toBe("Legacy flat-text criterion.");
+    expect(content.items[0]!.variant).toBeUndefined();
+  });
 });
