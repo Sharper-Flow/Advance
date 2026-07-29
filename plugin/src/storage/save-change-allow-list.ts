@@ -18,6 +18,11 @@
  * `commitChangeProjection` / the typed mutation coordinator.
  */
 
+import { readFile } from "node:fs/promises";
+import { execSync } from "node:child_process";
+import { resolve, relative } from "node:path";
+import ts from "typescript";
+
 export interface SaveChangeAllowListEntry {
   /** Source file path relative to the repo root. */
   file: string;
@@ -120,6 +125,122 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
       "RED/GREEN test seeds a durable delta-add projection directly via raw saveChange to prove the disk shard is written before the workflow ledger is consulted.",
   },
 ];
+
+export interface SaveChangeCallSite {
+  /** Source file path relative to the repo root. */
+  file: string;
+  /** 1-indexed line number of the `saveChange` identifier. */
+  line: number;
+  /** 1-indexed column number of the `saveChange` identifier. */
+  column: number;
+  /** Enclosing function/method/arrow-function names for context narrowing. */
+  contexts: string[];
+  /** The full source line containing the call. */
+  content: string;
+}
+
+/**
+ * Walk ancestor nodes to collect the names of enclosing functions, methods, and
+ * arrow-function variable declarations. Used by both guard tests to preserve the
+ * existing `(file, contexts)` allow-list matching.
+ */
+export function enclosingContextNames(node: ts.Node): string[] {
+  const names: string[] = [];
+  let current: ts.Node | undefined = node;
+  while (current) {
+    if (ts.isFunctionDeclaration(current) && current.name) {
+      names.push(current.name.text);
+    } else if (ts.isMethodDeclaration(current) && current.name) {
+      names.push(current.name.getText().replace(/["']/g, ""));
+    } else if (
+      (ts.isArrowFunction(current) || ts.isFunctionExpression(current)) &&
+      current.parent
+    ) {
+      const parent = current.parent;
+      if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
+        names.push(parent.name.text);
+      } else if (
+        (ts.isPropertyAssignment(parent) || ts.isMethodDeclaration(parent)) &&
+        parent.name
+      ) {
+        names.push(parent.name.getText().replace(/["']/g, ""));
+      }
+    }
+    current = current.parent;
+  }
+  return names;
+}
+
+function createSaveChangeSourceFile(
+  fileName: string,
+  text: string,
+): ts.SourceFile {
+  return ts.createSourceFile(
+    fileName,
+    text,
+    ts.ScriptTarget.ESNext,
+    true,
+    ts.ScriptKind.TS,
+  );
+}
+
+export function collectSaveChangeCallSitesFromSource(
+  source: ts.SourceFile,
+  file: string,
+): SaveChangeCallSite[] {
+  const calls: SaveChangeCallSite[] = [];
+  function visit(node: ts.Node) {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression;
+      if (ts.isIdentifier(callee) && callee.text === "saveChange") {
+        const start = node.getStart(source);
+        const { line, character } = source.getLineAndCharacterOfPosition(start);
+        const lines = source.text.split("\n");
+        calls.push({
+          file,
+          line: line + 1,
+          column: character + 1,
+          contexts: enclosingContextNames(node),
+          content: lines[line] ?? "",
+        });
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(source);
+  return calls;
+}
+
+export function collectSaveChangeCallSitesFromText(
+  text: string,
+  file = "fixture.ts",
+): SaveChangeCallSite[] {
+  const source = createSaveChangeSourceFile(file, text);
+  return collectSaveChangeCallSitesFromSource(source, file);
+}
+
+export async function findExecutableSaveChangeCalls(
+  repoRoot: string,
+): Promise<SaveChangeCallSite[]> {
+  const output = execSync("rg --files plugin/src --type ts", {
+    cwd: repoRoot,
+    encoding: "utf-8",
+  });
+  const files = new Set<string>();
+  for (const line of output.split("\n").filter(Boolean)) {
+    const [file] = line.split(":");
+    if (file) files.add(resolve(repoRoot, file));
+  }
+
+  const calls: SaveChangeCallSite[] = [];
+  for (const absoluteFile of files) {
+    const text = await readFile(absoluteFile, "utf-8");
+    const source = createSaveChangeSourceFile(absoluteFile, text);
+    const relFile = relative(repoRoot, absoluteFile).replace(/\\/g, "/");
+    calls.push(...collectSaveChangeCallSitesFromSource(source, relFile));
+  }
+  return calls;
+}
 
 /**
  * Tests scan callers as `(file, contexts)` pairs. A null context in the allow

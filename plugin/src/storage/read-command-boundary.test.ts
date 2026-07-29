@@ -25,8 +25,11 @@ import { describe, expect, it } from "vitest";
 import ts from "typescript";
 import { readFileSync, statSync, existsSync } from "node:fs";
 import { resolve, dirname, join, relative, extname } from "node:path";
-import { execSync } from "node:child_process";
-import { isAllowedSaveChangeCaller } from "./save-change-allow-list";
+import {
+  enclosingContextNames,
+  findExecutableSaveChangeCalls,
+  isAllowedSaveChangeCaller,
+} from "./save-change-allow-list";
 
 const pluginSrc = resolve(import.meta.dirname, "..");
 
@@ -316,31 +319,6 @@ const queryContextAllowlist = new Map<string, Set<string>>([
   ],
 ]);
 
-function enclosingContextNames(node: ts.Node): string[] {
-  const names: string[] = [];
-  let current: ts.Node | undefined = node;
-  while (current) {
-    if (ts.isFunctionDeclaration(current) && current.name) {
-      names.push(current.name.text);
-    } else if (
-      (ts.isArrowFunction(current) || ts.isFunctionExpression(current)) &&
-      current.parent
-    ) {
-      const parent = current.parent;
-      if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) {
-        names.push(parent.name.text);
-      } else if (
-        (ts.isPropertyAssignment(parent) || ts.isMethodDeclaration(parent)) &&
-        parent.name
-      ) {
-        names.push(parent.name.getText().replace(/["']/g, ""));
-      }
-    }
-    current = current.parent;
-  }
-  return names;
-}
-
 function workflowCallContexts(source: ts.SourceFile): string[][] {
   const calls: string[][] = [];
   function visit(node: ts.Node) {
@@ -401,58 +379,17 @@ describe("pure metadata/spec/catalog roots are isolated", () => {
 describe("writer allowlist", () => {
   it("direct saveChange call sites are confined to the allow-list", async () => {
     const repoRoot = resolve(pluginSrc, "../..");
-    const output = execSync(
-      'rg --vimgrep "saveChange\\(" plugin/src --type ts',
-      { cwd: repoRoot, encoding: "utf-8" },
-    );
+    const calls = await findExecutableSaveChangeCalls(repoRoot);
     const violations: string[] = [];
 
-    for (const line of output.split("\n").filter(Boolean)) {
-      const [file, lineNo, column, ...rest] = line.split(":");
-      const content = rest.join(":");
-      if (!file) continue;
-      if (file.endsWith(".test.ts") || file.endsWith(".itest.ts")) continue;
-
-      const absoluteFile = resolve(repoRoot, file);
-      const fileContent = readFileSync(absoluteFile, "utf-8");
-      const lines = fileContent.split("\n");
-      const idx = Number(lineNo) - 1;
-      const callLine = lines[idx];
-      const trimmed = callLine.trim();
-      if (
-        trimmed.startsWith("//") ||
-        trimmed.startsWith("*") ||
-        trimmed.startsWith("/*")
-      ) {
+    for (const call of calls) {
+      if (call.file.endsWith(".test.ts") || call.file.endsWith(".itest.ts")) {
         continue;
       }
-      if (trimmed.startsWith("export async function saveChange(")) continue;
-
-      const contexts: string[] = [];
-      for (let i = idx - 1; i >= 0 && contexts.length < 8; i--) {
-        const l = lines[i];
-        const fnMatch = l.match(
-          /(?:export\s+)?(?:async\s+)?function\s+([a-zA-Z_$][a-zA-Z0-9_$]*)/,
+      if (!isAllowedSaveChangeCaller(call.file, call.contexts).allowed) {
+        violations.push(
+          `${call.file}:${call.line}:${call.column}: ${call.content.trim()}`,
         );
-        if (fnMatch) {
-          contexts.push(fnMatch[1]);
-          continue;
-        }
-        const methodMatch = l.match(
-          /([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*(?:async\s+)?\(/,
-        );
-        if (methodMatch) {
-          contexts.push(methodMatch[1]);
-          continue;
-        }
-        const arrowMatch = l.match(
-          /(?:const|let|var)\s+([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=/,
-        );
-        if (arrowMatch) contexts.push(arrowMatch[1]);
-      }
-
-      if (!isAllowedSaveChangeCaller(file, contexts).allowed) {
-        violations.push(`${file}:${lineNo}:${column}: ${content.trim()}`);
       }
     }
 
