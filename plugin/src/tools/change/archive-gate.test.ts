@@ -1076,7 +1076,7 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
 
     expect(durableProof).toMatchObject({
       ok: true,
-      source: "shipped-finalization",
+      source: "disk",
     });
   });
 });
@@ -1325,7 +1325,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
     expect(proof).toMatchObject({
       ok: true,
       accepted: true,
-      source: "shipped-finalization",
+      source: "disk",
       finalizationStatus: "shipped",
     });
   });

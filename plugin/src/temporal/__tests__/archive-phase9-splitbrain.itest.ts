@@ -198,7 +198,10 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
       // Durable archive bundle on disk (the split-brain invariant).
       const bundleDir = join(root, ".adv", "archive", CHANGE_ID);
       await mkdir(bundleDir, { recursive: true });
-      await writeFile(join(bundleDir, "change.json"), "{}\n");
+      await writeFile(
+        join(bundleDir, "change.json"),
+        `${JSON.stringify(makeSplitBrainChange(CHANGE_ID), null, 2)}\n`,
+      );
 
       await withTimeSkippingTestWorkflowEnvironment(async (env) => {
         const namespace = "default";

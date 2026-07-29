@@ -6,6 +6,7 @@
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
+import { existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { describe, expect, test, vi, beforeEach } from "vitest";
@@ -29,6 +30,7 @@ const mocks = vi.hoisted(() => {
     gates: {} as Gates,
     signalPayloads: [] as Array<Record<string, unknown>>,
     handle: {
+      describe: vi.fn(async () => ({ status: { name: "RUNNING" } })),
       signal: vi.fn(
         async (_signal: unknown, payload: Record<string, unknown>) => {
           workflow.signalPayloads.push(payload);
@@ -345,8 +347,12 @@ function makeChildChange(
 }
 
 describe("adv_change_archive Phase 9 behavior", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Avoid cross-test pollution from the shared mock changes directory.
+    if (existsSync("/tmp/.adv/changes")) {
+      await rm("/tmp/.adv/changes", { recursive: true, force: true });
+    }
     mocks.workflow.gates = {} as Gates;
     mocks.workflow.signalPayloads = [];
     mocks.workflow.handle.query.mockImplementation(

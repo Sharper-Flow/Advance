@@ -11,8 +11,10 @@ import {
   type Change,
   type Phase9FinalizationStatus,
 } from "../../types";
+import { basename, dirname } from "node:path";
 import type { Store } from "../../storage/store";
 import { loadChange } from "../../storage/json";
+import { commitChangeProjection } from "../../storage/change-projection-transaction";
 import { getProjectId } from "../../utils/project-id";
 import { createLogger } from "../../utils/debug-log";
 import { formatToolOutput } from "../../utils/tool-output";
@@ -39,7 +41,9 @@ import {
   gateCompletedSignal,
   getGateStatusQuery,
   phase9StatusUpdatedSignal,
+  changeStateQuery,
 } from "../../temporal/messages";
+import type { ChangeWorkflowState } from "../../temporal/contracts";
 import {
   detectDefaultBranch,
   classifyFinalizationRoute,
@@ -497,11 +501,15 @@ export async function reconcileArchivedBundleRetry(input: {
   // re-verified and the durable proof must match before reconciliation
   // succeeds (rq-releaseProjectionDurability01).
   const releaseEvidence = buildReleaseCompletionEvidence(finalization);
+  // First verification checks the authoritative active change projection
+  // only. Reading the archive bundle here would let a stale or incomplete
+  // bundle short-circuit a live workflow that still needs the gate signal.
   let durableProof = await verifyReleaseGateDurableForArchive({
     store: input.store,
     changeId: input.changeId,
     evidence: releaseEvidence,
     finalization,
+    requireExistingGate: true,
   });
   let releaseResult: Extract<
     ArchiveReleaseGateResult,
@@ -543,11 +551,29 @@ export async function reconcileArchivedBundleRetry(input: {
         readinessBlockers: completionResult.readinessBlockers,
       });
     }
+    // Write the confirmed live gate back to the durable projection before the
+    // readback verification. This closes the async-projection race where the
+    // workflow poll observes "done" before the scheduled projection activity
+    // has persisted it, and it covers the split-brain case where the active
+    // projection has been removed and only the archive bundle remains.
+    // Recovery mutations already wrote the disk projection, so skip the
+    // redundant live writeback to avoid failing on a missing bundle path.
+    if (!completionResult.recoveryMutation) {
+      await commitArchiveReleaseGateProjection({
+        store: input.store,
+        changeId: input.changeId,
+        gate: completionResult.gate,
+        evidence: releaseEvidence,
+        bundlePath: input.existingBundlePath,
+      });
+    }
     durableProof = await verifyReleaseGateDurableForArchive({
       store: input.store,
       changeId: input.changeId,
       evidence: releaseEvidence,
       finalization,
+      bundlePath: input.existingBundlePath,
+      requireExistingGate: true,
     });
     if (!durableProof.ok) {
       return formatToolOutput({
@@ -987,8 +1013,20 @@ async function loadAuditedDiskReleaseGate(input: {
    * acceptance path (fixDurableProofFallback).
    */
   shipped?: boolean;
+  /**
+   * Archive bundle path for the split-brain retry path. When provided, the
+   * disk proof is read from the bundle's own change.json instead of the active
+   * changes directory, which may already have been removed or superseded.
+   */
+  bundlePath?: string;
 }): Promise<GateCompletion | null> {
-  const disk = await loadChange(input.store.paths.changes, input.changeId);
+  const changesDir = input.bundlePath
+    ? dirname(input.bundlePath)
+    : input.store.paths.changes;
+  const changeId = input.bundlePath
+    ? basename(input.bundlePath)
+    : input.changeId;
+  const disk = await loadChange(changesDir, changeId);
   if (!disk.success || !disk.data?.gates) return null;
   const gate = disk.data.gates.release;
   // rq-releaseProjectionDurability01 resilience: when the store-backed gate
@@ -1018,6 +1056,77 @@ async function loadAuditedDiskReleaseGate(input: {
   return null;
 }
 
+/**
+ * rq-releaseProjectionDurability01 split-brain writeback: after a live
+ * gateCompletedSignal is confirmed via workflow query, durably project the
+ * done release gate to the archive bundle's change.json (or the active change
+ * projection when no bundle is provided) so the next
+ * verifyReleaseGateDurableForArchive readback observes the mutation.
+ *
+ * This fixes the race where the workflow handler schedules an async projection
+ * activity that has not landed by the time the archive tool polls "done", or
+ * where the retry path is running against an existing bundle that has no active
+ * projection at all.
+ */
+export async function commitArchiveReleaseGateProjection(input: {
+  store: Store;
+  changeId: string;
+  gate: GateCompletion;
+  evidence: string;
+  bundlePath?: string;
+}): Promise<void> {
+  const changesDir = input.bundlePath
+    ? dirname(input.bundlePath)
+    : input.store.paths.changes;
+  const changeId = input.bundlePath
+    ? basename(input.bundlePath)
+    : input.changeId;
+
+  let stateRevision: number | undefined;
+  const bundle = getService();
+  if (bundle) {
+    const projectId = await getProjectId(input.store.paths.root);
+    if (projectId) {
+      try {
+        const state = await runReacquiringChangeQuery<ChangeWorkflowState>(
+          projectId,
+          input.changeId,
+          changeStateQuery,
+        );
+        stateRevision = state.state_revision;
+      } catch (error) {
+        logger.warn(
+          `commitArchiveReleaseGateProjection: state_revision query failed for ${input.changeId}; committing without state revision: ${collectErrorText(error)}`,
+        );
+      }
+    }
+  }
+
+  const operationId = `live-release-gate-complete:${input.changeId}:${input.gate.completed_at ?? new Date().toISOString()}`;
+  const result = await commitChangeProjection({
+    changesDir,
+    changeId,
+    operationId,
+    stateRevision,
+    authority: { kind: "temporal", mutationReceiptId: operationId },
+    mutationKind: "gate_completion",
+    mutateLatest: (latest) => ({
+      ...latest,
+      gates: {
+        ...(latest.gates ?? {}),
+        release: input.gate,
+      } as Gates,
+    }),
+    verify: ({ readback }) => readback.gates?.release?.status === "done",
+  });
+
+  if (result.kind !== "committed") {
+    logger.warn(
+      `commitArchiveReleaseGateProjection: projection commit did not land for ${input.changeId}: ${result.kind}`,
+    );
+  }
+}
+
 export async function verifyReleaseGateDurableForArchive(input: {
   store: Store;
   changeId: string;
@@ -1038,6 +1147,21 @@ export async function verifyReleaseGateDurableForArchive(input: {
    * compatible). Non-`shipped` status preserves the strict evidence-match guard.
    */
   finalization?: GitFinalizeOutcome;
+  /**
+   * Archive bundle path for the split-brain retry path. When provided, disk
+   * proof reads and recovery writes target the bundle's change.json so the
+   * re-run reconciles the durable archive copy instead of a missing active
+   * projection.
+   */
+  bundlePath?: string;
+  /**
+   * Structural hardening for the idempotent re-run path: do not synthesize a
+   * release gate from the finalization alone. When true, the verifier only
+   * accepts a gate that is already observed in the store or durable disk
+   * projection. This prevents the shipped-rescue shortcut from masking a
+   * terminated workflow that should be recovered via disk projection.
+   */
+  requireExistingGate?: boolean;
 }): Promise<DurableReleaseGateProofResult> {
   // Structural authority (fixDurableProofFallback design-validation hardening):
   // `shipped` is derived INSIDE the verifier from the finalization outcome
@@ -1084,51 +1208,9 @@ export async function verifyReleaseGateDurableForArchive(input: {
     };
   }
 
-  // Shipped rescue (KD2/KD5): git-verified `shipped` is unforgeable proof the
-  // change reached the default branch. Accept the durable proof without
-  // requiring the store/disk projection to already show done, but require the
-  // immutable released commit SHA and a valid route/push combination so the
-  // proof remains structural. If shipped is missing reachability fields, fall
-  // through to the strict non-shipped disk fallback below.
-  if (shipped && input.finalization) {
-    const { route, pushStatus, releasedCommitSha } = input.finalization;
-    const prRoute =
-      route === "pr_auto_merge" ||
-      route === "pr_manual" ||
-      route === "merge_queue";
-    const validRoutePushCombo =
-      (route === "no_remote" && pushStatus === "skipped") ||
-      ((route === "direct" || prRoute) && pushStatus === "pushed");
-    if (releasedCommitSha && validRoutePushCombo) {
-      let gate: GateCompletion | undefined;
-      const diskReleaseGate = await loadAuditedDiskReleaseGate({
-        ...input,
-        shipped,
-      });
-      gate = diskReleaseGate ?? undefined;
-      if (!gate) {
-        gate = {
-          status: "done",
-          completed_at: new Date().toISOString(),
-          completed_by: "adv-archive",
-          approval_evidence: input.evidence,
-        };
-      }
-      return {
-        accepted: true,
-        ok: true,
-        source: "shipped-finalization",
-        finalizationStatus: input.finalization.status,
-        releasedCommitSha,
-        mergeCommitSha: input.finalization.mergeCommitSha,
-        pushStatus,
-        route,
-        gate,
-      };
-    }
-  }
-
-  // Non-shipped / non-rescuable disk fallback.
+  // Non-shipped / rescuable disk fallback: prefer a done disk gate when one
+  // exists. This covers audited recovery projections and shipped manual
+  // completions before the structural shipped rescue below synthesizes a gate.
   const diskReleaseGate = await loadAuditedDiskReleaseGate({
     ...input,
     shipped,
@@ -1141,6 +1223,41 @@ export async function verifyReleaseGateDurableForArchive(input: {
       finalizationStatus: input.finalization?.status ?? "unknown",
       gate: diskReleaseGate,
     };
+  }
+
+  // Shipped rescue (KD2/KD5): git-verified `shipped` is unforgeable proof the
+  // change reached the default branch. Only synthesize a gate when neither the
+  // store nor the durable disk projection already shows done, and require the
+  // immutable released commit SHA and a valid route/push combination so the
+  // proof remains structural. The idempotent re-run path disables this shortcut
+  // so a terminated workflow cannot be papered over with a synthetic gate.
+  if (!input.requireExistingGate && shipped && input.finalization) {
+    const { route, pushStatus, releasedCommitSha } = input.finalization;
+    const prRoute =
+      route === "pr_auto_merge" ||
+      route === "pr_manual" ||
+      route === "merge_queue";
+    const validRoutePushCombo =
+      (route === "no_remote" && pushStatus === "skipped") ||
+      ((route === "direct" || prRoute) && pushStatus === "pushed");
+    if (releasedCommitSha && validRoutePushCombo) {
+      return {
+        accepted: true,
+        ok: true,
+        source: "shipped-finalization",
+        finalizationStatus: input.finalization.status,
+        releasedCommitSha,
+        mergeCommitSha: input.finalization.mergeCommitSha,
+        pushStatus,
+        route,
+        gate: {
+          status: "done",
+          completed_at: new Date().toISOString(),
+          completed_by: "adv-archive",
+          approval_evidence: input.evidence,
+        },
+      };
+    }
   }
   return {
     accepted: false,
