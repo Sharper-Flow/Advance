@@ -19,6 +19,8 @@
  * Covers (integration level):
  *   AC2 — after adoption, a query against the workflow on that queue succeeds.
  *   AC5 — idempotency: a re-scan does not re-register an already-polled queue.
+ *   AC6 — the restart-path seam (attachWorkerWithAdoption) constructs and drives
+ *         the adopter so the orphaned workflow becomes queryable.
  *   AC7 — adoption state surfaces in getDiagnostics().
  */
 import { fileURLToPath } from "node:url";
@@ -31,6 +33,7 @@ import { buildSessionTaskQueue } from "../client";
 import { getChangeStateQuery } from "../messages";
 import type { OrphanListClient } from "../list-orphan-session-queues";
 import { OrphanQueueAdopter } from "../orphan-queue-adopter";
+import { attachWorkerWithAdoption } from "../../plugin-init";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 
 const workflowsPath = fileURLToPath(
@@ -161,5 +164,98 @@ describe("rq-isolSessionTaskQueue05: orphan session queue adoption (real worker 
         }
       }
     });
+  }, 60_000);
+
+  it("adopts a stranded queue through the restart-path seam (attachWorkerWithAdoption) and the orphaned workflow becomes queryable (AC6)", async () => {
+    const savedAdoptionEnv = process.env.ADV_ORPHAN_QUEUE_ADOPTION;
+    process.env.ADV_ORPHAN_QUEUE_ADOPTION = "1";
+    try {
+      await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+        const sessionQueue = buildSessionTaskQueue(PROJECT_ID, SESSION_ID);
+
+        // 1. Start a change workflow on the session queue with NO poller → orphan.
+        const handle = await env.client.workflow.start("changeWorkflow", {
+          workflowId: `adv/change/${PROJECT_ID}/${CHANGE_ID}`,
+          taskQueue: sessionQueue,
+          args: [makeInput()],
+        });
+
+        // 2. Stubbed enumeration client (test server lacks ListWorkflowExecutions).
+        const stubClient: OrphanListClient = {
+          workflow: {
+            list: async function* () {
+              yield {
+                workflowId: `adv/change/${PROJECT_ID}/${CHANGE_ID}`,
+                taskQueue: sessionQueue,
+                startTime: new Date(),
+                status: { name: "RUNNING" },
+              };
+            },
+          },
+        };
+
+        // 3. Real InProcessWorker: registerQueue creates + runs a real Worker.
+        const polled = new Set<string>();
+        const spawned: Worker[] = [];
+        const worker: import("../in-process-worker").InProcessWorker = {
+          registerQueue: vi.fn(async (queue: string) => {
+            const w = await Worker.create({
+              connection: env.nativeConnection,
+              workflowsPath,
+              taskQueue: queue,
+            });
+            spawned.push(w);
+            polled.add(queue);
+            void w.run().catch(() => undefined);
+            await new Promise((resolve) =>
+              setTimeout(resolve, POLLER_SETTLE_MS),
+            );
+          }),
+          get queues() {
+            return [...polled];
+          },
+          shutdown: async () => {
+            for (const w of spawned) {
+              try {
+                await w.shutdown();
+              } catch {
+                /* best-effort */
+              }
+            }
+          },
+        };
+
+        // 4. Attach via the restart-path seam.
+        const { stopDriver } = attachWorkerWithAdoption(worker, {
+          projectId: PROJECT_ID,
+          client: stubClient as unknown as import("@temporalio/client").Client,
+        });
+
+        // 5. Wait for the 10s driver tick to fire and adoption to complete.
+        await new Promise((resolve) => setTimeout(resolve, 10_500));
+
+        // 6. Sentinel (AC6): the previously-stranded workflow is now queryable.
+        let state: unknown = null;
+        const sentinelDeadline = Date.now() + 10_000;
+        while (state === null && Date.now() < sentinelDeadline) {
+          try {
+            state = await handle.query(getChangeStateQuery);
+          } catch {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+          }
+        }
+        expect(state).toBeTruthy();
+
+        // 7. Cleanup: stop the driver before shutting down the worker.
+        stopDriver?.();
+        await worker.shutdown();
+      });
+    } finally {
+      if (savedAdoptionEnv === undefined) {
+        delete process.env.ADV_ORPHAN_QUEUE_ADOPTION;
+      } else {
+        process.env.ADV_ORPHAN_QUEUE_ADOPTION = savedAdoptionEnv;
+      }
+    }
   }, 60_000);
 });

@@ -81,7 +81,7 @@ function isShutdownError(err: unknown): boolean {
 }
 
 /** Bound an error to a diagnostic-safe string (AC6 lastError surface). */
-function describeError(err: unknown): string {
+export function describeError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err);
   return msg.length > 200 ? `${msg.slice(0, 197)}...` : msg;
 }

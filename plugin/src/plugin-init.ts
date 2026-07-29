@@ -11,6 +11,7 @@
  * createDegradedToolMap) when initError is non-null.
  */
 
+import { Client } from "@temporalio/client";
 import { createStore } from "./storage/store";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
@@ -26,6 +27,7 @@ import {
 import { createOutOfProcessWorker } from "./temporal/out-of-process-worker";
 import {
   OrphanQueueAdopter,
+  describeError,
   isOrphanQueueAdoptionEnabled,
   type OrphanQueueAdoptionDiagnostics,
 } from "./temporal/orphan-queue-adopter";
@@ -298,9 +300,6 @@ export async function tryInitStore(
             // beats must never block on a roll.
             onBeat: () => {
               void workerBundleRollMonitor?.checkNow().catch(() => undefined);
-              void activeOrphanQueueAdopter
-                ?.adoptNextOrphan()
-                .catch(() => undefined);
             },
           });
           registerWorkerLockHeartbeat(workerHeartbeat);
@@ -407,19 +406,10 @@ export async function tryInitStore(
         duration_ms: Number((performance.now() - bundleStartedAt).toFixed(3)),
       });
       if (worker) {
-        registerInProcessTemporalWorker(worker);
-        // rq-isolSessionTaskQueue05: instantiate the adopter once worker +
-        // temporalBundle are ready. The heartbeat onBeat calls adoptNextOrphan()
-        // on each tick (10s cadence). Gated by the ADV_ORPHAN_QUEUE_ADOPTION
-        // kill-switch (default ON; "0" disables) — adoption is always-on in
-        // production; the flag is an emergency escape hatch only.
-        if (temporalBundle && isOrphanQueueAdoptionEnabled()) {
-          activeOrphanQueueAdopter = new OrphanQueueAdopter({
-            client: temporalBundle.client,
-            projectId,
-            worker,
-          });
-        }
+        attachWorkerWithAdoption(worker, {
+          projectId,
+          client: temporalBundle?.client ?? null,
+        });
       }
     }
 
@@ -462,6 +452,7 @@ export async function tryInitStore(
 
     if (worker) {
       try {
+        teardownWorkerAttachment(worker);
         await worker.shutdown();
       } catch (shutdownError) {
         debugLog(
@@ -494,12 +485,104 @@ let currentWorkerRole: WorkerRole = "degraded";
 /** Module-level adopter reference for diagnostics + heartbeat callback. */
 let activeOrphanQueueAdopter: OrphanQueueAdopter | null = null;
 
+export type AdoptionConstructionState =
+  | { kind: "not_attempted" }
+  | { kind: "active"; adopter: OrphanQueueAdopter }
+  | { kind: "unavailable"; reason: string }
+  | { kind: "disabled" }
+  | { kind: "driver_error"; lastError: string; since: number }
+  | { kind: "construction_failed"; lastError: string };
+
+let adoptionConstructionState: AdoptionConstructionState = {
+  kind: "not_attempted",
+};
+
+interface WorkerAdoptionAttachment {
+  worker: InProcessWorker;
+  adopter: OrphanQueueAdopter | null;
+  stopDriver: (() => void) | null;
+}
+
+const workerAdoptionAttachments = new Map<
+  InProcessWorker,
+  WorkerAdoptionAttachment
+>();
+
+function teardownWorkerAttachment(worker: InProcessWorker): void {
+  const attachment = workerAdoptionAttachments.get(worker);
+  if (attachment) {
+    attachment.stopDriver?.();
+    workerAdoptionAttachments.delete(worker);
+    if (attachment.adopter && attachment.adopter === activeOrphanQueueAdopter) {
+      activeOrphanQueueAdopter = null;
+      adoptionConstructionState = { kind: "not_attempted" };
+    }
+  }
+}
+
+/** Test-only accessor for the number of live worker adoption attachments. */
+export function getWorkerAdoptionAttachmentCount(): number {
+  return workerAdoptionAttachments.size;
+}
+
 /**
  * Return orphan-queue adoption diagnostics for adv_doctor +
  * adv_status health view (rq-isolSessionTaskQueue05 / AC7).
  */
 export function getOrphanQueueAdoptionDiagnostics(): OrphanQueueAdoptionDiagnostics | null {
   return activeOrphanQueueAdopter?.getDiagnostics() ?? null;
+}
+
+export interface OrphanQueueAdoptionStatus {
+  enabled: boolean;
+  diagnostics: OrphanQueueAdoptionDiagnostics | null;
+  /** Present when enabled is false — distinguishes kill-switch / no-client / not-attached. */
+  reason?: string;
+}
+
+export function getOrphanQueueAdoptionStatus(): OrphanQueueAdoptionStatus {
+  switch (adoptionConstructionState.kind) {
+    case "active":
+      return {
+        enabled: true,
+        diagnostics: adoptionConstructionState.adopter.getDiagnostics(),
+      };
+    case "unavailable":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: adoptionConstructionState.reason,
+      };
+    case "disabled":
+      return { enabled: false, diagnostics: null, reason: "kill_switch" };
+    case "not_attempted":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: "no_worker_attached",
+      };
+    case "driver_error":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: `driver_error: ${adoptionConstructionState.lastError}`,
+      };
+    case "construction_failed":
+      return {
+        enabled: false,
+        diagnostics: null,
+        reason: `construction_failed: ${adoptionConstructionState.lastError}`,
+      };
+  }
+}
+
+function recordAdoptionDriverError(err: unknown): void {
+  adoptionConstructionState = {
+    kind: "driver_error",
+    lastError: describeError(err),
+    since: Date.now(),
+  };
+  debugLog(`Orphan-queue adoption driver error: ${describeError(err)}`);
 }
 
 const exhaustedWorkerDirs = new Set<string>();
@@ -512,7 +595,10 @@ async function handleWorkerExhausted(
   exhaustedWorkerDirs.add(projectStateDir);
 
   recordWorkerRunFailure("<all>", new Error("worker exhausted"));
-  if (worker) inProcessTemporalWorkers.delete(worker);
+  if (worker) {
+    inProcessTemporalWorkers.delete(worker);
+    teardownWorkerAttachment(worker);
+  }
 }
 
 /**
@@ -521,8 +607,77 @@ async function handleWorkerExhausted(
  * process — shutdown is cooperative (`worker.shutdown()` signals drain,
  * `connection.close()` tears down the gRPC channel).
  */
-export function registerInProcessTemporalWorker(worker: InProcessWorker): void {
+function registerInProcessTemporalWorker(worker: InProcessWorker): void {
   inProcessTemporalWorkers.add(worker);
+}
+
+/**
+ * Register a worker and, if a Temporal client is available and orphan-queue
+ * adoption is enabled, attach an `OrphanQueueAdopter`. This is the single
+ * composition helper for worker-creation sites so both spawn and restart paths
+ * can share ownership behavior (T2). T3 will route the restart path through
+ * this helper. T4 populates `stopDriver` with the attachment tick driver.
+ */
+export interface WorkerAdoptionHandle {
+  /** Stop the orphan-queue adoption driver interval, if one was started. */
+  stopDriver: (() => void) | null;
+}
+
+export function attachWorkerWithAdoption(
+  worker: InProcessWorker,
+  opts: { projectId: string; client: Client | null },
+): WorkerAdoptionHandle {
+  registerInProcessTemporalWorker(worker);
+  const attachment: WorkerAdoptionAttachment = {
+    worker,
+    adopter: null,
+    stopDriver: null,
+  };
+  workerAdoptionAttachments.set(worker, attachment);
+  if (!isOrphanQueueAdoptionEnabled()) {
+    adoptionConstructionState = { kind: "disabled" };
+    activeOrphanQueueAdopter = null;
+    return { stopDriver: null };
+  }
+  if (!opts.client) {
+    adoptionConstructionState = {
+      kind: "unavailable",
+      reason: "no_temporal_client",
+    };
+    activeOrphanQueueAdopter = null;
+    return { stopDriver: null };
+  }
+  try {
+    const adopter = new OrphanQueueAdopter({
+      client: opts.client,
+      projectId: opts.projectId,
+      worker,
+    });
+    activeOrphanQueueAdopter = adopter;
+    attachment.adopter = adopter;
+    adoptionConstructionState = { kind: "active", adopter };
+
+    // T4: drive the adopter from the attachment itself so both spawn and restart
+    // paths adopt orphans even when there is no worker-lock heartbeat (AC3).
+    // The closure captures this adopter, not the module-level variable that may
+    // be replaced by a later attachment.
+    const driverHandle = setInterval(() => {
+      adopter.adoptNextOrphan().catch((e) => {
+        recordAdoptionDriverError(e);
+      });
+    }, 10_000);
+    attachment.stopDriver = () => clearInterval(driverHandle);
+    return { stopDriver: attachment.stopDriver };
+  } catch (e) {
+    adoptionConstructionState = {
+      kind: "construction_failed",
+      lastError: describeError(e),
+    };
+    activeOrphanQueueAdopter = null;
+    attachment.adopter = null;
+    attachment.stopDriver = null;
+    return { stopDriver: null };
+  }
 }
 
 function registerWorkerLockHeartbeat(
@@ -644,6 +799,11 @@ export function getTemporalWorkerAliveness(): boolean {
 async function drainInProcessTemporalWorkers(): Promise<void> {
   const workers = [...inProcessTemporalWorkers];
   inProcessTemporalWorkers.clear();
+  // C6: stop drivers BEFORE shutdown — a driver outliving its worker targets a
+  // drained worker.
+  for (const worker of workers) {
+    teardownWorkerAttachment(worker);
+  }
   await Promise.all(
     workers.map(async (worker) => {
       try {
@@ -653,6 +813,11 @@ async function drainInProcessTemporalWorkers(): Promise<void> {
       }
     }),
   );
+}
+
+/** Test-only accessor to drain workers for teardown-state verification. */
+export async function __drainInProcessTemporalWorkersForTest(): Promise<void> {
+  return drainInProcessTemporalWorkers();
 }
 
 async function drainWorkerLockHeartbeats(): Promise<void> {
@@ -793,7 +958,10 @@ export async function restartCurrentProjectTemporalWorker(
         onWorkerExhausted,
       });
   workerRef.current = worker;
-  registerInProcessTemporalWorker(worker);
+  attachWorkerWithAdoption(worker, {
+    projectId,
+    client: getService()?.client ?? null,
+  });
   return {
     projectId,
     queues: [...worker.queues],

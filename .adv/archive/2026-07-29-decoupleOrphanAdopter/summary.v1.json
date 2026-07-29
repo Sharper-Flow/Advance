@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-29T03:35:40.898Z",
+  "capabilities": [],
+  "change_hash": "32ca370ad34497829b7e73281f9dda48bdfa5b364155e385632acf86c6dce9a6",
+  "change_id": "decoupleOrphanAdopter",
+  "completed_tasks": 10,
+  "created_at": "2026-07-28T18:35:53.691Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-28T23:06:24.000Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "11f6351a097ada8d82d9585ca955d21afbd38a81d9c89e24cb8d9213e12afa2f",
+  "task_count": 10,
+  "title": "Decouple orphan adopter construction",
+  "version": "1"
+}

@@ -35,7 +35,8 @@ import {
   registerMissingAdvSearchAttributes,
 } from "../temporal/observability";
 import {
-  getOrphanQueueAdoptionDiagnostics,
+  getOrphanQueueAdoptionStatus,
+  getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics,
   restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
@@ -62,7 +63,8 @@ export type DoctorFindingClass =
   | "worker_down_owned"
   | "suspect_lock"
   | "ambiguous_ownership"
-  | "phantom_pointer";
+  | "phantom_pointer"
+  | "unhealthy";
 
 /**
  * A safe fix the doctor applied automatically. Bounded evidence per AC9.
@@ -97,6 +99,7 @@ export interface DoctorFixRefused {
 export interface DoctorFinding {
   class: DoctorFindingClass;
   detail: string;
+  finding?: string;
 }
 
 interface DoctorVerification {
@@ -305,7 +308,8 @@ export const doctorTools = {
 
       const serverAlive = health.server_alive === true;
       const stslInitialized = bundle !== null;
-      const orphanQueueAdoption = getOrphanQueueAdoptionDiagnostics();
+      const orphanQueueAdoptionStatus = getOrphanQueueAdoptionStatus();
+      const orphanQueueAdoption = orphanQueueAdoptionStatus.diagnostics;
 
       if (!serverAlive || !stslInitialized) {
         findings.push({
@@ -393,6 +397,20 @@ export const doctorTools = {
             });
           }
         }
+      }
+
+      // AC4: a live worker without active orphan-queue adoption is an
+      // unhealthy condition unless adoption is explicitly disabled.
+      if (
+        getTemporalWorkerAliveness() &&
+        !orphanQueueAdoptionStatus.enabled &&
+        orphanQueueAdoptionStatus.reason !== "kill_switch"
+      ) {
+        findings.push({
+          class: "unhealthy",
+          finding: "orphan_queue_adoption_not_active",
+          detail: orphanQueueAdoptionStatus.reason ?? "unknown",
+        });
       }
 
       if (findings.length === 0) {
@@ -711,22 +729,25 @@ export const doctorTools = {
         fixes_applied: fixesApplied,
         fixes_refused: fixesRefused,
         verification,
-        orphan_queue_adoption: orphanQueueAdoption
+        orphan_queue_adoption: orphanQueueAdoptionStatus.enabled
           ? {
               enabled: true,
-              scanInFlight: orphanQueueAdoption.scanInFlight,
-              trackedQueues: orphanQueueAdoption.trackedQueues.slice(
+              scanInFlight: orphanQueueAdoption!.scanInFlight,
+              trackedQueues: orphanQueueAdoption!.trackedQueues.slice(
                 0,
                 ORPHAN_QUEUE_DIAGNOSTIC_DISPLAY_LIMIT,
               ),
               omittedTrackedQueues: Math.max(
                 0,
-                orphanQueueAdoption.trackedQueues.length -
+                orphanQueueAdoption!.trackedQueues.length -
                   ORPHAN_QUEUE_DIAGNOSTIC_DISPLAY_LIMIT,
               ),
             }
           : {
               enabled: false,
+              ...(orphanQueueAdoptionStatus.reason
+                ? { reason: orphanQueueAdoptionStatus.reason }
+                : {}),
               note: "orphan-queue adoption: disabled (no active adopter)",
             },
         recommendedNextAction:
