@@ -1,0 +1,1766 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchiveCleanupSequencing",
+  "title": "Fix archive cleanup sequencing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-29T18:04:58.901Z",
+  "tasks": [
+    {
+      "id": "tk-f3c864964c3f",
+      "title": "Refactor archive Phase 9 into a terminal-convergence-and-targeted-cleanup boundary.",
+      "type": "code",
+      "section": "Terminal convergence",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-29T18:14:48.538Z",
+      "started_at": "2026-07-29T18:16:24.584Z",
+      "completed_at": "2026-07-29T23:43:59.477Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Harden remediation: unsafe existing-bundle branch deletion without worktreePath fixed; reviewer reports 285/285 targeted tests, pnpm check, slop scan, and diff check pass.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "99c2d37c145d3afefef26d056f1032d947b74a6f",
+      "completedAt": "2026-07-29T23:43:59.477Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveCleanupSequencing",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+          "task_id": "tk-f3c864964c3f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f3c864964c3f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6f9669_649e48d4",
+              "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts --reporter=verbose",
+              "exit_code": 0,
+              "summary": "Phase 9 focused verification: 56 tests passed (1 new regression test + 55 existing tests)"
+            },
+            {
+              "test_run_id": "tr_ms6f9g6b_6eb6b003",
+              "command": "pnpm vitest run src/tools/change.test.ts --reporter=verbose -t \"adv_change_archive\"",
+              "exit_code": 0,
+              "summary": "Archive section in change.test.ts: 34 tests passed, 118 skipped"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced broad advWorktreeCleanup with targeted advWorktreeDelete(\"change/{id}\") in Phase 9 finalization",
+              "why": "Required behavior: archive finalization must use targeted managed-worktree removal, not broad discovery cleanup, so retention/in-use errors can block branch deletion safely"
+            },
+            {
+              "what": "Deferred removeChangeDir until after targeted worktree deletion",
+              "why": "Prevents erasing the source-dir projection before the targeted cleanup has verified terminal state"
+            },
+            {
+              "what": "Treat WORKTREE_NOT_FOUND as verified absence for branch deletion",
+              "why": "advWorktreeDelete API contract returns this code when neither registry nor resolved path exists; it satisfies the precondition that deleteChangeBranch requires the worktree to be already removed"
+            },
+            {
+              "what": "Updated change.test.ts no-op archive spy from advWorktreeCleanup to advWorktreeDelete",
+              "why": "Implementation no longer calls advWorktreeCleanup during archive finalization; the spy must match the new function to preserve the no-op assertion"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated archive cleanup path only; no same-pattern fixes needed beyond the directly touched archive finalization block and its focused test coverage",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-f3c864964c3f is complete. Phase 9 archive cleanup now uses targeted advWorktreeDelete(\"change/{id}\") with force:false, defers source-dir removal until after the targeted worktree deletion, and skips deleteChangeBranch when the targeted worktree result is retained/in-use/failed. WORKTREE_NOT_FOUND is treated as verified absence. A new regression test proves WORKTREE_IN_USE prevents branch deletion. All 56 Phase 9 tests and 34 archive tests in change.test.ts pass. Commit SHA 472e22cb296d6423c220390c470154a3722e2831.",
+            "suggested_next_action": "Run full plugin test suite or advance to next task tk-b6317a826807 (worktree guard alignment) if no regressions are found"
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_f3c864964c3f_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "engineer_report"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6f9669_649e48d4"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6f9g6b_6eb6b003"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveCleanupSequencing",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+          "task_id": "tk-f3c864964c3f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f3c864964c3f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6fem5k_5121cdbf",
+              "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts -t \"AC7 regression\"",
+              "exit_code": 1,
+              "summary": "Red evidence: AC7 regression failed because deleteChangeBranch was called despite WORKTREE_IN_USE"
+            },
+            {
+              "test_run_id": "tr_ms6ff60l_c152c206",
+              "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "Green evidence: 56 Phase 9 tests passed"
+            },
+            {
+              "test_run_id": "tr_ms6fffb5_3807e17a",
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"adv_change_archive\"",
+              "exit_code": 0,
+              "summary": "Verify evidence: 34 archive section tests passed, 118 skipped"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Temporarily added WORKTREE_IN_USE to the worktreeAbsent condition in change.ts",
+              "why": "Produces the required red evidence: treating WORKTREE_IN_USE as verified absence re-enables branch deletion and makes the AC7 regression fail, proving the committed guard prevents unsafe deletion."
+            },
+            {
+              "what": "Restored change.ts to committed SHA 472e22cb296d6423c220390c470154a3722e2831 after red evidence",
+              "why": "Evidence-repair only; no behavioral change or new implementation commit."
+            },
+            {
+              "what": "Used bin/oc-test targeted tier for focused test runs",
+              "why": "Project provides bin/oc-test; routes through oc-test-gate throttle and matches existing test tooling."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Evidence repair complete for tk-f3c864964c3f. Durable red→green ADV test evidence recorded: red run tr_ms6fem5k_5121cdbf (exit 1) proved AC7 regression fails when WORKTREE_IN_USE allows branch deletion; green run tr_ms6ff60l_c152c206 (exit 0) passed 56 Phase 9 tests; verify run tr_ms6fffb5_3807e17a (exit 0) passed 34 archive section tests. Worktree is clean at commit SHA 472e22cb296d6423c220390c470154a3722e2831.",
+            "suggested_next_action": "No further action needed for this task; evidence is durable and worktree is clean."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_f3c864964c3f_2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "engineer_report"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6fem5k_5121cdbf"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6ff60l_c152c206"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6fffb5_3807e17a"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveCleanupSequencing",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+          "task_id": "tk-f3c864964c3f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f3c864964c3f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6q2uwl_ad85efe8",
+              "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+              "exit_code": 0,
+              "summary": "Durable post-rebase verification: 57/57 Phase 9 tests passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Bound latest task report to durable ADV test evidence",
+              "why": "Clears stale verification_missing warning from pre-adv_run_test engineer report without changing implementation."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No code changes; evidence repair only.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Latest report now binds task tk-f3c864964c3f to durable passing adv_run_test tr_ms6q2uwl_ad85efe8.",
+            "suggested_next_action": "Retry acceptance gate completion using prior user approval evidence."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-b6317a826807",
+      "title": "Align `adv_worktree_delete` and branch-integration terminal proof with archive terminal convergence.",
+      "type": "code",
+      "section": "Worktree guard",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f3c864964c3f"
+        }
+      ],
+      "created_at": "2026-07-29T18:15:00.633Z",
+      "started_at": "2026-07-29T18:39:40.731Z",
+      "completed_at": "2026-07-29T18:55:29.300Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Task 2 complete. Durable red tr_ms6g1dwx_8c5ffbd1 (exit 1) showed stale active projection fails without terminal fallback; green tr_ms6g25q7_02860bbc (exit 0) passed 131 tests across branch integration, worktree delete, and Phase 9. Commit f4f21757466871e08c02b18e78577ac48a6ca158 aligns advWorktreeDelete with durable terminalStatusReader fallback, preserving terminal+merged+clean/no-force rejections.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "f4f21757466871e08c02b18e78577ac48a6ca158",
+      "completedAt": "2026-07-29T18:55:29.300Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-cc5414c920b3",
+      "title": "Add and validate route-specific archive cleanup regression coverage.",
+      "type": "code",
+      "section": "Route regression",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-f3c864964c3f"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b6317a826807"
+        }
+      ],
+      "created_at": "2026-07-29T18:15:13.679Z",
+      "started_at": "2026-07-29T18:55:47.457Z",
+      "completed_at": "2026-07-29T19:04:03.055Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Task 3 separate verification complete. User-approved reclassification from inline to separate_verification because pending-PR behavior was already correct. Durable verify tr_ms6gd7l7_e99610ff (exit 0) passed 57 Phase 9 tests. Commit c728a2c9c2028831ae6bb032780c9e50f656105d adds AC6 pending-auto-merge regression: no targeted worktree cleanup/branch deletion, no terminal save, and no issue closure.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "c728a2c9c2028831ae6bb032780c9e50f656105d",
+      "completedAt": "2026-07-29T19:04:03.055Z",
+      "assignedTo": "agent",
+      "tdd_reclassification": {
+        "from_intent": "inline",
+        "to_intent": "separate_verification",
+        "reason": "The added pending-PR route regression passed before production changes because existing behavior already preserves the route; this task is regression/route verification, not behavior implementation requiring a red failure.",
+        "approved_by_user": true,
+        "approval_evidence": "User selected 'Reclassify verification (Recommended)' in the route-test evidence question on 2026-07-29.",
+        "approved_at": "2026-07-29T19:03:08.160Z"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "reclassified"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchiveCleanupSequencing",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+          "task_id": "tk-cc5414c920b3",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cc5414c920b3"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6g8opr_dcb6dce4",
+              "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts -t \"AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal\"",
+              "exit_code": 0,
+              "summary": "AC6 red assertion: pending auto-merge path does not call advWorktreeDelete/deleteChangeBranch, archive stays nonterminal (1/1 passed)"
+            },
+            {
+              "test_run_id": "tr_ms6g8x8e_bb779d3f",
+              "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts -t \"AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal\"",
+              "exit_code": 0,
+              "summary": "AC6 green assertion: existing implementation satisfies the test (1/1 passed)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added narrow AC6 regression test in change.archive-phase9.test.ts without editing production code",
+              "why": "Production code already returns early on pending_merge before targeted worktree/branch cleanup; the test locks the invariant and proves no regression exists."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Narrow AC6 regression test committed for task tk-cc5414c920b3. Pending PR/auto-merge path is verified to skip targeted advWorktreeDelete and deleteChangeBranch and keep archive nonterminal. No production code changed.",
+            "suggested_next_action": "Run the full Phase 9 suite or proceed to the next task."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_cc5414c920b3_2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "engineer_report"
+            }
+          }
+        }
+      ],
+      "updatedAt": "2026-07-29T19:03:08.160Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveCleanupSequencing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+      "task_id": "tk-f3c864964c3f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f3c864964c3f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6f9669_649e48d4",
+          "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts --reporter=verbose",
+          "exit_code": 0,
+          "summary": "Phase 9 focused verification: 56 tests passed (1 new regression test + 55 existing tests)"
+        },
+        {
+          "test_run_id": "tr_ms6f9g6b_6eb6b003",
+          "command": "pnpm vitest run src/tools/change.test.ts --reporter=verbose -t \"adv_change_archive\"",
+          "exit_code": 0,
+          "summary": "Archive section in change.test.ts: 34 tests passed, 118 skipped"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced broad advWorktreeCleanup with targeted advWorktreeDelete(\"change/{id}\") in Phase 9 finalization",
+          "why": "Required behavior: archive finalization must use targeted managed-worktree removal, not broad discovery cleanup, so retention/in-use errors can block branch deletion safely"
+        },
+        {
+          "what": "Deferred removeChangeDir until after targeted worktree deletion",
+          "why": "Prevents erasing the source-dir projection before the targeted cleanup has verified terminal state"
+        },
+        {
+          "what": "Treat WORKTREE_NOT_FOUND as verified absence for branch deletion",
+          "why": "advWorktreeDelete API contract returns this code when neither registry nor resolved path exists; it satisfies the precondition that deleteChangeBranch requires the worktree to be already removed"
+        },
+        {
+          "what": "Updated change.test.ts no-op archive spy from advWorktreeCleanup to advWorktreeDelete",
+          "why": "Implementation no longer calls advWorktreeCleanup during archive finalization; the spy must match the new function to preserve the no-op assertion"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated archive cleanup path only; no same-pattern fixes needed beyond the directly touched archive finalization block and its focused test coverage",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-f3c864964c3f is complete. Phase 9 archive cleanup now uses targeted advWorktreeDelete(\"change/{id}\") with force:false, defers source-dir removal until after the targeted worktree deletion, and skips deleteChangeBranch when the targeted worktree result is retained/in-use/failed. WORKTREE_NOT_FOUND is treated as verified absence. A new regression test proves WORKTREE_IN_USE prevents branch deletion. All 56 Phase 9 tests and 34 archive tests in change.test.ts pass. Commit SHA 472e22cb296d6423c220390c470154a3722e2831.",
+        "suggested_next_action": "Run full plugin test suite or advance to next task tk-b6317a826807 (worktree guard alignment) if no regressions are found"
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_f3c864964c3f_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer_report"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6f9669_649e48d4"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6f9g6b_6eb6b003"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveCleanupSequencing",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+      "task_id": "tk-f3c864964c3f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f3c864964c3f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6fem5k_5121cdbf",
+          "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts -t \"AC7 regression\"",
+          "exit_code": 1,
+          "summary": "Red evidence: AC7 regression failed because deleteChangeBranch was called despite WORKTREE_IN_USE"
+        },
+        {
+          "test_run_id": "tr_ms6ff60l_c152c206",
+          "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "Green evidence: 56 Phase 9 tests passed"
+        },
+        {
+          "test_run_id": "tr_ms6fffb5_3807e17a",
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"adv_change_archive\"",
+          "exit_code": 0,
+          "summary": "Verify evidence: 34 archive section tests passed, 118 skipped"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Temporarily added WORKTREE_IN_USE to the worktreeAbsent condition in change.ts",
+          "why": "Produces the required red evidence: treating WORKTREE_IN_USE as verified absence re-enables branch deletion and makes the AC7 regression fail, proving the committed guard prevents unsafe deletion."
+        },
+        {
+          "what": "Restored change.ts to committed SHA 472e22cb296d6423c220390c470154a3722e2831 after red evidence",
+          "why": "Evidence-repair only; no behavioral change or new implementation commit."
+        },
+        {
+          "what": "Used bin/oc-test targeted tier for focused test runs",
+          "why": "Project provides bin/oc-test; routes through oc-test-gate throttle and matches existing test tooling."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Evidence repair complete for tk-f3c864964c3f. Durable red→green ADV test evidence recorded: red run tr_ms6fem5k_5121cdbf (exit 1) proved AC7 regression fails when WORKTREE_IN_USE allows branch deletion; green run tr_ms6ff60l_c152c206 (exit 0) passed 56 Phase 9 tests; verify run tr_ms6fffb5_3807e17a (exit 0) passed 34 archive section tests. Worktree is clean at commit SHA 472e22cb296d6423c220390c470154a3722e2831.",
+        "suggested_next_action": "No further action needed for this task; evidence is durable and worktree is clean."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_f3c864964c3f_2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer_report"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6fem5k_5121cdbf"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6ff60l_c152c206"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6fffb5_3807e17a"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveCleanupSequencing",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+      "task_id": "tk-cc5414c920b3",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cc5414c920b3"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6g8opr_dcb6dce4",
+          "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts -t \"AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal\"",
+          "exit_code": 0,
+          "summary": "AC6 red assertion: pending auto-merge path does not call advWorktreeDelete/deleteChangeBranch, archive stays nonterminal (1/1 passed)"
+        },
+        {
+          "test_run_id": "tr_ms6g8x8e_bb779d3f",
+          "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts -t \"AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal\"",
+          "exit_code": 0,
+          "summary": "AC6 green assertion: existing implementation satisfies the test (1/1 passed)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added narrow AC6 regression test in change.archive-phase9.test.ts without editing production code",
+          "why": "Production code already returns early on pending_merge before targeted worktree/branch cleanup; the test locks the invariant and proves no regression exists."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Narrow AC6 regression test committed for task tk-cc5414c920b3. Pending PR/auto-merge path is verified to skip targeted advWorktreeDelete and deleteChangeBranch and keep archive nonterminal. No production code changed.",
+        "suggested_next_action": "Run the full Phase 9 suite or proceed to the next task."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_cc5414c920b3_2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer_report"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveCleanupSequencing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/worktree/index-delete.test.ts src/utils/branch-integration.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Focused regression suite passed: 3 files, 132 tests. Reviewed origin/trunk diff (7 files; 305 insertions, 52 deletions), archive ordering, durable terminal readback, branch-deletion guard, pending auto-merge, and no-remote/PR routes. Worktree clean; git diff --check and git diff --exit-code passed. Existing post-rebase pnpm check evidence supplied in packet."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/worktree/index-delete.test.ts src/utils/branch-integration.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveCleanupSequencing",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+      "task_id": "tk-f3c864964c3f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f3c864964c3f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6q2uwl_ad85efe8",
+          "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "exit_code": 0,
+          "summary": "Durable post-rebase verification: 57/57 Phase 9 tests passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Bound latest task report to durable ADV test evidence",
+          "why": "Clears stale verification_missing warning from pre-adv_run_test engineer report without changing implementation."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No code changes; evidence repair only.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Latest report now binds task tk-f3c864964c3f to durable passing adv_run_test tr_ms6q2uwl_ad85efe8.",
+        "suggested_next_action": "Retry acceptance gate completion using prior user approval evidence."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveCleanupSequencing",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "packet-defect-1",
+          "label": "blocker",
+          "file": "<context-packet>",
+          "line": 1,
+          "what": "Independent harden packet omits required SCOPE KEY identity anchor.",
+          "why": "Reviewer identity validation requires PHASE, ATTEMPT, and SCOPE KEY for an independent harden summary; proceeding would infer scope contrary to protocol.",
+          "fix": "Orchestrator must respawn with `SCOPE KEY: harden:release`."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "No repository analysis or edits performed: required independent-summary identity anchor is missing."
+      },
+      "scope_drift": null,
+      "risks": [
+        "packet_defect: missing SCOPE KEY"
+      ],
+      "required_main_agent_actions": [
+        "Respawn adv-reviewer with `SCOPE KEY: harden:release`; preserve CHANGE, WORKING DIRECTORY, PHASE, and ATTEMPT."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchiveCleanupSequencing",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchiveCleanupSequencing",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/change.ts",
+          "summary": "Retained the change branch when an existing-bundle archive retry omits worktreePath; absence of a cleanup attempt is no longer treated as proof that no managed worktree owns the branch.",
+          "verification": "Targeted Phase 9 regression passed; pnpm check passed."
+        },
+        {
+          "file": "plugin/src/tools/change.archive-phase9.test.ts",
+          "summary": "Added regression coverage proving an existing-bundle retry without worktreePath does not invoke targeted worktree cleanup or delete the branch.",
+          "verification": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change.test.ts src/tools/worktree/index-delete.test.ts src/utils/branch-integration.test.ts passed 285/285."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Archive retry paths that omit worktreePath must treat missing targeted-cleanup evidence as unsafe, not as proof of worktree absence; otherwise branch cleanup can delete a branch still owned by a managed worktree."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+          "pnpm --dir plugin run check",
+          "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change.test.ts src/tools/worktree/index-delete.test.ts src/utils/branch-integration.test.ts",
+          "bin/adv slop-scan plugin/src/tools/change.ts --json",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Phase 9 test passed 58/58; combined archive/change/worktree/branch suite passed 285/285; pnpm check passed (3 pre-existing eslint warnings only in src/utils/manifest-frontmatter.ts); git diff --check passed. Slop scan completed with all important detectors; its sole changed-file signal was pre-existing review-only LOW unused export loadProposalForContext at change.ts:6323, outside this change's diff and not deleted. Worker-bundle impact is not applicable: changed files are tool/util/test modules and workflow bundle entrypoint workflows.ts has no import path to them. Release consequences: no frontend route, data migration, or deployment configuration change; merge collision instruction remains that this branch merges before fixMultiSessionConcurrency."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is intentionally dirty with the two reviewer-remediated files and must be committed before archive/release finalization.",
+        "Existing low-severity Knip signal for plugin/src/tools/change.ts:6323 is outside the changed region; deletion remains uncertain and out of scope.",
+        "Deploying the plugin from this worktree would violate repository policy; deployment, if required, must occur only from merged trunk."
+      ],
+      "required_main_agent_actions": [
+        "Inspect and commit the reviewer remediation in plugin/src/tools/change.ts and plugin/src/tools/change.archive-phase9.test.ts before release finalization.",
+        "Preserve merge ordering: merge fixArchiveCleanupSequencing before the colliding fixMultiSessionConcurrency branch.",
+        "No migration, frontend, or release-note follow-up is required. If local plugin deployment is needed after merge, run it from updated trunk only."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/change.test.ts src/tools/worktree/index-delete.test.ts src/utils/branch-integration.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/adv slop-scan plugin/src/tools/change.ts --json"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-f3c864964c3f": [
+      {
+        "runId": "tr_ms6f9669_649e48d4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts --reporter=verbose",
+        "durationMs": 4086.0890089999884,
+        "recordedAt": "2026-07-29T18:32:14.735Z"
+      },
+      {
+        "runId": "tr_ms6f9g6b_6eb6b003",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change.test.ts --reporter=verbose -t \"adv_change_archive\"",
+        "durationMs": 4092.6211930001155,
+        "recordedAt": "2026-07-29T18:32:27.701Z"
+      },
+      {
+        "runId": "tr_ms6fem5k_5121cdbf",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts -t \"AC7 regression\"",
+        "durationMs": 5677.747078999877,
+        "recordedAt": "2026-07-29T18:36:28.799Z"
+      },
+      {
+        "runId": "tr_ms6ff60l_c152c206",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 5076.910197000019,
+        "recordedAt": "2026-07-29T18:36:54.468Z"
+      },
+      {
+        "runId": "tr_ms6fffb5_3807e17a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts -t \"adv_change_archive\"",
+        "durationMs": 4618.665554000065,
+        "recordedAt": "2026-07-29T18:37:06.510Z"
+      },
+      {
+        "runId": "tr_ms6q2uwl_ad85efe8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 6826.117428999394,
+        "recordedAt": "2026-07-29T23:35:15.998Z"
+      }
+    ],
+    "tk-b6317a826807": [
+      {
+        "runId": "tr_ms6g0l31_26d62d7d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/utils/branch-integration.test.ts src/tools/worktree/index-delete.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 9396.13483600039,
+        "recordedAt": "2026-07-29T18:53:33.774Z"
+      },
+      {
+        "runId": "tr_ms6g1dwx_8c5ffbd1",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/utils/branch-integration.test.ts",
+        "durationMs": 2085.3738939994946,
+        "recordedAt": "2026-07-29T18:54:11.135Z"
+      },
+      {
+        "runId": "tr_ms6g25q7_02860bbc",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/utils/branch-integration.test.ts src/tools/worktree/index-delete.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 9384.28616499994,
+        "recordedAt": "2026-07-29T18:54:47.181Z"
+      }
+    ],
+    "tk-cc5414c920b3": [
+      {
+        "runId": "tr_ms6g8opr_dcb6dce4",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts -t \"AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal\"",
+        "durationMs": 3979.8220460005105,
+        "recordedAt": "2026-07-29T18:59:51.728Z"
+      },
+      {
+        "runId": "tr_ms6g8x8e_bb779d3f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change.archive-phase9.test.ts -t \"AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal\"",
+        "durationMs": 4111.924220999703,
+        "recordedAt": "2026-07-29T19:00:02.766Z"
+      },
+      {
+        "runId": "tr_ms6gd7l7_e99610ff",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts",
+        "durationMs": 4926.685646000318,
+        "recordedAt": "2026-07-29T19:03:22.809Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-29T18:07:47.699Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "User approved the proposal/agreement for archive cleanup sequencing on 2026-07-29.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "4568041b0813cda6f983933c96df7b26ef3337ef653483edf5d644025ff9ce5c",
+        "non_whitespace_chars": 4070,
+        "checked_at": "2026-07-29T18:05:06.302Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-29T18:10:53.174Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Source-backed RCA by adv-researcher: change.ts archive path finalizes release, saves archive, then performs best-effort worktree discovery/cleanup and unconditional branch deletion without requiring authoritative terminal-projection readback (change.ts:4482-4550, 4611-4639, 4811-4868). branch-integration requires terminal+merged+clean; worktree delete correctly refuses stale change_not_terminal. Proposed structural boundary: convergeAndCleanupArchiveSource with explicit outcomes; proof→gate→terminal convergence/readback→targeted worktree removal→branch deletion. Regression matrix covers direct, stale cache, convergence failure, retained worktree, no remote, PR pending/merged, retry.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "non_whitespace_chars": 1249,
+        "checked_at": "2026-07-29T18:05:06.303Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-29T18:14:18.282Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "Design validated independently by adv-researcher (PASS). Source confirms archive currently ignores broad cleanup retention and independently deletes branch (change.ts:4811-4868). Validator confirmed Phase 9/route semantics preserved and durable readback can use existing store save→workflow query contract. Design adds invariant: any retained worktree maps to branch_retained; deleteChangeBranch unreachable until every managed target is removed/absent. Added explicit WORKTREE_IN_USE/dirty retry regression.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "85fdc32472d673568c9e2450326aece478fb5ea181fd93fff0de8917a6ded482",
+        "non_whitespace_chars": 3903,
+        "checked_at": "2026-07-29T18:05:06.304Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-29T18:15:43.207Z",
+      "completed_by": "user:operator",
+      "approval_evidence": "User approved the three-task graph covering AC1–AC7: terminal convergence cleanup, worktree proof alignment, and route regression matrix."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-29T23:26:07.562Z",
+      "completed_by": "agent:adv",
+      "approval_evidence": "All three tasks complete. Post-rebase verification: 132 targeted archive/branch/worktree tests passed and pnpm --dir plugin run check passed; no scope-risk blockers."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-29T23:36:27.671Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved dependency acceptance. Reviewer READY, matrix 13/13, durable evidence repair report attempt 3 binds passing run tr_ms6q2uwl_ad85efe8.",
+      "started_at": "2026-07-29T23:35:24.729Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "aa95bc625ebfba2fe5e4c315c4e077f20849e0c29fcf9a00ea047fb270646a01",
+        "non_whitespace_chars": 2116,
+        "checked_at": "2026-07-29T18:05:06.306Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+      "approvedAt": "2026-07-29T18:07:47.907Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Direct merge/push archive ordering is proven by automated tests: release proof → release gate → terminal projection readback → worktree removal → branch deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "No archive path attempts branch deletion while its managed worktree owns that branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "If terminal convergence fails, archive stays nonterminal and preserves cleanup targets for safe retry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Existing-bundle retry converges once and cleans once without duplicate writes or force deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "`adv_worktree_delete` accepts clean/merged/terminal archived changes and continues to reject any branch missing one of those proofs.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Direct-push, no-remote, and pending-PR routes keep existing release-proof semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Regression coverage reproduces shipped release proof plus `change_not_terminal` cleanup refusal.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve terminal + merged + clean integrity checks; never introduce force cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Terminal authority must be durable/read-back state, not memo/cache inference.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep retries idempotent and retain worktrees on failed convergence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Seven-gate redesign.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Manual incident cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Concord documentation changes except a later evidence refresh.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-29T23:27:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Post-rebase targeted archive/branch/worktree suite passed 132/132; Phase 9 task evidence proves release proof → terminal convergence/readback → targeted worktree removal → branch deletion ordering."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "WORKTREE_IN_USE red/green regression and targeted Phase 9 suite prove branch deletion is skipped while managed worktree remains attached."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Phase 9 failure-path tests prove convergence/readback failure preserves source and nonterminal retry state."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Existing-bundle retry coverage passes and asserts idempotent convergence/cleanup without duplicate writes or force deletion."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Branch-integration and worktree-delete tests pass post-rebase; durable terminal-status fallback accepts terminal+merged+clean and preserves refusal paths."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Pending auto-merge, direct, and no-remote Phase 9 route regressions pass; pending route remains nonterminal and performs no cleanup."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Durable red evidence reproduced WORKTREE_IN_USE branch deletion and green evidence restored safe refusal; full focused suite passes."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer found no force cleanup; terminal+merged+clean checks remain in branch integration and targeted delete paths."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent reviewer READY: terminal authority uses durable terminalStatusReader fallback, not memo/cache inference."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Independent reviewer READY: retries are idempotent and retained/in-use worktrees prevent branch deletion."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Seven-gate lifecycle was not redesigned."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No manual incident cleanup performed."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No Concord documentation changes performed."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Direct merge/push archive ordering is proven by automated tests: release proof → release gate → terminal projection readback → worktree removal → branch deletion.",
+    "No archive path attempts branch deletion while its managed worktree owns that branch.",
+    "If terminal convergence fails, archive stays nonterminal and preserves cleanup targets for safe retry.",
+    "Existing-bundle retry converges once and cleans once without duplicate writes or force deletion.",
+    "`adv_worktree_delete` accepts clean/merged/terminal archived changes and continues to reject any branch missing one of those proofs.",
+    "Direct-push, no-remote, and pending-PR routes keep existing release-proof semantics.",
+    "Regression coverage reproduces shipped release proof plus `change_not_terminal` cleanup refusal."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Fix Archive Cleanup Sequencing\n\n## Problem\n\nArchive finalization and ADV worktree cleanup are sequenced across separate durability boundaries. A shipped change can have verified merge/push proof while the terminal change projection consumed by `adv_worktree_delete` is unavailable or stale. The archive then reports a branch-cleanup warning because the branch is still checked out by its worktree; a subsequent safe worktree-delete call refuses `INTEGRATION_REQUIRED: change_not_terminal`.\n\n## Root Cause Analysis\n\n### Observed incident\n\nDuring archive of toolbox change `refreshConcordAdvanceInventory`:\n\n1. Phase 9 direct finalization merged and pushed `master` at `3e6777dcfe50ee0f2e4fa69b6ab3e5da8e385ca5`.\n2. Initial release recording was blocked only by a missing worker-bundle-impact declaration; after the typed `not_applicable` declaration, `adv_change_archive` returned success and release gate `done`.\n3. Archive emitted a branch-cleanup warning because `change/refreshConcordAdvanceInventory` remained checked out by its managed worktree.\n4. Active `adv_change_show` and `adv_gate_status` then returned `not_found`; archive-inclusive list served a stale memo row (`status: draft`, `phase: release`); `adv_worktree_delete` refused `INTEGRATION_REQUIRED: change_not_terminal`.\n\n### Source evidence\n\n- `plugin/src/utils/branch-integration.ts` documents the cleanup integrity contract: terminal (`archived` or `closed`) + merged + clean are all required; no force bypass.\n- `adv-archive.md` defines the required ordering: Phase 9 proof → release gate signal → durable proof verification → `change.status = \"archived\"` → source cleanup.\n\n### Candidate causal chain to prove or falsify\n\nThe archive path reaches merge/push and release proof before the terminal status is durably converged/readable through the same authority used by branch-integration. Cleanup then attempts branch deletion while the worktree still owns the branch; later cleanup correctly refuses because the terminal-status proof is absent/stale. The refactor must establish a single authoritative terminal-convergence handoff before any worktree/branch cleanup attempt.\n\n## Objectives\n\n1. Make Phase 9 terminal convergence structural: release proof and terminal archive projection must be durably written and read back before source cleanup begins.\n2. Sequence cleanup safely: remove the clean managed worktree first, then delete its branch; never attempt branch deletion while a worktree owns it.\n3. Make archive retry idempotent: existing-bundle/release-recovery paths reconcile terminal projection and resume safe cleanup without duplicate archive writes or force deletion.\n4. Ensure `adv_worktree_delete` and archive use compatible terminal-proof authority, so a successfully archived change is eligible for normal cleanup.\n\n## Acceptance Criteria\n\n- **AC1:** A direct-merge archive test proves ordering: merge/push proof → release gate → durable terminal projection readback → worktree removal → branch deletion.\n- **AC2:** Archive never emits a branch-deletion attempt while the branch remains attached to its managed worktree.\n- **AC3:** On a terminal-projection signal/write failure, archive remains active/pending and preserves the worktree; it must not report terminal cleanup success.\n- **AC4:** Retrying an existing archive bundle after a partial finalization converges terminal state and performs exactly one safe cleanup; no duplicate bundle/spec write and no force delete.\n- **AC5:** `adv_worktree_delete` accepts a clean, merged change immediately after successful archive terminal convergence and still refuses unmerged/dirty/nonterminal branches.\n- **AC6:** Direct-push, no-remote, and PR/pending-auto-merge routes preserve their existing release-proof semantics.\n- **AC7:** Regression tests reproduce the observed shipped-but-change_not_terminal scenario and prevent it.\n\n## Constraints\n\n- Preserve the branch-integration integrity contract: terminal + merged + clean; no force bypass.\n- Do not relax release proof, merge/push verification, or worktree isolation rules.\n- Use durable typed state/readback rather than cache/memo inference for terminal authority.\n- Keep archive retry safe and idempotent.\n\n## Out of Scope\n\n- Broad redesign of the seven-gate lifecycle.\n- Manual deletion of retained worktrees/branches from the incident.\n- Changes to Concord documentation beyond a later evidence refresh if behavior changes.\n",
+    "problemStatement": "Archive Phase 9 can ship and push a merged change while the associated ADV change does not become observably terminal to the worktree-cleanup guard. This leaves a clean, merged change worktree and branch retained even though release proof exists, and makes a normal cleanup retry refuse with `INTEGRATION_REQUIRED: change_not_terminal`.",
+    "agreement": "# Agreement\n\n## Objective\n\nRefactor Advance archive finalization and managed-worktree cleanup so a change is terminally converged through durable state before cleanup begins, and cleanup removes the worktree before deleting its branch.\n\n## Acceptance Criteria\n\n- AC1: Direct merge/push archive ordering is proven by automated tests: release proof → release gate → terminal projection readback → worktree removal → branch deletion.\n- AC2: No archive path attempts branch deletion while its managed worktree owns that branch.\n- AC3: If terminal convergence fails, archive stays nonterminal and preserves cleanup targets for safe retry.\n- AC4: Existing-bundle retry converges once and cleans once without duplicate writes or force deletion.\n- AC5: `adv_worktree_delete` accepts clean/merged/terminal archived changes and continues to reject any branch missing one of those proofs.\n- AC6: Direct-push, no-remote, and pending-PR routes keep existing release-proof semantics.\n- AC7: Regression coverage reproduces shipped release proof plus `change_not_terminal` cleanup refusal.\n\n## Constraints\n\n- Preserve terminal + merged + clean integrity checks; never introduce force cleanup.\n- Terminal authority must be durable/read-back state, not memo/cache inference.\n- Keep retries idempotent and retain worktrees on failed convergence.\n\n## Out of Scope\n\n- Seven-gate redesign.\n- Manual incident cleanup.\n- Concord documentation changes except a later evidence refresh.\n",
+    "design": "# Design — Archive Terminal Convergence and Cleanup\n\n## Decision\n\nArchive owns a single terminal-convergence-and-cleanup boundary. It must not treat source cleanup as best-effort after release proof; cleanup begins only after the same durable authority used by cleanup guards confirms the terminal archive state.\n\n## Required state machine\n\n```text\nPhase 9 release proof\n  → release gate signal\n  → persist terminal archive projection\n  → authoritative terminal readback\n  → targeted managed-worktree removal\n  → branch deletion (only after every managed target is removed/absent)\n  → archive terminal success\n```\n\nExplicit result states:\n\n| Result | Meaning | Archive behavior |\n|---|---|---|\n| `converged_cleanup_complete` | Terminal state read back; worktree removed/absent; branch deleted/absent when route permits. | Terminal success. |\n| `convergence_failed` | Terminal write or authoritative readback failed. | Keep change nonterminal; retain source; return retryable incomplete result. |\n| `worktree_retained` | Terminal state exists, but target worktree is dirty, unmerged, in-use, or removal failed. | Do not branch-delete; return retryable incomplete result with the guard reason. |\n| `branch_retained` | Any managed worktree is retained, or branch policy prohibits deletion (pending PR/no delete proof), or deletion failed. | Preserve route semantics; only terminal if policy explicitly permits retention. |\n\n## Structural boundaries\n\n### 1. Terminal convergence helper\n\nCreate an archive-owned helper (working name `convergeAndCleanupArchiveSource`) near Phase 9/archive finalization. It receives immutable Phase 9 proof and route information.\n\nIt must:\n\n- persist the terminal archive projection only after release proof + release gate are established;\n- invalidate/cache-bypass the stale projection path and read back durable terminal state (`status`, `lifecycleState`, release gate, Phase 9 proof);\n- reject cleanup if any required terminal field is absent;\n- return typed cleanup state rather than warning-only prose.\n\nUse the existing recovery writer/readback pattern as the implementation reference; do not introduce a second cache/memo authority.\n\n### 2. Targeted cleanup helper\n\nReplace broad `advWorktreeCleanup(\"archive\")` discovery/queue-drain plus independent branch deletion with a targeted operation for `change/{changeId}`:\n\n1. verify terminal + merged + clean through the branch-integration contract;\n2. remove the specific managed worktree;\n3. verify branch is no longer worktree-owned;\n4. delete the branch only when **every** managed target is removed/absent and the finalization route permits it.\n\nAny retained target maps to `branch_retained`; `deleteChangeBranch` is unreachable in that result. The public `adv_worktree_delete` and archive path must share the same terminal-proof reader/contract. Neither path may use `force` to bypass terminal, merge, or clean proof.\n\n### 3. Route policy\n\n- **direct push:** after durable terminal convergence, remove worktree then local/remote branch as policy allows.\n- **no remote:** same local ordering; no remote deletion requirement.\n- **pending PR/auto-merge:** no terminal projection or cleanup; retain branch/worktree.\n- **merged PR:** only after merged proof, terminal convergence, and targeted worktree removal may branch hygiene run.\n\n### 4. Retry behavior\n\nExisting-bundle retry re-enters terminal convergence. It must not recreate the bundle/spec operations or repeat destructive cleanup after verified worktree/branch absence. A failed convergence/readback or retained worktree remains visible as a retryable archive result, not a terminal success with warnings.\n\n## Test strategy\n\nExtend archive Phase 9 and worktree/branch-integration tests with deterministic call-order assertions and injected failure seams:\n\n1. Direct route exact ordering.\n2. Branch delete cannot run before target worktree removal.\n3. Terminal write/readback failure retains source and nonterminal state.\n4. Stale cache/memo does not defeat authoritative readback.\n5. Existing-bundle retry is idempotent.\n6. Worktree-retained failure (dirty, unmerged, or `WORKTREE_IN_USE`) prevents branch deletion; retry after removal deletes branch exactly once.\n7. No-remote, pending-PR, and merged-PR route semantics remain unchanged.\n8. Reproduce shipped release proof + stale nonterminal projection and assert no cleanup advance.\n\n## Non-goals\n\nDo not redesign seven gates, weaken release proof, loosen terminal/merged/clean checks, force-remove worktrees, or manually clean the incident worktree.\n",
+    "executiveSummary": "# Executive Summary — Archive Cleanup Sequencing\n\n## Outcome\n\nArchive finalization now treats terminal-state convergence and source cleanup as one ordered boundary. A shipped change must be durably readable as terminal before its managed worktree is removed, and its branch cannot be deleted while that worktree remains attached.\n\n## Value\n\nThis removes the shipped-but-not-terminal failure mode that left completed changes unable to clean up safely. Archive retries now retain source state when convergence or cleanup cannot be proven, allowing safe recovery instead of warning-only partial success.\n\n## Verification\n\n- All three implementation tasks completed and checkpointed.\n- Post-rebase focused verification passed 132 archive, worktree-delete, and branch-integration tests.\n- Hardening remediation passed 285 targeted tests plus `pnpm --dir plugin run check`.\n- Independent acceptance review and harden verdicts: READY.\n- Contract review matrix: 13 rows, zero failing rows.\n\n## Risks and Follow-Ups\n\n- Change is not merged or deployed yet; runtime behavior remains unchanged until normal PR/release flow completes.\n- The implementation deliberately retains worktrees/branches when terminal, merged, or clean proof is missing. Operators may see a retryable incomplete archive instead of automatic cleanup; this is the safety behavior.\n- `fixMultiSessionConcurrency` depends on this ordering before adding post-merge local trunk synchronization.\n\n## Consequence Context\n\n1. **Delivered value:** safe, deterministic archive terminal convergence and targeted cleanup.\n2. **Enabling/follow-up dependency:** enables `fixMultiSessionConcurrency`; no harden-generated follow-up.\n3. **Operational readiness:** READY for normal PR/CI/merge. Deployment still occurs only from fresh merged trunk.\n4. **Migration/data impact:** no application data or schema migration; existing archive retries use the idempotent path.\n5. **Frontend/preview impact:** no browser-visible surface; preview not applicable by changed-file review.\n6. **Collision/release risk:** archive files overlap the pending concurrency branch; merge this change first, then rebase dependency.\n7. **Open follow-ups:** no actionable harden findings; dependent concurrency task remains pending by design.\n8. **Next action:** archive sign-off, PR/merge, merged-trunk deploy, then resume `fixMultiSessionConcurrency`.\n\n## Release Readiness Summary\n\n- **Status:** READY after one scoped harden fix.\n- **Production readiness:** terminal/merged/clean and no-force safeguards preserved.\n- **Deployment readiness:** host-side plugin change; no worker bundle rebuild classification required. Normal plugin build/deploy follows merge.\n- **Documentation:** no stale required documentation found; release notes persisted.\n- **Cleanup:** worktree clean after checkpoint; uncertain candidates were not deleted.\n- **Residual slop/complexity:** deterministic scan and reviewer found no release-blocking issue.\n- **Release blocker:** none inside this change. Merge sequencing with `fixMultiSessionConcurrency` remains required.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-29T23:27:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Direct merge/push archive ordering is proven by automated tests: release proof → release gate → terminal projection readback → worktree removal → branch deletion. | pass | Post-rebase targeted archive/branch/worktree suite passed 132/132; Phase 9 task evidence proves release proof → terminal convergence/readback → targeted worktree removal → branch deletion ordering. |\n| AC2 | acceptance_criterion | No archive path attempts branch deletion while its managed worktree owns that branch. | pass | WORKTREE_IN_USE red/green regression and targeted Phase 9 suite prove branch deletion is skipped while managed worktree remains attached. |\n| AC3 | acceptance_criterion | If terminal convergence fails, archive stays nonterminal and preserves cleanup targets for safe retry. | pass | Phase 9 failure-path tests prove convergence/readback failure preserves source and nonterminal retry state. |\n| AC4 | acceptance_criterion | Existing-bundle retry converges once and cleans once without duplicate writes or force deletion. | pass | Existing-bundle retry coverage passes and asserts idempotent convergence/cleanup without duplicate writes or force deletion. |\n| AC5 | acceptance_criterion | `adv_worktree_delete` accepts clean/merged/terminal archived changes and continues to reject any branch missing one of those proofs. | pass | Branch-integration and worktree-delete tests pass post-rebase; durable terminal-status fallback accepts terminal+merged+clean and preserves refusal paths. |\n| AC6 | acceptance_criterion | Direct-push, no-remote, and pending-PR routes keep existing release-proof semantics. | pass | Pending auto-merge, direct, and no-remote Phase 9 route regressions pass; pending route remains nonterminal and performs no cleanup. |\n| AC7 | acceptance_criterion | Regression coverage reproduces shipped release proof plus `change_not_terminal` cleanup refusal. | pass | Durable red evidence reproduced WORKTREE_IN_USE branch deletion and green evidence restored safe refusal; full focused suite passes. |\n| C1 | constraint | Preserve terminal + merged + clean integrity checks; never introduce force cleanup. | respected | Reviewer found no force cleanup; terminal+merged+clean checks remain in branch integration and targeted delete paths. |\n| C2 | constraint | Terminal authority must be durable/read-back state, not memo/cache inference. | respected | Independent reviewer READY: terminal authority uses durable terminalStatusReader fallback, not memo/cache inference. |\n| C3 | constraint | Keep retries idempotent and retain worktrees on failed convergence. | respected | Independent reviewer READY: retries are idempotent and retained/in-use worktrees prevent branch deletion. |\n| OOS1 | out_of_scope | Seven-gate redesign. | not_applicable | Seven-gate lifecycle was not redesigned. |\n| OOS2 | out_of_scope | Manual incident cleanup. | not_applicable | No manual incident cleanup performed. |\n| OOS3 | out_of_scope | Concord documentation changes except a later evidence refresh. | not_applicable | No Concord documentation changes performed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-29T18:04:59.046Z",
+      "contentHash": "4568041b0813cda6f983933c96df7b26ef3337ef653483edf5d644025ff9ce5c",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-29T18:04:59.046Z",
+      "contentHash": "b5be6575fff6611658c4ecf19378461921d43518d91e0039efb2f9ca8b130d7a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-29T18:04:59.046Z",
+      "contentHash": "03896059e3a1fd7f9b203b4fcd663c3739766bb5491701f3b727c53436a4adbe",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-29T18:14:11.007Z",
+      "contentHash": "85fdc32472d673568c9e2450326aece478fb5ea181fd93fff0de8917a6ded482",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-29T23:44:23.873Z",
+      "contentHash": "29817fcd15530fa2bae686d8ed0fa1b250fca47997b51f437ba269e5f7180261",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-29T18:08:16.556Z"
+    }
+  ],
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-29T18:04:57.296Z"
+  },
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-29T23:44:23.873Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-f3c864964c3f",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Durable adv_run_test run tr_ms6q2uwl_ad85efe8 passed 57/57 Phase 9 tests after current-trunk rebase. Independent reviewer READY; post-rebase combined suite also passed 132/132.",
+      "dispositionedAt": "2026-07-29T23:35:43.281Z"
+    }
+  ],
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive cleanup now waits for durable terminal convergence",
+    "highlights": [
+      "Worktree removal happens before branch deletion",
+      "Retryable failures preserve cleanup targets",
+      "Terminal, merged, and clean safety checks remain enforced"
+    ],
+    "area": "ADV archive lifecycle",
+    "user_action_required": false
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "Changed host-side archive/worktree/branch-integration tools and tests only; no Temporal workflow-reachable module or worker bundle root changed.",
+    "confirmed_at": "2026-07-29T23:44:05.274Z"
+  },
+  "creation_request_hash": "4acfeabdcf60c65b3d941e7e5fd2179b8da40207ec24f8bfe8b22bbce5533414",
+  "projection_revision": 53,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-29T18:07:47.867Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-29T18:07:54.004Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-29T18:10:53.331Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "dc1d86fabf918bec076d8ad148630e7607b48accef63ef5f7e8d004a0c8c9ea8:updateArtifacts:design",
+      "operation_id": "dc1d86fabf918bec076d8ad148630e7607b48accef63ef5f7e8d004a0c8c9ea8:updateArtifacts:design",
+      "payload_hash": "42007b1fad1cf4ea3a63d78d02b7e1f9470b6ab3bd72d669898c98e011e9b842",
+      "state_revision": 4,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-29T18:11:18.807Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "611d62b191106b5b39f1a8ce5b11b93d829c0a7f440191b3f0c446eeb641b91c:updateArtifacts:design",
+      "operation_id": "611d62b191106b5b39f1a8ce5b11b93d829c0a7f440191b3f0c446eeb641b91c:updateArtifacts:design",
+      "payload_hash": "5c870d6ff655793e9662eeaf0ce230690df8dbe8b89776cd0a7577ba79c0301a",
+      "state_revision": 5,
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-29T18:14:11.187Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-29T18:14:18.374Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-29T18:14:48.505Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-29T18:14:48.635Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-29T18:15:00.787Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-29T18:15:13.868Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-29T18:15:43.401Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-29T18:16:24.733Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-29T18:33:04.467Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-29T18:33:04.707Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-29T18:38:00.022Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-29T18:38:00.142Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-29T18:39:17.052Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-29T18:39:26.968Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-29T18:39:40.845Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-29T18:53:14.974Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-29T18:55:17.668Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-29T18:55:29.420Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-29T18:55:47.610Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-29T19:00:36.442Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-29T19:01:16.556Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-29T19:01:16.698Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-29T19:03:08.322Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-29T19:04:03.184Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-29T23:26:07.686Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-29T23:30:51.578Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-29T23:30:51.808Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785367891323_tkevewnn",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-29T23:31:31.431Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "d7a3ea38d04fd141dd37b7280c996d1fbec0015a226c18ab083ea663da69281a:updateArtifacts:executiveSummary",
+      "operation_id": "d7a3ea38d04fd141dd37b7280c996d1fbec0015a226c18ab083ea663da69281a:updateArtifacts:executiveSummary",
+      "payload_hash": "1294cec7d67fb5d7237b40da9089583d97d112bf5a576f1b8f8f2db53bc6a2b5",
+      "state_revision": 6,
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-29T23:31:52.800Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "bac7d9871c53efa0fa6e4ba7190700dca0dfc64d7731b07effde7a394d6c09f9:releaseNotesSet",
+      "operation_id": "bac7d9871c53efa0fa6e4ba7190700dca0dfc64d7731b07effde7a394d6c09f9:releaseNotesSet",
+      "payload_hash": "f0d84ab45f887f18844cfbd15dc989ce72fc35dd9f467f368c68e50d7ea61aa1",
+      "state_revision": 7,
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-29T23:31:58.506Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-29T23:35:01.757Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-07-29T23:35:25.004Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785368143319_ufkiciqx",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-07-29T23:35:43.540Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-07-29T23:35:49.498Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-07-29T23:36:10.228Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-07-29T23:36:21.473Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-07-29T23:36:21.664Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-07-29T23:36:27.808Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-07-29T23:37:24.383Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-07-29T23:37:24.554Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-07-29T23:43:26.457Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-07-29T23:43:26.717Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-07-29T23:43:59.605Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-07-29T23:44:05.422Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "d3e8789bcdde50c6950ae68725ed7b94e3bdfd9818b9928f363f50a5fdc1a4d7:updateArtifacts:executiveSummary",
+      "operation_id": "d3e8789bcdde50c6950ae68725ed7b94e3bdfd9818b9928f363f50a5fdc1a4d7:updateArtifacts:executiveSummary",
+      "payload_hash": "b81ee03a2c33e54dce3fc05683c649a75971be5bf5817728d5211e153c4ec7e7",
+      "state_revision": 8,
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-07-29T23:44:24.042Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchiveCleanupSequencing",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-07-29T23:46:33.403Z"
+    }
+  ],
+  "state_revision": 8
+}

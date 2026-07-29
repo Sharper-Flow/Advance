@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-29T23:46:39.741Z",
+  "capabilities": [],
+  "change_hash": "2a266a04417cc26a6eff264966f670bd78716bcadae9a7ab8ef3ec07f4a73d7a",
+  "change_id": "fixArchiveCleanupSequencing",
+  "completed_tasks": 3,
+  "created_at": "2026-07-29T18:04:58.901Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-29T23:43:59.477Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "dbc721bcf8257095681b7a001342adc5fd4d5f55e616dcb12a203196e48e0b2e",
+  "task_count": 3,
+  "title": "Fix archive cleanup sequencing",
+  "version": "1"
+}

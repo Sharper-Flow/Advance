@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixArchiveCleanupSequencing",
+  "title": "Fix archive cleanup sequencing",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive cleanup now waits for durable terminal convergence",
+    "highlights": [
+      "Worktree removal happens before branch deletion",
+      "Retryable failures preserve cleanup targets",
+      "Terminal, merged, and clean safety checks remain enforced"
+    ],
+    "area": "ADV archive lifecycle",
+    "user_action_required": false
+  }
+}
