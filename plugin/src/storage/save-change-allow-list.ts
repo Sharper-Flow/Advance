@@ -118,6 +118,13 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
       "Inventory test scans call sites; its own source may contain the string for documentation.",
   },
   {
+    file: "plugin/src/storage/read-command-boundary.test.ts",
+    context: null,
+    category: "inventory_reference",
+    rationale:
+      "Scanner self-reference: the read/command boundary test contains a documentation snippet of the saveChange scanner rule, not a live call site.",
+  },
+  {
     file: "plugin/src/storage/store-temporal/spec-deltas.disk-projection.test.ts",
     context: null,
     category: "test_raw_primitive",
