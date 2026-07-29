@@ -37,6 +37,24 @@ export interface OrphanListClient {
       status: { name: string };
     }>;
   };
+  /**
+   * Optional gRPC connection handle. `@temporalio/client` Client satisfies this
+   * structurally.
+   *
+   * This is the ONLY cancellation surface available for Visibility enumeration:
+   * `ListOptions` is `{ pageSize?, query? }` — it carries no `abortSignal` and
+   * no deadline (SDK v1.16). Cancellation is scoped at the connection via
+   * `withAbortSignal`, which cancels ongoing gRPC requests inside `fn`.
+   *
+   * Without this, a Visibility stream that stalls before yielding its first
+   * page cannot be torn down, and each driver tick leaks another stream (#327).
+   */
+  connection?: {
+    withAbortSignal?: <T>(
+      signal: AbortSignal,
+      fn: () => Promise<T>,
+    ) => Promise<T>;
+  };
 }
 
 export interface OrphanSessionQueue {
@@ -44,6 +62,26 @@ export interface OrphanSessionQueue {
   queue: string;
   /** Oldest workflow startTime on this queue (for FIFO sort). */
   oldestStartTime: Date;
+}
+
+export interface ListOrphanSessionQueuesOptions {
+  /**
+   * Cancels the underlying Visibility gRPC calls when aborted (routed through
+   * `client.connection.withAbortSignal`). Also breaks the collection loop.
+   */
+  signal?: AbortSignal;
+  /**
+   * Wall-clock bound checked between yielded records. Partial results are
+   * returned rather than thrown — a truncated orphan list is still adoptable,
+   * and the caller re-enumerates on the next tick.
+   *
+   * NB: this bound only fires between records. A stream that stalls before
+   * yielding anything is the caller's responsibility to bound (see
+   * `OrphanQueueAdopter.enumerateOrphansBounded`).
+   */
+  deadlineMs?: number;
+  /** Injectable clock for deterministic tests. */
+  now?: () => number;
 }
 
 function buildSessionQueuePrefix(projectId: string): string {
@@ -61,7 +99,11 @@ export async function listOrphanSessionQueues(
   client: OrphanListClient,
   projectId: string,
   polledQueues: readonly string[],
+  options: ListOrphanSessionQueuesOptions = {},
 ): Promise<OrphanSessionQueue[]> {
+  const { signal, deadlineMs, now = () => Date.now() } = options;
+  const startedAt = now();
+
   const safeProjectId = escapeVisibilityValue(projectId);
   const query = `AdvAffectedProjects = "${safeProjectId}"`;
 
@@ -69,43 +111,57 @@ export async function listOrphanSessionQueues(
   const sessionPrefix = buildSessionQueuePrefix(projectId);
   const polled = new Set(polledQueues);
 
-  // Collect per-queue oldest startTime
-  const queueOldestStart = new Map<string, Date>();
-  let inspected = 0;
+  const collect = async (): Promise<OrphanSessionQueue[]> => {
+    // Collect per-queue oldest startTime
+    const queueOldestStart = new Map<string, Date>();
+    let inspected = 0;
 
-  for await (const wf of client.workflow.list({ query })) {
-    if (inspected >= INSPECTION_LIMIT) break;
-    inspected++;
+    // `break` (not `return`) so the async iterator's `return()` runs and the
+    // underlying Visibility stream is released rather than left dangling.
+    for await (const wf of client.workflow.list({ query })) {
+      if (signal?.aborted) break;
+      if (deadlineMs !== undefined && now() - startedAt >= deadlineMs) break;
+      if (inspected >= INSPECTION_LIMIT) break;
+      inspected++;
 
-    // Only change workflows (exclude epics)
-    if (!wf.workflowId.startsWith(projectPrefix)) continue;
+      // Only change workflows (exclude epics)
+      if (!wf.workflowId.startsWith(projectPrefix)) continue;
 
-    // Only RUNNING workflows need a poller
-    if (wf.status.name !== "RUNNING") continue;
+      // Only RUNNING workflows need a poller
+      if (wf.status.name !== "RUNNING") continue;
 
-    // Only session-scoped queues can be orphaned
-    if (!wf.taskQueue.startsWith(sessionPrefix)) continue;
+      // Only session-scoped queues can be orphaned
+      if (!wf.taskQueue.startsWith(sessionPrefix)) continue;
 
-    // Skip queues already being polled
-    if (polled.has(wf.taskQueue)) continue;
+      // Skip queues already being polled
+      if (polled.has(wf.taskQueue)) continue;
 
-    // Keep the oldest startTime per queue (for deterministic FIFO sort)
-    const existing = queueOldestStart.get(wf.taskQueue);
-    if (!existing || wf.startTime < existing) {
-      queueOldestStart.set(wf.taskQueue, wf.startTime);
+      // Keep the oldest startTime per queue (for deterministic FIFO sort)
+      const existing = queueOldestStart.get(wf.taskQueue);
+      if (!existing || wf.startTime < existing) {
+        queueOldestStart.set(wf.taskQueue, wf.startTime);
+      }
     }
+
+    // Sort by oldest startTime ascending (FIFO — oldest orphans first)
+    const result = [...queueOldestStart.entries()].map(
+      ([queue, oldestStartTime]) => ({
+        queue,
+        oldestStartTime,
+      }),
+    );
+    result.sort(
+      (a, b) => a.oldestStartTime.getTime() - b.oldestStartTime.getTime(),
+    );
+
+    return result;
+  };
+
+  // Scope the enumeration to the caller's abort signal when the client exposes
+  // a real connection, so aborting actually cancels the in-flight gRPC call.
+  const connection = client.connection;
+  if (signal && typeof connection?.withAbortSignal === "function") {
+    return await connection.withAbortSignal(signal, collect);
   }
-
-  // Sort by oldest startTime ascending (FIFO — oldest orphans first)
-  const result = [...queueOldestStart.entries()].map(
-    ([queue, oldestStartTime]) => ({
-      queue,
-      oldestStartTime,
-    }),
-  );
-  result.sort(
-    (a, b) => a.oldestStartTime.getTime() - b.oldestStartTime.getTime(),
-  );
-
-  return result;
+  return await collect();
 }
