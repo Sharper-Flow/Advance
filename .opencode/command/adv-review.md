@@ -104,6 +104,19 @@ The lightweight profile is re-evaluated automatically before acceptance selectio
 
 This policy never overrides explicit `delegation_hint`, risk-forced inline routing, spec/conflict checks, the 12-dimension review, human acceptance, worktree isolation, or release checks. If the profile is `ineligible` or `downgraded`, run the standard review workflow with no omissions.
 
+### Structured Criterion Reading Guidance
+
+`change.contract.items` may carry an optional `variant` annotation. Reviewers must treat the canonical `id`, `text`, `kind`, and `evidencePolicy` as the contract authority; the variant is a presentation aid only.
+
+| Variant | What to verify |
+|---|---|
+| **behavioral** | `context`, `trigger`, and `outcome` match the canonical text; the variant does not add, remove, or soften any obligation. |
+| **evidence** | `subject` and `method`/`source` align with the canonical text and the item's evidence policy. |
+| **spec_law** | The referenced `spec` exists and the implementation covers the stated `requirement`; the variant does not replace a task contract ref or review-matrix row. |
+| **constraint** | `obligation` and optional `scope` are respected by implementation and tests. |
+
+Do not treat parse-safe syntax as proof that the criterion is met. Review-matrix coverage, evidence, and task `contract_refs` remain the acceptance authority.
+
 ---
 ## 12-Dimension Review Framework
 Apply the 12-dimension matrix defined once in the embedded methodology above (Phase 0 → Review Methodology → 12-Dimension Framework). Every review must assess all 12 dimensions — including Security's OWASP top 10 scope; skipping any dimension requires explicit justification. The scanner fan-out, dimension contracts, and inline fallbacks below execute this framework; they do not replace it.

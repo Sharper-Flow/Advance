@@ -7909,6 +7909,73 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-structuredAcceptance01",
+      "title": "Structured Criterion Variant Representation and Compatibility",
+      "body": "The ChangeContract item model MUST support an optional typed variant annotation for the four supported criterion kinds (behavioral, evidence, spec_law, constraint) while keeping canonical text, stable ID, kind, and evidence policy as the contract authority. The variant MUST be parsed and validated once at the adv_contract_mint boundary. Legacy flat-text items without a variant MUST remain valid and render unchanged. Malformed or unsupported structured input MUST fail minting with a clear validation result and MUST leave the previously valid contract unchanged.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "contract",
+        "acceptance-criteria",
+        "variant",
+        "compatibility"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-structuredAcceptance01.1",
+          "title": "Mint preserves typed variant and canonical text",
+          "given": [
+            "An approved agreement contains a supported structured criterion with a stable ACn/SCn/Cn/DONTn label"
+          ],
+          "when": "adv_contract_mint parses the agreement",
+          "then": [
+            "The contract item records the optional variant annotation",
+            "The canonical text remains the flattened obligation string",
+            "The stable ID, kind, and evidence policy are unchanged"
+          ]
+        },
+        {
+          "id": "rq-structuredAcceptance01.2",
+          "title": "Legacy flat-text items remain valid",
+          "given": [
+            "An existing contract item has no variant annotation"
+          ],
+          "when": "The contract is read, rendered, or reviewed",
+          "then": [
+            "The item remains schema-valid",
+            "Legacy projections derive from canonical text only",
+            "Review-matrix and task coverage checks remain variant-agnostic"
+          ]
+        },
+        {
+          "id": "rq-structuredAcceptance01.3",
+          "title": "Malformed structured input fails safely",
+          "given": [
+            "An approved agreement contains an incomplete behavioral scenario or malformed evidence/spec-law variant"
+          ],
+          "when": "adv_contract_mint attempts to parse the contract",
+          "then": [
+            "Mint returns a clear CONTRACT_MALFORMED_VARIANT result",
+            "The prior valid contract is not replaced",
+            "No contract item is partially written"
+          ]
+        },
+        {
+          "id": "rq-structuredAcceptance01.4",
+          "title": "Warrants are validated and stripped in structured variants",
+          "given": [
+            "An approved structured criterion declares a bracketed [warrant: ...] tag"
+          ],
+          "when": "adv_contract_mint parses the item",
+          "then": [
+            "The warrant is verified against the live tool surface or spec ids",
+            "An unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT",
+            "A resolved warrant is recorded and stripped from canonical text"
+          ]
+        }
+      ]
     }
   ]
 }

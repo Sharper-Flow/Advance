@@ -863,6 +863,60 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-disc16",
+      "title": "Structured Criterion Authoring Guidance",
+      "body": "/adv-discover MUST provide structured criterion authoring guidance covering the four supported variants (behavioral scenario, evidence obligation, spec-law reconciliation, operational constraint), parse-safe notation, bracketed warrant placement, and the rule that structure does not replace evidence or test authority. The guidance MUST state that behavioral criteria presuming no capability surface require no warrant tag and that capability-presuming criteria MUST declare a typed [warrant: <ref>] tag. The guidance MUST NOT require every acceptance criterion to be a behavioral scenario.",
+      "priority": "must",
+      "tags": [
+        "discover",
+        "contract",
+        "acceptance-criteria",
+        "authoring",
+        "structured-criteria"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-disc16.1",
+          "title": "Authoring guidance covers all four variants",
+          "given": [
+            "/adv-discover forms acceptance criteria and success criteria"
+          ],
+          "when": "The command presents structured criterion authoring guidance",
+          "then": [
+            "The guidance documents behavioral scenario, evidence obligation, spec-law reconciliation, and operational constraint variants",
+            "The guidance provides parse-safe notation for each variant",
+            "The guidance explains bracketed warrant placement"
+          ]
+        },
+        {
+          "id": "rq-disc16.2",
+          "title": "Structure is not treated as behavioral proof",
+          "given": [
+            "A draft criterion uses a supported structured shape"
+          ],
+          "when": "Discovery evaluates the criterion",
+          "then": [
+            "The command states that parse-safe syntax is not evidence of correct behavior",
+            "The criterion still requires the evidence policy assigned by its kind (test, review, static_check, or not_applicable)",
+            "Malformed structured input is rejected by adv_contract_mint before contract replacement"
+          ]
+        },
+        {
+          "id": "rq-disc16.3",
+          "title": "Warrant rules are preserved in structured variants",
+          "given": [
+            "A draft criterion presumes a capability surface (tool, tool argument, or spec requirement)"
+          ],
+          "when": "Discovery authors the criterion",
+          "then": [
+            "The criterion MUST carry a typed [warrant: <ref>] tag",
+            "The tag is verified at adv_contract_mint",
+            "Behavioral criteria that presume no capability surface require no warrant tag"
+          ]
+        }
+      ]
     }
   ]
 }

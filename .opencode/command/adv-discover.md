@@ -590,6 +590,32 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 **× MUST NOT:** Complete `discovery` gate without criteria approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to user.
 
+### Phase 4.5.2: Structured Criterion Authoring Guidance
+
+`/adv-discover` produces four parse-safe criterion shapes. Each shape is minted into a stable `ACn`/`SCn`/`Cn`/`DONTn` contract item with an optional typed variant. The variant is advisory for presentation and review; the canonical `text`, stable `id`, `kind`, and `evidencePolicy` remain the contract authority.
+
+| Variant | Purpose | Parse-safe notation |
+|---|---|---|
+| **behavioral scenario** | Required behavior under a precondition and trigger | `Given {context}, when {trigger}, then {outcome}` |
+| **evidence obligation** | Proof route or source | `Evidence: {subject} via {method}` or `Evidence: {subject} by {method}` or `Evidence: {subject} from {source}` |
+| **spec_law reconciliation** | Ties a criterion to a spec requirement | `Spec-law: {spec-id} requires {requirement}` or `... reconciles ...` or `... mandates ...` |
+| **operational constraint** | Hard limit or prohibition | `Must {obligation}` / `Must not {obligation}` / `Cannot {obligation}` optionally scoped with `for ...` / `within ...` / `across ...` |
+
+Rules:
+
+- **Structure is not behavioral proof.** A well-formed scenario still requires the evidence assigned by its kind (`test`, `review`, `static_check`, or `not_applicable`). Malformed structured input is rejected at `adv_contract_mint` before any contract replacement.
+- **Behavioral criteria that presume no capability surface require no `[warrant: ...]` tag.** Capability-presuming criteria MUST declare a typed `[warrant: <ref>]` tag, where `<ref>` is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`.
+- **Bracketed warrants are verified at `adv_contract_mint` and stripped from canonical text.** Do not manually remove or rewrite them.
+- **Do not force every acceptance criterion into a behavioral scenario.** Select the variant that makes the obligation clearest for reviewers and agents (proportionality, DONT3).
+- **Success criteria may use the same shapes or remain plain behavioral statements.** Their evidence policy is always `review`.
+
+Examples:
+
+- `AC1: Given an approved criterion, when its agreement is minted, then the contract preserves a typed optional variant annotation while retaining canonical text and stable contract ID.`
+- `AC2: Evidence: review matrix coverage is proven by passing gate-readiness checks.`
+- `AC3: Spec-law: rq-structuredAcceptance01 requires Given/When/Then scenarios for typed additive representation. [warrant: spec:rq-structuredAcceptance01]`
+- `C1: Must preserve signal/query-only workflow surface for temporal workflows.`
+
 ### Phase 4.6: Persist Agreement (Inline)
 
 Once criteria are approved at Phase 4.5.1 and all open questions are resolved (or explicitly deferred), write `agreement.md` through `adv_change_update`. The Phase 4.5.1 inline approval is the sign-off — no additional `question` tool prompt.
