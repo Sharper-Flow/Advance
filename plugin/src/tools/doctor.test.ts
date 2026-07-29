@@ -280,6 +280,11 @@ describe("adv_doctor", () => {
       enabled: true,
       diagnostics: {
         scanInFlight: true,
+        scanFailureCount: 0,
+        consecutiveScanFailures: 0,
+        lastScanStartedAt: Date.now(),
+        lastScanDurationMs: 12,
+        suppressedShutdownCount: 0,
         trackedQueues: [
           {
             queue: "sess_opaque",
@@ -298,6 +303,12 @@ describe("adv_doctor", () => {
     expect(parsed.orphan_queue_adoption).toEqual({
       enabled: true,
       scanInFlight: true,
+      health: "ok",
+      scanFailureCount: 0,
+      consecutiveScanFailures: 0,
+      lastScanStartedAt: expect.any(Number),
+      lastScanDurationMs: 12,
+      suppressedShutdownCount: 0,
       trackedQueues: [
         {
           queue: "sess_opaque",
@@ -309,6 +320,65 @@ describe("adv_doctor", () => {
       ],
       omittedTrackedQueues: 0,
     });
+  });
+
+  test("reports UNHEALTHY when adoption scans are repeatedly failing (#327)", async () => {
+    getOrphanQueueAdoptionStatusMock.mockReturnValue({
+      enabled: true,
+      diagnostics: {
+        scanInFlight: false,
+        scanFailureCount: 9,
+        consecutiveScanFailures: 4,
+        lastScanError: "1 CANCELLED: context canceled",
+        lastScanStartedAt: Date.now(),
+        lastScanDurationMs: 8000,
+        suppressedShutdownCount: 0,
+        trackedQueues: [],
+      },
+    });
+
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+
+    // The regression that mattered: doctor previously said "healthy" here.
+    expect(parsed.orphan_queue_adoption.health).toBe("failing_scans");
+    expect(
+      parsed.findings.some(
+        (f: { class: string }) => f.class === "orphan_queue_adoption_degraded",
+      ),
+    ).toBe(true);
+    expect(
+      parsed.findings.some((f: { class: string }) => f.class === "healthy"),
+    ).toBe(false);
+    expect(parsed.success).toBe(false);
+  });
+
+  test("reports UNHEALTHY when an adoption scan is stuck in flight (#327)", async () => {
+    getOrphanQueueAdoptionStatusMock.mockReturnValue({
+      enabled: true,
+      diagnostics: {
+        // The exact #327 fingerprint: latch held, counter frozen at zero.
+        scanInFlight: true,
+        scanFailureCount: 0,
+        consecutiveScanFailures: 0,
+        lastScanStartedAt: Date.now() - 120_000,
+        lastScanDurationMs: 0,
+        suppressedShutdownCount: 0,
+        trackedQueues: [],
+      },
+    });
+
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+
+    expect(parsed.orphan_queue_adoption.health).toBe("stuck_scan");
+    const degraded = parsed.findings.find(
+      (f: { class: string }) => f.class === "orphan_queue_adoption_degraded",
+    );
+    expect(degraded).toBeDefined();
+    expect(degraded.finding).toBe("stuck_scan");
+    expect(degraded.detail).toMatch(/unreachable/i);
+    expect(parsed.success).toBe(false);
   });
 
   test("caps displayed orphan-queue diagnostics at 50 entries", async () => {

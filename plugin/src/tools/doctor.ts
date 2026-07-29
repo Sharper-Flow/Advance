@@ -41,6 +41,7 @@ import {
   restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
 import { probeTaskQueuePollers } from "../temporal/queue-serviceability";
+import { evaluateOrphanAdoptionHealth } from "../temporal/orphan-queue-adopter";
 import { buildProjectTaskQueue } from "../temporal/client";
 import { basename, join } from "path";
 import { existsSync } from "fs";
@@ -64,6 +65,7 @@ export type DoctorFindingClass =
   | "suspect_lock"
   | "ambiguous_ownership"
   | "phantom_pointer"
+  | "orphan_queue_adoption_degraded"
   | "unhealthy";
 
 /**
@@ -413,6 +415,30 @@ export const doctorTools = {
         });
       }
 
+      // A constructed adopter is not a working adopter. The AC4 check above
+      // only asks whether an adopter EXISTS; #327 ran enabled and live while
+      // every probe reported healthy, because nothing asserted that scans were
+      // completing. Assert forward progress, not just presence.
+      if (orphanQueueAdoptionStatus.enabled && orphanQueueAdoption) {
+        const adoptionHealth = evaluateOrphanAdoptionHealth(
+          orphanQueueAdoption,
+          Date.now(),
+        );
+        if (adoptionHealth.state !== "ok") {
+          const because = adoptionHealth.lastScanError
+            ? `; last error: ${adoptionHealth.lastScanError}`
+            : "";
+          findings.push({
+            class: "orphan_queue_adoption_degraded",
+            finding: adoptionHealth.state,
+            detail:
+              adoptionHealth.state === "stuck_scan"
+                ? `orphan enumeration in flight ${adoptionHealth.stuckForMs}ms without settling — prior-session workflows are unreachable${because}`
+                : `${adoptionHealth.consecutiveScanFailures} consecutive orphan enumeration failures — prior-session workflows may be unreachable${because}`,
+          });
+        }
+      }
+
       if (findings.length === 0) {
         findings.push({ class: "healthy", detail: "All checks passed" });
       }
@@ -733,6 +759,21 @@ export const doctorTools = {
           ? {
               enabled: true,
               scanInFlight: orphanQueueAdoption!.scanInFlight,
+              // Enumeration-phase health. Without these an operator cannot
+              // distinguish "adoption is working" from "adoption is silently
+              // failing" — the ambiguity that made #327 hard to classify.
+              health: evaluateOrphanAdoptionHealth(
+                orphanQueueAdoption!,
+                Date.now(),
+              ).state,
+              scanFailureCount: orphanQueueAdoption!.scanFailureCount,
+              consecutiveScanFailures:
+                orphanQueueAdoption!.consecutiveScanFailures,
+              lastScanError: orphanQueueAdoption!.lastScanError,
+              lastScanStartedAt: orphanQueueAdoption!.lastScanStartedAt,
+              lastScanDurationMs: orphanQueueAdoption!.lastScanDurationMs,
+              suppressedShutdownCount:
+                orphanQueueAdoption!.suppressedShutdownCount,
               trackedQueues: orphanQueueAdoption!.trackedQueues.slice(
                 0,
                 ORPHAN_QUEUE_DIAGNOSTIC_DISPLAY_LIMIT,

@@ -161,6 +161,11 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
   it("summarizes orphan-queue adoption state without exposing queue identifiers", async () => {
     mockGetOrphanQueueAdoptionDiagnostics.mockReturnValue({
       scanInFlight: false,
+      scanFailureCount: 0,
+      consecutiveScanFailures: 0,
+      lastScanStartedAt: Date.now(),
+      lastScanDurationMs: 7,
+      suppressedShutdownCount: 0,
       trackedQueues: [
         { queue: "sess_a", inCooldown: true },
         { queue: "sess_b", inCooldown: false },
@@ -177,6 +182,36 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
       enabled: true,
       tracked: 3,
       inCooldown: 2,
+      health: "ok",
+      consecutiveScanFailures: 0,
+      lastScanError: undefined,
+    });
+    // The summary must stay identifier-free.
+    expect(JSON.stringify(result?.orphanQueueAdoption)).not.toContain("sess_");
+  });
+
+  it("surfaces degraded adoption health so a blackout is not reported as fine (#327)", async () => {
+    mockGetOrphanQueueAdoptionDiagnostics.mockReturnValue({
+      scanInFlight: false,
+      scanFailureCount: 12,
+      consecutiveScanFailures: 5,
+      lastScanError: "1 CANCELLED: context canceled",
+      lastScanStartedAt: Date.now(),
+      lastScanDurationMs: 8000,
+      suppressedShutdownCount: 0,
+      trackedQueues: [],
+    });
+
+    const result = await computeStatusQueueServiceability({
+      projectId: "proj-status-test-004b",
+      health: { ...HEALTH },
+    });
+
+    expect(result?.orphanQueueAdoption).toMatchObject({
+      enabled: true,
+      health: "failing_scans",
+      consecutiveScanFailures: 5,
+      lastScanError: "1 CANCELLED: context canceled",
     });
   });
 

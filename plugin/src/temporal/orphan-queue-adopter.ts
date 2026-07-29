@@ -85,6 +85,72 @@ export interface OrphanQueueAdoptionDiagnostics {
   }>;
 }
 
+/**
+ * Typed adoption health verdict.
+ *
+ * Adoption being *constructed* is not the same as adoption *working*. In #327
+ * the adopter was enabled, live, and completely broken, yet every probe
+ * reported healthy because nothing asserted forward progress. These states
+ * exist so health surfaces can assert progress, not just presence.
+ */
+export type OrphanAdoptionHealth =
+  | { state: "ok" }
+  | { state: "stuck_scan"; stuckForMs: number; lastScanError?: string }
+  | {
+      state: "failing_scans";
+      consecutiveScanFailures: number;
+      lastScanError?: string;
+    };
+
+/**
+ * A scan in flight longer than this is stuck, not merely slow: enumeration and
+ * register are each independently bounded by `tickTimeoutMs` (8 s default), so
+ * roughly three driver ticks without settling means the latch is held.
+ */
+export const ORPHAN_STUCK_SCAN_MS = 30_000;
+
+/** Consecutive failed enumerations before adoption is declared unhealthy. */
+export const ORPHAN_MAX_CONSECUTIVE_SCAN_FAILURES = 3;
+
+/**
+ * Pure predicate over a diagnostics snapshot. Single source of truth so
+ * `adv_doctor` and `adv_status view:health` cannot drift apart.
+ */
+export function evaluateOrphanAdoptionHealth(
+  diagnostics: OrphanQueueAdoptionDiagnostics,
+  now: number,
+  opts: { stuckScanMs?: number; maxConsecutiveScanFailures?: number } = {},
+): OrphanAdoptionHealth {
+  const stuckScanMs = opts.stuckScanMs ?? ORPHAN_STUCK_SCAN_MS;
+  const maxFailures =
+    opts.maxConsecutiveScanFailures ?? ORPHAN_MAX_CONSECUTIVE_SCAN_FAILURES;
+
+  if (diagnostics.scanInFlight && diagnostics.lastScanStartedAt > 0) {
+    const stuckForMs = now - diagnostics.lastScanStartedAt;
+    if (stuckForMs >= stuckScanMs) {
+      return {
+        state: "stuck_scan",
+        stuckForMs,
+        ...(diagnostics.lastScanError
+          ? { lastScanError: diagnostics.lastScanError }
+          : {}),
+      };
+    }
+  }
+
+  if (diagnostics.consecutiveScanFailures >= maxFailures) {
+    return {
+      state: "failing_scans",
+      consecutiveScanFailures: diagnostics.consecutiveScanFailures,
+      ...(diagnostics.lastScanError
+        ? { lastScanError: diagnostics.lastScanError }
+        : {}),
+    };
+  }
+
+  return { state: "ok" };
+}
+
 const DEFAULT_TICK_TIMEOUT_MS = 8_000;
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_COOLDOWN_MS = 5 * 60_000;

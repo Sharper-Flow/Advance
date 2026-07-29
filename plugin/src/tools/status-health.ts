@@ -22,6 +22,7 @@ import {
   probeTaskQueuePollers,
   type QueueServiceability,
 } from "../temporal/queue-serviceability";
+import { evaluateOrphanAdoptionHealth } from "../temporal/orphan-queue-adopter";
 import { getTemporalFallbackTelemetry } from "../temporal/fallback-telemetry";
 import {
   getService,
@@ -385,6 +386,16 @@ export async function computeStatusQueueServiceability(input: {
         inCooldown: orphanQueueAdoptionDiagnostics.trackedQueues.filter(
           (queue) => queue.inCooldown,
         ).length,
+        // Presence of an adopter says nothing about whether it is making
+        // progress (#327). Carry the typed verdict so health consumers can
+        // branch on it without re-deriving thresholds.
+        health: evaluateOrphanAdoptionHealth(
+          orphanQueueAdoptionDiagnostics,
+          Date.now(),
+        ).state,
+        consecutiveScanFailures:
+          orphanQueueAdoptionDiagnostics.consecutiveScanFailures,
+        lastScanError: orphanQueueAdoptionDiagnostics.lastScanError,
       }
     : null;
   const bundle = getService();
