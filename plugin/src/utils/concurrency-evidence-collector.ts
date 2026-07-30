@@ -22,9 +22,10 @@ export type EvidenceSource =
 export interface SessionSample {
   sessionId: string;
   projectId?: string;
-  /** True when the session uses orchestrator-facing tools/commands. */
-  isOrchestrator: boolean;
+  /** True for a known orchestrator, false for a known sub-agent, undefined when unknown. */
+  isOrchestrator?: boolean;
   startedAt?: string;
+  endedAt?: string;
   source: EvidenceSource;
   provenance: string;
 }
@@ -65,9 +66,14 @@ export interface ConcurrencyEvidenceSnapshot {
 export interface ConcurrencyEvidenceReport {
   checkedAt: string;
   summary: {
+    /** Peak simultaneous sessions with verified [startedAt, endedAt) intervals. */
     totalAgentsObserved: number;
+    /** Peak simultaneous sessions with a known orchestrator role. */
     orchestratorsObserved: number;
+    /** Peak simultaneous sessions with a known sub-agent role. */
     subAgentsObserved: number;
+    /** Peak simultaneous sessions whose role metadata is unavailable. */
+    unknownRolesObserved: number;
     failedWorkflowSamples: number;
     workerRssMinMb?: number;
     workerRssMaxMb?: number;
@@ -117,7 +123,6 @@ interface SessionDbRow {
 
 /**
  * Build a population-consistent, read-only concurrency evidence report.
- * Build a population-consistent, read-only concurrency evidence report.
  * Never starts workflows or sessions; never polls; never mutates.
  */
 export async function collectConcurrencyEvidence(
@@ -127,11 +132,19 @@ export async function collectConcurrencyEvidence(
   const checkedAt = new Date(nowMs).toISOString();
 
   const snapshot = await buildSnapshot(options, checkedAt);
-  const totalAgents = snapshot.sessionSamples.length;
-  const orchestrators = snapshot.sessionSamples.filter(
-    (s) => s.isOrchestrator,
+  const totalAgents = concurrentPeak(snapshot.sessionSamples);
+  const orchestrators = concurrentPeak(
+    snapshot.sessionSamples.filter((s) => s.isOrchestrator === true),
+  );
+  const subAgents = concurrentPeak(
+    snapshot.sessionSamples.filter((s) => s.isOrchestrator === false),
+  );
+  const unknownRoles = concurrentPeak(
+    snapshot.sessionSamples.filter((s) => s.isOrchestrator === undefined),
+  );
+  const invalidIntervalSamples = snapshot.sessionSamples.filter(
+    (sample) => !toVerifiedInterval(sample),
   ).length;
-  const subAgents = totalAgents - orchestrators;
   const failedWorkflowSamples = snapshot.workflowSamples.filter(
     (w) => w.status === "FAILED" || w.status === "TERMINATED",
   ).length;
@@ -157,6 +170,12 @@ export async function collectConcurrencyEvidence(
   const provenance = collectProvenance(snapshot);
   const limits = [
     ...snapshot.limits,
+    ...(invalidIntervalSamples > 0
+      ? [
+          `${invalidIntervalSamples} current session sample(s) excluded from concurrency peaks because a verified [startedAt, endedAt) interval was unavailable.`,
+        ]
+      : []),
+    "Current concurrency is a sweep-line peak over verified [startedAt, endedAt) intervals; session row counts are not labeled as concurrency.",
     "This report does not measure ten orchestrator latency.",
     "Total agent count is not equivalent to orchestrator count.",
   ];
@@ -167,6 +186,7 @@ export async function collectConcurrencyEvidence(
       totalAgentsObserved: totalAgents,
       orchestratorsObserved: orchestrators,
       subAgentsObserved: subAgents,
+      unknownRolesObserved: unknownRoles,
       failedWorkflowSamples,
       workerRssMinMb,
       workerRssMaxMb,
@@ -243,10 +263,10 @@ async function buildSnapshot(
   // 4a. Metadata classification caveat.
   if (
     sessionSamples.length > 0 &&
-    !sessionSamples.some((s) => s.isOrchestrator)
+    sessionSamples.some((s) => s.isOrchestrator === undefined)
   ) {
     limits.push(
-      "Current session DB metadata is null or empty; sessions default to sub-agent classification. Orchestrator split is sourced from the historical baseline only.",
+      "Some current session roles are unknown because their metadata did not classify them; unknown roles are excluded from orchestrator and sub-agent peaks.",
     );
   }
 
@@ -302,7 +322,7 @@ async function sampleProjectSessionShards(
     join(homedir(), ".local", "share", "opencode-projects");
   const usingDefaultReader = options.readSessionRows === undefined;
   if (usingDefaultReader && !existsSync(root)) {
-    return [];
+    throw new Error(`project session shard root unavailable: ${root}`);
   }
 
   const listShards = options.listProjectShards ?? defaultListProjectShards;
@@ -327,6 +347,9 @@ async function sampleProjectSessionShards(
         startedAt: row.timeCreatedMs
           ? new Date(row.timeCreatedMs).toISOString()
           : undefined,
+        endedAt: row.timeUpdatedMs
+          ? new Date(row.timeUpdatedMs).toISOString()
+          : undefined,
         source: "session_db",
         provenance: `${projectId}: ${dbPath}`,
       });
@@ -344,7 +367,7 @@ async function sampleGlobalSessionDb(
     join(homedir(), ".local", "share", "opencode", "opencode.db");
   const usingDefaultReader = options.readGlobalSessionRows === undefined;
   if (usingDefaultReader && !existsSync(dbPath)) {
-    return [];
+    throw new Error(`global session database unavailable: ${dbPath}`);
   }
 
   const readRows =
@@ -358,6 +381,9 @@ async function sampleGlobalSessionDb(
       isOrchestrator: classifyOrchestrator(metadata),
       startedAt: row.timeCreatedMs
         ? new Date(row.timeCreatedMs).toISOString()
+        : undefined,
+      endedAt: row.timeUpdatedMs
+        ? new Date(row.timeUpdatedMs).toISOString()
         : undefined,
       source: "session_db",
       provenance: `global:${dbPath}`,
@@ -374,7 +400,9 @@ function parseSessionMetadata(metadata?: string): Record<string, unknown> {
   }
 }
 
-function classifyOrchestrator(metadata: Record<string, unknown>): boolean {
+function classifyOrchestrator(
+  metadata: Record<string, unknown>,
+): boolean | undefined {
   // Orchestrator sessions are identified by use of change/planning/triage tools or
   // explicit session metadata. Sub-agents are identified by agent/tool-specific metadata.
   const toolHistory = metadata?.toolHistory;
@@ -395,10 +423,52 @@ function classifyOrchestrator(metadata: Record<string, unknown>): boolean {
     const orchestratorToolHits = toolHistory.filter((t) =>
       orchestratorTools.has(String(t)),
     ).length;
-    return orchestratorToolHits > 0;
+    if (orchestratorToolHits > 0) return true;
   }
-  // Default to unclassified sub-agent when metadata is absent.
-  return false;
+  // Preserve unknown roles when metadata cannot prove either classification.
+  return undefined;
+}
+
+interface VerifiedInterval {
+  startsAt: number;
+  endsAt: number;
+}
+
+function toVerifiedInterval(
+  sample: SessionSample,
+): VerifiedInterval | undefined {
+  if (!sample.startedAt || !sample.endedAt) return undefined;
+  const startsAt = Date.parse(sample.startedAt);
+  const endsAt = Date.parse(sample.endedAt);
+  if (
+    !Number.isFinite(startsAt) ||
+    !Number.isFinite(endsAt) ||
+    startsAt >= endsAt
+  ) {
+    return undefined;
+  }
+  return { startsAt, endsAt };
+}
+
+function concurrentPeak(samples: SessionSample[]): number {
+  const events = samples.flatMap((sample) => {
+    const interval = toVerifiedInterval(sample);
+    return interval
+      ? [
+          { at: interval.startsAt, delta: 1 },
+          { at: interval.endsAt, delta: -1 },
+        ]
+      : [];
+  });
+  events.sort((left, right) => left.at - right.at || left.delta - right.delta);
+
+  let active = 0;
+  let peak = 0;
+  for (const event of events) {
+    active += event.delta;
+    peak = Math.max(peak, active);
+  }
+  return peak;
 }
 
 async function defaultListProjectShards(root: string): Promise<string[]> {
@@ -534,12 +604,13 @@ export function renderMarkdownReport(
   lines.push("## Summary");
   lines.push("");
   lines.push(
-    `- Total agents observed: **${report.summary.totalAgentsObserved}**`,
+    `- Peak concurrent agents observed: **${report.summary.totalAgentsObserved}**`,
   );
   lines.push(
     `- Orchestrators observed: **${report.summary.orchestratorsObserved}**`,
   );
   lines.push(`- Sub-agents observed: **${report.summary.subAgentsObserved}**`);
+  lines.push(`- Roles unknown: **${report.summary.unknownRolesObserved}**`);
   lines.push(
     `- Failed workflow samples: **${report.summary.failedWorkflowSamples}**`,
   );
@@ -596,12 +667,12 @@ export function renderMarkdownReport(
     lines.push("No current session samples available.");
   } else {
     lines.push(
-      "| sessionId | projectId | isOrchestrator | startedAt | source |",
+      "| sessionId | projectId | isOrchestrator | startedAt | endedAt | source |",
     );
-    lines.push("|---|---|---|---|---|");
+    lines.push("|---|---|---|---|---|---|");
     for (const s of report.snapshot.sessionSamples) {
       lines.push(
-        `| ${s.sessionId} | ${s.projectId ?? "global"} | ${s.isOrchestrator} | ${s.startedAt ?? ""} | ${s.source} |`,
+        `| ${s.sessionId} | ${s.projectId ?? "global"} | ${s.isOrchestrator ?? "unknown"} | ${s.startedAt ?? ""} | ${s.endedAt ?? ""} | ${s.source} |`,
       );
     }
   }

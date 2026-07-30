@@ -54,21 +54,24 @@ describe("concurrency-evidence-collector", () => {
     );
   });
 
-  test("report counts total agents separately from orchestrators", async () => {
+  test("report counts verified concurrency separately from roles", async () => {
     const rows: SessionDbRow[] = [
       {
         sessionId: "ses-orchestrator-1",
         timeCreatedMs: nowMs,
+        timeUpdatedMs: nowMs + 60_000,
         metadata: JSON.stringify({ sessionKind: "orchestrator" }),
       },
       {
         sessionId: "ses-orchestrator-2",
         timeCreatedMs: nowMs,
+        timeUpdatedMs: nowMs + 60_000,
         metadata: JSON.stringify({ sessionKind: "orchestrator" }),
       },
       {
         sessionId: "ses-sub-agent-1",
         timeCreatedMs: nowMs,
+        timeUpdatedMs: nowMs + 60_000,
         metadata: JSON.stringify({ sessionKind: "sub-agent" }),
       },
     ];
@@ -84,15 +87,17 @@ describe("concurrency-evidence-collector", () => {
     expect(report.summary.totalAgentsObserved).toBe(3);
     expect(report.summary.orchestratorsObserved).toBe(2);
     expect(report.summary.subAgentsObserved).toBe(1);
-    expect(report.summary.totalAgentsObserved).not.toBe(
-      report.summary.orchestratorsObserved,
-    );
+    expect(report.summary.unknownRolesObserved).toBe(0);
   });
 
-  test("session classification defaults to sub-agent when metadata is absent", async () => {
+  test("session classification remains unknown when metadata is absent", async () => {
     const report = await collectConcurrencyEvidence({
       readSessionRows: async () => [
-        { sessionId: "ses-unknown", timeCreatedMs: nowMs },
+        {
+          sessionId: "ses-unknown",
+          timeCreatedMs: nowMs,
+          timeUpdatedMs: nowMs + 60_000,
+        },
       ],
       readGlobalSessionRows: async () => [],
       readProcessSnapshot: async () => [],
@@ -102,6 +107,36 @@ describe("concurrency-evidence-collector", () => {
 
     expect(report.summary.totalAgentsObserved).toBe(1);
     expect(report.summary.orchestratorsObserved).toBe(0);
+    expect(report.summary.subAgentsObserved).toBe(0);
+    expect(report.summary.unknownRolesObserved).toBe(1);
+    expect(report.snapshot.sessionSamples[0]?.isOrchestrator).toBeUndefined();
+  });
+
+  test("uses a sweep-line peak instead of labeling sequential rows as concurrency", async () => {
+    const report = await collectConcurrencyEvidence({
+      readSessionRows: async () => [
+        {
+          sessionId: "ses-first",
+          timeCreatedMs: nowMs,
+          timeUpdatedMs: nowMs + 60_000,
+          metadata: JSON.stringify({ sessionKind: "orchestrator" }),
+        },
+        {
+          sessionId: "ses-second",
+          timeCreatedMs: nowMs + 120_000,
+          timeUpdatedMs: nowMs + 180_000,
+          metadata: JSON.stringify({ sessionKind: "sub-agent" }),
+        },
+      ],
+      readGlobalSessionRows: async () => [],
+      readProcessSnapshot: async () => [],
+      listProjectShards: async () => ["/tmp/project-a"],
+      nowMs,
+    });
+
+    expect(report.summary.totalAgentsObserved).toBe(1);
+    expect(report.summary.orchestratorsObserved).toBe(1);
+    expect(report.summary.subAgentsObserved).toBe(1);
   });
 
   test("orchestrator tools in toolHistory classify session as orchestrator", async () => {
@@ -110,6 +145,7 @@ describe("concurrency-evidence-collector", () => {
         {
           sessionId: "ses-orchestrator",
           timeCreatedMs: nowMs,
+          timeUpdatedMs: nowMs + 60_000,
           metadata: JSON.stringify({ toolHistory: ["adv_status", "bash"] }),
         },
       ],
@@ -223,6 +259,7 @@ describe("concurrency-evidence-collector", () => {
     const rows: SessionDbRow[] = Array.from({ length: 10 }, (_, i) => ({
       sessionId: `ses-${i}`,
       timeCreatedMs: nowMs,
+      timeUpdatedMs: nowMs + 60_000,
     }));
 
     const report = await collectConcurrencyEvidence({
@@ -239,6 +276,22 @@ describe("concurrency-evidence-collector", () => {
     expect(report.snapshot.sessionSamples).toHaveLength(10);
   });
 
+  test("records exact source-unavailable errors instead of silently returning empty samples", async () => {
+    const report = await collectConcurrencyEvidence({
+      projectShardsRoot: "/tmp/missing-project-session-shards",
+      globalDbPath: "/tmp/missing-global-session.db",
+      readProcessSnapshot: async () => [],
+      nowMs,
+    });
+
+    expect(report.snapshot.limits).toContain(
+      "Project session shard sampling skipped: project session shard root unavailable: /tmp/missing-project-session-shards",
+    );
+    expect(report.snapshot.limits).toContain(
+      "Global session DB sampling skipped: global session database unavailable: /tmp/missing-global-session.db",
+    );
+  });
+
   test("markdown report contains no ten-orchestrator-latency claim", async () => {
     const report = await collectConcurrencyEvidence({
       readSessionRows: async () => [],
@@ -250,6 +303,8 @@ describe("concurrency-evidence-collector", () => {
     const markdown = renderMarkdownReport(report);
 
     expect(markdown).toContain("Ten-Agent Concurrency Evidence Report");
+    expect(markdown).toContain("Peak concurrent agents observed: **0**");
+    expect(markdown).toContain("Roles unknown: **0**");
     expect(markdown).toContain("Ten-orchestrator latency measured: **false**");
     expect(markdown).toContain(
       "This report does not measure ten orchestrator latency.",
