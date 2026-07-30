@@ -872,32 +872,37 @@ export type ContractItemVariantKind = z.infer<
 
 export const BehavioralVariantSchema = z.object({
   kind: z.literal("behavioral"),
-  context: z.string(),
-  trigger: z.string(),
-  outcome: z.string(),
-  boundaries: z.array(z.string()).optional(),
+  context: z.string().min(1),
+  trigger: z.string().min(1),
+  outcome: z.string().min(1),
+  boundaries: z.array(z.string().min(1)).optional(),
 });
 export type BehavioralVariant = z.infer<typeof BehavioralVariantSchema>;
 
-export const EvidenceVariantSchema = z.object({
-  kind: z.literal("evidence"),
-  subject: z.string(),
-  method: z.string().optional(),
-  source: z.string().optional(),
-});
+export const EvidenceVariantSchema = z
+  .object({
+    kind: z.literal("evidence"),
+    subject: z.string().min(1),
+    method: z.string().min(1).optional(),
+    source: z.string().min(1).optional(),
+  })
+  .refine(
+    (variant) => variant.method !== undefined || variant.source !== undefined,
+    { message: "Evidence variants require a method or source" },
+  );
 export type EvidenceVariant = z.infer<typeof EvidenceVariantSchema>;
 
 export const SpecLawVariantSchema = z.object({
   kind: z.literal("spec_law"),
-  spec: z.string(),
-  requirement: z.string(),
+  spec: z.string().min(1),
+  requirement: z.string().min(1),
 });
 export type SpecLawVariant = z.infer<typeof SpecLawVariantSchema>;
 
 export const ConstraintVariantSchema = z.object({
   kind: z.literal("constraint"),
-  obligation: z.string(),
-  scope: z.string().optional(),
+  obligation: z.string().min(1),
+  scope: z.string().min(1).optional(),
 });
 export type ConstraintVariant = z.infer<typeof ConstraintVariantSchema>;
 

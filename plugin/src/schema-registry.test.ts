@@ -79,10 +79,9 @@ describe("generated ADV JSON schema registry", () => {
       schema.properties?.contract?.properties?.items as any
     ).items.properties.variant;
 
+    const variants = variantSchema.oneOf as any[];
     const kinds = new Set(
-      (variantSchema.oneOf as any[]).map(
-        (variant: any) => variant.properties.kind.const,
-      ),
+      variants.map((variant: any) => variant.properties.kind.const),
     );
 
     expect(kinds).toEqual(

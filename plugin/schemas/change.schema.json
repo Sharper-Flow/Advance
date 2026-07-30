@@ -324,11 +324,13 @@
                     "properties": {
                       "boundaries": {
                         "items": {
+                          "minLength": 1,
                           "type": "string"
                         },
                         "type": "array"
                       },
                       "context": {
+                        "minLength": 1,
                         "type": "string"
                       },
                       "kind": {
@@ -336,9 +338,11 @@
                         "type": "string"
                       },
                       "outcome": {
+                        "minLength": 1,
                         "type": "string"
                       },
                       "trigger": {
+                        "minLength": 1,
                         "type": "string"
                       }
                     },
@@ -358,12 +362,15 @@
                         "type": "string"
                       },
                       "method": {
+                        "minLength": 1,
                         "type": "string"
                       },
                       "source": {
+                        "minLength": 1,
                         "type": "string"
                       },
                       "subject": {
+                        "minLength": 1,
                         "type": "string"
                       }
                     },
@@ -381,9 +388,11 @@
                         "type": "string"
                       },
                       "requirement": {
+                        "minLength": 1,
                         "type": "string"
                       },
                       "spec": {
+                        "minLength": 1,
                         "type": "string"
                       }
                     },
@@ -402,9 +411,11 @@
                         "type": "string"
                       },
                       "obligation": {
+                        "minLength": 1,
                         "type": "string"
                       },
                       "scope": {
+                        "minLength": 1,
                         "type": "string"
                       }
                     },

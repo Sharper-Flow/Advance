@@ -271,6 +271,20 @@ describe("buildContractFromAgreement", () => {
     });
   });
 
+  test("AC5: malformed evidence variants are rejected before a contract can be minted", () => {
+    for (const text of [
+      "Evidence: via passing gate-readiness checks.",
+      "Evidence: review matrix coverage is proven by ",
+    ]) {
+      expect(() =>
+        buildContractFromAgreement({
+          agreement: `## Acceptance Criteria\n- AC1: ${text}\n`,
+          approvedAt,
+        }),
+      ).toThrow(/CONTRACT_MALFORMED_VARIANT/);
+    }
+  });
+
   test("AC1: constraint variant is parsed for constraint-kind items", () => {
     const contract = buildContractFromAgreement({
       agreement: `## Constraints

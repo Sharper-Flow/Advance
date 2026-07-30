@@ -252,6 +252,24 @@ describe("AC3/AC8/SC3 — criterion variant schema compatibility", () => {
     expect(item.variant?.kind).toBe("evidence");
   });
 
+  test("AC5: rejects malformed evidence variants supplied through the public schema", () => {
+    expect(() =>
+      ContractItemSchema.parse({
+        id: "AC2",
+        kind: "acceptance_criterion",
+        text: "Evidence variant must name its proof method.",
+        sourceArtifact: "agreement",
+        verificationRequired: true,
+        evidencePolicy: "test",
+        status: "approved",
+        variant: {
+          kind: "evidence",
+          subject: "proof",
+        },
+      }),
+    ).toThrow();
+  });
+
   test("AC8: spec-law variant validates", () => {
     const item = ContractItemSchema.parse({
       id: "C1",
