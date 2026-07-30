@@ -2486,6 +2486,62 @@ describe("applyTaskCompletedToState evidence plan validation (AC1/AC2/AC3)", () 
     expect(state.tasks[0]?.status).toBe("done");
   });
 
+  it("completes a non-code source-citation task without test runs or red/green IDs", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        id: "tk-sources",
+        title: "Audit cited sources",
+        type: "research",
+        metadata: { tdd_intent: "not_applicable" },
+        evidence_policy: "source_citation",
+        evidence_plan: {
+          policy: "source_citation",
+          proof_target: "Cited source audit",
+          provenance: "new",
+          stage: "stage-v2",
+        },
+      }),
+    );
+
+    applyTaskCompletedToState(state, {
+      taskId: "tk-sources",
+      verification: "Sources cited and audited.",
+      summary: "source audit complete",
+      filesTouched: [],
+      completedAt: "2026-07-17T00:00:02.000Z",
+    });
+
+    expect(state.tasks[0]?.status).toBe("done");
+    expect(state.testRuns?.["tk-sources"]).toBeUndefined();
+  });
+
+  it("keeps behavior-bearing inline code blocked without exact red and green runs", () => {
+    const state = makeStateWithTask(
+      baseCodeTask({
+        evidence_policy: "test",
+        evidence_plan: {
+          policy: "test",
+          proof_target: "Automated red/green tests",
+          provenance: "new",
+          stage: "stage-v2",
+        },
+      }),
+    );
+
+    expect(() =>
+      applyTaskCompletedToState(state, {
+        taskId: "tk-code",
+        verification: "tests passed",
+        summary: "done",
+        filesTouched: [],
+        completedAt: "2026-07-17T00:00:02.000Z",
+        lastRedRunId: "tr-red-missing",
+        lastGreenRunId: "tr-green-missing",
+      }),
+    ).toThrow(/TASK_ORDERING_VIOLATION/);
+    expect(state.tasks[0]?.status).toBe("pending");
+  });
+
   it("preserves evidence plan on completed task as typed proof", () => {
     const plan = {
       policy: "test" as const,

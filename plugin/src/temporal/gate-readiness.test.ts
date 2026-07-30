@@ -1974,6 +1974,116 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
       result.blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
     ).toBe(true);
   });
+
+  it("acceptance uses the later valid exact-run report instead of an earlier invalid typed report", () => {
+    const state = makeState({
+      gates: acceptanceReadyGates(),
+      contract: passingContract(),
+      documents: {
+        acceptance:
+          "# Acceptance\n\nSubstantive acceptance proof content here.",
+      },
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [
+        engineerReport({
+          attempt: 1,
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "pass",
+              test_run_id: "tr-earlier-missing",
+            },
+          ],
+        }),
+        engineerReport({
+          attempt: 2,
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "pass",
+              test_run_id: "tr-later-green",
+            },
+          ],
+        }),
+      ],
+      testRuns: {
+        "tk-ver-1": [
+          {
+            runId: "tr-later-green",
+            phase: "verify",
+            exitCode: 0,
+            classification: "passed",
+            command: "pnpm test",
+            durationMs: 1,
+            evidence_kind: "unit",
+            recordedAt: "2026-05-20T00:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    const result = evaluateGateReadiness(state, "acceptance");
+    expect(
+      result.blockers.some((b) => b.code === "VERIFICATION_EVIDENCE_MISSING"),
+    ).toBe(false);
+  });
+
+  it.each([
+    ["cross-task", "tr-cross-task", [], "tk-other"],
+    ["missing", "tr-missing", [], "tk-ver-1"],
+    ["mismatched", "tr-mismatched", [1], "tk-ver-1"],
+    ["evicted", "tr-evicted", [0], "tk-ver-1"],
+  ] as const)(
+    "acceptance stays blocked for a %s typed run ID",
+    (_caseName, reportRunId, exitCodes, runTaskId) => {
+      const state = makeState({
+        gates: acceptanceReadyGates(),
+        contract: passingContract(),
+        documents: {
+          acceptance:
+            "# Acceptance\n\nSubstantive acceptance proof content here.",
+        },
+        tasks: [doneTask({ evidence_policy: "test" })],
+        subagent_reports: [
+          engineerReport({
+            verification: [
+              {
+                command: "pnpm test",
+                exit_code: 0,
+                summary: "pass",
+                test_run_id: reportRunId,
+              },
+            ],
+          }),
+        ],
+        testRuns: {
+          [runTaskId]: exitCodes.map((exitCode, index) => ({
+            runId:
+              index === 0 && reportRunId === "tr-evicted"
+                ? "tr-newer-green"
+                : reportRunId,
+            phase: "verify",
+            exitCode,
+            classification: exitCode === 0 ? "passed" : "failed",
+            command: "pnpm test",
+            durationMs: 1,
+            evidence_kind: "unit",
+            recordedAt: "2026-05-20T00:00:00.000Z",
+          })),
+        },
+      });
+
+      const result = evaluateGateReadiness(state, "acceptance");
+      expect(result.ready).toBe(false);
+      expect(
+        result.blockers.some(
+          (blocker) => blocker.code === "VERIFICATION_EVIDENCE_MISSING",
+        ),
+      ).toBe(true);
+    },
+  );
 });
 
 describe("checkCompletedTaskEvidencePlan — resolved plan readiness (C2/C4/C5)", () => {
