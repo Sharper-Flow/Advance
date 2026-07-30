@@ -19,7 +19,7 @@
  */
 
 import { readFile } from "node:fs/promises";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { resolve, relative } from "node:path";
 import ts from "typescript";
 
@@ -229,14 +229,23 @@ export function collectSaveChangeCallSitesFromText(
 export async function findExecutableSaveChangeCalls(
   repoRoot: string,
 ): Promise<SaveChangeCallSite[]> {
-  const output = execSync("rg --files plugin/src --type ts", {
-    cwd: repoRoot,
-    encoding: "utf-8",
-  });
+  const output = execFileSync(
+    "rg",
+    [
+      "--files-with-matches",
+      "--fixed-strings",
+      "saveChange",
+      "--glob=*.ts",
+      "plugin/src",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf-8",
+    },
+  );
   const files = new Set<string>();
-  for (const line of output.split("\n").filter(Boolean)) {
-    const [file] = line.split(":");
-    if (file) files.add(resolve(repoRoot, file));
+  for (const file of output.split("\n").filter(Boolean)) {
+    files.add(resolve(repoRoot, file));
   }
 
   const calls: SaveChangeCallSite[] = [];
