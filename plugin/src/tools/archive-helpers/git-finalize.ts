@@ -194,20 +194,29 @@ export function syncDefaultBranchAfterMerge(
   const { mainCheckout, defaultBranch } = input;
   const defaultRef = `origin/${defaultBranch}`;
 
-  // Step 1: fetch origin/{default}. Never destructive; refuses to mutate local
-  // state. A non-zero exit is recorded and returned as `blocked`.
-  const fetchResult = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
-  if (fetchResult.status !== 0) {
+  // Step 1: refuse a dirty main checkout before even fetching. A fetch advances
+  // origin/* refs, so it is local mutation and must not happen while preserving
+  // a user's uninspected work is the priority.
+  const statusRaw = runGit(mainCheckout, ["status", "--porcelain"]);
+  if (statusRaw.status !== 0) {
     return {
       status: "blocked",
-      reason: "FETCH_FAILED",
-      remediation: `Failed to fetch ${defaultRef}. Verify network, origin reachability, and that ${defaultBranch} exists on the remote. Then re-run \`adv_change_archive phase9:"run"\` to retry the auto-drive.`,
-      details: splitLines(fetchResult.stderr || fetchResult.stdout),
+      reason: "STATUS_FAILED",
+      remediation: `Could not inspect local ${defaultBranch} checkout status. Resolve the git status error before retrying archive.`,
+      details: splitLines(statusRaw.stderr || statusRaw.stdout),
+    };
+  }
+  if ((statusRaw.stdout || "").trim()) {
+    return {
+      status: "blocked",
+      reason: "MAIN_DIRTY",
+      remediation: `Main checkout has uncommitted changes. Run git status in "${mainCheckout}" (or git -C "${mainCheckout}" status --short). Commit, stash, or relocate the work before retrying archive; ADV will not modify a dirty ${defaultBranch} checkout.`,
+      details: splitLines(statusRaw.stdout),
     };
   }
 
   // Step 1.5: structural guard — main checkout must be on the default branch
-  // before any merge. Prevents silent fast-forward of a feature branch.
+  // before any fetch or merge. Prevents mutation of a feature branch checkout.
   const headBranchRaw = runGit(mainCheckout, [
     "rev-parse",
     "--abbrev-ref",
@@ -223,7 +232,19 @@ export function syncDefaultBranchAfterMerge(
     };
   }
 
-  // Step 2: compute divergence via two bounded rev-list --count calls.
+  // Step 2: fetch origin/{default}. Never destructive to the worktree; a
+  // non-zero exit is recorded and returned as `blocked`.
+  const fetchResult = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  if (fetchResult.status !== 0) {
+    return {
+      status: "blocked",
+      reason: "FETCH_FAILED",
+      remediation: `Failed to fetch ${defaultRef}. Verify network, origin reachability, and that ${defaultBranch} exists on the remote. Then re-run \`adv_change_archive phase9:"run"\` to retry the auto-drive.`,
+      details: splitLines(fetchResult.stderr || fetchResult.stdout),
+    };
+  }
+
+  // Step 3: compute divergence via two bounded rev-list --count calls.
   // ahead  = local-only commits (local {default} ahead of origin/{default})
   // behind = origin/{default} ahead of local {default}
   const aheadRaw = runGit(mainCheckout, [
@@ -249,7 +270,7 @@ export function syncDefaultBranchAfterMerge(
   const ahead = aheadCount.count;
   const behind = behindCount.count;
 
-  // Step 3: diverge -> surface, do NOT merge or reset.
+  // Step 4: diverge -> surface, do NOT merge or reset.
   if (ahead > 0) {
     const localListRaw = runGit(mainCheckout, [
       "rev-list",
@@ -272,7 +293,7 @@ export function syncDefaultBranchAfterMerge(
     };
   }
 
-  // Step 4: clean case -- fast-forward. behind>=0 always; ahead==0 by Step 3.
+  // Step 5: clean case -- fast-forward. behind>=0 always; ahead==0 by Step 4.
   // Capture local HEAD before merge so we can report the ff-only delta.
   const beforeHeadRaw = runGit(mainCheckout, ["rev-parse", defaultBranch]);
   const beforeHead = (beforeHeadRaw.stdout || "").trim();

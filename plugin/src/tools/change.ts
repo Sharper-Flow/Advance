@@ -955,6 +955,7 @@ import {
   detectArchiveMode,
   deleteChangeBranch,
   finalizeRelease,
+  syncDefaultBranchAfterMerge,
   validateChangeWorktree,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
@@ -4356,6 +4357,9 @@ export const changeTools = {
               }
             >
           | undefined;
+        let trunkSync:
+          | ReturnType<typeof syncDefaultBranchAfterMerge>
+          | undefined;
         if (!dryRun && archiveResult.success && phase9 !== "skip") {
           // Sync mode (existing behavior) — phase9 === "run" routes through
           // this same awaited finalization path; there is no detached async
@@ -4478,6 +4482,18 @@ export const changeTools = {
                     })),
                   }
                 : {}),
+            });
+          }
+          // A merged PR is proven by the canonical remote/PR evidence above.
+          // Syncing the developer's local trunk is advisory only: it runs after
+          // that proof and cannot block release, archive retirement, or cleanup.
+          if (
+            finalization.status === "shipped" &&
+            change.phase9_status?.status === "pending_merge"
+          ) {
+            trunkSync = syncDefaultBranchAfterMerge({
+              mainCheckout: finalization.mainCheckout,
+              defaultBranch: finalization.defaultBranch,
             });
           }
           const releaseResult = await completeReleaseGateAfterFinalization({
@@ -4947,6 +4963,7 @@ export const changeTools = {
             ? { issue_closure_error: issueClosure.issue_closure_error }
             : {}),
           ...(finalization ? { finalization } : {}),
+          ...(trunkSync ? { trunkSync } : {}),
           ...(finalization
             ? {
                 continueFrom: {

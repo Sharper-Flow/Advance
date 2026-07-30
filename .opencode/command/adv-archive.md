@@ -514,8 +514,7 @@ Emit `GIT FINALIZATION COMPLETE` only after Step 6 final proof. Include: commit 
 
 3. **Branch on the terminal result.**
    - **CI success, `PR state == MERGED`** (verified via `gh pr view <number> --json state,mergedAt,mergeCommit`):
-     a. Call `syncDefaultBranchAfterMerge({ mainCheckout: finalization.mainCheckout, defaultBranch: finalization.defaultBranch })` (helper in `plugin/src/tools/archive-helpers/git-finalize.ts`).
-     b. Re-call `adv_change_archive changeId: {change-id} worktreePath: {worktree} phase9: "run"` and let it complete via the unchanged `verifyReleaseEvidenceFromMain` completion entry, which now proves `pr_merged` and returns `shipped`. The archive tool is idempotent on re-call (existing-bundle/noOp path; no delta re-apply).
+     a. Re-call `adv_change_archive changeId: {change-id} worktreePath: {worktree} phase9: "run"`. After it proves the PR merge, the archive handler invokes `syncDefaultBranchAfterMerge` through its guarded local-trunk seam and then completes through `verifyReleaseEvidenceFromMain`; it does not ask the agent to call TypeScript directly. The archive tool is idempotent on re-call (existing-bundle/noOp path; no delta re-apply).
      c. Append one Delivered line: `Trunk sync: {synced | diverged: N local-only commits + reconcile steps; release still completes | blocked: <reason>}`.
      d. Proceed to the existing Shipped. terminal rendering; release gate, archive retirement, worktree cleanup run normally as part of `Shipped.`.
    - **CI success but PR state is not yet `MERGED`** (auto-merge still pending, queue still in flight, or merge-state check inconclusive): treat as non-terminal. Render `Pending auto-merge.` per the Non-terminal branch below. CI success alone is necessary but not sufficient; release completion requires `PR state == MERGED` or unchanged `origin/{default-branch}` reachability proof.

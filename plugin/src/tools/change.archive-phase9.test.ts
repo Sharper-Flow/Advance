@@ -111,6 +111,10 @@ const mocks = vi.hoisted(() => {
     ),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
+    syncDefaultBranchAfterMerge: vi.fn(() => ({
+      status: "synced",
+      ffCommits: [],
+    })),
     fireSignalAndRefresh: vi.fn(async () => {}),
     getProjectId: vi.fn(() => Promise.resolve("test-project")),
     getService: vi.fn(() => ({
@@ -169,6 +173,7 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
     classifyFinalizationRoute: mocks.classifyFinalizationRoute,
     resolveReleaseReachability: mocks.resolveReleaseReachability,
+    syncDefaultBranchAfterMerge: mocks.syncDefaultBranchAfterMerge,
   };
 });
 
@@ -1506,6 +1511,54 @@ describe("adv_change_archive Phase 9 behavior", () => {
           status: "done",
           startedAt: "2026-01-01T00:00:00Z",
         }),
+      }),
+    );
+  });
+
+  test("re-drive after PR merged invokes syncDefaultBranchAfterMerge and surfaces trunkSync outcome (KD3/AC4)", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.resolveReleaseReachability.mockReturnValueOnce({
+      reachable: true,
+      proof: "pr_merged",
+      prNumber: 42,
+      mergeCommitOid: "merge-42",
+      details: ["PR #42 merged"],
+    });
+    mocks.syncDefaultBranchAfterMerge.mockReturnValueOnce({
+      status: "blocked",
+      reason: "MAIN_DIRTY",
+      remediation: "Inspect local trunk changes before syncing.",
+    });
+    const store = createMockStore({
+      phase9_status: {
+        status: "pending_merge",
+        startedAt: "2026-01-01T00:00:00Z",
+        prNumber: 42,
+        prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
+        autoMergeArmed: true,
+        route: "pr_auto_merge",
+      },
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.syncDefaultBranchAfterMerge).toHaveBeenCalledTimes(1);
+    expect(mocks.syncDefaultBranchAfterMerge).toHaveBeenCalledWith({
+      mainCheckout: "/tmp/main",
+      defaultBranch: "trunk",
+    });
+    expect(parsed.trunkSync).toMatchObject({
+      status: "blocked",
+      reason: "MAIN_DIRTY",
+    });
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "archived",
       }),
     );
   });

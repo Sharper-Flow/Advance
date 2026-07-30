@@ -3775,6 +3775,30 @@ describe("git-finalize helpers", () => {
         expect(result.details).toContain("HEAD=feature");
         expect(afterHead).toBe(beforeHead);
       });
+
+      it("dirty main checkout returns blocked MAIN_DIRTY without mutation (KD3)", async () => {
+        const { main } = await setupRepoWithOrigin("dirty-main", {
+          localAhead: 0,
+          originAhead: 1,
+        });
+        await writeFile(join(main, "dirty.txt"), "untracked-local-change\n");
+        const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+        const beforeStatus = git(main, ["status", "--porcelain"]);
+        expect(beforeStatus).not.toBe("");
+
+        const result = syncDefaultBranchAfterMerge({
+          mainCheckout: main,
+          defaultBranch: "trunk",
+        });
+        const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
+        const afterStatus = git(main, ["status", "--porcelain"]);
+
+        expect(result.status).toBe("blocked");
+        expect(result.reason).toBe("MAIN_DIRTY");
+        expect(afterHead).toBe(beforeHead);
+        expect(afterStatus).toBe(beforeStatus);
+        expect(result.remediation).toContain("git status");
+      });
     });
   });
 
@@ -4536,9 +4560,8 @@ function defaultRunGit(cwd: string, args: string[]) {
 // already exercise direct/no-remote/ff-only runtime paths.
 describe("auto-drive regression guards (rq-releaseFinalization02 / DONT1 / DONT3)", () => {
   it("syncDefaultBranchAfterMerge is exported but not invoked internally by git-finalize helpers", () => {
-    // The helper must be exported (so command-layer callers can use it) but must
-    // NOT be auto-invoked by any other git-finalize helper — keep the only call
-    // site in the adv-archive.md Phase 9.5 orchestration. DONT3 / AC7.
+    // The helper must be exported for the archive handler but must NOT be
+    // auto-invoked by any other git-finalize helper. DONT3 / AC7.
     const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
     // Find any helper that calls syncDefaultBranchAfterMerge (other than its own
     // declaration) — that would be an unintended internal dependency.
