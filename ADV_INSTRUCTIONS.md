@@ -406,7 +406,7 @@ Inline TDD is default for behavior-bearing inline code — red/green phases WITH
 
 `adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence. The red→green sequence IS structurally enforced by rq-TDD009seq: include `lastRedRunId` and `lastGreenRunId` (from `adv_run_test` output `runId`) in `adv_task_checkpoint` verification for inline TDD tasks. Tasks without these refs are grandfathered (backward compatible). Advisory quality signals (`assertionDensity`, `mockSurface`, `behaviorSurface`) are surfaced for `/adv-review`; they never gate task completion.
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Use it when the selected evidence route is `test` or `static_check`; do not manufacture a test run for a valid non-test route. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`. <!-- rq-ADVEXEC04 rq-ADVEXEC05 -->
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Use it for selected test execution; a selected static-check route records its command and result as proof without a test run ID. Do not manufacture a test run for a valid non-test route. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`. <!-- rq-ADVEXEC04 rq-ADVEXEC05 -->
 
 ### Reflection Protocol
 
