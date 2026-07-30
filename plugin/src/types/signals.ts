@@ -658,6 +658,42 @@ export type WorktreeAttachedSignalPayload = z.infer<
   typeof WorktreeAttachedSignalPayloadSchema
 >;
 
+/**
+ * rq-migrateExistingAdvWorktrees AC4–AC7 — nonterminal worktree dematerialize
+ * payload and durable detach receipt.
+ *
+ * Fired after a directory-only worktree detach succeeds or is refused.
+ * The handler records the outcome in `state.worktree_detach_receipts` and,
+ * for detached/idempotent outcomes, updates the branch record to
+ * status:"unmaterialized" with path cleared and materialized:false.
+ */
+export const WorktreeDetachPreflightFactSchema = z.object({
+  branch: z.string(),
+  path: z.string().optional(),
+  eligible: z.boolean(),
+  refusalReason: z.string().optional(),
+  branchActivityAt: IsoTimestampSchema.optional(),
+  advActivityAt: IsoTimestampSchema.optional(),
+});
+export type WorktreeDetachPreflightFact = z.infer<
+  typeof WorktreeDetachPreflightFactSchema
+>;
+
+export const WorktreeDematerializedSignalPayloadSchema = z.object({
+  branch: z.string(),
+  requestId: z.string().min(1),
+  branches: z.array(z.string()),
+  cutoffMs: z.number().int().positive(),
+  preflightFacts: z.array(WorktreeDetachPreflightFactSchema),
+  outcome: z.enum(["detached", "refused", "idempotent_already_detached"]),
+  reason: z.string().optional(),
+  approvalEvidence: z.string().min(1),
+  dematerializedAt: IsoTimestampSchema,
+});
+export type WorktreeDematerializedSignalPayload = z.infer<
+  typeof WorktreeDematerializedSignalPayloadSchema
+>;
+
 export const ConformanceLockedSignalPayloadSchema = z.object({
   specs: z.array(z.string()),
   lockedAt: IsoTimestampSchema,

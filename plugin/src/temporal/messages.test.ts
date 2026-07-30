@@ -54,6 +54,7 @@ import {
   WorktreeAutoManagedSignalPayloadSchema,
   WorktreeCreatedSignalPayloadSchema,
   WorktreeDeletedSignalPayloadSchema,
+  WorktreeDematerializedSignalPayloadSchema,
   WorktreeRegistrationRepairedSignalPayloadSchema,
   WorktreeSetupFailedSignalPayloadSchema,
   OpsEvidenceAppendedSignalPayloadSchema,
@@ -109,6 +110,7 @@ const designSignalKeys = [
   "worktreeSetupFailed",
   "worktreeAutoManaged",
   "worktreeAttached",
+  "worktreeDematerialized",
   "crossProjectCoordinationUpdated",
   "conformanceLocked",
   "conformanceVerdict",
@@ -152,11 +154,11 @@ const designQueryKeys = [
 ] as const;
 
 describe("change workflow message contract", () => {
-  it("defines the 68 signal surface", () => {
+  it("defines the 69 signal surface", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(68);
+    expect(surfacedKeys).toHaveLength(69);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);
@@ -462,6 +464,27 @@ describe("change workflow message contract", () => {
       [
         WorktreeAttachedSignalPayloadSchema,
         { role: "target", path: "/abs/target", recordedAt: timestamp },
+      ],
+      [
+        WorktreeDematerializedSignalPayloadSchema,
+        {
+          branch: "change/x",
+          requestId: "req-1",
+          branches: ["change/x"],
+          cutoffMs: 864000000,
+          preflightFacts: [
+            {
+              branch: "change/x",
+              path: "/abs/target",
+              eligible: true,
+              branchActivityAt: timestamp,
+              advActivityAt: timestamp,
+            },
+          ],
+          outcome: "detached",
+          approvalEvidence: "user approved",
+          dematerializedAt: timestamp,
+        },
       ],
       [
         ConformanceLockedSignalPayloadSchema,

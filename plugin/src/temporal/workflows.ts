@@ -91,6 +91,7 @@ import {
   applyWorktreeAutoManagedToState,
   applyWorktreeCreatedToState,
   applyWorktreeDeletedToState,
+  applyWorktreeDematerializedToState,
   applyWorktreeRegistrationRepairedToState,
   applyWorktreeSetupFailedToState,
   archiveChangeInChangeState,
@@ -439,6 +440,9 @@ const worktreeAutoManagedSignal = wf.defineSignal<
 const worktreeAttachedSignal = wf.defineSignal<
   [import("../types").WorktreeAttachedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
+const worktreeDematerializedSignal = wf.defineSignal<
+  [import("../types").WorktreeDematerializedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDematerialized);
 const crossProjectCoordinationUpdatedSignal = wf.defineSignal<
   [CrossProjectCoordinationUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.crossProjectCoordinationUpdated);
@@ -1818,6 +1822,12 @@ export async function changeWorkflow(
     worktreeAttachedSignal,
     signalMutation("worktreeAttached", (payload) =>
       applyWorktreeAttachedToState(state, payload),
+    ),
+  );
+  wf.setHandler(
+    worktreeDematerializedSignal,
+    signalMutation("worktreeDematerialized", (payload) =>
+      applyWorktreeDematerializedToState(state, payload),
     ),
   );
   wf.setHandler(

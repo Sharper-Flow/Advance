@@ -64,6 +64,7 @@ import type {
   WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
+  WorktreeDematerializedSignalPayload,
   WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
   WorkerBundleImpactSetSignalPayload,
@@ -2651,6 +2652,55 @@ export function applyWorktreeDeletedToState(
     },
   };
   setLastSignalAt(state, payload.deletedAt);
+  return state;
+}
+
+/**
+ * rq-migrateExistingAdvWorktrees AC4–AC7 — directory-only nonterminal detach.
+ *
+ * Dematerializes a worktree by clearing its path and materialized flag while
+ * preserving the branch record, ownership, commits, and setupReady state.
+ * Records a durable receipt in `state.worktree_detach_receipts` keyed by
+ * request identity so the same request is idempotent and auditable.
+ *
+ * This reducer intentionally does NOT reuse terminal `status:"deleted"` or the
+ * pending-delete queue; it must not be invoked by reapers, triage, startup
+ * cleanup, or migration automation.
+ */
+export function applyWorktreeDematerializedToState(
+  state: ChangeWorkflowState,
+  payload: WorktreeDematerializedSignalPayload,
+): ChangeWorkflowState {
+  const existing = state.worktree_detach_receipts ?? [];
+  if (
+    existing.some(
+      (r) => r.requestId === payload.requestId && r.branch === payload.branch,
+    )
+  ) {
+    return state;
+  }
+
+  if (
+    payload.outcome === "detached" ||
+    payload.outcome === "idempotent_already_detached"
+  ) {
+    const record = state.worktrees?.[payload.branch];
+    state.worktrees = {
+      ...(state.worktrees ?? {}),
+      [payload.branch]: {
+        ...(record ?? { branch: payload.branch }),
+        branch: payload.branch,
+        status: "unmaterialized",
+        materialized: false,
+        setupReady: true,
+        path: undefined,
+        pendingDelete: undefined,
+      },
+    };
+  }
+
+  state.worktree_detach_receipts = [...existing, payload];
+  setLastSignalAt(state, payload.dematerializedAt);
   return state;
 }
 

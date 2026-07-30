@@ -8,6 +8,7 @@ import type {
   FastFollowOf,
   Gates,
   Epic,
+  WorktreeDematerializedSignalPayload,
 } from "../types";
 import type { SignalPayloadDigest } from "./digest";
 
@@ -117,6 +118,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   worktreeSetupFailed: "adv.change.worktreeSetupFailed",
   worktreeAutoManaged: "adv.change.worktreeAutoManaged",
   worktreeAttached: "adv.change.worktreeAttached",
+  worktreeDematerialized: "adv.change.worktreeDematerialized",
   crossProjectCoordinationUpdated: "adv.change.crossProjectCoordinationUpdated",
   conformanceLocked: "adv.change.conformanceLocked",
   conformanceVerdict: "adv.change.conformanceVerdict",
@@ -584,7 +586,7 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
       baseRef?: string;
       headSha?: string;
       materialized?: boolean;
-      status: "created" | "deleted" | "setup_failed";
+      status: "created" | "deleted" | "setup_failed" | "unmaterialized";
       createdAt?: string;
       lastSeenAt?: string;
       deletedAt?: string;
@@ -599,6 +601,9 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
       cleanupBlockedBy?: string[];
       source?: "tool" | "git_census";
       sourceVersion?: number;
+      // rq-migrateExistingAdvWorktrees: directory-only dematerialize clears this
+      // marker rather than queuing a terminal delete.
+      pendingDelete?: PendingWorktreeDelete;
     }
   >;
   conformance?: {
@@ -761,9 +766,17 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * Per-task test-run records, keyed by taskId. Ring-buffered to last 20
    * per task. Used by rq-TDD009seq ordering enforcement at task-completion
    * time (applyTaskCompletedToState). Additive optional — replay-safe for
-   * histories predating this field.
+   * histories predating this extension.
    */
   testRuns?: Record<string, TestRunRecord[]>;
+
+  /**
+   * rq-migrateExistingAdvWorktrees AC6 — durable directory-only detach receipts
+   * keyed by request identity. Each receipt captures the exact batch, cutoff,
+   * preflight facts, outcome, and approval evidence so detach is auditable and
+   * idempotent across replays.
+   */
+  worktree_detach_receipts?: WorktreeDetachReceipt[];
 }
 
 export const MUTATION_RECEIPTS_FIFO_LIMIT = 100;
@@ -780,6 +793,14 @@ export interface MutationReceipt {
   signalName: string;
   recordedAt: string;
 }
+
+/**
+ * rq-migrateExistingAdvWorktrees AC6 — durable audit receipt for a directory-only
+ * worktree detach request. Stored in `state.worktree_detach_receipts` keyed by
+ * request identity so the same request is idempotent and the full preflight
+ * context survives for later review.
+ */
+export type WorktreeDetachReceipt = WorktreeDematerializedSignalPayload;
 
 /**
  * Worktree registry record. Per-change context only in the signal-driven

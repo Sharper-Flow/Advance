@@ -87,6 +87,7 @@ import type {
   WorktreeAutoManagedSignalPayload,
   WorktreeCreatedSignalPayload,
   WorktreeDeletedSignalPayload,
+  WorktreeDematerializedSignalPayload,
   WorktreeRegistrationRepairedSignalPayload,
   WorktreeSetupFailedSignalPayload,
   WorkerBundleImpactSetSignalPayload,
@@ -309,6 +310,9 @@ export const worktreeAutoManagedSignal = wf.defineSignal<
 export const worktreeAttachedSignal = wf.defineSignal<
   [WorktreeAttachedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeAttached);
+export const worktreeDematerializedSignal = wf.defineSignal<
+  [WorktreeDematerializedSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.worktreeDematerialized);
 export const crossProjectCoordinationUpdatedSignal = wf.defineSignal<
   [CrossProjectCoordinationUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.crossProjectCoordinationUpdated);
