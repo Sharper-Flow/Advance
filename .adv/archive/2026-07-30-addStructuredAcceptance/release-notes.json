@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "change_id": "addStructuredAcceptance",
+  "title": "Add structured acceptance criteria",
+  "release_notes": {
+    "audience": "internal",
+    "category": "added",
+    "headline_internal": "Structured acceptance-criterion variants",
+    "highlights": [
+      "Adds typed behavioral, evidence, spec-law, and constraint variants while preserving canonical contract text.",
+      "Keeps warrants, review matrices, and legacy projections structurally compatible."
+    ],
+    "area": "ADV contract workflow"
+  }
+}

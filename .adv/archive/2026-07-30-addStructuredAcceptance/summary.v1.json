@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-30T00:43:21.731Z",
+  "capabilities": [],
+  "change_hash": "0047200590c1bf2d519d6fdea0cba5cdcdcc6200c6df83d492fc4d901ff33971",
+  "change_id": "addStructuredAcceptance",
+  "completed_tasks": 5,
+  "created_at": "2026-07-29T21:37:48.915Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-30T00:25:30.953Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "b725f831acaa4ec22e852ad9b01a4c4ed9d94c491f3e708e61fd76bbaa38fbc5",
+  "task_count": 5,
+  "title": "Add structured acceptance criteria",
+  "version": "1"
+}
