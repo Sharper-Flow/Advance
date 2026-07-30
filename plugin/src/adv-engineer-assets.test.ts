@@ -75,6 +75,7 @@ describe("adv-engineer assets", () => {
       "adv_worktree_create",
       "adv_worktree_delete",
       "adv_worktree_cleanup",
+      "adv_worktree_detach",
     ]) {
       const grant = getToolGrant(frontmatter, tool);
       expect(grant, `${tool} should not be granted`).not.toBe(true);

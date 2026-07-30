@@ -298,6 +298,16 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     // Optional archived-branch restriction; handler treats blank as unset.
     changeId: { blank: "omit" },
   },
+  adv_worktree_detach: {
+    branches: { blank: "reject" }, // required
+    cutoffMs: { blank: "reject" }, // required positive integer
+    mode: { blank: "reject" }, // required enum
+    approvalEvidence: { blank: "omit" }, // required only for apply mode
+    requestId: { blank: "omit" }, // optional deterministic binding
+    target_path: { blank: "omit" },
+    target_confirmed: { blank: "omit" },
+    confirmationEvidence: { blank: "omit" },
+  },
   adv_conformance: {
     user: { blank: "reject" }, // audit identity
     reason: { blank: "reject" }, // audit

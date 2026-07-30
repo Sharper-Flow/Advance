@@ -131,6 +131,9 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   "adv_worker_bundle_provenance_record",
   // addReleaseNotesData adds the typed release-note full-replacement setter.
   "adv_change_set_release_notes",
+  // migrateExistingAdvWorktrees adds the operator-only directory-only worktree
+  // detach tool for nonterminal dematerialization.
+  "adv_worktree_detach",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;

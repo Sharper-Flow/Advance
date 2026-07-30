@@ -9,6 +9,7 @@ const worktreeMock = vi.hoisted(() => ({
   advWorktreeResume: vi.fn(),
   advWorktreeDelete: vi.fn(),
   advWorktreeCleanup: vi.fn(),
+  advWorktreeDetachBatch: vi.fn(),
   loadWorktreeConfig: vi.fn(),
 }));
 
@@ -952,4 +953,132 @@ describe("advWorktreeTools", () => {
     });
     expect(parsed.omitted).toHaveLength(1);
   });
+
+  it("adv_worktree_detach delegates to advWorktreeDetachBatch", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDetachBatch.mockResolvedValue({
+      ok: true,
+      requestId: "wdet-abc",
+      mode: "apply",
+      dispositions: [
+        { branch: "change/x", eligible: true, outcome: "detached" },
+      ],
+    });
+
+    const out = await advWorktreeTools.adv_worktree_detach.execute(
+      {
+        branches: ["change/x"],
+        cutoffMs: 86_400_000,
+        mode: "apply",
+        approvalEvidence: "operator approved detach",
+      },
+      store,
+    );
+
+    expect(worktreeMock.advWorktreeDetachBatch).toHaveBeenCalledWith(
+      {
+        branches: ["change/x"],
+        cutoffMs: 86_400_000,
+        mode: "apply",
+        approvalEvidence: "operator approved detach",
+        requestId: undefined,
+      },
+      "/repo",
+      database,
+      expect.objectContaining({
+        store,
+        signalTimeoutMs: expect.any(Number),
+      }),
+    );
+    const [, , , options] =
+      worktreeMock.advWorktreeDetachBatch.mock.calls.at(-1)!;
+    expect(options.signalTimeoutMs).toBeLessThan(WORKTREE_TOOL_SAFE_TIMEOUT_MS);
+    expect(out).toContain('"ok":true');
+    expect(out).toContain("change/x");
+  });
+
+  it("adv_worktree_detach routes target_path mutations through target store", async () => {
+    const database = { projectDir: "/target", projectId: "target-project" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDetachBatch.mockResolvedValue({
+      ok: true,
+      requestId: "wdet-target",
+      mode: "dry_run",
+      dispositions: [
+        { branch: "change/x", eligible: false, refusalReason: "too_recent" },
+      ],
+    });
+
+    await advWorktreeTools.adv_worktree_detach.execute(
+      {
+        branches: ["change/x"],
+        cutoffMs: 60_000,
+        mode: "dry_run",
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target detach",
+      },
+      store,
+    );
+
+    expect(targetProjectMock.withTargetPathStore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentProjectPath: "/repo",
+        target_path: "/target",
+        target_confirmed: true,
+        confirmationEvidence: "User approved target detach",
+        stateRequirement: "temporal-required",
+      }),
+      expect.any(Function),
+    );
+    expect(stateMock.initStateDb).toHaveBeenCalledWith("/target");
+    expect(worktreeMock.advWorktreeDetachBatch).toHaveBeenCalledWith(
+      expect.any(Object),
+      "/target",
+      database,
+      expect.objectContaining({ store: targetStore }),
+    );
+  });
+
+  it("adv_worktree_detach rejects unconfirmed target mutation before detaching", async () => {
+    targetProjectMock.withTargetPathStore.mockRejectedValue(
+      new Error("target confirmation required"),
+    );
+
+    await expect(
+      advWorktreeTools.adv_worktree_detach.execute(
+        {
+          branches: ["change/x"],
+          cutoffMs: 60_000,
+          mode: "apply",
+          target_path: "/target",
+        },
+        store,
+      ),
+    ).rejects.toThrow("target confirmation required");
+
+    expect(worktreeMock.advWorktreeDetachBatch).not.toHaveBeenCalled();
+  });
+
+  it("adv_worktree_detach returns a timeout response instead of hanging", async () => {
+    const database = { projectDir: "/repo", projectId: "p" };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDetachBatch.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const out = await advWorktreeTools.adv_worktree_detach.execute(
+      {
+        branches: ["change/x"],
+        cutoffMs: 60_000,
+        mode: "dry_run",
+      },
+      store,
+    );
+
+    expect(out).toContain("timedOut");
+    expect(out).toContain("timed out after");
+    expect(out).toContain("effectiveTimeoutMs");
+  }, 12_000);
 });

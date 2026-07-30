@@ -18,6 +18,7 @@ import {
   advWorktreeResume,
   advWorktreeDelete,
   advWorktreeCleanup,
+  advWorktreeDetachBatch,
   loadWorktreeConfig,
 } from "./worktree";
 import {
@@ -134,6 +135,14 @@ interface WorktreeCleanupArgs extends TargetWorktreeMutationArgs {
   timeoutMs?: number;
   mode?: "worktrees" | "archived_branches";
   changeId?: string;
+}
+
+interface WorktreeDetachArgs extends TargetWorktreeMutationArgs {
+  branches: string[];
+  cutoffMs: number;
+  mode: "dry_run" | "apply";
+  approvalEvidence?: string;
+  requestId?: string;
 }
 
 const targetWorktreeMutationArgSchemas = {
@@ -392,6 +401,68 @@ async function executeWorktreeCleanup(
         : {}),
       ...(cleanupResult.dryRun ? { dryRun: true } : {}),
     }),
+    context,
+  );
+}
+
+async function executeWorktreeDetach(
+  args: WorktreeDetachArgs,
+  store: Store,
+  context?: TargetProjectContext,
+): Promise<string> {
+  const projectRoot = store.paths.root;
+  const database = await initWorktreeDb(projectRoot);
+  const log = createLogger();
+
+  // rq-worktreeBoundedCleanup02 AC1: bound detach with safe budget so the
+  // tool never exceeds the SDK's 10s hard ceiling.
+  const { effectiveTimeoutMs } = clampToSafeBudget(undefined);
+  const detachPromise = advWorktreeDetachBatch(
+    {
+      branches: args.branches,
+      cutoffMs: args.cutoffMs,
+      mode: args.mode,
+      approvalEvidence: args.approvalEvidence,
+      requestId: args.requestId,
+    },
+    projectRoot,
+    database,
+    {
+      store,
+      log,
+      signalTimeoutMs: Math.max(1, effectiveTimeoutMs - 2_000),
+    },
+  );
+
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  const timeoutRace = new Promise<{ _timedOut: true }>((resolve) => {
+    timeoutHandle = setTimeout(
+      () => resolve({ _timedOut: true }),
+      effectiveTimeoutMs,
+    );
+  });
+
+  const result = await Promise.race([detachPromise, timeoutRace]);
+  if (timeoutHandle) clearTimeout(timeoutHandle);
+
+  if ("_timedOut" in result && result._timedOut) {
+    return formatMaybeTargetOutput(
+      formatToolOutput({
+        ok: false,
+        timedOut: true,
+        error: `adv_worktree_detach timed out after ${effectiveTimeoutMs}ms. Detach likely blocked on a stuck git operation or workflow signal.`,
+        effectiveTimeoutMs,
+        remediation:
+          "Retry the detach after the underlying operation resolves. Use adv_doctor to check workflow health.",
+      }),
+      context,
+    );
+  }
+
+  return formatMaybeTargetOutput(
+    formatToolOutput(
+      result as Awaited<ReturnType<typeof advWorktreeDetachBatch>>,
+    ),
     context,
   );
 }
@@ -782,6 +853,55 @@ export const advWorktreeTools = {
         );
       }
       return executeWorktreeCleanup(args, store, options);
+    },
+  },
+
+  adv_worktree_detach: {
+    description:
+      "Operator-only directory-only worktree detach. Removes only the worktree directory for a set of exact branches, preserves the local branch and ADV change record, and writes a durable dematerialize receipt on the owning change workflow. Requires approvalEvidence in apply mode. Never invoked by reapers, triage, startup cleanup, or migration automation.",
+    args: {
+      branches: z
+        .array(z.string().min(1))
+        .min(1)
+        .describe(
+          "Exact branch identifiers to detach (no globbing or age inference)",
+        ),
+      cutoffMs: z
+        .number()
+        .int()
+        .positive()
+        .describe("Positive staleness cutoff in milliseconds"),
+      mode: z
+        .enum(["dry_run", "apply"])
+        .describe("Preview or apply the detach"),
+      approvalEvidence: z
+        .string()
+        .optional()
+        .describe("Required for apply mode; ignored for dry_run"),
+      requestId: z
+        .string()
+        .optional()
+        .describe(
+          "Deterministic id bound to the normalized branch set + cutoff",
+        ),
+      ...targetWorktreeMutationArgSchemas,
+    },
+    execute: async (args: WorktreeDetachArgs, store: Store) => {
+      if (args.target_path) {
+        return withTargetPathStore(
+          {
+            currentProjectPath: store.paths.root,
+            target_path: args.target_path,
+            target_confirmed: args.target_confirmed,
+            confirmationEvidence: args.confirmationEvidence,
+            stateRequirement: "temporal-required",
+            mutation: args.mode === "apply",
+          },
+          async ({ context, store: targetStore }) =>
+            executeWorktreeDetach(args, targetStore, context),
+        );
+      }
+      return executeWorktreeDetach(args, store);
     },
   },
 

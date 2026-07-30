@@ -1027,6 +1027,23 @@ export function createToolMap(
         ),
       ),
     ),
+    adv_worktree_detach: registerTool(
+      advWorktreeTools.adv_worktree_detach.description,
+      advWorktreeTools.adv_worktree_detach.args,
+      namedExecute(
+        "adv_worktree_detach",
+        safeExecute(
+          async (args) =>
+            advWorktreeTools.adv_worktree_detach.execute(
+              args as Parameters<
+                typeof advWorktreeTools.adv_worktree_detach.execute
+              >[0],
+              store,
+            ),
+          "adv_worktree_detach",
+        ),
+      ),
+    ),
     // Triage shares the 55s bounded inventory collector with WIP. Preserve a
     // 5s formatting reserve beneath this 60s outer containment so partial
     // findings and omissions return before safeExecute can become opaque.

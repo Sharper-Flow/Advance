@@ -440,6 +440,11 @@ export const TOOL_ROLE_POLICY: Readonly<Record<string, ToolRoleEntry>> = {
     rationale:
       "Worktree hygiene; archived_branches mode is operator-explicit (dry-run first).",
   },
+  adv_worktree_detach: {
+    class: "operator-only",
+    rationale:
+      "Directory-only nonterminal worktree detach; preserves branch and change record, requires explicit operator approval and exact branch set. Never invoked by reapers, triage, startup cleanup, or migration automation.",
+  },
   adv_worktree_create: {
     class: "orchestrator",
     rationale: "Tool-owned worktree creation.",

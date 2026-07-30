@@ -89,6 +89,7 @@ describe("adv-designer assets", () => {
       "adv_worktree_create",
       "adv_worktree_delete",
       "adv_worktree_cleanup",
+      "adv_worktree_detach",
     ]) {
       expect(
         getToolGrant(frontmatter, tool),

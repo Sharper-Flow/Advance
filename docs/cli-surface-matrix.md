@@ -136,6 +136,7 @@
 | `adv_ops_run_upsert` | `no-cli-dangerous` | Ops runbook state mutation |
 | `adv_ops_run_evidence_add` | `no-cli-dangerous` | Ops run evidence mutation |
 | `adv_worktree_create` | `no-cli-dangerous` | Worktree mutation |
+| `adv_worktree_detach` | `no-cli-dangerous` | Operator-only nonterminal worktree directory detach; preserves branch and change record |
 | `adv_worktree_resume` | `no-cli-dangerous` | Worktree mutation |
 | `adv_worktree_delete` | `no-cli-dangerous` | Worktree mutation |
 | `adv_wisdom_add` | `no-cli-dangerous` | Wisdom mutation |

@@ -117,3 +117,38 @@ describe("worktree-lifecycle terminal cleanup reaper law", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("worktree detach lifecycle boundary law", () => {
+  const REPO_ROOT = resolve(__dirname, "../../..");
+
+  test("detach primitive is not invoked by terminal cleanup, reaper, startup, triage, or migration paths", () => {
+    const boundaryFiles = [
+      // Terminal cleanup, shared reaper, and bounded startup drain all live in
+      // the worktree index module.
+      "plugin/src/tools/worktree/index.ts",
+      // Triage is read-only advisory and must never trigger detach.
+      "plugin/src/tools/worktree/triage.ts",
+      // Lazy worktree_auto_managed migration and legacy-change state migration.
+      "plugin/src/storage/store-temporal/index.ts",
+      // Workflow state migration reducer for worktree markers.
+      "plugin/src/temporal/change-state.ts",
+    ];
+
+    const offenders: { file: string; lines: number[] }[] = [];
+    for (const file of boundaryFiles) {
+      const content = readFileSync(join(REPO_ROOT, file), "utf8");
+      const matches: number[] = [];
+      const lines = content.split("\n");
+      for (let index = 0; index < lines.length; index++) {
+        const line = lines[index] ?? "";
+        // Match calls to the detach primitive, not the export/import plumbing.
+        if (/\badvWorktreeDetachBatch\s*\(/.test(line)) {
+          matches.push(index + 1);
+        }
+      }
+      if (matches.length > 0) offenders.push({ file, lines: matches });
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});

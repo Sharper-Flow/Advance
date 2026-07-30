@@ -199,6 +199,7 @@ describe("REGISTRY NO-REMOVAL GUARD (AC6/DONT1)", () => {
       "adv_worktree_resume",
       "adv_worktree_delete",
       "adv_worktree_cleanup",
+      "adv_worktree_detach",
       "adv_worktree_triage",
       "adv_session_list",
       "adv_session_show",

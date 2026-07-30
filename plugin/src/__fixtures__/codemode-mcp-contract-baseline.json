@@ -1,17 +1,17 @@
 {
-  "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerate only via a deliberate, reviewed migration. Migrated 2026-07-17 (gateAgentToolsRole release): re-frozen from the change/gateAgentToolsRole + trunk merge tree because generated role-policy tools frontmatter (AGENT_TOOL_POLICY manifests) added 343-578 bytes per agent prompt, which the 400-byte mode-guidance budget is not meant to measure. Same class as the 2026-07-15 tk-edda3d10b529 migration. External MCP grants verified byte-identical across the migration. Re-frozen 2026-07-24 (fixArchiveConvergence): +792 bytes/agent CI path-length drift. Re-frozen 2026-07-28 (addReleaseNotesData): +816 bytes adv-engineer from generated orchestrator frontmatter line for adv_change_set_release_notes.",
-  "frozenFrom": "change/addReleaseNotesData: generated orchestrator frontmatter adds adv_change_set_release_notes",
-  "frozenAt": "2026-07-28",
+  "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerate only via a deliberate, reviewed migration. Migrated 2026-07-17 (gateAgentToolsRole release): re-frozen from the change/gateAgentToolsRole + trunk merge tree because generated role-policy tools frontmatter (AGENT_TOOL_POLICY manifests) added 343-578 bytes per agent prompt, which the 400-byte mode-guidance budget is not meant to measure. Same class as the 2026-07-15 tk-edda3d10b529 migration. External MCP grants verified byte-identical across the migration. Re-frozen 2026-07-24 (fixArchiveConvergence): +792 bytes/agent CI path-length drift. Re-frozen 2026-07-28 (addReleaseNotesData): +816 bytes adv-engineer from generated orchestrator frontmatter line for adv_change_set_release_notes. Re-frozen 2026-07-30 (migrateExistingAdvWorktrees): regenerated after adding the operator-only adv_worktree_detach tool and the associated tool-surface / prompt drift.",
+  "frozenFrom": "change/migrateExistingAdvWorktrees: operator-only adv_worktree_detach adds tool surface to agent prompts",
+  "frozenAt": "2026-07-30",
   "byteBudget": 500,
   "contractBytes": 305,
   "prompts": {
     "adv-ci-waiter": {
-      "bytes": 5852,
+      "bytes": 5060,
       "mcpCapable": false,
       "grants": []
     },
     "adv-designer": {
-      "bytes": 25838,
+      "bytes": 26293,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -53,7 +53,7 @@
       ]
     },
     "adv-researcher": {
-      "bytes": 13522,
+      "bytes": 13557,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -72,7 +72,7 @@
       ]
     },
     "adv-reviewer": {
-      "bytes": 25913,
+      "bytes": 26201,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -93,12 +93,12 @@
       ]
     },
     "adv-temporal-repair": {
-      "bytes": 6779,
+      "bytes": 6887,
       "mcpCapable": true,
       "grants": ["lgrep_get_file_outline=true", "lgrep_search_text=true"]
     },
     "adv-tron": {
-      "bytes": 11849,
+      "bytes": 11680,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -118,7 +118,7 @@
       ]
     },
     "adv-verifier": {
-      "bytes": 8121,
+      "bytes": 8716,
       "mcpCapable": true,
       "grants": [
         "lgrep_get_file_outline=true",
@@ -130,7 +130,7 @@
       ]
     },
     "adv-visual-review": {
-      "bytes": 9657,
+      "bytes": 9506,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
@@ -171,7 +171,7 @@
       ]
     },
     "build": {
-      "bytes": 10519,
+      "bytes": 9805,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -199,7 +199,7 @@
       ]
     },
     "plan": {
-      "bytes": 12340,
+      "bytes": 12096,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
@@ -224,7 +224,7 @@
       ]
     },
     "general": {
-      "bytes": 1628,
+      "bytes": 836,
       "mcpCapable": false,
       "grants": []
     }

@@ -49,6 +49,7 @@ const STATIC_TITLES: Record<
   adv_worktree_triage: { title: "Triage worktrees", titleKind: "read" },
   adv_session_list: { title: "List sessions", titleKind: "read" },
   adv_worktree_cleanup: { title: "Clean up worktrees", titleKind: "operator" },
+  adv_worktree_detach: { title: "Detach worktrees", titleKind: "operator" },
   adv_tool_catalog: { title: "Catalog ADV tools", titleKind: "read" },
   adv_tool_describe: { title: "Describe ADV tool", titleKind: "read" },
   adv_tool_invoke: {

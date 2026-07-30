@@ -155,6 +155,7 @@ const REQUIRED_BLOCKED_TOOLS = [
   "adv_worktree_create",
   "adv_worktree_delete",
   "adv_worktree_cleanup",
+  "adv_worktree_detach",
 ];
 
 // Body anchor strings — pin the system prompt's required sections.
