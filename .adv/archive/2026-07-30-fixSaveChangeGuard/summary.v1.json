@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-30T19:04:51.999Z",
+  "capabilities": [],
+  "change_hash": "f2a2759a2278e29d86c2906f3a09b79e227d1ba63a0a099f9a3c0dac7fdf6b02",
+  "change_id": "fixSaveChangeGuard",
+  "completed_tasks": 2,
+  "created_at": "2026-07-29T19:36:35.782Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-29T21:59:47.165Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "288d90a484e69e474c3bad45f0e3c98f3a2d20bd6280b356dcf6c130b2c6ee5c",
+  "task_count": 2,
+  "title": "Fix save change guard",
+  "version": "1"
+}
