@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-30T17:21:16.244Z",
+  "capabilities": [],
+  "change_hash": "ae98ca9e3c5a65e7e1b6b5775aada9b33794c66719a8f88ff6afc59001b23b7e",
+  "change_id": "fixMultiSessionConcurrency",
+  "completed_tasks": 6,
+  "created_at": "2026-07-29T19:41:46.157Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-30T07:44:14.379Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "d4c1d98496c8f24289a5449905c72d7ad182b542d676ecb86c6f22e34cdf225e",
+  "task_count": 6,
+  "title": "Fix multi-session concurrency defaults",
+  "version": "1"
+}

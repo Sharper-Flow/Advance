@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixMultiSessionConcurrency",
+  "title": "Fix multi-session concurrency defaults",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "ADV multi-session routing now matches diagnostics and supports concurrent worktrees",
+    "highlights": [
+      "Default sessions receive serviceable per-session workers and queues",
+      "Status and runtime share one resolved feature policy",
+      "Worktree creation absorbs brief lock contention",
+      "Archive safely reconciles local trunk after remote merge proof",
+      "Linked backend/frontend worktree isolation implementations are review READY"
+    ],
+    "area": "ADV concurrency and worktree lifecycle",
+    "user_action_required": true,
+    "breaking": {
+      "description": "Advance must be rebuilt/deployed from merged trunk and OpenCode/plugin hosts restarted before target lifecycle writes use corrected routing.",
+      "migration": "Merge and deploy this change first, restart plugin hosts, then complete linked pokeedge and pokeedge-web acceptance/release."
+    }
+  }
+}
