@@ -510,7 +510,7 @@ SCOPE: implement only the listed in-scope hardening fix; honor drift rule before
 FINDINGS TO FIX:
   - {finding-id}: {severity} | {file}:{line} | {what} | fix: {fix}
 BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, EPIC CONTEXT (`epic_context`), verification_expectations, durable_facts, unavailable_state
-EXPECTED OUTPUT: implement the fix, run tests, call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md
+EXPECTED OUTPUT: implement the fix, record proof selected by its typed deliverable, `evidence_policy`, `proof_target`, and `tdd_intent`, then call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md. A valid non-test route needs no `adv_run_test` or red/green; titles, agent prose, and coverage desire do not create test requirements.
 ```
 
 ---

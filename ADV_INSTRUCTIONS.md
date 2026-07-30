@@ -390,7 +390,13 @@ TodoWrite during ADV execution is a projection over ADV tasks: copy `_todoProjec
 
 ### TDD Protocol (RSTC)
 
-Inline TDD is default — red/green phases WITHIN each task. × Do NOT create separate test tasks for same scope.
+#### Proof Selection
+
+Select proof from the typed task contract, in this order: deliverable/type, normalized `evidence_policy` + `proof_target`, then `metadata.tdd_intent`. A valid non-test evidence route for non-code work (for example `source_citation`, `artifact_reference`, `rubric_review`, or `stakeholder_acceptance`) does **not** require `adv_run_test` or red/green evidence. Task titles, generic agent prose, and a desire for more coverage are advisory; none creates a test requirement.
+
+Behavior-bearing inline code retains TDD: it requires red/green evidence for the behavior being changed. `separate_verification` follows its declared test, review, or static-check plan. Do not substitute a title heuristic for a typed evidence plan.
+
+Inline TDD is default for behavior-bearing inline code — red/green phases WITHIN each task. × Do NOT create separate test tasks for same scope.
 
 - **RED:** Write failing test using editing tool (`edit` / `write` / `morph_edit`) → run with `adv_run_test phase:'red'` → show failure evidence
 - **GREEN:** Implement using editing tool → run with `adv_run_test phase:'green'` → if fails: retry protocol → show pass evidence
@@ -400,7 +406,7 @@ Inline TDD is default — red/green phases WITHIN each task. × Do NOT create se
 
 `adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence. The red→green sequence IS structurally enforced by rq-TDD009seq: include `lastRedRunId` and `lastGreenRunId` (from `adv_run_test` output `runId`) in `adv_task_checkpoint` verification for inline TDD tasks. Tasks without these refs are grandfathered (backward compatible). Advisory quality signals (`assertionDensity`, `mockSurface`, `behaviorSurface`) are surfaced for `/adv-review`; they never gate task completion.
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`. <!-- rq-ADVEXEC04 rq-ADVEXEC05 -->
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Use it when the selected evidence route is `test` or `static_check`; do not manufacture a test run for a valid non-test route. Durable final proof is recorded on `taskCompletedSignal.verification` when the task transitions to `done` via `adv_task_checkpoint`. <!-- rq-ADVEXEC04 rq-ADVEXEC05 -->
 
 ### Reflection Protocol
 

@@ -125,6 +125,12 @@ Once scope is locked, work in short cycles:
 
 Repeat until verification passes and scope is complete.
 
+## Evidence Selection
+
+Select proof from the typed task deliverable/type, `evidence_policy` + `proof_target`, and `metadata.tdd_intent`. A valid non-test evidence route for non-code work does **not** need `adv_run_test` or red/green. Task titles, generic agent prose, and a desire for more coverage do not create test requirements.
+
+Behavior-bearing inline code retains TDD and must produce red/green evidence. For `separate_verification`, follow the declared test, review, or static-check route. Record the selected proof in the report; use an `adv_run_test` run ID only when the selected route executes a test or static check.
+
 ## Prune-First Heuristic
 
 Default instinct is SUBTRACTION. Before adding anything, ask:
@@ -263,7 +269,7 @@ Build the following JSON object as the `report` argument to `adv_tool_invoke({na
 - `scope_drift`: `null` when no drift. Non-null when you found out-of-scope work; use `recommendation: "finish_owned_scope_then_report"` unless STOP_WHEN required immediate stop.
 - `follow_ups`: Empty array if nothing deferred. Otherwise list out-of-scope items discovered.
 - `required_main_agent_actions`: Empty array if no orchestrator action is required. Otherwise list follow-up actions the main ADV orchestrator must handle.
-- `verification`: At least one entry showing a test/build/lint command and its result.
+- `verification`: Record the selected task-appropriate proof. Test or static-check routes include the corresponding same-task `adv_run_test` run ID; a valid non-test route does not require a test/build/lint command or a red/green cycle.
 - `decisions`: Empty array if no non-obvious choices made. Otherwise document tradeoffs.
 - `files_touched`: Every file you created, modified, or deleted.
 - `context_update_for_adv.what_ads_needs_to_know`: Concise summary the parent ADV orchestrator needs to continue.
