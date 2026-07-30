@@ -735,16 +735,32 @@ export function checkUnresolvedVerificationEvidence(
           return persistedWarnings;
         }
 
-        const typedEntries = report.verification.filter(
-          (entry) => entry.test_run_id || entry.run_id,
+        // For static_check policy, command/exit_code proof is valid typed
+        // evidence without a durable run ID (rq-TDD014policyRoute).
+        const isStaticCheck = policy === "static_check";
+        const typedEntries = report.verification.filter((entry) => {
+          if (entry.test_run_id || entry.run_id) return true;
+          if (isStaticCheck && entry.command !== undefined) return true;
+          return false;
+        });
+        const resolvedWarnings = resolveTypedVerificationWarnings(
+          typedEntries,
+          state.testRuns?.[task.id],
         );
+        if (isStaticCheck) {
+          // For static_check, clean command-based proof suppresses
+          // submit-time warnings; empty or unresolved proof does not.
+          const hasCleanTypedProof =
+            typedEntries.length > 0 && resolvedWarnings.length === 0;
+          return [
+            ...resolvedWarnings,
+            ...(!hasCleanTypedProof ? persistedWarnings : []),
+          ];
+        }
         const hasLegacyEntries =
           typedEntries.length !== report.verification.length;
         return [
-          ...resolveTypedVerificationWarnings(
-            typedEntries,
-            state.testRuns?.[task.id],
-          ),
+          ...resolvedWarnings,
           ...(hasLegacyEntries ? persistedWarnings : []),
         ];
       },

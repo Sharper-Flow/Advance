@@ -1457,12 +1457,7 @@ describe("checkUnresolvedDesignConcerns — rq-designQualityEvidence01 (structur
 });
 
 describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC2 (structural blocker)", () => {
-  const BLOCKING_POLICIES = [
-    "test",
-    "static_check",
-    "review",
-    "artifact_reference",
-  ] as const;
+  const BLOCKING_POLICIES = ["test", "review", "artifact_reference"] as const;
   const NON_BLOCKING_POLICIES = [
     "source_citation",
     "source_audit",
@@ -1629,6 +1624,30 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
         (b) => b.code === "VERIFICATION_EVIDENCE_MISSING",
       ),
     ).toBe(true);
+  });
+
+  it("blocks for static_check with no verification entries", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "static_check" })],
+      subagent_reports: [
+        engineerReport({ warnings: [missingWarning], verification: [] }),
+      ],
+    });
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (b) => b.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not block static_check with command-based proof (AC4/rq-TDD014policyRoute)", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "static_check" })],
+      subagent_reports: [engineerReport({ warnings: [missingWarning] })],
+    });
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
   });
 
   it.each([...NON_BLOCKING_POLICIES])(
