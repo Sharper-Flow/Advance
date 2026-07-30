@@ -168,7 +168,8 @@ async function runStatus(noColor: boolean, json: boolean): Promise<number> {
       resumeOutcome.value.live &&
       resumeOutcome.value.resume_projection
     ) {
-      payload.resume_projection = resumeOutcome.value.resume_projection;
+      const resumeResult = resumeOutcome.value;
+      payload.resume_projection = resumeResult.resume_projection;
     }
 
     if (json) {
@@ -263,7 +264,8 @@ async function runEpicListCommand(json: boolean): Promise<number> {
       resumeOutcome.value.live &&
       resumeOutcome.value.resume_projection
     ) {
-      payload.resume_projection = resumeOutcome.value.resume_projection;
+      const resumeResult = resumeOutcome.value;
+      payload.resume_projection = resumeResult.resume_projection;
     }
     process.stdout.write(emitJson(payload) + "\n");
     return 0;

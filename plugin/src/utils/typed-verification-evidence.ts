@@ -36,6 +36,7 @@ function latestDurableByRunId(
  * Re-resolve typed report evidence against the current durable run ledger.
  * The exact run ID and exit code are authoritative; command text and unrelated
  * passing runs cannot substitute for an evicted or mismatched run.
+ * (rq-verificationEvidenceFreshness01)
  */
 export function resolveTypedVerificationWarnings(
   entries: readonly TypedVerificationEntry[],

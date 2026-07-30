@@ -47,7 +47,7 @@ interface PreservedCitation {
 // delegation-defaults citations (1):
 //   rq-delDefaults08: Designer Delegation Receives Visual Context
 //
-// adv-discover citations (15):
+// adv-discover citations (16):
 //   rq-disc01: Discovery Checklist Enforcement
 //   rq-disc02: Phase 1.5 Skill Discovery Enforcement
 //   rq-disc03: Prior Research Extension
@@ -59,6 +59,7 @@ interface PreservedCitation {
 //   rq-disc10: Gated External-Solution Check
 //   rq-disc11: Discovery-Owned Agreement Sign-Off
 //   rq-disc12: Explicit Acceptance Criteria Checkpoint
+//   rq-disc16: Structured Criterion Authoring Guidance
 //   rq-sc01: Skill Gap Detection
 //   rq-sc02: Skill Assembly and Persistence
 //   rq-sc03: Use-and-Notify Pattern
@@ -210,6 +211,11 @@ const PRESERVED_IDS: PreservedCitation[] = [
     title: "Explicit Acceptance Criteria Checkpoint",
   },
   {
+    id: "rq-disc16",
+    capability: "adv-discover",
+    title: "Structured Criterion Authoring Guidance",
+  },
+  {
     id: "rq-sc01",
     capability: "adv-discover",
     title: "Skill Gap Detection",
@@ -315,8 +321,8 @@ const PRESERVED_IDS: PreservedCitation[] = [
 ];
 
 describe("command requirement citation preservation", () => {
-  test("preserved count matches inventory (44 IDs)", () => {
-    expect(PRESERVED_IDS).toHaveLength(44);
+  test("preserved count matches inventory (45 IDs)", () => {
+    expect(PRESERVED_IDS).toHaveLength(45);
   });
 
   test("every preserved ID still exists in its capability spec.json", () => {

@@ -590,7 +590,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 **× MUST NOT:** Complete `discovery` gate without criteria approval. Do not invoke `/adv-clarify` directly outside this checkpoint outcome — pause and hand off to user.
 
-### Phase 4.5.2: Structured Criterion Authoring Guidance
+### Phase 4.5.2: Structured Criterion Authoring Guidance (rq-disc16)
 
 `/adv-discover` produces four parse-safe criterion shapes. Each shape is minted into a stable `ACn`/`SCn`/`Cn`/`DONTn` contract item with an optional typed variant. The variant is advisory for presentation and review; the canonical `text`, stable `id`, `kind`, and `evidencePolicy` remain the contract authority.
 
