@@ -1,0 +1,1162 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixSaveChangeGuard",
+  "title": "Fix save change guard",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-29T19:36:35.782Z",
+  "tasks": [
+    {
+      "id": "tk-3319ed594ec4",
+      "title": "Replace raw saveChange guard scanning with AST call detection",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-29T19:42:52.844Z",
+      "started_at": "2026-07-29T19:43:45.829Z",
+      "completed_at": "2026-07-29T21:43:46.345Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Acceptance reviewer READY after in-scope AST candidate regex correction for whitespace before parenthesis and method-context coverage; focused suites 18/18 and pnpm --dir plugin run check pass.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/save-change-allow-list.test.ts",
+        "plugin/src/storage/save-change-allow-list.ts"
+      ],
+      "checkpointSha": "5c2a98cb8aefbb95fc17847d868392d05ff753ed",
+      "completedAt": "2026-07-29T21:43:46.345Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "AC1",
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/storage/save-change-allow-list.test.ts",
+        "plugin/src/storage/save-change-allow-list.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSaveChangeGuard",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSaveChangeGuard",
+          "task_id": "tk-3319ed594ec4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3319ed594ec4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/storage/save-change-allow-list.ts",
+            "plugin/src/storage/save-change-allow-list.test.ts",
+            "plugin/src/storage/read-command-boundary.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "baseline-red-tk-3319ed594ec4",
+              "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+              "exit_code": 1,
+              "summary": "Baseline RED: false positive on literal saveChange( in read-command-boundary.test.ts before AST detection"
+            },
+            {
+              "test_run_id": "green-tk-3319ed594ec4",
+              "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: both affected guard suites pass (18 tests)"
+            },
+            {
+              "test_run_id": "check-tk-3319ed594ec4",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "typecheck, lint, format, schema, manifest checks pass (3 pre-existing warnings in manifest-frontmatter.ts unrelated)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Centralized AST call-site detection in save-change-allow-list.ts",
+              "why": "Both guard tests need the same CallExpression scan and context-name extraction; sharing the logic prevents divergence and keeps the allow-list helper next to its policy."
+            },
+            {
+              "what": "Kept rg as a candidate file finder but validate with the TypeScript AST",
+              "why": "rg quickly finds files containing the string; parsing only those files with ts.createSourceFile keeps the guard structural while minimizing work."
+            },
+            {
+              "what": "Added inline fixture tests using collectSaveChangeCallSitesFromText instead of a new non-test source file",
+              "why": "A fixture source file would itself be scanned and risk a real violation; inline parsing lets the test assert literals, comments, and executable calls without polluting the scan target."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes beyond the two guard suites; other failures in the full run are unrelated Temporal integration tests (port-in-use, matcher timeouts).",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Replaced raw rg text matching with AST CallExpression detection for saveChange( in both guard suites. The false positive from the literal in read-command-boundary.test.ts is gone, and a new fixture test proves literals, line comments, and block comments are ignored while an executable unallowlisted call is flagged. Both affected test suites pass (18 tests) and pnpm run check passes. The full bin/oc-test full run still shows unrelated pre-existing Temporal integration test failures (port-in-use, matcher timeouts) that do not involve the guard fix.",
+            "suggested_next_action": "Run the guard suites in isolation again or proceed to the dependent verification task tk-ec21c652d70b; do not block on the unrelated Temporal integration failures."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: baseline-red-tk-3319ed594ec4"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: green-tk-3319ed594ec4"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: check-tk-3319ed594ec4"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixSaveChangeGuard",
+          "attempt": 4,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSaveChangeGuard",
+          "task_id": "tk-3319ed594ec4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3319ed594ec4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/storage/save-change-allow-list.ts",
+            "plugin/src/storage/save-change-allow-list.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6l8qab_5af60d39",
+              "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: both affected guard suites pass (18 tests)"
+            }
+          ],
+          "decisions": [],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes beyond the two guard suites; other failures in the full run are unrelated Temporal integration tests.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Re-submitted task report with durable adv_run_test evidence to clear VERIFICATION_EVIDENCE_MISSING acceptance blocker. Focused guard suites pass 18/18.",
+            "suggested_next_action": "Proceed with acceptance gate unblock for fixSaveChangeGuard."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-ec21c652d70b",
+      "title": "Verify guard regression and release validation",
+      "type": "verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3319ed594ec4"
+        }
+      ],
+      "created_at": "2026-07-29T19:42:59.261Z",
+      "started_at": "2026-07-29T21:20:03.552Z",
+      "completed_at": "2026-07-29T21:37:37.419Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Independent focused verification passes 18 guard tests (durable run tr_ms6luc9q_a7db770c). Full suite no longer fails on the original guard false positive but has 12 unrelated deterministic failure files owned by active baseline/release-gate changes.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "4ba743512e3fab954bd82544bef3bc6699bbaa40",
+      "completedAt": "2026-07-29T21:37:37.419Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSaveChangeGuard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:self-matching-guard-design"
+      },
+      "agent": "adv-researcher",
+      "topic": "Raw saveChange guard design validation",
+      "sources": [
+        {
+          "label": "Inventory guard implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/storage/save-change-allow-list.test.ts",
+          "summary": "The guard runs rg against raw TypeScript source, then excludes only comment-only lines and the saveChange definition."
+        },
+        {
+          "label": "Writer-boundary guard implementation",
+          "locator": "file:///home/jon/dev/advance/plugin/src/storage/read-command-boundary.test.ts",
+          "summary": "The second guard runs the same raw rg search, excludes test files, then applies the same limited line filtering."
+        },
+        {
+          "label": "Allow-list contract",
+          "locator": "file:///home/jon/dev/advance/plugin/src/storage/save-change-allow-list.ts",
+          "summary": "The allow-list allows whole inventory/test files and therefore cannot prove an individual literal was structurally ignored."
+        }
+      ],
+      "architecture_assessment": "CONFLICT: fragment construction removes the one contiguous literal from test source while preserving the runtime rg pattern, but neither current guard lexically parses TypeScript or strips strings/comments before matching. The proposed regression fixtures therefore cannot establish C2 with the stated mechanism alone; in the inventory guard, the entire test file is allow-listed, so a string-only fixture can pass even when rg found it.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "The design's fragment-only mechanism does not meet C2's requirement to distinguish executable code from comments and string literals. Both guards first collect raw rg matches and only skip lines whose trimmed text starts with a comment marker or the function definition; neither removes quoted strings nor handles inline/block-comment occurrences structurally.",
+            "contract_ids": [
+              "C2",
+              "AC1",
+              "AC2"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Replace raw-text-only classification with a bounded TypeScript-aware call-site check (preferred), or explicitly narrow the approved contract to the fragment-only self-match fix and remove the unfulfilled structural/comments claim. Add fixtures for a string literal, inline comment, block comment, and executable unallow-listed call; assert the first three are absent from candidates and the last is a violation.",
+            "source": {
+              "label": "Guard implementations",
+              "locator": "file:///home/jon/dev/advance/plugin/src/storage/save-change-allow-list.test.ts",
+              "summary": "Lines 17-46 perform raw rg scanning and limited line-prefix filtering; read-command-boundary.test.ts lines 404-429 duplicates that approach."
+            }
+          }
+        ],
+        "notes": "Fragment construction itself is mechanically sound for suppressing self-matches: source no longer contains the contiguous token, while JavaScript concatenation supplies the same rg argument at runtime. However, no test was run because this design-phase change has no task ID and adv_run_test requires one."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "A TypeScript-aware check adds a small parser dependency/use cost but makes the code-versus-text distinction real.",
+          "Fragment-only construction is minimal and preserves the existing raw search, but fixes only known self-references and remains vulnerable to future literals/comments."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Fragment-only raw-search token construction",
+            "disposition": "rejected",
+            "rationale": "It addresses the exact literal self-match but cannot satisfy C2's structural distinction requirement under the observed raw rg-plus-prefix-filter implementation."
+          },
+          {
+            "option": "Parse TypeScript and inspect CallExpression nodes named saveChange",
+            "disposition": "preferred",
+            "rationale": "It directly represents the guarded entity—executable calls—while excluding comments and strings by syntax."
+          },
+          {
+            "option": "Keep raw rg and add broader regex stripping",
+            "disposition": "deferred",
+            "rationale": "It is simpler than parsing but brittle around escaped quotes, templates, regex literals, and comments; it should only be used if the contract is explicitly reduced to a bounded non-structural guard."
+          }
+        ],
+        "recommendation": "Revise design before planning: adopt an AST-based executable-call inventory (or narrow C2), then add adversarial literal/comment/executable fixtures."
+      },
+      "recommendation": "Do not approve the fragment-only design as written. Preserve fragment construction only as a supplemental self-reference safeguard after the guard classifies executable TypeScript call expressions.",
+      "follow_ups": [
+        "Packet scope key was supplied as \"self-matching-guard-design\"; persisted report scope uses the schema-required researcher: prefix."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSaveChangeGuard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSaveChangeGuard",
+      "task_id": "tk-3319ed594ec4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3319ed594ec4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/save-change-allow-list.ts",
+        "plugin/src/storage/save-change-allow-list.test.ts",
+        "plugin/src/storage/read-command-boundary.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "baseline-red-tk-3319ed594ec4",
+          "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+          "exit_code": 1,
+          "summary": "Baseline RED: false positive on literal saveChange( in read-command-boundary.test.ts before AST detection"
+        },
+        {
+          "test_run_id": "green-tk-3319ed594ec4",
+          "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: both affected guard suites pass (18 tests)"
+        },
+        {
+          "test_run_id": "check-tk-3319ed594ec4",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "typecheck, lint, format, schema, manifest checks pass (3 pre-existing warnings in manifest-frontmatter.ts unrelated)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Centralized AST call-site detection in save-change-allow-list.ts",
+          "why": "Both guard tests need the same CallExpression scan and context-name extraction; sharing the logic prevents divergence and keeps the allow-list helper next to its policy."
+        },
+        {
+          "what": "Kept rg as a candidate file finder but validate with the TypeScript AST",
+          "why": "rg quickly finds files containing the string; parsing only those files with ts.createSourceFile keeps the guard structural while minimizing work."
+        },
+        {
+          "what": "Added inline fixture tests using collectSaveChangeCallSitesFromText instead of a new non-test source file",
+          "why": "A fixture source file would itself be scanned and risk a real violation; inline parsing lets the test assert literals, comments, and executable calls without polluting the scan target."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes beyond the two guard suites; other failures in the full run are unrelated Temporal integration tests (port-in-use, matcher timeouts).",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Replaced raw rg text matching with AST CallExpression detection for saveChange( in both guard suites. The false positive from the literal in read-command-boundary.test.ts is gone, and a new fixture test proves literals, line comments, and block comments are ignored while an executable unallowlisted call is flagged. Both affected test suites pass (18 tests) and pnpm run check passes. The full bin/oc-test full run still shows unrelated pre-existing Temporal integration test failures (port-in-use, matcher timeouts) that do not involve the guard fix.",
+        "suggested_next_action": "Run the guard suites in isolation again or proceed to the dependent verification task tk-ec21c652d70b; do not block on the unrelated Temporal integration failures."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: baseline-red-tk-3319ed594ec4"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: green-tk-3319ed594ec4"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: check-tk-3319ed594ec4"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSaveChangeGuard",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSaveChangeGuard",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/storage/save-change-allow-list.ts",
+          "summary": "Expanded candidate discovery from exact `saveChange(` text to every TypeScript source file before AST traversal, so whitespace-formatted executable calls cannot evade AC2; added class-method context extraction to make allow-list context matching structural.",
+          "verification": "Focused guard suites pass (18 tests); `pnpm --dir plugin run check` passes."
+        },
+        {
+          "file": "plugin/src/storage/save-change-allow-list.test.ts",
+          "summary": "Added executable spaced-call and class-method fixtures; asserts all executable fixture calls remain unallowlisted while literal and comments remain excluded.",
+          "verification": "Focused guard suites pass (18 tests); `pnpm --dir plugin run check` passes."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "An AST guard is only structural if candidate enumeration is not narrower than the language grammar. Text-prefiltering `saveChange(` missed valid whitespace-formatted calls; enumerate source files first, then let the parser identify call expressions."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Focused suites: 2 files, 18 tests passed after final edits. `pnpm --dir plugin run check` passed schema, type, manifest, frontmatter, isolation, lint, and Prettier checks (only three existing eslint warnings in manifest-frontmatter.ts). `git diff --check` passed. Diff remains limited to storage guard helper/tests; no production write path or allow-list entry changed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Full `bin/oc-test full` was not rerun in this review iteration; prior change evidence records the original false positive removed and remaining failures as unrelated Temporal integration defects.",
+        "Candidate enumeration remains `--type ts`; add TSX coverage only if plugin source begins to contain executable raw saveChange calls in TSX files."
+      ],
+      "required_main_agent_actions": [
+        "Record this independent acceptance review and retain the known unrelated full-suite failure inventory as AC3 evidence; do not attribute those failures to the saveChange guard.",
+        "Checkpoint the two scoped review fixes before acceptance completion; leave production write behavior and allow-list policy unchanged."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSaveChangeGuard",
+      "attempt": 4,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSaveChangeGuard",
+      "task_id": "tk-3319ed594ec4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3319ed594ec4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/save-change-allow-list.ts",
+        "plugin/src/storage/save-change-allow-list.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6l8qab_5af60d39",
+          "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: both affected guard suites pass (18 tests)"
+        }
+      ],
+      "decisions": [],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes beyond the two guard suites; other failures in the full run are unrelated Temporal integration tests.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Re-submitted task report with durable adv_run_test evidence to clear VERIFICATION_EVIDENCE_MISSING acceptance blocker. Focused guard suites pass 18/18.",
+        "suggested_next_action": "Proceed with acceptance gate unblock for fixSaveChangeGuard."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixSaveChangeGuard",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixSaveChangeGuard",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "harden-release-1",
+          "label": "blocker",
+          "file": ".git",
+          "line": 1,
+          "what": "HEAD 5c2a98cb is not reachable from origin/trunk; branch is 15 commits behind origin/trunk.",
+          "why": "git merge-base --is-ancestor HEAD origin/trunk returned no; git branch -r --contains HEAD listed only origin/change/fixSaveChangeGuard. Release merge proof is absent.",
+          "fix": "Merge the change branch (or otherwise establish origin/trunk reachability for the exact release commit), then rerun release hardening."
+        },
+        {
+          "id": "harden-test-1",
+          "label": "blocker",
+          "file": "plugin/src/storage/store-temporal/index.test.ts",
+          "line": 1,
+          "what": "bin/oc-test full failed: 12 test files / 51 tests failed.",
+          "why": "All 51 failures are unrelated to the three changed files. Classification: 1 launcher projection, 1 archive phase9, 2 consumer integration, 1 tool-name asset, 1 disk-projection, 2 status-health, 4 conflict benchmark, 2 conflict authority, 3 convergent-read, 26 store-temporal/index, 4 read-context, and 4 schema-error propagation. No failing path intersects plugin/src/storage/read-command-boundary.test.ts, plugin/src/storage/save-change-allow-list.test.ts, or plugin/src/storage/save-change-allow-list.ts. Nevertheless, the full release gate is red.",
+          "fix": "Restore the full-suite baseline or remediate the unrelated failing subsystems, then rerun bin/oc-test full."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "harden-coverage-1",
+          "label": "praise",
+          "file": "plugin/src/storage/save-change-allow-list.test.ts",
+          "line": 38,
+          "what": "AST guard covers executable calls while excluding comments and literals.",
+          "why": "Targeted guard verification passed 18/18 tests across the two changed test files."
+        },
+        {
+          "id": "harden-cleanup-1",
+          "label": "praise",
+          "file": "plugin/src/storage/save-change-allow-list.ts",
+          "line": 187,
+          "what": "Guard is localized and uses TypeScript AST traversal rather than regex matching.",
+          "why": "Review found no high-severity AI-slop, documentation-hygiene, or cleanup issue in the scoped diff."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Run bin/oc-test targeted from the repo root with plugin-relative paths (src/...); the wrapper executes Vitest from plugin/, so plugin/src/... filters find no tests."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test full",
+          "bin/oc-test targeted -- plugin/src/storage/save-change-allow-list.test.ts plugin/src/storage/read-command-boundary.test.ts"
+        ],
+        "results": "fail",
+        "evidence": "Full suite: worker bundles compiled successfully, then Vitest ended 12 failed files / 51 failed tests / 7888 passed after 912.56s. Failure paths have zero direct overlap with the three changed files. First targeted invocation used incorrect plugin/src filters and found no tests; corrected plugin-relative invocation passed 2 files / 18 tests in 3.90s. git status remained clean. Release reachability failed: HEAD is not an ancestor of origin/trunk; current branch is behind origin/trunk by 15 commits."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Release proof is absent for the exact HEAD despite an older similarly named fix commit appearing on origin/trunk.",
+        "Full test baseline is red, so unrelated regressions can mask release safety."
+      ],
+      "required_main_agent_actions": [
+        "Do not mark release ready: establish merge/reachability proof for HEAD 5c2a98cb against origin/trunk.",
+        "Triage or restore the 51 unrelated full-suite failures, then rerun bin/oc-test full.",
+        "Leave the scoped AST guard implementation alone: targeted tests passed and no repository changes were made by this review."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test full"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- plugin/src/storage/save-change-allow-list.test.ts plugin/src/storage/read-command-boundary.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-3319ed594ec4": [
+      {
+        "runId": "tr_ms6l8qab_5af60d39",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+        "durationMs": 2345.8109370004386,
+        "recordedAt": "2026-07-29T21:19:51.841Z"
+      },
+      {
+        "runId": "tr_ms6mjfgc_d84a66d1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/save-change-allow-list.test.ts src/storage/read-command-boundary.test.ts",
+        "durationMs": 4336.216888001189,
+        "recordedAt": "2026-07-29T21:56:10.638Z"
+      },
+      {
+        "runId": "tr_ms6ml7yd_c78f1288",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 57112.12838899903,
+        "recordedAt": "2026-07-29T21:57:34.241Z"
+      }
+    ],
+    "tk-ec21c652d70b": [
+      {
+        "runId": "tr_ms6luc9q_a7db770c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/read-command-boundary.test.ts src/storage/save-change-allow-list.test.ts",
+        "durationMs": 2196.8125750012696,
+        "recordedAt": "2026-07-29T21:36:40.126Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-29T19:36:41.100Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed RCA: self-matching saveChange guard literals create false-positive release-blocking test failure.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "f65f0dac7498916b8ecc3ebce48f7abfb1510e75d444756c5babae7d3586bc0e",
+        "non_whitespace_chars": 542,
+        "checked_at": "2026-07-29T19:36:35.837Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-29T19:37:53.766Z",
+      "completed_by": "agent",
+      "approval_evidence": "RCA confirmed text-only rg search matches guard string literal; agreement approved and contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+        "non_whitespace_chars": 587,
+        "checked_at": "2026-07-29T19:36:35.838Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-29T19:42:42.338Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved validator-required revision to AST call-expression detection; raw-text fragment approach rejected as structurally insufficient.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "53c411ac819a8cf3df9905b7e3bfb6e2dfd04f41da730f4f6333502ef41d937f",
+        "non_whitespace_chars": 554,
+        "checked_at": "2026-07-29T19:36:35.839Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-29T19:43:35.344Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved AST-detection task graph and full-validation verification."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-29T21:37:44.728Z",
+      "completed_by": "agent",
+      "approval_evidence": "Both tasks complete. AST guard focused suites pass 18 tests; full-suite original false positive removed, remaining failures are unrelated active baseline/release-gate defects."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-29T21:59:47.165Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approval retained; stale verification concern dispositioned against durable warning-free report.",
+      "started_at": "2026-07-29T21:55:12.764Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "2e82e819f7af627b358713e35574467413c3f5611ef7006b8dd09c2dfb874215",
+        "non_whitespace_chars": 640,
+        "checked_at": "2026-07-29T19:36:35.841Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+      "approvedAt": "2026-07-29T19:37:48.967Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "A literal containing `saveChange(` in a guard test does not produce a violation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A real executable raw `saveChange` call outside the allow-list produces a violation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Both affected guard suites pass, and full validation no longer fails on the false positive.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Do not change production write behavior or the allow-list policy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Keep detection structural enough to distinguish source code from comments and string literals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Scope remains the storage guard tests/helpers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-29T21:43:57.818Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused 18-test guard suites prove literals and comments do not self-match."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Fixture proves executable unallowlisted saveChange call is detected; reviewer added whitespace and method-context coverage."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Focused guard suites pass; full suite no longer reports the original guard false positive."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Review confirms production writes and allow-list policy unchanged."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "AST CallExpression inspection distinguishes source calls from literals/comments."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Diff limited to storage guard helper and tests."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "A literal containing `saveChange(` in a guard test does not produce a violation.",
+    "A real executable raw `saveChange` call outside the allow-list produces a violation.",
+    "Both affected guard suites pass, and full validation no longer fails on the false positive."
+  ],
+  "documents": {
+    "proposal": "## Proposal\n\nRepair the raw `saveChange(` test guards so their self-referential string literals cannot produce false-positive production-write violations.\n\n## Scope\n\n- Add a regression proving the exemption/search literal is ignored.\n- Replace text-only matching with a bounded structural exclusion or safe token construction that preserves detection of executable calls.\n- Run the focused guard tests and full validation.\n\n## Constraints\n\n- Do not weaken detection of real raw `saveChange` call sites.\n- Keep allow-list semantics and production-write boundaries unchanged.\n- Limit changes to the affected storage guard tests/helpers.",
+    "problemStatement": "## Problem\n\nRelease hardening for `fixArchiveRecoveryProjection` is blocked by a deterministic false positive in the raw `saveChange(` caller guards.\n\n## Root Cause Analysis\n\nBoth `save-change-allow-list.test.ts` and `read-command-boundary.test.ts` run a text search for `saveChange(` across `plugin/src`. `read-command-boundary.test.ts` contains the string literal `\"export async function saveChange(\"` as a helper-definition exemption. The search matches that literal, then the allow-list guard treats the test line as an unallowlisted production write call.\n\n## Impact\n\nFull validation fails despite the archive-recovery change passing its focused 32-test suite. The failure blocks release readiness without identifying a real raw projection write.\n\n## Desired outcome\n\nThe guards identify executable raw `saveChange` call sites while ignoring their own search/exemption literals; real unallowlisted writes remain failures.",
+    "agreement": "## Objective\n\nMake raw `saveChange` guards ignore their own string-literal/exemption text while continuing to reject every executable unallowlisted raw projection write.\n\n## Acceptance criteria\n\n1. A literal containing `saveChange(` in a guard test does not produce a violation.\n2. A real executable raw `saveChange` call outside the allow-list produces a violation.\n3. Both affected guard suites pass, and full validation no longer fails on the false positive.\n\n## Constraints\n\n- Do not change production write behavior or the allow-list policy.\n- Keep detection structural enough to distinguish source code from comments and string literals.\n- Scope remains the storage guard tests/helpers.",
+    "design": "## Design\n\nParse each scanned TypeScript source file and inspect `CallExpression` nodes whose callee is the identifier `saveChange`. Feed only those executable call locations into the existing contextual allow-list decision.\n\nThis replaces raw `rg` text matching, so strings, line comments, and block comments cannot self-match. Keep the current allow-list policy and contexts unchanged.\n\n## Verification\n\nAdd fixtures for a string literal, line comment, block comment, and a real executable unallowlisted `saveChange` call. The first three produce no violations; the executable call produces one. Run both storage guard suites and full validation.",
+    "executiveSummary": "## Outcome\n\nStorage write guards now inspect executable TypeScript `saveChange` call expressions rather than raw text, so their own literals and comments cannot create false positives.\n\n## Verification\n\n- Focused storage guard suites: 18 passing tests.\n- Regression coverage proves literals/comments ignored and executable unallowlisted calls rejected.\n- Independent review: READY; corrected whitespace candidate detection and method-context coverage.\n- Plugin static checks pass.\n\n## Release readiness\n\nThis change removes the original full-suite guard blocker. Full validation still has unrelated baseline/release-gate failures owned by `fixBaselineSuiteFailures` and `fixReleaseGateProjection`; no production write behavior changed.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-29T21:43:57.818Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | A literal containing `saveChange(` in a guard test does not produce a violation. | pass | Focused 18-test guard suites prove literals and comments do not self-match. |\n| AC2 | acceptance_criterion | A real executable raw `saveChange` call outside the allow-list produces a violation. | pass | Fixture proves executable unallowlisted saveChange call is detected; reviewer added whitespace and method-context coverage. |\n| AC3 | acceptance_criterion | Both affected guard suites pass, and full validation no longer fails on the false positive. | pass | Focused guard suites pass; full suite no longer reports the original guard false positive. |\n| C1 | constraint | Do not change production write behavior or the allow-list policy. | respected | Review confirms production writes and allow-list policy unchanged. |\n| C2 | constraint | Keep detection structural enough to distinguish source code from comments and string literals. | respected | AST CallExpression inspection distinguishes source calls from literals/comments. |\n| C3 | constraint | Scope remains the storage guard tests/helpers. | respected | Diff limited to storage guard helper and tests. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-29T19:36:35.877Z",
+      "contentHash": "f65f0dac7498916b8ecc3ebce48f7abfb1510e75d444756c5babae7d3586bc0e",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-29T19:36:35.877Z",
+      "contentHash": "078f9f5c4a39c5eb0be3c99d82805c7ff751263837a60d92d1141dbade85cddd",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-29T19:36:51.475Z",
+      "contentHash": "22309cfe8fec2e139e6da6c0a60443c996008b9a3ad08de18210a7209608d1f7",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-29T19:42:38.204Z",
+      "contentHash": "53c411ac819a8cf3df9905b7e3bfb6e2dfd04f41da730f4f6333502ef41d937f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-29T21:44:04.562Z",
+      "contentHash": "2e82e819f7af627b358713e35574467413c3f5611ef7006b8dd09c2dfb874215",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-30T02:15:12.370Z",
+  "origin": {
+    "kind": "adhoc"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-3319ed594ec4",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Latest warning-free ENGINEER_REPORT references durable run tr_ms6l8qab_5af60d39: 18 focused guard tests passed. Legacy report references are stale.",
+      "dispositionedAt": "2026-07-29T21:59:39.901Z"
+    }
+  ],
+  "creation_request_hash": "bb97a97716938dc6757300aec7efaa46e585bbaab0e8442336734bc299894da8",
+  "projection_revision": 36,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f84820e8705810ce60e358fc1953fe2ef6d295a06996e7dca5efb088ad8892cd:createArtifacts:proposal",
+      "operation_id": "f84820e8705810ce60e358fc1953fe2ef6d295a06996e7dca5efb088ad8892cd:createArtifacts:proposal",
+      "payload_hash": "12d5d3510ce9bb9507ec19b59e6ce59dd8c06cce366487c7a3d532571a60ef20",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-07-29T19:36:36.093Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f84820e8705810ce60e358fc1953fe2ef6d295a06996e7dca5efb088ad8892cd:createArtifacts:problemStatement",
+      "operation_id": "f84820e8705810ce60e358fc1953fe2ef6d295a06996e7dca5efb088ad8892cd:createArtifacts:problemStatement",
+      "payload_hash": "058f70bd8cea8d819a26e2d5179c3eda719948ae05319e9ee7a3702689dce593",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-07-29T19:36:36.314Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-29T19:36:41.320Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "5c3e2130b66d44217ff7a5861318bdc551333150ec46bc856fe6c4e48443676b:updateArtifacts:agreement",
+      "operation_id": "5c3e2130b66d44217ff7a5861318bdc551333150ec46bc856fe6c4e48443676b:updateArtifacts:agreement",
+      "payload_hash": "ff80586e4ed02d3de8a5b6c5135de4c14ddaba4c07e10828a9dd431579cc3155",
+      "state_revision": 3,
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-29T19:36:51.618Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-29T19:37:49.209Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-29T19:37:53.873Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a71b294f86d4791a928771dbdbc9c0a9276c1e4c6e35c697e7e7577401645810:updateArtifacts:design",
+      "operation_id": "a71b294f86d4791a928771dbdbc9c0a9276c1e4c6e35c697e7e7577401645810:updateArtifacts:design",
+      "payload_hash": "5524150c2ece4c2e93b0132956609b71b38029d25b4d3f7b7c1bd732737b72a4",
+      "state_revision": 4,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-29T19:38:04.487Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-29T19:40:09.570Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-29T19:40:09.751Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "052f915c4a12d27c845cec12dd553361b0c69628ead74bf28f2a453a71cce714:updateArtifacts:design",
+      "operation_id": "052f915c4a12d27c845cec12dd553361b0c69628ead74bf28f2a453a71cce714:updateArtifacts:design",
+      "payload_hash": "125f9176fc888ab291315a881f2ad40e394a454bf12f388370886ed586489cbf",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-29T19:42:38.391Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-29T19:42:42.519Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-29T19:42:52.793Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-29T19:42:52.965Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-29T19:42:59.384Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-29T19:43:35.482Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-29T19:43:46.162Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-29T20:06:59.912Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-29T20:07:00.026Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-29T21:19:58.146Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-29T21:20:03.668Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-29T21:37:37.613Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-29T21:37:44.899Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-29T21:43:28.464Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-29T21:43:28.627Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-29T21:43:46.492Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785361437840_6kbfxigz",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-29T21:43:57.953Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "38ee705bcd38654484c06f5034397288b1a2d2a923acddb192911aa160224dde:updateArtifacts:executiveSummary",
+      "operation_id": "38ee705bcd38654484c06f5034397288b1a2d2a923acddb192911aa160224dde:updateArtifacts:executiveSummary",
+      "payload_hash": "d5313be44a9d952c030bae23a33fd3d5da166f53e7f03a65d40d78576d5ed4b1",
+      "state_revision": 6,
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-29T21:44:04.746Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-29T21:55:12.869Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-29T21:59:13.506Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-29T21:59:21.667Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-29T21:59:21.853Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-29T21:59:32.829Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785362379907_vkvfoyx2",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-29T21:59:40.051Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-29T21:59:47.356Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-30T02:15:12.379Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixSaveChangeGuard",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-30T02:15:12.588Z"
+    }
+  ],
+  "state_revision": 6
+}
