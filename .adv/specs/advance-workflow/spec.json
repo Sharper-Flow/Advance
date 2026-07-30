@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.41.0",
-  "updated_at": "2026-07-28T17:57:32.173Z",
+  "version": "1.42.0",
+  "updated_at": "2026-07-30T20:47:34.295Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -7973,6 +7973,46 @@
             "The warrant is verified against the live tool surface or spec ids",
             "An unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT",
             "A resolved warrant is recorded and stripped from canonical text"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-verificationEvidenceFreshness01",
+      "title": "Acceptance Re-resolves Typed Durable Verification Evidence",
+      "body": "For a proof-bearing task, acceptance and release readiness MUST evaluate typed verification entries against current task-local durable test-run records, not solely submission-time consumer warnings. The workflow state is the change boundary; within it, a typed entry is valid only when its task ID, cited run ID, and reported exit code match a current record. The latest applicable report attempt may supersede an earlier invalid report only through its own valid cited record. Missing, mismatched, cross-task, or evicted IDs MUST remain explicit blockers. An unrelated successful run MUST NOT substitute for a cited ID.",
+      "priority": "must",
+      "tags": [
+        "verification",
+        "acceptance",
+        "durable-evidence",
+        "auditability"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-verificationEvidenceFreshness01.1",
+          "title": "Later valid typed report supersedes earlier invalid report",
+          "given": [
+            "A proof-bearing task has an earlier report with missing or invalid typed test evidence",
+            "A later applicable report cites a durable run record for the same task with a matching exit code"
+          ],
+          "when": "Acceptance readiness evaluates the task",
+          "then": [
+            "The earlier report warning does not block the task",
+            "The later report is accepted only by its cited run ID and exit code"
+          ]
+        },
+        {
+          "id": "rq-verificationEvidenceFreshness01.2",
+          "title": "Unrelated or unavailable runs fail closed",
+          "given": [
+            "A typed verification entry cites a missing, evicted, mismatched, or different-task run ID",
+            "Another successful durable run may exist for the change"
+          ],
+          "when": "Acceptance readiness evaluates the task",
+          "then": [
+            "Acceptance remains blocked with an explicit verification-evidence reason",
+            "The other successful run is not substituted"
           ]
         }
       ]

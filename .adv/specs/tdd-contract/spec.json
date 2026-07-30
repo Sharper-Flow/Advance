@@ -3,8 +3,8 @@
   "name": "tdd-contract",
   "title": "TDD Contract",
   "purpose": "Canonical definition of how TDD phases integrate with the ADV task model. Inline TDD (red/green within each implementation task) is the default. Separate verification tasks are reserved for cross-cutting tests spanning multiple implementation tasks.",
-  "version": "1.7.2",
-  "updated_at": "2026-07-19T15:18:28.366Z",
+  "version": "1.8.0",
+  "updated_at": "2026-07-30T20:47:34.295Z",
   "requirements": [
     {
       "id": "rq-TDD001inl",
@@ -603,6 +603,44 @@
             "The plan is normalized with compatibility `legacy`",
             "No timestamp or heuristic cutover is used",
             "Valid historical review_conclusion evidence remains readable"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-TDD014policyRoute",
+      "title": "Typed Evidence Policy Prevents Manufactured Test Work",
+      "body": "Task deliverable type, normalized evidence policy and proof target, and explicit TDD intent MUST determine the required proof route. A valid non-test route for non-code work MUST NOT require adv_run_test, red/green phases, or a test-run ID. Task titles, generic agent instructions, and a desire for coverage are advisory and MUST NOT create a test obligation. Behavior-bearing inline code retains its existing red/green requirements; this rule does not weaken proof for that work.",
+      "priority": "must",
+      "tags": [
+        "tdd",
+        "evidence-policy",
+        "non-code",
+        "agent-guidance"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-TDD014policyRoute.1",
+          "title": "Non-code policy route does not require test runs",
+          "given": [
+            "A non-code task has a valid non-test evidence policy and the policy-required proof"
+          ],
+          "when": "Task completion or acceptance evaluates its evidence",
+          "then": [
+            "No adv_run_test, red/green phase, or test-run ID is required",
+            "The policy-required proof remains required"
+          ]
+        },
+        {
+          "id": "rq-TDD014policyRoute.2",
+          "title": "Behavior-bearing inline code retains TDD",
+          "given": [
+            "A behavior-bearing code task has inline TDD intent"
+          ],
+          "when": "Task completion evaluates its evidence",
+          "then": [
+            "Existing red/green ordering and proof requirements remain enforceable",
+            "A non-test policy route is not inferred from titles or agent prose"
           ]
         }
       ]
