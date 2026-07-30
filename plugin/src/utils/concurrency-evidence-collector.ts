@@ -66,7 +66,7 @@ export interface ConcurrencyEvidenceSnapshot {
 export interface ConcurrencyEvidenceReport {
   checkedAt: string;
   summary: {
-    /** Peak simultaneous sessions with verified [startedAt, endedAt) intervals. */
+    /** Highest per-project peak among sessions with verified project identities and intervals. */
     totalAgentsObserved: number;
     /** Peak simultaneous sessions with a known orchestrator role. */
     orchestratorsObserved: number;
@@ -74,6 +74,10 @@ export interface ConcurrencyEvidenceReport {
     subAgentsObserved: number;
     /** Peak simultaneous sessions whose role metadata is unavailable. */
     unknownRolesObserved: number;
+    /** Number of project identities contributing independently calculated peaks. */
+    projectPopulationObserved: number;
+    /** Per-project, verified-interval populations and role-specific peaks. */
+    projectPeaks: ProjectConcurrencyPeak[];
     failedWorkflowSamples: number;
     workerRssMinMb?: number;
     workerRssMaxMb?: number;
@@ -87,6 +91,15 @@ export interface ConcurrencyEvidenceReport {
   };
   provenance: string[];
   limits: string[];
+}
+
+interface ProjectConcurrencyPeak {
+  projectId: string;
+  verifiedIntervalSamples: number;
+  totalAgents: number;
+  orchestrators: number;
+  subAgents: number;
+  unknownRoles: number;
 }
 
 export interface CollectOptions {
@@ -132,16 +145,14 @@ export async function collectConcurrencyEvidence(
   const checkedAt = new Date(nowMs).toISOString();
 
   const snapshot = await buildSnapshot(options, checkedAt);
-  const totalAgents = concurrentPeak(snapshot.sessionSamples);
-  const orchestrators = concurrentPeak(
-    snapshot.sessionSamples.filter((s) => s.isOrchestrator === true),
-  );
-  const subAgents = concurrentPeak(
-    snapshot.sessionSamples.filter((s) => s.isOrchestrator === false),
-  );
-  const unknownRoles = concurrentPeak(
-    snapshot.sessionSamples.filter((s) => s.isOrchestrator === undefined),
-  );
+  const projectPeaks = collectProjectPeaks(snapshot.sessionSamples);
+  const totalAgents = peakAcrossProjects(projectPeaks, "totalAgents");
+  const orchestrators = peakAcrossProjects(projectPeaks, "orchestrators");
+  const subAgents = peakAcrossProjects(projectPeaks, "subAgents");
+  const unknownRoles = peakAcrossProjects(projectPeaks, "unknownRoles");
+  const unverifiedProjectSamples = snapshot.sessionSamples.filter(
+    (sample) => !sample.projectId,
+  ).length;
   const invalidIntervalSamples = snapshot.sessionSamples.filter(
     (sample) => !toVerifiedInterval(sample),
   ).length;
@@ -175,7 +186,12 @@ export async function collectConcurrencyEvidence(
           `${invalidIntervalSamples} current session sample(s) excluded from concurrency peaks because a verified [startedAt, endedAt) interval was unavailable.`,
         ]
       : []),
-    "Current concurrency is a sweep-line peak over verified [startedAt, endedAt) intervals; session row counts are not labeled as concurrency.",
+    ...(unverifiedProjectSamples > 0
+      ? [
+          `${unverifiedProjectSamples} current session sample(s) excluded from concurrency peaks because a verified project identity was unavailable.`,
+        ]
+      : []),
+    "Current concurrency is partitioned by verified project identity, then calculated as a sweep-line peak over verified [startedAt, endedAt) intervals; session row counts are not labeled as concurrency.",
     "This report does not measure ten orchestrator latency.",
     "Total agent count is not equivalent to orchestrator count.",
   ];
@@ -187,6 +203,8 @@ export async function collectConcurrencyEvidence(
       orchestratorsObserved: orchestrators,
       subAgentsObserved: subAgents,
       unknownRolesObserved: unknownRoles,
+      projectPopulationObserved: projectPeaks.length,
+      projectPeaks,
       failedWorkflowSamples,
       workerRssMinMb,
       workerRssMaxMb,
@@ -471,6 +489,42 @@ function concurrentPeak(samples: SessionSample[]): number {
   return peak;
 }
 
+function collectProjectPeaks(
+  samples: SessionSample[],
+): ProjectConcurrencyPeak[] {
+  const samplesByProject = new Map<string, SessionSample[]>();
+  for (const sample of samples) {
+    if (!sample.projectId) continue;
+    const projectSamples = samplesByProject.get(sample.projectId) ?? [];
+    projectSamples.push(sample);
+    samplesByProject.set(sample.projectId, projectSamples);
+  }
+
+  return Array.from(samplesByProject.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([projectId, projectSamples]) => ({
+      projectId,
+      verifiedIntervalSamples: projectSamples.filter(toVerifiedInterval).length,
+      totalAgents: concurrentPeak(projectSamples),
+      orchestrators: concurrentPeak(
+        projectSamples.filter((sample) => sample.isOrchestrator === true),
+      ),
+      subAgents: concurrentPeak(
+        projectSamples.filter((sample) => sample.isOrchestrator === false),
+      ),
+      unknownRoles: concurrentPeak(
+        projectSamples.filter((sample) => sample.isOrchestrator === undefined),
+      ),
+    }));
+}
+
+function peakAcrossProjects(
+  peaks: ProjectConcurrencyPeak[],
+  key: keyof Omit<ProjectConcurrencyPeak, "projectId">,
+): number {
+  return Math.max(0, ...peaks.map((peak) => peak[key]));
+}
+
 async function defaultListProjectShards(root: string): Promise<string[]> {
   const entries = await readdir(root, { withFileTypes: true });
   return entries.filter((d) => d.isDirectory()).map((d) => join(root, d.name));
@@ -604,7 +658,10 @@ export function renderMarkdownReport(
   lines.push("## Summary");
   lines.push("");
   lines.push(
-    `- Peak concurrent agents observed: **${report.summary.totalAgentsObserved}**`,
+    `- Maximum per-project concurrent agents: **${report.summary.totalAgentsObserved}**`,
+  );
+  lines.push(
+    `- Verified project populations observed: **${report.summary.projectPopulationObserved}**`,
   );
   lines.push(
     `- Orchestrators observed: **${report.summary.orchestratorsObserved}**`,
@@ -623,6 +680,24 @@ export function renderMarkdownReport(
   lines.push(
     `- Historical peak meets ten-agent target: **${report.summary.historicalPeakMeetsTenAgentTarget}**`,
   );
+  lines.push("");
+  lines.push("## Current Per-Project Peaks");
+  lines.push("");
+  if (report.summary.projectPeaks.length === 0) {
+    lines.push(
+      "No sessions with verified project identities and intervals available.",
+    );
+  } else {
+    lines.push(
+      "| projectId | verified interval samples | peak agents | orchestrators | sub-agents | roles unknown |",
+    );
+    lines.push("|---|---|---|---|---|---|");
+    for (const peak of report.summary.projectPeaks) {
+      lines.push(
+        `| ${peak.projectId} | ${peak.verifiedIntervalSamples} | ${peak.totalAgents} | ${peak.orchestrators} | ${peak.subAgents} | ${peak.unknownRoles} |`,
+      );
+    }
+  }
   lines.push("");
   lines.push("## Claims");
   lines.push("");

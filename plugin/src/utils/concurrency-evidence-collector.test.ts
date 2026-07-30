@@ -139,6 +139,72 @@ describe("concurrency-evidence-collector", () => {
     expect(report.summary.subAgentsObserved).toBe(1);
   });
 
+  test("partitions overlapping intervals by verified project identity", async () => {
+    const rowsByProject: Record<string, SessionDbRow[]> = {
+      "project-a": [
+        {
+          sessionId: "a-orchestrator",
+          timeCreatedMs: nowMs,
+          timeUpdatedMs: nowMs + 60_000,
+          metadata: JSON.stringify({ sessionKind: "orchestrator" }),
+        },
+        {
+          sessionId: "a-sub-agent",
+          timeCreatedMs: nowMs,
+          timeUpdatedMs: nowMs + 60_000,
+          metadata: JSON.stringify({ sessionKind: "sub-agent" }),
+        },
+      ],
+      "project-b": [
+        {
+          sessionId: "b-orchestrator",
+          timeCreatedMs: nowMs,
+          timeUpdatedMs: nowMs + 60_000,
+          metadata: JSON.stringify({ sessionKind: "orchestrator" }),
+        },
+        {
+          sessionId: "b-sub-agent",
+          timeCreatedMs: nowMs,
+          timeUpdatedMs: nowMs + 60_000,
+          metadata: JSON.stringify({ sessionKind: "sub-agent" }),
+        },
+      ],
+    };
+    const report = await collectConcurrencyEvidence({
+      readSessionRows: async (dbPath) =>
+        rowsByProject[dbPath.split("/").at(-3) ?? ""] ?? [],
+      readGlobalSessionRows: async () => [],
+      readProcessSnapshot: async () => [],
+      listProjectShards: async () => ["/tmp/project-a", "/tmp/project-b"],
+      nowMs,
+    });
+
+    expect(report.summary.totalAgentsObserved).toBe(2);
+    expect(report.summary.projectPopulationObserved).toBe(2);
+    expect(report.summary.projectPeaks).toEqual([
+      {
+        projectId: "project-a",
+        verifiedIntervalSamples: 2,
+        totalAgents: 2,
+        orchestrators: 1,
+        subAgents: 1,
+        unknownRoles: 0,
+      },
+      {
+        projectId: "project-b",
+        verifiedIntervalSamples: 2,
+        totalAgents: 2,
+        orchestrators: 1,
+        subAgents: 1,
+        unknownRoles: 0,
+      },
+    ]);
+    const markdown = renderMarkdownReport(report);
+    expect(markdown).toContain("Maximum per-project concurrent agents: **2**");
+    expect(markdown).toContain("| project-a | 2 | 2 | 1 | 1 | 0 |");
+    expect(markdown).toContain("| project-b | 2 | 2 | 1 | 1 | 0 |");
+  });
+
   test("orchestrator tools in toolHistory classify session as orchestrator", async () => {
     const report = await collectConcurrencyEvidence({
       readSessionRows: async () => [
@@ -272,7 +338,9 @@ describe("concurrency-evidence-collector", () => {
     });
 
     // Project and global sources are sampled independently, each capped at 5.
-    expect(report.summary.totalAgentsObserved).toBe(10);
+    // Only project-identified rows contribute to a per-project peak.
+    expect(report.summary.totalAgentsObserved).toBe(5);
+    expect(report.summary.projectPopulationObserved).toBe(1);
     expect(report.snapshot.sessionSamples).toHaveLength(10);
   });
 
@@ -303,7 +371,7 @@ describe("concurrency-evidence-collector", () => {
     const markdown = renderMarkdownReport(report);
 
     expect(markdown).toContain("Ten-Agent Concurrency Evidence Report");
-    expect(markdown).toContain("Peak concurrent agents observed: **0**");
+    expect(markdown).toContain("Maximum per-project concurrent agents: **0**");
     expect(markdown).toContain("Roles unknown: **0**");
     expect(markdown).toContain("Ten-orchestrator latency measured: **false**");
     expect(markdown).toContain(
