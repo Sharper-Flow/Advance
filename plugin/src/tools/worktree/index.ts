@@ -120,6 +120,8 @@ import type { Store } from "../../storage/store";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 import { execGh } from "../../integrations/gh-cli";
 
+export { advWorktreeDetachBatch } from "./detach";
+
 /** Maximum retries for database initialization */
 const DB_MAX_RETRIES = 3;
 
