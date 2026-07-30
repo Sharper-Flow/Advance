@@ -67,6 +67,7 @@ import {
 
 import type { Store } from "../../storage/store";
 import { worktreeDematerializedSignal } from "../../temporal/messages";
+import type { ChangeWorkflowState } from "../../temporal/contracts";
 
 const access = { projectDir: "/repo", projectId: "proj-123" };
 const repoRoot = "/repo";
@@ -127,6 +128,17 @@ beforeEach(() => {
   getProjectIdFn.mockResolvedValue("proj-123");
   getExternalRootFn.mockReset();
   getExternalRootFn.mockReturnValue("/tmp/adv/proj-123");
+  getServiceFn.mockReturnValue({
+    connection: { close: vi.fn() },
+    client: { workflow: { getHandle: getChangeHandleFn } },
+  });
+  getChangeHandleFn.mockReturnValue({
+    signal: vi.fn(),
+    query: vi.fn().mockResolvedValue({
+      lastSignalAt: oldIso(20),
+    } as ChangeWorkflowState),
+  });
+  fireSignalAndRefreshFn.mockResolvedValue(undefined);
 
   // Default git responses: clean worktree, single worktree entry, old commit.
   gitAsyncFn.mockImplementation(async (args: string[]) => {
@@ -182,7 +194,9 @@ describe("advWorktreeDetachBatch", () => {
     });
     getChangeHandleFn.mockReturnValue({
       signal: vi.fn(),
-      query: vi.fn(),
+      query: vi.fn().mockResolvedValue({
+        lastSignalAt: oldIso(20),
+      } as ChangeWorkflowState),
     });
     fireSignalAndRefreshFn.mockResolvedValue(undefined);
 
@@ -217,7 +231,7 @@ describe("advWorktreeDetachBatch", () => {
     );
   });
 
-  it("refuses every branch when approval evidence is blank on apply", async () => {
+  it("refuses every branch when approval evidence is blank on apply and records the receipt", async () => {
     const branch = "change/old";
     getWorktreeRecordFn.mockResolvedValue(worktreeRecord({ branch }));
 
@@ -225,6 +239,7 @@ describe("advWorktreeDetachBatch", () => {
       { branches: [branch], cutoffMs: TEN_DAYS_MS, mode: "apply" },
       repoRoot,
       access,
+      { store: { changes: { refresh: vi.fn() } } as unknown as Store },
     );
 
     expect(result.ok).toBe(true);
@@ -233,9 +248,20 @@ describe("advWorktreeDetachBatch", () => {
       "approval_required",
     );
     expect(gitCbFn).not.toHaveBeenCalled();
+    expect(fireSignalAndRefreshFn).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      "old",
+      expect.objectContaining({ name: "adv.change.worktreeDematerialized" }),
+      expect.objectContaining({
+        branch,
+        outcome: "refused",
+        reason: "approval_required",
+      }),
+    );
   });
 
-  it("refuses every branch when the request id does not match the normalized batch", async () => {
+  it("refuses every branch when the request id does not match the normalized batch and records the receipt", async () => {
     const branch = "change/old";
     getWorktreeRecordFn.mockResolvedValue(worktreeRecord({ branch }));
 
@@ -249,6 +275,7 @@ describe("advWorktreeDetachBatch", () => {
       },
       repoRoot,
       access,
+      { store: { changes: { refresh: vi.fn() } } as unknown as Store },
     );
 
     expect(result.ok).toBe(true);
@@ -256,6 +283,17 @@ describe("advWorktreeDetachBatch", () => {
       "request_binding_mismatch",
     );
     expect(gitCbFn).not.toHaveBeenCalled();
+    expect(fireSignalAndRefreshFn).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      "old",
+      expect.objectContaining({ name: "adv.change.worktreeDematerialized" }),
+      expect.objectContaining({
+        branch,
+        outcome: "refused",
+        reason: "request_binding_mismatch",
+      }),
+    );
   });
 
   it("refuses dirty worktrees", async () => {
@@ -376,6 +414,12 @@ describe("advWorktreeDetachBatch", () => {
     getWorktreeRecordFn.mockResolvedValue(
       worktreeRecord({ branch, lastSeenAt: newIso() }),
     );
+    getChangeHandleFn.mockReturnValue({
+      signal: vi.fn(),
+      query: vi.fn().mockResolvedValue({
+        lastSignalAt: newIso(),
+      } as ChangeWorkflowState),
+    });
 
     const result = await advWorktreeDetachBatch(
       { branches: [branch], cutoffMs: TEN_DAYS_MS, mode: "dry_run" },
@@ -455,15 +499,12 @@ describe("advWorktreeDetachBatch", () => {
     getWorktreeRecordFn.mockResolvedValue(
       worktreeRecord({ branch, lastSeenAt: newIso() }),
     );
-    getServiceFn.mockReturnValue({
-      connection: { close: vi.fn() },
-      client: { workflow: { getHandle: getChangeHandleFn } },
-    });
     getChangeHandleFn.mockReturnValue({
       signal: vi.fn(),
-      query: vi.fn(),
+      query: vi.fn().mockResolvedValue({
+        lastSignalAt: newIso(),
+      } as ChangeWorkflowState),
     });
-    fireSignalAndRefreshFn.mockResolvedValue(undefined);
 
     await advWorktreeDetachBatch(
       {
@@ -486,6 +527,117 @@ describe("advWorktreeDetachBatch", () => {
         outcome: "refused",
         reason: "adv_activity_too_recent",
         approvalEvidence: "ok",
+      }),
+    );
+  });
+
+  it("fails closed in apply mode when Temporal service is unavailable", async () => {
+    const branch = "change/old";
+    getWorktreeRecordFn.mockResolvedValue(worktreeRecord({ branch }));
+    getServiceFn.mockReturnValue(null);
+
+    const result = await advWorktreeDetachBatch(
+      {
+        branches: [branch],
+        cutoffMs: TEN_DAYS_MS,
+        mode: "apply",
+        approvalEvidence: "ok",
+      },
+      repoRoot,
+      access,
+    );
+
+    expect(result.ok).toBe(false);
+    expect(disposition(result, branch)?.eligible).toBe(false);
+    expect(disposition(result, branch)?.refusalReason).toBe(
+      "workflow_unavailable",
+    );
+    expect(gitCbFn).not.toHaveBeenCalled();
+    expect(fireSignalAndRefreshFn).not.toHaveBeenCalled();
+  });
+
+  it("refuses materialized branches when workflow state lookup fails", async () => {
+    const branch = "change/old";
+    getWorktreeRecordFn.mockResolvedValue(worktreeRecord({ branch }));
+    getChangeHandleFn.mockReturnValue({
+      signal: vi.fn(),
+      query: vi.fn().mockRejectedValue(new Error("workflow unreachable")),
+    });
+
+    const result = await advWorktreeDetachBatch(
+      { branches: [branch], cutoffMs: TEN_DAYS_MS, mode: "dry_run" },
+      repoRoot,
+      access,
+    );
+
+    expect(disposition(result, branch)?.eligible).toBe(false);
+    expect(disposition(result, branch)?.refusalReason).toBe(
+      "workflow_unavailable",
+    );
+  });
+
+  it("compensates a failed post-removal signal by re-adding the worktree", async () => {
+    const branch = "change/old";
+    getWorktreeRecordFn.mockResolvedValue(worktreeRecord({ branch }));
+
+    fireSignalAndRefreshFn.mockImplementation(
+      (_handle, _store, _changeId, _signal, payload) => {
+        if (
+          payload &&
+          typeof payload === "object" &&
+          "outcome" in payload &&
+          payload.outcome === "detached"
+        ) {
+          throw new Error("signal timeout");
+        }
+        return Promise.resolve(undefined);
+      },
+    );
+
+    const result = await advWorktreeDetachBatch(
+      {
+        branches: [branch],
+        cutoffMs: TEN_DAYS_MS,
+        mode: "apply",
+        approvalEvidence: "ok",
+      },
+      repoRoot,
+      access,
+      { store: { changes: { refresh: vi.fn() } } as unknown as Store },
+    );
+
+    expect(disposition(result, branch)?.outcome).toBe("refused");
+    expect(disposition(result, branch)?.refusalReason).toBe(
+      "detach_signal_failed_compensated",
+    );
+    expect(gitCbFn).toHaveBeenCalledWith(
+      expect.arrayContaining(["worktree", "remove", "/wt/change/old"]),
+      expect.anything(),
+      expect.any(Function),
+    );
+    expect(gitCbFn).toHaveBeenCalledWith(
+      expect.arrayContaining(["worktree", "add", "/wt/change/old", branch]),
+      expect.anything(),
+      expect.any(Function),
+    );
+    expect(fireSignalAndRefreshFn).toHaveBeenCalledTimes(2);
+    expect(fireSignalAndRefreshFn).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.anything(),
+      "old",
+      expect.objectContaining({ name: "adv.change.worktreeDematerialized" }),
+      expect.objectContaining({ outcome: "detached" }),
+    );
+    expect(fireSignalAndRefreshFn).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.anything(),
+      "old",
+      expect.objectContaining({ name: "adv.change.worktreeDematerialized" }),
+      expect.objectContaining({
+        outcome: "refused",
+        reason: "detach_signal_failed_compensated",
       }),
     );
   });

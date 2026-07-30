@@ -203,6 +203,34 @@ function gitWorktreeRemove(
   });
 }
 
+function gitWorktreeAdd(
+  repoRoot: string,
+  worktreePath: string,
+  branch: string,
+  timeoutMs: number = GIT_WORKTREE_REMOVE_TIMEOUT_MS,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  return new Promise((resolve) => {
+    execFileGitCb(
+      ["worktree", "add", worktreePath, branch],
+      {
+        cwd: repoRoot,
+        timeout: Math.max(1, timeoutMs),
+        killSignal: "SIGKILL",
+      },
+      (error, _stdout, stderr) => {
+        if (error) {
+          resolve({
+            ok: false,
+            reason: stderr.trim() || error.message || "git worktree add failed",
+          });
+        } else {
+          resolve({ ok: true });
+        }
+      },
+    );
+  });
+}
+
 // =============================================================================
 // WORKFLOW STATE HELPERS
 // =============================================================================
@@ -398,6 +426,10 @@ async function preflightBranch(
     getChangeWorkflowState(access, changeId ?? ""),
   ]);
 
+  if (state === null) {
+    return failure("workflow_unavailable", recordPath);
+  }
+
   const advActivityAt = getAdvActivityAt(state, record.lastSeenAt);
 
   const branchTooRecent =
@@ -523,6 +555,27 @@ export async function advWorktreeDetachBatch(
   }
 
   try {
+    // Fail closed when the mutation path cannot record durable receipts.
+    if (args.mode === "apply") {
+      const bundle = getService();
+      const workflowApi = bundle?.client.workflow as {
+        getHandle?: (workflowId: string) => unknown;
+      };
+      if (!bundle || !workflowApi?.getHandle) {
+        return {
+          ok: false,
+          reason:
+            "Temporal service unavailable; cannot record detach receipts or proceed with Git removal",
+          requestId,
+          dispositions: normalizedBranches.map((branch) => ({
+            branch,
+            eligible: false,
+            refusalReason: "workflow_unavailable",
+          })),
+        };
+      }
+    }
+
     const preflightResults: PreflightResult[] = [];
     for (const branch of normalizedBranches) {
       preflightResults.push(await preflightBranch(branch, ctx, database));
@@ -552,23 +605,22 @@ export async function advWorktreeDetachBatch(
     const approvalEvidence = args.approvalEvidence?.trim() ?? "";
     const approvalMissing = approvalEvidence.length === 0;
 
-    if (approvalMissing || requestIdMismatch) {
-      return {
-        ok: true,
-        requestId,
-        mode: "apply",
-        dispositions: dispositions.map((d) => ({
-          ...d,
-          eligible: false,
-          outcome: undefined,
-          refusalReason: approvalMissing
-            ? "approval_required"
-            : "request_binding_mismatch",
-        })),
-      };
+    const batchRefusalReason = approvalMissing
+      ? "approval_required"
+      : requestIdMismatch
+        ? "request_binding_mismatch"
+        : undefined;
+
+    if (batchRefusalReason) {
+      for (const result of preflightResults) {
+        result.disposition.eligible = false;
+        result.disposition.refusalReason = batchRefusalReason;
+        result.disposition.outcome = undefined;
+      }
     }
 
     const warnings: string[] = [];
+    const hardFailures: string[] = [];
     const now = new Date().toISOString();
 
     for (const result of preflightResults) {
@@ -657,7 +709,7 @@ export async function advWorktreeDetachBatch(
         continue;
       }
 
-      const payload: WorktreeDematerializedSignalPayload = {
+      const detachedPayload: WorktreeDematerializedSignalPayload = {
         branch,
         requestId,
         branches: normalizedBranches,
@@ -671,11 +723,93 @@ export async function advWorktreeDetachBatch(
         projectRoot,
         options.store,
         changeId,
-        payload,
+        detachedPayload,
         options.signalTimeoutMs,
       );
-      if (!signalResult.ok) warnings.push(signalResult.warning);
-      result.disposition.outcome = "detached";
+      if (signalResult.ok) {
+        result.disposition.outcome = "detached";
+        continue;
+      }
+
+      // Deterministic recovery: the directory is gone but the durable receipt
+      // was not recorded. Roll back the Git removal so disk and registry stay
+      // consistent, then record the refused outcome.
+      const addResult = await gitWorktreeAdd(
+        projectRoot,
+        worktreePath,
+        branch,
+        GIT_WORKTREE_REMOVE_TIMEOUT_MS,
+      );
+
+      if (addResult.ok) {
+        const refusedPayload: WorktreeDematerializedSignalPayload = {
+          branch,
+          requestId,
+          branches: normalizedBranches,
+          cutoffMs: args.cutoffMs,
+          preflightFacts,
+          outcome: "refused",
+          reason: "detach_signal_failed_compensated",
+          approvalEvidence,
+          dematerializedAt: now,
+        };
+        const refusedSignalResult = await fireDetachSignal(
+          projectRoot,
+          options.store,
+          changeId,
+          refusedPayload,
+          options.signalTimeoutMs,
+        );
+        if (!refusedSignalResult.ok) {
+          hardFailures.push(
+            `${branch}: compensated rollback succeeded but refused receipt signal failed: ${refusedSignalResult.warning}`,
+          );
+        }
+        result.disposition.eligible = false;
+        result.disposition.refusalReason = "detach_signal_failed_compensated";
+        result.disposition.outcome = "refused";
+      } else {
+        const refusedPayload: WorktreeDematerializedSignalPayload = {
+          branch,
+          requestId,
+          branches: normalizedBranches,
+          cutoffMs: args.cutoffMs,
+          preflightFacts,
+          outcome: "refused",
+          reason: `detach_signal_compensation_failed: ${addResult.reason}`,
+          approvalEvidence,
+          dematerializedAt: now,
+        };
+        const refusedSignalResult = await fireDetachSignal(
+          projectRoot,
+          options.store,
+          changeId,
+          refusedPayload,
+          options.signalTimeoutMs,
+        );
+        if (!refusedSignalResult.ok) {
+          hardFailures.push(
+            `${branch}: detach signal failed and compensation also failed: ${signalResult.warning}; rollback: ${addResult.reason}; refused receipt signal: ${refusedSignalResult.warning}`,
+          );
+        } else {
+          hardFailures.push(
+            `${branch}: detach signal failed and compensation failed: ${signalResult.warning}; rollback: ${addResult.reason}`,
+          );
+        }
+        result.disposition.eligible = false;
+        result.disposition.refusalReason = `detach_signal_compensation_failed: ${addResult.reason}`;
+        result.disposition.outcome = "refused";
+      }
+    }
+
+    if (hardFailures.length > 0) {
+      return {
+        ok: false,
+        reason: hardFailures.join("; "),
+        requestId,
+        dispositions: preflightResults.map((r) => r.disposition),
+        ...(warnings.length > 0 ? { warnings } : {}),
+      };
     }
 
     return {
