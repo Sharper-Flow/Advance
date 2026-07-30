@@ -42,13 +42,13 @@ Every `/adv-discover` invocation must execute these 9 protocol steps and emit a 
 | --- | -------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **Skill Discovery** (Phase 1.5)                    | Skills Considered         | Examined skills + match results (or "none available")                                                                            |
 | 2   | **Prior Research Extension**                       | Extends                   | Cited artifacts (including `/adv-improve` research packs under `docs/*-prep.md`) + ≥1 new finding (or "No prior research found") |
-| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, and typed change inventory with Epic/member context |
+| 3   | **Conflict & Related-Work Scan** (Phase 1.6)       | Conflict Scan             | Results from `adv_change_list` (includeArchived), `adv_change_validate`, and typed change inventory with Epic/member context     |
 | 4   | **Edge Case Investigation**                        | Edge Cases                | ≥2 edge cases per gap (or "N/A: structural" with rationale)                                                                      |
 | 5   | **Design Question Depth**                          | Open Design Questions     | Each question annotated with trust model, blast radius, alternatives                                                             |
 | 6   | **Draft Spec Delta Shapes**                        | Draft Spec Deltas         | `rq-*` IDs + ≥1 G/W/T per delta (or "No spec deltas required")                                                                   |
 | 7   | **P25 Related-Pattern Scan** (Phase 1.7)           | Related Pattern Scan      | Similar patterns or "no similar patterns found"                                                                                  |
 | 8   | **LBP Check (with gated External-Solution Check)** | LBP Check                 | Whether likely direction matches long-term best practice                                                                         |
-| 9   | **Completeness Verification** (Phase 1.8)          | Completeness Verification | Always-on problem-completeness + solution-scope checks; sole-entry blocking; secondary-surface disposition                      |
+| 9   | **Completeness Verification** (Phase 1.8)          | Completeness Verification | Always-on problem-completeness + solution-scope checks; sole-entry blocking; secondary-surface disposition                       |
 
 After all 9 steps, emit a **Discovery Checklist** table listing each step with PASS/SKIP + reason.
 
@@ -221,11 +221,11 @@ Secondary surfaces MUST NOT be silently deferred as "future work" without explic
 
 Every reproduction-sourced finding (a symptom observed from a bug report, issue, or user-attempted operation) MUST be classified before it can seed an acceptance or success criterion:
 
-| Classification | Meaning | May seed a "must-work" criterion? |
-| --- | --- | --- |
-| `broken_capability` | A capability that should work but is defective | Yes |
-| `unwarranted_operation` | The user attempted an operation that does not exist or is not architecturally warranted | **No** |
-| `unverified` | The finding is hedged/unconfirmed; the capability premise has not been verified against tool surface, spec, or code | **No** (until verified → reclassify) |
+| Classification          | Meaning                                                                                                             | May seed a "must-work" criterion?    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `broken_capability`     | A capability that should work but is defective                                                                      | Yes                                  |
+| `unwarranted_operation` | The user attempted an operation that does not exist or is not architecturally warranted                             | **No**                               |
+| `unverified`            | The finding is hedged/unconfirmed; the capability premise has not been verified against tool surface, spec, or code | **No** (until verified → reclassify) |
 
 Rules:
 
@@ -252,21 +252,21 @@ Build a compact discovery report. The output MUST contain these sections (order 
 
 ### Required Output Sections
 
-| Section                    | Required content                                                                                                                       |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| **Discovery Checklist**    | Table of all protocol steps with PASS/SKIP + reason                                                                                    |
-| **Skills Considered**      | Examined skills with match assessment (from Phase 1.5)                                                                                 |
-| **Extends**                | Prior research artifacts cited + ≥1 new finding per artifact (or "No prior research found")                                            |
-| **Conflict Scan**          | Results from Phase 1.6 (or "no conflicts")                                                                                             |
-| **Current State**          | What exists today in code/specs/docs                                                                                                   |
-| **Edge Cases**             | ≥2 per identified gap (or "N/A: structural" with rationale)                                                                            |
-| **Open Design Questions**  | Each with trust model + blast radius + alternatives considered                                                                         |
-| **Draft Spec Deltas**      | `rq-*` IDs + ≥1 Given/When/Then per delta (or "No spec deltas required" with rationale)                                                |
-| **Related Pattern Scan**   | Results from Phase 1.7                                                                                                                 |
+| Section                       | Required content                                                                                                                         |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Discovery Checklist**       | Table of all protocol steps with PASS/SKIP + reason                                                                                      |
+| **Skills Considered**         | Examined skills with match assessment (from Phase 1.5)                                                                                   |
+| **Extends**                   | Prior research artifacts cited + ≥1 new finding per artifact (or "No prior research found")                                              |
+| **Conflict Scan**             | Results from Phase 1.6 (or "no conflicts")                                                                                               |
+| **Current State**             | What exists today in code/specs/docs                                                                                                     |
+| **Edge Cases**                | ≥2 per identified gap (or "N/A: structural" with rationale)                                                                              |
+| **Open Design Questions**     | Each with trust model + blast radius + alternatives considered                                                                           |
+| **Draft Spec Deltas**         | `rq-*` IDs + ≥1 Given/When/Then per delta (or "No spec deltas required" with rationale)                                                  |
+| **Related Pattern Scan**      | Results from Phase 1.7                                                                                                                   |
 | **Completeness Verification** | Always-on problem-completeness + solution-scope checks (rationale + confidence); sole-entry claim status; secondary-surface dispositions |
-| **LBP Check**              | Whether likely direction matches long-term best practice                                                                               |
-| **Recommended Objectives** | Numbered list for the agreement phase                                                                                                  |
-| **AMBIGUITY ANALYSIS**     | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row |
+| **LBP Check**                 | Whether likely direction matches long-term best practice                                                                                 |
+| **Recommended Objectives**    | Numbered list for the agreement phase                                                                                                    |
+| **AMBIGUITY ANALYSIS**        | Finding table: B/F/S/M findings (required v1) + optional D/X/Q/I/E/C/T findings; severity column; evidence quotes; coverage report row   |
 
 ### Ambiguity Analysis
 
@@ -543,7 +543,7 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
    - If a criterion encodes a mechanism/component/library/data structure, emit an advisory finding with the exact phrase.
    - Mark it preliminary or likely design-derived; recommend revision or design review.
    - × Do NOT hard-block discovery solely because this advisory guard fired.
-2b. Run the **Capability-Warrant Declaration** step (rq-acWarrant01) over each draft criterion:
+     2b. Run the **Capability-Warrant Declaration** step (rq-acWarrant01) over each draft criterion:
    - A **capability-presuming** criterion — one asserting that a specific tool, tool argument, or spec requirement exists or must work — MUST carry a typed warrant tag appended to its text: `[warrant: <ref>]`, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. Comma-separate multiple refs.
    - Example: `AC2: Cross-project repair routes through the target namespace. [warrant: tool:adv_doctor#target_path]`
    - At contract mint, each declared warrant is verified against the live tool surface / spec ids; an unresolved warrant fails the mint with `CONTRACT_UNRESOLVED_WARRANT`. Declaring a warrant for a surface that does not exist (the unwarranted-criterion failure class) is therefore caught structurally.
@@ -594,12 +594,12 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 `/adv-discover` produces four parse-safe criterion shapes. Each shape is minted into a stable `ACn`/`SCn`/`Cn`/`DONTn` contract item with an optional typed variant. The variant is advisory for presentation and review; the canonical `text`, stable `id`, `kind`, and `evidencePolicy` remain the contract authority.
 
-| Variant | Purpose | Parse-safe notation |
-|---|---|---|
-| **behavioral scenario** | Required behavior under a precondition and trigger | `Given {context}, when {trigger}, then {outcome}` |
-| **evidence obligation** | Proof route or source | `Evidence: {subject} via {method}` or `Evidence: {subject} by {method}` or `Evidence: {subject} from {source}` |
-| **spec_law reconciliation** | Ties a criterion to a spec requirement | `Spec-law: {spec-id} requires {requirement}` or `... reconciles ...` or `... mandates ...` |
-| **operational constraint** | Hard limit or prohibition | `Must {obligation}` / `Must not {obligation}` / `Cannot {obligation}` optionally scoped with `for ...` / `within ...` / `across ...` |
+| Variant                     | Purpose                                            | Parse-safe notation                                                                                                                  |
+| --------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **behavioral scenario**     | Required behavior under a precondition and trigger | `Given {context}, when {trigger}, then {outcome}`                                                                                    |
+| **evidence obligation**     | Proof route or source                              | `Evidence: {subject} via {method}` or `Evidence: {subject} by {method}` or `Evidence: {subject} from {source}`                       |
+| **spec_law reconciliation** | Ties a criterion to a spec requirement             | `Spec-law: {spec-id} requires {requirement}` or `... reconciles ...` or `... mandates ...`                                           |
+| **operational constraint**  | Hard limit or prohibition                          | `Must {obligation}` / `Must not {obligation}` / `Cannot {obligation}` optionally scoped with `for ...` / `within ...` / `across ...` |
 
 Rules:
 
