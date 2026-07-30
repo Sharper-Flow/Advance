@@ -22,6 +22,7 @@ import {
 } from "../validator/task-classifier";
 import type { ChangeWorkflowState } from "./contracts";
 import { isFailingContractReviewStatus } from "./recovery-classification";
+import { resolveTypedVerificationWarnings } from "../utils/typed-verification-evidence";
 
 const HANDOFF_OPS_RELATIONSHIPS: OpsRelationship[] = [
   "follows_release",
@@ -723,10 +724,30 @@ export function checkUnresolvedVerificationEvidence(
     if (isDispositioned(task.id)) continue;
 
     const warnings = latestVerificationReportsForTask(state, task.id).flatMap(
-      (report) =>
-        (report.consumer_warnings ?? []).filter((warning) =>
-          VERIFICATION_WARNING_KINDS.has(warning.kind),
-        ),
+      (report) => {
+        const persistedWarnings = (report.consumer_warnings ?? []).filter(
+          (warning) => VERIFICATION_WARNING_KINDS.has(warning.kind),
+        );
+        if (
+          report.agent !== "adv-engineer" &&
+          report.agent !== "adv-designer"
+        ) {
+          return persistedWarnings;
+        }
+
+        const typedEntries = report.verification.filter(
+          (entry) => entry.test_run_id || entry.run_id,
+        );
+        const hasLegacyEntries =
+          typedEntries.length !== report.verification.length;
+        return [
+          ...resolveTypedVerificationWarnings(
+            typedEntries,
+            state.testRuns?.[task.id],
+          ),
+          ...(hasLegacyEntries ? persistedWarnings : []),
+        ];
+      },
     );
     if (warnings.length === 0) continue;
 

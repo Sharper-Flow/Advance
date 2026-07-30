@@ -1496,6 +1496,12 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
     overrides: {
       attempt?: number;
       taskId?: string;
+      verification?: {
+        command: string;
+        exit_code: number;
+        summary: string;
+        test_run_id?: string;
+      }[];
       warnings?: {
         kind: "verification_missing" | "verification_mismatch";
         message: string;
@@ -1512,7 +1518,9 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
       agent: "adv-engineer" as const,
       status: "complete" as const,
       files_touched: ["src/foo.ts"],
-      verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
+      verification: overrides.verification ?? [
+        { command: "pnpm test", exit_code: 0, summary: "pass" },
+      ],
       decisions: [],
       blockers: [],
       scope_drift: null,
@@ -1668,6 +1676,163 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
     expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
       [],
     );
+  });
+
+  it("re-resolves typed evidence against current same-task durable runs", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [
+        engineerReport({
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "pass",
+              test_run_id: "tr-evicted",
+            },
+          ],
+        }),
+      ],
+      testRuns: {
+        "tk-ver-1": [
+          {
+            runId: "tr-other-green",
+            phase: "verify",
+            exitCode: 0,
+            classification: "ok",
+            command: "pnpm test",
+            durationMs: 1,
+            evidence_kind: "unit",
+            recordedAt: "2026-05-20T00:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (blocker) => blocker.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it("blocks a typed report when its exact durable run has a different exit code", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [
+        engineerReport({
+          verification: [
+            {
+              command: "pnpm test",
+              exit_code: 0,
+              summary: "pass",
+              test_run_id: "tr-red",
+            },
+          ],
+        }),
+      ],
+      testRuns: {
+        "tk-ver-1": [
+          {
+            runId: "tr-red",
+            phase: "red",
+            exitCode: 1,
+            classification: "failed",
+            command: "pnpm test",
+            durationMs: 1,
+            evidence_kind: "unit",
+            recordedAt: "2026-05-20T00:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (blocker) => blocker.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it("clears a stale typed submission warning only when its exact current run matches", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [
+        engineerReport({
+          warnings: [missingWarning],
+          verification: [
+            {
+              command: "renamed command label",
+              exit_code: 0,
+              summary: "pass",
+              test_run_id: "tr-green",
+            },
+          ],
+        }),
+      ],
+      testRuns: {
+        "tk-ver-1": [
+          {
+            runId: "tr-green",
+            phase: "green",
+            exitCode: 0,
+            classification: "passed",
+            command: "pnpm test -- focused",
+            durationMs: 1,
+            evidence_kind: "unit",
+            recordedAt: "2026-05-20T00:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    expect(checkUnresolvedVerificationEvidence(state, "acceptance")).toEqual(
+      [],
+    );
+  });
+
+  it("preserves legacy warnings for untyped entries in a mixed report", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "test" })],
+      subagent_reports: [
+        engineerReport({
+          warnings: [missingWarning],
+          verification: [
+            {
+              command: "pnpm test -- typed",
+              exit_code: 0,
+              summary: "pass",
+              test_run_id: "tr-typed-green",
+            },
+            {
+              command: "pnpm test -- legacy",
+              exit_code: 0,
+              summary: "pass",
+            },
+          ],
+        }),
+      ],
+      testRuns: {
+        "tk-ver-1": [
+          {
+            runId: "tr-typed-green",
+            phase: "green",
+            exitCode: 0,
+            classification: "passed",
+            command: "pnpm test -- typed",
+            durationMs: 1,
+            evidence_kind: "unit",
+            recordedAt: "2026-05-20T00:00:00.000Z",
+          },
+        ],
+      },
+    });
+
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (blocker) => blocker.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
   });
 
   it("clears when a newer report without warnings supersedes (latest-wins durable evidence)", () => {

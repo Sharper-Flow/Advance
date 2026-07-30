@@ -26,6 +26,10 @@ import { formatToolOutput } from "../utils/tool-output";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { saveRecoveredSubagentReport } from "./_recovery-writers";
 import { resolveTaskEvidence } from "../validator/task-classifier";
+import {
+  resolveTypedVerificationWarnings,
+  type DurableTestRunLike,
+} from "../utils/typed-verification-evidence";
 import { isWorkflowCompletedError } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
@@ -435,12 +439,6 @@ function evidenceByCommand(text: string): Map<string, AdvRunTestEvidence> {
  * remains descriptive only — cosmetic command-label differences (extra args,
  * reordered flags, prefix vars, absolute paths) MUST NOT break identity match.
  */
-type DurableTestRunLike = {
-  runId?: string;
-  command?: string;
-  exitCode?: number | null;
-};
-
 function latestDurableByCommand(
   records: readonly DurableTestRunLike[] | undefined,
 ): Map<string, { exitCode: number | null }> {
@@ -448,21 +446,6 @@ function latestDurableByCommand(
   for (const record of records ?? []) {
     if (record && typeof record.command === "string" && record.command) {
       map.set(record.command, { exitCode: record.exitCode ?? null });
-    }
-  }
-  return map;
-}
-
-function latestDurableByRunId(
-  records: readonly DurableTestRunLike[] | undefined,
-): Map<string, { exitCode: number | null; command: string }> {
-  const map = new Map<string, { exitCode: number | null; command: string }>();
-  for (const record of records ?? []) {
-    if (record && typeof record.runId === "string" && record.runId) {
-      map.set(record.runId, {
-        exitCode: record.exitCode ?? null,
-        command: typeof record.command === "string" ? record.command : "",
-      });
     }
   }
   return map;
@@ -498,7 +481,6 @@ function verificationWarnings(
     .join("\n");
   const structuredEvidence = evidenceByCommand(recorded);
   const durableByCommand = latestDurableByCommand(durableRecords);
-  const durableByRunId = latestDurableByRunId(durableRecords);
 
   if (report.agent === "adv-engineer" || report.agent === "adv-designer") {
     return report.verification.flatMap((entry): ConsumerWarning[] => {
@@ -519,24 +501,7 @@ function verificationWarnings(
             : undefined;
 
       if (entryRunId) {
-        const durable = durableByRunId.get(entryRunId);
-        if (!durable) {
-          return [
-            {
-              kind: "verification_missing" as const,
-              message: `No durable adv_run_test evidence found for run_id: ${entryRunId}`,
-            },
-          ];
-        }
-        if (durable.exitCode !== null && durable.exitCode !== entry.exit_code) {
-          return [
-            {
-              kind: "verification_mismatch" as const,
-              message: `Reported exit_code ${entry.exit_code} differs from durable adv_run_test exitCode ${durable.exitCode} for run_id: ${entryRunId}`,
-            },
-          ];
-        }
-        return [];
+        return resolveTypedVerificationWarnings([entry], durableRecords);
       }
 
       // Legacy variant (no typed-binding provenance): exact-command
