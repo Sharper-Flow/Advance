@@ -740,7 +740,7 @@ export function checkUnresolvedVerificationEvidence(
         const isStaticCheck = policy === "static_check";
         const typedEntries = report.verification.filter((entry) => {
           if (entry.test_run_id || entry.run_id) return true;
-          if (isStaticCheck && entry.command !== undefined) return true;
+          if (isStaticCheck && entry.command !== undefined && entry.exit_code === 0) return true;
           return false;
         });
         const resolvedWarnings = resolveTypedVerificationWarnings(

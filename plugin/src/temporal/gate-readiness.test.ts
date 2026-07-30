@@ -1650,6 +1650,25 @@ describe("checkUnresolvedVerificationEvidence — strengthenAgentEvidence AC1/AC
     );
   });
 
+  it("blocks static_check when command-based proof has nonzero exit_code", () => {
+    const state = makeState({
+      tasks: [doneTask({ evidence_policy: "static_check" })],
+      subagent_reports: [
+        engineerReport({
+          warnings: [missingWarning],
+          verification: [
+            { command: "pnpm check", exit_code: 1, summary: "fail" },
+          ],
+        }),
+      ],
+    });
+    expect(
+      checkUnresolvedVerificationEvidence(state, "acceptance").some(
+        (b) => b.code === "VERIFICATION_EVIDENCE_MISSING",
+      ),
+    ).toBe(true);
+  });
+
   it.each([...NON_BLOCKING_POLICIES])(
     "does not block for non-blocking policy %s (SC4)",
     (policy) => {
