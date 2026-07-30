@@ -22,6 +22,7 @@ import {
 } from "../validator/task-classifier";
 import type { ChangeWorkflowState } from "./contracts";
 import { isFailingContractReviewStatus } from "./recovery-classification";
+import { resolveTypedVerificationWarnings } from "../utils/typed-verification-evidence";
 
 const HANDOFF_OPS_RELATIONSHIPS: OpsRelationship[] = [
   "follows_release",
@@ -723,10 +724,52 @@ export function checkUnresolvedVerificationEvidence(
     if (isDispositioned(task.id)) continue;
 
     const warnings = latestVerificationReportsForTask(state, task.id).flatMap(
-      (report) =>
-        (report.consumer_warnings ?? []).filter((warning) =>
-          VERIFICATION_WARNING_KINDS.has(warning.kind),
-        ),
+      (report) => {
+        const persistedWarnings = (report.consumer_warnings ?? []).filter(
+          (warning) => VERIFICATION_WARNING_KINDS.has(warning.kind),
+        );
+        if (
+          report.agent !== "adv-engineer" &&
+          report.agent !== "adv-designer"
+        ) {
+          return persistedWarnings;
+        }
+
+        // For static_check policy, command/exit_code proof is valid typed
+        // evidence without a durable run ID (rq-TDD014policyRoute).
+        const isStaticCheck = policy === "static_check";
+        const typedEntries = report.verification.filter((entry) => {
+          if (entry.test_run_id || entry.run_id) return true;
+          if (
+            isStaticCheck &&
+            entry.command !== undefined &&
+            entry.exit_code === 0
+          ) {
+            return true;
+          }
+          return false;
+        });
+        const resolvedWarnings = resolveTypedVerificationWarnings(
+          typedEntries,
+          state.testRuns?.[task.id],
+        );
+        if (isStaticCheck) {
+          // For static_check, clean command-based proof suppresses
+          // submit-time warnings; empty or unresolved proof does not.
+          const hasCleanTypedProof =
+            typedEntries.length > 0 && resolvedWarnings.length === 0;
+          return [
+            ...resolvedWarnings,
+            ...(!hasCleanTypedProof ? persistedWarnings : []),
+          ];
+        }
+        const hasLegacyEntries =
+          typedEntries.length !== report.verification.length;
+        return [
+          ...resolvedWarnings,
+          ...(hasLegacyEntries ? persistedWarnings : []),
+        ];
+      },
     );
     if (warnings.length === 0) continue;
 

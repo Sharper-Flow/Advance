@@ -329,6 +329,21 @@ describe("adv-designer assets", () => {
     expect(reportSection).toContain("same-task adv_run_test runId");
   });
 
+  test("evidence guidance distinguishes test runs from static-check proof", () => {
+    const content = readFileSync(AGENT_PATH, "utf8");
+    const evidenceSection =
+      content.split("## Evidence Selection")[1]?.split("## ")[0] ?? "";
+    const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";
+
+    expect(evidenceSection).toContain(
+      "static check records its command and result without a test run ID",
+    );
+    expect(reportSection).toContain(
+      "Static-check routes record their selected command and result without a test run ID",
+    );
+    expect(reportSection).toContain("A valid non-test route requires neither");
+  });
+
   test("DESIGNER_REPORT prompt examples use structural scope, not legacy string scope", () => {
     const content = readFileSync(AGENT_PATH, "utf8");
     const reportSection = content.split("## DESIGNER_REPORT Payload")[1] ?? "";

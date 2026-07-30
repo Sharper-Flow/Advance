@@ -1,12 +1,12 @@
 ---
 name: adv-apply
-description: "Implement change with TDD, retry on failure, and final verification"
+description: "Implement change with task-appropriate proof, TDD where required, retry on failure, and final verification"
 phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure."
 ---
 
-# ADV Apply — Produce Deliverables with TDD and Retry
+# ADV Apply — Produce Deliverables with Task-Appropriate Proof and Retry
 
-Implement an ADV change using TDD. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
+Implement an ADV change with proof selected by each typed task. Use TDD for behavior-bearing inline code; use the declared non-test evidence route for non-code deliverables. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
 
 ## Task Completion Policy
 
@@ -59,9 +59,9 @@ Reusable implementation methodology for ADV apply workflows. Provides the TDD wo
 - `ADV_INSTRUCTIONS.md § Doom Loop Detection` — retry budget and escalation
 - `ADV_INSTRUCTIONS.md § Cross-Repo Execution` — workdir switching protocol
 
-#### TDD Work Loop
+#### Task-Appropriate Proof Loop
 
-The Red/Green/Verify/Trivial sequence and per-phase evidence formats are defined in Phase 3 § Task Flow below (steps 3b, 3c, 3c.3, and § Trivial Tasks at the end of this command).
+Select proof from the typed deliverable/type, `evidence_policy` + `proof_target`, and `metadata.tdd_intent`. Task titles, generic agent prose, and a desire for more coverage are advisory only; none creates a test requirement. A valid non-test evidence route for non-code work requires neither `adv_run_test` nor red/green. Behavior-bearing inline code retains the Red/Green/Verify sequence defined in Phase 3 § Task Flow below (steps 3b, 3c, and 3c.3).
 
 `adv_run_test phase` is descriptive metadata, not gate enforcement. Use `passed`, `classification`, and `exitCode` as command-result evidence.
 
@@ -401,7 +401,7 @@ If any required approval/evidence field is missing, keep the task `in_progress` 
 | "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
 | Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
 
-`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`. When a task's `evidence_plan` selects a non-test route for logic-bearing work, record a bounded rationale, a concrete `proof_target`, and a linked `review_conclusion` before completion. Test-quality proxies (assertion density, mock surface, coverage, flake indicators) are advisory only and do not gate completion. <!-- rq-TDD013evp rq-ADVEXEC06 -->
+`adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`. A valid non-test route for non-code work does not require `adv_run_test` or red/green. When a task's `evidence_plan` selects a non-test route for logic-bearing work, record a bounded rationale, a concrete `proof_target`, and a linked `review_conclusion` before completion. Test-quality proxies (assertion density, mock surface, coverage, flake indicators) are advisory only and do not gate completion. <!-- rq-TDD013evp rq-ADVEXEC06 -->
 
 ### Delegation Routing
 
@@ -556,7 +556,8 @@ VERIFICATION:
 BRIEFING PACKET: inject the generated `_briefingPacket` (lane: engineer) here — includes identity_anchors, scope, contract, tasks, affected_files, EPIC CONTEXT (`epic_context`), verification_expectations, durable_facts, unavailable_state
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-EXPECTED OUTPUT: implement the task, run tests, then call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test
+EVIDENCE SELECTION: proof follows the typed deliverable, `evidence_policy`, `proof_target`, and `tdd_intent`; task titles, agent prose, and coverage desire do not add a test requirement. A valid non-test route needs no `adv_run_test` or red/green.
+EXPECTED OUTPUT: implement the task, record the selected proof, then call adv_subagent_report_submit with ENGINEER_REPORT per .opencode/agents/adv-engineer.md; bind test or static-check verification rows to same-task `adv_run_test` evidence when that route was selected
 ```
 
 `PROJECT STRUCTURE` provides the sub-agent with a ground-truth file manifest so it can self-correct path assumptions. Populate it from the Phase 0.1 path verification output. Example: `"Directories: repositories/, api/schemas/, services/; Pattern files: repositories/base.py, api/schemas/analytics.py"`.
@@ -605,7 +606,8 @@ NEIGHBORING RECOMMENDATIONS: finish owned UI scope if safe; surface adjacent UI 
 BACKEND BOUNDARY: if the UI task requires changing storage, APIs, Temporal, or business logic, stop and report. Populate `scope_drift.recommendation: "stop_and_report"` and `required_main_agent_actions` with a handoff to `adv-engineer`. Do NOT edit backend files.
 PROJECT STRUCTURE: {brief ls or glob output showing relevant directories/files in workdir — populated during Phase 0.1 path verification}
 DESIGN EXCERPT: {relevant section if task references design}
-EXPECTED OUTPUT: implement the UI/component task, run tests, then call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md; use evidence_binding_version: typed-v1 and bind every verification row's test_run_id to the same-task runId returned by adv_run_test
+EVIDENCE SELECTION: proof follows the typed deliverable, `evidence_policy`, `proof_target`, and `tdd_intent`; task titles, agent prose, and coverage desire do not add a test requirement. A valid non-test route needs no `adv_run_test` or red/green.
+EXPECTED OUTPUT: implement the UI/component task, record the selected proof, then call adv_subagent_report_submit with DESIGNER_REPORT per .opencode/agents/adv-designer.md; bind test or static-check verification rows to same-task `adv_run_test` evidence when that route was selected
 ```
 
 The active cycle is bound in the designer report under `apply_context.implementation_cycle_id`, not as a top-level key:
@@ -634,11 +636,11 @@ The Designer Apply Context Packet uses the same identity anchors as the Apply Co
 
 **3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. If dirty → stop and remediate before Red Phase.
 
-**3b. Red Phase:** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence.
+**3b. Red Phase (behavior-bearing inline code only):** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence.
 
-**3c. Green Phase:** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence.
+**3c. Green Phase (behavior-bearing inline code only):** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence.
 
-**3c.3. Verify Phase (optional):** Run final task-scope check with `adv_run_test phase:'verify'` when distinct from green evidence. Phase is descriptive metadata, not gate enforcement.
+**3c.3. Verify Phase (optional, test/static-check route):** Run final task-scope check with `adv_run_test phase:'verify'` when distinct from green evidence. For a valid non-test route, record the declared proof instead. Phase is descriptive metadata, not gate enforcement.
 
 **3c.4. Incremental Verification:** After EACH task run build/tests/lint for task scope → if fails: retry protocol → only proceed to checkpoint after pass. Incremental verification runs BEFORE the checkpoint so the checkpoint represents verified task state. Post-checkpoint fix-ups are not expected by design — verification must pass before committing.
 
@@ -743,7 +745,7 @@ What was built and how it was verified.
 
 ## Trivial Tasks
 
-For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases, verify manually, include rationale in status. These tasks are also candidates for delegation routing — see § Delegation Routing above.
+For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases and record the valid declared non-test proof; no `adv_run_test` is required solely because the task is being completed. Include the selected policy and proof target in status. These tasks are also candidates for delegation routing — see § Delegation Routing above.
 
 ---
 

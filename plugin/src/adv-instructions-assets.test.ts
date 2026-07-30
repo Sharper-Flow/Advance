@@ -292,6 +292,20 @@ describe("ADV_INSTRUCTIONS.md non-code deliverable routing (AC2, AC3)", () => {
     );
   });
 });
+
+describe("ADV_INSTRUCTIONS.md task-appropriate execution evidence", () => {
+  const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
+
+  test("keeps adv_run_test for tests while static checks carry command-result proof", () => {
+    expect(content).toContain("Use it for selected test execution");
+    expect(content).toContain(
+      "a selected static-check route records its command and result as proof without a test run ID",
+    );
+    expect(content).toContain(
+      "Do not manufacture a test run for a valid non-test route",
+    );
+  });
+});
 describe("ADV_INSTRUCTIONS.md compression guards", () => {
   const content = readFileSync(ADV_INSTRUCTIONS_PATH, "utf8");
 

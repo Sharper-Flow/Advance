@@ -137,6 +137,12 @@ Once scope is locked, work in short cycles:
 
 Repeat until verification passes and scope is complete.
 
+## Evidence Selection
+
+Select proof from the typed task deliverable/type, `evidence_policy` + `proof_target`, and `metadata.tdd_intent`. A valid non-test route (such as browser/design proof, `design_proof`, or `rubric_review`) does **not** need `adv_run_test` or red/green. Task titles, generic agent prose, and a desire for more coverage do not create test requirements.
+
+Behavior-bearing inline UI code retains TDD and must produce red/green evidence. Record the selected proof in the report: test execution uses its `adv_run_test` run ID; a static check records its command and result without a test run ID.
+
 ## DESIGN QUALITY BAR
 
 When implementing or modifying UI/component work, apply the user-approved quality bar by default:
@@ -333,7 +339,7 @@ Build the following JSON object as the `report` argument to `adv_tool_invoke({na
 - `scope_drift`: `null` when no drift. Non-null when you found out-of-scope work; use `recommendation: "finish_owned_scope_then_report"` for UI-only drift; use `recommendation: "stop_and_report"` when STOP_WHEN required immediate stop or when the Backend Boundary is hit.
 - `follow_ups`: Empty array if nothing deferred. Otherwise list out-of-scope items discovered.
 - `required_main_agent_actions`: Empty array if no orchestrator action is required. Otherwise list follow-up actions the main ADV orchestrator must handle, including backend handoffs to `adv-engineer` and neighboring-recommendation HITL surfacing.
-- `verification`: At least one entry showing a test/build/lint command and its result.
+- `verification`: Record the selected task-appropriate proof. Test execution includes the corresponding same-task `adv_run_test` run ID. Static-check routes record their selected command and result without a test run ID. A valid non-test route requires neither.
 - `decisions`: Empty array if no non-obvious choices made. Otherwise document tradeoffs.
 - `files_touched`: Every file you created, modified, or deleted. UI/component files only — backend edits are a contract violation.
 - `context_update_for_adv.what_ads_needs_to_know`: Concise summary the parent ADV orchestrator needs to continue.

@@ -114,6 +114,8 @@ For tasks whose deliverable is non-code (`docs`, `research`, `approval`, `verifi
 Rules:
 
 - Non-code tasks MUST NOT be forced through fake red/green TDD.
+- A valid non-test evidence route does not require `adv_run_test` or red/green evidence. Select proof from the typed deliverable, `evidence_policy`, and `metadata.tdd_intent`.
+- Task titles, generic agent prose, and a desire for more coverage are advisory only; they do not create test requirements or override an evidence plan.
 - `evidence_policy: not_applicable` is allowed only with `contract_refs.not_applicable_reason`.
 - Every non-code task MUST have `contract_refs` (`implements`/`verifies`/`respects`) or a bounded `not_applicable_reason`.
 - Use the shared `ContractEvidencePolicy` vocabulary: `source_citation`, `source_audit`, `rubric_review`, `stakeholder_acceptance`, `artifact_reference`, `static_check`, `review`, `test`, `design_proof`, `not_applicable`.
@@ -218,7 +220,7 @@ If criteria are missing, contradictory, implementation-derived, or invalidated, 
 | Ambiguous task         | "handle X" without behavior       | Clarify task scope from agreement/design |
 | Unsupported design     | Task contradicts design.md        | Re-enter design or revise task           |
 | Over-broad task        | Multiple independent outcomes     | Split or sequence tasks                  |
-| Missing proof          | No RED/GREEN or verification plan | Add TDD/verification detail              |
+| Missing proof          | No evidence plan for the typed deliverable | Add the appropriate TDD or non-test verification detail |
 
 ### 3.3 Task Completeness
 
@@ -241,7 +243,7 @@ Action: `adv_task_cancel` (with approval) → update parent description → redi
 
 #### B. TDD Ordering
 
-Inline TDD is default. Use `metadata.tdd_intent` and a concrete `evidence_plan` (policy + `proof_target`):
+Select proof from the typed task deliverable, `metadata.tdd_intent`, and a concrete `evidence_plan` (policy + `proof_target`), not from the task title, agent prose, or a general desire for coverage. Valid non-code policies include `source_citation` and `not_applicable` (only with its required rationale). Inline TDD is default only for behavior-bearing inline code:
 
 | Value                   | Meaning                 | Evidence policy / plan | Evidence? |
 | ----------------------- | ----------------------- | ---------------------- | --------- |
@@ -251,7 +253,7 @@ Inline TDD is default. Use `metadata.tdd_intent` and a concrete `evidence_plan` 
 
 Behavior-critical tasks (`type: code` or `verification`) MUST NOT use `not_applicable` as their evidence route. A non-test route for logic-bearing work requires a bounded rationale and a linked `review_conclusion` in the evidence plan. <!-- rq-TDD013evp -->
 
-For non-code tasks, use an `evidence_plan` with a valid `evidence_policy` instead of fake TDD. See **Non-Code Deliverable Evidence Policy** above.
+For non-code tasks, use an `evidence_plan` with a valid `evidence_policy` instead of fake TDD. A valid non-test route does not require `adv_run_test` or red/green. See **Non-Code Deliverable Evidence Policy** above.
 
 Anti-pattern: same-scope test task blocked_by impl task (code-first, not test-first). Fix: merge test into impl, cancel test task.
 

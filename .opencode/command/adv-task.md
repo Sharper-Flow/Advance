@@ -108,7 +108,7 @@ Read files in scope → understand patterns, dependencies. Check `adv_change_lis
 Decompose contract into atomic `tk-` tasks via `adv_task_add`:
 - Implementable in single session
 - Clear testable success condition
-- TDD guidance in description (logic-heavy → required, trivial → note skip)
+- Typed evidence plan: select proof from deliverable/type, `evidence_policy`, `proof_target`, and `tdd_intent`; behavior-bearing inline code retains TDD, while a valid non-test route needs no `adv_run_test` or red/green. Titles, agent prose, and coverage desire do not create test requirements.
 - Dependency order with `blockedBy`
 ### Complete Gate
 `adv_gate_complete changeId: {id} gateId: planning`

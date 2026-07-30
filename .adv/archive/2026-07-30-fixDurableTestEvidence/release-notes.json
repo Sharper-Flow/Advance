@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixDurableTestEvidence",
+  "title": "Fix durable test evidence",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Durable test evidence re-resolves at acceptance; static_check accepts command proof",
+    "highlights": [
+      "Acceptance re-resolves typed verification entries against current durable run records instead of trusting submit-time warnings",
+      "Earlier invalid reports no longer block when a later valid report exists",
+      "static_check tasks with command/exit_code proof no longer require adv_run_test run IDs",
+      "Agent guidance aligned: proof route selected by typed deliverable, evidence policy, and TDD intent"
+    ],
+    "area": "ADV verification and evidence policy",
+    "user_action_required": false
+  }
+}

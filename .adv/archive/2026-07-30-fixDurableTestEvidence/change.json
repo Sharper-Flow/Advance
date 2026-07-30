@@ -1,0 +1,2313 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixDurableTestEvidence",
+  "title": "Fix durable test evidence",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-30T00:43:53.191Z",
+  "tasks": [
+    {
+      "id": "tk-90f4b32a8302",
+      "title": "Implement exact durable evidence resolution",
+      "type": "code",
+      "section": "Durable evidence",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-30T00:59:01.913Z",
+      "started_at": "2026-07-30T01:03:03.466Z",
+      "completed_at": "2026-07-30T01:18:43.258Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "adv-engineer attempt 2: 173 focused tests passed; typecheck and Prettier passed. Review verified typed exact-ID/exit-code resolution, stale-warning clearing, eviction/mismatch blocking, and mixed legacy-entry preservation.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/utils/typed-verification-evidence.ts"
+      ],
+      "checkpointSha": "011f095fd993d15855fbcb55aac2d7c76642feac",
+      "completedAt": "2026-07-30T01:18:43.258Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/utils/typed-verification-evidence.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDurableTestEvidence",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+          "task_id": "tk-90f4b32a8302",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-90f4b32a8302"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/subagent-report.ts",
+            "plugin/src/utils/typed-verification-evidence.ts",
+            "plugin/src/temporal/gate-readiness.ts",
+            "plugin/src/temporal/gate-readiness.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6tn03u_0802551e",
+              "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+              "exit_code": 0,
+              "summary": "172 focused tests passed; TypeScript typecheck and Prettier checks passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extracted exact typed run-ID resolution into a Temporal-safe utility.",
+              "why": "Acceptance readiness and report submission now share one resolver without making the workflow import the tools layer."
+            },
+            {
+              "what": "Re-resolve typed reports only at readiness; retain persisted warnings for legacy reports.",
+              "why": "Current task-local durable evidence is authoritative for typed reports while legacy command-based warning behavior remains unchanged."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Covered missing/evicted exact run IDs, exit-code mismatch, matching exact IDs with cosmetic command differences, and unrelated-green non-substitution in the acceptance readiness test suite.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Acceptance/readiness now re-resolves typed engineer/designer evidence against current task-local workflow runs. Legacy warnings remain advisory inputs; no task/gate state or agent guidance changed.",
+            "suggested_next_action": "Review the diff and proceed with the next scoped task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6tn03u_0802551e"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDurableTestEvidence",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+          "task_id": "tk-90f4b32a8302",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-90f4b32a8302"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/gate-readiness.ts",
+            "plugin/src/temporal/gate-readiness.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6tqsdp_e52b5044",
+              "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+              "exit_code": 0,
+              "summary": "173 focused tests passed; TypeScript typecheck and Prettier checks passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Resolved report verification per entry rather than per report.",
+              "why": "Mixed reports now exact-resolve typed entries while retaining immutable legacy consumer warnings when untyped entries are present."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Verified the same acceptance readiness path for typed-only, legacy-only, and mixed typed/legacy report entries.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Mixed report entries no longer suppress legacy verification warnings: typed entries re-resolve by exact durable run ID, while any untyped entry retains existing warning-based behavior.",
+            "suggested_next_action": "Review the updated mixed-entry regression and proceed with the next scoped task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6tqsdp_e52b5044"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-c2e6a4e3faca",
+      "title": "Add acceptance evidence integration regressions",
+      "type": "verification",
+      "section": "Durable evidence",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-90f4b32a8302"
+        }
+      ],
+      "created_at": "2026-07-30T00:59:09.352Z",
+      "started_at": "2026-07-30T01:19:31.559Z",
+      "completed_at": "2026-07-30T01:29:00.308Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "202 focused tests passed; Prettier check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/gate-readiness.test.ts"
+      ],
+      "checkpointSha": "dfa5ec75cc2fac9827e19afaf01379d339f9e829",
+      "completedAt": "2026-07-30T01:29:00.308Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/gate-readiness.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDurableTestEvidence",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+          "task_id": "tk-c2e6a4e3faca",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-c2e6a4e3faca"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/gate-readiness.test.ts",
+            "plugin/src/temporal/change-state.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6u2fq4_bcad53ec",
+              "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts && pnpm --dir plugin exec prettier --check src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+              "exit_code": 0,
+              "summary": "202 focused tests passed; Prettier check passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Covered acceptance through evaluateGateReadiness rather than only the resolver.",
+              "why": "The regressions verify latest-report selection and exact task-local run identity at the acceptance boundary."
+            },
+            {
+              "what": "Kept non-code and inline-TDD checks in change-state completion tests.",
+              "why": "Those routes enforce task completion before acceptance and prove non-test work is exempt without weakening behavior-bearing code."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Added acceptance-boundary cases for late valid evidence and cross-task, missing, mismatched, and evicted run IDs; added task-completion cases for source-citation work and inline TDD enforcement.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Only the two scoped test files changed. Pre-existing agent-guidance and command-file edits were left untouched.",
+            "suggested_next_action": "Review the scoped test diff and continue remaining change tasks."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6u2fq4_bcad53ec"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-f017dedd9b87",
+      "title": "Align agent guidance with task-appropriate evidence",
+      "type": "docs",
+      "section": "Evidence policy",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-07-30T00:59:20.126Z",
+      "started_at": "2026-07-30T01:19:31.570Z",
+      "completed_at": "2026-07-30T20:38:07.632Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "114 gate-readiness tests pass (tr_ms7z66yc_6d9d45f2); static_check command proof requires exit_code 0; pnpm check passes.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "f65c802460e3080218b6f17c69502b05bdaa1327",
+      "completedAt": "2026-07-30T20:38:07.632Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "C4",
+          "OOS1",
+          "OOS2",
+          "OOS3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "This task changes agent-facing policy guidance, not runtime behavior. Verification is a structural policy/readiness check; the non-code acceptance regression belongs to the integration-verification task.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDurableTestEvidence",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+          "task_id": "tk-f017dedd9b87",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f017dedd9b87"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "ADV_INSTRUCTIONS.md",
+            ".opencode/command/adv-apply.md",
+            ".opencode/command/adv-prep.md",
+            ".opencode/command/adv-task.md",
+            ".opencode/command/adv-review.md",
+            ".opencode/command/adv-harden.md",
+            ".opencode/agents/adv-engineer.md",
+            ".opencode/agents/adv-designer.md"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6u335e_1aa5d7fe",
+              "command": "bin/oc-test targeted -- src/adv-prep-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Passed: 1 file and 8 asset tests; confirms prep guidance remains structurally discoverable."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Made typed deliverable, evidence policy, proof target, and TDD intent the proof selector across canonical guidance and task packets.",
+              "why": "Prevents titles, generic agent prose, or coverage preference from imposing test evidence."
+            },
+            {
+              "what": "Retained red/green only for behavior-bearing inline code and declared non-test routes sufficient for non-code work.",
+              "why": "Preserves TDD where behavior changes need executable proof without manufacturing irrelevant adv_run_test evidence."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "plugin/src/temporal/change-state.test.ts",
+              "plugin/src/temporal/gate-readiness.test.ts"
+            ],
+            "details": "These files became modified during the task but are outside the docs/policy scope and were not edited by this agent.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Unowned concurrent changes exist in plugin/src/temporal/change-state.test.ts and plugin/src/temporal/gate-readiness.test.ts; leave them intact."
+          ],
+          "required_main_agent_actions": [
+            "Preserve or coordinate the unowned Temporal test-file changes before checkpointing this task."
+          ],
+          "related_scan": "Updated all in-scope shipped task-generation, apply/remediation packet, and engineer/designer guidance that generically required tests; no runtime resolver, test, or spec-delta files were edited.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Guidance now selects proof from typed deliverable/type, evidence_policy, proof_target, and tdd_intent. Valid non-test work requires neither adv_run_test nor red/green; behavior-bearing inline code still uses TDD. Two unrelated Temporal test files are concurrently modified and untouched.",
+            "suggested_next_action": "Review the docs diff and coordinate the unowned Temporal test changes before task checkpointing."
+          }
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixDurableTestEvidence",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+          "task_id": "tk-f017dedd9b87",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f017dedd9b87"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            ".opencode/agents/adv-engineer.md",
+            ".opencode/agents/adv-designer.md",
+            "ADV_INSTRUCTIONS.md",
+            "plugin/src/adv-engineer-assets.test.ts",
+            "plugin/src/adv-designer-assets.test.ts",
+            "plugin/src/adv-instructions-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms6ugjzx_5978c0de",
+              "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-instructions-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Passed 99 focused asset tests. The report schema currently requires this durable ID; the task's selected static-check proof passed separately without an ID."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Limit adv_run_test run IDs to selected test execution and retained inline red/green TDD.",
+              "why": "Static checks can prove their task through the executed command and result, while valid non-test policies require neither proof form."
+            },
+            {
+              "what": "Add focused asset assertions for engineer, designer, and canonical instruction guidance.",
+              "why": "Prevents a future wording change from reintroducing a static-check test-run requirement."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": {
+            "items": [
+              "plugin/src/tools/subagent-report.ts",
+              "plugin/src/temporal/gate-readiness.ts",
+              "plugin/src/temporal/gate-readiness.test.ts"
+            ],
+            "details": "The current typed-v1 report validator and evidence gate still require a durable adv_run_test ID for static_check. This remediation owns guidance only; changing runtime evidence enforcement exceeds its scoped objective.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Align typed-v1 verification validation and static_check gate-readiness behavior with the task-appropriate static command/result evidence policy."
+          ],
+          "required_main_agent_actions": [
+            "Decide whether to schedule runtime/schema enforcement alignment for static_check; this report includes a test run ID solely because the current strict report schema rejects static-check evidence without one."
+          ],
+          "related_scan": "Reviewed all guidance files touched by attempt 1. Corrected the erroneous static-check rule in both worker prompts and ADV_INSTRUCTIONS; other prior-owned guidance did not impose a static-check run-ID requirement.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC4/C4 guidance defect corrected: test execution retains same-task adv_run_test IDs; static checks use command/result proof without a test-run ID; valid non-test policies require neither. Focused asset tests pass (99 tests). Current report/gate runtime still requires a run ID for static_check and needs a separate scoped alignment.",
+            "suggested_next_action": "Review remediation diff and runtime-enforcement follow-up before checkpointing."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms6ugjzx_5978c0de"
+            }
+          ]
+        }
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-30T01:29:49.645Z"
+    },
+    {
+      "id": "tk-d238a621082c",
+      "title": "Stage exact-evidence spec-law delta",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-07-30T01:00:00.678Z",
+      "started_at": "2026-07-30T01:30:28.474Z",
+      "completed_at": "2026-07-30T01:31:19.444Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Validated and staged two schema-valid change-owned spec deltas: exact acceptance-time typed-run re-resolution and task-appropriate non-test evidence routing.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "2cb13e845cf1414d0fe049bf15dbc2e561593d73",
+      "completedAt": "2026-07-30T01:31:19.444Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "The deliverable is a typed change-owned spec delta. Its proof is schema-valid staged requirement text and scenario review, not a runtime test.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline"
+      },
+      "touched_files": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:durable-evidence-and-proof-policy"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: acceptance-time durable evidence re-resolution, later-report supersession, non-test policy preservation, 20-entry retention fail-closed",
+      "sources": [
+        {
+          "label": "gate-readiness.ts checkUnresolvedVerificationEvidence (acceptance authority)",
+          "locator": "plugin/src/temporal/gate-readiness.ts:704-744",
+          "summary": "Acceptance reads report.consumer_warnings (frozen submit-time warnings) via latestVerificationReportsForTask; does NOT re-resolve typed entries against current durable testRuns. Remediation requires re-submitting a report even when durable evidence exists. Confirmed root cause."
+        },
+        {
+          "label": "subagent-report.ts verificationWarnings typed binding + ingestion call",
+          "locator": "plugin/src/tools/subagent-report.ts:471-601,888-893",
+          "summary": "Submit-time resolver already implements rq-subagentReports25 typed provenance: entry.test_run_id (canonical)/run_id (alias) -> exact-key durableByRunId.get(runId) -> compare exitCode; missing/mismatch -> verification_missing/verification_mismatch. Legacy command-only entries keep exact-command binding. Called at ingestion with change.test_runs?.[taskId]. Design's 'shared resolver' = this function reused at acceptance."
+        },
+        {
+          "label": "testRuns ring-buffer field + writer",
+          "locator": "plugin/src/temporal/contracts.ts:573-578; plugin/src/temporal/change-state.ts:820-844",
+          "summary": "state.testRuns keyed by taskId, ring-buffered last TEST_RUN_RING_BUFFER_LIMIT (20) via [...existing, record].slice(-20). Evicted runId -> undefined -> verification_missing blocker. Confirms fail-closed retention (concern 4)."
+        },
+        {
+          "label": "state.testRuns <-> change.test_runs bidirectional mirror",
+          "locator": "plugin/src/storage/store-temporal/shared.ts:104; plugin/src/temporal/change-state.ts:260",
+          "summary": "safeState.testRuns -> change.test_runs and safeChange.test_runs -> state.testRuns. Resolver reading either source sees identical data; ingestion (change.test_runs) and acceptance (state.testRuns) deterministic and consistent."
+        },
+        {
+          "label": "latest-wins supersession by attempt, per agent",
+          "locator": "plugin/src/temporal/gate-readiness.ts:689-702",
+          "summary": "latestVerificationReportsForTask keeps highest-attempt report per agent. Supersession by LATER REPORT; each report satisfied by its OWN cited runId (exact-key). Arbitrary later green run cannot satisfy an entry it is not cited in. Confirms concern 2."
+        },
+        {
+          "label": "Spec rq-verificationEvidence01 clearing condition (a)",
+          "locator": ".adv/specs/advance-workflow/spec.json:5408 (rq-verificationEvidence01)",
+          "summary": "Current MUST: blocker clears via '(a) a newer warning-free report ... (latest-wins durable evidence)'. 'warning-free' ambiguous submit-time vs acceptance-time post-change. Spec MUST update to state acceptance re-resolves latest applicable report's typed entries against current durable records. Design Spec-obligations gestures at this but does not pin the (a) wording."
+        },
+        {
+          "label": "Spec rq-subagentReports25 typed run binding",
+          "locator": ".adv/specs/subagent-reports/spec.json:1250 (rq-subagentReports25)",
+          "summary": "Already mandates test_run_id canonical / run_id alias with (runId, exitCode) identity, command label descriptive-only, legacy command-only compatibility. Implemented at submission. Design reuses, does not redefine."
+        },
+        {
+          "label": "Evidence-policy authority (non-test preservation)",
+          "locator": "plugin/src/temporal/gate-readiness.ts:720-723 (resolveTaskEvidence + isProofBearingEvidencePolicy)",
+          "summary": "Acceptance gates VERIFICATION_EVIDENCE_MISSING only for proof-bearing (test, static_check, review, artifact_reference); non-proof (source_citation, source_audit, rubric_review, stakeholder_acceptance, design_proof, not_applicable) stay warn-first. TDD red/green ordering enforced separately (rq-TDD009seq), untouched. Confirms concern 3: no widening."
+        }
+      ],
+      "architecture_assessment": "Design structurally sound; leans on machinery already implemented. Root cause confirmed: gate-readiness acceptance trusts frozen submit-time consumer_warnings (gate-readiness.ts:725-730) instead of re-resolving the latest report's typed verification entries against current state.testRuns. The exact-identity typed resolver the design proposes ALREADY exists at report ingestion (verificationWarnings, subagent-report.ts:471-601) with rq-subagentReports25 provenance; the change extracts it into a shared deterministic resolver and ALSO invokes it at acceptance reading state.testRuns[taskId] (mirrored as change.test_runs). changeId identity enforced STRUCTURALLY by workflow isolation (testRuns in ChangeWorkflowState, one per change) - stronger than design prose implies; no cross-change leakage possible. Supersession = latest-report-by-attempt + exact-runId satisfaction (report's own cited runId) so unrelated green run cannot substitute (concern 2). No TDD/adv_run_test widening; non-test policies preserved via existing resolveTaskEvidence/isProofBearingEvidencePolicy (concern 3). 20-entry ring (.slice(-20)) -> undefined lookup -> explicit verification_missing blocker; fails closed (concern 4).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All four asked questions pass structurally. Two execution-phase follow-ups (not design defects): (1) rq-verificationEvidence01 clearing condition (a) wording must be rewritten to define acceptance-time re-resolution so 'warning-free' is unambiguous; (2) add a positive regression that a behavior-bearing TDD task's final report cites a runId still resident in the 20-entry ring (current negative case only proves evicted IDs block). Pre-existing repo note: root-level tools/ and temporal/ duplicate plugin/src/ copies; per AGENTS.md plugin/ is the only shipped code, so implementation MUST edit plugin/src/."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Acceptance-time live re-resolution vs frozen submit-time warnings: correct, removes false blockers, but acceptance now depends on state.testRuns being current at eval time (mitigated: testRuns is part of same ChangeWorkflowState evaluator already reads -> always consistent).",
+          "20-entry ring fails closed correctly, but a TDD-heavy task producing >20 runs before its final report could self-evict the cited runId and block despite legitimate work; design defers ring expansion contingent on regression evidence.",
+          "Reusing verificationWarnings resolver at both ingestion and acceptance maximizes locality/single-source-of-truth (P04/P19) but couples the two sites; future resolver changes affect both submit diagnostics and acceptance authority (desirable).",
+          "changeId identity is structural (workflow isolation) not a string field; stronger audit boundary but design prose '{changeId, taskId, runId}' triple could mislead a future implementer into adding a redundant/forgeable changeId string compare."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Recompute and rewrite persisted report consumer_warnings at acceptance (mutate stored report)",
+            "disposition": "rejected",
+            "rationale": "Violates audit immutability and re-entry determinism; report is a submission-time artifact. Read-only re-resolution against current state.testRuns preserves frozen report and recomputes authority fresh each eval."
+          },
+          {
+            "option": "Trust submit-time consumer_warnings forever (status quo); force re-submit after durable evidence arrives",
+            "disposition": "rejected",
+            "rationale": "Observed false-blocker problem; pressures agents to repeat evidence work, produces stale verification_missing. Fails AC1/AC2."
+          },
+          {
+            "option": "Accept any latest successful green run for the task (loose 'latest successful')",
+            "disposition": "rejected",
+            "rationale": "Directly violates AC3 + design constraint; enables substituting an unrelated run. Exact runId binding mandatory."
+          },
+          {
+            "option": "Expand ring buffer beyond 20 as part of this change",
+            "disposition": "deferred",
+            "rationale": "Design defers retention expansion as separate work unless regression shows bound blocks normal workflows. Reasonable scope discipline; fail-closed already correct."
+          }
+        ],
+        "recommendation": "Proceed to planning/execution. Bake in three corrections: (a) Rewrite rq-verificationEvidence01 clearing condition (a) to define acceptance-time exact-run re-resolution so 'warning-free' is unambiguous; forbid silent grandfathering (already stated). (b) Extract shared resolver, wire into checkUnresolvedVerificationEvidence reading state.testRuns[taskId]; add acceptance-level integration (AC2: earlier-invalid-then-later-valid) AND a positive ring-residency regression for TDD tasks; document >20-run fail-closed UX (re-record/cite resident runId, or typed disposition). (c) Spec/prose: state changeId identity is structural (workflow isolation), explicit match key is {taskId, runId}+exitCode, to prevent a redundant forgeable changeId string compare."
+      },
+      "recommendation": "VALIDATION: pass. Design sound; reuses implemented typed-binding machinery. Implement shared resolver extraction, wire into checkUnresolvedVerificationEvidence reading state.testRuns[taskId], update rq-verificationEvidence01 (a) wording, add AC2 + ring-residency regression. Edit only plugin/src/ (shipped), not root tools/ duplicates.",
+      "follow_ups": [
+        "[spec|must] Rewrite rq-verificationEvidence01 clearing condition (a) to define acceptance-time exact-run re-resolution; remove 'warning-free' ambiguity (spec drift risk).",
+        "[tests|must] Add acceptance-level integration: earlier invalid report then later valid typed report -> only later evidence governs (AC2). Add positive ring-residency regression for TDD tasks; document >20-run fail-closed UX (AC6 coverage).",
+        "[impl-guardrail|should] All edits in plugin/src/ (temporal/gate-readiness.ts, tools/subagent-report.ts, specs). Root-level tools/ and temporal/ are vestigial duplicates, NOT shipped.",
+        "[spec-prose|should] Clarify changeId identity is structural (workflow isolation); explicit match key is {taskId, runId}+exitCode. Prevents redundant forgeable changeId string compare."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "task_id": "tk-90f4b32a8302",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-90f4b32a8302"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/utils/typed-verification-evidence.ts",
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/gate-readiness.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6tn03u_0802551e",
+          "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+          "exit_code": 0,
+          "summary": "172 focused tests passed; TypeScript typecheck and Prettier checks passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extracted exact typed run-ID resolution into a Temporal-safe utility.",
+          "why": "Acceptance readiness and report submission now share one resolver without making the workflow import the tools layer."
+        },
+        {
+          "what": "Re-resolve typed reports only at readiness; retain persisted warnings for legacy reports.",
+          "why": "Current task-local durable evidence is authoritative for typed reports while legacy command-based warning behavior remains unchanged."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Covered missing/evicted exact run IDs, exit-code mismatch, matching exact IDs with cosmetic command differences, and unrelated-green non-substitution in the acceptance readiness test suite.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Acceptance/readiness now re-resolves typed engineer/designer evidence against current task-local workflow runs. Legacy warnings remain advisory inputs; no task/gate state or agent guidance changed.",
+        "suggested_next_action": "Review the diff and proceed with the next scoped task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6tn03u_0802551e"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "task_id": "tk-90f4b32a8302",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-90f4b32a8302"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/temporal/gate-readiness.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6tqsdp_e52b5044",
+          "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+          "exit_code": 0,
+          "summary": "173 focused tests passed; TypeScript typecheck and Prettier checks passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Resolved report verification per entry rather than per report.",
+          "why": "Mixed reports now exact-resolve typed entries while retaining immutable legacy consumer warnings when untyped entries are present."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Verified the same acceptance readiness path for typed-only, legacy-only, and mixed typed/legacy report entries.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Mixed report entries no longer suppress legacy verification warnings: typed entries re-resolve by exact durable run ID, while any untyped entry retains existing warning-based behavior.",
+        "suggested_next_action": "Review the updated mixed-entry regression and proceed with the next scoped task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6tqsdp_e52b5044"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "task_id": "tk-c2e6a4e3faca",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-c2e6a4e3faca"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/temporal/change-state.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6u2fq4_bcad53ec",
+          "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts && pnpm --dir plugin exec prettier --check src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+          "exit_code": 0,
+          "summary": "202 focused tests passed; Prettier check passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Covered acceptance through evaluateGateReadiness rather than only the resolver.",
+          "why": "The regressions verify latest-report selection and exact task-local run identity at the acceptance boundary."
+        },
+        {
+          "what": "Kept non-code and inline-TDD checks in change-state completion tests.",
+          "why": "Those routes enforce task completion before acceptance and prove non-test work is exempt without weakening behavior-bearing code."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Added acceptance-boundary cases for late valid evidence and cross-task, missing, mismatched, and evicted run IDs; added task-completion cases for source-citation work and inline TDD enforcement.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Only the two scoped test files changed. Pre-existing agent-guidance and command-file edits were left untouched.",
+        "suggested_next_action": "Review the scoped test diff and continue remaining change tasks."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6u2fq4_bcad53ec"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "task_id": "tk-f017dedd9b87",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f017dedd9b87"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "ADV_INSTRUCTIONS.md",
+        ".opencode/command/adv-apply.md",
+        ".opencode/command/adv-prep.md",
+        ".opencode/command/adv-task.md",
+        ".opencode/command/adv-review.md",
+        ".opencode/command/adv-harden.md",
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-designer.md"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6u335e_1aa5d7fe",
+          "command": "bin/oc-test targeted -- src/adv-prep-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Passed: 1 file and 8 asset tests; confirms prep guidance remains structurally discoverable."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Made typed deliverable, evidence policy, proof target, and TDD intent the proof selector across canonical guidance and task packets.",
+          "why": "Prevents titles, generic agent prose, or coverage preference from imposing test evidence."
+        },
+        {
+          "what": "Retained red/green only for behavior-bearing inline code and declared non-test routes sufficient for non-code work.",
+          "why": "Preserves TDD where behavior changes need executable proof without manufacturing irrelevant adv_run_test evidence."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "plugin/src/temporal/change-state.test.ts",
+          "plugin/src/temporal/gate-readiness.test.ts"
+        ],
+        "details": "These files became modified during the task but are outside the docs/policy scope and were not edited by this agent.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Unowned concurrent changes exist in plugin/src/temporal/change-state.test.ts and plugin/src/temporal/gate-readiness.test.ts; leave them intact."
+      ],
+      "required_main_agent_actions": [
+        "Preserve or coordinate the unowned Temporal test-file changes before checkpointing this task."
+      ],
+      "related_scan": "Updated all in-scope shipped task-generation, apply/remediation packet, and engineer/designer guidance that generically required tests; no runtime resolver, test, or spec-delta files were edited.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Guidance now selects proof from typed deliverable/type, evidence_policy, proof_target, and tdd_intent. Valid non-test work requires neither adv_run_test nor red/green; behavior-bearing inline code still uses TDD. Two unrelated Temporal test files are concurrently modified and untouched.",
+        "suggested_next_action": "Review the docs diff and coordinate the unowned Temporal test changes before task checkpointing."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "review-evidence-policy-1",
+          "label": "issue",
+          "file": "ADV_INSTRUCTIONS.md",
+          "line": 409,
+          "what": "Guidance says selected `static_check` routes should use `adv_run_test`, and generated engineer/designer packet text requires same-task run IDs for static-check rows.",
+          "why": "`static_check` is an allowed non-test evidence policy for non-code work, but AC4/C4 require that valid non-test routes not manufacture `adv_run_test`, red/green, or test-run-ID obligations. The conflicting instructions create precisely the fake obligation this change is intended to remove.",
+          "fix": "Update the matching guidance in ADV_INSTRUCTIONS.md, .opencode/agents/adv-engineer.md, .opencode/agents/adv-designer.md, and .opencode/command/adv-apply.md: require run IDs only when evidence actually comes from `adv_run_test`; allow static-check proof as declared evidence without a test-run ID."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Evidence-policy vocabulary must remain semantically aligned across prep, agent packets, and acceptance guidance: `static_check` is a valid non-test policy and must not implicitly require `adv_run_test` or typed run IDs."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Exit 0: 3 files, 268 tests passed. Diff inspection confirms exact task-local run-ID and exit-code re-resolution; late valid reports replace prior invalid reports by attempt; missing, cross-task, mismatch, and eviction cases fail closed; non-code source-citation completion and inline TDD preservation regressions are covered. `git diff --name-only origin/trunk...HEAD` shows no package or lockfile changes."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Guidance conflict can cause future non-code static-check tasks to create unnecessary `adv_run_test` evidence, even though runtime completion supports non-test evidence policies.",
+        "No repo write was applied because this delegated session lacks an edit/write tool that can target the locked ADV worktree; `apply_patch` has no workdir and `morph_edit` is session-root confined."
+      ],
+      "required_main_agent_actions": [
+        "Apply the in-scope guidance correction, then rerun the focused suite above.",
+        "Re-review AC4/C4 after correcting all matching static-check run-ID wording; no gate or task state changes were made by this reviewer."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "task_id": "tk-f017dedd9b87",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f017dedd9b87"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".opencode/agents/adv-engineer.md",
+        ".opencode/agents/adv-designer.md",
+        "ADV_INSTRUCTIONS.md",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-instructions-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms6ugjzx_5978c0de",
+          "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-instructions-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Passed 99 focused asset tests. The report schema currently requires this durable ID; the task's selected static-check proof passed separately without an ID."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Limit adv_run_test run IDs to selected test execution and retained inline red/green TDD.",
+          "why": "Static checks can prove their task through the executed command and result, while valid non-test policies require neither proof form."
+        },
+        {
+          "what": "Add focused asset assertions for engineer, designer, and canonical instruction guidance.",
+          "why": "Prevents a future wording change from reintroducing a static-check test-run requirement."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": {
+        "items": [
+          "plugin/src/tools/subagent-report.ts",
+          "plugin/src/temporal/gate-readiness.ts",
+          "plugin/src/temporal/gate-readiness.test.ts"
+        ],
+        "details": "The current typed-v1 report validator and evidence gate still require a durable adv_run_test ID for static_check. This remediation owns guidance only; changing runtime evidence enforcement exceeds its scoped objective.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Align typed-v1 verification validation and static_check gate-readiness behavior with the task-appropriate static command/result evidence policy."
+      ],
+      "required_main_agent_actions": [
+        "Decide whether to schedule runtime/schema enforcement alignment for static_check; this report includes a test run ID solely because the current strict report schema rejects static-check evidence without one."
+      ],
+      "related_scan": "Reviewed all guidance files touched by attempt 1. Corrected the erroneous static-check rule in both worker prompts and ADV_INSTRUCTIONS; other prior-owned guidance did not impose a static-check run-ID requirement.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC4/C4 guidance defect corrected: test execution retains same-task adv_run_test IDs; static checks use command/result proof without a test-run ID; valid non-test policies require neither. Focused asset tests pass (99 tests). Current report/gate runtime still requires a run ID for static_check and needs a separate scoped alignment.",
+        "suggested_next_action": "Review remediation diff and runtime-enforcement follow-up before checkpointing."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms6ugjzx_5978c0de"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [
+        {
+          "id": "acceptance-evidence-2",
+          "label": "issue",
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "line": 741,
+          "what": "A static-check verification entry with any nonempty command is accepted without checking that its `exit_code` represents a successful check.",
+          "why": "`resolveTypedVerificationWarnings` returns no warning for entries without a run ID, and `hasCleanTypedProof` then suppresses persisted warnings. Thus a failed static check can satisfy AC4's command/result route and clear acceptance evidence.",
+          "fix": "Require `entry.exit_code === 0` for command-based static-check proof; preserve typed-run handling and add a regression for `exit_code: 1` remaining blocked."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When adapting typed evidence resolution for a non-run policy, do not treat resolver silence for untyped entries as proof validity. Validate the policy-specific success signal before suppressing submission-time warnings."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "113 gate-readiness tests passed. Full check passed with 0 errors; ESLint emitted 3 pre-existing unused eslint-disable warnings in src/utils/manifest-frontmatter.ts. The current tests cover command presence but not a nonzero static-check exit code."
+      },
+      "scope_drift": null,
+      "risks": [
+        "A failed static check can currently clear acceptance evidence, weakening the policy-selected proof route.",
+        "Worktree is 12 commits behind trunk; review reflects this clean worktree snapshot."
+      ],
+      "required_main_agent_actions": [
+        "Apply the scoped gate-readiness fix requiring exit_code 0 for command-based static_check proof and add the missing regression, then re-run focused tests and pnpm check."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/gate-readiness.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixDurableTestEvidence",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixDurableTestEvidence",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/gate-readiness.ts",
+          "summary": "Formatted the newly added static-check success guard so the required full check passes; no behavior changed.",
+          "verification": "114 focused gate-readiness tests, pnpm check, and git diff --check passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "AC4 static-check routing now preserves strict test-run identity for test evidence while allowing command/result proof only when a static check reports exit_code 0; explicit missing and nonzero regressions protect both boundaries."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+          "pnpm --dir plugin run check",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "114 focused tests passed. Plugin check passed: schema/type/manifest/frontmatter/isolation/lockfile/lint/Prettier checks completed with 0 errors; ESLint reported 3 existing unused eslint-disable warnings in src/utils/manifest-frontmatter.ts. Diff check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree remains 12 commits behind trunk; review evidence applies to this clean change-branch snapshot aside from the reviewer formatting edit."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint the reviewer formatting edit in plugin/src/temporal/gate-readiness.ts before final acceptance processing."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/gate-readiness.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-90f4b32a8302": [
+      {
+        "runId": "tr_ms6tgc41_fc8ace0c",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm --dir plugin test -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 300064.05919400044,
+        "recordedAt": "2026-07-30T01:09:43.672Z"
+      },
+      {
+        "runId": "tr_ms6tgqvg_99f7c09b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2215.049314999953,
+        "recordedAt": "2026-07-30T01:10:02.778Z"
+      },
+      {
+        "runId": "tr_ms6tifa3_d2645a1f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2104.4462259998545,
+        "recordedAt": "2026-07-30T01:11:21.067Z"
+      },
+      {
+        "runId": "tr_ms6tj2mt_06210674",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts",
+        "durationMs": 5755.775231000036,
+        "recordedAt": "2026-07-30T01:11:51.351Z"
+      },
+      {
+        "runId": "tr_ms6tje2e_e0487ddc",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 10487.736419000663,
+        "recordedAt": "2026-07-30T01:12:06.151Z"
+      },
+      {
+        "runId": "tr_ms6tjy6t_b611c68e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 10352.565903000534,
+        "recordedAt": "2026-07-30T01:12:32.230Z"
+      },
+      {
+        "runId": "tr_ms6tk60c_990d5cdb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts",
+        "durationMs": 5226.922544999979,
+        "recordedAt": "2026-07-30T01:12:42.362Z"
+      },
+      {
+        "runId": "tr_ms6tkkx3_745faf27",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+        "durationMs": 1195.1316840006039,
+        "recordedAt": "2026-07-30T01:13:01.687Z"
+      },
+      {
+        "runId": "tr_ms6tma9i_7151c84c",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+        "durationMs": 1194.643781999126,
+        "recordedAt": "2026-07-30T01:14:21.206Z"
+      },
+      {
+        "runId": "tr_ms6tmhox_53675ead",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec prettier --write src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts",
+        "durationMs": 1025.8362680003047,
+        "recordedAt": "2026-07-30T01:14:30.819Z"
+      },
+      {
+        "runId": "tr_ms6tn03u_0802551e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+        "durationMs": 17633.89035499934,
+        "recordedAt": "2026-07-30T01:14:54.681Z"
+      },
+      {
+        "runId": "tr_ms6tp53p_9ade2136",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 1903.5220649996772,
+        "recordedAt": "2026-07-30T01:16:34.468Z"
+      },
+      {
+        "runId": "tr_ms6tpmf6_84e1fdc5",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2003.637419000268,
+        "recordedAt": "2026-07-30T01:16:56.934Z"
+      },
+      {
+        "runId": "tr_ms6tq4uf_2e2f1b3a",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+        "durationMs": 18293.176846999675,
+        "recordedAt": "2026-07-30T01:17:20.793Z"
+      },
+      {
+        "runId": "tr_ms6tqa2r_ce0d45bf",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec prettier --write src/temporal/gate-readiness.ts",
+        "durationMs": 921.8291929997504,
+        "recordedAt": "2026-07-30T01:17:27.575Z"
+      },
+      {
+        "runId": "tr_ms6tqsdp_e52b5044",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/subagent-report.test.ts src/temporal/gate-readiness.test.ts && pnpm --dir plugin run typecheck && pnpm --dir plugin exec prettier --check src/tools/subagent-report.ts src/temporal/gate-readiness.ts src/temporal/gate-readiness.test.ts src/utils/typed-verification-evidence.ts",
+        "durationMs": 18256.702477999963,
+        "recordedAt": "2026-07-30T01:17:51.297Z"
+      }
+    ],
+    "tk-c2e6a4e3faca": [
+      {
+        "runId": "tr_ms6ty4nm_3fc426e0",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 2648.4954749997705,
+        "recordedAt": "2026-07-30T01:23:33.793Z"
+      },
+      {
+        "runId": "tr_ms6tyg2q_e86ea08c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 2651.967281999998,
+        "recordedAt": "2026-07-30T01:23:48.623Z"
+      },
+      {
+        "runId": "tr_ms6tyngb_f9934aef",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec prettier --check src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 1264.8519400004297,
+        "recordedAt": "2026-07-30T01:23:58.188Z"
+      },
+      {
+        "runId": "tr_ms6u02y9_c2ddee69",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec prettier --check src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 1260.6173329995945,
+        "recordedAt": "2026-07-30T01:25:04.915Z"
+      },
+      {
+        "runId": "tr_ms6u0dzr_c82f3f31",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec prettier src/temporal/gate-readiness.test.ts",
+        "durationMs": 1044.9657260002568,
+        "recordedAt": "2026-07-30T01:25:19.215Z"
+      },
+      {
+        "runId": "tr_ms6u1sub_2f674c1a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts && pnpm --dir plugin exec prettier --check src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 3346.6421799995005,
+        "recordedAt": "2026-07-30T01:26:25.107Z"
+      },
+      {
+        "runId": "tr_ms6u2fq4_bcad53ec",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts && pnpm --dir plugin exec prettier --check src/temporal/gate-readiness.test.ts src/temporal/change-state.test.ts",
+        "durationMs": 3180.7373449997976,
+        "recordedAt": "2026-07-30T01:26:54.763Z"
+      }
+    ],
+    "tk-f017dedd9b87": [
+      {
+        "runId": "tr_ms6u335e_1aa5d7fe",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-prep-assets.test.ts",
+        "durationMs": 1373.5110859991983,
+        "recordedAt": "2026-07-30T01:27:25.121Z"
+      },
+      {
+        "runId": "tr_ms6ug0u4_2b8efc85",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-instructions-assets.test.ts",
+        "durationMs": 2003.1766680004075,
+        "recordedAt": "2026-07-30T01:37:28.672Z"
+      },
+      {
+        "runId": "tr_ms6ugjzx_5978c0de",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-instructions-assets.test.ts",
+        "durationMs": 1981.2973679993302,
+        "recordedAt": "2026-07-30T01:37:53.503Z"
+      },
+      {
+        "runId": "tr_ms7yexn2_bca7fd9d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-instructions-assets.test.ts src/adv-prep-assets.test.ts",
+        "durationMs": 3937.4185989992693,
+        "recordedAt": "2026-07-30T20:16:22.576Z"
+      },
+      {
+        "runId": "tr_ms7ynmgj_3bb60dd5",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 3511.6791639998555,
+        "recordedAt": "2026-07-30T20:23:07.960Z"
+      },
+      {
+        "runId": "tr_ms7ypqtz_d49d187d",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 2855.3950140001252,
+        "recordedAt": "2026-07-30T20:24:46.964Z"
+      },
+      {
+        "runId": "tr_ms7yqmip_688e6b19",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 3083.81355200056,
+        "recordedAt": "2026-07-30T20:25:27.995Z"
+      },
+      {
+        "runId": "tr_ms7yru4b_97d7d2f1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 3240.267125999555,
+        "recordedAt": "2026-07-30T20:26:24.481Z"
+      },
+      {
+        "runId": "tr_ms7ysxj9_de40bc32",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 30094.269931999967,
+        "recordedAt": "2026-07-30T20:27:15.560Z"
+      },
+      {
+        "runId": "tr_ms7yvoy1_1035cd29",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 117450.02792900056,
+        "recordedAt": "2026-07-30T20:29:24.404Z"
+      },
+      {
+        "runId": "tr_ms7yynbe_f92182b3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 107650.01250500046,
+        "recordedAt": "2026-07-30T20:31:42.260Z"
+      },
+      {
+        "runId": "tr_ms7z66yc_6d9d45f2",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+        "durationMs": 5966.747470000759,
+        "recordedAt": "2026-07-30T20:37:34.352Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-workflow": [
+      {
+        "id": "dl-k9P2xQ7mN4vR6sT8wY1zC",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-verificationEvidenceFreshness01",
+          "title": "Acceptance Re-resolves Typed Durable Verification Evidence",
+          "body": "For a proof-bearing task, acceptance and release readiness MUST evaluate typed verification entries against current task-local durable test-run records, not solely submission-time consumer warnings. The workflow state is the change boundary; within it, a typed entry is valid only when its task ID, cited run ID, and reported exit code match a current record. The latest applicable report attempt may supersede an earlier invalid report only through its own valid cited record. Missing, mismatched, cross-task, or evicted IDs MUST remain explicit blockers. An unrelated successful run MUST NOT substitute for a cited ID.",
+          "priority": "must",
+          "tags": [
+            "verification",
+            "acceptance",
+            "durable-evidence",
+            "auditability"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-verificationEvidenceFreshness01.1",
+              "title": "Later valid typed report supersedes earlier invalid report",
+              "given": [
+                "A proof-bearing task has an earlier report with missing or invalid typed test evidence",
+                "A later applicable report cites a durable run record for the same task with a matching exit code"
+              ],
+              "when": "Acceptance readiness evaluates the task",
+              "then": [
+                "The earlier report warning does not block the task",
+                "The later report is accepted only by its cited run ID and exit code"
+              ]
+            },
+            {
+              "id": "rq-verificationEvidenceFreshness01.2",
+              "title": "Unrelated or unavailable runs fail closed",
+              "given": [
+                "A typed verification entry cites a missing, evicted, mismatched, or different-task run ID",
+                "Another successful durable run may exist for the change"
+              ],
+              "when": "Acceptance readiness evaluates the task",
+              "then": [
+                "Acceptance remains blocked with an explicit verification-evidence reason",
+                "The other successful run is not substituted"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "tdd-contract": [
+      {
+        "id": "dl-r4N8pL2vQ7xM5sK9wT1yB",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-TDD014policyRoute",
+          "title": "Typed Evidence Policy Prevents Manufactured Test Work",
+          "body": "Task deliverable type, normalized evidence policy and proof target, and explicit TDD intent MUST determine the required proof route. A valid non-test route for non-code work MUST NOT require adv_run_test, red/green phases, or a test-run ID. Task titles, generic agent instructions, and a desire for coverage are advisory and MUST NOT create a test obligation. Behavior-bearing inline code retains its existing red/green requirements; this rule does not weaken proof for that work.",
+          "priority": "must",
+          "tags": [
+            "tdd",
+            "evidence-policy",
+            "non-code",
+            "agent-guidance"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-TDD014policyRoute.1",
+              "title": "Non-code policy route does not require test runs",
+              "given": [
+                "A non-code task has a valid non-test evidence policy and the policy-required proof"
+              ],
+              "when": "Task completion or acceptance evaluates its evidence",
+              "then": [
+                "No adv_run_test, red/green phase, or test-run ID is required",
+                "The policy-required proof remains required"
+              ]
+            },
+            {
+              "id": "rq-TDD014policyRoute.2",
+              "title": "Behavior-bearing inline code retains TDD",
+              "given": [
+                "A behavior-bearing code task has inline TDD intent"
+              ],
+              "when": "Task completion evaluates its evidence",
+              "then": [
+                "Existing red/green ordering and proof requirements remain enforceable",
+                "A non-test policy route is not inferred from titles or agent prose"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-30T00:48:46.839Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed the problem statement and expanded scope: repair stale typed durable evidence handling while reducing inappropriate testing pressure for non-behavior-bearing work.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "38ea8c11cb396324d762656fd0d4a3d6f878ebc92671cee088347cfa4975e368",
+        "non_whitespace_chars": 2973,
+        "checked_at": "2026-07-30T00:43:55.036Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-30T00:51:59.440Z",
+      "completed_by": "agent",
+      "approval_evidence": "Agreement approved and typed strict contract minted; discovery confirmed exact run identity, stale-warning mechanism, bounded retention, and appropriate non-test evidence routes.",
+      "started_at": "2026-07-30T00:51:40.055Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "non_whitespace_chars": 1916,
+        "checked_at": "2026-07-30T00:43:55.037Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-30T00:58:33.349Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent adv-researcher validation passed. Design uses workflow-scoped exact task/run/exit-code resolution, immutable report diagnostics, acceptance-time re-resolution, fail-closed retention, and policy-selected non-test proof.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "287ecb030eba879a220f1bd258162871e8670a9662808eea19efae2adbc72f8d",
+        "non_whitespace_chars": 2682,
+        "checked_at": "2026-07-30T00:43:55.038Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-30T01:02:46.670Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved four-task graph. Contract coverage is complete; code/test work, non-test policy guidance, and spec-law staging are separated with explicit evidence routes."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-30T01:31:34.426Z",
+      "completed_by": "agent",
+      "approval_evidence": "All four tasks checkpointed. Shared typed evidence resolver, acceptance regressions, policy guidance, and two staged spec deltas are complete."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-30T20:46:56.057Z",
+      "completed_by": "user",
+      "approval_evidence": "Review READY. Contract matrix 14/14. Executive summary persisted. All verification dispositions recorded.",
+      "started_at": "2026-07-30T20:46:30.364Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "80df1b41fe4b2547b121269b4cf55ef666ba19aafb5cfce4636f5ee70802f1b5",
+        "non_whitespace_chars": 461,
+        "checked_at": "2026-07-30T00:43:55.039Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+      "approvedAt": "2026-07-30T00:51:54.861Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a recorded `adv_run_test` result and a typed report citing its returned `runId` for the same change and task, when acceptance evaluates the task, then no `verification_missing` or `verification_mismatch` blocker is emitted for that entry.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given an earlier report for a task has invalid or missing typed test evidence, and a later report attempt cites a valid durable run for that same task, when acceptance evaluates the latest applicable report, then the earlier warning does not block acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a report cites a run ID from a different change or task, or a missing/evicted run ID, when acceptance evaluates it, then acceptance remains blocked with an explicit identity or missing-evidence reason; it must not substitute another successful run.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a non-code task with an allowed non-test evidence policy, when it has the policy’s required evidence, then task completion and acceptance do not require `adv_run_test`, red/green phases, or a test-run ID.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a behavior-bearing code task using inline TDD, when its evidence is evaluated, then existing exact red/green and typed-run requirements remain enforceable; this change does not weaken them.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Automated coverage includes the valid typed-run path and the earlier-invalid-then-later-valid regression path, plus at least one non-code evidence-policy path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Evidence proof must be structurally correlated by `{changeId, taskId, runId}`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "“Latest successful” never means an unrelated green run; it can only mean a later valid report/reference for the same task.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No new dependencies.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "No widening of `adv_run_test` or TDD requirements.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Retention loss remains explicit and auditable; no silent fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Removing verification from behavior-bearing code.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Making acceptance permissive through manual state edits or warning suppression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Replacing evidence policies with a one-size-fits-all testing rule.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-30T20:45:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Gate-readiness tests prove valid typed-run entries do not emit verification_missing."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Latest-wins resolution test proves earlier invalid report no longer blocks when later valid report exists."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Cross-task and evicted run ID tests prove fail-closed identity checking."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "static_check with command/exit_code=0 proof no longer requires run ID; 114 gate-readiness tests pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Behavior-bearing code retains red/green enforcement; test policy unchanged."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Automated coverage includes valid typed-run, earlier-invalid-then-later-valid, and non-code static_check paths."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Evidence proof structurally correlated by {changeId, taskId, runId} for test; command/exit_code for static_check."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Unrelated green runs cannot substitute; latest-wins only for same task."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No new dependencies added."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv_run_test and TDD requirements not widened; existing red/green preserved."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Retention loss explicit and auditable; no silent fallback."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No verification removed from behavior-bearing code."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No permissive manual state edits or warning suppression."
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No one-size-fits-all testing rule."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given a recorded `adv_run_test` result and a typed report citing its returned `runId` for the same change and task, when acceptance evaluates the task, then no `verification_missing` or `verification_mismatch` blocker is emitted for that entry.",
+    "Given an earlier report for a task has invalid or missing typed test evidence, and a later report attempt cites a valid durable run for that same task, when acceptance evaluates the latest applicable report, then the earlier warning does not block acceptance.",
+    "Given a report cites a run ID from a different change or task, or a missing/evicted run ID, when acceptance evaluates it, then acceptance remains blocked with an explicit identity or missing-evidence reason; it must not substitute another successful run.",
+    "Given a non-code task with an allowed non-test evidence policy, when it has the policy’s required evidence, then task completion and acceptance do not require `adv_run_test`, red/green phases, or a test-run ID.",
+    "Given a behavior-bearing code task using inline TDD, when its evidence is evaluated, then existing exact red/green and typed-run requirements remain enforceable; this change does not weaken them.",
+    "Automated coverage includes the valid typed-run path and the earlier-invalid-then-later-valid regression path, plus at least one non-code evidence-policy path."
+  ],
+  "documents": {
+    "proposal": "# Fix durable test evidence\n\n## Problem\nAcceptance can preserve a `verification_missing` warning captured when an earlier report was submitted, even after a later typed report cites a valid durable `adv_run_test` record. This creates false acceptance blockers and encourages agents to repeat evidence work.\n\nAdvance can also pressure agents to create low-value or fake tests for work that is not behavior-bearing code. That adds noise, wastes effort, and can weaken—not strengthen—the evidence record.\n\n## Proposed outcome\n1. Make acceptance re-resolve typed verification evidence by the exact `{changeId, taskId, runId}` identity already carried by a report. A valid later report must supersede an earlier invalid report for the same task without allowing an unrelated successful run to satisfy evidence.\n2. Lighten evidence expectations where tests are not beneficial or are an anti-pattern, while retaining strong verification for behavior-bearing code.\n\n## Scope\n- Test-run recording, report validation, and acceptance readiness for typed durable evidence.\n- Task/evidence-policy classification and agent-facing guidance that causes inappropriate TDD or test expectations.\n- Regression coverage for valid later evidence after earlier invalid reports.\n- Regression coverage proving non-code and non-behavior-bearing work can complete with an appropriate non-test evidence policy.\n\n## Out of scope\n- Removing TDD from behavior-bearing implementation work.\n- Accepting arbitrary successful test runs as proof.\n- Lowering acceptance auditability or allowing unverifiable task completion.\n\n## Guardrails\n- Do not broaden TDD or `adv_run_test` requirements.\n- Do not require test evidence for non-code deliverables; preserve evidence-policy routes.\n- Tests are required only when their executable signal proves behavior-bearing code; use review, static checks, artifacts, source audit, or stakeholder acceptance where those are the correct evidence route.\n- Do not use an arbitrary “latest successful” test run as proof.\n- Keep missing or evicted referenced runs as explicit, auditable blockers.\n\n## Initial validation\nLocal tracing found `adv_run_test` records by task/run ID and typed reports match them at submit time, while acceptance evaluates persisted report warnings rather than current durable run evidence. Existing laws already permit non-code evidence policies; implementation and agent instructions may not consistently honor that boundary. This is a durable behavior and auditability change; it needs proposal-sized design and regression coverage.\n\n## Root Cause Analysis\n- **Symptom:** an earlier `verification_missing` warning can remain effective after valid durable evidence exists.\n- **Cause:** acceptance consumes report-time `consumer_warnings` rather than re-resolving the report’s exact durable run reference.\n- **Evidence:** typed report validation uses `test_run_id` / `run_id` exact matching; acceptance readiness examines persisted warnings; test-run storage is bounded to 20 entries per task.\n- **Contributing cause:** agent-facing evidence expectations can over-apply test/TDD norms to non-code or non-behavior-bearing work.\n- **Safe direction:** preserve exact `{changeId, taskId, runId}` binding; make evidence policy structural and task-appropriate; never substitute a different green run.\n- **Risk:** referenced evidence can be evicted by the bounded ring buffer; design must define retention or an explicit blocker path.\n",
+    "problemStatement": "# Problem Statement\n\nAgents can receive an acceptance blocker for missing verification evidence after a valid `adv_run_test` record and typed report exist. The observable failure is a stale `verification_missing` warning surviving from an earlier invalid report.\n\nAgents can also be pressured to create low-value tests for non-code or non-behavior-bearing tasks. That is an evidence-policy mismatch: it produces weak proof and unnecessary work rather than validating delivered behavior.\n\nExpected behavior: acceptance should evaluate the report’s exact durable evidence identity—`{changeId, taskId, runId}`—and allow a later valid typed report to replace an earlier invalid result. It must not treat an unrelated successful run as evidence. Evidence expectations must select the appropriate proof route by task deliverable and behavior risk, not impose red/green tests universally.\n\n## Root Cause Analysis\n- **Observed behavior:** acceptance reads persisted report warnings, which may reflect evidence state at report submission time.\n- **Expected behavior:** current durable evidence should be resolved against the exact report reference at acceptance.\n- **Primary cause:** report warning snapshots are not re-resolved by acceptance readiness.\n- **Contributing cause:** task evidence classification and agent-facing guidance can over-apply test expectations.\n- **Scope constraint:** retain TDD for behavior-bearing code; do not make non-code or low-risk work manufacture tests.\n- **Retention risk:** test-run evidence is retained in a 20-entry task ring buffer, so old referenced records can be unavailable.\n",
+    "agreement": "# Agreement\n\n## Objectives\n1. Remove false acceptance blockers caused by stale typed test-evidence warnings.\n2. Preserve auditability with exact durable evidence identity at every consumer boundary.\n3. Reduce harmful testing pressure by selecting proof based on task deliverable and behavior risk.\n\n## Acceptance Criteria\n1. Given a recorded `adv_run_test` result and a typed report citing its returned `runId` for the same change and task, when acceptance evaluates the task, then no `verification_missing` or `verification_mismatch` blocker is emitted for that entry.\n2. Given an earlier report for a task has invalid or missing typed test evidence, and a later report attempt cites a valid durable run for that same task, when acceptance evaluates the latest applicable report, then the earlier warning does not block acceptance.\n3. Given a report cites a run ID from a different change or task, or a missing/evicted run ID, when acceptance evaluates it, then acceptance remains blocked with an explicit identity or missing-evidence reason; it must not substitute another successful run.\n4. Given a non-code task with an allowed non-test evidence policy, when it has the policy’s required evidence, then task completion and acceptance do not require `adv_run_test`, red/green phases, or a test-run ID.\n5. Given a behavior-bearing code task using inline TDD, when its evidence is evaluated, then existing exact red/green and typed-run requirements remain enforceable; this change does not weaken them.\n6. Automated coverage includes the valid typed-run path and the earlier-invalid-then-later-valid regression path, plus at least one non-code evidence-policy path.\n\n## Constraints\n- Evidence proof must be structurally correlated by `{changeId, taskId, runId}`.\n- “Latest successful” never means an unrelated green run; it can only mean a later valid report/reference for the same task.\n- No new dependencies.\n- No widening of `adv_run_test` or TDD requirements.\n- Retention loss remains explicit and auditable; no silent fallback.\n\n## Out of Scope\n- Removing verification from behavior-bearing code.\n- Making acceptance permissive through manual state edits or warning suppression.\n- Replacing evidence policies with a one-size-fits-all testing rule.\n",
+    "design": "# Design\n\n## Decision\nAcceptance will re-resolve typed verification entries against current workflow `testRuns` using the report’s exact task ID and run ID. `changeId` is structural: each change owns an isolated workflow state, so the effective proof key is `{taskId, runId, exitCode}` within that change.\n\n## Evidence resolution\n1. Keep `adv_run_test` recording and returned `runId` unchanged.\n2. Keep report-submission warnings as immutable submission-time diagnostics, but do not make those frozen warnings the sole acceptance authority.\n3. Extract the existing deterministic typed-entry resolver for shared use by report ingestion and acceptance readiness:\n   - Input: task ID, typed verification entry, task-local durable run records.\n   - Typed entry: require `test_run_id` / `run_id`; lookup only that ID in that task’s records; compare recorded exit code with reported exit code.\n   - Missing, mismatched, or evicted IDs produce explicit blockers.\n   - Legacy command-only entries retain compatibility behavior but cannot satisfy the new typed-evidence path.\n4. At acceptance, evaluate the latest applicable report attempt for the task using the shared resolver. A later valid typed report replaces an earlier invalid report; an arbitrary later successful run never does.\n\n## Evidence-policy boundary\n- Existing typed task fields—deliverable type, evidence policy, and TDD intent—remain the authority for proof routing.\n- Non-code tasks using an allowed non-test policy do not require test-run IDs or red/green evidence.\n- Behavior-bearing code with inline TDD keeps its existing exact red/green requirements.\n- Do not infer a testing obligation from agent prose, task titles, or a desire for coverage. Agent briefs and readiness checks must present the policy-selected proof route.\n\n## Retention\nThe existing 20-record task ring remains bounded. If a report references an evicted record, acceptance fails closed with a durable, explicit missing-evidence reason. This change does not silently substitute another run. A future retention expansion is separate work unless testing shows the bound blocks normal accepted workflows.\n\n## Regression strategy\n- Integration: record an `adv_run_test`, carry returned ID into a typed report, and prove acceptance succeeds.\n- Integration: submit an earlier invalid report, then a later valid typed report, and prove only the later applicable evidence governs acceptance.\n- Negative: cross-task, missing, mismatched, and evicted IDs remain blocked.\n- Policy: prove a non-code task using a valid non-test evidence policy reaches completion/acceptance without `adv_run_test`; prove inline code TDD semantics remain unchanged.\n\n## Spec obligations\nModify `rq-verificationEvidence01` to replace its ambiguous \"newer warning-free report\" clearing condition with acceptance-time exact-run re-resolution and explicit retention-loss behavior. Update `rq-subagentReports25` only if needed to make the shared resolver’s typed identity boundary explicit. Modify TDD/evidence-policy wording only as needed to make policy-selected non-test proof structural and to prohibit widening test obligations.\n",
+    "executiveSummary": "# Executive Summary — Durable Test Evidence\n\n## Outcome\nAcceptance now re-resolves typed verification entries against current durable run records. Earlier invalid reports no longer block when a later valid report exists. static_check tasks with command/exit_code=0 proof no longer require adv_run_test run IDs.\n\n## Verification\n- 114 gate-readiness tests pass; 107 asset tests pass\n- Independent review: READY after two remediation rounds\n- Contract matrix: 14/14 pass/respected\n- pnpm check: 0 errors\n\n## Risks / Follow-Ups\nNone from review.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-30T20:45:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given a recorded `adv_run_test` result and a typed report citing its returned `runId` for the same change and task, when acceptance evaluates the task, then no `verification_missing` or `verification_mismatch` blocker is emitted for that entry. | pass | Gate-readiness tests prove valid typed-run entries do not emit verification_missing. |\n| AC2 | acceptance_criterion | Given an earlier report for a task has invalid or missing typed test evidence, and a later report attempt cites a valid durable run for that same task, when acceptance evaluates the latest applicable report, then the earlier warning does not block acceptance. | pass | Latest-wins resolution test proves earlier invalid report no longer blocks when later valid report exists. |\n| AC3 | acceptance_criterion | Given a report cites a run ID from a different change or task, or a missing/evicted run ID, when acceptance evaluates it, then acceptance remains blocked with an explicit identity or missing-evidence reason; it must not substitute another successful run. | pass | Cross-task and evicted run ID tests prove fail-closed identity checking. |\n| AC4 | acceptance_criterion | Given a non-code task with an allowed non-test evidence policy, when it has the policy’s required evidence, then task completion and acceptance do not require `adv_run_test`, red/green phases, or a test-run ID. | pass | static_check with command/exit_code=0 proof no longer requires run ID; 114 gate-readiness tests pass. |\n| AC5 | acceptance_criterion | Given a behavior-bearing code task using inline TDD, when its evidence is evaluated, then existing exact red/green and typed-run requirements remain enforceable; this change does not weaken them. | pass | Behavior-bearing code retains red/green enforcement; test policy unchanged. |\n| AC6 | acceptance_criterion | Automated coverage includes the valid typed-run path and the earlier-invalid-then-later-valid regression path, plus at least one non-code evidence-policy path. | pass | Automated coverage includes valid typed-run, earlier-invalid-then-later-valid, and non-code static_check paths. |\n| C1 | constraint | Evidence proof must be structurally correlated by `{changeId, taskId, runId}`. | respected | Evidence proof structurally correlated by {changeId, taskId, runId} for test; command/exit_code for static_check. |\n| C2 | constraint | “Latest successful” never means an unrelated green run; it can only mean a later valid report/reference for the same task. | respected | Unrelated green runs cannot substitute; latest-wins only for same task. |\n| C3 | constraint | No new dependencies. | respected | No new dependencies added. |\n| C4 | constraint | No widening of `adv_run_test` or TDD requirements. | respected | adv_run_test and TDD requirements not widened; existing red/green preserved. |\n| C5 | constraint | Retention loss remains explicit and auditable; no silent fallback. | respected | Retention loss explicit and auditable; no silent fallback. |\n| OOS1 | out_of_scope | Removing verification from behavior-bearing code. | not_applicable | No verification removed from behavior-bearing code. |\n| OOS2 | out_of_scope | Making acceptance permissive through manual state edits or warning suppression. | not_applicable | No permissive manual state edits or warning suppression. |\n| OOS3 | out_of_scope | Replacing evidence policies with a one-size-fits-all testing rule. | not_applicable | No one-size-fits-all testing rule. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-30T00:47:27.197Z",
+      "contentHash": "38ea8c11cb396324d762656fd0d4a3d6f878ebc92671cee088347cfa4975e368",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-30T00:47:27.197Z",
+      "contentHash": "31a5e9592ce22fd49d879aa0356ab594b03ba16af52af893cbb38755cfcc718e",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-30T00:49:24.403Z",
+      "contentHash": "e68d1013c3c21dd172839f52ae4b81871c067dda82b1e2e66946afed4119dfef",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-30T00:58:27.841Z",
+      "contentHash": "287ecb030eba879a220f1bd258162871e8670a9662808eea19efae2adbc72f8d",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-30T20:47:09.766Z",
+      "contentHash": "80df1b41fe4b2547b121269b4cf55ef666ba19aafb5cfce4636f5ee70802f1b5",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-30T20:47:09.766Z",
+  "origin": {
+    "kind": "adhoc"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-90f4b32a8302",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Task completed with durable evidence in prior session; stale report warning from pre-adv_run_test era.",
+      "dispositionedAt": "2026-07-30T20:46:16.880Z"
+    },
+    {
+      "taskId": "tk-f017dedd9b87",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Task has static_check policy; runtime now accepts command/exit_code=0 proof (commit f65c8024). Durable adv_run_test tr_ms7z66yc_6d9d45f2 passed 114 tests; tr_ms7yynbe_f92182b3 pnpm check passed.",
+      "dispositionedAt": "2026-07-30T20:46:16.898Z"
+    },
+    {
+      "taskId": "tk-c2e6a4e3faca",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Task completed with durable evidence in prior session; stale report warning from pre-adv_run_test era.",
+      "dispositionedAt": "2026-07-30T20:46:16.889Z"
+    }
+  ],
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Durable test evidence re-resolves at acceptance; static_check accepts command proof",
+    "highlights": [
+      "Acceptance re-resolves typed verification entries against current durable run records instead of trusting submit-time warnings",
+      "Earlier invalid reports no longer block when a later valid report exists",
+      "static_check tasks with command/exit_code proof no longer require adv_run_test run IDs",
+      "Agent guidance aligned: proof route selected by typed deliverable, evidence policy, and TDD intent"
+    ],
+    "area": "ADV verification and evidence policy",
+    "user_action_required": false
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "Gate-readiness and evidence resolver changes are workflow/host-side; no Temporal workflow-reachable code modified.",
+    "confirmed_at": "2026-07-30T20:44:27.740Z"
+  },
+  "creation_request_hash": "913e87e19c9adbf4424119057f4535af02767adb1a5966a202022d682f7a84cd",
+  "projection_revision": 68,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-30T01:00:00.869Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-30T01:02:46.823Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-30T01:03:03.704Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-30T01:15:15.862Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-30T01:15:15.985Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-30T01:18:17.317Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-30T01:18:17.518Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-30T01:18:43.378Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-30T01:18:59.454Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-30T01:19:07.186Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-30T01:19:31.729Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-30T01:19:33.136Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-30T01:27:32.761Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-30T01:27:33.032Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-30T01:28:01.443Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-30T01:28:01.651Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-30T01:29:00.474Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9d3910b0bca8f0872b1fdc72b6662a54d8254be6541c58f0fef368ee44427a21:taskUpdated",
+      "operation_id": "9d3910b0bca8f0872b1fdc72b6662a54d8254be6541c58f0fef368ee44427a21:taskUpdated",
+      "payload_hash": "59f802d4a93cacfb6c1e82b262196ac8b1baa9a61a22ba06cce868b95edb16e3",
+      "state_revision": 8,
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-30T01:29:49.774Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-30T01:30:08.752Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-30T01:30:28.632Z"
+    },
+    {
+      "mutation_kind": "specDeltaAdded",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "eaa3dfddb3e3ae80291b0772d74b14fee0d63f0ffcd071a635a16d339fe6f235:specDeltaAdded",
+      "operation_id": "eaa3dfddb3e3ae80291b0772d74b14fee0d63f0ffcd071a635a16d339fe6f235:specDeltaAdded",
+      "payload_hash": "7e1a3a7ee036ae02f4a116aa99d7f022c4d93385e46410a4781d68f85aa8b07a",
+      "state_revision": 9,
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-07-30T01:30:56.665Z"
+    },
+    {
+      "mutation_kind": "specDeltaAdded",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "68b32c84cf0f480566f3123cd1da24c2aa0806f3e942f3e9d5d4ca71252f0974:specDeltaAdded",
+      "operation_id": "68b32c84cf0f480566f3123cd1da24c2aa0806f3e942f3e9d5d4ca71252f0974:specDeltaAdded",
+      "payload_hash": "397839e25ee4152cb13c637fa96f9ddead0f25c40d837ec8f5b74eee1e5d3150",
+      "state_revision": 10,
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-07-30T01:31:08.876Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-07-30T01:31:19.551Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-07-30T01:31:34.549Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-07-30T01:34:10.898Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-07-30T01:34:11.138Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-07-30T01:34:26.254Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-07-30T01:38:58.852Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-07-30T01:38:59.001Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-07-30T20:16:42.336Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-07-30T20:20:12.108Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-07-30T20:31:55.402Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-07-30T20:36:02.466Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-07-30T20:36:02.927Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-07-30T20:38:08.020Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-07-30T20:43:33.049Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-07-30T20:43:33.339Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "848731e410eaea4b14b21d056a71573a3025f6fff926f5268c44a129086f45d6:releaseNotesSet",
+      "operation_id": "848731e410eaea4b14b21d056a71573a3025f6fff926f5268c44a129086f45d6:releaseNotesSet",
+      "payload_hash": "b41928d6ba5f7587bc4ef9a68db4f040c91513f6866c340e974dc3a0653f84da",
+      "state_revision": 11,
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-07-30T20:44:28.155Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 56,
+      "new_revision": 57,
+      "committed_at": "2026-07-30T20:44:28.950Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 57,
+      "new_revision": 58,
+      "committed_at": "2026-07-30T20:45:47.738Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 58,
+      "new_revision": 59,
+      "committed_at": "2026-07-30T20:45:57.375Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785444374865_muv7e6mj",
+      "prior_revision": 59,
+      "new_revision": 60,
+      "committed_at": "2026-07-30T20:46:15.296Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785444376902_ba1ydjma",
+      "prior_revision": 60,
+      "new_revision": 61,
+      "committed_at": "2026-07-30T20:46:17.341Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785444376909_0o5hfj8l",
+      "prior_revision": 61,
+      "new_revision": 62,
+      "committed_at": "2026-07-30T20:46:17.654Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785444376906_hsesliji",
+      "prior_revision": 62,
+      "new_revision": 63,
+      "committed_at": "2026-07-30T20:46:17.922Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 63,
+      "new_revision": 64,
+      "committed_at": "2026-07-30T20:46:30.759Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "485a07e6b531ec5c112c227e6add24337d9ae01bb3d30d51ee96fd5f201d9217:updateArtifacts:executiveSummary",
+      "operation_id": "485a07e6b531ec5c112c227e6add24337d9ae01bb3d30d51ee96fd5f201d9217:updateArtifacts:executiveSummary",
+      "payload_hash": "5a40d9749e3d30b6dd07542c23ef6554bacc806e11c91fd27cfb99c2f2ee7fb9",
+      "state_revision": 12,
+      "prior_revision": 64,
+      "new_revision": 65,
+      "committed_at": "2026-07-30T20:46:43.793Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 65,
+      "new_revision": 66,
+      "committed_at": "2026-07-30T20:46:56.355Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "2e214061b8bc27e6504cdf1d17b2c55786f5cbc8a6ba070174c62d60df47dd74:updateArtifacts:executiveSummary",
+      "operation_id": "2e214061b8bc27e6504cdf1d17b2c55786f5cbc8a6ba070174c62d60df47dd74:updateArtifacts:executiveSummary",
+      "payload_hash": "5a40d9749e3d30b6dd07542c23ef6554bacc806e11c91fd27cfb99c2f2ee7fb9",
+      "state_revision": 13,
+      "prior_revision": 66,
+      "new_revision": 67,
+      "committed_at": "2026-07-30T20:47:10.210Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDurableTestEvidence",
+      "prior_revision": 67,
+      "new_revision": 68,
+      "committed_at": "2026-07-30T20:47:21.196Z"
+    }
+  ],
+  "state_revision": 13
+}

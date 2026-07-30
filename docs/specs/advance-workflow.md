@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.41.0
-> **Updated:** 2026-07-28
+> **Version:** 1.42.0
+> **Updated:** 2026-07-30
 
 ## Purpose
 
@@ -7077,5 +7077,101 @@ Advance SHALL support an optional, bounded, schema-validated release_notes conte
 - The change remains schema-valid
 - Existing workflow behavior is unchanged
 - Fast-track synthesis may populate the block using available evidence without prompting
+
+---
+
+### Structured Criterion Variant Representation and Compatibility
+
+**ID:** `rq-structuredAcceptance01` | **Priority:** **[MUST]**
+
+The ChangeContract item model MUST support an optional typed variant annotation for the four supported criterion kinds (behavioral, evidence, spec_law, constraint) while keeping canonical text, stable ID, kind, and evidence policy as the contract authority. The variant MUST be parsed and validated once at the adv_contract_mint boundary. Legacy flat-text items without a variant MUST remain valid and render unchanged. Malformed or unsupported structured input MUST fail minting with a clear validation result and MUST leave the previously valid contract unchanged.
+
+**Tags:** `workflow`, `contract`, `acceptance-criteria`, `variant`, `compatibility`
+
+#### Scenarios
+
+**Mint preserves typed variant and canonical text** (`rq-structuredAcceptance01.1`)
+
+**Given:**
+- An approved agreement contains a supported structured criterion with a stable ACn/SCn/Cn/DONTn label
+
+**When:** adv_contract_mint parses the agreement
+
+**Then:**
+- The contract item records the optional variant annotation
+- The canonical text remains the flattened obligation string
+- The stable ID, kind, and evidence policy are unchanged
+
+**Legacy flat-text items remain valid** (`rq-structuredAcceptance01.2`)
+
+**Given:**
+- An existing contract item has no variant annotation
+
+**When:** The contract is read, rendered, or reviewed
+
+**Then:**
+- The item remains schema-valid
+- Legacy projections derive from canonical text only
+- Review-matrix and task coverage checks remain variant-agnostic
+
+**Malformed structured input fails safely** (`rq-structuredAcceptance01.3`)
+
+**Given:**
+- An approved agreement contains an incomplete behavioral scenario or malformed evidence/spec-law variant
+
+**When:** adv_contract_mint attempts to parse the contract
+
+**Then:**
+- Mint returns a clear CONTRACT_MALFORMED_VARIANT result
+- The prior valid contract is not replaced
+- No contract item is partially written
+
+**Warrants are validated and stripped in structured variants** (`rq-structuredAcceptance01.4`)
+
+**Given:**
+- An approved structured criterion declares a bracketed [warrant: ...] tag
+
+**When:** adv_contract_mint parses the item
+
+**Then:**
+- The warrant is verified against the live tool surface or spec ids
+- An unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT
+- A resolved warrant is recorded and stripped from canonical text
+
+---
+
+### Acceptance Re-resolves Typed Durable Verification Evidence
+
+**ID:** `rq-verificationEvidenceFreshness01` | **Priority:** **[MUST]**
+
+For a proof-bearing task, acceptance and release readiness MUST evaluate typed verification entries against current task-local durable test-run records, not solely submission-time consumer warnings. The workflow state is the change boundary; within it, a typed entry is valid only when its task ID, cited run ID, and reported exit code match a current record. The latest applicable report attempt may supersede an earlier invalid report only through its own valid cited record. Missing, mismatched, cross-task, or evicted IDs MUST remain explicit blockers. An unrelated successful run MUST NOT substitute for a cited ID.
+
+**Tags:** `verification`, `acceptance`, `durable-evidence`, `auditability`
+
+#### Scenarios
+
+**Later valid typed report supersedes earlier invalid report** (`rq-verificationEvidenceFreshness01.1`)
+
+**Given:**
+- A proof-bearing task has an earlier report with missing or invalid typed test evidence
+- A later applicable report cites a durable run record for the same task with a matching exit code
+
+**When:** Acceptance readiness evaluates the task
+
+**Then:**
+- The earlier report warning does not block the task
+- The later report is accepted only by its cited run ID and exit code
+
+**Unrelated or unavailable runs fail closed** (`rq-verificationEvidenceFreshness01.2`)
+
+**Given:**
+- A typed verification entry cites a missing, evicted, mismatched, or different-task run ID
+- Another successful durable run may exist for the change
+
+**When:** Acceptance readiness evaluates the task
+
+**Then:**
+- Acceptance remains blocked with an explicit verification-evidence reason
+- The other successful run is not substituted
 
 ---

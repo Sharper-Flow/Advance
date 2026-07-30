@@ -1,7 +1,7 @@
 # TDD Contract
 
-> **Version:** 1.7.2
-> **Updated:** 2026-07-19
+> **Version:** 1.8.0
+> **Updated:** 2026-07-30
 
 ## Purpose
 
@@ -554,5 +554,39 @@ Every task MUST have a normalized evidence plan that records exactly one evidenc
 - The plan is normalized with compatibility `legacy`
 - No timestamp or heuristic cutover is used
 - Valid historical review_conclusion evidence remains readable
+
+---
+
+### Typed Evidence Policy Prevents Manufactured Test Work
+
+**ID:** `rq-TDD014policyRoute` | **Priority:** **[MUST]**
+
+Task deliverable type, normalized evidence policy and proof target, and explicit TDD intent MUST determine the required proof route. A valid non-test route for non-code work MUST NOT require adv_run_test, red/green phases, or a test-run ID. Task titles, generic agent instructions, and a desire for coverage are advisory and MUST NOT create a test obligation. Behavior-bearing inline code retains its existing red/green requirements; this rule does not weaken proof for that work.
+
+**Tags:** `tdd`, `evidence-policy`, `non-code`, `agent-guidance`
+
+#### Scenarios
+
+**Non-code policy route does not require test runs** (`rq-TDD014policyRoute.1`)
+
+**Given:**
+- A non-code task has a valid non-test evidence policy and the policy-required proof
+
+**When:** Task completion or acceptance evaluates its evidence
+
+**Then:**
+- No adv_run_test, red/green phase, or test-run ID is required
+- The policy-required proof remains required
+
+**Behavior-bearing inline code retains TDD** (`rq-TDD014policyRoute.2`)
+
+**Given:**
+- A behavior-bearing code task has inline TDD intent
+
+**When:** Task completion evaluates its evidence
+
+**Then:**
+- Existing red/green ordering and proof requirements remain enforceable
+- A non-test policy route is not inferred from titles or agent prose
 
 ---
