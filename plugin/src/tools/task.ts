@@ -11,10 +11,12 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import type { Store } from "../storage/store";
 import {
+  DelegationRecoverySchema,
   ErrorRecoverySchema,
   TaskContractRefsSchema,
   TaskTypeSchema,
   ContractEvidencePolicySchema,
+  type DelegationRecovery,
   type ErrorRecovery,
   type TaskContractRefs,
   type TddReclassification,
@@ -128,6 +130,59 @@ function applyContractRefsToChangeProjection(
       task.id === taskId ? { ...task, contract_refs: contractRefs } : task,
     ),
   };
+}
+
+/**
+ * AC5: task-scoped delegation recovery is exhausted when the single allowed
+ * narrower retry has been attempted and no inline diagnosis evidence exists.
+ */
+function isDelegationRecoveryBlocked(
+  recovery: DelegationRecovery | undefined,
+): boolean {
+  return (
+    !!recovery &&
+    recovery.narrower_retry_count > 0 &&
+    !recovery.inline_diagnosis_evidence
+  );
+}
+
+/**
+ * AC5: SEMANTIC error-recovery evidence is the only valid authority for inline
+ * diagnosis. It must carry at least one documented attempt.
+ */
+function isSemanticInlineDiagnosisEvidence(
+  errorRecovery: ErrorRecovery | undefined,
+): boolean {
+  return (
+    !!errorRecovery &&
+    errorRecovery.error_class === "SEMANTIC" &&
+    (errorRecovery.attempts?.length ?? 0) > 0
+  );
+}
+
+/**
+ * AC5: when a task's delegation recovery is blocked, an explicit typed task
+ * update that supplies SEMANTIC error-recovery evidence clears the block by
+ * recording inline diagnosis evidence. Counts are preserved for history; only
+ * the inline flag changes.
+ */
+function maybeClearBlockedDelegationRecovery(
+  currentTask: Task | undefined,
+  errorRecovery: ErrorRecovery | undefined,
+  now: string,
+): DelegationRecovery | undefined {
+  if (!isDelegationRecoveryBlocked(currentTask?.delegation_recovery)) {
+    return undefined;
+  }
+  if (!isSemanticInlineDiagnosisEvidence(errorRecovery)) {
+    return undefined;
+  }
+  const existing = currentTask!.delegation_recovery!;
+  return DelegationRecoverySchema.parse({
+    ...existing,
+    inline_diagnosis_evidence: true,
+    last_updated_at: now,
+  });
 }
 
 function makeTaskId(): string {
@@ -806,6 +861,11 @@ export const taskTools = {
         const currentTask =
           taskRecord?.task ??
           changeForGuard?.tasks.find((task) => task.id === args.taskId);
+        const clearedDelegationRecovery = maybeClearBlockedDelegationRecovery(
+          currentTask,
+          args.error_recovery,
+          now,
+        );
         const existingTaskReports =
           taskRecord?.task.subagent_reports ??
           changeForGuard?.tasks.find((task) => task.id === args.taskId)
@@ -1146,6 +1206,9 @@ export const taskTools = {
                     }),
                     ...(args.contract_refs && {
                       contract_refs: args.contract_refs,
+                    }),
+                    ...(clearedDelegationRecovery && {
+                      delegation_recovery: clearedDelegationRecovery,
                     }),
                     ...(evidencePlanRepair && {
                       evidence_policy: evidencePlanRepair.policy,

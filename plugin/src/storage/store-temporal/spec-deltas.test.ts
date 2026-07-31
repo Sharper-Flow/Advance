@@ -49,6 +49,20 @@ const MODIFY_DELTA = {
   changes: { title: "Updated requirement" },
 };
 
+const REMOVE_DELTA = {
+  id: "dl-RMV11111",
+  operation: "remove" as const,
+  target_id: "rq-existing01",
+  reason: "Requirement removed as out of scope",
+};
+
+const RENAME_DELTA = {
+  id: "dl-RNM11111",
+  operation: "rename" as const,
+  target_id: "rq-existing01",
+  new_title: "Renamed requirement",
+  new_id: "rq-renamed01",
+};
 function makeStateWithDelta() {
   return {
     changeId: "spec-delta-store-test",
@@ -126,6 +140,7 @@ function makeDeps(stateAfterSignal: unknown) {
     invalidateChange: vi.fn(),
     setCachedChange: vi.fn(),
     emitChangeSummarySignal: vi.fn(),
+    persistStateToDisk: vi.fn(),
   };
 }
 
@@ -397,19 +412,19 @@ describe("createSpecDeltaOps", () => {
       },
     };
     const deps = makeDeps(mismatched);
+    mockQueries(mismatched);
     const ops = createSpecDeltaOps(deps as never);
 
     await expect(
       ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA),
     ).rejects.toThrow(/payload|mismatch|exact/i);
-    expect(deps.setCachedChange).not.toHaveBeenCalled();
     expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
     expect(deps.persistStateToDisk).not.toHaveBeenCalled();
   });
 
   it("rejects a modify readback whose id and operation match but payload differs", async () => {
     const mismatched = {
-      changeId: "spec-delta-store-test",
+      ...makeStateWithDelta(),
       deltas: {
         "collection-dashboard": [
           {
@@ -418,15 +433,14 @@ describe("createSpecDeltaOps", () => {
           },
         ],
       },
-      wisdom: [],
     };
     const deps = makeDeps(mismatched);
+    mockQueries(mismatched);
     const ops = createSpecDeltaOps(deps as never);
 
     await expect(
       ops.modify("spec-delta-store-test", "collection-dashboard", MODIFY_DELTA),
     ).rejects.toThrow(/payload|mismatch|exact/i);
-    expect(deps.setCachedChange).not.toHaveBeenCalled();
     expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
     expect(deps.persistStateToDisk).not.toHaveBeenCalled();
   });

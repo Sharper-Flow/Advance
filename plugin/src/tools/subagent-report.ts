@@ -315,11 +315,14 @@ function nextDelegationRecoveryForValid(
     existing.empty_or_malformed_count > 0 &&
     existing.narrower_retry_count === 0
   ) {
-    // This valid report is the one allowed narrower retry; record success.
+    // AC5: a successful narrower retry resolves the incident. Reset to a
+    // clean state without consuming the exhausted budget and without claiming
+    // inline diagnosis evidence (that requires a typed task update with
+    // SEMANTIC error-recovery evidence).
     return {
-      ...existing,
-      narrower_retry_count: 1,
-      inline_diagnosis_evidence: true,
+      empty_or_malformed_count: 0,
+      narrower_retry_count: 0,
+      inline_diagnosis_evidence: false,
       last_updated_at: now,
       blocked_scope: scope,
     };
@@ -1078,7 +1081,8 @@ async function executeSubmit(
       const now = new Date().toISOString();
 
       // AC5: a valid task-scoped report following an empty/malformed incident
-      // consumes the one allowed narrower retry and records inline evidence.
+      // resolves the recovery state to clean; inline diagnosis evidence must be
+      // recorded separately via a typed task update with SEMANTIC evidence.
       if (taskIdForSignal && task) {
         const updatedRecovery = nextDelegationRecoveryForValid(
           task.delegation_recovery,
