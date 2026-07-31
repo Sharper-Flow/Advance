@@ -805,7 +805,7 @@ async function hasPoisonedWorkflowDescription(
   if (typeof handle.describe !== "function") return false;
   try {
     const description = await runTemporal(async () => handle.describe?.(), {
-      timeoutMs: QUERY_TIMEOUT_MS,
+      timeoutMs: 1_000,
       deadline,
     });
     const evidence = stringifyEvidence(description);
