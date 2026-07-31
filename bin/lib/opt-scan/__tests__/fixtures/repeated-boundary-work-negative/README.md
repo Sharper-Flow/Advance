@@ -18,4 +18,4 @@ context; a single call is insufficient evidence.
 
 | Line | Content (key only)                          |
 |------|---------------------------------------------|
-| 4    | `await fetch(\`/api/users/\${id}\`);` (trigger, rejected) |
+| 5    | `await fetch(\`/api/users/\${id}\`);` (trigger, rejected) |

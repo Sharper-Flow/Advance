@@ -428,10 +428,7 @@ function isWorkerStartupPressure(
   if (!isStartup || depth > 0) {
     return { ok: false };
   }
-  const reason = isStartup
-    ? "synchronous I/O in startup-named file"
-    : "synchronous I/O at module top level";
-  return { ok: true, reason };
+  return { ok: true, reason: "synchronous I/O in startup-named file" };
 }
 
 const COMPUTE_NAMES_RE = /\b(hash|digest|compute|derive|calculate|build|serialize)\b/i;
@@ -758,8 +755,7 @@ export async function evaluateDetector(
     };
   }
 
-  const state: OptimizationCoverage["state"] =
-    candidates.length > 0 ? "run" : "run";
+  const state: OptimizationCoverage["state"] = "run";
   const reason =
     candidates.length > 0
       ? `emitted ${candidates.length} candidate(s)`

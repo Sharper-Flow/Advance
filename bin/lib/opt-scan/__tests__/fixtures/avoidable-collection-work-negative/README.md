@@ -17,4 +17,4 @@ avoidable intermediate work. The detector MUST NOT emit a candidate.
 
 | Line | Content (key only)                          |
 |------|---------------------------------------------|
-| 4    | `return users.map((u) => u.name);` (rejected) |
+| 5    | `return users.map((u) => u.name);` (rejected) |

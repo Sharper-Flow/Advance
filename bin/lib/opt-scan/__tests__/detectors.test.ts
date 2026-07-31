@@ -201,6 +201,36 @@ describe("opt-scan V1 detectors", () => {
       expect(trigger).toBeDefined();
       expect(trigger!.file).toBe("worker-startup-pressure-positive/src/worker.ts");
     });
+
+    test("rejects sync I/O inside function and class bodies in a worker file", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "opt-scan-worker-body-"));
+      try {
+        mkdirSync(join(tmp, "src"), { recursive: true });
+        writeFileSync(
+          join(tmp, "src", "worker.ts"),
+          `import { readFileSync } from "fs";
+export function loadConfig() {
+  return JSON.parse(readFileSync("./config.json", "utf8"));
+}
+export class Worker {
+  loadConfig() {
+    return JSON.parse(readFileSync("./config.json", "utf8"));
+  }
+}
+`,
+        );
+
+        const result = await runOptScan({
+          repoRoot: tmp,
+          detectorId: id,
+          phase: 1,
+        });
+
+        expect(result.candidates).toHaveLength(0);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("cache_opportunity", () => {

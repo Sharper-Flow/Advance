@@ -18,4 +18,4 @@ cache-opportunity detector rejects unclear cases rather than guessing.
 
 | Line | Content (key only)                          |
 |------|---------------------------------------------|
-| 4    | `return input.split("").reverse().join("");` (trigger, rejected) |
+| 6    | `return input.split("").reverse().join("");` (trigger, rejected) |
