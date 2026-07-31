@@ -650,6 +650,73 @@ describe("Subagent report schemas", () => {
     });
   });
 
+  it("parses and validates typed failure_attribution on failed verification bundles", () => {
+    const withAttribution = {
+      ...verificationTriageBundleReport,
+      failure_attribution: {
+        assertion: "expected 200 to equal 404",
+        test_locator: {
+          label: "test",
+          locator: "src/routes/api.test.ts:42",
+          summary: "GET /health returns 404",
+        },
+        production_locator: {
+          label: "production",
+          locator: "src/routes/api.ts:15",
+          summary: "health handler",
+        },
+        branch_result: "fail",
+        base_result: "pass",
+        comparison_status: "compared_clean",
+        failure_mode: "assertion_mismatch",
+        owner_task: "tk-123",
+        evidence_refs: [
+          {
+            label: "branch output",
+            locator: "command: bin/oc-test targeted -- src/routes/api.test.ts",
+            summary: "deterministic assertion failure",
+          },
+        ],
+      },
+    };
+    const parsed =
+      VerificationTriageBundleSubagentReportSchema.parse(withAttribution);
+    expect(parsed.failure_attribution).toBeDefined();
+    expect(parsed.failure_attribution?.assertion).toBe(
+      "expected 200 to equal 404",
+    );
+    expect(parsed.failure_attribution?.failure_mode).toBe("assertion_mismatch");
+    expect(parsed.failure_attribution?.comparison_status).toBe(
+      "compared_clean",
+    );
+
+    // Unknown failure_attribution fields are rejected at the strict boundary.
+    expect(() =>
+      VerificationTriageBundleSubagentReportSchema.parse({
+        ...withAttribution,
+        failure_attribution: {
+          ...withAttribution.failure_attribution,
+          extra_field: true,
+        },
+      }),
+    ).toThrow();
+
+    // Missing required failure_attribution fields are rejected.
+    expect(() =>
+      VerificationTriageBundleSubagentReportSchema.parse({
+        ...withAttribution,
+        failure_attribution: {
+          assertion: "expected 200 to equal 404",
+          branch_result: "fail",
+          base_result: "pass",
+          comparison_status: "compared_clean",
+          failure_mode: "assertion_mismatch",
+          evidence_refs: [],
+        },
+      }),
+    ).toThrow();
+  });
+
   it("enforces route_adv_engineer predicates structurally", () => {
     for (const invalid of [
       { error_class: "TRANSIENT" },

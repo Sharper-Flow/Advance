@@ -193,4 +193,24 @@ describe("adv-verifier agent asset", () => {
       expect(body, `missing body anchor ${anchor}`).toContain(anchor);
     }
   });
+
+  test("documents typed failure_attribution for failed verification results", () => {
+    const { body } = splitFrontmatter(readFileSync(AGENT_PATH, "utf8"));
+
+    for (const anchor of [
+      "failure_attribution",
+      "assertion",
+      "test_locator",
+      "production_locator",
+      "branch_result",
+      "base_result",
+      "comparison_status",
+      "failure_mode",
+      "evidence_refs",
+    ]) {
+      expect(body, `missing failure attribution anchor ${anchor}`).toContain(
+        anchor,
+      );
+    }
+  });
 });

@@ -699,6 +699,52 @@ export const VerificationTriageHandoffSchema = z
   })
   .strict();
 
+export const VerificationTriageFailureModeSchema = z.enum([
+  "assertion_mismatch",
+  "exception",
+  "timeout",
+  "missing_coverage",
+  "contract_conflict",
+  "order_sensitive",
+  "unknown",
+]);
+
+export const VerificationTriageAttributionResultSchema = z.enum([
+  "pass",
+  "fail",
+  "inconclusive",
+  "not_run",
+]);
+
+export const VerificationTriageComparisonStatusSchema = z.enum([
+  "compared_clean",
+  "base_failed_branch_fail",
+  "base_unavailable",
+  "not_compared",
+]);
+
+/**
+ * Typed failure attribution for a failed verification result (AC6).
+ *
+ * Captures the exact assertion, test and production locators, branch/base
+ * comparison status, failure mode, and evidence references so ownership
+ * decisions are structural, not prose heuristics. Kept optional on the bundle
+ * so historical reports remain readable; new fail reports SHOULD populate it.
+ */
+export const VerificationTriageFailureAttributionSchema = z
+  .object({
+    assertion: z.string().min(1),
+    test_locator: SubagentSourceReferenceSchema.optional(),
+    production_locator: SubagentSourceReferenceSchema.optional(),
+    branch_result: VerificationTriageAttributionResultSchema,
+    base_result: VerificationTriageAttributionResultSchema,
+    comparison_status: VerificationTriageComparisonStatusSchema,
+    failure_mode: VerificationTriageFailureModeSchema,
+    owner_task: z.string().min(1).optional(),
+    evidence_refs: z.array(SubagentSourceReferenceSchema).min(1),
+  })
+  .strict();
+
 export const VerificationTriageBundleSubagentReportSchema =
   ChangeScopedBaseSubagentReportSchema.extend({
     agent: z.literal("adv-verification-triage-bundle"),
@@ -720,6 +766,7 @@ export const VerificationTriageBundleSubagentReportSchema =
     ]),
     scope_risk: z.boolean(),
     suggested_handoff: VerificationTriageHandoffSchema.optional(),
+    failure_attribution: VerificationTriageFailureAttributionSchema.optional(),
     required_main_agent_actions: z.array(z.string().min(1)),
     follow_ups: z.array(z.string().min(1)),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
@@ -1069,6 +1116,7 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     recommended_next_action: "worker_derived",
     scope_risk: "worker_derived",
     suggested_handoff: "worker_derived",
+    failure_attribution: "worker_derived",
     required_main_agent_actions: "worker_derived",
     follow_ups: "worker_derived",
     consumer_warnings: "tool_enriched",
@@ -1148,6 +1196,18 @@ export type ResearcherSubagentReport = z.infer<
 export type TronSubagentReport = z.infer<typeof TronSubagentReportSchema>;
 export type ScannerBundleSubagentReport = z.infer<
   typeof ScannerBundleSubagentReportSchema
+>;
+export type VerificationTriageFailureMode = z.infer<
+  typeof VerificationTriageFailureModeSchema
+>;
+export type VerificationTriageAttributionResult = z.infer<
+  typeof VerificationTriageAttributionResultSchema
+>;
+export type VerificationTriageComparisonStatus = z.infer<
+  typeof VerificationTriageComparisonStatusSchema
+>;
+export type VerificationTriageFailureAttribution = z.infer<
+  typeof VerificationTriageFailureAttributionSchema
 >;
 export type VerificationTriageBundleSubagentReport = z.infer<
   typeof VerificationTriageBundleSubagentReportSchema

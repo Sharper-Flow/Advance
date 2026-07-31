@@ -144,6 +144,10 @@ Use exactly one `error_class`:
 
 You may perform exactly one rerun only to substantiate suspected `TRANSIENT` / flaky behavior. Unsupported flake claims are invalid: no flaky label and no transient label without rerun evidence or clear external infrastructure evidence. Do not create an open-ended rerun loop.
 
+## Failure Attribution (AC6)
+
+When `status` is `fail`, populate `failure_attribution` with the exact assertion, test and production locators, branch/base result status, comparison status, failure mode, and evidence references. Do not express this information only in `evidence_basis` prose; the field is the typed authority for failure ownership. Omit `failure_attribution` when `status` is `pass` or `inconclusive`, or when `error_class` is `UNKNOWN` and no assertion is available.
+
 ## Verification Triage Result
 
 Return this strict JSON shape:
@@ -177,6 +181,19 @@ Return this strict JSON shape:
     "out_of_scope": [],
     "done_when": [],
     "verification": []
+  },
+  "failure_attribution": {
+    "assertion": "exact failed assertion text or expectation",
+    "test_locator": { "label": "test", "locator": "file:line or test name", "summary": "bounded test location" },
+    "production_locator": { "label": "production", "locator": "file:line", "summary": "bounded production location" },
+    "branch_result": "fail",
+    "base_result": "pass",
+    "comparison_status": "compared_clean",
+    "failure_mode": "assertion_mismatch",
+    "owner_task": "tk-...",
+    "evidence_refs": [
+      { "label": "branch output", "locator": "command: ...", "summary": "bounded excerpt" }
+    ]
   },
   "required_main_agent_actions": [],
   "follow_ups": []

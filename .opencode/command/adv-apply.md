@@ -515,6 +515,17 @@ SCOPE KEY slug is hyphen-only; do not mirror underscored PHASE values (`local_ve
   "recommended_next_action": "continue | retry_narrower | route_adv_engineer | ask_user | block_environment | wait_ci | no_action",
   "scope_risk": false,
   "suggested_handoff": { "summary": "...", "in_scope": [], "out_of_scope": [], "done_when": [], "verification": [] },
+  "failure_attribution": {
+    "assertion": "exact failed assertion text or expectation",
+    "test_locator": { "label": "test", "locator": "file:line or test name", "summary": "bounded test location" },
+    "production_locator": { "label": "production", "locator": "file:line", "summary": "bounded production location" },
+    "branch_result": "pass | fail | inconclusive | not_run",
+    "base_result": "pass | fail | inconclusive | not_run",
+    "comparison_status": "compared_clean | base_failed_branch_fail | base_unavailable | not_compared",
+    "failure_mode": "assertion_mismatch | exception | timeout | missing_coverage | contract_conflict | order_sensitive | unknown",
+    "owner_task": "tk-...",
+    "evidence_refs": [{ "label": "...", "locator": "...", "summary": "..." }]
+  },
   "required_main_agent_actions": [],
   "follow_ups": []
 }
@@ -522,7 +533,7 @@ SCOPE KEY slug is hyphen-only; do not mirror underscored PHASE values (`local_ve
 
 Main ADV wraps the worker result with `schema_version: "1.0"`, `change_id`, `attempt`, `workdir_used`, and `scope: { kind: "change", scope_key: "verifier:<slug>" }` before submitting `adv-verification-triage-bundle`.
 
-`route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, `confidence` is `high` or `medium`, and `suggested_handoff` is populated. `TRANSIENT` requires rerun or infrastructure evidence; `ENVIRONMENTAL` requires missing dependency, credential, service, or external-system evidence. `FATAL` indicates unsafe or unrecoverable conditions; route to `ask_user` or `block_environment` with scope-risk context. Unsupported flake claims are invalid. `UNKNOWN` is routing-only: treat as inconclusive; never map it into task `error_recovery`.
+`route_adv_engineer` is valid only when `error_class` is `SEMANTIC`, `scope_risk` is false, `confidence` is `high` or `medium`, and `suggested_handoff` is populated. `TRANSIENT` requires rerun or infrastructure evidence; `ENVIRONMENTAL` requires missing dependency, credential, service, or external-system evidence. `FATAL` indicates unsafe or unrecoverable conditions; route to `ask_user` or `block_environment` with scope-risk context. Unsupported flake claims are invalid. `UNKNOWN` is routing-only: treat as inconclusive; never map it into task `error_recovery`. For `status: fail`, include typed `failure_attribution` (exact assertion, locators, branch/base results, comparison status, failure mode, evidence refs); do not rely on prose alone for ownership.
 
 **Post-spawn handling:**
 

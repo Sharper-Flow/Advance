@@ -6464,6 +6464,140 @@
                     "minLength": 1,
                     "type": "string"
                   },
+                  "failure_attribution": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "assertion": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "base_result": {
+                        "enum": [
+                          "pass",
+                          "fail",
+                          "inconclusive",
+                          "not_run"
+                        ],
+                        "type": "string"
+                      },
+                      "branch_result": {
+                        "enum": [
+                          "pass",
+                          "fail",
+                          "inconclusive",
+                          "not_run"
+                        ],
+                        "type": "string"
+                      },
+                      "comparison_status": {
+                        "enum": [
+                          "compared_clean",
+                          "base_failed_branch_fail",
+                          "base_unavailable",
+                          "not_compared"
+                        ],
+                        "type": "string"
+                      },
+                      "evidence_refs": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "label": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "locator": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "summary": {
+                              "minLength": 1,
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "locator",
+                            "summary"
+                          ],
+                          "type": "object"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "failure_mode": {
+                        "enum": [
+                          "assertion_mismatch",
+                          "exception",
+                          "timeout",
+                          "missing_coverage",
+                          "contract_conflict",
+                          "order_sensitive",
+                          "unknown"
+                        ],
+                        "type": "string"
+                      },
+                      "owner_task": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "production_locator": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "label": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "locator": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "summary": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "locator",
+                          "summary"
+                        ],
+                        "type": "object"
+                      },
+                      "test_locator": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "label": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "locator": {
+                            "minLength": 1,
+                            "type": "string"
+                          },
+                          "summary": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "locator",
+                          "summary"
+                        ],
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "assertion",
+                      "branch_result",
+                      "base_result",
+                      "comparison_status",
+                      "failure_mode",
+                      "evidence_refs"
+                    ],
+                    "type": "object"
+                  },
                   "findings": {
                     "items": {
                       "additionalProperties": false,

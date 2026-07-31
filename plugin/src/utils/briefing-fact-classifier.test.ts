@@ -11,10 +11,12 @@ import {
   ResearcherSubagentReportSchema,
   ReviewerSubagentReportSchema,
   ScannerBundleSubagentReportSchema,
+  VerificationTriageBundleSubagentReportSchema,
   type EngineerSubagentReport,
   type ResearcherSubagentReport,
   type ReviewerSubagentReport,
   type ScannerBundleSubagentReport,
+  type VerificationTriageBundleSubagentReport,
   type BriefingFactOutcome,
 } from "../types";
 import {
@@ -134,6 +136,58 @@ function researcherReport(
       recommendation: "Proceed",
     },
     recommendation: "Recommendation text",
+    follow_ups: [],
+    ...overrides,
+  });
+}
+
+function verificationTriageBundleReport(
+  overrides: Partial<VerificationTriageBundleSubagentReport> = {},
+): VerificationTriageBundleSubagentReport {
+  return VerificationTriageBundleSubagentReportSchema.parse({
+    schema_version: "1.0",
+    change_id: "addBriefingPackets",
+    attempt: 1,
+    workdir_used: "/tmp/wt",
+    scope: { kind: "change", scope_key: "verifier:local-verify" },
+    agent: "adv-verification-triage-bundle",
+    phase: "local_verify",
+    targets: [
+      {
+        kind: "command",
+        command: "bin/oc-test targeted -- src/a.test.ts",
+        exit_code: 1,
+        duration_ms: 1000,
+      },
+    ],
+    status: "fail",
+    error_class: "SEMANTIC",
+    confidence: "high",
+    evidence_basis: "Deterministic assertion failure.",
+    findings: [
+      {
+        id: "v-1",
+        severity: "blocker",
+        summary: "Assertion failed.",
+        evidence: [
+          {
+            label: "test output",
+            locator: "src/a.test.ts:10",
+            summary: "fail",
+          },
+        ],
+      },
+    ],
+    recommended_next_action: "route_adv_engineer",
+    scope_risk: false,
+    suggested_handoff: {
+      summary: "Fix assertion.",
+      in_scope: ["src/a.ts"],
+      out_of_scope: [],
+      done_when: ["Test passes."],
+      verification: ["bin/oc-test targeted -- src/a.test.ts"],
+    },
+    required_main_agent_actions: [],
     follow_ups: [],
     ...overrides,
   });
@@ -459,6 +513,63 @@ describe("classifyBriefingFacts", () => {
           ).toBe(true);
         }
       }
+    });
+
+    it("classifies verifier failure_attribution as archive_only_evidence with locators", () => {
+      const facts = classifyBriefingFacts({
+        report: verificationTriageBundleReport({
+          failure_attribution: {
+            assertion: "expected 200 to equal 404",
+            test_locator: {
+              label: "test",
+              locator: "src/a.test.ts:10",
+              summary: "GET / returns 404",
+            },
+            production_locator: {
+              label: "production",
+              locator: "src/a.ts:5",
+              summary: "route handler",
+            },
+            branch_result: "fail",
+            base_result: "pass",
+            comparison_status: "compared_clean",
+            failure_mode: "assertion_mismatch",
+            owner_task: "tk-a123",
+            evidence_refs: [
+              {
+                label: "branch output",
+                locator: "command: bin/oc-test targeted -- src/a.test.ts",
+                summary: "deterministic assertion failure",
+              },
+            ],
+          },
+        }),
+      });
+
+      const attribution = facts.filter(
+        (f) => f.source_label === "failure_attribution",
+      );
+      expect(attribution.length).toBeGreaterThan(0);
+      expect(attribution[0].outcome).toBe("archive_only_evidence");
+      expect(attribution[0].content).toContain("expected 200 to equal 404");
+      expect(attribution[0].content).toContain(
+        "failure_mode: assertion_mismatch",
+      );
+      expect(attribution[0].content).toContain("owner_task: tk-a123");
+
+      const testLocator = facts.find(
+        (f) => f.source_label === "failure_attribution.test_locator",
+      );
+      expect(testLocator).toBeDefined();
+      expect(testLocator?.outcome).toBe("archive_only_evidence");
+      expect(testLocator?.content).toContain("src/a.test.ts:10");
+
+      const prodLocator = facts.find(
+        (f) => f.source_label === "failure_attribution.production_locator",
+      );
+      expect(prodLocator).toBeDefined();
+      expect(prodLocator?.outcome).toBe("archive_only_evidence");
+      expect(prodLocator?.content).toContain("src/a.ts:5");
     });
 
     it("keeps architecture_assessment and recommendation in their existing outcomes", () => {

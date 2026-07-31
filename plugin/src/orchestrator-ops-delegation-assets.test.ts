@@ -126,6 +126,7 @@ describe("orchestrator operational delegation assets", () => {
       "error_class",
       "confidence",
       "evidence_basis",
+      "failure_attribution",
       "recommended_next_action",
       "route_adv_engineer",
       "scope_risk",

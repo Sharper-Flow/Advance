@@ -465,6 +465,42 @@ function classifyChangeScopedReport(
         `[${finding.severity}] ${finding.summary}`,
       );
     }
+    if (verifierReport.failure_attribution) {
+      const fa = verifierReport.failure_attribution;
+      const parts = [
+        `assertion: ${fa.assertion}`,
+        `branch: ${fa.branch_result}`,
+        `base: ${fa.base_result}`,
+        `comparison: ${fa.comparison_status}`,
+        `failure_mode: ${fa.failure_mode}`,
+      ];
+      if (fa.owner_task) parts.push(`owner_task: ${fa.owner_task}`);
+      addFact(
+        facts,
+        report,
+        "archive_only_evidence",
+        "failure_attribution",
+        parts.join(" | "),
+      );
+      if (fa.test_locator) {
+        addFact(
+          facts,
+          report,
+          "archive_only_evidence",
+          "failure_attribution.test_locator",
+          `${fa.test_locator.label}: ${fa.test_locator.locator} — ${fa.test_locator.summary}`,
+        );
+      }
+      if (fa.production_locator) {
+        addFact(
+          facts,
+          report,
+          "archive_only_evidence",
+          "failure_attribution.production_locator",
+          `${fa.production_locator.label}: ${fa.production_locator.locator} — ${fa.production_locator.summary}`,
+        );
+      }
+    }
     if (verifierReport.suggested_handoff) {
       addFact(
         facts,
