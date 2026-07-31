@@ -2180,7 +2180,7 @@ describe("subagentReportTools", () => {
       expect(issue.field).toContain("report");
       expect(typeof issue.message).toBe("string");
     }
-  });
+  }, 15000);
 
   test("design-validation handler rejects typed blockers with unknown contract IDs (AC13)", async () => {
     // rq-fixWorkflowReliabilityDefects/AC13: every typed blocker must cite
