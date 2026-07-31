@@ -18,9 +18,8 @@
  * `commitChangeProjection` / the typed mutation coordinator.
  */
 
-import { readFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
-import { resolve, relative } from "node:path";
+import { readdir, readFile } from "node:fs/promises";
+import { join, resolve, relative } from "node:path";
 import ts from "typescript";
 
 export interface SaveChangeAllowListEntry {
@@ -226,34 +225,72 @@ export function collectSaveChangeCallSitesFromText(
   return collectSaveChangeCallSitesFromSource(source, file);
 }
 
+/** Source subtree scanned for raw `saveChange` call sites. */
+const SAVE_CHANGE_SCAN_ROOT = "plugin/src";
+
+/**
+ * Cheap content prefilter applied before TypeScript parsing. A file that never
+ * mentions the symbol cannot contain a call to it, so it is skipped without
+ * being parsed — which also keeps intentionally malformed fixtures out of the
+ * AST path.
+ */
+const SAVE_CHANGE_PREFILTER = "saveChange";
+
+/**
+ * Recursively collect `.ts` files using pure Node.js.
+ *
+ * Deliberately dependency-free: ripgrep is not installed on GitHub Actions
+ * runners, so shelling out to `rg` fails there with `spawnSync rg ENOENT`.
+ * Same correctness, zero external deps.
+ */
+async function collectTypeScriptFiles(dir: string): Promise<string[]> {
+  const results: string[] = [];
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    // Scan root may not exist (e.g. a fixture repo without plugin/src).
+    return results;
+  }
+  for (const entry of entries) {
+    if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+    const fullPath = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...(await collectTypeScriptFiles(fullPath)));
+    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
+/**
+ * Bounded read fan-out. The scan root holds ~900 files / ~11 MB, so reading
+ * them one await at a time dominates the runtime; batching keeps the guard
+ * well inside the default test timeout without raising it.
+ */
+const SAVE_CHANGE_READ_CONCURRENCY = 32;
+
 export async function findExecutableSaveChangeCalls(
   repoRoot: string,
 ): Promise<SaveChangeCallSite[]> {
-  const output = execFileSync(
-    "rg",
-    [
-      "--files-with-matches",
-      "--fixed-strings",
-      "saveChange",
-      "--glob=*.ts",
-      "plugin/src",
-    ],
-    {
-      cwd: repoRoot,
-      encoding: "utf-8",
-    },
-  );
-  const files = new Set<string>();
-  for (const file of output.split("\n").filter(Boolean)) {
-    files.add(resolve(repoRoot, file));
-  }
+  const scanRoot = resolve(repoRoot, SAVE_CHANGE_SCAN_ROOT);
+  const candidates = (await collectTypeScriptFiles(scanRoot)).sort();
 
   const calls: SaveChangeCallSite[] = [];
-  for (const absoluteFile of files) {
-    const text = await readFile(absoluteFile, "utf-8");
-    const source = createSaveChangeSourceFile(absoluteFile, text);
-    const relFile = relative(repoRoot, absoluteFile).replace(/\\/g, "/");
-    calls.push(...collectSaveChangeCallSitesFromSource(source, relFile));
+  for (let i = 0; i < candidates.length; i += SAVE_CHANGE_READ_CONCURRENCY) {
+    const batch = candidates.slice(i, i + SAVE_CHANGE_READ_CONCURRENCY);
+    const texts = await Promise.all(
+      batch.map((file) => readFile(file, "utf-8")),
+    );
+    for (let j = 0; j < batch.length; j += 1) {
+      const text = texts[j];
+      if (!text.includes(SAVE_CHANGE_PREFILTER)) continue;
+      const absoluteFile = batch[j];
+      const source = createSaveChangeSourceFile(absoluteFile, text);
+      const relFile = relative(repoRoot, absoluteFile).replace(/\\/g, "/");
+      calls.push(...collectSaveChangeCallSitesFromSource(source, relFile));
+    }
   }
   return calls;
 }
