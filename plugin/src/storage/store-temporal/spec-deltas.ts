@@ -105,7 +105,13 @@ function assertPersistedModify(
  * archive remains the sole global-spec writer.
  */
 export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
-  const { legacy, invalidateChange, emitChangeSummarySignal } = deps;
+  const {
+    legacy,
+    invalidateChange,
+    setCachedChange,
+    emitChangeSummarySignal,
+    persistStateToDisk,
+  } = deps;
 
   return {
     ...legacy.specDeltas,

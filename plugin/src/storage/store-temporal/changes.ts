@@ -3,6 +3,7 @@ import type {
   ChangeConflictAuthority,
   AuthorityDiagnostics,
 } from "../store-types";
+import { snapshotToLoadResult } from "./read-model";
 import {
   type ArtifactKind,
   type ArtifactPayload,
