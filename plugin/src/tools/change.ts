@@ -36,7 +36,7 @@ import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
 import type { ProjectConfig } from "../types/project";
 import { loadAllSpecs } from "../storage/json";
 import { getReflection } from "../storage/reflection";
-import { loadChange, saveChange } from "../storage/json";
+import { loadChange } from "../storage/json";
 import { getProjectId } from "../utils/project-id";
 import { formatZodError } from "../utils/safe-execute";
 import { validateChange } from "../validator";
@@ -115,6 +115,7 @@ import {
 } from "./recovery-probe";
 import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { reconcileRecoveredGates } from "./gate";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   buildD3ContextFromStore,
   enforceD3ForChangeCreate,
@@ -445,7 +446,8 @@ function formatConvergeFailure(input: {
 // When a workflow dies before the archiveConvergedSignal can project, a change
 // may be stuck half-converged: status archived but lifecycleState open,
 // release gate pending, phase9_status pending. This writer repairs the disk
-// projection in a single saveChange call when shipped proof is present.
+// projection through the storage-owned conditional projection commit when
+// shipped proof and a valid archive bundle are present.
 // =============================================================================
 
 export type ArchiveConvergenceRefusalCode =
@@ -477,6 +479,16 @@ export type SaveRecoveredArchiveConvergenceResult =
     }
   | {
       kind: "readbackFailed";
+      error: string;
+      readback: {
+        status?: Change["status"];
+        lifecycleState?: Change["lifecycleState"];
+        releaseStatus?: GateCompletion["status"];
+        phase9Status?: NonNullable<Change["phase9_status"]>["status"];
+      };
+    }
+  | {
+      kind: "state_unknown";
       error: string;
       readback: {
         status?: Change["status"];
@@ -576,118 +588,139 @@ export async function saveRecoveredArchiveConvergence(input: {
   const completedBy = "adv-archive";
   const approvalEvidence = buildReleaseCompletionEvidence(input.finalization);
 
-  const releaseGateDone: GateCompletion = input.releaseGate ?? {
-    status: "done",
-    completed_at: archivedAt,
-    completed_by: completedBy,
-    approval_evidence: approvalEvidence,
-    recovery_audit: {
-      reason: "archive_convergence_recovery",
-      evidence: `${input.authorization.reason}; ${input.authorization.evidence}`,
-      recovered_at: archivedAt,
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      kind: "workflow_completed",
+      evidence: {
+        reason: "missing_workflow",
+        evidence: `${input.authorization.reason}; ${input.authorization.evidence}`,
+      },
     },
-  };
-
-  const phase9Done = preservePhase9Evidence(input.change.phase9_status, {
-    status: "done",
-    startedAt: input.change.phase9_status?.startedAt ?? archivedAt,
-    completedAt: archivedAt,
-    route: input.finalization.route,
-    ...(input.finalization.prNumber
-      ? { prNumber: input.finalization.prNumber }
-      : {}),
-    ...(input.finalization.prUrl ? { prUrl: input.finalization.prUrl } : {}),
-    ...(input.finalization.mergeCommitSha
-      ? { mergeCommitSha: input.finalization.mergeCommitSha }
-      : {}),
-    autoMergeArmed: false,
+    changesDir: input.store.paths.changes,
+    expectedRevision: input.change.projection_revision ?? 0,
+    intent: {
+      changeId: input.changeId,
+      mutationKind: "archive_convergence",
+      sendSignal: async () => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => {
+        const releaseGateDone: GateCompletion = input.releaseGate ?? {
+          status: "done",
+          completed_at: archivedAt,
+          completed_by: completedBy,
+          approval_evidence: approvalEvidence,
+          recovery_audit: {
+            reason: "archive_convergence_recovery",
+            evidence: `${input.authorization.reason}; ${input.authorization.evidence}`,
+            recovered_at: archivedAt,
+          },
+        };
+        const phase9Done = preservePhase9Evidence(latest.phase9_status, {
+          status: "done",
+          startedAt: latest.phase9_status?.startedAt ?? archivedAt,
+          completedAt: archivedAt,
+          route: input.finalization.route,
+          ...(input.finalization.prNumber
+            ? { prNumber: input.finalization.prNumber }
+            : {}),
+          ...(input.finalization.prUrl
+            ? { prUrl: input.finalization.prUrl }
+            : {}),
+          ...(input.finalization.mergeCommitSha
+            ? { mergeCommitSha: input.finalization.mergeCommitSha }
+            : {}),
+          autoMergeArmed: false,
+        });
+        return {
+          ...latest,
+          status: "archived",
+          lifecycleState: "archived",
+          gates: {
+            ...(latest.gates ?? {}),
+            release: releaseGateDone,
+          },
+          phase9_status: phase9Done,
+        };
+      },
+      verifyProjection: (readback) => {
+        const failures: string[] = [];
+        if (readback.status !== "archived") {
+          failures.push(`status: ${readback.status ?? "missing"}`);
+        }
+        if (readback.lifecycleState !== "archived") {
+          failures.push(
+            `lifecycleState: ${readback.lifecycleState ?? "missing"}`,
+          );
+        }
+        if (readback.gates?.release?.status !== "done") {
+          failures.push(
+            `release gate: ${readback.gates?.release?.status ?? "missing"}`,
+          );
+        }
+        if (readback.phase9_status?.status !== "done") {
+          failures.push(
+            `phase9_status: ${readback.phase9_status?.status ?? "missing"}`,
+          );
+        }
+        return failures.length === 0
+          ? true
+          : {
+              ok: false,
+              error: `readback did not converge: ${failures.join("; ")}`,
+            };
+      },
+    },
   });
-
-  const converged = {
-    ...input.change,
-    status: "archived",
-    lifecycleState: "archived",
-    gates: {
-      ...(input.change.gates ?? {}),
-      release: releaseGateDone,
-    },
-    phase9_status: phase9Done,
-  } as Change;
-
-  try {
-    await saveChange(input.store.paths.changes, converged);
-  } catch (error) {
-    return {
-      kind: "writeFailed",
-      error: error instanceof Error ? error.message : String(error),
-    };
-  }
 
   try {
     await input.store.changes.refresh(input.changeId);
   } catch {
-    // Best-effort cache refresh; the disk save is the important effect.
+    // Best-effort cache refresh; the disk commit is the important effect.
   }
 
-  // Read-after-write verification: reload from disk and assert all four fields.
-  const loadResult = await loadChange(
-    input.store.paths.changes,
-    input.changeId,
-  );
-  if (!loadResult.success) {
-    return {
-      kind: "readbackFailed",
-      error: `loadChange failed: ${loadResult.error ?? "unknown error"}`,
-      readback: {},
-    };
+  switch (outcome.kind) {
+    case "recovered_verified":
+    case "applied_temporal": {
+      const readback = outcome.value;
+      return {
+        kind: "converged",
+        change: readback,
+        readback: {
+          status: readback.status,
+          lifecycleState: readback.lifecycleState,
+          releaseStatus: readback.gates?.release?.status,
+          phase9Status: readback.phase9_status?.status,
+        } as Extract<
+          SaveRecoveredArchiveConvergenceResult,
+          { kind: "converged" }
+        >["readback"],
+      };
+    }
+    case "recovered_unverified":
+      return {
+        kind: "state_unknown",
+        error: `archive convergence recovery wrote the projection but the postcondition could not be verified: ${outcome.reason}`,
+        readback: {},
+      };
+    case "stale_revision":
+      return {
+        kind: "writeFailed",
+        error: `archive convergence recovery encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
+      };
+    case "operator_required":
+      return {
+        kind: "writeFailed",
+        error: `archive convergence recovery could not commit the projection: ${outcome.reason}`,
+      };
+    default: {
+      const _exhaustive: never = outcome;
+      return {
+        kind: "writeFailed",
+        error: `archive convergence recovery returned unexpected outcome: ${String(_exhaustive)}`,
+      };
+    }
   }
-  if (!loadResult.data) {
-    return {
-      kind: "readbackFailed",
-      error: `loadChange failed: no data for ${input.changeId}`,
-      readback: {},
-    };
-  }
-  const diskChange = loadResult.data as Change;
-  const failures: string[] = [];
-  if (diskChange.status !== "archived") {
-    failures.push(`status: ${diskChange.status ?? "missing"}`);
-  }
-  if (diskChange.lifecycleState !== "archived") {
-    failures.push(`lifecycleState: ${diskChange.lifecycleState ?? "missing"}`);
-  }
-  if (diskChange.gates?.release?.status !== "done") {
-    failures.push(
-      `release gate: ${diskChange.gates?.release?.status ?? "missing"}`,
-    );
-  }
-  if (diskChange.phase9_status?.status !== "done") {
-    failures.push(
-      `phase9_status: ${diskChange.phase9_status?.status ?? "missing"}`,
-    );
-  }
-  const readback = {
-    status: diskChange.status,
-    lifecycleState: diskChange.lifecycleState,
-    releaseStatus: diskChange.gates?.release?.status,
-    phase9Status: diskChange.phase9_status?.status,
-  };
-  if (failures.length > 0) {
-    return {
-      kind: "readbackFailed",
-      error: `readback did not converge: ${failures.join("; ")}`,
-      readback,
-    };
-  }
-
-  return {
-    kind: "converged",
-    change: converged,
-    readback: readback as Extract<
-      SaveRecoveredArchiveConvergenceResult,
-      { kind: "converged" }
-    >["readback"],
-  };
 }
 
 /**
