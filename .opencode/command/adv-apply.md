@@ -6,7 +6,11 @@ phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within 
 
 # ADV Apply — Produce Deliverables with Task-Appropriate Proof and Retry
 
+<<<<<<< HEAD
 Implement an ADV change with proof selected by each typed task. Use TDD for behavior-bearing inline code; use the declared non-test evidence route for non-code deliverables. Produce the agreed deliverables — code, docs, ops changes, or verification artifacts — and pursue every task to completion.
+=======
+Implement an ADV change using TDD. Produce agreed deliverables and pursue every task to completion.
+>>>>>>> 03a9608a (chore(adv): checkpoint tk-fb6767c9ac8b)
 
 ## Task Completion Policy
 
@@ -16,15 +20,15 @@ Implement an ADV change with proof selected by each typed task. Use TDD for beha
 | 🔁 Doom Loop     | 3 genuine fix attempts failed with documented diagnosis |
 | 🌍 Environmental | Missing external dependency → escalate immediately      |
 
-Cross-repo tasks: see § Cross-Repo Execution below. Product-linked tasks must respect `scope_repos`; record wisdom from the executing repo so entries keep `origin_repo_id`, `origin_repo_project_id`, `origin_repo_path`, and `product_id`.
+Cross-repo tasks: respect `scope_repos`; record `origin_repo_id`, `origin_repo_project_id`, `origin_repo_path`, `product_id`. Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
 
-Cancellation: use `adv_task_cancel` with user approval. `adv_task_update status: cancelled` is rejected.
 | × Bad | ✓ Good |
 |-------|--------|
-| "Let's skip this for now" | Apply retry protocol |
-| "We can come back to this" | Complete now or exhaust retries |
+| Skip or defer without retry | Apply retry protocol |
+| Complete later if hard | Complete now or exhaust retries |
 | "This targets another repo" | Switch `workdir` and execute |
 | `adv_task_update status: cancelled` | `adv_task_cancel` with user approval |
+
 <UserRequest>
 $ARGUMENTS
 </UserRequest>
@@ -39,7 +43,7 @@ $ARGUMENTS
 
 `adv_gate_status changeId: {change-id}`
 
-- Discovery/design/planning incomplete → stop and require the pre-implementation workflow first
+- Discovery/design/planning incomplete → stop and require pre-implementation workflow
 - All pre-implementation stages complete → proceed to Phase 0
 
 × `/adv-apply` MUST NOT complete discovery, design, or planning gates.
@@ -48,8 +52,13 @@ $ARGUMENTS
 
 ### Apply Methodology
 
-#### Purpose
+Provides the TDD work loop, retry protocol, context freshness, and completion criteria. Canonical sources:
+- `ADV_INSTRUCTIONS.md § Context Freshness`
+- `ADV_INSTRUCTIONS.md § TDD Protocol (RSTC)`
+- `ADV_INSTRUCTIONS.md § Doom Loop Detection`
+- `docs/apply-subagent-packets.md` for sub-agent packet templates
 
+<<<<<<< HEAD
 Reusable implementation methodology for ADV apply workflows. Provides the TDD work loop shape, retry protocol, context freshness rules, and task completion criteria.
 
 **Canonical sources:**
@@ -85,257 +94,154 @@ See § Retry Protocol below (canonical) for the SEMANTIC / TRANSIENT / ENVIRONME
 - **No gate completion** — command owns the execution gate
 - **Canonical sources** — defer to `ADV_INSTRUCTIONS.md` for detailed protocol rules
 - **No workflow sequencing** — command owns phase ordering and task loop
+=======
+`adv_run_test phase` is descriptive metadata. Use `passed`, `classification`, `exitCode` as evidence. Inline TDD completions include `lastRedRunId` and `lastGreenRunId` from `adv_run_test` calls.
+>>>>>>> 03a9608a (chore(adv): checkpoint tk-fb6767c9ac8b)
 
 ### Scope Expansion During Execution
 
-If new objectives or acceptance criteria are discovered during execution that were not part of the original agreement, do NOT silently fold them into current task graph. Instead, apply the **scope-discovery protocol** from `docs/scope-discovery-protocol.md`:
-
-1. **Assess campsite eligibility** — If the discovered scope is P23-campsite-eligible (adjacent, clear, safe, focused), apply it freely without prompting.
-2. **Non-campsite scope** — Emit a Tier A inline prompt with options:
-   - `reenter {gate}` — reopen from the earliest affected gate (typically `discovery`)
-   - `split` — create a fast-follow child change via `adv_change_create parent_change_id: <current>`
-   - `keep` — absorb into current change (still requires `adv_change_reenter` if new objectives/AC are added)
-   - `cancel` — discard the discovered scope
-3. **Walk reopened gates** — If reenter chosen, use `adv_change_reenter` then walk gates normally (`/adv-discover` → `/adv-design` → `/adv-prep`)
-4. **Resume execution** — After planning re-completes, resume `/adv-apply` — new tasks will be available alongside existing completed work
-
-Existing tasks and completed work are preserved across re-entry. Only gate state is reset.
-
-See also `ADV_INSTRUCTIONS.md § Large-Scope Validity` — size alone is never grounds for split-suggestion after prep approval.
+If new objectives/AC emerge, follow `docs/scope-discovery-protocol.md`:
+1. Campsite-eligible (P23) → apply inline
+2. Otherwise → Tier A prompt: `reenter {gate}`, `split` (fast-follow child), `keep`, `cancel`
+3. After reentry, resume `/adv-apply`
 
 ## Phase 0.1: Worktree Isolation
 
-### Tool Check
+If `adv_worktree_create` unavailable → `[ADV:BLOCKED] Worktree tools required`.
 
-If `adv_worktree_create` unavailable → hard block: `[ADV:BLOCKED] Worktree tools required but unavailable. Configure ADV worktree tools to proceed.` → stop.
+`git worktree list --porcelain` → find `change/{change-id}`:
+- Exists → reuse, switch `workdir`
+- Missing → `git worktree prune` then create
 
-### Detect Existing Worktree
+Create: `adv_worktree_create branch: "change/{change-id}"`. Capture path; use it for ALL subsequent calls. To delete later, pass `branch: "change/{change-id}"`.
 
-`git worktree list --porcelain` → find `change/{change-id}` branch.
+Post-creation: verify task-referenced paths exist in worktree. Distinguish read-reference from create-target paths. For MISSING read-reference: discover with `glob`/`bash`; if essential and absent, check main checkout and note discrepancy. Emit: `Path verification: {N} OK, {M} corrected, {K} advisory-skipped, {L} to-create`.
 
-- Path exists (healthy) → auto-reuse: switch `workdir` to existing path
-- Path missing (stale) → `git worktree prune` → continue to create
-- No match → continue to create
-
-### Create Worktree
-
-1. `adv_worktree_create branch: "change/{change-id}"`
-2. **Immediately** capture returned path and set `workdir` for ALL subsequent tool calls
-3. Continue inline — no handoff, no new terminal needed
-4. When deleting later, pass `branch: "change/{change-id}"` to `adv_worktree_delete`
-
-### Post-Creation Path Verification
-
-After worktree creation, verify that task-referenced paths exist in the worktree. This prevents the recurring class of errors where the agent reads files from its main-checkout context but the worktree (forked from the default branch) lacks them — or the paths were constructed from assumed project structure not actual files.
-
-1. Extract key file/directory paths from ready tasks (task `content`, `metadata.affected_files`, or design excerpts). Distinguish **read-reference paths** (files the agent will read for patterns/context) from **create-target paths** (files task will create).
-2. Verify read-reference paths: `bash "test -e '{workdir}/{path}' && echo OK || echo MISSING"` (use `workdir` parameter).
-3. For each MISSING read-reference path:
-   a. Discover actual structure: `glob pattern: "**/{basename}" workdir: {workdir}` or `bash "ls {workdir}/"` to find file or its directory.
-   b. If found at a different path → record the corrected path and use it for all subsequent operations on this task.
-   c. If not found at all → file may not exist on the default branch (feature-branch-only file), or the path was assumed from common patterns. In this case:
-   - If file is essential for task → check if it exists in the main checkout: `bash "test -e '{main-checkout}/{path}'"` and note the discrepancy. The worktree may need a rebase or file may need to be created differently.
-   - If file is advisory (pattern reference) → mark it as unavailable and proceed without it; do NOT block on missing pattern files.
-4. For cross-repo tasks (detected via `target_repo`/`target_path` or path hints in title): resolve target repo from `related_repos` config or `target_path` and **switch `workdir`** to target repo path for that task. The ADV worktree is for current project; cross-repo task execution happens in target repo directly.
-5. Emit brief result: `Path verification: {N} OK, {M} corrected, {K} advisory-skipped, {L} to-create`
-
-× Do NOT block Phase 1 for missing advisory files. Only block for missing essential files that prevent task execution.
-
-### Multi-Change Worktree Switch
-
-When a session on change A needs to work on change B:
-
-1. `git worktree list --porcelain` → find `change/{change-b-id}` branch
-2. If worktree-B exists → switch `workdir` to worktree-B path
-3. If worktree-B missing → `adv_worktree_create branch: "change/{change-b-id}"` → capture path → switch `workdir`
-4. Resume work on change B in its isolated worktree
-5. To return to change A → switch `workdir` back to worktree-A path
+Multi-change switch: find/create worktree for change B, switch `workdir`, resume.
 
 ## Phase 0.2: Overlap Warning (Conditional)
 
-Check `adv_change_list` for other active changes. Compare affected files.
+Check `adv_change_list` for active changes. Compare affected files.
 
-- **3+ changes touching same file** → emit `COORDINATION REQUIRED` banner listing file and all overlapping change IDs. **Halt `/adv-apply`** until user resolves (merge/combine changes, or proceed with explicit override).
-- **2 changes touching same file** → emit advisory warning listing file and overlapping change ID. Does NOT block work.
-- **No overlaps** → proceed silently.
-
-Cross-change coordination is now handled automatically by `/adv-archive` (merge-order queue) and `/adv-status` (cross-change health dashboard).
+- 3+ changes touching same file → `COORDINATION REQUIRED`, **halt**
+- 2 changes touching same file → advisory warning
+- No overlap → proceed
 
 ## Phase 0.5: Pre-Execution Rebase (per-worktree)
 
-Before task loop begins, run `preExecutionRebase` from `apply-helpers/pre-rebase.ts` against current worktree. This keeps change branch fresh against `origin/<default-branch>` without modifying origin.
+Run `preExecutionRebase` from `apply-helpers/pre-rebase.ts` against worktree.
 
-**Why per-worktree is safe:** Each change runs in its own git worktree with an independent working directory. There is no shared index or working tree, so concurrent `/adv-apply` sessions on different changes cannot interfere with each other. No cross-session lock is required.
+Outcomes: `up_to_date` / `rebased` → proceed; `conflict` / `no_remote` / `default_branch_unresolvable` / `not_a_worktree` / `rebase_failed` → halt and surface.
 
-**Outcomes:**
-
-- `up_to_date` — nothing to do; proceed to task loop.
-- `rebased` — local branch was behind; rebase succeeded. Proceed to task loop.
-- `conflict` — rebase failed with conflicts. The worktree is left clean (rebase aborted). Halt `/adv-apply` and surface the conflict to user with the list of conflicted files.
-- `no_remote` / `default_branch_unresolvable` / `not_a_worktree` / `rebase_failed` — halt `/adv-apply` and surface the specific error with the provided hint.
-
-× **Local-only** — does not push or modify origin.
-× **Requires clean worktree** — the apply pre-flight elsewhere enforces this before Phase 0.5 runs. No `--autostash` is used.
-
-**Runtime wiring:** The actual call to `preExecutionRebase` before task loop is OUT OF SCOPE for this document; it will be wired in a follow-up task.
+× Local-only, no push. Requires clean worktree.
 
 ---
 
 ## Cross-Repo Execution
 
-Tasks may target other repositories. See ADV_INSTRUCTIONS.md §Cross-Repo Execution for full protocol.
+Tasks may target other repositories. See `ADV_INSTRUCTIONS.md § Cross-Repo Execution`.
 
-1. Detect: check `target_repo`/`target_path` fields or path hints in title
-2. Resolve: use `related_repos` config or `target_path` directly; confirm with user if ambiguous
-3. Execute: switch `workdir` → run TDD workflow → switch back
+1. Detect: `target_repo`/`target_path` or path hints
+2. Resolve: `related_repos` config or `target_path`; confirm if ambiguous
+3. Execute: switch `workdir` → TDD workflow → switch back
 
-× Prohibited cancellation reasons: "out of scope", "different repository", "cannot modify external code", "backend/API changes needed", "would need database changes" — all require switching `workdir` and executing.
+× Prohibited cancellation reasons: "out of scope", "different repository", "cannot modify external code", "backend/API changes needed", "would need database changes".
 
 ## Cross-Project Coordination
 
-When task contributes to another ADV-enabled project, use ADV tools with explicit `target_path` instead of reading or editing ADV state files directly.
+When task contributes to another ADV-enabled project, use ADV tools with explicit `target_path`.
 
-| Operation                  | Required behavior                                                                                                 |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Target reads               | Use `snapshot-ok` tools (`adv_change_show`, task/gate/status reads) with `target_path`; inspect `_projectContext` |
-| Target mutations           | Use `temporal-required` tools with `target_path`; fail closed if target queue is unavailable                      |
-| Untrusted target mutations | Pass `target_confirmed: true` and `confirmationEvidence` from explicit user approval                              |
+| Operation | Required behavior |
+| --- | --- |
+| Target reads | `adv_change_show`, task/gate/status reads with `target_path`; inspect `_projectContext` |
+| Target mutations | `temporal-required` tools with `target_path`; fail closed if unavailable |
+| Untrusted target mutations | `target_confirmed: true` + `confirmationEvidence` |
 
-- `cross_project_links` records source/target provenance after target change creation/linking.
-- `external_dependencies` are advisory-only dependencies: unmet targets warn through `_externalDependencyStatus`; warnings do not block task/gate completion by themselves.
-- Target-project contribution workflow: create/link target change → verify source-side `cross_project_links` → read `_externalDependencyStatus` → mutate target only through ADV tools with confirmation when required.
+`cross_project_links` records provenance. `external_dependencies` are advisory.
 
 ---
 
 ## Cancellation Policy (Inline — Tier B)
 
-All cancellations require explicit user approval via `adv_task_cancel`. Cancellation is irreversible — Tier B uses inline structured prose with strict regex parsing (no LLM fallback) per `docs/command-voice-standard.md` § Inline Approval Voice and `rq-inlineApproval01.4`.
+All cancellations require user approval via `adv_task_cancel`. Irreversible. Strict regex parsing per `docs/command-voice-standard.md`.
 
-**Workflow:**
+Collect reasons per task. Emit numbered list:
 
-1. **Collect per-task reasons** for each task to be cancelled.
-2. **Emit numbered per-task list inline** (no `question` tool):
+```
+Cancellation requested:
+1. {tk-id} — "{title}" — Reason: {reason}
 
-   ```
-   Cancellation requested for these tasks:
+Reply EXACTLY one of:
+- approve all
+- reject all
+- keep N (or keep N,M)
+- cancel N (or cancel N,M)
+- stop / abort
+```
 
-   1. {tk-id} — "{title}" — Reason: {reason}
-   2. {tk-id} — "{title}" — Reason: {reason}
+Parse reply (no LLM fallback):
 
-   Reply EXACTLY one of:
-   - `approve all` — cancel all listed tasks
-   - `reject all` — keep all tasks active
-   - `keep N` (or `keep N,M`) — cancel inverse of listed numbers
-   - `cancel N` (or `cancel N,M`) — cancel only the listed numbers
-   - `stop` / `abort` — halt; do not cancel anything
+| Pattern | Action |
+|---|---|
+| `^approve all$` | Cancel all |
+| `^reject all$` | Keep all |
+| `^keep ([\d,\s]+)$` | Cancel inverse |
+| `^cancel ([\d,\s]+)$` | Cancel listed |
+| `^(stop\|abort)$` | Halt; cancel nothing |
+| Else | Re-prompt |
 
-   Anything else → agent will re-prompt with the same options.
-   ```
+Anchor: `approve all`. On approval: `adv_task_checkpoint mode: 'cancel'` then `adv_task_cancel approvedByUser: true`.
 
-3. **Parse reply with regex (no LLM fallback):**
-
-   | Pattern               | Action                                                                     |
-   | --------------------- | -------------------------------------------------------------------------- |
-   | `^approve all$`       | Cancel all listed tasks                                                    |
-   | `^reject all$`        | Keep all tasks active                                                      |
-   | `^keep ([\d,\s]+)$`   | Cancel inverse of listed numbers                                           |
-   | `^cancel ([\d,\s]+)$` | Cancel only the listed numbers                                             |
-   | `^(stop\|abort)$`     | Halt; do not cancel anything                                               |
-   | Anything else         | Re-prompt with same options. **× Do NOT** invoke LLM. **× Do NOT** advance |
-
-4. **Anchor phrase:** `approve all`
-
-5. **On approval (checkpoint before cancel):** for each task to be cancelled:
-   - Call `adv_task_checkpoint` with `mode: 'cancel'`, `reason: <reason>`
-   - Then call `adv_task_cancel` with `approvedByUser: true` and `approvalEvidence: <user reply text>`
-
-× Do NOT use the `question` tool for cancellation approval. The inline pattern is canonical per `rq-inlineApproval01.4`.
+× Do NOT use `question` tool for cancellation.
 
 ---
 
 ## Phase 1: Load Change Context
 
-Single phase-start call (replaces the legacy 4-tool quartet):
+Single phase-start call:
 
 ```
 adv_change_show changeId: <target> include: { ledger: true, snapshot: true, readyTasks: true }
 ```
 
-This returns:
-
-- `tasks` (paginated) and `_taskPagination` — total/completed/in-progress counts
-- `_contextSnapshot` — rendered gate row + counts; opt-in via `include.snapshot:true` on mutation tools or `adv_change_show include.snapshot:true`
-- `_ledger` — durable run state for the in-progress task (or `null`)
-- `_readyTasks` + `_readyTasksMeta` — unblocked queue (top-10; override with `readyTasksLimit`)
-
-Fall back to the legacy trio (`adv_change_show + adv_task_list + adv_task_ready`) only if a specific call needs more than the included slice.
-
----
+Returns tasks, `_contextSnapshot`, `_ledger`, `_readyTasks`, `_readyTasksMeta`. Fallback to legacy trio only if a specific call needs more than the included slice.
 
 ## Phase 1.5: Prep Gate Approval Verification
 
-### Prep Gate Approval Check
+- Prep gate complete with `userApproved` → proceed immediately
+- Prep gate complete without `userApproved` → advisory, ask via `question`
+- Planning gate pending → `/adv-apply {change-id}` counts as approval; complete planning with `userApproved: true`
+- Prep gate not complete (and not planning pending) → stop; require `/adv-prep`
 
-Verify that the prep gate was completed with user approval. The prep gate is the last human checkpoint — `/adv-apply` runs autonomously after it.
-
-- **Prep gate complete with `userApproved`**: Proceed immediately. No confirmation needed.
-- **Prep gate complete without `userApproved` (legacy change)**: Emit soft advisory:
-  ```
-  ⚠ ADVISORY: Prep gate was completed before HITL enforcement.
-  This change was approved under the previous workflow.
-  Proceeding with implementation.
-  ```
-  Ask via `question` tool: Proceed with implementation (Recommended), Re-run prep for explicit approval, Cancel.
-- **Planning gate pending**: The `/adv-apply {change-id}` invocation itself counts as explicit approval. Complete planning with `adv_gate_complete gateId: planning userApproved: true` and proceed immediately to execution. This is command-as-approval behavior per `rq-inlineApproval01.7`.
-- **Prep gate not complete (and not planning pending)**: Stop — require `/adv-prep` first (handled by Gate Prerequisite Check above).
-
-× MUST NOT ask "Begin work?" when prep gate has `userApproved` — that approval already happened during `/adv-prep`.
-
----
+× MUST NOT ask "Begin work?" when prep has `userApproved`.
 
 ## Phase 2: Display Contract
 
-Emit a purpose line: `Working on: {change-id}`. State is visible via `adv_change_show` (use `include.snapshot:true` to request `_contextSnapshot`) — do not duplicate it in a banner.
+Emit: `Working on: {change-id}`. State visible via `adv_change_show include.snapshot:true`.
 
-Retry policy (advisory): see § Retry Protocol below.
-
-Proceed directly to Phase 3 — do NOT ask for approval to begin work. Execution-start approval is NOT a sanctioned human checkpoint under `rq-autonomy01`. Scope and criteria were signed off at the Agreement gate; the prep gate confirms the plan is ready for execution.
+Proceed directly to Phase 3. Execution-start approval is not a sanctioned checkpoint.
 
 ---
 
 ## Retry Protocol
 
-### Error Classification
+| Type | Examples | Action |
+|---|---|---|
+| SEMANTIC | Type errors, test failures | Diagnose → fix → retry (3×) |
+| TRANSIENT | Timeout, flaky test | Wait 5s → retry once |
+| ENVIRONMENTAL | Missing dep, config | Escalate immediately |
 
-| Type          | Examples                               | Action                      |
-| ------------- | -------------------------------------- | --------------------------- |
-| SEMANTIC      | Type errors, test failures, logic bugs | Diagnose → Fix → Retry (3×) |
-| TRANSIENT     | Network timeout, flaky test            | Wait 5s → Retry once        |
-| ENVIRONMENTAL | Missing dep, config not found          | Escalate immediately        |
-
-### Diagnosis Requirement (Reflexion)
-
-Before ANY SEMANTIC fix, emit:
+Before any SEMANTIC fix, emit:
 
 ```
 [ADV:BLOCKED] RETRY {n}/3
-DIAGNOSIS: {root cause analysis}
+DIAGNOSIS: {root cause}
 FIX: {planned approach}
 ```
 
-Diagnosis MUST appear before fix. Each attempt must have different diagnosis and approach.
+Each attempt must differ. After each failed attempt: `adv_task_update` with `error_recovery` payload.
 
-### Recording
-
-After each failed attempt: `adv_task_update taskId: {id} status: "in_progress" notes: "RETRY {n}/3 - {error_class}: {last_error}" error_recovery: { last_error, retry_count, max_retries, error_class, next_strategy, attempts[] }`
-
-The `error_recovery` field on task JSON captures: `last_error`, `retry_count`, `max_retries`, `error_class` (TRANSIENT|SEMANTIC|ENVIRONMENTAL|FATAL), `next_strategy`, and `attempts[]` (attempt_number, error, diagnosis, fix_tried, outcome, attempted_at). Left as-is on success (historical record).
-
-### Budget Exhaustion (3 retries failed)
-
-Emit RETRY BUDGET EXHAUSTED banner showing all 3 attempts (diagnosis, fix, result for each). Classify blocking reason: SEMANTIC, KNOWLEDGE, or ENVIRONMENTAL.
-
-Ask via `question` tool: Provide hint (Recommended), Take over task, Void contract. × "Skip task" is NOT an option.
+Budget exhaustion: emit banner with 3 attempts, classify SEMANTIC/KNOWLEDGE/ENVIRONMENTAL. Ask via `question`: Provide hint, Take over task, Void contract. × "Skip task" is NOT an option.
 
 ---
 
@@ -343,89 +249,67 @@ Ask via `question` tool: Provide hint (Recommended), Take over task, Void contra
 
 ### Context Freshness (MANDATORY)
 
-Load context in two tiers:
+Two tiers:
+- **Phase start:** `adv_change_show` → full context + `epic_membership`
+- **Per task:** `adv_task_show` → task details; `adv_wisdom_list` → learnings
 
-**Phase start (once):** `adv_change_show` → load full change context including proposal, design, gates, task summary, and `epic_membership`. If `epic_membership` is present, load compact Epic context with `adv_epic_show epic_id: {epic_id}` and include it in sub-agent packets.
-
-**Briefing packet (MANDATORY for every delegated packet):** generate a lane-specific briefing packet via `adv_change_show include: { briefingPacket: true, briefingPacketLane: "<lane>" }` and inject `_briefingPacket` into the packet. The briefing packet is the authoritative source for `identity_anchors`, `scope`, `contract`, `tasks`, `affected_files`, `epic_context`, `verification_expectations`, `durable_facts`, and `unavailable_state`. Do not reconstruct these sections manually.
-
-**Per task:**
-
-1. `adv_task_show` → load current task details
-2. `adv_wisdom_list` → load accumulated learnings for this change
-3. Read relevant proposal/design sections only when task description references them
-
-× Do NOT call `adv_change_show` before every task — reserve for phase transitions.
-× Do NOT invent todo entries with prose descriptions instead of tk-ID projections. Use `_todoProjection` rows only.
+× Do NOT call `adv_change_show` before every task.
 
 ### Worktree Context for Sub-Agents
 
-Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Detect via `pwd`. Critical in worktrees — sub-agents inherit default project root, not worktree path.
+Include `WORKING DIRECTORY: {workdir}` in every sub-agent prompt. Detect via `pwd`.
 
 ### TodoWrite Rules
 
-TodoWrite is a projection over ADV tasks, not the task source of truth. Copy `_todoProjection` rows (`tk-abc123 — title`) from `adv_task_ready` or `adv_change_show include.readyTasks:true`.
-
-- Unknown `tk-*` IDs, other-change IDs, and premature `completed` status are blocked during top-level active ADV execution.
-- Entries without `tk-*` IDs are scratchpad-only / warning-first.
-- Non-ADV work, early gates without tasks, degraded ADV state, and subagent scratchpads remain allowed.
+TodoWrite is a projection over ADV tasks. Copy `_todoProjection` rows from `adv_task_ready` or `adv_change_show include.readyTasks:true`. Unknown `tk-*` IDs, other-change IDs, and premature `completed` are blocked during top-level ADV execution.
 
 ### Ops Runbook Execution
 
-For `ops` tasks or tasks whose contract refs require production ops evidence, ADV state is the source of truth. Do not treat chat transcript, shell scrollback, or stale parent `ops_followup_links.status` as approval/completion proof.
-
-Required flow for runbook-shaped ops work:
-
-1. Load child ops follow-up profile from `adv_change_show`; if no `ops_followup` profile exists, promote/seed one before recording ops evidence.
-2. Before execution, call `adv_ops_run_upsert` with env, action, bounds, evidence policy, rollback/cleanup plan, and execute step approval policy.
-3. Production-impacting execute steps without explicit low-risk classification MUST use `approval_required`; do not run or record execute evidence until matching approval evidence is present.
-4. `bounded_low_risk_autonomous` is valid only with rationale and explicit bounds. Heuristics may identify candidates, never authorize execution.
-5. Append step evidence with `adv_ops_run_evidence_add`; record only bounded summary plus safe artifact pointer or no-artifact rationale. Never paste credentials or raw production logs.
-6. Completion for release/sign-off requires completion signal, health verification, and rollback/cleanup disposition.
-
-If any required approval/evidence field is missing, keep the task `in_progress` and surface the blocker; do not mark the task done and do not downgrade it to generic `adv_ops_evidence_add` unless the contract explicitly allows legacy compact evidence.
+For `ops` tasks or contract refs requiring production ops evidence, use `adv_ops_run_upsert` with env, action, bounds, evidence policy, rollback plan, and execute step approval. Append evidence with `adv_ops_run_evidence_add`. Missing approval/evidence → keep task `in_progress`, surface blocker.
 
 ### Anti-Patterns (PROHIBITED)
 
-| × Anti-Pattern                                                                                 | ✓ Correct                                                                                                  |
-| ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| "Let's skip/defer this"                                                                        | Apply retry protocol                                                                                       |
-| "This might need manual work"                                                                  | Try 3 times first                                                                                          |
-| "I'm not sure how to proceed"                                                                  | Research, diagnose, attempt                                                                                |
-| "Would you like me to skip?"                                                                   | Never offer skip                                                                                           |
-| "Tests are flaky, marking done"                                                                | Fix flaky tests or document as environmental                                                               |
-| Marking "blocked" after 1 try                                                                  | Must attempt 3 distinct fixes                                                                              |
-| "This targets another repo"                                                                    | Switch workdir and execute                                                                                 |
-| Shell-authored test-file content (heredoc / `python -c` / `echo > *.test.*` / `tee` / `cat >`) | Prohibited for ordinary TDD. Use `edit` / `write` / `morph_edit` for file changes, then run `adv_run_test` |
-| Silent fold of non-campsite scope                                                              | Apply scope-discovery protocol (`docs/scope-discovery-protocol.md`)                                        |
-| "We'll handle this later" without surfacing                                                    | Apply scope-discovery protocol                                                                             |
-| Quietly trimming a planned task as redundant                                                   | Apply scope-discovery protocol                                                                             |
+| × Anti-Pattern | ✓ Correct |
+|---|---|
+| Skip or defer without retry | Apply retry protocol |
+| Assume manual work is needed | Try 3 times first |
+| "I'm not sure how to proceed" | Research, diagnose, attempt |
+| Offer to skip | Never offer skip |
+| Mark flaky tests done without fixing | Fix or document as environmental |
+| Mark blocked after 1 try | Attempt 3 distinct fixes |
+| "This targets another repo" | Switch workdir and execute |
+| Shell-authored test files | Use `edit`/`write`/`morph_edit` |
+| Silent fold of non-campsite scope | Use scope-discovery protocol |
+| "We'll handle this later" | Surface via scope-discovery protocol |
+| Quietly trim planned task | Use scope-discovery protocol |
 
+<<<<<<< HEAD
 `adv_run_test` is prescribed for ordinary inline red/green work because it provides executable proof for the current agent run. Durable final proof is recorded on `taskCompletedSignal.verification` when `adv_task_checkpoint` transitions the task to `done`. A valid non-test route for non-code work does not require `adv_run_test` or red/green. When a task's `evidence_plan` selects a non-test route for logic-bearing work, record a bounded rationale, a concrete `proof_target`, and a linked `review_conclusion` before completion. Test-quality proxies (assertion density, mock surface, coverage, flake indicators) are advisory only and do not gate completion. <!-- rq-TDD013evp rq-ADVEXEC06 -->
+=======
+`adv_run_test` for ordinary inline red/green. Durable proof recorded on `taskCompletedSignal.verification`.
+>>>>>>> 03a9608a (chore(adv): checkpoint tk-fb6767c9ac8b)
 
 ### Delegation Routing
 
-Before TDD phases, evaluate each task for delegation eligibility:
+Evaluate before TDD:
+
 | Priority | Check | Result |
-|----------|-------|--------|
-| 1 | `metadata.delegation_hint` set? | Use the hint value directly |
-| 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` to `adv-engineer` |
-| 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` to `adv-engineer` |
-| 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis, behavioral-authority diagnosis? | Any present → `inline_required` |
-| 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` to `adv-engineer` |
+|---|---|---|
+| 1 | `metadata.delegation_hint` | Use directly |
+| 2 | `tdd_intent == "not_applicable"` or trivial title | `delegate_allowed` to `adv-engineer` |
+| 3 | Risk signals (multi-file, cross-repo, architecture, failing-test diagnosis, behavioral-authority diagnosis) | `inline_required` |
+| 4 | Context-shed test passes | `delegate_allowed` to `adv-engineer` |
 | 5 | Default | `inline_required` |
 
-`metadata.frontend == "true"` is structural classification, not an initial routing override. Classified UI/component implementation is engineer-first: it starts with `adv-engineer` when delegated, or inline when risk forces inline. After successful same-cycle implementation, ADV dispatches a matching-cycle `adv-designer` follow-up with an implementation receipt. Priority 1 (`metadata.delegation_hint`) remains the explicit user override; it cannot select `adv-designer` as initial implementation for a classified frontend task. Step 4 risk signals still force inline. Step 4.5 does not override Step 1 or Step 4.
+`metadata.frontend == "true"` is structural classification. Classified UI starts with `adv-engineer` (or inline if risk forces), then `adv-designer` follow-up with implementation receipt. Visual acceptance requires exact affected route/state and post-hydration readiness; see `docs/apply-subagent-packets.md` for designer packet.
 
-### Lightweight Change Profile (execution boundary)
+Hint semantics: `inline_required` → never delegate; `delegate_allowed` → delegate unless risk signals; `delegate_preferred` → delegate unless precondition blocks.
 
-After `/adv-prep` completes, the lightweight profile is evaluated automatically. If the profile result is `qualified`, the change is eligible for the bounded omission policy exposed in the workflow directive (`_directive.lightweightProfile`):
+**Verify-burst delegation:** Heavy verification (output >200 lines, >30s, combined lint/typecheck/tests) may use `adv-verifier`. Inline for focused `adv_run_test`. Packet templates in `docs/apply-subagent-packets.md`.
 
-- `omitDeepScans` — skip optional deep codebase scans
-- `omitGenericExternalResearch` — skip generic external research
-- `omitOpportunityScouting` — skip opportunity scouting
-- `omitDefaultSpecialistDelegation` — skip default specialist delegation
+**If `inline_required`:** standard TDD flow.
 
+<<<<<<< HEAD
 This omission policy never overrides explicit `delegation_hint` (Priority 1), risk-forced `inline_required`, spec/conflict checks, targeted verification, review, human approvals, worktree isolation, or release checks. If the profile result is `ineligible` or `downgraded`, apply standard workflow requirements with no omissions.
 
 Hint semantics:
@@ -636,17 +520,31 @@ The active cycle is bound in the designer report under `apply_context.implementa
 `implementation_provenance.kind` may be `engineer` (`baseline_head_sha`), `engineer_report` (`report_key`), or `inline` (`baseline_head_sha` + `diff_ref`). A top-level `implementation_cycle_id` is rejected by the strict schema.
 
 The Designer Apply Context Packet uses the same identity anchors as the Apply Context Packet (`WORKING DIRECTORY`, `CHANGE`, `TASK`, `ATTEMPT`). `IMPLEMENTATION_RECEIPT` is mandatory: `engineer_report` provenance must reference a successful same-task/same-cycle ENGINEER_REPORT; inline provenance must bind the active cycle to a baseline and diff reference. The packet adds `VISUAL_CONTEXT`, `DESIGN QUALITY BAR`, `NEIGHBORING RECOMMENDATIONS`, and `BACKEND BOUNDARY` as warn-first anchors specific to designer delegation. `VISUAL_CONTEXT` must use existing agreement/design/task/project/preview sources or explicit unavailable markers with reasons; it must not fabricate style context. `EXPECTED OUTPUT` references `adv_subagent_report_submit` with `DESIGNER_REPORT` — `adv-designer` MUST NOT submit `ENGINEER_REPORT`.
+=======
+Emit routing summary: `tk-{id} → {inline|adv-engineer|adv-designer|adv-verifier|general} ({reason})`
+>>>>>>> 03a9608a (chore(adv): checkpoint tk-fb6767c9ac8b)
 
 ### Task Flow
 
-`adv_task_ready changeId: <id>` → for each ready task:
+For each ready task from `adv_task_ready`:
 
-**3a. Start:** Refresh context (MANDATORY) → `adv_task_update status: "in_progress"` fires `taskAssignedSignal`. On resume, query change workflow state and continue from the active task without adding a user pause.
+1. **Start:** `adv_task_show` + `adv_wisdom_list` → `adv_task_update status: "in_progress"`
+2. **Route:** Evaluate delegation. If delegated and verified → skip to complete.
+3. **Clean baseline:** `git status --porcelain` clean; capture `baselineHeadSha` and `baselineBranch`.
+4. **Red:** Failing test with `edit`/`write`/`morph_edit` → `adv_run_test phase:'red'`.
+5. **Green:** Implement → `adv_run_test phase:'green'`. If fails: retry protocol.
+6. **Verify (optional):** `adv_run_test phase:'verify'` when distinct from green.
+7. **Incremental verification:** After each task run build/tests/lint for scope. Must pass before checkpoint.
+8. **Checkpoint:** `adv_task_checkpoint` with `taskId`, `workdir`, `changeId`, `expectedBranch`, `expectedHeadSha`, `verification`. If `checkpointRecorded:true` → done. If `failed` SEMANTIC → retry; ENVIRONMENTAL → escalate; TRANSIENT → surface as SEMANTIC/ENVIRONMENTAL.
+9. **Post-delegation P23 scan:** Diff sub-agent touched files; check same-pattern local issues. Fix small/safe/local; document broader scope in `follow_ups`.
+10. **Complete:** assert `checkpointRecorded:true`; do NOT call `adv_task_update status: "done"`.
+11. **Loop:** `adv_task_ready` → if ready tasks remain, repeat.
 
-**3a.5. Route:** Evaluate delegation routing (above). If delegated and verified → skip to 3d.
+You MUST continue to the next ready task without pausing. Auto-continue is mandatory.
 
-**3a.6. Clean Baseline Capture:** Verify `git status --porcelain` is clean and capture `baselineHeadSha = git rev-parse HEAD` and `baselineBranch = git branch --show-current`. If dirty → stop and remediate before Red Phase.
+#### Allowed exit conditions
 
+<<<<<<< HEAD
 **3b. Red Phase (behavior-bearing inline code only):** Write failing test using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'red'` → show red evidence.
 
 **3c. Green Phase (behavior-bearing inline code only):** Implement using `edit` / `write` / `morph_edit` → run with `adv_run_test phase:'green'` → if fails: retry protocol → show green evidence.
@@ -688,36 +586,41 @@ You MUST continue to the next ready task without pausing. You MUST NOT pause bet
 6. Checkpoint failure with ENVIRONMENTAL or unresolved SEMANTIC classification → escalate via `question`.
 
 #### Invalid stop reasons (MUST NOT pause for any of these)
+=======
+1. Ready queue empty → Phase 5
+2. Doom-loop (3 failed SEMANTIC retries) → `[ADV:BLOCKED]` + `question`
+3. ENVIRONMENTAL blocker → escalate
+4. User-requested cancellation → `adv_task_cancel` flow
+5. Scope expansion requiring reentry → `adv_change_reenter`
+6. Checkpoint failure with ENVIRONMENTAL or unresolved SEMANTIC → escalate
+
+#### Invalid stop reasons
+>>>>>>> 03a9608a (chore(adv): checkpoint tk-fb6767c9ac8b)
 
 - "Task complete" / "Section complete" / "Phase complete"
 - "Progress update" / "Status report" / "Let me summarize"
-- Asking whether to continue, proceed, or move on between tasks
-- "Good stopping point" / "Natural checkpoint"
-- Any reason not enumerated in the Allowed exit conditions above
+- Asking whether to continue
+- "Good stopping point"
 
 ---
 
 ## Phase 4: Progress Tracking
 
-Task state is visible via `adv_task_list`. Use `include.snapshot:true` on mutation tools or `adv_change_show include.snapshot:true` to request `_contextSnapshot` — do not emit a per-task status block. TodoWrite projection is exempt — it is a UI surface over the task graph, not a chat status block.
-
----
+Task state visible via `adv_task_list`. Use `include.snapshot:true` on mutation tools or `adv_change_show include.snapshot:true` to request `_contextSnapshot`. TodoWrite projection is exempt.
 
 ## Phase 5: Global Final Loop
 
-Before emitting the execution-gate handoff: run full build + all tests + lint + type check. If any fail → retry protocol → continue until pass or budget exhausted.
-
----
+Before handoff: run full build + all tests + lint + type check. If fail → retry protocol → continue until pass or budget exhausted.
 
 ## Phase 6: Completion
 
 ### Pre-Completion Checklist
 
-Verify: all tasks done or properly cancelled, no tasks skipped/deferred, all "trivial" skips have rationale, touched-scope quality/test obligations met (directly touched files, adjacent test/doc gaps addressed, same-pattern subsystem issues fixed).
+Verify: all tasks done or properly cancelled, no skipped/deferred tasks, all trivial skips have rationale, touched-scope quality/test obligations met.
 
 ### Cancelled Task Verification
 
-If cancelled tasks exist → verify each has `cancellation.approved_by_user: true`. If any lack approval → ask via `question` tool for retroactive approval.
+If cancelled tasks exist → verify each has `cancellation.approved_by_user: true`. If any lack approval → ask via `question`.
 
 ### Final Validation
 
@@ -729,11 +632,11 @@ If cancelled tasks exist → verify each has `cancellation.approved_by_user: tru
 
 ### Handoff
 
-Use the Gate Handoff Voice spine (see `docs/command-voice-standard.md § Gate Handoff Voice`):
+Use Gate Handoff Voice spine (`docs/command-voice-standard.md`):
 
 ```
 ## Problem
-{One-line restatement of the problem this change addresses.}
+{One-line restatement}
 
 ## Chosen direction
 What was built and how it was verified.
@@ -741,8 +644,8 @@ What was built and how it was verified.
 ## Delivered
 - {completed}/{total} tasks done
 - Build, tests, lint pass
-- {Completion mode: UNASSISTED/GUIDED/PARTIAL TAKEOVER, if relevant}
-- {Cancelled tasks with reasons, if any}
+- {Completion mode}
+- {Cancelled tasks with reasons}
 
 ---
 
@@ -756,15 +659,20 @@ What was built and how it was verified.
 
 ## Trivial Tasks
 
+<<<<<<< HEAD
 For tasks with `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green phases and record the valid declared non-test proof; no `adv_run_test` is required solely because the task is being completed. Include the selected policy and proof target in status. These tasks are also candidates for delegation routing — see § Delegation Routing above.
+=======
+For `metadata.tdd_intent: "not_applicable"` (docs, config, non-code): skip Red/Green, verify manually, include rationale in status.
+>>>>>>> 03a9608a (chore(adv): checkpoint tk-fb6767c9ac8b)
 
 ---
 
 ## Key Principle
 
 All state lives in ADV tools. Contract banners are views, not source of truth.
+
 | State | Tool |
-|-------|------|
+|---|---|
 | Task status | `adv_task_update` |
 | Task list | `adv_task_list` |
 | Ready tasks | `adv_task_ready` |

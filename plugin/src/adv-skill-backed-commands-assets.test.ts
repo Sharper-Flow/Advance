@@ -806,18 +806,19 @@ describe("command voice prose-load policy", () => {
   });
 });
 
-describe("advisory line ceiling baselines", () => {
-  // Baselines reflect current state. Updated after compression passes.
-  // Advisory only: tests always pass but warn when files exceed baseline by >10%.
+describe("command line ceiling baselines", () => {
+  // Baselines are structural: command files must stay within baseline + 10%.
+  // Update token-budgets.json when a command file is intentionally expanded or
+  // compressed. Regression coverage prevents silent prompt-budget drift.
   const tokenBudgets = JSON.parse(readFileSync(TOKEN_BUDGETS_PATH, "utf8")) as {
     advInstructionsLineBaseline: number;
     commandLineBaselines: Record<string, number>;
   };
   const COMMAND_BASELINES = tokenBudgets.commandLineBaselines;
 
-  test("advisory: command files within baseline tolerance (warn-only)", () => {
+  test("command files within baseline tolerance", () => {
     const commandDir = join(REPO_ROOT, ".opencode/command");
-    const warnings: string[] = [];
+    const violations: string[] = [];
 
     for (const [file, baseline] of Object.entries(COMMAND_BASELINES)) {
       const filePath = join(commandDir, file);
@@ -827,23 +828,16 @@ describe("advisory line ceiling baselines", () => {
       const threshold = Math.ceil(baseline * 1.1);
 
       if (lines > threshold) {
-        warnings.push(
-          `⚠ ${file}: ${lines} lines (baseline: ${baseline}, threshold: ${threshold})`,
+        violations.push(
+          `${file}: ${lines} lines (baseline: ${baseline}, threshold: ${threshold})`,
         );
       }
     }
 
-    if (warnings.length > 0) {
-      console.warn(
-        `\n[ADV:TOKEN_BUDGET] ${warnings.length} command file(s) exceed baseline by >10%:\n${warnings.join("\n")}`,
-      );
-    }
-
-    // Advisory: always passes
-    expect(true).toBe(true);
+    expect(violations).toEqual([]);
   });
 
-  test("advisory: total command file line count (warn-only)", () => {
+  test("total command file line count within baseline tolerance", () => {
     const commandDir = join(REPO_ROOT, ".opencode/command");
     let totalLines = 0;
     const totalBaseline = Object.values(COMMAND_BASELINES).reduce(
@@ -859,13 +853,19 @@ describe("advisory line ceiling baselines", () => {
     }
 
     const threshold = Math.ceil(totalBaseline * 1.1);
-    if (totalLines > threshold) {
-      console.warn(
-        `\n[ADV:TOKEN_BUDGET] Total command lines: ${totalLines} (baseline: ${totalBaseline}, threshold: ${threshold})`,
-      );
-    }
+    expect(totalLines).toBeLessThanOrEqual(threshold);
+  });
 
-    // Advisory: always passes
-    expect(true).toBe(true);
+  test("adv-apply references canonical offloaded sub-agent packet detail", () => {
+    const applyPath = join(REPO_ROOT, ".opencode/command/adv-apply.md");
+    const packetsPath = join(REPO_ROOT, "docs/apply-subagent-packets.md");
+    const apply = readFileSync(applyPath, "utf8");
+    const packets = readFileSync(packetsPath, "utf8");
+
+    expect(existsSync(packetsPath)).toBe(true);
+    expect(apply).toContain("docs/apply-subagent-packets.md");
+    expect(packets).toContain("## Verify-Burst Verification Triage Packet");
+    expect(packets).toContain("## Apply Context Packet");
+    expect(packets).toContain("## Designer Apply Context Packet");
   });
 });
