@@ -49,6 +49,19 @@ const MODIFY_DELTA = {
   changes: { title: "Updated requirement" },
 };
 
+const REMOVE_DELTA = {
+  id: "dl-RMV11111",
+  operation: "remove" as const,
+  target_id: "rq-existing01",
+  reason: "obsolete",
+};
+
+const RENAME_DELTA = {
+  id: "dl-RNM11111",
+  operation: "rename" as const,
+  target_id: "rq-existing01",
+  new_title: "Renamed requirement",
+};
 function makeStateWithDelta() {
   return {
     changeId: "spec-delta-store-test",
