@@ -73,6 +73,7 @@ const SCAN_IGNORE_DIRS: ReadonlySet<string> = new Set([
 ]);
 
 const MAX_FILE_BYTES = 1_000_000;
+const MAX_SCANNED_FILES = 10_000;
 
 interface RegexHit {
   readonly index: number;
@@ -180,48 +181,57 @@ function globToRegex(glob: string): RegExp {
   return new RegExp(pattern);
 }
 
-/** Recursively walk `repoRoot`, returning POSIX-style relative file paths. */
-async function walkRepo(repoRoot: string): Promise<readonly string[]> {
+interface FileCollection {
+  readonly paths: readonly string[];
+  readonly truncated: boolean;
+}
+
+/** Recursively walk `repoRoot`, returning bounded POSIX-style relative paths. */
+async function walkRepo(repoRoot: string): Promise<FileCollection> {
   const out: string[] = [];
 
-  async function visit(dirAbs: string, dirRel: string): Promise<void> {
+  async function visit(dirAbs: string, dirRel: string): Promise<boolean> {
+    if (out.length >= MAX_SCANNED_FILES) return true;
     let entries: Dirent[];
     try {
       entries = await readdir(dirAbs, { withFileTypes: true });
     } catch {
-      return;
+      return false;
     }
+    entries.sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
+      if (out.length >= MAX_SCANNED_FILES) return true;
       if (entry.isDirectory()) {
         if (SCAN_IGNORE_DIRS.has(entry.name)) continue;
         const childRel = dirRel === "" ? entry.name : `${dirRel}/${entry.name}`;
-        await visit(join(dirAbs, entry.name), childRel);
+        if (await visit(join(dirAbs, entry.name), childRel)) return true;
       } else if (entry.isFile()) {
         const childRel = dirRel === "" ? entry.name : `${dirRel}/${entry.name}`;
         out.push(childRel);
       }
     }
+    return false;
   }
 
-  await visit(repoRoot, "");
-  return out;
+  const truncated = await visit(repoRoot, "");
+  return { paths: out, truncated };
 }
 
 /** Return relative paths matching any of the provided globs. */
 async function collectFiles(
   globs: readonly string[],
   repoRoot: string,
-): Promise<readonly string[]> {
-  if (globs.length === 0) return [];
+): Promise<FileCollection> {
+  if (globs.length === 0) return { paths: [], truncated: false };
   const matchers = globs.map(globToRegex);
   const all = await walkRepo(repoRoot);
   const result = new Set<string>();
-  for (const relPath of all) {
+  for (const relPath of all.paths) {
     if (matchers.some((re) => re.test(relPath))) {
       result.add(relPath);
     }
   }
-  return [...result].sort();
+  return { paths: [...result].sort(), truncated: all.truncated };
 }
 
 /** Read a text file, bounded in size; return undefined on failure or oversize. */
@@ -403,10 +413,7 @@ function isWorkerStartupPressure(
   // Module top level: no unmatched braces before this line and the call is not
   // inside a function/class block. We additionally require a startup-named file
   // because top-level sync I/O in library code is often intentional lazy loading.
-  if (!isStartup && depth > 0) {
-    return { ok: false };
-  }
-  if (isStartup && depth > 0) {
+  if (!isStartup || depth > 0) {
     return { ok: false };
   }
   const reason = isStartup
@@ -603,7 +610,20 @@ export async function evaluateDetector(
   options: EvaluatorOptions,
 ): Promise<EvaluationResult> {
   const timeoutMs = options.regexTimeoutMs ?? DEFAULT_REGEX_TIMEOUT_MS;
-  const relPaths = await collectFiles(detector.trigger.file_globs, options.repoRoot);
+  const files = await collectFiles(detector.trigger.file_globs, options.repoRoot);
+  if (files.truncated) {
+    return {
+      candidates: [],
+      coverage_entry: {
+        id: detector.id,
+        label: detector.title,
+        state: "degraded",
+        reason: `scan exceeded ${MAX_SCANNED_FILES} file limit`,
+        important: true,
+      },
+    };
+  }
+  const relPaths = files.paths;
 
   let candidates: OptimizationCandidate[] = [];
   const rejectedLines: { relPath: string; line: number; reason: string }[] = [];

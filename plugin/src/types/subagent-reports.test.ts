@@ -426,6 +426,25 @@ describe("Subagent report schemas", () => {
     );
   });
 
+  it("preserves source evidence with a null line", () => {
+    const parsed = TronSubagentReportSchema.parse({
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          evidence: [
+            {
+              ...tronOptimizationCandidate.evidence[0],
+              line: null,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.optimization_candidates![0].evidence[0].line).toBeNull();
+  });
+
   it("rejects Tron optimization candidates with measured runtime-impact claims", () => {
     const bad = {
       ...tronReportWithOptimizationCandidates,

@@ -4,18 +4,18 @@ NEGATIVE (rejection) fixture for the `worker_startup_pressure` opt-scan detector
 
 ## What this proves
 
-When `readFileSync` is inside a function rather than at module top level, the
-detector MUST NOT emit a startup-pressure candidate. Deferred loading is not the
-same as startup-time synchronous I/O.
+When `readFileSync` is at module top level in a non-startup library file, the
+detector MUST NOT emit a startup-pressure candidate. Library initialization is
+not necessarily worker or application startup.
 
 ## File map
 
-| File              | Purpose                                              |
-|-------------------|------------------------------------------------------|
-| `src/worker.ts`   | `readFileSync` inside `loadConfig()`, not top level. |
+| File            | Purpose                                                   |
+|-----------------|-----------------------------------------------------------|
+| `src/config.ts` | Top-level `readFileSync` outside a startup-named file.    |
 
-## Line map (1-indexed) of `src/worker.ts`
+## Line map (1-indexed) of `src/config.ts`
 
-| Line | Content (key only)                          |
-|------|---------------------------------------------|
-| 5    | `return JSON.parse(readFileSync(...));` (rejected) |
+| Line | Content (key only)                                |
+|------|---------------------------------------------------|
+| 6    | `JSON.parse(readFileSync(...))` (rejected)        |
