@@ -15,11 +15,13 @@ import {
   SubagentAgentSchema,
   SubagentConsumerWarningSchema,
   ScopedSubagentReportSchema,
+  DelegationRecoverySchema,
   type Change,
   type ErrorRecovery,
   type ScopedSubagentReport,
   type Task,
   type RequiredFollowUp,
+  type DelegationRecovery,
 } from "../types";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
@@ -233,6 +235,155 @@ function parseReport(
   }
 
   return { ok: true, report: parsed.data };
+}
+
+function delegationRecoveryBlocked(
+  recovery: DelegationRecovery | undefined,
+): boolean {
+  return (
+    !!recovery &&
+    recovery.narrower_retry_count > 0 &&
+    !recovery.inline_diagnosis_evidence
+  );
+}
+
+function delegationRecoveryScope(taskId: string, agent?: string): string {
+  return agent ? `task:${taskId}:agent:${agent}` : `task:${taskId}`;
+}
+
+function nextDelegationRecoveryForMalformed(
+  existing: DelegationRecovery | undefined,
+  scope: string,
+  now: string,
+): DelegationRecovery | "blocked" {
+  if (delegationRecoveryBlocked(existing)) {
+    return "blocked";
+  }
+
+  if (existing?.inline_diagnosis_evidence) {
+    // A new incident after the previous one was resolved resets the counter.
+    return {
+      empty_or_malformed_count: 1,
+      narrower_retry_count: 0,
+      inline_diagnosis_evidence: false,
+      last_updated_at: now,
+      blocked_scope: scope,
+    };
+  }
+
+  if (
+    existing &&
+    existing.empty_or_malformed_count > 0 &&
+    existing.narrower_retry_count === 0
+  ) {
+    // This malformed report is the one allowed narrower retry, and it failed.
+    return {
+      ...existing,
+      empty_or_malformed_count: existing.empty_or_malformed_count + 1,
+      narrower_retry_count: 1,
+      inline_diagnosis_evidence: false,
+      last_updated_at: now,
+      blocked_scope: scope,
+    };
+  }
+
+  // First recorded incident for this scope.
+  return {
+    empty_or_malformed_count: 1,
+    narrower_retry_count: 0,
+    inline_diagnosis_evidence: false,
+    last_updated_at: now,
+    blocked_scope: scope,
+  };
+}
+
+function nextDelegationRecoveryForValid(
+  existing: DelegationRecovery | undefined,
+  scope: string,
+  now: string,
+): DelegationRecovery | undefined {
+  if (!existing || existing.inline_diagnosis_evidence) {
+    return existing;
+  }
+
+  if (delegationRecoveryBlocked(existing)) {
+    // Should have been rejected before this point; do not mutate.
+    return existing;
+  }
+
+  if (
+    existing.empty_or_malformed_count > 0 &&
+    existing.narrower_retry_count === 0
+  ) {
+    // This valid report is the one allowed narrower retry; record success.
+    return {
+      ...existing,
+      narrower_retry_count: 1,
+      inline_diagnosis_evidence: true,
+      last_updated_at: now,
+      blocked_scope: scope,
+    };
+  }
+
+  return existing;
+}
+
+async function recordMalformedDelegationRecovery(input: {
+  store: Store;
+  rawReport: unknown;
+  code: string;
+  message: string;
+}): Promise<{ recorded: boolean; reason?: string; blocked?: boolean }> {
+  const identity = reportIdentity(input.rawReport);
+  if (!identity || !identity.taskId) {
+    return { recorded: false, reason: "report identity unavailable" };
+  }
+
+  const recordedAt = new Date().toISOString();
+  try {
+    const handle = await getChangeHandleForChangeId(
+      input.store,
+      identity.changeId,
+    );
+    const change = await loadChange(input.store, identity.changeId);
+    const task = findTask(change, identity.taskId);
+    if (!task) {
+      return { recorded: false, reason: "task not found" };
+    }
+
+    const next = nextDelegationRecoveryForMalformed(
+      task.delegation_recovery,
+      delegationRecoveryScope(identity.taskId, identity.agent),
+      recordedAt,
+    );
+    if (next === "blocked") {
+      return {
+        recorded: false,
+        reason: "delegation recovery blocked",
+        blocked: true,
+      };
+    }
+
+    await fireSignalAndRefresh(
+      handle,
+      input.store,
+      identity.changeId,
+      taskUpdatedSignal,
+      {
+        taskId: identity.taskId,
+        partial: {
+          delegation_recovery: DelegationRecoverySchema.parse(next),
+        },
+        updatedAt: recordedAt,
+      },
+    );
+    return { recorded: true };
+  } catch (error) {
+    return {
+      recorded: false,
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 function reportIdentity(rawReport: unknown): {
@@ -748,11 +899,21 @@ async function executeSubmit(
 ): Promise<string> {
   const parsedReport = parseReport(args.report);
   if (!parsedReport.ok) {
+    const failureRecord = !args.dryRun
+      ? await recordMalformedDelegationRecovery({
+          store,
+          rawReport: args.report,
+          code: parsedReport.code,
+          message: parsedReport.message,
+        })
+      : { recorded: false, reason: "dry-run preview" };
     return appendProjectContext(
       formatToolOutput({
         error: parsedReport.message,
         code: parsedReport.code,
         details: parsedReport.details,
+        ...(failureRecord.blocked ? { delegation_recovery_blocked: true } : {}),
+        ...(failureRecord.recorded ? { failureRecord } : {}),
       }),
       projectContext,
     );
@@ -850,6 +1011,24 @@ async function executeSubmit(
     );
   }
 
+  // AC5: enforce task-scoped delegation recovery. A blocked recovery state
+  // (single retry exhausted and no inline diagnosis evidence) refuses further
+  // same-scope delegation; a valid report following an incident consumes the
+  // one allowed retry and records the inline diagnosis evidence.
+  if (task && delegationRecoveryBlocked(task.delegation_recovery)) {
+    return appendProjectContext(
+      formatToolOutput({
+        error:
+          `Same-scope delegation is blocked for task ${taskId}: inline diagnosis evidence ` +
+          `is required before further delegation after empty/malformed worker output`,
+        code: "DELEGATION_RECOVERY_BLOCKED",
+        reportId: id,
+        blocked_scope: task.delegation_recovery?.blocked_scope,
+      }),
+      projectContext,
+    );
+  }
+
   const initialWarnings = verificationWarnings(
     parsedReport.report,
     task,
@@ -895,6 +1074,50 @@ async function executeSubmit(
       }
     } else {
       const handle = await getChangeHandleForChangeId(store, report.change_id);
+      const taskIdForSignal = reportTaskId(report);
+      const now = new Date().toISOString();
+
+      // AC5: a valid task-scoped report following an empty/malformed incident
+      // consumes the one allowed narrower retry and records inline evidence.
+      if (taskIdForSignal && task) {
+        const updatedRecovery = nextDelegationRecoveryForValid(
+          task.delegation_recovery,
+          delegationRecoveryScope(taskIdForSignal, report.agent),
+          now,
+        );
+        if (updatedRecovery && updatedRecovery !== task.delegation_recovery) {
+          try {
+            await fireSignalAndRefresh(
+              handle,
+              store,
+              report.change_id,
+              taskUpdatedSignal,
+              {
+                taskId: taskIdForSignal,
+                partial: {
+                  delegation_recovery:
+                    DelegationRecoverySchema.parse(updatedRecovery),
+                },
+                updatedAt: now,
+              },
+            );
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : "Failed to update delegation recovery state";
+            return appendProjectContext(
+              formatToolOutput({
+                error: message,
+                code: "SUBMIT_SIGNAL_FAILED",
+                reportId: id,
+              }),
+              projectContext,
+            );
+          }
+        }
+      }
+
       try {
         await fireSignalAndRefresh(
           handle,
@@ -902,9 +1125,9 @@ async function executeSubmit(
           report.change_id,
           subagentReportSubmittedSignal,
           {
-            ...(reportTaskId(report) ? { taskId: reportTaskId(report) } : {}),
+            ...(taskIdForSignal ? { taskId: taskIdForSignal } : {}),
             report,
-            submittedAt: new Date().toISOString(),
+            submittedAt: now,
           },
         );
       } catch (error) {

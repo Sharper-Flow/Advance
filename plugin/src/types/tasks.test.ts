@@ -221,11 +221,22 @@ describe("DelegationRecoverySchema", () => {
     ).toThrow();
   });
 
-  it("rejects the single retry being exhausted without inline diagnosis evidence", () => {
+  it("accepts the single narrower retry before inline diagnosis evidence is recorded", () => {
+    const parsed = DelegationRecoverySchema.parse({
+      empty_or_malformed_count: 1,
+      narrower_retry_count: 1,
+      inline_diagnosis_evidence: false,
+      last_updated_at: "2026-07-30T01:00:00.000Z",
+    });
+    expect(parsed.narrower_retry_count).toBe(1);
+    expect(parsed.inline_diagnosis_evidence).toBe(false);
+  });
+
+  it("rejects a second narrower retry even if inline diagnosis evidence is missing", () => {
     expect(() =>
       DelegationRecoverySchema.parse({
-        empty_or_malformed_count: 1,
-        narrower_retry_count: 1,
+        empty_or_malformed_count: 2,
+        narrower_retry_count: 2,
         inline_diagnosis_evidence: false,
         last_updated_at: "2026-07-30T01:00:00.000Z",
       }),

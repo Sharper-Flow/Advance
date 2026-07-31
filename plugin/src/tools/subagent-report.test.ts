@@ -1732,7 +1732,7 @@ describe("subagentReportTools", () => {
     expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
   });
 
-  test("rejects malformed reports at the Zod boundary without mutating workflow state (AC4)", async () => {
+  test("records malformed task-scoped reports as delegation_recovery, not error_recovery (AC5)", async () => {
     const store = storeFor(change());
 
     const output = parse(
@@ -1750,21 +1750,29 @@ describe("subagentReportTools", () => {
       ),
     );
 
-    // rq-fixWorkflowReliabilityDefects/AC4: malformed input returns bounded
-    // diagnostics only. error_recovery is itself a workflow mutation, so the
-    // handler-level defense-in-depth path MUST NOT silently record it for
-    // INVALID_REPORT. SUBMIT_SIGNAL_FAILED keeps its failureRecord path
-    // because that case happens after a successful parse.
+    // AC5: malformed/empty worker output is recorded in task.delegation_recovery,
+    // separate from error_recovery.attempts. The first incident records
+    // empty_or_malformed_count=1 and does not block yet.
     expect(output.error).toBe("Invalid sub-agent report payload");
     expect(output.code).toBe("INVALID_REPORT");
-    expect(output.failureRecord).toBeUndefined();
+    expect(output.failureRecord).toEqual({ recorded: true });
     expect(output.details).toEqual(expect.any(Array));
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
       mocks.workflowHandle,
       store,
       "change-1",
       taskUpdatedSignal,
-      expect.anything(),
+      expect.objectContaining({
+        taskId: "tk-1",
+        partial: {
+          delegation_recovery: expect.objectContaining({
+            empty_or_malformed_count: 1,
+            narrower_retry_count: 0,
+            inline_diagnosis_evidence: false,
+            blocked_scope: "task:tk-1:agent:adv-engineer",
+          }),
+        },
+      }),
     );
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
       mocks.workflowHandle,
@@ -1848,6 +1856,191 @@ describe("subagentReportTools", () => {
     expect(output.error).toContain("apply_context.implementation_cycle_id");
     expect(output.error).toContain("implementation_provenance");
     expect(output.error).toContain("report_key");
+    // AC5: malformed task-scoped report records delegation_recovery, not error_recovery.
+    expect(output.failureRecord).toEqual({ recorded: true });
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      taskUpdatedSignal,
+      expect.objectContaining({
+        taskId: "tk-1",
+        partial: {
+          delegation_recovery: expect.objectContaining({
+            empty_or_malformed_count: 1,
+            narrower_retry_count: 0,
+            inline_diagnosis_evidence: false,
+          }),
+        },
+      }),
+    );
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.anything(),
+    );
+  });
+
+  test("AC5: first valid retry after malformed worker output records inline diagnosis evidence", async () => {
+    const task = {
+      id: "tk-1",
+      title: "Task one",
+      status: "in_progress",
+      priority: 1,
+      created_at: "2026-05-23T00:00:00.000Z",
+      delegation_recovery: {
+        empty_or_malformed_count: 1,
+        narrower_retry_count: 0,
+        inline_diagnosis_evidence: false,
+        last_updated_at: "2026-07-30T01:00:00.000Z",
+      },
+    } as Task;
+    const store = storeFor(change({ tasks: [task] }));
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport({ follow_ups: [] }) },
+        store,
+      ),
+    );
+
+    expect(output.success).toBe(true);
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      taskUpdatedSignal,
+      expect.objectContaining({
+        taskId: "tk-1",
+        partial: {
+          delegation_recovery: expect.objectContaining({
+            empty_or_malformed_count: 1,
+            narrower_retry_count: 1,
+            inline_diagnosis_evidence: true,
+          }),
+        },
+      }),
+    );
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.anything(),
+    );
+  });
+
+  test("AC5: second same-scope delegation is refused after failed retry until inline diagnosis evidence exists", async () => {
+    const task = {
+      id: "tk-1",
+      title: "Task one",
+      status: "in_progress",
+      priority: 1,
+      created_at: "2026-05-23T00:00:00.000Z",
+      delegation_recovery: {
+        empty_or_malformed_count: 2,
+        narrower_retry_count: 1,
+        inline_diagnosis_evidence: false,
+        last_updated_at: "2026-07-30T01:00:00.000Z",
+      },
+    } as Task;
+    const store = storeFor(change({ tasks: [task] }));
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        { report: engineerReport({ follow_ups: [] }) },
+        store,
+      ),
+    );
+
+    expect(output.code).toBe("DELEGATION_RECOVERY_BLOCKED");
+    expect(output.error).toContain("inline diagnosis evidence");
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.anything(),
+    );
+  });
+
+  test("AC5: a second malformed report consumes the one narrower retry and blocks further delegation", async () => {
+    const task = {
+      id: "tk-1",
+      title: "Task one",
+      status: "in_progress",
+      priority: 1,
+      created_at: "2026-05-23T00:00:00.000Z",
+      delegation_recovery: {
+        empty_or_malformed_count: 1,
+        narrower_retry_count: 0,
+        inline_diagnosis_evidence: false,
+        last_updated_at: "2026-07-30T01:00:00.000Z",
+      },
+    } as Task;
+    const store = storeFor(change({ tasks: [task] }));
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        {
+          report: {
+            ...engineerReport(),
+            consumer_warnings: [{ kind: "not_a_warning", message: "bad" }],
+          },
+        },
+        store,
+      ),
+    );
+
+    expect(output.code).toBe("INVALID_REPORT");
+    expect(output.failureRecord).toEqual({ recorded: true });
+    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      taskUpdatedSignal,
+      expect.objectContaining({
+        taskId: "tk-1",
+        partial: {
+          delegation_recovery: expect.objectContaining({
+            empty_or_malformed_count: 2,
+            narrower_retry_count: 1,
+            inline_diagnosis_evidence: false,
+          }),
+        },
+      }),
+    );
+    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalledWith(
+      mocks.workflowHandle,
+      store,
+      "change-1",
+      subagentReportSubmittedSignal,
+      expect.anything(),
+    );
+  });
+
+  test("AC5: dry-run malformed report does not record delegation_recovery", async () => {
+    const store = storeFor(change());
+
+    const output = parse(
+      await subagentReportTools.adv_subagent_report_submit.execute(
+        {
+          report: {
+            schema_version: "1.0",
+            change_id: "change-1",
+            task_id: "tk-1",
+            attempt: 1,
+            agent: "adv-engineer",
+          },
+          dryRun: true,
+        },
+        store,
+      ),
+    );
+
+    expect(output.code).toBe("INVALID_REPORT");
     expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 

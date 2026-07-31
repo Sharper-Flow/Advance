@@ -324,10 +324,10 @@ export const DelegationRecoverySchema = z
       });
     }
 
-    // AC5: once the single allowed retry has been attempted, same-scope
+    // AC5: once more than one narrower retry has been attempted, same-scope
     // delegation is blocked until inline diagnosis evidence exists.
     if (
-      recovery.narrower_retry_count > 0 &&
+      recovery.narrower_retry_count > 1 &&
       !recovery.inline_diagnosis_evidence
     ) {
       ctx.addIssue({
