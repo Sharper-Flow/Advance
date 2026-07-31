@@ -41,6 +41,7 @@ import {
   mapTemporalChangeStateToChange,
   projectTemporalStateOntoLatest,
   getGuardedChangeHandle,
+  getChangeHandle,
   classifyTemporalReadFailure,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
@@ -59,7 +60,10 @@ import {
   changeStateQuery,
   worktreeAutoManagedSignal,
 } from "../../temporal/messages";
-import { isPoisonedWorkflowForChange } from "./poisoned-workflow-cache";
+import {
+  isPoisonedWorkflowForChange,
+  markPoisonedWorkflowForChange,
+} from "./poisoned-workflow-cache";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { getCurrentSessionId } from "../../utils/session-id";
 import { changeSeedStateFromChange } from "../../temporal/change-state";
@@ -971,6 +975,45 @@ export function createTemporalStoreBackend(
     // or signal against it. Serve the durable disk/archive projection directly
     // and annotate the result so callers (e.g. adv_change_show) can surface the
     // poisoned state without paying a timeout.
+    if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
+      const snapshot = await readProjectionSnapshot(changeId);
+      const result = snapshotToLoadResult(snapshot);
+      if (result.success && result.data) {
+        (result.data as Change & { _poisoned?: true })._poisoned = true;
+        setCachedProjection(result.data);
+        indexTasksFromChange(result.data);
+      }
+      return result;
+    }
+
+    // Pre-query terminal-workflow probe: call describe (server-side RPC,
+    // no poller needed) to check if the workflow is in a terminal state.
+    // If terminal, mark it poisoned so all future reads skip the query
+    // and read from disk immediately.
+    try {
+      const handle = getChangeHandle(input, changeId);
+      if (typeof handle.describe === "function") {
+        const desc = (await Promise.race([
+          handle.describe(),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000)),
+        ])) as { status?: number; statusName?: string } | null;
+        if (desc) {
+          const isTerminal =
+            (typeof desc.status === "number" && desc.status !== 1) ||
+            (typeof desc.statusName === "string" &&
+              /TERMINATED|COMPLETED|FAILED|CANCELLED|TIMED_OUT|CONTINUED_AS_NEW/i.test(
+                desc.statusName,
+              ));
+          if (isTerminal) {
+            markPoisonedWorkflowForChange(input.projectId, changeId);
+          }
+        }
+      }
+    } catch {
+      // describe failed — let the normal query path handle it
+    }
+
+    // Re-check poisoned cache after the probe
     if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
       const snapshot = await readProjectionSnapshot(changeId);
       const result = snapshotToLoadResult(snapshot);
