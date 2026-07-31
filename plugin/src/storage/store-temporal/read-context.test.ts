@@ -354,7 +354,7 @@ describe("Temporal read context — routine reads avoid Temporal enrichment", ()
 
     expect(result).toMatchObject({
       success: true,
-      source: "read_model",
+      source: "disk",
       data: expect.objectContaining({ id: "change-a" }),
     });
     expect(deadlineCalls).toHaveLength(0);
