@@ -79,6 +79,82 @@ export const TddReclassificationSchema = z.object({
 export type TddReclassification = z.infer<typeof TddReclassificationSchema>;
 
 // =============================================================================
+// Contract References
+// =============================================================================
+
+export const TaskContractRefsSchema = z.object({
+  /** Contract items this task implements, usually AC-* or SC-* IDs. */
+  implements: z.array(z.string()).optional(),
+  /** Contract items this task verifies with tests/checks/evidence. */
+  verifies: z.array(z.string()).optional(),
+  /** Contract items this task must preserve, usually C-*, DONT-*, or OOS-* IDs. */
+  respects: z.array(z.string()).optional(),
+  /** Required when a task intentionally has no contract refs. */
+  not_applicable_reason: z.string().optional(),
+});
+
+export type TaskContractRefs = z.infer<typeof TaskContractRefsSchema>;
+
+// =============================================================================
+// Failure Attribution
+// =============================================================================
+
+/**
+ * Typed failure attribution for execution diagnosis.
+ * Captures what kind of failure occurred and, when relevant, which contract
+ * items are involved.
+ */
+export const FailureAttributionKindSchema = z.enum([
+  "contract_conflict",
+  "implementation_defect",
+  "infrastructure",
+  "external_service",
+  "unknown",
+]);
+
+export type FailureAttributionKind = z.infer<
+  typeof FailureAttributionKindSchema
+>;
+
+export const ContractConflictKindSchema = z.enum([
+  "overlapping_implements_verifies",
+  "implements_respects_overlap",
+  "missing_required_respects",
+  "not_applicable_with_refs",
+  "unattributed_acceptance_criterion",
+]);
+
+export type ContractConflictKind = z.infer<typeof ContractConflictKindSchema>;
+
+export const ContractConflictSchema = z.object({
+  kind: ContractConflictKindSchema,
+  contract_ids: z.array(z.string()).min(1),
+  reason: z.string().min(1),
+});
+
+export type ContractConflict = z.infer<typeof ContractConflictSchema>;
+
+export const FailureAttributionSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("contract_conflict"),
+    description: z.string().min(1),
+    contract_conflict: ContractConflictSchema,
+  }),
+  z.object({
+    kind: z.enum([
+      "implementation_defect",
+      "infrastructure",
+      "external_service",
+      "unknown",
+    ]),
+    description: z.string().min(1),
+    contract_refs: TaskContractRefsSchema.optional(),
+  }),
+]);
+
+export type FailureAttribution = z.infer<typeof FailureAttributionSchema>;
+
+// =============================================================================
 // Error Recovery
 // =============================================================================
 
@@ -114,20 +190,100 @@ export const AttemptSchema = z.object({
 
 type _Attempt = z.infer<typeof AttemptSchema>;
 
-export const ErrorRecoverySchema = z.object({
-  /** Human-readable description of the last error encountered */
-  last_error: z.string(),
-  /** Number of retry attempts made so far */
-  retry_count: z.number().int().min(0),
-  /** Maximum retries allowed for this error class */
-  max_retries: z.number().int().min(0),
-  /** Classification of the error for retry strategy selection */
-  error_class: z.enum(["TRANSIENT", "SEMANTIC", "ENVIRONMENTAL", "FATAL"]),
-  /** Planned next action if retrying (optional) */
-  next_strategy: z.string().optional(),
-  /** Full history of retry attempts for doom-loop auditing */
-  attempts: z.array(AttemptSchema).optional(),
-});
+export const ErrorRecoverySchema = z
+  .object({
+    /** Human-readable description of the last error encountered */
+    last_error: z.string(),
+    /** Number of retry attempts made so far */
+    retry_count: z.number().int().min(0),
+    /** Maximum retries allowed for this error class */
+    max_retries: z.number().int().min(0),
+    /** Classification of the error for retry strategy selection */
+    error_class: z.enum([
+      "TRANSIENT",
+      "SEMANTIC",
+      "ENVIRONMENTAL",
+      "FATAL",
+      "CONTRACT_CONFLICT",
+    ]),
+    /** Planned next action if retrying (optional) */
+    next_strategy: z.string().optional(),
+    /** Full history of retry attempts for doom-loop auditing */
+    attempts: z.array(AttemptSchema).optional(),
+    /** Typed failure attribution for this recovery state */
+    failure_attribution: FailureAttributionSchema.optional(),
+  })
+  .superRefine((recovery, ctx) => {
+    if (recovery.retry_count > recovery.max_retries) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["retry_count"],
+        message: "retry_count must not exceed max_retries",
+      });
+    }
+
+    if (
+      recovery.attempts &&
+      recovery.retry_count !== recovery.attempts.length
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["attempts"],
+        message: "attempts length must match retry_count",
+      });
+    }
+
+    if (recovery.error_class === "SEMANTIC" && recovery.attempts) {
+      const labels = recovery.attempts
+        .map((attempt) => attempt.strategy_label)
+        .filter((label): label is string => Boolean(label));
+      if (new Set(labels).size !== labels.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["attempts"],
+          message: "semantic retry strategy_label values must be distinct",
+        });
+      }
+    }
+
+    if (recovery.error_class === "CONTRACT_CONFLICT") {
+      if (recovery.max_retries !== 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["max_retries"],
+          message:
+            "CONTRACT_CONFLICT errors are non-retryable; max_retries must be 0",
+        });
+      }
+      if (recovery.retry_count !== 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["retry_count"],
+          message:
+            "CONTRACT_CONFLICT errors are non-retryable; retry_count must be 0",
+        });
+      }
+      if (recovery.attempts && recovery.attempts.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["attempts"],
+          message:
+            "CONTRACT_CONFLICT errors are non-retryable; attempts must be empty",
+        });
+      }
+      if (
+        !recovery.failure_attribution ||
+        recovery.failure_attribution.kind !== "contract_conflict"
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["failure_attribution"],
+          message:
+            "CONTRACT_CONFLICT errors require a contract_conflict failure_attribution",
+        });
+      }
+    }
+  });
 
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 
@@ -222,19 +378,6 @@ export const TaskTypeSchema = z.enum([
   "verification", // Cross-cutting test / verification
 ]);
 export type TaskType = z.infer<typeof TaskTypeSchema>;
-
-export const TaskContractRefsSchema = z.object({
-  /** Contract items this task implements, usually AC-* or SC-* IDs. */
-  implements: z.array(z.string()).optional(),
-  /** Contract items this task verifies with tests/checks/evidence. */
-  verifies: z.array(z.string()).optional(),
-  /** Contract items this task must preserve, usually C-*, DONT-*, or OOS-* IDs. */
-  respects: z.array(z.string()).optional(),
-  /** Required when a task intentionally has no contract refs. */
-  not_applicable_reason: z.string().optional(),
-});
-
-export type TaskContractRefs = z.infer<typeof TaskContractRefsSchema>;
 
 export const TaskApplyCycleSchema = z
   .object({

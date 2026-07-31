@@ -7211,9 +7211,115 @@
                   "TRANSIENT",
                   "SEMANTIC",
                   "ENVIRONMENTAL",
-                  "FATAL"
+                  "FATAL",
+                  "CONTRACT_CONFLICT"
                 ],
                 "type": "string"
+              },
+              "failure_attribution": {
+                "oneOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "contract_conflict": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "contract_ids": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "type": "array"
+                          },
+                          "kind": {
+                            "enum": [
+                              "overlapping_implements_verifies",
+                              "implements_respects_overlap",
+                              "missing_required_respects",
+                              "not_applicable_with_refs",
+                              "unattributed_acceptance_criterion"
+                            ],
+                            "type": "string"
+                          },
+                          "reason": {
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "contract_ids",
+                          "reason"
+                        ],
+                        "type": "object"
+                      },
+                      "description": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "kind": {
+                        "const": "contract_conflict",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "description",
+                      "contract_conflict"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "contract_refs": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "implements": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "not_applicable_reason": {
+                            "type": "string"
+                          },
+                          "respects": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "verifies": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "description": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "kind": {
+                        "enum": [
+                          "implementation_defect",
+                          "infrastructure",
+                          "external_service",
+                          "unknown"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "description"
+                    ],
+                    "type": "object"
+                  }
+                ]
               },
               "last_error": {
                 "type": "string"

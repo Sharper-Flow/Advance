@@ -8,12 +8,302 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ContractConflictKindSchema,
+  ContractConflictSchema,
+  ErrorRecoverySchema,
+  FailureAttributionKindSchema,
+  FailureAttributionSchema,
   TaskSchema,
   WisdomDraftDismissReasonSchema,
   WisdomDraftSchema,
   WisdomDraftStatusSchema,
   WisdomDraftSuggestedTypeSchema,
 } from "./tasks";
+
+describe("ErrorRecoverySchema", () => {
+  const attempt = {
+    attempt_number: 1,
+    error: "expected read_model to equal disk",
+    diagnosis: "The branch changed source semantics without base attribution.",
+    fix_tried: "Inspect the failing assertion and branch/base diff.",
+    strategy_label: "attribute-branch-base",
+    outcome: "failed" as const,
+    attempted_at: "2026-07-30T01:00:00.000Z",
+  };
+
+  it("rejects retry history whose count does not match recorded attempts", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: attempt.error,
+        retry_count: 2,
+        max_retries: 3,
+        error_class: "SEMANTIC",
+        attempts: [attempt],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects semantic retries that repeat a strategy label", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: attempt.error,
+        retry_count: 2,
+        max_retries: 3,
+        error_class: "SEMANTIC",
+        attempts: [attempt, { ...attempt, attempt_number: 2 }],
+      }),
+    ).toThrow();
+  });
+
+  it("rejects a retry count above the declared budget", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: attempt.error,
+        retry_count: 4,
+        max_retries: 3,
+        error_class: "SEMANTIC",
+        attempts: [
+          attempt,
+          { ...attempt, attempt_number: 2, strategy_label: "inspect-fixture" },
+          { ...attempt, attempt_number: 3, strategy_label: "compare-base" },
+          { ...attempt, attempt_number: 4, strategy_label: "route-review" },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts a non-retry CONTRACT_CONFLICT error with failure attribution", () => {
+    const parsed = ErrorRecoverySchema.parse({
+      last_error: "Task contract refs conflict",
+      retry_count: 0,
+      max_retries: 0,
+      error_class: "CONTRACT_CONFLICT",
+      failure_attribution: {
+        kind: "contract_conflict",
+        description: "AC1 is both implemented and verified",
+        contract_conflict: {
+          kind: "overlapping_implements_verifies",
+          contract_ids: ["AC1"],
+          reason:
+            "A task cannot both implement and verify the same acceptance criterion",
+        },
+      },
+    });
+    expect(parsed.error_class).toBe("CONTRACT_CONFLICT");
+    expect(parsed.failure_attribution?.kind).toBe("contract_conflict");
+  });
+
+  it("rejects CONTRACT_CONFLICT with max_retries > 0", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: "Conflict",
+        retry_count: 0,
+        max_retries: 1,
+        error_class: "CONTRACT_CONFLICT",
+        failure_attribution: {
+          kind: "contract_conflict",
+          description: "Conflict",
+          contract_conflict: {
+            kind: "overlapping_implements_verifies",
+            contract_ids: ["AC1"],
+            reason: "Conflict",
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects CONTRACT_CONFLICT with retry_count > 0", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: "Conflict",
+        retry_count: 1,
+        max_retries: 0,
+        error_class: "CONTRACT_CONFLICT",
+        failure_attribution: {
+          kind: "contract_conflict",
+          description: "Conflict",
+          contract_conflict: {
+            kind: "overlapping_implements_verifies",
+            contract_ids: ["AC1"],
+            reason: "Conflict",
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects CONTRACT_CONFLICT with attempts", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: "Conflict",
+        retry_count: 0,
+        max_retries: 0,
+        error_class: "CONTRACT_CONFLICT",
+        attempts: [attempt],
+        failure_attribution: {
+          kind: "contract_conflict",
+          description: "Conflict",
+          contract_conflict: {
+            kind: "overlapping_implements_verifies",
+            contract_ids: ["AC1"],
+            reason: "Conflict",
+          },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects CONTRACT_CONFLICT without a contract_conflict failure attribution", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: "Conflict",
+        retry_count: 0,
+        max_retries: 0,
+        error_class: "CONTRACT_CONFLICT",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects CONTRACT_CONFLICT with a non-contract_conflict attribution", () => {
+    expect(() =>
+      ErrorRecoverySchema.parse({
+        last_error: "Conflict",
+        retry_count: 0,
+        max_retries: 0,
+        error_class: "CONTRACT_CONFLICT",
+        failure_attribution: {
+          kind: "unknown",
+          description: "Not a contract conflict",
+        },
+      }),
+    ).toThrow();
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Failure Attribution
+// -----------------------------------------------------------------------------
+
+describe("FailureAttributionSchema", () => {
+  it("accepts a contract_conflict attribution", () => {
+    const attribution = {
+      kind: "contract_conflict",
+      description: "Task implements and verifies the same AC",
+      contract_conflict: {
+        kind: "overlapping_implements_verifies",
+        contract_ids: ["AC1"],
+        reason:
+          "A task cannot both implement and verify the same acceptance criterion",
+      },
+    };
+    expect(FailureAttributionSchema.parse(attribution)).toEqual(attribution);
+  });
+
+  it("accepts an implementation_defect attribution with contract refs", () => {
+    const attribution = {
+      kind: "implementation_defect",
+      description: "Logic error in retry counter",
+      contract_refs: {
+        implements: ["AC2"],
+        respects: ["C1"],
+      },
+    };
+    expect(FailureAttributionSchema.parse(attribution)).toEqual(attribution);
+  });
+
+  it("accepts an unknown attribution without contract refs", () => {
+    const attribution = {
+      kind: "unknown",
+      description: "Unclassified failure",
+    };
+    expect(FailureAttributionSchema.parse(attribution)).toEqual(attribution);
+  });
+
+  it("rejects a contract_conflict attribution without contract_conflict details", () => {
+    expect(() =>
+      FailureAttributionSchema.parse({
+        kind: "contract_conflict",
+        description: "Missing details",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an invalid attribution kind", () => {
+    expect(() =>
+      FailureAttributionSchema.parse({
+        kind: "design_flaw",
+        description: "Not a valid kind",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects an empty description", () => {
+    expect(() =>
+      FailureAttributionSchema.parse({
+        kind: "infrastructure",
+        description: "",
+      }),
+    ).toThrow();
+  });
+});
+
+describe("ContractConflictSchema", () => {
+  it("accepts a valid contract conflict", () => {
+    const conflict = {
+      kind: "implements_respects_overlap",
+      contract_ids: ["AC1", "C1"],
+      reason: "AC1 is both implemented and respected",
+    };
+    expect(ContractConflictSchema.parse(conflict)).toEqual(conflict);
+  });
+
+  it("rejects an invalid conflict kind", () => {
+    expect(() =>
+      ContractConflictSchema.parse({
+        kind: "duplicate_task",
+        contract_ids: ["AC1"],
+        reason: "Not a valid kind",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects empty contract_ids", () => {
+    expect(() =>
+      ContractConflictSchema.parse({
+        kind: "missing_required_respects",
+        contract_ids: [],
+        reason: "No ids",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects missing reason", () => {
+    expect(() =>
+      ContractConflictSchema.parse({
+        kind: "not_applicable_with_refs",
+        contract_ids: ["AC1"],
+      }),
+    ).toThrow();
+  });
+
+  it("exposes the expected finite vocabularies", () => {
+    expect(FailureAttributionKindSchema.options).toEqual([
+      "contract_conflict",
+      "implementation_defect",
+      "infrastructure",
+      "external_service",
+      "unknown",
+    ]);
+    expect(ContractConflictKindSchema.options).toEqual([
+      "overlapping_implements_verifies",
+      "implements_respects_overlap",
+      "missing_required_respects",
+      "not_applicable_with_refs",
+      "unattributed_acceptance_criterion",
+    ]);
+  });
+});
 
 // -----------------------------------------------------------------------------
 // WisdomDraft schema
