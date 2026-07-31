@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { ChangeSchema } from "./changes";
+import { ChangeSchema, Phase9FinalizationStatusSchema } from "./changes";
 
 describe("ChangeSchema archive passthrough", () => {
   const minimalValidChange = {
@@ -41,5 +41,33 @@ describe("ChangeSchema archive passthrough", () => {
       batch_surfaced_at: "2026-04-01T12:00:00Z",
     });
     expect(result.batch_surfaced_at).toBe("2026-04-01T12:00:00Z");
+  });
+});
+
+describe("Phase9FinalizationStatusSchema changeTipSha", () => {
+  const baseStatus = {
+    status: "pending" as const,
+    startedAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  test("accepts only a 40-hex Git SHA", () => {
+    expect(
+      Phase9FinalizationStatusSchema.safeParse({
+        ...baseStatus,
+        changeTipSha: "a".repeat(40),
+      }).success,
+    ).toBe(true);
+    expect(
+      Phase9FinalizationStatusSchema.safeParse({
+        ...baseStatus,
+        changeTipSha: "tip-abc-123",
+      }).success,
+    ).toBe(false);
+    expect(
+      Phase9FinalizationStatusSchema.safeParse({
+        ...baseStatus,
+        changeTipSha: "A".repeat(40),
+      }).success,
+    ).toBe(false);
   });
 });

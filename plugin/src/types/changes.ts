@@ -1114,7 +1114,10 @@ export const Phase9FinalizationStatusSchema = z.object({
   // rq-fixPhase9SquashMergeRedetect SC1: change-tip SHA captured at archive
   // dispatch time. Lets reachability detection survive branch deletion by
   // using a content-addressed tip instead of the live change/{id} git ref.
-  changeTipSha: z.string().optional(),
+  changeTipSha: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/, "changeTipSha must be a 40-hex Git SHA")
+    .optional(),
 });
 
 export type Phase9FinalizationStatus = z.infer<
