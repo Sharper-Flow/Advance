@@ -81,6 +81,7 @@ async function makeDeps(
     invalidateChange: vi.fn(),
     setCachedChange: vi.fn(),
     emitChangeSummarySignal: vi.fn(),
+    persistStateToDisk: vi.fn(),
   };
 }
 
