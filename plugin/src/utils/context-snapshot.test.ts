@@ -483,6 +483,30 @@ describe("buildChangeContextSnapshot", () => {
     expect(output).toContain("Next: blocked · execution");
     expect(output).not.toMatch(/Next:[^\n]*\/adv-/);
   });
+
+  test("renders a blocked Next: line when an actionable directive names an unregistered route", () => {
+    const output = buildChangeContextSnapshot({
+      change: { id: "unknownCommand", title: "unknown command", tasks: [] },
+      gates: { execution: { status: "in_progress" } },
+      directive: {
+        changeId: "unknownCommand",
+        phase: "execution",
+        gateStatus: {} as never,
+        action: {
+          kind: "continue",
+          gateId: "execution",
+          command: "adv-unregistered",
+        },
+        approvalPending: false,
+        blockers: [],
+        canArchive: false,
+        bucket: "in_flight",
+      },
+      workdir: "/tmp/worktree",
+    });
+    expect(output).toContain("Next: blocked · execution");
+    expect(output).not.toMatch(/Next:[^\n]*\/adv-/);
+  });
 });
 
 // =============================================================================
