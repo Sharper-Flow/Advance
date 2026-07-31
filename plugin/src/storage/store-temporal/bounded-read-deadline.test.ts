@@ -8,7 +8,7 @@
  */
 
 import { writeFile } from "node:fs/promises";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDefaultGates, type Change } from "../../types";
@@ -59,34 +59,54 @@ function activeChange(id: string): Change {
   };
 }
 
+/**
+ * A Temporal client double whose every surface is poisoned, used to prove that
+ * routine reads never touch Temporal.
+ *
+ * `list` deliberately mirrors the real client's contract rather than being a
+ * rejecting async function. `WorkflowClient.list` returns an
+ * `AsyncWorkflowListIterable` *synchronously* and is consumed with `for await`
+ * (see `listChangeWorkflowIds`). A double shaped as `async () => { throw }`
+ * returns a rejected Promise instead, which `for await` cannot iterate: the
+ * consumer throws a TypeError that production catches, while the double's own
+ * rejected Promise is left with no handler attached and surfaces as an
+ * unhandled rejection. That is a defect in the double, not in the code under
+ * test. Returning an async iterable whose `next()` rejects reproduces a real
+ * failing client exactly, and the rejection is handled by the awaiting
+ * consumer.
+ *
+ * Because production catches this failure and degrades, a thrown error alone
+ * cannot prove that a routine read stayed off Temporal. The returned spies
+ * exist so tests can assert call counts directly.
+ */
 function poisonedTemporal() {
+  const list = vi.fn(
+    (): AsyncIterable<never> => ({
+      [Symbol.asyncIterator]: () => ({
+        next: () =>
+          Promise.reject(
+            new Error("routine list must not enumerate Visibility"),
+          ),
+      }),
+    }),
+  );
+  const query = vi.fn(async () => {
+    throw new Error("routine list must not query workflow");
+  });
+  const start = vi.fn(async () => {
+    throw new Error("routine list must not start a workflow");
+  });
+
   return {
+    list,
+    query,
+    start,
     temporal: {
       client: {
         workflow: {
-          getHandle: () => ({
-            query: async () => {
-              throw new Error("routine list must not query workflow");
-            },
-          }),
-          // Returns an AsyncIterable synchronously and throws on iteration,
-          // matching the real client. An `async () => { throw }` would return
-          // a rejected promise that `for await...of` cannot iterate, so the
-          // rejection would never be awaited and would escape as an unhandled
-          // rejection. Written as an explicit iterator rather than an async
-          // generator because a generator with no `yield` trips require-yield.
-          list: () => ({
-            [Symbol.asyncIterator]() {
-              return {
-                next: async (): Promise<IteratorResult<never>> => {
-                  throw new Error("routine list must not enumerate Visibility");
-                },
-              };
-            },
-          }),
-          start: async () => {
-            throw new Error("routine list must not start a workflow");
-          },
+          getHandle: () => ({ query }),
+          list,
+          start,
         },
       },
     },
@@ -114,9 +134,10 @@ describe("projection-only change-list reads", () => {
       summariesDir: legacy.paths.summariesDir,
     });
 
+    const poisoned = poisonedTemporal();
     const store = createTemporalStoreBackend({
       legacy,
-      temporal: poisonedTemporal().temporal,
+      temporal: poisoned.temporal,
       projectId: "project-1",
     });
 
@@ -124,6 +145,12 @@ describe("projection-only change-list reads", () => {
     expect(result.changes.map((c) => c.id)).toEqual(["activeOne"]);
     expect(result.warnings).toBeUndefined();
     expect(result.hydrationStats?.deadlineExceeded).toBeFalsy();
+    // Assert the absence of Temporal access directly. Production catches and
+    // degrades on a failing client, so a poisoned surface that merely throws
+    // would let a wrong call pass silently.
+    expect(poisoned.list).not.toHaveBeenCalled();
+    expect(poisoned.query).not.toHaveBeenCalled();
+    expect(poisoned.start).not.toHaveBeenCalled();
   });
 
   it("changes.list includes terminal rows when requested", async () => {
@@ -137,9 +164,10 @@ describe("projection-only change-list reads", () => {
       summariesDir: legacy.paths.summariesDir,
     });
 
+    const poisoned = poisonedTemporal();
     const store = createTemporalStoreBackend({
       legacy,
-      temporal: poisonedTemporal().temporal,
+      temporal: poisoned.temporal,
       projectId: "project-1",
     });
 
@@ -154,6 +182,13 @@ describe("projection-only change-list reads", () => {
       "activeOne",
       "closedOne",
     ]);
+
+    // Terminal reads still consult Visibility, and the client here always
+    // fails. The rows above therefore came from durable summary shards via the
+    // degraded path, which is exactly the fallback that must stay executable.
+    expect(poisoned.list).toHaveBeenCalled();
+    expect(poisoned.query).not.toHaveBeenCalled();
+    expect(poisoned.start).not.toHaveBeenCalled();
   });
 
   it("changes.listSummary pages and filters from summary shards without Temporal reads", async () => {
@@ -166,9 +201,10 @@ describe("projection-only change-list reads", () => {
       summariesDir: legacy.paths.summariesDir,
     });
 
+    const poisoned = poisonedTemporal();
     const store = createTemporalStoreBackend({
       legacy,
-      temporal: poisonedTemporal().temporal,
+      temporal: poisoned.temporal,
       projectId: "project-1",
     });
 
@@ -176,6 +212,9 @@ describe("projection-only change-list reads", () => {
     expect(page.changes).toHaveLength(1);
     expect(page.hydrationStats?.fromHydration).toBe(0);
     expect(page.warnings).toBeUndefined();
+    expect(poisoned.list).not.toHaveBeenCalled();
+    expect(poisoned.query).not.toHaveBeenCalled();
+    expect(poisoned.start).not.toHaveBeenCalled();
   });
 
   it("changes.list returns empty results and degraded metadata when summary index is unreadable", async () => {
@@ -183,9 +222,10 @@ describe("projection-only change-list reads", () => {
     const legacy = await createDiskStore(tempDir);
     // Make summariesDir a file so readdir fails with ENOTDIR.
     await writeFile(legacy.paths.summariesDir, "not a directory");
+    const poisoned = poisonedTemporal();
     const store = createTemporalStoreBackend({
       legacy,
-      temporal: poisonedTemporal().temporal,
+      temporal: poisoned.temporal,
       projectId: "project-1",
     });
 
@@ -199,5 +239,9 @@ describe("projection-only change-list reads", () => {
         }),
       ]),
     );
+
+    // With no durable evidence available, the bounded Visibility fallback is
+    // the only remaining source, so it must have been attempted.
+    expect(poisoned.list).toHaveBeenCalled();
   });
 });
