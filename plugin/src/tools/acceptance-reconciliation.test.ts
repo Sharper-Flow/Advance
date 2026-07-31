@@ -298,6 +298,57 @@ describe("reconcileRecoveredAcceptanceRemediation", () => {
     ).toBeUndefined();
   });
 
+  test("retains a newer recovered marker that arrives while clearing an older reconciliation", async () => {
+    const changesDir = await createTempDir("adv-acceptance-reconciliation-");
+    const older = {
+      ...designConcernDisposition(),
+      recovery_audit: recoveryAudit(),
+    };
+    await seedProjection(
+      changesDir,
+      baseChange({ design_concern_dispositions: [older] }),
+    );
+    mocks.query.mockImplementation((queryName: string, receiptId?: string) => {
+      if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+        return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+      }
+      return Promise.resolve(
+        workflowState({ design: [designConcernDisposition()] }),
+      );
+    });
+
+    const newer = {
+      ...designConcernDisposition({
+        disposition: "fast_follow",
+        evidence: "Captured a newer remediation decision.",
+        dispositionedAt: "2026-05-23T00:00:03.000Z",
+      }),
+      recovery_audit: {
+        ...recoveryAudit(),
+        recovered_at: "2026-05-23T00:00:03.000Z",
+      },
+    };
+    mocks.signal.mockImplementationOnce(async () => {
+      await seedProjection(
+        changesDir,
+        baseChange({ design_concern_dispositions: [newer] }),
+      );
+    });
+
+    const result = await reconcileRecoveredAcceptanceRemediation({
+      store: storeFor(changesDir),
+      changeId: "change-1",
+      handle: mocks.handle,
+    });
+
+    expect(result).toMatchObject({
+      kind: "blocked",
+      code: "ACCEPTANCE_RECONCILIATION_CLEAR_FAILED",
+    });
+    const disk = await loadChange(changesDir, "change-1");
+    expect(disk.data?.design_concern_dispositions).toEqual([newer]);
+  });
+
   test("returns a blocked result when a disposition receipt is not confirmed", async () => {
     const changesDir = await createTempDir("adv-acceptance-reconciliation-");
     const change = baseChange({

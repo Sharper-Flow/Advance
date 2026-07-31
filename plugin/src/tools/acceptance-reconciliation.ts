@@ -106,6 +106,35 @@ function dispositionPostcondition(
   );
 }
 
+/**
+ * A marker clear must target the exact recovered disposition that was
+ * confirmed in Temporal. Matching only its logical latest-wins key could
+ * erase a newer recovered disposition committed while reconciliation was in
+ * flight, leaving that newer state absent from the workflow.
+ */
+function matchesPendingRecoveredDisposition(
+  disposition: RecoveryAuditedDisposition,
+  item: PendingReconciliationItem,
+  requireRecoveryAudit = true,
+): boolean {
+  const expected = item.disposition;
+  const matchesDisposition =
+    disposition.taskId === expected.taskId &&
+    disposition.concernKey === expected.concernKey &&
+    disposition.disposition === expected.disposition &&
+    disposition.evidence === expected.evidence &&
+    disposition.dispositionedAt === expected.dispositionedAt;
+  if (!matchesDisposition || !requireRecoveryAudit) {
+    return matchesDisposition;
+  }
+  return (
+    disposition.recovery_audit?.reason === expected.recovery_audit.reason &&
+    disposition.recovery_audit?.evidence === expected.recovery_audit.evidence &&
+    disposition.recovery_audit?.recovered_at ===
+      expected.recovery_audit.recovered_at
+  );
+}
+
 async function redeliverDisposition(
   handle: WorkflowHandleLike,
   changeId: string,
@@ -147,12 +176,6 @@ function stripRecoveryAuditMarkers(
   change: Change,
   items: PendingReconciliationItem[],
 ): Change {
-  const keys = items.map((item) => ({
-    family: item.family,
-    taskId: item.disposition.taskId,
-    concernKey: item.disposition.concernKey,
-  }));
-
   const next: Change = { ...change };
 
   for (const family of ["design_concern", "verification_evidence"] as const) {
@@ -163,11 +186,13 @@ function stripRecoveryAuditMarkers(
     const array = next[arrayKey];
     if (!array) continue;
     next[arrayKey] = array.map((d) => {
-      const match = keys.some(
-        (k) =>
-          k.family === family &&
-          k.taskId === d.taskId &&
-          k.concernKey === d.concernKey,
+      const match = items.some(
+        (item) =>
+          item.family === family &&
+          matchesPendingRecoveredDisposition(
+            d as unknown as RecoveryAuditedDisposition,
+            item,
+          ),
       );
       if (!match) return d;
       const { recovery_audit: _, ...rest } = d;
@@ -210,6 +235,15 @@ async function clearRecoveryAuditMarkers(
             d.concernKey === item.disposition.concernKey,
         );
         if (!found) return false;
+        if (
+          !matchesPendingRecoveredDisposition(
+            found as unknown as RecoveryAuditedDisposition,
+            item,
+            false,
+          )
+        ) {
+          return false;
+        }
         if (found.recovery_audit !== undefined) return false;
       }
       return true;
