@@ -564,7 +564,7 @@ function buildRecoveryReadinessState(input: {
  * `fallbackEvidence` unchanged — preserving the original
  * `gateId === "acceptance" && recoveryState.contract?.reviewMatrix` guard.
  */
-async function resolveAcceptanceRecoveryArtifactEvidence(input: {
+export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
   store: Store;
   changeId: string;
   recoveryState: ChangeWorkflowState;
@@ -666,7 +666,27 @@ async function resolveAcceptanceRecoveryArtifactEvidence(input: {
       },
     };
   }
-  return { ok: true, artifactEvidence: input.fallbackEvidence };
+  return {
+    ok: false,
+    response: workflowReadinessBlockedResponse({
+      changeId: input.changeId,
+      gateId: "acceptance",
+      gate: {
+        status: "stuck",
+        stuck_reason: "ACCEPTANCE_PROJECTION_READBACK_FAILED",
+        readiness_blockers: [
+          {
+            code: "ACCEPTANCE_PROJECTION_READBACK_FAILED",
+            gateId: "acceptance",
+            artifactKind: "acceptance",
+            message: acceptanceArtifact.error,
+            remediation:
+              "Repair acceptance projection persistence before retrying recovery.",
+          },
+        ],
+      },
+    }),
+  };
 }
 
 /**

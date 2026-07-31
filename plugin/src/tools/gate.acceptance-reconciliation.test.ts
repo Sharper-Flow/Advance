@@ -37,6 +37,13 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+const artifactMocks = vi.hoisted(() => ({
+  inspectArtifactActivity: vi.fn(),
+  writeArtifactActivity: vi.fn(),
+}));
+
+vi.mock("../temporal/activities", () => artifactMocks);
+
 vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
 }));
@@ -226,6 +233,58 @@ describe("adv_gate_complete acceptance reconciliation", () => {
 
   afterEach(() => {
     delete process.env.ADV_PLAN_ROUTING_FAIL_CLOSED;
+  });
+
+  test("blocks recovery when the persisted acceptance projection cannot be read back", async () => {
+    artifactMocks.writeArtifactActivity.mockResolvedValue({ ok: true });
+    artifactMocks.inspectArtifactActivity
+      .mockResolvedValueOnce({
+        ok: true,
+        contentHash: "executive-summary-hash",
+        nonWhitespaceChars: 100,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        error: "acceptance artifact unreadable",
+      });
+
+    const { resolveAcceptanceRecoveryArtifactEvidence } =
+      await import("./gate");
+    const result = await resolveAcceptanceRecoveryArtifactEvidence({
+      store: createStore("/tmp/changes", baseChange()),
+      changeId: "test-change",
+      recoveryState: {
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-01-01T00:00:00Z",
+          },
+          items: [],
+          reviewMatrix: {
+            reviewedAt: "2026-01-01T00:00:00Z",
+            rows: [],
+          },
+          amendments: [],
+        },
+        artifacts: {
+          executiveSummary: { contentHash: "executive-summary-hash" },
+        },
+      } as import("../temporal/contracts").ChangeWorkflowState,
+      fallbackEvidence: undefined,
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected acceptance recovery to block");
+    expect(JSON.parse(result.response)).toMatchObject({
+      stuckReason: "ACCEPTANCE_PROJECTION_READBACK_FAILED",
+      readinessBlockers: [
+        expect.objectContaining({
+          code: "ACCEPTANCE_PROJECTION_READBACK_FAILED",
+        }),
+      ],
+    });
   });
 
   test("re-delivers recovered design-concern and verification-evidence dispositions before firing gateCompletedSignal", async () => {
