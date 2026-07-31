@@ -1,4 +1,29 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("node:child_process", async () => {
+  const actual =
+    await vi.importActual<typeof import("node:child_process")>(
+      "node:child_process",
+    );
+  return {
+    ...actual,
+    execFileSync: vi.fn((...args: any[]) => actual.execFileSync(...args)),
+    execSync: vi.fn((...args: any[]) => actual.execSync(...args)),
+    execFile: vi.fn((...args: any[]) => actual.execFile(...args)),
+    exec: vi.fn((...args: any[]) => actual.exec(...args)),
+    spawn: vi.fn((...args: any[]) => actual.spawn(...args)),
+    spawnSync: vi.fn((...args: any[]) => actual.spawnSync(...args)),
+  };
+});
+
+import {
+  execFileSync as mockedExecFileSync,
+  execSync,
+  execFile,
+  exec,
+  spawn,
+  spawnSync,
+} from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -97,5 +122,58 @@ describe("saveChange AST call detection", () => {
     } finally {
       await cleanupTempDir(fixtureRoot);
     }
+  });
+
+  it("returns an empty array when the plugin/src scan root is missing", async () => {
+    const fixtureRoot = await createTempDir("save-change-allow-list-");
+    try {
+      const calls = await findExecutableSaveChangeCalls(fixtureRoot);
+      expect(calls).toEqual([]);
+    } finally {
+      await cleanupTempDir(fixtureRoot);
+    }
+  });
+
+  it("produces deterministic output ordering across repeated scans", async () => {
+    const first = await findExecutableSaveChangeCalls(repoRoot);
+    const second = await findExecutableSaveChangeCalls(repoRoot);
+    expect(first).toEqual(second);
+    expect(first).toEqual(expect.arrayContaining([expect.any(Object)]));
+  });
+});
+
+/**
+ * Guard: the scanner must never shell out to an external process. It is the
+ * source of the CI failure (`spawnSync rg ENOENT`) on GitHub Actions runners
+ * that do not install ripgrep.
+ *
+ * Limit: Vitest module mocks intercept ESM imports of `node:child_process` in
+ * this test file and its direct dependencies. They do NOT intercept dynamic
+ * `require()` calls, native code that spawns processes, or subprocesses started
+ * by transitive dependencies. This assertion is therefore a guard on the
+ * intentional implementation surface, not a complete sandbox guarantee.
+ */
+describe("saveChange caller scan does not spawn processes", () => {
+  it("never invokes a process-spawning function while scanning", async () => {
+    // Verify the mock actually intercepted the ESM import of the built-in.
+    // A non-mocked import would be the real Node function and would not have a
+    // Vitest `.mock` property.
+    expect(typeof (mockedExecFileSync as any).mock).toBe("object");
+
+    mockedExecFileSync.mockClear();
+    execSync.mockClear();
+    execFile.mockClear();
+    exec.mockClear();
+    spawn.mockClear();
+    spawnSync.mockClear();
+
+    await findExecutableSaveChangeCalls(repoRoot);
+
+    expect(mockedExecFileSync).not.toHaveBeenCalled();
+    expect(execSync).not.toHaveBeenCalled();
+    expect(execFile).not.toHaveBeenCalled();
+    expect(exec).not.toHaveBeenCalled();
+    expect(spawn).not.toHaveBeenCalled();
+    expect(spawnSync).not.toHaveBeenCalled();
   });
 });
