@@ -70,13 +70,13 @@ describe("applyCoordinationClaimSetToState", () => {
     applyCoordinationClaimSetToState(
       state,
       validPayload({
-      claim: {
-        scope_summary: "Plumbing",
-        responsibility: "reviewer",
-        exact_identifiers: ["  TK-04DE57F4F04E  ", "Search-Attributes"],
-        generated_terms: ["  Coordination  ", "Claim"],
-        claimed_at: at,
-      },
+        claim: {
+          scope_summary: "Plumbing",
+          responsibility: "reviewer",
+          exact_identifiers: ["  TK-04DE57F4F04E  ", "Search-Attributes"],
+          generated_terms: ["  Coordination  ", "Claim"],
+          claimed_at: at,
+        },
       }),
     );
 
