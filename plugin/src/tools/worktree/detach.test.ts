@@ -68,6 +68,7 @@ import {
 import type { Store } from "../../storage/store";
 import { worktreeDematerializedSignal } from "../../temporal/messages";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
+import { WorktreeDematerializedSignalPayloadSchema } from "../../types";
 
 const access = { projectDir: "/repo", projectId: "proj-123" };
 const repoRoot = "/repo";
@@ -259,6 +260,28 @@ describe("advWorktreeDetachBatch", () => {
         reason: "approval_required",
       }),
     );
+    expect(
+      WorktreeDematerializedSignalPayloadSchema.safeParse(
+        fireSignalAndRefreshFn.mock.calls[0]?.[4],
+      ).success,
+    ).toBe(true);
+  });
+
+  it("fails when an early refusal receipt cannot be recorded", async () => {
+    const branch = "change/old";
+    getWorktreeRecordFn.mockResolvedValue(worktreeRecord({ branch }));
+    fireSignalAndRefreshFn.mockRejectedValue(new Error("workflow unreachable"));
+
+    const result = await advWorktreeDetachBatch(
+      { branches: [branch], cutoffMs: TEN_DAYS_MS, mode: "apply" },
+      repoRoot,
+      access,
+      { store: { changes: { refresh: vi.fn() } } as unknown as Store },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain("unable to record refused receipt");
+    expect(gitCbFn).not.toHaveBeenCalled();
   });
 
   it("refuses every branch when the request id does not match the normalized batch and records the receipt", async () => {

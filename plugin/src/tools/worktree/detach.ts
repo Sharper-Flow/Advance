@@ -619,7 +619,6 @@ export async function advWorktreeDetachBatch(
       }
     }
 
-    const warnings: string[] = [];
     const hardFailures: string[] = [];
     const now = new Date().toISOString();
 
@@ -652,7 +651,7 @@ export async function advWorktreeDetachBatch(
           ...(outcome === "refused"
             ? { reason: result.disposition.refusalReason }
             : {}),
-          approvalEvidence,
+          ...(approvalEvidence ? { approvalEvidence } : {}),
           dematerializedAt: now,
         };
 
@@ -663,7 +662,11 @@ export async function advWorktreeDetachBatch(
           payload,
           options.signalTimeoutMs,
         );
-        if (!signalResult.ok) warnings.push(signalResult.warning);
+        if (!signalResult.ok) {
+          hardFailures.push(
+            `${branch}: unable to record ${outcome} receipt: ${signalResult.warning}`,
+          );
+        }
 
         result.disposition.outcome = outcome;
         continue;
@@ -695,7 +698,7 @@ export async function advWorktreeDetachBatch(
           preflightFacts,
           outcome: "refused",
           reason: result.disposition.refusalReason,
-          approvalEvidence,
+          ...(approvalEvidence ? { approvalEvidence } : {}),
           dematerializedAt: now,
         };
         const signalResult = await fireDetachSignal(
@@ -705,7 +708,11 @@ export async function advWorktreeDetachBatch(
           payload,
           options.signalTimeoutMs,
         );
-        if (!signalResult.ok) warnings.push(signalResult.warning);
+        if (!signalResult.ok) {
+          hardFailures.push(
+            `${branch}: unable to record refused receipt: ${signalResult.warning}`,
+          );
+        }
         continue;
       }
 
@@ -716,7 +723,7 @@ export async function advWorktreeDetachBatch(
         cutoffMs: args.cutoffMs,
         preflightFacts,
         outcome: "detached",
-        approvalEvidence,
+        ...(approvalEvidence ? { approvalEvidence } : {}),
         dematerializedAt: now,
       };
       const signalResult = await fireDetachSignal(
@@ -750,7 +757,7 @@ export async function advWorktreeDetachBatch(
           preflightFacts,
           outcome: "refused",
           reason: "detach_signal_failed_compensated",
-          approvalEvidence,
+          ...(approvalEvidence ? { approvalEvidence } : {}),
           dematerializedAt: now,
         };
         const refusedSignalResult = await fireDetachSignal(
@@ -777,7 +784,7 @@ export async function advWorktreeDetachBatch(
           preflightFacts,
           outcome: "refused",
           reason: `detach_signal_compensation_failed: ${addResult.reason}`,
-          approvalEvidence,
+          ...(approvalEvidence ? { approvalEvidence } : {}),
           dematerializedAt: now,
         };
         const refusedSignalResult = await fireDetachSignal(
@@ -808,7 +815,6 @@ export async function advWorktreeDetachBatch(
         reason: hardFailures.join("; "),
         requestId,
         dispositions: preflightResults.map((r) => r.disposition),
-        ...(warnings.length > 0 ? { warnings } : {}),
       };
     }
 
@@ -817,7 +823,6 @@ export async function advWorktreeDetachBatch(
       requestId,
       mode: "apply",
       dispositions: preflightResults.map((r) => r.disposition),
-      ...(warnings.length > 0 ? { warnings } : {}),
     };
   } finally {
     try {

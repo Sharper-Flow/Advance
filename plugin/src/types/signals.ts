@@ -679,17 +679,29 @@ export type WorktreeDetachPreflightFact = z.infer<
   typeof WorktreeDetachPreflightFactSchema
 >;
 
-export const WorktreeDematerializedSignalPayloadSchema = z.object({
-  branch: z.string(),
-  requestId: z.string().min(1),
-  branches: z.array(z.string()),
-  cutoffMs: z.number().int().positive(),
-  preflightFacts: z.array(WorktreeDetachPreflightFactSchema),
-  outcome: z.enum(["detached", "refused", "idempotent_already_detached"]),
-  reason: z.string().optional(),
-  approvalEvidence: z.string().min(1),
-  dematerializedAt: IsoTimestampSchema,
-});
+export const WorktreeDematerializedSignalPayloadSchema = z
+  .object({
+    branch: z.string(),
+    requestId: z.string().min(1),
+    branches: z.array(z.string()),
+    cutoffMs: z.number().int().positive(),
+    preflightFacts: z.array(WorktreeDetachPreflightFactSchema),
+    outcome: z.enum(["detached", "refused", "idempotent_already_detached"]),
+    reason: z.string().optional(),
+    // Refusal receipts legitimately lack approval evidence; detached records
+    // retain the non-empty user evidence supplied by the apply request.
+    approvalEvidence: z.string().min(1).optional(),
+    dematerializedAt: IsoTimestampSchema,
+  })
+  .superRefine((payload, ctx) => {
+    if (payload.outcome !== "refused" && !payload.approvalEvidence) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["approvalEvidence"],
+        message: "approval evidence is required for detached worktrees",
+      });
+    }
+  });
 export type WorktreeDematerializedSignalPayload = z.infer<
   typeof WorktreeDematerializedSignalPayloadSchema
 >;

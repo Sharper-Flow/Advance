@@ -181,10 +181,20 @@ describe("applyWorktreeDematerializedToState", () => {
       expect(result.success).toBe(true);
     });
 
-    it("rejects missing approval evidence", () => {
+    it("rejects missing approval evidence for a detached worktree", () => {
       const { approvalEvidence: _, ...rest } = validPayload();
       const result = WorktreeDematerializedSignalPayloadSchema.safeParse(rest);
       expect(result.success).toBe(false);
+    });
+
+    it("accepts a refused receipt without approval evidence", () => {
+      const { approvalEvidence: _, ...rest } = validPayload();
+      const result = WorktreeDematerializedSignalPayloadSchema.safeParse({
+        ...rest,
+        outcome: "refused",
+        reason: "approval_required",
+      });
+      expect(result.success).toBe(true);
     });
 
     it("rejects a non-positive cutoff", () => {
