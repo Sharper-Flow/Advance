@@ -592,6 +592,8 @@ Visual comparison blocks are supplementary context, not a replacement for the `q
 
 ### Phase 4.5.2: Structured Criterion Authoring Guidance (rq-disc16)
 
+<!-- rq-disc16 -->
+
 `/adv-discover` produces four parse-safe criterion shapes. Each shape is minted into a stable `ACn`/`SCn`/`Cn`/`DONTn` contract item with an optional typed variant. The variant is advisory for presentation and review; the canonical `text`, stable `id`, `kind`, and `evidencePolicy` remain the contract authority.
 
 | Variant                     | Purpose                                            | Parse-safe notation                                                                                                                  |
