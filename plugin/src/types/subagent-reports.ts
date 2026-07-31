@@ -597,6 +597,78 @@ export const ResearcherSubagentReportSchema =
       }
     });
 
+// =============================================================================
+// Tron Optimization Candidates (opt-scan integration)
+// =============================================================================
+
+/**
+ * Evidence attached to a Tron optimization candidate. Mirrors the opt-scan
+ * evidence shape so that every source record is preserved verbatim.
+ */
+export const TronOptimizationCandidateEvidenceSchema = z
+  .object({
+    role: z.enum([
+      "trigger",
+      "scope",
+      "measurement",
+      "rejected_scope",
+      "invalidation",
+      "ownership",
+    ]),
+    file: z.string().min(1),
+    line: z.number().int().positive().optional(),
+    column: z.number().int().positive().optional(),
+    matchedSignal: z.string().optional(),
+    snippet: z.string().optional(),
+  })
+  .strict();
+
+/**
+ * Expected cost shape for a Tron optimization candidate. Mirrors the opt-scan
+ * cost-shape contract.
+ */
+export const TronOptimizationCandidateCostShapeSchema = z
+  .object({
+    family: z.enum([
+      "repeated_boundary_work",
+      "avoidable_collection_work",
+      "worker_startup_pressure",
+      "cache_opportunity",
+    ]),
+    pattern: z.enum([
+      "cpu",
+      "memory",
+      "io",
+      "latency",
+      "boundary",
+      "collection",
+      "startup",
+      "cache_miss",
+    ]),
+    description: z.string().min(1),
+  })
+  .strict();
+
+/**
+ * A static, advisory optimization candidate carried by a Tron reconnaissance
+ * report. Candidates are validated opt-scan output (or equivalent deterministic
+ * scanner output) that Tron preserves read-only and advisory. Measured fields
+ * are intentionally omitted: static candidates must not assert speedup, latency,
+ * runtime impact, or other measured claims.
+ */
+export const TronOptimizationCandidateSchema = z
+  .object({
+    id: z.string().min(1),
+    detector_id: z.string().min(1),
+    description: z.string().min(1),
+    evidence: z.array(TronOptimizationCandidateEvidenceSchema).min(1),
+    expected_cost_shape: TronOptimizationCandidateCostShapeSchema,
+    false_positive_caveat: z.string().min(1),
+    verification_needed: z.string().min(1),
+    recommendation: z.string().min(1),
+  })
+  .strict();
+
 export const TronEvidenceSchema = z
   .object({
     file: z.string().min(1),
@@ -604,6 +676,35 @@ export const TronEvidenceSchema = z
     summary: z.string().min(1),
   })
   .strict();
+
+// Heuristic guard: prose fields on a Tron optimization candidate must not
+// assert speedup, latency reduction, or runtime impact. Static candidates are
+// advisory only; measured claims require a measured evidence branch that this
+// Tron schema intentionally omits.
+const STATIC_MEASURED_CLAIM_RE =
+  /\b(speedup|speed-up|latency reduction|runtime impact|performance (gain|improvement|boost)|\d+%\s*(faster|speedup|improvement)|\d+x\s*(faster|slower))\b/i;
+
+function forbidStaticMeasuredClaims(
+  candidates: Array<z.infer<typeof TronOptimizationCandidateSchema>>,
+  ctx: z.RefinementCtx,
+): void {
+  for (const [index, candidate] of candidates.entries()) {
+    for (const [field, text] of [
+      ["description", candidate.description],
+      ["false_positive_caveat", candidate.false_positive_caveat],
+      ["verification_needed", candidate.verification_needed],
+      ["recommendation", candidate.recommendation],
+    ] as const) {
+      if (STATIC_MEASURED_CLAIM_RE.test(text)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["optimization_candidates", index, field],
+          message: `static optimization candidate cannot assert measured runtime impact in ${field}`,
+        });
+      }
+    }
+  }
+}
 
 export const TronSubagentReportSchema =
   ChangeScopedBaseSubagentReportSchema.extend({
@@ -616,8 +717,17 @@ export const TronSubagentReportSchema =
     open_questions: z.array(z.string().min(1)),
     suggested_next_commands: z.array(z.string().min(1)),
     follow_ups: z.array(z.string().min(1)),
+    optimization_candidates: z
+      .array(TronOptimizationCandidateSchema)
+      .optional(),
     consumer_warnings: z.array(SubagentConsumerWarningSchema).optional(),
-  }).strict();
+  })
+    .strict()
+    .superRefine((report, ctx) => {
+      if (report.optimization_candidates) {
+        forbidStaticMeasuredClaims(report.optimization_candidates, ctx);
+      }
+    });
 
 export const ScannerBundleFindingSchema = z
   .object({
@@ -1082,6 +1192,7 @@ export const SUBAGENT_REPORT_FIELD_SOURCES = {
     open_questions: "worker_derived",
     suggested_next_commands: "worker_derived",
     follow_ups: "worker_derived",
+    optimization_candidates: "worker_derived",
     consumer_warnings: "tool_enriched",
   },
   "adv-scanner-bundle": {
@@ -1192,6 +1303,15 @@ export type ChangeScopedSubagentReport = z.infer<
 >;
 export type ResearcherSubagentReport = z.infer<
   typeof ResearcherSubagentReportSchema
+>;
+export type TronOptimizationCandidateEvidence = z.infer<
+  typeof TronOptimizationCandidateEvidenceSchema
+>;
+export type TronOptimizationCandidateCostShape = z.infer<
+  typeof TronOptimizationCandidateCostShapeSchema
+>;
+export type TronOptimizationCandidate = z.infer<
+  typeof TronOptimizationCandidateSchema
 >;
 export type TronSubagentReport = z.infer<typeof TronSubagentReportSchema>;
 export type ScannerBundleSubagentReport = z.infer<

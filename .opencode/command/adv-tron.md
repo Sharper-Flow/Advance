@@ -91,6 +91,8 @@ VERIFICATION:
   required_when_possible:
     - cite file:line evidence for each material finding
   optional_additional_checks: true
+OPTIMIZATION_CANDIDATES (optional):
+  - {validated static opt-scan candidates; if present, Tron preserves them as read-only optimization_candidates with detector_id, source evidence, expected_cost_shape, false_positive_caveat, verification_needed, and a recommended `/adv-optimizer` handoff}
 EXPECTED OUTPUT: return TRON RECONNAISSANCE REPORT and call adv_subagent_report_submit with TRON_REPORT per .opencode/agents/adv-tron.md when CHANGE is a real ADV change
 ```
 
@@ -99,6 +101,8 @@ Pass only:
 **Broad:** repo root, project context, ADV state (changes/specs), file tree summary. Task: map architecture, identify hotspots, note patterns, flag risks, check spec drift, suggest follow-ups. Cap: 10 findings.
 
 **Scoped:** target, resolved files, repo root, project context, relevant ADV state. Task: deep-read target, trace dependencies, find related code, assess complexity/coverage/risk, check ADV overlap, suggest follow-ups. Cap: 15 findings.
+
+**Opt-scan candidates:** If validated static opt-scan candidates are available, pass them in the spawn packet under `OPTIMIZATION_CANDIDATES`. Tron consumes them read-only, preserves all source evidence, and includes them as advisory `optimization_candidates` in the `TRON_REPORT` with a recommended `/adv-optimizer` handoff. Do not run opt-scan automatically from this command if candidates are not already available; candidate generation is outside Tron's scope.
 ## Phase 5: Synthesize
 Validate findings (require file references, remove evidence-free, deduplicate). Emit TRON RECONNAISSANCE REPORT:
 - Target/scope
