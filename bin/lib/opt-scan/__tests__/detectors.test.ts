@@ -9,6 +9,8 @@
 import { describe, expect, test } from "bun:test";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { tmpdir } from "os";
 
 import { runOptScan } from "../scan";
 import {
@@ -184,6 +186,21 @@ describe("opt-scan V1 detectors", () => {
 
       expect(result.candidates).toHaveLength(0);
     });
+
+    test("startup file detection uses the file basename, not the parent directory path", async () => {
+      const result = await runOptScan({
+        repoRoot: join(HERE, "fixtures"),
+        detectorId: id,
+        phase: 1,
+      });
+
+      expect(result.candidates).toHaveLength(1);
+      const trigger = result.candidates[0].evidence.find(
+        (e) => e.role === "trigger",
+      );
+      expect(trigger).toBeDefined();
+      expect(trigger!.file).toBe("worker-startup-pressure-positive/src/worker.ts");
+    });
   });
 
   describe("cache_opportunity", () => {
@@ -233,5 +250,49 @@ describe("opt-scan V1 detectors", () => {
 
       expect(result.candidates).toHaveLength(0);
     });
+
+    test("rejects a cache with identity and ownership but no invalidation policy", async () => {
+      const result = await runOptScan({
+        repoRoot: fixturePath("cache-opportunity-no-invalidation"),
+        detectorId: id,
+        phase: 1,
+      });
+
+      expect(result.candidates).toHaveLength(0);
+    });
+  });
+
+  test("skips test artifact files and directories during collection", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "opt-scan-test-artifacts-"));
+    try {
+      mkdirSync(join(tmp, "src"), { recursive: true });
+      mkdirSync(join(tmp, "src", "__tests__"), { recursive: true });
+      writeFileSync(
+        join(tmp, "src", "worker.ts"),
+        `import { readFileSync } from "fs";\nconst config = JSON.parse(readFileSync("./config.json", "utf8"));\nexport function startWorker(): void { console.log(config); }\n`,
+      );
+      writeFileSync(
+        join(tmp, "src", "foo.test.ts"),
+        `import { readFileSync } from "fs";\nconst config = JSON.parse(readFileSync("./config.json", "utf8"));\nexport function testStartup(): void { console.log(config); }\n`,
+      );
+      writeFileSync(
+        join(tmp, "src", "__tests__", "x.ts"),
+        `import { readFileSync } from "fs";\nconst config = JSON.parse(readFileSync("./config.json", "utf8"));\nexport function helper(): void { console.log(config); }\n`,
+      );
+
+      const result = await runOptScan({
+        repoRoot: tmp,
+        detectorId: "worker_startup_pressure",
+        phase: 1,
+      });
+
+      expect(result.candidates).toHaveLength(1);
+      const trigger = result.candidates[0].evidence.find(
+        (e) => e.role === "trigger",
+      );
+      expect(trigger?.file).toBe("src/worker.ts");
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
   });
 });
