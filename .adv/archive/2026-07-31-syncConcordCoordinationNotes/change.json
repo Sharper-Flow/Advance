@@ -1,0 +1,1863 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "syncConcordCoordinationNotes",
+  "title": "Sync Concord coordination notes",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-30T20:44:48.062Z",
+  "tasks": [
+    {
+      "id": "tk-04de57f4f04e",
+      "title": "Add typed coordination claims",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-30T23:35:29.037Z",
+      "started_at": "2026-07-30T23:37:05.223Z",
+      "completed_at": "2026-07-31T00:28:33.716Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Added red/green test for coordination-claim identifier deduplication; pnpm vitest run src/temporal/change-state.coordination-claim.test.ts passes 10/10; pnpm run typecheck passes.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.coordination-claim.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "5fcb6f4c8b7817f031b3377e91e28a3e48df68b5",
+      "completedAt": "2026-07-31T00:28:33.716Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC2",
+          "SC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.coordination-claim.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "syncConcordCoordinationNotes",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes/plugin",
+          "task_id": "tk-04de57f4f04e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-04de57f4f04e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/types/signals.ts",
+            "plugin/src/types/index.ts",
+            "plugin/src/temporal/contracts.ts",
+            "plugin/src/temporal/messages.ts",
+            "plugin/src/temporal/workflows.ts",
+            "plugin/src/temporal/change-state.ts",
+            "plugin/src/temporal/search-attributes.ts",
+            "plugin/src/temporal/observability.ts",
+            "plugin/src/temporal/change-state.coordination-claim.test.ts",
+            "plugin/src/temporal/messages.test.ts",
+            "plugin/src/temporal/search-attributes.test.ts",
+            "plugin/src/temporal/observability.test.ts",
+            "plugin/src/temporal/service.test.ts",
+            "plugin/src/temporal/service-reconnect.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "typecheck-20260730",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript passes with no errors after fixing signal payload import path"
+            },
+            {
+              "test_run_id": "vitest-focused-20260730",
+              "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts src/temporal/messages.test.ts src/temporal/search-attributes.test.ts src/temporal/observability.test.ts",
+              "exit_code": 0,
+              "summary": "35 focused tests pass"
+            },
+            {
+              "test_run_id": "vitest-service-20260730",
+              "command": "pnpm vitest run src/temporal/service.test.ts src/temporal/service-reconnect.test.ts",
+              "exit_code": 0,
+              "summary": "39 service tests pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Use coordination-claim signal payload exported by the shared types surface",
+              "why": "The signal type is defined in the shared type module rather than Temporal contracts, preserving one authoritative type source."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Investigate unrelated full-temporal-suite failures in activities.disk-projection, archive-phase9-splitbrain, and legacy-copoll integration tests."
+          ],
+          "required_main_agent_actions": [
+            "Reconcile task checkpoint and TDD evidence in ADV state."
+          ],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Typed coordination claim signal and search attribute are implemented. Typecheck and 74 focused/service tests pass; unrelated full temporal-suite failures were surfaced.",
+            "suggested_next_action": "Record task checkpoint and continue with the claim-inventory task."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: typecheck-20260730"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: vitest-focused-20260730"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: vitest-service-20260730"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "syncConcordCoordinationNotes",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+          "task_id": "tk-04de57f4f04e",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-04de57f4f04e"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/change-state.coordination-claim.test.ts",
+            "plugin/src/types/changes.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms87czqh_51e552f9",
+              "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts",
+              "exit_code": 1,
+              "summary": "Red phase: new deduplication test failed as expected because duplicate identifiers/terms were not normalized away."
+            },
+            {
+              "test_run_id": "tr_ms87dpwp_ea74fc0d",
+              "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts",
+              "exit_code": 0,
+              "summary": "Green phase: deduplication test passes after schema transform fix; all 10 coordination-claim tests pass."
+            },
+            {
+              "test_run_id": "tr_ms87edi4_f8136b0b",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passes after schema change."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added .transform((arr) => [...new Set(arr)]) to exact_identifiers and generated_terms in ChangeCoordinationClaimSchema",
+              "why": "Identifiers are normalized to lowercase/trimmed, so case/whitespace variants collapse to the same value. Keeping duplicates bloats the stored claim and the projected AdvCoordinationClaim Text search attribute, and provides no semantic value. Deduplicating at the schema layer is the minimum structural fix and propagates to both the persisted workflow state and the Visibility projection."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Added a real red/green edge case for typed coordination claims: duplicate exact_identifiers/generated_terms after normalization are now deduplicated in the Zod schema. The failing test (tr_ms87czqh_51e552f9) was fixed by a minimal schema transform; the focused test file and typecheck pass. Changes are checkpointed at 5fcb6f4c.",
+            "suggested_next_action": "Run the broader temporal test suite (or pnpm run test) to confirm no regressions from the schema transform, then proceed to acceptance/release gate as planned."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-cc3463eb5267",
+      "title": "Expose complete claim inventory",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-04de57f4f04e"
+        }
+      ],
+      "created_at": "2026-07-30T23:35:37.519Z",
+      "started_at": "2026-07-31T00:29:46.418Z",
+      "completed_at": "2026-07-31T00:44:58.830Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Worker verification: 23 claim-inventory tests, 18 related tests, typecheck, and touched-file lint passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "6978b8a6358a2ad5bf1473fb8216b645e2d32428",
+      "completedAt": "2026-07-31T00:44:58.830Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4"
+        ],
+        "respects": [
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "syncConcordCoordinationNotes",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+          "task_id": "tk-cc3463eb5267",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cc3463eb5267"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/backlog.ts",
+            "plugin/src/tools/backlog.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "bash-001",
+              "command": "pnpm vitest run src/tools/backlog.test.ts",
+              "exit_code": 0,
+              "summary": "23/23 tests pass, including 7 new claim-inventory tests."
+            },
+            {
+              "test_run_id": "bash-002",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "Typecheck passed."
+            },
+            {
+              "test_run_id": "bash-003",
+              "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts src/__tests__/backlog-coordination-regression.test.ts",
+              "exit_code": 0,
+              "summary": "18/18 related tests passed."
+            },
+            {
+              "test_run_id": "bash-004",
+              "command": "pnpm run lint -- src/tools/backlog.ts src/tools/backlog.test.ts",
+              "exit_code": 0,
+              "summary": "Touched files have no lint errors."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Extend adv_wip_state with typed claim_inventory",
+              "why": "It is the existing active inventory/WIP read surface; an additive response avoids a new coordination tool."
+            },
+            {
+              "what": "Use exact identifiers for conflict authority",
+              "why": "Generated terms stay visible for later search but cannot determine ownership or a no-conflict result."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Reviewed claim-related tests; no same-pattern issue outside the WIP aggregator.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_wip_state now returns typed claims, completeness, exact identifier conflicts, and a clean-conclusion flag that fails closed under partial inventory.",
+            "suggested_next_action": "Record checkpoint then implement advisory search."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-001"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-002"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-003"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bash-004"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "syncConcordCoordinationNotes",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes/plugin",
+          "task_id": "tk-cc3463eb5267",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cc3463eb5267"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/backlog.ts",
+            "plugin/src/tools/backlog.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms896t88_b7498d86",
+              "command": "pnpm vitest run src/tools/backlog.test.ts",
+              "exit_code": 0,
+              "summary": "Durable verify evidence: 29 claim-inventory and advisory-search tests passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Use exact identifiers for conflict authority",
+              "why": "Search ranking remains advisory."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Durable adv_run_test verify evidence recorded for task 2.",
+            "suggested_next_action": "Continue acceptance review."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms896t88_b7498d86"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-6eea872253c0",
+      "title": "Add advisory Concord change search",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cc3463eb5267"
+        }
+      ],
+      "created_at": "2026-07-30T23:35:45.280Z",
+      "started_at": "2026-07-31T00:45:20.292Z",
+      "completed_at": "2026-07-31T01:04:15.502Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "After Prettier formatting: pnpm vitest run src/tools/backlog.test.ts passes 29/29; pnpm exec prettier --check passes; pnpm run typecheck passes; related tests pass.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/backlog.test.ts"
+      ],
+      "checkpointSha": "c664cf98a4cff77d91b4daa5753b9f7d77cf83db",
+      "completedAt": "2026-07-31T01:04:15.502Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/backlog.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "syncConcordCoordinationNotes",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+          "task_id": "tk-6eea872253c0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6eea872253c0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/backlog.ts",
+            "plugin/src/tools/backlog.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms88i4xp_d05b8ea7",
+              "command": "pnpm vitest run src/tools/backlog.test.ts",
+              "exit_code": 1,
+              "summary": "Red advisory-search test failed as expected."
+            },
+            {
+              "test_run_id": "tr_ms88im18_5b21a971",
+              "command": "pnpm vitest run src/tools/backlog.test.ts",
+              "exit_code": 0,
+              "summary": "Green: 29/29 passed."
+            },
+            {
+              "test_run_id": "tr_ms88j6tl_2930f0b7",
+              "command": "pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "Typecheck passed."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Implement advisory search inside claim_inventory",
+              "why": "It reuses the complete active inventory without creating a new authority surface."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Free-text advisory ranking over active changes is available through adv_wip_state query; exact overlap authority is unchanged.",
+            "suggested_next_action": "Record checkpoint and execute final verification task."
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-6b840209ce82",
+      "title": "Verify coordination contract and documentation",
+      "type": "verification",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-6eea872253c0"
+        }
+      ],
+      "created_at": "2026-07-30T23:36:04.469Z",
+      "started_at": "2026-07-31T01:06:53.448Z",
+      "completed_at": "2026-07-31T01:14:15.254Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Independent review READY. Scoped workflow durability remediation verified by 79 focused tests and git diff --check.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "checkpointSha": "0936886e9460a87e4d33f6a8655c995e41d3e748",
+      "completedAt": "2026-07-31T01:14:15.254Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "SC4",
+          "SC5",
+          "SC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Independent review is required to assess cross-contract accuracy, user-visible guidance, and the advisory-versus-authoritative boundary after automated tests verify behavior.",
+        "review_evidence_ref": {
+          "report_key": "syncConcordCoordinationNotes|tk-6b840209ce82|adv-reviewer|1"
+        },
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "review",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [
+        "plugin/src/temporal/workflows.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "syncConcordCoordinationNotes",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+          "task_id": "tk-6b840209ce82",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-6b840209ce82"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [
+            {
+              "file": "plugin/src/temporal/workflows.ts",
+              "summary": "Fixed claim durability: coordinationClaimSet now schedules change-projection persistence, and coordination_claim survives and restores across continue-as-new.",
+              "verification": "bin/oc-test targeted -- src/temporal/change-state.coordination-claim.test.ts src/tools/backlog.test.ts src/temporal/contracts.test.ts src/temporal/workflows.signal-handlers.itest.ts (79 passing)"
+            }
+          ],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "A field added to ChangeWorkflowState must be included in both buildChangeWorkflowContinueAsNewSeed and seed restoration; workflow signal-handler structural tests detect incomplete rotation persistence."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/temporal/change-state.coordination-claim.test.ts src/tools/backlog.test.ts src/temporal/contracts.test.ts src/temporal/workflows.signal-handlers.itest.ts",
+              "git diff --check"
+            ],
+            "results": "pass",
+            "evidence": "Focused Temporal, state, inventory, advisory-search, and contract tests: 4 files / 79 tests passed. git diff --check passed. Review traced typed schema validation, exact-only conflict authority, blocked/degraded clean-conclusion guard, and explicitly advisory fuzzy ranking."
+          },
+          "scope_drift": null,
+          "risks": [
+            "No remaining in-scope blocker. Leave broader coordination-tool behavior and unrelated workflow projection policies unchanged."
+          ],
+          "required_main_agent_actions": [
+            "Review and checkpoint the scoped remediation in plugin/src/temporal/workflows.ts before task completion.",
+            "Do not revisit unrelated coordination or workflow behavior; the scoped claim inventory, exact overlap, degraded behavior, and advisory search paths were reviewed."
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "syncConcordCoordinationNotes",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes/plugin",
+      "task_id": "tk-04de57f4f04e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-04de57f4f04e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/signals.ts",
+        "plugin/src/types/index.ts",
+        "plugin/src/temporal/contracts.ts",
+        "plugin/src/temporal/messages.ts",
+        "plugin/src/temporal/workflows.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/temporal/search-attributes.ts",
+        "plugin/src/temporal/observability.ts",
+        "plugin/src/temporal/change-state.coordination-claim.test.ts",
+        "plugin/src/temporal/messages.test.ts",
+        "plugin/src/temporal/search-attributes.test.ts",
+        "plugin/src/temporal/observability.test.ts",
+        "plugin/src/temporal/service.test.ts",
+        "plugin/src/temporal/service-reconnect.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "typecheck-20260730",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript passes with no errors after fixing signal payload import path"
+        },
+        {
+          "test_run_id": "vitest-focused-20260730",
+          "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts src/temporal/messages.test.ts src/temporal/search-attributes.test.ts src/temporal/observability.test.ts",
+          "exit_code": 0,
+          "summary": "35 focused tests pass"
+        },
+        {
+          "test_run_id": "vitest-service-20260730",
+          "command": "pnpm vitest run src/temporal/service.test.ts src/temporal/service-reconnect.test.ts",
+          "exit_code": 0,
+          "summary": "39 service tests pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Use coordination-claim signal payload exported by the shared types surface",
+          "why": "The signal type is defined in the shared type module rather than Temporal contracts, preserving one authoritative type source."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Investigate unrelated full-temporal-suite failures in activities.disk-projection, archive-phase9-splitbrain, and legacy-copoll integration tests."
+      ],
+      "required_main_agent_actions": [
+        "Reconcile task checkpoint and TDD evidence in ADV state."
+      ],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Typed coordination claim signal and search attribute are implemented. Typecheck and 74 focused/service tests pass; unrelated full temporal-suite failures were surfaced.",
+        "suggested_next_action": "Record task checkpoint and continue with the claim-inventory task."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: typecheck-20260730"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: vitest-focused-20260730"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: vitest-service-20260730"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "syncConcordCoordinationNotes",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+      "task_id": "tk-04de57f4f04e",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-04de57f4f04e"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/change-state.coordination-claim.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms87czqh_51e552f9",
+          "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts",
+          "exit_code": 1,
+          "summary": "Red phase: new deduplication test failed as expected because duplicate identifiers/terms were not normalized away."
+        },
+        {
+          "test_run_id": "tr_ms87dpwp_ea74fc0d",
+          "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts",
+          "exit_code": 0,
+          "summary": "Green phase: deduplication test passes after schema transform fix; all 10 coordination-claim tests pass."
+        },
+        {
+          "test_run_id": "tr_ms87edi4_f8136b0b",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passes after schema change."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added .transform((arr) => [...new Set(arr)]) to exact_identifiers and generated_terms in ChangeCoordinationClaimSchema",
+          "why": "Identifiers are normalized to lowercase/trimmed, so case/whitespace variants collapse to the same value. Keeping duplicates bloats the stored claim and the projected AdvCoordinationClaim Text search attribute, and provides no semantic value. Deduplicating at the schema layer is the minimum structural fix and propagates to both the persisted workflow state and the Visibility projection."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Added a real red/green edge case for typed coordination claims: duplicate exact_identifiers/generated_terms after normalization are now deduplicated in the Zod schema. The failing test (tr_ms87czqh_51e552f9) was fixed by a minimal schema transform; the focused test file and typecheck pass. Changes are checkpointed at 5fcb6f4c.",
+        "suggested_next_action": "Run the broader temporal test suite (or pnpm run test) to confirm no regressions from the schema transform, then proceed to acceptance/release gate as planned."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "syncConcordCoordinationNotes",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+      "task_id": "tk-cc3463eb5267",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cc3463eb5267"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/backlog.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "bash-001",
+          "command": "pnpm vitest run src/tools/backlog.test.ts",
+          "exit_code": 0,
+          "summary": "23/23 tests pass, including 7 new claim-inventory tests."
+        },
+        {
+          "test_run_id": "bash-002",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "Typecheck passed."
+        },
+        {
+          "test_run_id": "bash-003",
+          "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts src/__tests__/backlog-coordination-regression.test.ts",
+          "exit_code": 0,
+          "summary": "18/18 related tests passed."
+        },
+        {
+          "test_run_id": "bash-004",
+          "command": "pnpm run lint -- src/tools/backlog.ts src/tools/backlog.test.ts",
+          "exit_code": 0,
+          "summary": "Touched files have no lint errors."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Extend adv_wip_state with typed claim_inventory",
+          "why": "It is the existing active inventory/WIP read surface; an additive response avoids a new coordination tool."
+        },
+        {
+          "what": "Use exact identifiers for conflict authority",
+          "why": "Generated terms stay visible for later search but cannot determine ownership or a no-conflict result."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reviewed claim-related tests; no same-pattern issue outside the WIP aggregator.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_wip_state now returns typed claims, completeness, exact identifier conflicts, and a clean-conclusion flag that fails closed under partial inventory.",
+        "suggested_next_action": "Record checkpoint then implement advisory search."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-001"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-002"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-003"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bash-004"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "syncConcordCoordinationNotes",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+      "task_id": "tk-6eea872253c0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6eea872253c0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/backlog.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms88i4xp_d05b8ea7",
+          "command": "pnpm vitest run src/tools/backlog.test.ts",
+          "exit_code": 1,
+          "summary": "Red advisory-search test failed as expected."
+        },
+        {
+          "test_run_id": "tr_ms88im18_5b21a971",
+          "command": "pnpm vitest run src/tools/backlog.test.ts",
+          "exit_code": 0,
+          "summary": "Green: 29/29 passed."
+        },
+        {
+          "test_run_id": "tr_ms88j6tl_2930f0b7",
+          "command": "pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "Typecheck passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Implement advisory search inside claim_inventory",
+          "why": "It reuses the complete active inventory without creating a new authority surface."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Free-text advisory ranking over active changes is available through adv_wip_state query; exact overlap authority is unchanged.",
+        "suggested_next_action": "Record checkpoint and execute final verification task."
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "syncConcordCoordinationNotes",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes",
+      "task_id": "tk-6b840209ce82",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-6b840209ce82"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/temporal/workflows.ts",
+          "summary": "Fixed claim durability: coordinationClaimSet now schedules change-projection persistence, and coordination_claim survives and restores across continue-as-new.",
+          "verification": "bin/oc-test targeted -- src/temporal/change-state.coordination-claim.test.ts src/tools/backlog.test.ts src/temporal/contracts.test.ts src/temporal/workflows.signal-handlers.itest.ts (79 passing)"
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A field added to ChangeWorkflowState must be included in both buildChangeWorkflowContinueAsNewSeed and seed restoration; workflow signal-handler structural tests detect incomplete rotation persistence."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/change-state.coordination-claim.test.ts src/tools/backlog.test.ts src/temporal/contracts.test.ts src/temporal/workflows.signal-handlers.itest.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Focused Temporal, state, inventory, advisory-search, and contract tests: 4 files / 79 tests passed. git diff --check passed. Review traced typed schema validation, exact-only conflict authority, blocked/degraded clean-conclusion guard, and explicitly advisory fuzzy ranking."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No remaining in-scope blocker. Leave broader coordination-tool behavior and unrelated workflow projection policies unchanged."
+      ],
+      "required_main_agent_actions": [
+        "Review and checkpoint the scoped remediation in plugin/src/temporal/workflows.ts before task completion.",
+        "Do not revisit unrelated coordination or workflow behavior; the scoped claim inventory, exact overlap, degraded behavior, and advisory search paths were reviewed."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "syncConcordCoordinationNotes",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/syncConcordCoordinationNotes/plugin",
+      "task_id": "tk-cc3463eb5267",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cc3463eb5267"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/backlog.ts",
+        "plugin/src/tools/backlog.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms896t88_b7498d86",
+          "command": "pnpm vitest run src/tools/backlog.test.ts",
+          "exit_code": 0,
+          "summary": "Durable verify evidence: 29 claim-inventory and advisory-search tests passed."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Use exact identifiers for conflict authority",
+          "why": "Search ranking remains advisory."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Durable adv_run_test verify evidence recorded for task 2.",
+        "suggested_next_action": "Continue acceptance review."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms896t88_b7498d86"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-04de57f4f04e": [
+      {
+        "runId": "tr_ms87czqh_51e552f9",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts",
+        "durationMs": 2445.787243999541,
+        "recordedAt": "2026-07-31T00:26:48.461Z"
+      },
+      {
+        "runId": "tr_ms87dpwp_ea74fc0d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/temporal/change-state.coordination-claim.test.ts",
+        "durationMs": 3696.1562379989773,
+        "recordedAt": "2026-07-31T00:27:22.389Z"
+      },
+      {
+        "runId": "tr_ms87edi4_f8136b0b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 19514.899459999055,
+        "recordedAt": "2026-07-31T00:27:52.945Z"
+      }
+    ],
+    "tk-6eea872253c0": [
+      {
+        "runId": "tr_ms88fp31_71075101",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 18799.49324900098,
+        "recordedAt": "2026-07-31T00:56:54.229Z"
+      },
+      {
+        "runId": "tr_ms88g3ot_a63ee496",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/backlog.test.ts",
+        "durationMs": 4378.247487999499,
+        "recordedAt": "2026-07-31T00:57:13.155Z"
+      },
+      {
+        "runId": "tr_ms88hhen_82a913a9",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/backlog.test.ts",
+        "durationMs": 3189.14852800034,
+        "recordedAt": "2026-07-31T00:58:17.624Z"
+      },
+      {
+        "runId": "tr_ms88i4xp_d05b8ea7",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/backlog.test.ts",
+        "durationMs": 3130.0201229993254,
+        "recordedAt": "2026-07-31T00:58:48.119Z"
+      },
+      {
+        "runId": "tr_ms88im18_5b21a971",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/backlog.test.ts",
+        "durationMs": 3919.9252470005304,
+        "recordedAt": "2026-07-31T00:59:10.246Z"
+      },
+      {
+        "runId": "tr_ms88j6tl_2930f0b7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 16062.680665001273,
+        "recordedAt": "2026-07-31T00:59:37.200Z"
+      },
+      {
+        "runId": "tr_ms88k2tg_51f7a1d0",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm run lint -- src/tools/backlog.ts src/tools/backlog.test.ts",
+        "durationMs": 30373.358440000564,
+        "recordedAt": "2026-07-31T01:00:18.675Z"
+      },
+      {
+        "runId": "tr_ms88kmcm_3eded79c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec eslint src/tools/backlog.ts src/tools/backlog.test.ts",
+        "durationMs": 8429.89524500072,
+        "recordedAt": "2026-07-31T01:00:44.004Z"
+      },
+      {
+        "runId": "tr_ms88mnf0_644e0efe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tool-ownership-assets.test.ts src/utils/tool-title.test.ts src/cli-bridge-contract.test.ts src/ops-follow-up-assets.test.ts",
+        "durationMs": 14455.9799539987,
+        "recordedAt": "2026-07-31T01:02:18.706Z"
+      },
+      {
+        "runId": "tr_ms88n7jt_c33e9d26",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/__tests__/backlog-coordination-regression.test.ts",
+        "durationMs": 10926.713023999706,
+        "recordedAt": "2026-07-31T01:02:44.789Z"
+      },
+      {
+        "runId": "tr_ms88njts_882cb958",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm exec prettier --check src/tools/backlog.ts src/tools/backlog.test.ts",
+        "durationMs": 1750.055436000228,
+        "recordedAt": "2026-07-31T01:03:00.735Z"
+      },
+      {
+        "runId": "tr_ms88odq5_b153c67d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec prettier --check src/tools/backlog.ts src/tools/backlog.test.ts",
+        "durationMs": 2066.3632519990206,
+        "recordedAt": "2026-07-31T01:03:39.432Z"
+      },
+      {
+        "runId": "tr_ms88otok_2cf1a4e2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/backlog.test.ts",
+        "durationMs": 6912.370799999684,
+        "recordedAt": "2026-07-31T01:04:00.179Z"
+      }
+    ],
+    "tk-cc3463eb5267": [
+      {
+        "runId": "tr_ms896t88_b7498d86",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/backlog.test.ts",
+        "durationMs": 3808.5855470001698,
+        "recordedAt": "2026-07-31T01:17:59.326Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-30T20:45:27.585Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the problem statement.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "a0449447e1c85feb08b12b764291ce4f6de36b795228e383377ad211000c70b3",
+        "non_whitespace_chars": 919,
+        "checked_at": "2026-07-30T20:44:52.248Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-30T23:34:54.498Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery re-completed for the approved fuzzy/smart-search scope. The typed contract includes SC1–SC6 and C1–C4; full active inventory and design-validator evidence are recorded.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "non_whitespace_chars": 2350,
+        "checked_at": "2026-07-30T20:44:52.250Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-30T23:35:04.720Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validation completed. User resolved the fuzzy-search scope: advisory ranked discovery; deterministic claims and overlap checks remain authoritative. Typed design persisted.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "286124f37d065829b219c9f343e10eca5d337724855f3a96f2684bf0081f9c24",
+        "non_whitespace_chars": 2580,
+        "checked_at": "2026-07-30T20:44:52.251Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-30T23:36:42.874Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the four-task implementation plan."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-31T01:14:29.742Z",
+      "completed_by": "agent",
+      "approval_evidence": "All four tasks are checkpointed. Typed claims, complete/degraded inventory, deterministic overlap, advisory search, and independent review are complete; focused review suite passed 79 tests."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-31T01:40:10.234Z",
+      "completed_by": "user",
+      "approval_evidence": "Acceptance recovered: review matrix re-persisted after re-entry (10 rows, 0 failing) and verification disposition resolved.",
+      "started_at": "2026-07-31T01:39:42.342Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Re-entry recomputed readiness; the workflow-side review matrix had to be re-signaled after the reset."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+      "approvedAt": "2026-07-30T23:34:09.528Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A coordination read surface returns every active change from a complete paginated inventory and explicitly reports whether the inventory is complete, degraded, or blocked.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Each published scope claim includes a change ID, lifecycle/phase, scope summary, responsibility state, and affected failure or test identifiers when applicable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Before an agent adds scope or opens a change, the workflow compares its declared scope and failure/test identifiers with active claims and reports overlap or an explicit no-conflict result; degraded or blocked inventory cannot produce a clean no-conflict result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "For a trunk test failure, the first responsible claim is visible to independently running agents; a later agent is directed to the existing change or must record an explicit non-overlap rationale.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC5",
+        "kind": "success_criterion",
+        "text": "The initial synchronized guidance incorporates the Concord backlog item `bl-I6A8Mkr0` and a complete Advance active-change inventory captured during discovery (107 rows across three pages).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC6",
+        "kind": "success_criterion",
+        "text": "Concord provides fuzzy/smart search over open changes using titles, descriptions, scope claims, responsibility, and failure/test identifiers. Results are ranked advisory discovery only; deterministic IDs and overlap checks remain the correctness authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Reuse existing durable change/task/validation mechanisms; do not introduce an untyped side channel or rely on chat-only coordination.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not mutate, claim ownership of, or block existing active changes solely from this coordination update.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Preserve degraded-state visibility rather than inferring safety from partial data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Search ranking must never itself authorize a no-conflict conclusion or responsibility claim.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-31T01:40:02.508Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY: claim_inventory returns completeness (complete/degraded/blocked) and fails closed."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Typed claim schema carries change id, lifecycle authority, scope summary, responsibility, identifiers."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Exact-identifier overlap path plus can_conclude_clean guard reviewed; 29 backlog tests passed (tr_ms896t88_b7498d86)."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Trunk-failure identifier claim visibility reviewed; continue-as-new durability fixed and verified by 79 focused tests."
+        },
+        {
+          "contractId": "SC5",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Agreement records backlog item bl-I6A8Mkr0 and the complete 107-row discovery inventory as seed evidence."
+        },
+        {
+          "contractId": "SC6",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Advisory ranked search over titles, descriptions, scope, responsibility, identifiers; red/green evidence tr_ms88i4xp_d05b8ea7 then tr_ms88im18_5b21a971."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Implementation extends the existing change workflow and adv_wip_state; no separate coordination store."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Coordination reads never mutate, claim, or block other active changes."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Degraded, blocked, poisoned, and timed-out inventory refuse a clean conclusion and surface warnings."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Search results are marked advisory and are excluded from conflict and ownership authority."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n\n# Proposal\n\n## Problem\nConcord’s current coordination notes and the latest Advance change inventory are not synchronized. Agents can miss active responsibility for the same trunk failure or scope expansion while working in separate worktrees, causing duplicate or conflicting changes.\n\n## Direction\nRefresh Advance’s durable coordination guidance from the latest Concord notes and active-change state. The updated guidance must make concurrent scope claims—especially ownership of trunk-test failures—visible before agents extend an existing change or create a new one.\n\n## Outcome\nAdvance receives an evidence-backed coordination update that identifies current relevant work, preserves conflict-prevention intent, and defines what agents must see before taking overlapping responsibility.",
+    "agreement": "# Agreement\n\n## Objective\nGive Concord agents a durable, current coordination view before they add scope to an existing change or create a new one.\n\n## Success criteria\n1. A coordination read surface returns every active change from a complete paginated inventory and explicitly reports whether the inventory is complete, degraded, or blocked.\n2. Each published scope claim includes a change ID, lifecycle/phase, scope summary, responsibility state, and affected failure or test identifiers when applicable.\n3. Before an agent adds scope or opens a change, the workflow compares its declared scope and failure/test identifiers with active claims and reports overlap or an explicit no-conflict result; degraded or blocked inventory cannot produce a clean no-conflict result.\n4. For a trunk test failure, the first responsible claim is visible to independently running agents; a later agent is directed to the existing change or must record an explicit non-overlap rationale.\n5. The initial synchronized guidance incorporates the Concord backlog item `bl-I6A8Mkr0` and a complete Advance active-change inventory captured during discovery (107 rows across three pages).\n6. Concord provides fuzzy/smart search over open changes using titles, descriptions, scope claims, responsibility, and failure/test identifiers. Results are ranked advisory discovery only; deterministic IDs and overlap checks remain the correctness authority.\n\n## Constraints\n- Reuse existing durable change/task/validation mechanisms; do not introduce an untyped side channel or rely on chat-only coordination.\n- Do not mutate, claim ownership of, or block existing active changes solely from this coordination update.\n- Preserve degraded-state visibility rather than inferring safety from partial data.\n- Search ranking must never itself authorize a no-conflict conclusion or responsibility claim.\n\n## Discovery evidence\n- Concord backlog item `bl-I6A8Mkr0` defines the required concurrent-scope and trunk-failure ownership behavior.\n- Advance’s active inventory was read fully: 107 in-flight rows across offsets 0, 50, and 100. Relevant concurrent work includes `fixBaselineSuiteFailures` (design, 4/4 tasks complete) and `fixDurableTestEvidence` (acceptance, 4/4 tasks complete).\n- Existing Advance discovery law already requires complete typed inventory and forbids clean no-conflict results for degraded/blocked inventory (`docs/specs/adv-discover.md`, `rq-disc04`). This change extends that discipline to visible responsibility and scope claims.\n- Design validation found existing durable issue claims and complete/degraded inventory handling, but no failure/test identifier carrier. The design must add a typed carrier and keep fuzzy search advisory.",
+    "design": "# Design\n\n## Decision\nExtend Advance’s existing durable change-claim model rather than introduce a separate coordination store. A change may publish a typed coordination claim; the change workflow remains the claim record and the existing inventory/read surfaces remain the source of truth.\n\n## Typed coordination claim\nAdd an optional, schema-validated claim to an open change containing:\n- `scope_summary`: bounded human-readable responsibility summary;\n- `responsibility`: `investigating | owning | resolved`;\n- `identifiers`: normalized exact identifiers for failures, tests, or other claimable work;\n- `search_terms`: generated normalized terms from title, description, scope summary, and identifiers.\n\nClaim authority is structural: only a change whose lifecycle is open and workflow is running can own a claim. Empty or malformed identifiers are rejected. A claim never mutates or blocks another change.\n\n## Read and search path\n1. Build the existing complete paginated active-change inventory.\n2. Expose each valid claim alongside existing change metadata and the inventory completeness state.\n3. `Concord search` accepts free-text input, normalizes it, and ranks candidates against title, description, scope summary, responsibility, and identifiers. Ranking is read-only advisory discovery.\n4. Before scope is added or a change is created, the workflow performs deterministic exact-identifier overlap checks against the complete active inventory. It returns either overlap candidates with the owning change or an explicit no-conflict result.\n\nFuzzy search can suggest candidates; it can never create a claim, establish ownership, or produce a clean no-conflict conclusion.\n\n## Failure and degraded behavior\n- A trunk-test failure is published using a normalized failure/test identifier. Later agents receive the owning change and claim state from the exact-match check.\n- A partial, timed-out, poisoned, or otherwise degraded inventory returns its warning/completeness state with any search results. It cannot produce clean no-conflict output.\n- The 107-row discovery snapshot is seed evidence only; live inventory is authoritative. This avoids treating stale discovery results as current ownership.\n\n## Integration boundaries\n- Reuse the existing typed inventory, workflow lifecycle authority, visibility-query, and WIP read-projection paths.\n- Add an additive typed claim carrier and associated search-attribute/query support for identifiers; do not overload issue-number claims or task prose.\n- Keep `fixBaselineSuiteFailures` and `fixDurableTestEvidence` independent: this change reads current state but neither edits nor claims those changes.\n\n## Validation basis\nIndependent design validation confirmed existing complete/degraded inventory and issue-claim architecture, found no failure/test identifier carrier, and recommended the typed search-attribute route. It also confirmed fuzzy ranking must remain advisory under the agreement’s structural-correctness constraint.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\nConcord can now expose active change coordination claims and provide advisory free-text search across open work, while preserving exact identifiers and complete inventory as the only authority for overlap and ownership decisions.\n\n## Value\nAgents working in separate worktrees can discover likely related changes by description, keywords, scope, responsibility, and failure/test identifiers before they duplicate responsibility for a trunk failure.\n\n## Delivered\n- Typed, schema-validated coordination claims persisted through the existing change workflow and its search attributes.\n- `adv_wip_state` claim inventory with complete/degraded/blocked state, exact identifier conflicts, warnings, and fail-closed clean-conclusion behavior.\n- Advisory ranked search through the existing read surface; it cannot create claims or decide no-conflict.\n- Continue-as-new durability for coordination claims.\n\n## Verification\n- Typed-claim red/green tests and typecheck passed.\n- Claim inventory tests, related regression tests, typecheck, lint, and formatting passed.\n- Independent review: READY; focused suite passed 79 tests and `git diff --check` passed.\n\n## Risks and follow-ups\nEarlier worker runs surfaced unrelated pre-existing full temporal-suite failures in disk-projection and archive integration tests. They were not changed by this scoped coordination work. No in-scope blocking review findings remain.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-31T01:18:38.644Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A coordination read surface returns every active change from a complete paginated inventory and explicitly reports whether the inventory is complete, degraded, or blocked. | pass | Independent reviewer READY: claim_inventory exposes completeness and fails closed. |\n| SC2 | success_criterion | Each published scope claim includes a change ID, lifecycle/phase, scope summary, responsibility state, and affected failure or test identifiers when applicable. | pass | Typed claim schema and WIP projection reviewed. |\n| SC3 | success_criterion | Before an agent adds scope or opens a change, the workflow compares its declared scope and failure/test identifiers with active claims and reports overlap or an explicit no-conflict result; degraded or blocked inventory cannot produce a clean no-conflict result. | pass | Exact identifier conflict path and clean-conclusion guard reviewed. |\n| SC4 | success_criterion | For a trunk test failure, the first responsible claim is visible to independently running agents; a later agent is directed to the existing change or must record an explicit non-overlap rationale. | pass | Claim authority and trunk-failure identifier flow reviewed. |\n| SC5 | success_criterion | The initial synchronized guidance incorporates the Concord backlog item `bl-I6A8Mkr0` and a complete Advance active-change inventory captured during discovery (107 rows across three pages). | pass | Agreement preserves originating backlog and complete discovery inventory evidence. |\n| SC6 | success_criterion | Concord provides fuzzy/smart search over open changes using titles, descriptions, scope claims, responsibility, and failure/test identifiers. Results are ranked advisory discovery only; deterministic IDs and overlap checks remain the correctness authority. | pass | Advisory ranked search independently reviewed. |\n| C1 | constraint | Reuse existing durable change/task/validation mechanisms; do not introduce an untyped side channel or rely on chat-only coordination. | respected | Implementation extends existing workflow and adv_wip_state; no separate store. |\n| C2 | constraint | Do not mutate, claim ownership of, or block existing active changes solely from this coordination update. | respected | Read surfaces do not mutate or block other changes. |\n| C3 | constraint | Preserve degraded-state visibility rather than inferring safety from partial data. | respected | Blocked/degraded inventory refuses clean conclusion. |\n| C4 | constraint | Search ranking must never itself authorize a no-conflict conclusion or responsibility claim. | respected | Search output is marked advisory and cannot set conflict authority. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-30T20:44:48.518Z",
+      "contentHash": "a0449447e1c85feb08b12b764291ce4f6de36b795228e383377ad211000c70b3",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-30T23:34:02.242Z",
+      "contentHash": "37f48498dd7c8ce04a60ecec2ba2f33cf1a193b0a913b2d4c852eb4eedafc9d2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-30T23:34:35.076Z",
+      "contentHash": "286124f37d065829b219c9f343e10eca5d337724855f3a96f2684bf0081f9c24",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-31T01:14:45.345Z",
+      "contentHash": "3eb8e6a36d3b73a06241dd2656d012357fd49a8d960fa6b0f3e9c7565bef0987",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-30T20:45:34.910Z"
+    }
+  ],
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Approved scope amendment adds fuzzy/smart open-change discovery.",
+      "scope_delta": "Concord must offer advisory fuzzy/smart search across active changes using descriptions and keywords, while deterministic identity and overlap checks remain authoritative.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-30T23:33:46.518Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "acceptance",
+      "reason": "Recover stale stuck acceptance readiness after session restart; matrix and verification disposition are persisted.",
+      "scope_delta": "No scope change. Recompute acceptance readiness from persisted review matrix and verification disposition.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-31T01:38:43.757Z",
+      "gates_reset": [
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-07-30T20:44:47.436Z"
+  },
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-31T01:40:10.234Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-cc3463eb5267",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Durable adv_run_test evidence recorded: tr_ms896t88_b7498d86, `pnpm vitest run src/tools/backlog.test.ts`, 29 passing tests.",
+      "dispositionedAt": "2026-07-31T01:18:21.375Z"
+    }
+  ],
+  "creation_request_hash": "d3f3caf7fb659d4723cd5984ab472ec05b2a359aa2678468e7033c0ca3f60193",
+  "projection_revision": 51,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-07-30T20:45:27.915Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "890068e0990ef5a6faf58d776d69d994225c5b809439a75a5cd40e43c2ea88e2:updateArtifacts:agreement",
+      "operation_id": "890068e0990ef5a6faf58d776d69d994225c5b809439a75a5cd40e43c2ea88e2:updateArtifacts:agreement",
+      "payload_hash": "b4bf2f34146d0ff53a3dd2a2eac366d27424ca13025d52cc04578eae28510b8c",
+      "state_revision": 2,
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-30T20:46:10.976Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-30T23:25:06.767Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-30T23:25:16.315Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-30T23:25:21.019Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-30T23:33:46.886Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ecbe7cbaf5969c3f95ccca8bd1ca677a5579ec64cc1aa00a6cd0ce7c51d9444f:updateArtifacts:agreement",
+      "operation_id": "ecbe7cbaf5969c3f95ccca8bd1ca677a5579ec64cc1aa00a6cd0ce7c51d9444f:updateArtifacts:agreement",
+      "payload_hash": "a658c96b9480b19c11ac6f34d47420a55d1c62ea4a7bed8dd3bd6a6d1fd63042",
+      "state_revision": 3,
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-30T23:34:02.760Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-30T23:34:10.081Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f9ed3b03ae8cedd4e18b6a4fbbc17f0c03a427f969ddd98c840f88b55a9e5424:updateArtifacts:design",
+      "operation_id": "f9ed3b03ae8cedd4e18b6a4fbbc17f0c03a427f969ddd98c840f88b55a9e5424:updateArtifacts:design",
+      "payload_hash": "5b227c995444951a7edd8f26d39881c8b48ec0c721aa159bf64185334855dbbf",
+      "state_revision": 4,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-30T23:34:35.608Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-30T23:34:54.752Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-30T23:35:04.952Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-30T23:35:28.924Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-30T23:35:29.318Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-30T23:35:37.806Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-30T23:35:45.603Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-30T23:36:05.074Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-30T23:36:43.395Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-30T23:37:05.744Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-31T00:17:30.768Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-31T00:17:31.118Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-31T00:17:52.017Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-31T00:28:33.984Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-31T00:29:21.259Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-31T00:29:21.503Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-31T00:29:46.647Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-31T00:44:41.223Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-31T00:44:41.417Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-31T00:44:59.029Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-31T00:45:20.532Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-31T01:01:00.294Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-31T01:04:15.697Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-31T01:06:24.338Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-31T01:06:24.570Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-31T01:06:34.338Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-31T01:06:53.699Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-31T01:13:48.855Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-31T01:13:49.110Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-07-31T01:14:15.519Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-07-31T01:14:30.087Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "14acb293199d66e1c08222dde52dd1fe47d80b8ace982c79263fe52d3b808f3d:updateArtifacts:executiveSummary",
+      "operation_id": "14acb293199d66e1c08222dde52dd1fe47d80b8ace982c79263fe52d3b808f3d:updateArtifacts:executiveSummary",
+      "payload_hash": "b939fa6943dd154cc375fc18b261f6a981f590617d8c897ddb216e4aa071a651",
+      "state_revision": 5,
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-07-31T01:14:45.765Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-07-31T01:17:44.026Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-07-31T01:18:10.151Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-07-31T01:18:10.565Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785460701471_vdgq4vpo",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-07-31T01:18:21.735Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785460718768_symo3msf",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-07-31T01:18:39.043Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-07-31T01:18:46.048Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-07-31T01:38:44.245Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-07-31T01:39:42.639Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785462002662_2rprp9f7",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-07-31T01:40:03.045Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "syncConcordCoordinationNotes",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-07-31T01:40:10.820Z"
+    }
+  ],
+  "state_revision": 5
+}
