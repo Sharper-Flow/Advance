@@ -91,8 +91,8 @@ export const OPTIMIZATION_DETECTORS: readonly OptimizationDetector[] = [
     signal_class: "static",
     trigger: {
       file_globs: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"],
-      // Placeholder bounded alternation of startup-heavy source signals.
-      pattern: /\b(import\s+.*\.json|readFileSync|require\s*\(\s*[^)]+\.json\s*\))\b/g,
+      // Bounded alternation of actual synchronous startup calls.
+      pattern: /(?:readFileSync\s*\(|require\s*\(\s*[^)]+\.json\s*\))/g,
       description:
         "Source performs synchronous I/O or heavy parsing during worker startup.",
     },
@@ -111,8 +111,8 @@ export const OPTIMIZATION_DETECTORS: readonly OptimizationDetector[] = [
     signal_class: "static",
     trigger: {
       file_globs: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"],
-      // Placeholder bounded alternation of repeated pure-computation signals.
-      pattern: /\b(hash|digest|compute|derive|calculate)\b/g,
+      // Bounded alternation of pure-computation signal prefixes.
+      pattern: /\b(hash|digest|compute|derive|calculate|build|serialize)/g,
       description:
         "Source repeats a potentially pure computation that may be cacheable.",
     },
