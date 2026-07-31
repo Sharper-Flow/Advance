@@ -330,8 +330,8 @@ function formatDirectiveNextLine(directive: WorkflowDirective): string {
     case "continue":
     default:
       if (gate && command) return `Next: ${gate} → /${command}`;
-      if (gate) return `Next: ${gate}`;
-      return `Next: ${action.kind}`;
+      if (gate) return `Next: blocked · ${gate}`;
+      return `Next: blocked`;
   }
 }
 

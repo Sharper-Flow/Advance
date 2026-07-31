@@ -423,6 +423,66 @@ describe("buildChangeContextSnapshot", () => {
 
     expect(output).not.toContain("Next:");
   });
+
+  test("renders acceptance as /adv-review when the directive names acceptance", () => {
+    const output = buildChangeContextSnapshot({
+      change: { id: "acceptReview", title: "accept review", tasks: [] },
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "in_progress" },
+      },
+      directive: {
+        changeId: "acceptReview",
+        phase: "acceptance",
+        gateStatus: {} as never,
+        action: {
+          kind: "continue",
+          gateId: "acceptance",
+          command: "adv-review",
+        },
+        approvalPending: false,
+        blockers: [],
+        canArchive: false,
+        bucket: "in_flight",
+      },
+      workdir: "/tmp/worktree",
+    });
+    expect(output).toContain("Next: acceptance → /adv-review");
+  });
+
+  test("renders a blocked Next: line when an actionable directive lacks a command", () => {
+    const output = buildChangeContextSnapshot({
+      change: {
+        id: "missingCommand",
+        title: "missing command",
+        tasks: [],
+      },
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "in_progress" },
+      },
+      directive: {
+        changeId: "missingCommand",
+        phase: "execution",
+        gateStatus: {} as never,
+        action: { kind: "continue", gateId: "execution" },
+        approvalPending: false,
+        blockers: [],
+        canArchive: false,
+        bucket: "in_flight",
+      },
+      workdir: "/tmp/worktree",
+    });
+    expect(output).toContain("Next: blocked · execution");
+    expect(output).not.toMatch(/Next:[^\n]*\/adv-/);
+  });
 });
 
 // =============================================================================

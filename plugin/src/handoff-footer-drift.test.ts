@@ -16,10 +16,12 @@
  *
  * Spec ref: rq-handoffVoice01, rq-inlineApproval01.7, rq-inlineApproval01.8.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
+
+import { COMMAND_MANIFEST } from "./manifest";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const COMMANDS_DIR = join(REPO_ROOT, ".opencode", "command");
@@ -198,6 +200,81 @@ describe("handoff blockquote wayfinder contract", () => {
       outputBlock,
       "adv.md Output Contract must show blockquote arrow command row",
     ).toMatch(/^> → `\/adv-\{next-command\} \{change-id\}`$/m);
+  });
+
+  test("handoffCommands route to registered manifest commands", () => {
+    for (const { file, command } of handoffCommands) {
+      expect(
+        COMMAND_MANIFEST[command],
+        `${file} handoff command /${command} must be registered in COMMAND_MANIFEST`,
+      ).toBeDefined();
+    }
+  });
+
+  test("shared wayfinder command is bound to the registered directive command", () => {
+    const agent = readFileSync(join(AGENTS_DIR, "adv.md"), "utf8");
+    const voice = readFileSync(
+      join(DOCS_DIR, "command-voice-standard.md"),
+      "utf8",
+    );
+
+    for (const content of [agent, voice]) {
+      expect(content).toMatch(
+        /actionable (phase[- ]plan|directive)|directive command|registered command/i,
+      );
+      expect(content).toMatch(
+        /retired `\/adv-accept` wording|correct[^`]*`\/adv-accept`[^`]*`\/adv-review`/i,
+      );
+      expect(content).toMatch(
+        /no command.*arrow[- ]prefixed row|arrow[- ]prefixed row.*omitted|blocked\/recovery\/approval status line/i,
+      );
+    }
+  });
+
+  test("retired /adv-accept wording is corrected and not registered as a command", () => {
+    expect(
+      COMMAND_MANIFEST["adv-accept"],
+      "adv-accept must not be registered as a command",
+    ).toBeUndefined();
+
+    const commandFiles = readdirSync(COMMANDS_DIR);
+    expect(commandFiles).not.toContain("adv-accept.md");
+
+    const agent = readFileSync(join(AGENTS_DIR, "adv.md"), "utf8");
+    const voice = readFileSync(
+      join(DOCS_DIR, "command-voice-standard.md"),
+      "utf8",
+    );
+
+    for (const content of [agent, voice]) {
+      expect(content).toMatch(/retired `\/adv-accept`/i);
+      expect(content).toMatch(/correct[^`]*`\/adv-accept`[^`]*`\/adv-review`/i);
+    }
+  });
+
+  test("rq-handoffVoice01 enforces command registration and retired wording correction", () => {
+    const spec = JSON.parse(readFileSync(join(SPECS_DIR, "spec.json"), "utf8"));
+    const handoff = spec.requirements.find(
+      (r: { id: string }) => r.id === "rq-handoffVoice01",
+    );
+    expect(handoff, "rq-handoffVoice01 must exist").toBeTruthy();
+    expect(handoff.body).toMatch(/registered command/i);
+    expect(handoff.body).toMatch(/adv-accept/i);
+    expect(handoff.body).toMatch(/adv-review/i);
+
+    const scenarioIds = handoff.scenarios.map((s: { id: string }) => s.id);
+    expect(scenarioIds).toContain("rq-handoffVoice01.6");
+    expect(scenarioIds).toContain("rq-handoffVoice01.7");
+
+    const registeredScenario = handoff.scenarios.find(
+      (s: { id: string }) => s.id === "rq-handoffVoice01.6",
+    );
+    expect(registeredScenario.title).toMatch(/registered/i);
+
+    const retiredScenario = handoff.scenarios.find(
+      (s: { id: string }) => s.id === "rq-handoffVoice01.7",
+    );
+    expect(retiredScenario.title).toMatch(/adv-accept|retired/i);
   });
 
   test("Archive Shipped variant uses single-line blockquote terminal", () => {
