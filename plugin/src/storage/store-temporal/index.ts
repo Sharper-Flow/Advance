@@ -73,7 +73,7 @@ import { commitChangeProjection } from "../change-projection-transaction";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
-import { readChangeSnapshot } from "./read-model";
+import { readChangeSnapshot, type ChangeReadSnapshot } from "./read-model";
 import { createGateOps } from "./gates";
 import { createWisdomOps } from "./wisdom";
 import { createSpecDeltaOps } from "./spec-deltas";
@@ -208,9 +208,67 @@ export function createTemporalStoreBackend(
   // Temporal dependency and only populates advisory caches after validating a
   // fresh projection read.
   const readProjectionSnapshot = async (changeId: string) => {
-    const snapshot = await readChangeSnapshot(legacy.paths.changes, changeId);
-    if (snapshot.found) setCachedProjection(snapshot.snapshot);
-    return snapshot;
+    const readArchiveBundle = async (
+      changeId: string,
+    ): Promise<ChangeReadSnapshot | undefined> => {
+      if (!legacy.paths.archive) return undefined;
+
+      const direct = await readChangeSnapshot(
+        legacy.paths.archive,
+        changeId,
+        "archive",
+      );
+      if (direct.found) return direct;
+
+      const dirs = await listChangeDirs(legacy.paths.archive);
+      for (const dir of dirs) {
+        if (dir === changeId) continue;
+        const loaded = await loadChange(legacy.paths.archive, dir);
+        if (loaded.success && loaded.data?.id === changeId) {
+          return {
+            found: true,
+            snapshot: loaded.data,
+            stateRevision: loaded.data.state_revision ?? 0,
+            projectionRevision: loaded.data.projection_revision ?? 0,
+            source: "archive",
+          };
+        }
+      }
+      return undefined;
+    };
+
+    const diskSnapshot = await readChangeSnapshot(
+      legacy.paths.changes,
+      changeId,
+      "disk",
+    );
+    const archiveSnapshot = await readArchiveBundle(changeId);
+
+    if (archiveSnapshot?.found) {
+      const archived = {
+        ...archiveSnapshot.snapshot,
+        status: "archived" as const,
+      };
+      setCachedProjection(archived);
+      fireWorktreeAutoManagedMigrationIfNeeded(
+        changeId,
+        undefined,
+        archived.worktree_auto_managed,
+      );
+      return { ...archiveSnapshot, snapshot: archived };
+    }
+
+    if (diskSnapshot.found) {
+      setCachedProjection(diskSnapshot.snapshot);
+      fireWorktreeAutoManagedMigrationIfNeeded(
+        changeId,
+        undefined,
+        diskSnapshot.snapshot.worktree_auto_managed,
+      );
+      return diskSnapshot;
+    }
+
+    return diskSnapshot;
   };
 
   /**

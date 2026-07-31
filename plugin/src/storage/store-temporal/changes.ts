@@ -8,6 +8,9 @@ import {
   type Change,
   type GateId,
   type TerminalWarning,
+  type TerminalSource,
+  type ChangeStatus,
+  type ChangeListResponse,
   type ArchiveConvergedSignalPayload,
   type GateCompletedSignalPayload,
   type Phase9FinalizationStatus,
@@ -46,10 +49,13 @@ import {
 } from "../../utils/query-predicate";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { getCurrentSessionId } from "../../utils/session-id";
-import { removeChangeDir } from "../json";
-import { loadProjectConfig } from "../json";
+import { removeChangeDir, loadProjectConfig } from "../json";
 import { resolveProjectFeaturePolicy } from "../../types";
-import { isSchemaError, loadChange } from "../change-projection-reader";
+import {
+  isSchemaError,
+  listChangeDirs,
+  loadChange,
+} from "../change-projection-reader";
 import {
   listSummaryChanges,
   type SummaryIndexPaths,
@@ -61,10 +67,13 @@ import {
   getChangeHandle,
   getGuardedChangeHandle,
   createTemporalReadDeadline,
+  createTemporalReadContext,
   type TemporalReadContext,
+  isTemporalReadExpired,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
   TemporalQueryTimeoutError,
+  TEMPORAL_READ_DEADLINE_BUDGET_MS,
   type StoreDeps,
   changeCommand,
   fallbackOperationId,
@@ -82,6 +91,7 @@ import { enforceMutationEligibilityForError } from "../../temporal/mutation-safe
 import { fireSignalWithMutationGuard } from "./gates";
 import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
 import { atomicWriteFile, acquireFileLock } from "../../utils/fs";
+import { mapWithConcurrency } from "../../utils/concurrency";
 import {
   coordinateBatchClose,
   type BatchCloseCoordinationDeps,
@@ -436,6 +446,8 @@ interface ChangeListFilter {
   sort?: "recency" | "stalest" | "default";
   limit?: number;
   offset?: number;
+  /** Internal caller-specific cap for per-change hydration. */
+  validationConcurrency?: number;
 }
 
 interface ListChangeSummariesResult {
@@ -551,6 +563,517 @@ async function listChangeSummaries(
   return {
     summaries: filtered,
     totalIds: summaryResult.summaries.length,
+  };
+}
+
+const GATE_ORDER: readonly GateId[] = [
+  "proposal",
+  "discovery",
+  "design",
+  "planning",
+  "execution",
+  "acceptance",
+  "release",
+];
+
+function deriveCurrentGate(
+  gates: Change["gates"] | undefined,
+): GateId | "done" {
+  for (const gateId of GATE_ORDER) {
+    const gate = gates?.[gateId];
+    if (typeof gate === "object" && gate !== null && gate.status === "done") {
+      continue;
+    }
+    return gateId;
+  }
+  return "done";
+}
+
+function changeLastActivityAt(change: Change): string {
+  return (
+    (change as { lastSignalAt?: string }).lastSignalAt ?? change.created_at
+  );
+}
+
+function changeToListRow(
+  change: Change,
+): ChangeListResponse["changes"][number] {
+  return {
+    id: change.id,
+    title: change.title,
+    status: change.status,
+    created_at: change.created_at,
+    lastActivityAt: changeLastActivityAt(change),
+    taskCount: change.tasks?.length ?? 0,
+    completedTasks:
+      (change.tasks ?? []).filter((t) => t.status === "done").length ?? 0,
+    currentGate: deriveCurrentGate(change.gates),
+    lifecycleState: change.status === "draft" ? "open" : change.status,
+    fast_follow_of: change.fast_follow_of,
+    epic_membership: change.epic_membership,
+    capabilities: Object.keys(change.deltas ?? {}),
+  };
+}
+
+function summaryToListRow(
+  summary: ChangeSummaryShard,
+): ChangeListResponse["changes"][number] {
+  return {
+    id: summary.id,
+    title: summary.title,
+    status: summary.status,
+    created_at: summary.created_at,
+    lastActivityAt: summary.last_activity_at,
+    taskCount: summary.task_count,
+    completedTasks: summary.completed_tasks,
+    currentGate: summary.phase as GateId | "done",
+    lifecycleState: summary.status === "draft" ? "open" : summary.status,
+    fast_follow_of: summary.fast_follow_of,
+    epic_membership: summary.epic_membership,
+    capabilities: summary.capabilities,
+  };
+}
+
+function matchesChangeListFilter(
+  row: {
+    id: string;
+    title: string;
+    status: ChangeStatus;
+    created_at: string;
+    lastActivityAt: string;
+  },
+  filter: ChangeListFilter | undefined,
+  options: { caseInsensitivePrefix?: boolean },
+): boolean {
+  const requestedStatus =
+    filter?.status === "active" || filter?.status === "pending"
+      ? "draft"
+      : filter?.status;
+  const includeArchived =
+    filter?.includeArchived || requestedStatus === "archived";
+  const includeClosed = filter?.includeClosed || requestedStatus === "closed";
+
+  const terminal = row.status === "archived" || row.status === "closed";
+  if (
+    terminal &&
+    !(row.status === "archived" ? includeArchived : includeClosed)
+  ) {
+    return false;
+  }
+  if (!terminal && requestedStatus && row.status !== requestedStatus) {
+    return false;
+  }
+
+  if (filter?.prefix) {
+    const prefix = filter.prefix;
+    const id = options.caseInsensitivePrefix ? row.id.toLowerCase() : row.id;
+    const needle = options.caseInsensitivePrefix
+      ? prefix.toLowerCase()
+      : prefix;
+    if (!id.startsWith(needle)) return false;
+  }
+
+  if (filter?.titleContains) {
+    const needle = filter.titleContains.toLowerCase();
+    if (!row.title.toLowerCase().includes(needle)) return false;
+  }
+
+  if (filter?.createdBefore && !(row.created_at < filter.createdBefore)) {
+    return false;
+  }
+  if (
+    filter?.lastActivityBefore &&
+    !(row.lastActivityAt < filter.lastActivityBefore)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Three-tier projection-first change list reader.
+ *
+ * 1. Immutable summary shards (fast path, zero I/O beyond the index).
+ * 2. Disk `change.json` hydration for shard-less IDs, zero workflow queries.
+ * 3. Capped per-member workflow fallback only when durable evidence is
+ *    missing or invalid, honouring the shared read context / circuit breaker.
+ */
+async function readProjectionChangeList(
+  filter: ChangeListFilter | undefined,
+  paths: SummaryIndexPaths,
+  deps: StoreDeps,
+  options: {
+    caseInsensitivePrefix?: boolean;
+    forceSort?: "recency" | "stalest" | "default";
+    paginate?: boolean;
+    includeHydrationStats?: boolean;
+  },
+): Promise<
+  ChangeListResponse & { sourceRankedIds?: string[]; totalIds?: number }
+> {
+  const { input, legacy, memo, getTemporalChange } = deps;
+
+  const deadline = createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS);
+  const ctx = createTemporalReadContext(deadline.budgetMs);
+  const expired = (): boolean => isTemporalReadExpired(ctx);
+
+  const requestedStatus =
+    filter?.status === "active" || filter?.status === "pending"
+      ? "draft"
+      : filter?.status;
+  const includeArchived =
+    filter?.includeArchived || requestedStatus === "archived";
+  const includeClosed = filter?.includeClosed || requestedStatus === "closed";
+  const wantsTerminalStatuses = includeArchived || includeClosed;
+
+  const warnings: TerminalWarning[] = [];
+  const degradedSources = new Set<TerminalSource>();
+  const deadlineOmissions: string[] = [];
+  const loadFailedOmissions: string[] = [];
+
+  // Tier 1: summary shards.
+  const summaryResult = await listChangeSummaries(filter, paths, {
+    caseInsensitivePrefix: options.caseInsensitivePrefix,
+    forceSort: options.forceSort,
+    paginate: false,
+  });
+
+  const summaryRows = new Map<string, ChangeListResponse["changes"][number]>();
+  if (summaryResult.summaries.length > 0) {
+    for (const summary of summaryResult.summaries) {
+      summaryRows.set(summary.id, summaryToListRow(summary));
+    }
+  }
+  if (summaryResult.warnings) {
+    degradedSources.add("active_disk");
+    warnings.push(...summaryResult.warnings);
+  }
+
+  // Collect candidate IDs from every durable/advisory source.
+  const candidateIds = new Set<string>(summaryRows.keys());
+  for (const summary of memo.getAll()) candidateIds.add(summary.id);
+
+  const addSourceIds = (ids: string[]): void => {
+    for (const id of ids) candidateIds.add(id);
+  };
+
+  // Disk active projections.
+  let diskIds: string[] = [];
+  try {
+    diskIds = await raceWithTemporalDeadline(
+      listChangeDirs(paths.changesDir),
+      deadline,
+    );
+  } catch (err) {
+    const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+    degradedSources.add("active_disk");
+    if (wantsTerminalStatuses) {
+      warnings.push({
+        code: "TERMINAL_SOURCE_DEGRADED",
+        source: "active_disk",
+        message: `Disk listChangeDirs ${
+          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+        }: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+  addSourceIds(diskIds);
+
+  const durableCandidateCount = summaryRows.size + diskIds.length;
+
+  // Archive bundles.
+  // Build a canonical-id -> archive-directory map so duplicate date-prefixed
+  // directories for the same change id are deduplicated, active-disk shadows can
+  // be dominated, and terminal reads can hydrate archived changes.
+  const archiveCandidateMap = new Map<
+    string,
+    { dir: string; change: Change }
+  >();
+  if (legacy.paths.archive) {
+    try {
+      const archiveDirs = await raceWithTemporalDeadline(
+        listChangeDirs(legacy.paths.archive),
+        deadline,
+      );
+      for (const dir of archiveDirs) {
+        const loaded = await raceWithTemporalDeadline(
+          loadChange(legacy.paths.archive, dir),
+          deadline,
+        );
+        if (loaded.success && loaded.data?.id) {
+          const canonicalId = loaded.data.id;
+          if (!archiveCandidateMap.has(canonicalId)) {
+            archiveCandidateMap.set(canonicalId, {
+              dir,
+              change: loaded.data,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+      degradedSources.add("archive");
+      if (wantsTerminalStatuses) {
+        warnings.push({
+          code: "TERMINAL_SOURCE_DEGRADED",
+          source: "archive",
+          message: `Archive bundle scan ${
+            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+          }: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    }
+  }
+  if (wantsTerminalStatuses) {
+    for (const id of archiveCandidateMap.keys()) candidateIds.add(id);
+  }
+
+  // Temporal Visibility enumeration (best-effort candidate discovery).
+  const bundle = input.temporal as {
+    client?: {
+      workflow?: {
+        list?: unknown;
+        getHandle?: (...args: unknown[]) => unknown;
+      };
+    };
+  };
+  let visibilityIds: string[] = [];
+  // Only enumerate Temporal Visibility when durable sources are absent or when
+  // terminal statuses are requested. Routine active reads must stay off the
+  // Visibility API when summary/disk projections already provide candidates.
+  if (
+    typeof bundle.client?.workflow?.list === "function" &&
+    (wantsTerminalStatuses || durableCandidateCount === 0)
+  ) {
+    try {
+      visibilityIds = await raceWithTemporalDeadline(
+        listChangeWorkflowIds(
+          bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
+          {
+            projectId: input.projectId,
+            statuses: wantsTerminalStatuses ? null : undefined,
+          },
+        ),
+        deadline,
+      );
+    } catch (err) {
+      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+      degradedSources.add("visibility");
+      if (wantsTerminalStatuses) {
+        warnings.push({
+          code: "TERMINAL_SOURCE_DEGRADED",
+          source: "visibility",
+          message: `Visibility list ${
+            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+          }: ${err instanceof Error ? err.message : String(err)}`,
+        });
+      }
+    }
+  }
+  addSourceIds(visibilityIds);
+
+  const fromMemo = summaryRows.size;
+  const fromCache = 0;
+  let fromHydration = 0;
+  let terminalCandidates = 0;
+  let terminalFromArchive = 0;
+  let terminalFromDisk = 0;
+  let terminalFromWorkflow = 0;
+
+  const rows = new Map<string, ChangeListResponse["changes"][number]>(
+    summaryRows,
+  );
+  const allIds = Array.from(candidateIds);
+  const unresolvedIds = allIds.filter((id) => !summaryRows.has(id));
+  if (wantsTerminalStatuses) {
+    terminalCandidates = unresolvedIds.length;
+  }
+  const batchConcurrency = Math.max(
+    1,
+    Math.min(20, filter?.validationConcurrency ?? 20),
+  );
+
+  const hydrate = async (id: string): Promise<void> => {
+    if (expired()) {
+      deadlineOmissions.push(id);
+      return;
+    }
+
+    // Tier 2: disk change.json hydration (zero workflow queries).
+    let diskResult: Awaited<ReturnType<typeof loadChange>> | undefined;
+    try {
+      diskResult = await raceWithTemporalDeadline(
+        loadChange(paths.changesDir, id),
+        deadline,
+      );
+    } catch (err) {
+      if (err instanceof TemporalQueryTimeoutError || expired()) {
+        deadlineOmissions.push(id);
+      } else {
+        loadFailedOmissions.push(id);
+      }
+      return;
+    }
+
+    if (
+      diskResult &&
+      !diskResult.success &&
+      diskResult.type === "schema_error"
+    ) {
+      // Schema-invalid durable projection is unusable; fall through to
+      // workflow fallback rather than treating it as a hard omission.
+      diskResult = undefined;
+    }
+
+    if (diskResult?.success && diskResult.data) {
+      let change = diskResult.data;
+      const terminalOnDisk =
+        change.status === "archived" || change.status === "closed";
+      // Archive-bundle dominance for active disk shadows.
+      if (!terminalOnDisk && archiveCandidateMap.has(change.id)) {
+        change = { ...change, status: "archived" as const };
+      }
+      rows.set(change.id, changeToListRow(change));
+      fromHydration++;
+      if (wantsTerminalStatuses) {
+        if (change.status === "archived" || terminalOnDisk) {
+          terminalFromDisk++;
+        }
+      }
+      return;
+    }
+
+    // Tier 2b: archive bundle direct load for terminal reads.
+    if (wantsTerminalStatuses && legacy.paths.archive) {
+      const archiveCandidate = archiveCandidateMap.get(id);
+      if (archiveCandidate) {
+        const archived = {
+          ...archiveCandidate.change,
+          status: "archived" as const,
+        };
+        rows.set(archived.id, changeToListRow(archived));
+        fromHydration++;
+        terminalFromArchive++;
+        return;
+      }
+    }
+
+    // Tier 3: capped workflow fallback only when durable evidence is missing.
+    if (typeof bundle.client?.workflow?.getHandle === "function") {
+      try {
+        const result = await getTemporalChange(id, { context: ctx });
+        if (result.success && result.data) {
+          rows.set(result.data.id, changeToListRow(result.data));
+          fromHydration++;
+          if (wantsTerminalStatuses) {
+            terminalFromWorkflow++;
+          }
+          return;
+        }
+      } catch (err) {
+        if (err instanceof TemporalQueryTimeoutError || expired()) {
+          deadlineOmissions.push(id);
+          return;
+        }
+        // Other workflow failures are recorded as load failures.
+      }
+    }
+
+    loadFailedOmissions.push(id);
+  };
+
+  await mapWithConcurrency(unresolvedIds, batchConcurrency, hydrate);
+
+  // Filter/sort the combined result set.
+  const combinedRows = Array.from(rows.values()).filter((row) =>
+    matchesChangeListFilter(row, filter, {
+      caseInsensitivePrefix: options.caseInsensitivePrefix,
+    }),
+  );
+
+  const sort = options.forceSort ?? filter?.sort ?? "default";
+  combinedRows.sort((a, b) => {
+    const field = sort === "default" ? "created_at" : "lastActivityAt";
+    const cmp = a[field].localeCompare(b[field]);
+    return (sort === "stalest" ? cmp : -cmp) || a.id.localeCompare(b.id);
+  });
+
+  let paginatedRows = combinedRows;
+  if (options.paginate) {
+    const offset = Math.max(0, filter?.offset ?? 0);
+    const limit =
+      filter?.limit === undefined ? undefined : Math.max(0, filter.limit);
+    paginatedRows = combinedRows.slice(
+      offset,
+      limit === undefined ? undefined : offset + limit,
+    );
+  }
+
+  const omitted = deadlineOmissions.length + loadFailedOmissions.length;
+  const deadlineExceeded = deadlineOmissions.length > 0;
+
+  // Terminal omission warning only for terminal reads.
+  if (wantsTerminalStatuses && omitted > 0) {
+    warnings.push({
+      code: "TERMINAL_CANDIDATE_OMITTED",
+      source: "workflow_query",
+      message: `${omitted} terminal candidate(s) could not be loaded from any available source.`,
+      omittedCount: omitted,
+      omittedIds: [...deadlineOmissions, ...loadFailedOmissions].slice(0, 20),
+    });
+  }
+
+  // Deadline degradation surfaces for both active and terminal reads.
+  if (deadlineExceeded) {
+    const sources =
+      degradedSources.size > 0
+        ? Array.from(degradedSources)
+        : (["workflow_query"] as TerminalSource[]);
+    for (const source of sources) {
+      warnings.push({
+        code: "SOURCE_DEADLINE_EXCEEDED",
+        source,
+        message: `Aggregate read deadline (${deadline.budgetMs}ms) exceeded while resolving ${source}; results are incomplete.`,
+        ...(deadlineOmissions.length > 0
+          ? {
+              omittedCount: deadlineOmissions.length,
+              omittedIds: deadlineOmissions.slice(0, 20),
+            }
+          : {}),
+      });
+    }
+  }
+
+  const hydrationStats = {
+    totalIds: allIds.length,
+    fromMemo,
+    fromCache,
+    fromHydration,
+    ...(wantsTerminalStatuses
+      ? {
+          terminalCandidates,
+          terminalFromArchive,
+          terminalFromDisk,
+          terminalFromWorkflow,
+          omitted,
+        }
+      : {}),
+    ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
+  };
+
+  const hasWarnings = warnings.length > 0;
+  const hasTerminalRelevantStats =
+    wantsTerminalStatuses &&
+    (terminalCandidates > 0 || omitted > 0 || deadlineExceeded);
+
+  return {
+    changes: paginatedRows,
+    ...(hasWarnings ? { warnings } : {}),
+    ...(options.includeHydrationStats || hasWarnings || hasTerminalRelevantStats
+      ? { hydrationStats }
+      : {}),
+    totalIds: allIds.length,
   };
 }
 
@@ -940,12 +1463,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       });
     },
     list: async (filter) => {
-      const projection = await listChangeSummaries(
+      const projection = await readProjectionChangeList(
         filter,
         {
           changesDir: legacy.paths.changes,
           summariesDir: legacy.paths.summariesDir,
         },
+        deps,
         {
           // list() historically applies case-insensitive prefix matching.
           caseInsensitivePrefix: true,
@@ -955,29 +1479,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           paginate: false,
         },
       );
-
+      const { changes, warnings, hydrationStats } = projection;
       return {
-        changes: projection.summaries.map((summary) => ({
-          id: summary.id,
-          title: summary.title,
-          status: summary.status,
-          currentGate: summary.phase as GateId | "done",
-          lifecycleState: summary.status === "draft" ? "open" : summary.status,
-          created_at: summary.created_at,
-          lastActivityAt: summary.last_activity_at,
-          taskCount: summary.task_count,
-          completedTasks: summary.completed_tasks,
-          fast_follow_of: summary.fast_follow_of,
-          epic_membership: summary.epic_membership,
-          capabilities: summary.capabilities,
-        })),
-        ...(projection.warnings ? { warnings: projection.warnings } : {}),
-        hydrationStats: {
-          totalIds: projection.totalIds,
-          fromMemo: projection.totalIds,
-          fromCache: 0,
-          fromHydration: 0,
-        },
+        changes,
+        ...(warnings ? { warnings } : {}),
+        ...(hydrationStats ? { hydrationStats } : {}),
       };
     },
     get: async (
@@ -1408,42 +1914,27 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     // state; warm rows served after deadline expiry stay degraded, and
     // completeness is never inferred from cache warmth or row count.
     listSummary: async (filter) => {
-      const projection = await listChangeSummaries(
+      const projection = await readProjectionChangeList(
         filter,
         {
           changesDir: legacy.paths.changes,
           summariesDir: legacy.paths.summariesDir,
         },
+        deps,
         {
           // listSummary() keeps the historical case-sensitive prefix match.
           caseInsensitivePrefix: false,
           // Pagination is part of the summary API contract.
           paginate: true,
+          // Summary API always carries hydration stats.
+          includeHydrationStats: true,
         },
       );
-
+      const { changes, warnings, hydrationStats } = projection;
       return {
-        changes: projection.summaries.map((summary) => ({
-          id: summary.id,
-          title: summary.title,
-          status: summary.status,
-          created_at: summary.created_at,
-          lastActivityAt: summary.last_activity_at,
-          taskCount: summary.task_count,
-          completedTasks: summary.completed_tasks,
-          currentGate: summary.phase as GateId | "done",
-          lifecycleState: summary.status === "draft" ? "open" : summary.status,
-          ...(summary.epic_membership
-            ? { epic_membership: summary.epic_membership }
-            : {}),
-        })),
-        ...(projection.warnings ? { warnings: projection.warnings } : {}),
-        hydrationStats: {
-          totalIds: projection.totalIds,
-          fromMemo: projection.totalIds,
-          fromCache: 0,
-          fromHydration: 0,
-        },
+        changes,
+        ...(warnings ? { warnings } : {}),
+        ...(hydrationStats ? { hydrationStats } : {}),
       };
     },
     /**
