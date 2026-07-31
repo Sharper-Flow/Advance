@@ -57,7 +57,26 @@ function renderText(result: OptScanResult): string {
     lines.push("");
   }
 
-  if (result.candidates.length === 0) {
+  if (result.candidates.length > 0) {
+    lines.push("Candidates:");
+    for (const candidate of result.candidates) {
+      lines.push(
+        `  - ${candidate.id} [${candidate.expected_cost_shape.family}]`,
+      );
+      for (const evidence of candidate.evidence) {
+        const location =
+          evidence.line === null
+            ? evidence.file
+            : `${evidence.file}:${evidence.line}`;
+        lines.push(`    [${evidence.role}] ${location}`);
+      }
+      if (candidate.recommendation !== undefined) {
+        lines.push(`    Recommendation: ${candidate.recommendation}`);
+      }
+      lines.push(`    Verification: ${candidate.verification_needed}`);
+    }
+    lines.push("");
+  } else {
     lines.push("No candidates emitted.");
     lines.push("");
   }

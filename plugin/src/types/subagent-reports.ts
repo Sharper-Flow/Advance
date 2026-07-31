@@ -616,7 +616,7 @@ export const TronOptimizationCandidateEvidenceSchema = z
       "ownership",
     ]),
     file: z.string().min(1),
-    line: z.number().int().positive().optional(),
+    line: z.number().int().positive().nullable(),
     column: z.number().int().positive().optional(),
     matchedSignal: z.string().optional(),
     snippet: z.string().optional(),
