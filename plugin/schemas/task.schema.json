@@ -34,7 +34,6 @@
     },
     "attempts": {
       "items": {
-        "additionalProperties": false,
         "properties": {
           "attempt_number": {
             "maximum": 9007199254740991,
@@ -83,7 +82,6 @@
       "type": "string"
     },
     "cancellation": {
-      "additionalProperties": false,
       "properties": {
         "approval_evidence": {
           "type": "string"
@@ -140,7 +138,6 @@
       "type": "string"
     },
     "contract_refs": {
-      "additionalProperties": false,
       "properties": {
         "implements": {
           "items": {
@@ -171,7 +168,6 @@
     },
     "deps": {
       "items": {
-        "additionalProperties": false,
         "properties": {
           "target": {
             "type": "string"
@@ -195,11 +191,9 @@
       "type": "array"
     },
     "error_recovery": {
-      "additionalProperties": false,
       "properties": {
         "attempts": {
           "items": {
-            "additionalProperties": false,
             "properties": {
               "attempt_number": {
                 "maximum": 9007199254740991,
@@ -276,7 +270,6 @@
       "type": "object"
     },
     "evidence_plan": {
-      "additionalProperties": false,
       "properties": {
         "policy": {
           "enum": [
@@ -435,7 +428,6 @@
         "decisions": {
           "default": [],
           "items": {
-            "additionalProperties": false,
             "properties": {
               "decision": {
                 "type": "string"
@@ -455,7 +447,6 @@
         "filesChanged": {
           "default": [],
           "items": {
-            "additionalProperties": false,
             "properties": {
               "linesAdded": {
                 "maximum": 9007199254740991,
@@ -498,13 +489,6 @@
           "type": "integer"
         }
       },
-      "required": [
-        "filesChanged",
-        "testsAdded",
-        "testsModified",
-        "decisions",
-        "followUps"
-      ],
       "type": "object"
     },
     "subagent_reports": {
@@ -720,7 +704,6 @@
                 "type": "array"
               },
               "recovery_audit": {
-                "additionalProperties": false,
                 "properties": {
                   "evidence": {
                     "type": "string"
@@ -777,8 +760,7 @@
                   },
                   "required": [
                     "text",
-                    "obligation_class",
-                    "severity"
+                    "obligation_class"
                   ],
                   "type": "object"
                 },
@@ -1110,7 +1092,6 @@
                 "type": "string"
               },
               "recovery_audit": {
-                "additionalProperties": false,
                 "properties": {
                   "evidence": {
                     "type": "string"
@@ -1163,8 +1144,7 @@
                   },
                   "required": [
                     "text",
-                    "obligation_class",
-                    "severity"
+                    "obligation_class"
                   ],
                   "type": "object"
                 },
@@ -1655,7 +1635,6 @@
                 "type": "array"
               },
               "recovery_audit": {
-                "additionalProperties": false,
                 "properties": {
                   "evidence": {
                     "type": "string"
@@ -1712,8 +1691,7 @@
                   },
                   "required": [
                     "text",
-                    "obligation_class",
-                    "severity"
+                    "obligation_class"
                   ],
                   "type": "object"
                 },
@@ -1883,7 +1861,6 @@
       "type": "string"
     },
     "tdd_reclassification": {
-      "additionalProperties": false,
       "properties": {
         "approval_evidence": {
           "type": "string"
@@ -1946,7 +1923,6 @@
     },
     "wisdom_drafts": {
       "items": {
-        "additionalProperties": false,
         "properties": {
           "created_at": {
             "type": "string"
@@ -2010,9 +1986,7 @@
   "required": [
     "id",
     "title",
-    "type",
     "status",
-    "priority",
     "created_at"
   ],
   "title": "ADV Task",

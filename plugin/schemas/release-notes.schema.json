@@ -1,14 +1,12 @@
 {
   "$id": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/release-notes.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "additionalProperties": false,
   "description": "Versioned release-notes archive envelope. Runtime validation also rejects a serialized UTF-8 envelope larger than 32768 bytes; this byte limit is not representable in JSON Schema.",
   "properties": {
     "change_id": {
       "type": "string"
     },
     "release_notes": {
-      "additionalProperties": false,
       "properties": {
         "area": {
           "maxLength": 100,
@@ -23,7 +21,6 @@
           "type": "string"
         },
         "breaking": {
-          "additionalProperties": false,
           "properties": {
             "description": {
               "maxLength": 2048,
@@ -75,7 +72,6 @@
           "type": "array"
         },
         "links": {
-          "additionalProperties": false,
           "properties": {
             "issue": {
               "type": "string"

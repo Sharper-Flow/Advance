@@ -113,6 +113,7 @@ export function renderJsonSchemaObject(
     target: "draft-07",
     cycles: "ref",
     reused: "inline",
+    io: "input",
   }) as Record<string, unknown>;
 
   return sortJsonValue({

@@ -1,14 +1,12 @@
 {
   "$id": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/backlog-item.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "additionalProperties": false,
   "properties": {
     "archived_at": {
       "minLength": 1,
       "type": "string"
     },
     "context_packet": {
-      "additionalProperties": false,
       "properties": {
         "avoidances": {
           "items": {
@@ -33,7 +31,6 @@
           "type": "array"
         },
         "cross_project_target": {
-          "additionalProperties": false,
           "properties": {
             "project_hint": {
               "maxLength": 200,
@@ -56,7 +53,6 @@
         },
         "references": {
           "items": {
-            "additionalProperties": false,
             "properties": {
               "label": {
                 "maxLength": 200,
@@ -90,7 +86,6 @@
       "type": "string"
     },
     "promoted_to": {
-      "additionalProperties": false,
       "properties": {
         "id": {
           "minLength": 1,
