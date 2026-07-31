@@ -411,7 +411,7 @@ Before TDD phases, evaluate each task for delegation eligibility:
 | 1 | `metadata.delegation_hint` set? | Use the hint value directly |
 | 2 | `tdd_intent == "not_applicable"`? | `delegate_allowed` to `adv-engineer` |
 | 3 | Title matches `isTrivialTask` patterns? | `delegate_allowed` to `adv-engineer` |
-| 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis? | Any present → `inline_required` |
+| 4 | Risk signals: multi-file, cross-repo, architectural keywords, failing-test diagnosis, behavioral-authority diagnosis? | Any present → `inline_required` |
 | 4.5 | Context-shed test passes? (4-question AND, floor ~5 files or ~50 lines) | `delegate_allowed` to `adv-engineer` |
 | 5 | Default | `inline_required` |
 

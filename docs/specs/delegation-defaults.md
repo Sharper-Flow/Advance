@@ -471,6 +471,95 @@ For delegated code tasks with metadata.frontend set to true, ADV MUST route init
 
 **Then:**
 - adv-designer does not own review or harden
-- adv-reviewer retains review and harden ownership
+  - adv-reviewer retains review and harden ownership
+
+---
+
+### Diagnosis Routing Precedence
+
+**ID:** `rq-delDefaults11` | **Priority:** **[MUST]**
+
+When `/adv-apply` marks a task `inline_required` because the task involves failing-test diagnosis or behavioral-authority diagnosis, ADV MUST NOT use delegation as the primary diagnosis or repair path. The inline-required routing decision takes precedence over any `delegate_allowed` or `delegate_preferred` hint for that task. The command asset MUST list failing-test diagnosis and behavioral-authority diagnosis as risk signals that force `inline_required`, and the delegation matrix MUST keep the apply step's implementation substeps as `delegate_allowed` so that the inline-required override is structurally meaningful rather than a no-op.
+
+**Tags:** `delegation`, `routing`, `diagnosis`, `execution`, `precedence`
+
+#### Scenarios
+
+**Failing-test diagnosis forces inline execution** (`rq-delDefaults11.1`)
+
+**Given:**
+- `/adv-apply` is evaluating a code task
+- The task title, `error_recovery`, or `failure_attribution` indicates failing-test diagnosis
+
+**When:** Delegation routing is evaluated
+
+**Then:**
+- The routing decision is `inline_required`
+- No implementation sub-agent is dispatched as the primary diagnosis/repair path
+- Verify-only bursts may still be delegated
+
+**Behavioral-authority diagnosis forces inline execution** (`rq-delDefaults11.2`)
+
+**Given:**
+- `/adv-apply` is evaluating a code task
+- The task requires deciding what the code should do (behavioral authority) rather than mechanical implementation
+
+**When:** Delegation routing is evaluated
+
+**Then:**
+- The routing decision is `inline_required`
+- No implementation sub-agent is dispatched as the primary authority for the behavioral decision
+- Research or verification sub-agents may still supply evidence
+
+---
+
+### Bounded Empty-Worker Recovery
+
+**ID:** `rq-delDefaults12` | **Priority:** **[MUST]**
+
+Empty or malformed worker output receives at most one narrower retry. After that retry is exhausted, another same-scope delegation is refused until inline diagnosis evidence exists. Empty/malformed output MUST be tracked in `task.delegation_recovery`, NOT counted as a genuine SEMANTIC repair attempt in `task.error_recovery.attempts`, and MUST NOT increment `task.error_recovery.retry_count`. The `delegation_recovery` state is authoritative for this bounded recovery: while `narrower_retry_count` is 0 one retry is still allowed; once `narrower_retry_count` is 1, `inline_diagnosis_evidence` must be true before any further same-scope delegation is valid.
+
+**Tags:** `delegation`, `recovery`, `worker`, `empty-output`, `bounded`
+
+#### Scenarios
+
+**Empty/malformed output allows one narrower retry** (`rq-delDefaults12.1`)
+
+**Given:**
+- A delegated worker returns empty or malformed output
+- `task.delegation_recovery` is unset or has `narrower_retry_count == 0`
+
+**When:** ADV decides how to recover
+
+**Then:**
+- ADV may dispatch exactly one narrower retry in the same scope
+- ADV records the incident in `task.delegation_recovery`
+- ADV does not record the empty output as a SEMANTIC attempt in `task.error_recovery.attempts`
+
+**Same-scope delegation refused after exhausted retry without inline evidence** (`rq-delDefaults12.2`)
+
+**Given:**
+- `task.delegation_recovery.empty_or_malformed_count > 0`
+- `task.delegation_recovery.narrower_retry_count == 1`
+- `task.delegation_recovery.inline_diagnosis_evidence == false`
+
+**When:** ADV evaluates another same-scope delegation
+
+**Then:**
+- The task state is structurally invalid for delegation
+- ADV must produce inline diagnosis evidence before delegating again
+- The empty output does not count as a genuine semantic repair attempt
+
+**Inline diagnosis evidence unblocks same-scope delegation** (`rq-delDefaults12.3`)
+
+**Given:**
+- `task.delegation_recovery.narrower_retry_count == 1`
+- Inline diagnosis has been performed and evidence recorded
+
+**When:** ADV updates `delegation_recovery`
+
+**Then:**
+- `task.delegation_recovery.inline_diagnosis_evidence` becomes true
+- Same-scope delegation becomes structurally valid again
 
 ---

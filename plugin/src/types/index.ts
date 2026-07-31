@@ -141,6 +141,8 @@ export {
   type ContractConflictKind,
   ContractConflictSchema,
   type ContractConflict,
+  DelegationRecoverySchema,
+  type DelegationRecovery,
   TaskTypeSchema,
   type TaskType,
   TaskContractRefsSchema,

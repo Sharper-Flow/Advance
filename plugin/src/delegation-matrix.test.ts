@@ -1014,6 +1014,42 @@ describe("delegation matrix coverage", () => {
     expect(doc).toContain(
       "Provider-hint delegation cues preserve matrix roster",
     );
+    expect(doc).toContain("rq-delDefaults11");
+    expect(doc).toContain("Diagnosis Routing Precedence");
+    expect(doc).toContain("rq-delDefaults12");
+    expect(doc).toContain("Bounded Empty-Worker Recovery");
+  });
+
+  // rq-delDefaults11: command asset lists diagnosis risk signals.
+  test("apply command asset lists failing-test and behavioral-authority diagnosis as inline-required risk signals", () => {
+    const apply = readCommandFile("apply");
+    expect(apply).toBeDefined();
+    expect(apply).toContain("failing-test diagnosis");
+    expect(apply).toContain("behavioral-authority diagnosis");
+    expect(apply).toMatch(/Risk signals:[\s\S]*inline_required/);
+  });
+
+  // rq-delDefaults12: spec names task.delegation_recovery as authority.
+  test("bounded empty-worker recovery is represented in delegation-defaults spec", () => {
+    const spec = loadSpec();
+    const ac4 = spec.requirements?.find(
+      (entry) => entry.id === "rq-delDefaults11",
+    );
+    const ac5 = spec.requirements?.find(
+      (entry) => entry.id === "rq-delDefaults12",
+    );
+    expect(ac4, "rq-delDefaults11 must exist").toBeDefined();
+    expect(ac5, "rq-delDefaults12 must exist").toBeDefined();
+
+    const ac5Text = [
+      ac5!.body ?? "",
+      ...(ac5!.scenarios ?? []).flatMap((scenario) => scenario.then ?? []),
+    ].join("\n");
+    expect(ac5Text).toContain("task.delegation_recovery");
+    expect(ac5Text).toContain("narrower_retry_count");
+    expect(ac5Text).toContain("inline_diagnosis_evidence");
+    expect(ac5Text).toContain("SEMANTIC");
+    expect(ac5Text).toContain("error_recovery.attempts");
   });
 });
 

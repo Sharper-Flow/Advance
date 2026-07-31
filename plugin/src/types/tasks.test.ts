@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import {
   ContractConflictKindSchema,
   ContractConflictSchema,
+  DelegationRecoverySchema,
   ErrorRecoverySchema,
   FailureAttributionKindSchema,
   FailureAttributionSchema,
@@ -178,6 +179,97 @@ describe("ErrorRecoverySchema", () => {
         },
       }),
     ).toThrow();
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Delegation Recovery (AC5)
+// -----------------------------------------------------------------------------
+
+describe("DelegationRecoverySchema", () => {
+  it("accepts an initial empty/malformed incident with no retry yet", () => {
+    const parsed = DelegationRecoverySchema.parse({
+      empty_or_malformed_count: 1,
+      narrower_retry_count: 0,
+      inline_diagnosis_evidence: false,
+      last_updated_at: "2026-07-30T01:00:00.000Z",
+    });
+    expect(parsed.empty_or_malformed_count).toBe(1);
+    expect(parsed.narrower_retry_count).toBe(0);
+    expect(parsed.inline_diagnosis_evidence).toBe(false);
+  });
+
+  it("accepts the single narrower retry when inline diagnosis evidence exists", () => {
+    const parsed = DelegationRecoverySchema.parse({
+      empty_or_malformed_count: 1,
+      narrower_retry_count: 1,
+      inline_diagnosis_evidence: true,
+      last_updated_at: "2026-07-30T01:00:00.000Z",
+    });
+    expect(parsed.narrower_retry_count).toBe(1);
+    expect(parsed.inline_diagnosis_evidence).toBe(true);
+  });
+
+  it("rejects more than one narrower retry", () => {
+    expect(() =>
+      DelegationRecoverySchema.parse({
+        empty_or_malformed_count: 1,
+        narrower_retry_count: 2,
+        inline_diagnosis_evidence: true,
+        last_updated_at: "2026-07-30T01:00:00.000Z",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects the single retry being exhausted without inline diagnosis evidence", () => {
+    expect(() =>
+      DelegationRecoverySchema.parse({
+        empty_or_malformed_count: 1,
+        narrower_retry_count: 1,
+        inline_diagnosis_evidence: false,
+        last_updated_at: "2026-07-30T01:00:00.000Z",
+      }),
+    ).toThrow();
+  });
+
+  it("rejects more retries than recorded incidents", () => {
+    expect(() =>
+      DelegationRecoverySchema.parse({
+        empty_or_malformed_count: 0,
+        narrower_retry_count: 1,
+        inline_diagnosis_evidence: false,
+        last_updated_at: "2026-07-30T01:00:00.000Z",
+      }),
+    ).toThrow();
+  });
+
+  it("accepts resolved recovery after inline diagnosis evidence is recorded", () => {
+    const parsed = DelegationRecoverySchema.parse({
+      empty_or_malformed_count: 2,
+      narrower_retry_count: 1,
+      inline_diagnosis_evidence: true,
+      last_updated_at: "2026-07-30T01:00:00.000Z",
+      blocked_scope: "implementation:tk-570509ffe024",
+    });
+    expect(parsed.inline_diagnosis_evidence).toBe(true);
+    expect(parsed.blocked_scope).toBe("implementation:tk-570509ffe024");
+  });
+
+  it("exposes recovery as a task field (structural, not prose)", () => {
+    const parsed = TaskSchema.parse({
+      id: "tk-delegation01",
+      title: "bounded recovery test",
+      status: "in_progress",
+      created_at: "2026-07-30T01:00:00.000Z",
+      delegation_recovery: {
+        empty_or_malformed_count: 1,
+        narrower_retry_count: 0,
+        inline_diagnosis_evidence: false,
+        last_updated_at: "2026-07-30T01:00:00.000Z",
+      },
+    });
+    expect(parsed.delegation_recovery).toBeDefined();
+    expect(parsed.delegation_recovery?.empty_or_malformed_count).toBe(1);
   });
 });
 

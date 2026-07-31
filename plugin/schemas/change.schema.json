@@ -7137,6 +7137,38 @@
           "created_at": {
             "type": "string"
           },
+          "delegation_recovery": {
+            "additionalProperties": false,
+            "properties": {
+              "blocked_scope": {
+                "type": "string"
+              },
+              "empty_or_malformed_count": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "inline_diagnosis_evidence": {
+                "type": "boolean"
+              },
+              "last_updated_at": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "narrower_retry_count": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              }
+            },
+            "required": [
+              "empty_or_malformed_count",
+              "narrower_retry_count",
+              "inline_diagnosis_evidence",
+              "last_updated_at"
+            ],
+            "type": "object"
+          },
           "deps": {
             "items": {
               "properties": {

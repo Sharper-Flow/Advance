@@ -288,6 +288,70 @@ export const ErrorRecoverySchema = z
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 
 // =============================================================================
+// Delegation Recovery (AC5 — bounded empty-worker recovery)
+// =============================================================================
+
+/**
+ * Task-scoped delegation recovery state.
+ *
+ * Records empty/malformed worker output incidents and enforces the bounded
+ * recovery rule: one narrower retry at most; after that retry is exhausted,
+ * further same-scope delegation is refused until inline diagnosis evidence
+ * exists. Empty output is tracked here, NOT in ErrorRecovery.attempts, so it
+ * does not count as a genuine semantic repair attempt.
+ */
+export const DelegationRecoverySchema = z
+  .object({
+    /** Number of empty or malformed worker-output incidents recorded. */
+    empty_or_malformed_count: z.number().int().min(0),
+    /** Number of narrower retries already attempted in response to incidents. */
+    narrower_retry_count: z.number().int().min(0),
+    /** Whether inline diagnosis evidence has been recorded for the incident. */
+    inline_diagnosis_evidence: z.boolean(),
+    /** ISO8601 timestamp of the most recent incident or recovery update. */
+    last_updated_at: z.string().trim().min(1),
+    /** Optional fingerprint identifying the blocked delegation scope. */
+    blocked_scope: z.string().optional(),
+  })
+  .superRefine((recovery, ctx) => {
+    // AC5: at most one narrower retry after empty/malformed worker output.
+    if (recovery.narrower_retry_count > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["narrower_retry_count"],
+        message:
+          "AC5: at most one narrower retry is allowed after empty/malformed worker output",
+      });
+    }
+
+    // AC5: once the single allowed retry has been attempted, same-scope
+    // delegation is blocked until inline diagnosis evidence exists.
+    if (
+      recovery.narrower_retry_count > 0 &&
+      !recovery.inline_diagnosis_evidence
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["inline_diagnosis_evidence"],
+        message:
+          "AC5: inline diagnosis evidence is required before further same-scope delegation after empty/malformed worker output",
+      });
+    }
+
+    // Cannot attempt more retries than recorded incidents.
+    if (recovery.narrower_retry_count > recovery.empty_or_malformed_count) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["narrower_retry_count"],
+        message:
+          "narrower_retry_count must not exceed empty_or_malformed_count",
+      });
+    }
+  });
+
+export type DelegationRecovery = z.infer<typeof DelegationRecoverySchema>;
+
+// =============================================================================
 // Wisdom Drafts (rq-wisdomAutoSurfacing01)
 // =============================================================================
 //
@@ -466,6 +530,12 @@ export const TaskSchema = z
      * Cleared when the task succeeds.
      */
     error_recovery: ErrorRecoverySchema.optional(),
+    /**
+     * Delegation recovery state for bounded empty/malformed worker output.
+     * Tracks the single allowed narrower retry and blocks same-scope
+     * delegation until inline diagnosis evidence exists (AC5).
+     */
+    delegation_recovery: DelegationRecoverySchema.optional(),
     /**
      * Repo-relative paths of files changed by this task.
      * Populated by adv_task_checkpoint after successful git commit.
