@@ -24,6 +24,7 @@
  * error and instructs the caller to recover the workflow instead.
  */
 
+import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import {
@@ -73,6 +74,39 @@ const targetArgs = {
 
 interface DeltaValidation {
   delta?: unknown;
+}
+
+function assertAddReceipt(observed: unknown, expected: DeltaAdd): DeltaAdd {
+  const parsed = DeltaAddSchema.safeParse(observed);
+  if (!parsed.success) {
+    throw new Error(
+      `Spec delta add store receipt was malformed: ${parsed.error.message}`,
+    );
+  }
+  if (!isDeepStrictEqual(parsed.data, expected)) {
+    throw new Error(
+      `Spec delta add store receipt payload mismatch for delta ${expected.id}`,
+    );
+  }
+  return parsed.data;
+}
+
+function assertModifyReceipt(
+  observed: unknown,
+  expected: DeltaModify,
+): DeltaModify {
+  const parsed = DeltaModifySchema.safeParse(observed);
+  if (!parsed.success) {
+    throw new Error(
+      `Spec delta modify store receipt was malformed: ${parsed.error.message}`,
+    );
+  }
+  if (!isDeepStrictEqual(parsed.data, expected)) {
+    throw new Error(
+      `Spec delta modify store receipt payload mismatch for delta ${expected.id}`,
+    );
+  }
+  return parsed.data;
 }
 
 function validateDeltaArg(input: DeltaValidation): {
@@ -298,12 +332,13 @@ async function runAdd(
         `Requirement ${input.delta.requirement.id} already exists in spec ${input.capability}`,
       );
     }
-    const appended = await activeStore.specDeltas.add(
+    const appendedReceipt = await activeStore.specDeltas.add(
       input.changeId,
       input.capability,
       input.delta,
       input.addedBy ? { addedBy: input.addedBy } : undefined,
     );
+    const appended = assertAddReceipt(appendedReceipt, input.delta);
     return formatToolOutput({
       success: true,
       changeId: input.changeId,
@@ -388,12 +423,13 @@ async function runModify(
         }
       }
     }
-    const appended = await activeStore.specDeltas.modify(
+    const appendedReceipt = await activeStore.specDeltas.modify(
       input.changeId,
       input.capability,
       input.delta,
       input.modifiedBy ? { modifiedBy: input.modifiedBy } : undefined,
     );
+    const appended = assertModifyReceipt(appendedReceipt, input.delta);
     return formatToolOutput({
       success: true,
       changeId: input.changeId,

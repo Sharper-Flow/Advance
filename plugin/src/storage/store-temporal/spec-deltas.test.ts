@@ -49,20 +49,6 @@ const MODIFY_DELTA = {
   changes: { title: "Updated requirement" },
 };
 
-const REMOVE_DELTA = {
-  id: "dl-RMV11111",
-  operation: "remove" as const,
-  target_id: "rq-existing01",
-  reason: "obsolete",
-};
-
-const RENAME_DELTA = {
-  id: "dl-RNM11111",
-  operation: "rename" as const,
-  target_id: "rq-existing01",
-  new_title: "Renamed requirement",
-};
-
 function makeStateWithDelta() {
   return {
     changeId: "spec-delta-store-test",
@@ -393,5 +379,55 @@ describe("createSpecDeltaOps", () => {
         addedBy: "agent",
       }),
     ).rejects.toThrow(/projection_failure/);
+  });
+
+  it("rejects an add readback whose id matches but normalized payload differs", async () => {
+    const mismatched = {
+      ...makeStateWithDelta(),
+      deltas: {
+        "collection-dashboard": [
+          {
+            ...ADD_DELTA,
+            requirement: {
+              ...ADD_DELTA.requirement,
+              body: "Persisted content differs from the requested delta.",
+            },
+          },
+        ],
+      },
+    };
+    const deps = makeDeps(mismatched);
+    const ops = createSpecDeltaOps(deps as never);
+
+    await expect(
+      ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA),
+    ).rejects.toThrow(/payload|mismatch|exact/i);
+    expect(deps.setCachedChange).not.toHaveBeenCalled();
+    expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
+    expect(deps.persistStateToDisk).not.toHaveBeenCalled();
+  });
+
+  it("rejects a modify readback whose id and operation match but payload differs", async () => {
+    const mismatched = {
+      changeId: "spec-delta-store-test",
+      deltas: {
+        "collection-dashboard": [
+          {
+            ...MODIFY_DELTA,
+            changes: { title: "Different persisted title" },
+          },
+        ],
+      },
+      wisdom: [],
+    };
+    const deps = makeDeps(mismatched);
+    const ops = createSpecDeltaOps(deps as never);
+
+    await expect(
+      ops.modify("spec-delta-store-test", "collection-dashboard", MODIFY_DELTA),
+    ).rejects.toThrow(/payload|mismatch|exact/i);
+    expect(deps.setCachedChange).not.toHaveBeenCalled();
+    expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
+    expect(deps.persistStateToDisk).not.toHaveBeenCalled();
   });
 });

@@ -245,6 +245,30 @@ describe("adv_delta_add — schema + happy path", () => {
     const callArgs = mocks.specDeltasAdd.mock.calls[0];
     expect(callArgs[3]).toEqual({ addedBy: "adv-engineer" });
   });
+
+  it("refuses success when the store returns a structurally mismatched add receipt", async () => {
+    const requested = makeValidDelta();
+    mocks.specDeltasAdd.mockResolvedValueOnce({
+      ...requested,
+      requirement: {
+        ...requested.requirement,
+        body: "Mismatched persisted receipt",
+      },
+    });
+
+    const result = await specDeltaTools.adv_delta_add.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: requested,
+      },
+      makeStore(),
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).not.toBe(true);
+    expect(parsed.error).toMatch(/receipt|payload|mismatch|exact/i);
+  });
 });
 
 describe("adv_delta_modify — schema + target validation", () => {
@@ -281,6 +305,38 @@ describe("adv_delta_modify — schema + target validation", () => {
       delta,
       undefined,
     );
+  });
+
+  it("refuses success when the store returns a structurally mismatched modify receipt", async () => {
+    const requested = makeValidModifyDelta();
+    mocks.specDeltasModify.mockResolvedValueOnce({
+      ...requested,
+      changes: { title: "Mismatched persisted receipt" },
+    });
+    const store = makeStore({
+      specs: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            name: "test-capability",
+            requirements: [{ id: "rq-existing01" }],
+          },
+        })),
+      },
+    });
+
+    const result = await specDeltaTools.adv_delta_modify.execute(
+      {
+        changeId: "addFeature",
+        capability: "test-capability",
+        delta: requested,
+      },
+      store,
+    );
+    const parsed = parse(result);
+
+    expect(parsed.success).not.toBe(true);
+    expect(parsed.error).toMatch(/receipt|payload|mismatch|exact/i);
   });
 
   it.each([
