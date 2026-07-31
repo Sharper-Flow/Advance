@@ -27,7 +27,7 @@ describe("runOptScan", () => {
     expect(result.candidates).toEqual([]);
   });
 
-  test("records all four detectors as skipped in the foundation", async () => {
+  test("runs all four Phase 1 detectors against an empty repo", async () => {
     const result = await runOptScan({ repoRoot });
 
     expect(result.coverage).toHaveLength(OPTIMIZATION_DETECTORS.length);
@@ -35,7 +35,7 @@ describe("runOptScan", () => {
     for (const detector of OPTIMIZATION_DETECTORS) {
       expect(ids.has(detector.id)).toBe(true);
     }
-    expect(result.coverage.every((c) => c.state === "skipped")).toBe(true);
+    expect(result.coverage.every((c) => c.state === "run")).toBe(true);
   });
 
   test("phase filter excludes detectors not in the selected phase", async () => {

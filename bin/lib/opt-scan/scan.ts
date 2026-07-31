@@ -12,6 +12,7 @@
  */
 
 import { OPTIMIZATION_DETECTORS } from "./registry";
+import { evaluateDetector } from "./evaluator";
 import type { OptimizationCandidate, OptimizationCoverage } from "./schema";
 
 export interface ScanOptions {
@@ -116,19 +117,23 @@ export async function runOptScan(options: ScanOptions): Promise<OptScanResult> {
     selected = selected.filter((entry) => entry.detection_phase === phase);
   }
 
-  const coverage: OptimizationCoverage[] = selected.map((detector) => ({
-    id: detector.id,
-    label: detector.title,
-    state: "skipped",
-    reason: "structural foundation: detector implementation pending",
-    important: true,
-  }));
+  const candidates: OptimizationCandidate[] = [];
+  const coverage: OptimizationCoverage[] = [];
+
+  for (const detector of selected) {
+    const result = await evaluateDetector(detector, {
+      repoRoot: options.repoRoot,
+      regexTimeoutMs: options.regexTimeoutMs,
+    });
+    candidates.push(...result.candidates);
+    coverage.push(result.coverage_entry);
+  }
 
   const result: OptScanResult = {
     schema_version: "opt_scan_report.v1",
     generated_at: new Date().toISOString(),
     scope,
-    candidates: [],
+    candidates,
     coverage,
   };
 
