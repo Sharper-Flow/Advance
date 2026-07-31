@@ -4782,6 +4782,9 @@ export const changeTools = {
                     ...(converge.kind === "readbackFailed"
                       ? { readback: converge.readback }
                       : {}),
+                    ...(converge.kind === "state_unknown"
+                      ? { recoveryState: converge.kind }
+                      : {}),
                   });
                 }
                 const { saveRecoveredChangeStatus } =

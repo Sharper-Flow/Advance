@@ -2,8 +2,8 @@
  * Tests for the dead-workflow archive convergence recovery writer.
  *
  * These tests exercise `saveRecoveredArchiveConvergence` with real disk fixtures
- * so the single `saveChange` call and read-after-write verification are exercised
- * end-to-end.
+ * so the conditional projection commit and read-after-write verification are
+ * exercised end-to-end.
  */
 
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
