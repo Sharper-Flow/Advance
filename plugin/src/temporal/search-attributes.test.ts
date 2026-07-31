@@ -65,6 +65,8 @@ describe("ADV search attributes", () => {
       // rq-epicTemporalConstraints01: single-value Keyword for one Epic per change.
       AdvEpicId: "Keyword",
       AdvEpicStatus: "Keyword",
+      // rq-coordinationClaim01 — Text attribute for searchable claim terms.
+      AdvCoordinationClaim: "Text",
     });
   });
 
@@ -84,6 +86,7 @@ describe("ADV search attributes", () => {
       { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
       { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
       { name: "AdvEpicStatus", type: "Keyword", typeCode: 2 },
+      { name: "AdvCoordinationClaim", type: "Text", typeCode: 1 },
     ]);
   });
 
@@ -140,6 +143,7 @@ describe("ADV search attributes", () => {
       "AdvBacklogIssueNumber",
       "AdvEpicId",
       "AdvEpicStatus",
+      "AdvCoordinationClaim",
     ]);
     expect(addSearchAttributes).toHaveBeenCalledWith({
       namespace: "default",
@@ -157,6 +161,7 @@ describe("ADV search attributes", () => {
         AdvBacklogIssueNumber: 2,
         AdvEpicId: 2,
         AdvEpicStatus: 2,
+        AdvCoordinationClaim: 1,
       },
     });
   });

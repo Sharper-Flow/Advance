@@ -43,6 +43,7 @@ import {
 import {
   ChangeClosureSchema,
   ChangeContractSchema,
+  ChangeCoordinationClaimSchema,
   ChangeOriginSchema,
   ContractAmendmentSchema,
   ContractReviewMatrixSchema,
@@ -289,6 +290,19 @@ export const ReleaseNotesSetSignalPayloadSchema = z
   .merge(CommandOperationEnvelopeSchema);
 export type ReleaseNotesSetSignalPayload = z.infer<
   typeof ReleaseNotesSetSignalPayloadSchema
+>;
+
+/**
+ * rq-coordinationClaim01: set or replace a typed coordination claim on an
+ * open change. The claim is schema-validated, identifiers are normalized,
+ * and the workflow reducer rejects the signal if the lifecycle is not open.
+ */
+export const CoordinationClaimSetSignalPayloadSchema = z.object({
+  claim: ChangeCoordinationClaimSchema,
+  set_at: IsoTimestampSchema,
+});
+export type CoordinationClaimSetSignalPayload = z.infer<
+  typeof CoordinationClaimSetSignalPayloadSchema
 >;
 
 export const SubagentReportSubmittedSignalPayloadSchema = z.object({

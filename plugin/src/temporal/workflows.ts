@@ -2,7 +2,7 @@ import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import { derivePhasePlanFromState } from "../utils/phase-plan";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
-import type { ChangeStatus, GateReadinessBlocker } from "../types";
+import type { ChangeStatus, CoordinationClaimSetSignalPayload, GateReadinessBlocker } from "../types";
 import { normalizeLegacyChangeStatus } from "../types";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
@@ -39,6 +39,7 @@ import {
   applyAgreementUpdatedToState,
   applyArchiveRequestedToState,
   applyChangeCancelledToState,
+  applyCoordinationClaimSetToState,
   applyConformanceLockedToState,
   applyConformanceOverriddenToState,
   applyConformanceVerdictToState,
@@ -368,6 +369,9 @@ const workerBundleImpactSetSignal = wf.defineSignal<
 const releaseNotesSetSignal = wf.defineSignal<
   [import("../types").ReleaseNotesSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.releaseNotesSet);
+const coordinationClaimSetSignal = wf.defineSignal<
+  [CoordinationClaimSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.coordinationClaimSet);
 const subagentReportSubmittedSignal = wf.defineSignal<
   [import("../types").SubagentReportSubmittedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
@@ -723,6 +727,7 @@ export function buildChangeWorkflowContinueAsNewSeed(
       lightweight_profile: state.lightweight_profile,
       creation_request_hash: state.creation_request_hash,
       epic_membership: state.epic_membership,
+      coordination_claim: state.coordination_claim,
       same_project_dependencies: state.same_project_dependencies,
       worker_bundle_impact: state.worker_bundle_impact,
       workerBundleProvenance: state.workerBundleProvenance,
@@ -881,6 +886,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
+    }
+    if (input.seedState.coordination_claim) {
+      state.coordination_claim = input.seedState.coordination_claim;
     }
     if (input.seedState.same_project_dependencies) {
       state.same_project_dependencies =
@@ -1663,6 +1671,16 @@ export async function changeWorkflow(
     signalMutation(
       "releaseNotesSet",
       (payload) => applyReleaseNotesSetToState(state, payload),
+      { projectAfter: true },
+    ),
+  );
+  wf.setHandler(
+    coordinationClaimSetSignal,
+    signalMutation(
+      "coordinationClaimSet",
+      (payload) => applyCoordinationClaimSetToState(state, payload),
+      // adv_wip_state reads persisted change summaries; keep the claim
+      // inventory current after each accepted or rejected claim signal.
       { projectAfter: true },
     ),
   );

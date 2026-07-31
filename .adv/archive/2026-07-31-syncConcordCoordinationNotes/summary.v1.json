@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-31T01:45:11.142Z",
+  "capabilities": [],
+  "change_hash": "a6d910b6a65c51bf73feeb8cdb404d24e018efe2115490e911dec3c826711642",
+  "change_id": "syncConcordCoordinationNotes",
+  "completed_tasks": 4,
+  "created_at": "2026-07-30T20:44:48.062Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-31T01:40:10.234Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "dfaa18780e99bcec7b3707a36ee60a76693412ef7b77f4a9b0e41be3b25e1a26",
+  "task_count": 4,
+  "title": "Sync Concord coordination notes",
+  "version": "1"
+}

@@ -17,6 +17,7 @@ import type {
   ConformanceLockedSignalPayload,
   ConformanceOverriddenSignalPayload,
   ConformanceVerdictSignalPayload,
+  CoordinationClaimSetSignalPayload,
   DesignUpdatedSignalPayload,
   ErrorRecovery,
   ExecutiveSummaryUpdatedSignalPayload,
@@ -73,6 +74,7 @@ import type {
 import {
   createDefaultGates,
   GATE_ORDER,
+  CoordinationClaimSetSignalPayloadSchema,
   ReleaseNotesSetSignalPayloadSchema,
   SpecDeltaAmendedSignalPayloadSchema,
   SpecDeltaModifiedSignalPayloadSchema,
@@ -251,6 +253,7 @@ export function changeSeedStateFromChange(
     ops_followup_links: safeChange.ops_followup_links,
     epic_membership: safeChange.epic_membership,
     lightweight_profile: safeChange.lightweight_profile,
+    coordination_claim: safeChange.coordination_claim,
     // rq-creationRequestHash01 (tk-74c358188ffb): preserve hash across
     // re-seed / Continue-As-New so the idempotency invariant survives
     // workflow lifecycle boundaries.
@@ -1504,6 +1507,50 @@ export function applyReleaseNotesSetToState(
       setLastSignalAt(state, validated.set_at);
     },
   );
+  return state;
+}
+
+export function applyCoordinationClaimSetToState(
+  state: ChangeWorkflowState,
+  payload: CoordinationClaimSetSignalPayload,
+): ChangeWorkflowState {
+  const parsed = CoordinationClaimSetSignalPayloadSchema.safeParse(payload);
+  if (!parsed.success) {
+    const at =
+      typeof payload.set_at === "string"
+        ? payload.set_at
+        : new Date().toISOString();
+    applySignalRejectionToState(state, {
+      signalName: "coordinationClaimSet",
+      error: new Error(
+        `Invalid coordinationClaimSet payload: ${parsed.error.issues[0]?.message ?? "schema validation failed"}`,
+      ),
+      payload,
+      rejectedAt: at,
+    });
+    setLastSignalAt(state, at);
+    return state;
+  }
+
+  const validated = parsed.data;
+  const lifecycle =
+    state.lifecycleState ?? normalizeChangeLifecycleState(state.status);
+  if (lifecycle !== "open") {
+    applySignalRejectionToState(state, {
+      signalName: "coordinationClaimSet",
+      error: new Error(
+        `Coordination claim rejected: change lifecycle is ${lifecycle}, not open`,
+      ),
+      payload: validated,
+      rejectedAt: validated.set_at,
+    });
+    setLastSignalAt(state, validated.set_at);
+    return state;
+  }
+
+  state.coordination_claim = validated.claim;
+  advanceStateRevision(state);
+  setLastSignalAt(state, validated.set_at);
   return state;
 }
 

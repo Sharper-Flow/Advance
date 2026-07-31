@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { backlogTools } from "./backlog";
+import { backlogTools, rankAdvisorySearch } from "./backlog";
 import type { Store } from "../storage/store-types";
 import { type InventoryBudget } from "./worktree/inventory-budget";
 
@@ -21,6 +21,7 @@ function makeMockStore(
     lastActivityAt: string;
     taskCount: number;
     completedTasks: number;
+    coordination_claim?: unknown;
   }>,
 ): Store {
   return {
@@ -905,6 +906,619 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
     expect(parsed.warnings).toContainEqual({
       source: "orphan_tasks",
       reason: "Orphan task warnings capped at 50; additional tasks omitted.",
+    });
+  });
+
+  describe("claim inventory (rq-coordinationClaim02)", () => {
+    const validClaim = {
+      scope_summary: "Typed claim inventory",
+      responsibility: "owner",
+      exact_identifiers: ["tk-abc123", "shared-surface"],
+      generated_terms: ["inventory", "claims"],
+      claimed_at: "2026-05-11T00:00:00.000Z",
+      claimed_by: "agent",
+    };
+
+    it("surfaces valid claims from active changes with complete inventory and no conflicts", async () => {
+      const store = makeMockStore([
+        {
+          id: "changeA",
+          title: "Change A",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: validClaim,
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory).toMatchObject({
+        completeness: "complete",
+        can_conclude_clean: true,
+        conflicts: [],
+        warnings: [],
+      });
+      expect(parsed.claim_inventory.claims).toHaveLength(1);
+      expect(parsed.claim_inventory.claims[0]).toMatchObject({
+        change_id: "changeA",
+        scope_summary: "Typed claim inventory",
+        responsibility: "owner",
+        exact_identifiers: ["tk-abc123", "shared-surface"],
+        generated_terms: ["inventory", "claims"],
+        claimed_by: "agent",
+      });
+    });
+
+    it("detects exact identifier overlap and refuses clean conclusion", async () => {
+      const store = makeMockStore([
+        {
+          id: "changeA",
+          title: "Change A",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            ...validClaim,
+            exact_identifiers: ["shared-id"],
+          },
+        },
+        {
+          id: "changeB",
+          title: "Change B",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            ...validClaim,
+            scope_summary: "Overlapping claim",
+            exact_identifiers: ["shared-id"],
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.completeness).toBe("complete");
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(false);
+      expect(parsed.claim_inventory.conflicts).toEqual([
+        { identifier: "shared-id", change_ids: ["changeA", "changeB"] },
+      ]);
+      expect(parsed.claim_inventory.warnings).toEqual([
+        "Exact identifier overlap detected on 1 identifier(s); no-conflict conclusion is unsafe.",
+      ]);
+    });
+
+    it("marks inventory degraded and blocks clean conclusion when worktree snapshot is incomplete", async () => {
+      const store = makeMockStore([
+        {
+          id: "changeA",
+          title: "Change A",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: validClaim,
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => ({
+            worktrees: [],
+            complete: false,
+            stopReason: "budget_exhausted",
+            stoppedStage: "visibility_enumeration",
+          }),
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.completeness).toBe("degraded");
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(false);
+      expect(parsed.claim_inventory.warnings).toContainEqual(
+        "Worktree inventory is incomplete or timed out; claim inventory may be missing active changes.",
+      );
+    });
+
+    it("marks inventory blocked when worktree provider is unavailable", async () => {
+      const store = makeMockStore([
+        {
+          id: "changeA",
+          title: "Change A",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: validClaim,
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => ({
+            worktrees: [],
+            unavailable: true,
+          }),
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.completeness).toBe("blocked");
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(false);
+      expect(parsed.claim_inventory.warnings).toContainEqual(
+        "Worktree inventory unavailable; claim inventory cannot be verified as complete.",
+      );
+    });
+
+    it("marks inventory degraded and blocks clean conclusion when poisoned workflows exist", async () => {
+      const store = makeMockStore([
+        {
+          id: "changeA",
+          title: "Change A",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: validClaim,
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => ({
+            worktrees: [],
+            poisonedWorkflows: [
+              {
+                changeId: "changeA",
+                workflowId: "changeA-wf",
+                recoveryReason: "poisoned_history",
+                evidenceSummary: "describe failed",
+                message: "Poisoned workflow detected",
+              },
+            ],
+          }),
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.completeness).toBe("degraded");
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(false);
+      expect(parsed.claim_inventory.warnings).toContainEqual(
+        "Worktree inventory includes 1 poisoned workflow(s); claim completeness is uncertain.",
+      );
+    });
+
+    it("marks inventory blocked when active change enumeration fails", async () => {
+      const store = makeMockStore([]);
+      store.changes.list = vi
+        .fn()
+        .mockRejectedValue(new Error("Visibility unreachable"));
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.completeness).toBe("blocked");
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(false);
+      expect(parsed.claim_inventory.claims).toEqual([]);
+      expect(parsed.claim_inventory.warnings).toContainEqual(
+        "Active change enumeration failed; claim inventory cannot be built.",
+      );
+    });
+
+    it("ignores archived changes and malformed claims when building inventory", async () => {
+      const store = makeMockStore([
+        {
+          id: "activeChange",
+          title: "Active",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: validClaim,
+        },
+        {
+          id: "archivedChange",
+          title: "Archived",
+          status: "archived",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 0,
+          completedTasks: 0,
+          coordination_claim: {
+            ...validClaim,
+            exact_identifiers: ["archived-id"],
+          },
+        },
+        {
+          id: "badClaim",
+          title: "Bad Claim",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: { not_a_real_claim: true },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.claims).toHaveLength(1);
+      expect(parsed.claim_inventory.claims[0].change_id).toBe("activeChange");
+      expect(parsed.claim_inventory.conflicts).toEqual([]);
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(true);
+    });
+  });
+
+  describe("advisory Concord search (SC6)", () => {
+    const makeSearchStore = (changes: unknown[]) =>
+      makeMockStore(
+        changes as Array<{
+          id: string;
+          title: string;
+          status: string;
+          created_at: string;
+          lastActivityAt: string;
+          taskCount: number;
+          completedTasks: number;
+          coordination_claim?: unknown;
+          description?: string;
+        }>,
+      );
+
+    it("omits advisory_search when no query is supplied", async () => {
+      const store = makeSearchStore([
+        {
+          id: "changeA",
+          title: "Change A",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer",
+            responsibility: "owner",
+            exact_identifiers: ["tk-abc123"],
+            generated_terms: ["auth"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory).not.toHaveProperty("advisory_search");
+    });
+
+    it("ranks candidates by title, scope claim, and identifiers", async () => {
+      const store = makeSearchStore([
+        {
+          id: "authChange",
+          title: "Fix authentication bug",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer refactoring",
+            responsibility: "owner",
+            exact_identifiers: ["tk-auth-001"],
+            generated_terms: ["login", "auth"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+        {
+          id: "docsChange",
+          title: "Update documentation",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Docs refresh",
+            responsibility: "observer",
+            exact_identifiers: ["tk-docs-001"],
+            generated_terms: ["readme"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "auth" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      const search = parsed.claim_inventory.advisory_search;
+      expect(search).toBeDefined();
+      expect(search.advisory).toBe(true);
+      expect(search.query).toBe("auth");
+      expect(search.results).toHaveLength(1);
+      expect(search.results[0].change_id).toBe("authChange");
+      expect(search.results[0].rank).toBe(1);
+      expect(search.results[0].matched_fields).toContain("title");
+      expect(search.results[0].matched_fields).toContain("scope_summary");
+      expect(search.results[0].matched_fields).toContain("exact_identifiers");
+      expect(search.results[0].matched_fields).toContain("generated_terms");
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(true);
+    });
+
+    it("matches normalized identifier tokens and stays advisory", async () => {
+      const store = makeSearchStore([
+        {
+          id: "tokenChange",
+          title: "Token refresh",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Token handling",
+            responsibility: "owner",
+            exact_identifiers: ["tk-refresh-001"],
+            generated_terms: ["token"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "REFRESH-001" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      const search = parsed.claim_inventory.advisory_search;
+      expect(search.results).toHaveLength(1);
+      expect(search.results[0].change_id).toBe("tokenChange");
+      expect(search.results[0].matched_fields).toContain("exact_identifiers");
+      expect(search.note).toMatch(
+        /exact identifier overlap.*authority for ownership\/no-conflict/i,
+      );
+    });
+
+    it("ranks responsibility and description when provided", () => {
+      const candidates = [
+        {
+          change_id: "reviewerChange",
+          title: "Backend refactor",
+          description: "Refactor the database layer",
+          scope_summary: "Database layer",
+          responsibility: "reviewer",
+          exact_identifiers: ["tk-db-001"],
+          generated_terms: ["postgres"],
+        },
+        {
+          change_id: "ownerChange",
+          title: "Database migration",
+          description: "Migrate users table",
+          scope_summary: "User migration",
+          responsibility: "owner",
+          exact_identifiers: ["tk-mig-001"],
+          generated_terms: ["migration"],
+        },
+      ];
+
+      const result = rankAdvisorySearch(
+        "reviewer database",
+        candidates,
+        "complete",
+      );
+      expect(result.advisory).toBe(true);
+      expect(result.results).toHaveLength(2);
+      expect(result.results[0].change_id).toBe("reviewerChange");
+      expect(result.results[0].matched_fields).toContain("responsibility");
+      expect(result.results[0].matched_fields).toContain("description");
+      expect(result.results[1].change_id).toBe("ownerChange");
+      expect(result.results[0].score).toBeGreaterThan(result.results[1].score);
+    });
+
+    it("does not produce search results for non-matching queries", async () => {
+      const store = makeSearchStore([
+        {
+          id: "authChange",
+          title: "Fix authentication bug",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer refactoring",
+            responsibility: "owner",
+            exact_identifiers: ["tk-auth-001"],
+            generated_terms: ["login"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "billing" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.advisory_search.results).toEqual([]);
+      expect(parsed.claim_inventory.advisory_search.total_candidates).toBe(1);
+    });
+
+    it("exposes a degraded-inventory note but still returns advisory results", async () => {
+      const store = makeSearchStore([
+        {
+          id: "authChange",
+          title: "Fix authentication bug",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer refactoring",
+            responsibility: "owner",
+            exact_identifiers: ["tk-auth-001"],
+            generated_terms: ["login"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "auth" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => ({
+            worktrees: [],
+            complete: false,
+            stopReason: "budget_exhausted",
+            stoppedStage: "visibility_enumeration",
+          }),
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.completeness).toBe("degraded");
+      expect(parsed.claim_inventory.advisory_search.results).toHaveLength(1);
+      expect(parsed.claim_inventory.advisory_search.note).toContain(
+        "Inventory completeness is not 'complete'",
+      );
     });
   });
 });

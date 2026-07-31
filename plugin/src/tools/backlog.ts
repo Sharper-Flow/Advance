@@ -117,6 +117,8 @@ export interface WipStateResponse {
   }>;
   /** Typed degradation metadata for slow or incomplete sources. */
   degradation?: WipStateDegradation;
+  /** Aggregate typed coordination claim inventory with completeness/overlap evidence. */
+  claim_inventory?: WipClaimInventory;
 }
 
 export interface WipStateDegradation {
@@ -129,6 +131,71 @@ export interface WipStateDegradation {
     candidateCount?: number;
     omitted?: number;
   };
+}
+
+/** A single valid typed coordination claim surfaced from an active change. */
+export interface WipClaimInventoryEntry {
+  change_id: string;
+  scope_summary: string;
+  responsibility: string;
+  exact_identifiers: string[];
+  generated_terms: string[];
+  claimed_at: string;
+  claimed_by?: string;
+}
+
+/** Exact-identifier conflict between two or more active changes. */
+export interface WipClaimInventoryConflict {
+  identifier: string;
+  change_ids: string[];
+}
+
+/** Aggregate claim inventory with structural completeness and overlap evidence. */
+export interface WipClaimInventory {
+  claims: WipClaimInventoryEntry[];
+  completeness: "complete" | "degraded" | "blocked";
+  can_conclude_clean: boolean;
+  conflicts: WipClaimInventoryConflict[];
+  warnings: string[];
+  /**
+   * Optional advisory ranked search results. Present only when a free-text
+   * query is supplied. Advisory search never assigns claims, establishes
+   * ownership, or emits a no-conflict result; the exact-identifier overlap
+   * path remains the sole authority.
+   */
+  advisory_search?: AdvisorySearchResult;
+}
+
+/** Input candidate for advisory free-text ranking. */
+export interface AdvisorySearchCandidate {
+  change_id: string;
+  title: string;
+  description?: string;
+  scope_summary?: string;
+  responsibility?: string;
+  exact_identifiers: string[];
+  generated_terms: string[];
+}
+
+/** A single ranked advisory match. */
+export interface AdvisorySearchResultItem {
+  change_id: string;
+  title: string;
+  responsibility?: string;
+  scope_summary?: string;
+  score: number;
+  rank: number;
+  matched_fields: string[];
+  matched_terms: string[];
+}
+
+/** Advisory free-text search output. */
+export interface AdvisorySearchResult {
+  advisory: true;
+  query: string;
+  results: AdvisorySearchResultItem[];
+  total_candidates: number;
+  note: string;
 }
 
 /**
@@ -263,18 +330,306 @@ function toWipPoisonedWorkflowEntry(
   };
 }
 
+function isValidClaim(value: unknown): value is {
+  scope_summary: string;
+  responsibility: string;
+  exact_identifiers: string[];
+  generated_terms: string[];
+  claimed_at: string;
+  claimed_by?: string;
+} {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.scope_summary === "string" &&
+    typeof v.responsibility === "string" &&
+    Array.isArray(v.exact_identifiers) &&
+    Array.isArray(v.generated_terms) &&
+    typeof v.claimed_at === "string"
+  );
+}
+
+/**
+ * Normalize and tokenize free text into lowercase alphanumeric tokens.
+ * Hyphens and underscores are treated as delimiters so that identifier-shaped
+ * substrings (e.g. "tk-refresh-001") collapse into searchable tokens.
+ */
+function tokenize(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
+}
+
+function tokenMatches(queryToken: string, fieldTokens: string[]): boolean {
+  return fieldTokens.some(
+    (fieldToken) =>
+      fieldToken === queryToken ||
+      fieldToken.startsWith(queryToken) ||
+      queryToken.startsWith(fieldToken),
+  );
+}
+
+const MAX_ADVISORY_RESULTS = 20;
+
+/**
+ * Rank active changes against a free-text query using title, description,
+ * scope summary, responsibility, exact identifiers, and generated terms.
+ * Results are strictly advisory: they do not create claims, assign ownership,
+ * or determine overlap/no-conflict.
+ */
+export function rankAdvisorySearch(
+  query: string,
+  candidates: AdvisorySearchCandidate[],
+  completeness: WipClaimInventory["completeness"],
+): AdvisorySearchResult {
+  const queryTokens = tokenize(query);
+  const resultItems: AdvisorySearchResultItem[] = [];
+
+  if (queryTokens.length > 0) {
+    for (const candidate of candidates) {
+      const titleTokens = tokenize(candidate.title);
+      const descriptionTokens = tokenize(candidate.description);
+      const scopeTokens = tokenize(candidate.scope_summary);
+      const responsibilityTokens = tokenize(candidate.responsibility ?? "");
+      const exactIdTokens = candidate.exact_identifiers.flatMap((id) =>
+        tokenize(id),
+      );
+      const generatedTokens = candidate.generated_terms.flatMap((t) =>
+        tokenize(t),
+      );
+
+      let score = 0;
+      const matchedFields = new Set<string>();
+      const matchedTerms = new Set<string>();
+
+      for (const token of queryTokens) {
+        if (tokenMatches(token, titleTokens)) {
+          score += 4;
+          matchedFields.add("title");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, descriptionTokens)) {
+          score += 2;
+          matchedFields.add("description");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, scopeTokens)) {
+          score += 3;
+          matchedFields.add("scope_summary");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, responsibilityTokens)) {
+          score += 2;
+          matchedFields.add("responsibility");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, exactIdTokens)) {
+          score += 3;
+          matchedFields.add("exact_identifiers");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, generatedTokens)) {
+          score += 1;
+          matchedFields.add("generated_terms");
+          matchedTerms.add(token);
+        }
+      }
+
+      if (score === 0) continue;
+
+      resultItems.push({
+        change_id: candidate.change_id,
+        title: candidate.title,
+        responsibility: candidate.responsibility,
+        scope_summary: candidate.scope_summary,
+        score,
+        rank: 0,
+        matched_fields: [...matchedFields],
+        matched_terms: [...matchedTerms],
+      });
+    }
+
+    resultItems.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.title.localeCompare(b.title);
+    });
+
+    let currentRank = 0;
+    let previousScore: number | undefined;
+    for (const item of resultItems.slice(0, MAX_ADVISORY_RESULTS)) {
+      if (item.score !== previousScore) {
+        currentRank += 1;
+        previousScore = item.score;
+      }
+      item.rank = currentRank;
+    }
+  }
+
+  const baseNote =
+    "Advisory discovery only. Exact identifier overlap in claim_inventory.conflicts remains the authority for ownership/no-conflict; search results do not assign claims.";
+  const completenessNote =
+    completeness !== "complete"
+      ? " Inventory completeness is not 'complete'; results may omit active changes."
+      : "";
+
+  return {
+    advisory: true,
+    query: query.trim(),
+    results: resultItems.slice(0, MAX_ADVISORY_RESULTS),
+    total_candidates: candidates.length,
+    note: `${baseNote}${completenessNote}`,
+  };
+}
+
+/**
+ * Build the aggregate claim inventory from active changes and determine
+ * whether it is complete enough to conclude "no conflict".
+ *
+ * Only exact_identifier overlap is checked; generated_terms are surfaced for
+ * transparency but intentionally excluded from conflict detection (fuzzy
+ * matching is out of scope).
+ */
+function buildClaimInventory(
+  activeChanges: Array<{
+    id: string;
+    title?: string;
+    description?: string;
+    coordination_claim?: unknown;
+  }>,
+  worktreeState: {
+    available: boolean;
+    complete: boolean;
+    poisonedCount: number;
+  },
+  activeChangesAvailable: boolean,
+  query?: string,
+): WipClaimInventory {
+  const warnings: string[] = [];
+  let completeness: WipClaimInventory["completeness"] = "complete";
+
+  if (!activeChangesAvailable) {
+    completeness = "blocked";
+    warnings.push(
+      "Active change enumeration failed; claim inventory cannot be built.",
+    );
+  } else if (!worktreeState.available) {
+    completeness = "blocked";
+    warnings.push(
+      "Worktree inventory unavailable; claim inventory cannot be verified as complete.",
+    );
+  } else if (worktreeState.poisonedCount > 0) {
+    completeness = "degraded";
+    warnings.push(
+      `Worktree inventory includes ${worktreeState.poisonedCount} poisoned workflow(s); claim completeness is uncertain.`,
+    );
+  } else if (!worktreeState.complete) {
+    completeness = "degraded";
+    warnings.push(
+      "Worktree inventory is incomplete or timed out; claim inventory may be missing active changes.",
+    );
+  }
+
+  const claims: WipClaimInventoryEntry[] = [];
+  const identifierIndex = new Map<string, string[]>();
+  const searchCandidates: AdvisorySearchCandidate[] = [];
+
+  for (const change of activeChanges) {
+    const baseCandidate: AdvisorySearchCandidate = {
+      change_id: change.id,
+      title: change.title ?? "",
+      description: change.description,
+      exact_identifiers: [],
+      generated_terms: [],
+    };
+
+    if (!isValidClaim(change.coordination_claim)) {
+      if (activeChangesAvailable) {
+        searchCandidates.push(baseCandidate);
+      }
+      continue;
+    }
+
+    const claim = change.coordination_claim;
+    claims.push({
+      change_id: change.id,
+      scope_summary: claim.scope_summary,
+      responsibility: claim.responsibility,
+      exact_identifiers: claim.exact_identifiers,
+      generated_terms: claim.generated_terms,
+      claimed_at: claim.claimed_at,
+      ...(claim.claimed_by !== undefined
+        ? { claimed_by: claim.claimed_by }
+        : {}),
+    });
+
+    searchCandidates.push({
+      ...baseCandidate,
+      scope_summary: claim.scope_summary,
+      responsibility: claim.responsibility,
+      exact_identifiers: claim.exact_identifiers,
+      generated_terms: claim.generated_terms,
+    });
+
+    for (const id of claim.exact_identifiers) {
+      const entry = identifierIndex.get(id);
+      if (entry) {
+        entry.push(change.id);
+      } else {
+        identifierIndex.set(id, [change.id]);
+      }
+    }
+  }
+
+  const conflicts: WipClaimInventoryConflict[] = [];
+  for (const [identifier, changeIds] of identifierIndex.entries()) {
+    if (changeIds.length > 1) {
+      conflicts.push({ identifier, change_ids: [...changeIds] });
+    }
+  }
+
+  if (conflicts.length > 0) {
+    warnings.push(
+      `Exact identifier overlap detected on ${conflicts.length} identifier(s); no-conflict conclusion is unsafe.`,
+    );
+  }
+
+  const can_conclude_clean =
+    completeness === "complete" && conflicts.length === 0;
+
+  const inventory: WipClaimInventory = {
+    claims,
+    completeness,
+    can_conclude_clean,
+    conflicts,
+    warnings,
+  };
+
+  const normalizedQuery = query?.trim();
+  if (normalizedQuery) {
+    inventory.advisory_search = rankAdvisorySearch(
+      normalizedQuery,
+      searchCandidates,
+      completeness,
+    );
+  }
+
+  return inventory;
+}
+
 export const backlogTools = {
   adv_wip_state: {
     description:
       "Single-call aggregator: returns active changes (Temporal Visibility), worktrees (cross-change), and peer sessions in one tool response. Read-only. Source failures isolate per-section with warnings instead of failing the whole call (rq-backlogCoord04).",
     args: {
-      // No public args. The fourth execute parameter accepts test-only provider
-      // seams (omitted from the Zod schema so callers cannot pass them).
-      _placeholder: z
-        .never()
+      query: z
+        .string()
+        .max(200)
         .optional()
         .describe(
-          "Reserved — adv_wip_state takes no public arguments. Project scope is derived from store.paths.root.",
+          "Optional free-text advisory search query. When provided, claim_inventory includes ranked advisory results over titles, descriptions, scope claims, responsibility, and identifiers. Search is advisory only and never assigns claims or emits a no-conflict result.",
         ),
     },
     execute: async (
@@ -288,6 +643,9 @@ export const backlogTools = {
       const projectRoot = store.paths.root;
       const warnings: Array<{ source: string; reason: string }> = [];
       const degradation: WipStateDegradation = {};
+      let worktreeInventoryAvailable: boolean;
+      let worktreeInventoryComplete: boolean;
+      let poisonedWorkflowCount = 0;
 
       const worktreesProvider =
         providers.worktreesProvider ?? defaultWorktreesProvider;
@@ -298,6 +656,9 @@ export const backlogTools = {
         callerSignal: signal,
         timeoutMs: INVENTORY_INTERNAL_BUDGET_MS,
       });
+
+      const query =
+        typeof _args.query === "string" ? _args.query.trim() : undefined;
 
       try {
         const [changesResult, worktreesResult, sessionsResult] =
@@ -310,22 +671,32 @@ export const backlogTools = {
           ]);
 
         let active_changes: WipStateResponse["active_changes"] = [];
+        const rawActiveChanges: Array<{
+          id: string;
+          title?: string;
+          description?: string;
+          coordination_claim?: unknown;
+        }> = [];
         if (changesResult.status === "fulfilled") {
-          active_changes = changesResult.value.changes
-            .filter((c) => c.status !== "archived" && c.status !== "closed")
-            .map((c) => ({
-              id: c.id,
-              title: c.title,
-              status: c.status,
-              created_at: c.created_at,
-              lastActivityAt: c.lastActivityAt,
-              taskCount: c.taskCount,
-              completedTasks: c.completedTasks,
-              ops_followup: compactOpsFollowupAnnotation(c.ops_followup),
-              ops_followup_links: compactOpsFollowupLinkAnnotations(
-                c.ops_followup_links,
-              ),
-            }));
+          const filtered = changesResult.value.changes.filter(
+            (c) => c.status !== "archived" && c.status !== "closed",
+          );
+          for (const c of filtered) {
+            rawActiveChanges.push(c);
+          }
+          active_changes = filtered.map((c) => ({
+            id: c.id,
+            title: c.title,
+            status: c.status,
+            created_at: c.created_at,
+            lastActivityAt: c.lastActivityAt,
+            taskCount: c.taskCount,
+            completedTasks: c.completedTasks,
+            ops_followup: compactOpsFollowupAnnotation(c.ops_followup),
+            ops_followup_links: compactOpsFollowupLinkAnnotations(
+              c.ops_followup_links,
+            ),
+          }));
         } else {
           warnings.push({
             source: "active_changes",
@@ -344,6 +715,13 @@ export const backlogTools = {
           poisoned_workflows = (value.poisonedWorkflows ?? []).map(
             toWipPoisonedWorkflowEntry,
           );
+          worktreeInventoryAvailable = true;
+          worktreeInventoryComplete = value.complete !== false;
+          poisonedWorkflowCount = value.poisonedWorkflows?.length ?? 0;
+          if (value.unavailable) {
+            worktreeInventoryAvailable = false;
+            worktreeInventoryComplete = false;
+          }
           for (const warning of value.warnings ?? []) {
             warnings.push({
               source: "worktrees",
@@ -382,6 +760,8 @@ export const backlogTools = {
                 ? worktreesResult.reason.message
                 : String(worktreesResult.reason),
           });
+          worktreeInventoryAvailable = false;
+          worktreeInventoryComplete = false;
           degradation.worktree = {
             complete: false,
             stopReason: "provider_error",
@@ -462,6 +842,17 @@ export const backlogTools = {
           }
         }
 
+        const claim_inventory = buildClaimInventory(
+          rawActiveChanges,
+          {
+            available: worktreeInventoryAvailable,
+            complete: worktreeInventoryComplete,
+            poisonedCount: poisonedWorkflowCount,
+          },
+          changesResult.status === "fulfilled",
+          query,
+        );
+
         const response: WipStateResponse = {
           active_changes,
           worktrees,
@@ -469,6 +860,7 @@ export const backlogTools = {
           poisoned_workflows,
           generated_at: new Date().toISOString(),
           warnings,
+          claim_inventory,
           ...(orphan_warnings.length > 0 ? { orphan_warnings } : {}),
           ...(Object.keys(degradation).length > 0 ? { degradation } : {}),
         };

@@ -407,6 +407,10 @@ export const releaseNotesSetSignal = wf.defineSignal<
   [import("../types").ReleaseNotesSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.releaseNotesSet);
 
+export const coordinationClaimSetSignal = wf.defineSignal<
+  [import("../types").CoordinationClaimSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.coordinationClaimSet);
+
 // Epic workflow bindings
 export const getEpicStateQuery = wf.defineQuery<EpicWorkflowState>(
   EPIC_WORKFLOW_QUERY_NAMES.getState,

@@ -134,6 +134,7 @@ const designSignalKeys = [
   "workerBundleProvenanceRecorded",
   "workerBundleImpactSet",
   "releaseNotesSet",
+  "coordinationClaimSet",
   "archiveChange",
   "closeChange",
   "prepareBatchClose",
