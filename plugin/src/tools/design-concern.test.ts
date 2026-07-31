@@ -1,22 +1,26 @@
+import { mkdir, writeFile } from "node:fs/promises";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Change } from "../types";
 import type { Store } from "../storage/store-types";
+import { createTempDir } from "../__tests__/setup";
+import { loadChange } from "../storage/json";
+import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
+import { designConcernDispositionedSignal } from "../temporal/messages";
 
 const mocks = vi.hoisted(() => {
-  const fireSignalAndRefresh = vi.fn(async () => undefined);
-  const saveRecoveredDesignConcernDisposition = vi.fn(async () => undefined);
   const describe = vi.fn(async () => ({ searchAttributes: {} }));
   const workflowHandle = { signal: vi.fn(), query: vi.fn(), describe };
+  const withTargetPathStore = vi.fn(async (_input: unknown, _fn: unknown) => {
+    throw new Error("withTargetPathStore not configured for this test");
+  });
   return {
-    fireSignalAndRefresh,
-    saveRecoveredDesignConcernDisposition,
     workflowHandle,
+    withTargetPathStore,
   };
 });
 
 vi.mock("./_adapters", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./_adapters")>()),
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
   getChangeHandle: () => mocks.workflowHandle,
 }));
 
@@ -28,10 +32,13 @@ vi.mock("../utils/project-id", () => ({
   getProjectId: async () => "project-1",
 }));
 
-vi.mock("./_recovery-writers", () => ({
-  saveRecoveredDesignConcernDisposition:
-    mocks.saveRecoveredDesignConcernDisposition,
-}));
+vi.mock("./target-project", async (importOriginal) => {
+  const original = await importOriginal<typeof import("./target-project")>();
+  return {
+    ...original,
+    withTargetPathStore: mocks.withTargetPathStore,
+  };
+});
 
 import { designConcernTools } from "./design-concern";
 
@@ -49,7 +56,7 @@ function change(overrides: Partial<Change> = {}): Change {
       {
         id: "tk-1",
         title: "Task one",
-        status: "in_progress",
+        status: "done",
         priority: 1,
         created_at: "2026-05-23T00:00:00.000Z",
       },
@@ -61,15 +68,37 @@ function change(overrides: Partial<Change> = {}): Change {
   } as Change;
 }
 
-function storeFor(baseChange: Change): Store {
+async function seedProjection(
+  changesDir: string,
+  baseChange: Change,
+): Promise<void> {
+  const changeDir = `${changesDir}/${baseChange.id}`;
+  await mkdir(changeDir, { recursive: true });
+  await writeFile(
+    `${changeDir}/change.json`,
+    JSON.stringify(baseChange, null, 2),
+    "utf-8",
+  );
+}
+
+function storeFor(
+  baseChange: Change,
+  changesDir = "/tmp/unused-design-concern",
+): Store {
   return {
-    paths: { root: "/repo", agenda: "/state/agenda.jsonl" } as Store["paths"],
+    paths: { root: "/repo", changes: changesDir } as Store["paths"],
     config: null,
     changes: {
       get: vi.fn(async () => ({ success: true, data: baseChange })),
       refresh: vi.fn(async () => undefined),
     },
   } as unknown as Store;
+}
+
+function dispositionState(disposition: Record<string, unknown>) {
+  return {
+    design_concern_dispositions: [disposition],
+  };
 }
 
 const validArgs = {
@@ -90,16 +119,51 @@ const poisonedDescription = () => ({
 });
 
 describe("adv_design_concern_disposition", () => {
+  let tempDir: string | undefined;
+
   beforeEach(() => {
-    mocks.fireSignalAndRefresh.mockClear();
-    mocks.fireSignalAndRefresh.mockImplementation(async () => undefined);
-    mocks.saveRecoveredDesignConcernDisposition.mockClear();
+    mocks.workflowHandle.signal.mockReset();
+    mocks.workflowHandle.signal.mockResolvedValue(undefined);
+    mocks.workflowHandle.query.mockReset();
+    mocks.workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve({});
+      },
+    );
     mocks.workflowHandle.describe.mockReset();
     mocks.workflowHandle.describe.mockResolvedValue({ searchAttributes: {} });
+    mocks.withTargetPathStore.mockReset();
+    mocks.withTargetPathStore.mockImplementation(
+      async (_input: unknown, _fn: unknown) => {
+        throw new Error("withTargetPathStore not configured for this test");
+      },
+    );
   });
 
-  test("fires designConcernDispositionedSignal with the typed disposition", async () => {
-    const store = storeFor(change());
+  test("fires designConcernDispositionedSignal with the typed disposition and commits projection", async () => {
+    tempDir = await createTempDir("adv-design-concern-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
+    const expectedDisposition = {
+      taskId: "tk-1",
+      concernKey: "dimension:site_design_consistency",
+      disposition: "rejected_with_evidence",
+      evidence: "Legacy page, out of scope; fast-follow #123.",
+      dispositionedAt: expect.any(String),
+    };
+    mocks.workflowHandle.query.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve(dispositionState(expectedDisposition));
+      },
+    );
+
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
         validArgs,
@@ -108,17 +172,25 @@ describe("adv_design_concern_disposition", () => {
     );
 
     expect(output.success).toBe(true);
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const signalArgs = mocks.fireSignalAndRefresh.mock.calls[0];
-    // (handle, store, changeId, signal, payload)
-    expect(signalArgs[2]).toBe("change-1");
-    expect(signalArgs[4]).toMatchObject({
+    expect(mocks.workflowHandle.signal).toHaveBeenCalledTimes(1);
+    const signalArgs = mocks.workflowHandle.signal.mock.calls[0];
+    expect(signalArgs[0]).toBe(designConcernDispositionedSignal);
+    expect(signalArgs[1]).toMatchObject({
       taskId: "tk-1",
       concernKey: "dimension:site_design_consistency",
       disposition: "rejected_with_evidence",
       evidence: "Legacy page, out of scope; fast-follow #123.",
+      mutationReceiptId: expect.stringMatching(/^mrec_/),
     });
-    expect(typeof signalArgs[4].dispositionedAt).toBe("string");
+    expect(mocks.workflowHandle.query).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        name: CHANGE_WORKFLOW_QUERY_NAMES.getState,
+      }),
+    );
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.design_concern_dispositions).toHaveLength(1);
+    expect(disk.data?.projection_revision).toBe(1);
   });
 
   test("rejects blank evidence", async () => {
@@ -131,7 +203,7 @@ describe("adv_design_concern_disposition", () => {
     );
 
     expect(output.error).toBeTruthy();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("rejects an unknown disposition verb (no accepted_debt)", async () => {
@@ -144,7 +216,7 @@ describe("adv_design_concern_disposition", () => {
     );
 
     expect(output.error).toBeTruthy();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("rejects an unknown taskId", async () => {
@@ -157,7 +229,7 @@ describe("adv_design_concern_disposition", () => {
     );
 
     expect(output.error).toBeTruthy();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
   test("dryRun previews without firing the signal", async () => {
@@ -171,14 +243,17 @@ describe("adv_design_concern_disposition", () => {
 
     expect(output.success).toBe(true);
     expect(output.dryRun).toBe(true);
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
   });
 
-  test("recovers via disk projection when signal fails with completed workflow", async () => {
-    const store = storeFor(change());
+  test("recovers via disk projection when signal fails with completed workflow and stores re-deliverable payload", async () => {
+    tempDir = await createTempDir("adv-design-concern-recovery-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
     const completedError = new Error("workflow execution already completed");
     completedError.name = "WorkflowNotFoundError";
-    mocks.fireSignalAndRefresh.mockRejectedValueOnce(completedError);
+    mocks.workflowHandle.signal.mockRejectedValueOnce(completedError);
 
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
@@ -198,30 +273,31 @@ describe("adv_design_concern_disposition", () => {
     expect(output.reconciliationWarning).toContain(
       "Poisoned-history recovery wrote the disk projection only",
     );
-    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledWith({
-      store,
-      change: expect.objectContaining({ id: "change-1" }),
-      authorization: {
-        reason: "missing_workflow",
-        evidence: expect.stringContaining(
-          "workflow execution already completed",
-        ),
-      },
-      disposition: expect.objectContaining({
-        taskId: "tk-1",
-        concernKey: "dimension:site_design_consistency",
-        disposition: "fixed",
-        evidence: "fixed in frontend commit abc123",
-      }),
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.design_concern_dispositions).toHaveLength(1);
+    expect(disk.data?.projection_revision).toBe(1);
+    const audit = disk.data?.projection_commits?.[0];
+    expect(audit?.authority_kind).toBe("recovery");
+    expect(audit?.payload).toMatchObject({
+      taskId: "tk-1",
+      concernKey: "dimension:site_design_consistency",
+      disposition: "fixed",
+      evidence: "fixed in frontend commit abc123",
+      mutationReceiptId: expect.stringMatching(/^mrec_/),
     });
   });
 
   test("recovers via D4 internal classification when describe shows poisoned", async () => {
-    // Probe-first path: no signal is fired; the disk-direct writer saves the
-    // disposition based on machine-confirmed poisoned-history evidence.
+    // Probe-first path: no signal is fired; the coordinator commits the
+    // disposition to the disk projection based on machine-confirmed
+    // poisoned-history evidence.
+    tempDir = await createTempDir("adv-design-concern-recovery-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
     mocks.workflowHandle.describe.mockResolvedValue(poisonedDescription());
 
-    const store = storeFor(change());
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
         {
@@ -233,51 +309,18 @@ describe("adv_design_concern_disposition", () => {
       ),
     );
 
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledTimes(
-      1,
-    );
+    expect(mocks.workflowHandle.signal).not.toHaveBeenCalled();
     expect(output.success).toBe(true);
     expect(output.recoveryMode).toBe("poisoned_history");
-    expect(mocks.saveRecoveredDesignConcernDisposition).toHaveBeenCalledWith({
-      store,
-      change: expect.objectContaining({ id: "change-1" }),
-      authorization: {
-        reason: "poisoned_history",
-        evidence: expect.stringContaining(
-          "WorkflowTaskFailedCauseNonDeterministicError",
-        ),
-      },
-      disposition: expect.objectContaining({
-        taskId: "tk-1",
-        concernKey: "dimension:site_design_consistency",
-        disposition: "fixed",
-        evidence: "fixed in frontend commit abc123",
-      }),
-    });
-  });
-
-  test("proceeds with signal when describe is healthy", async () => {
-    const store = storeFor(change());
-    mocks.workflowHandle.describe.mockResolvedValue({
-      searchAttributes: { TemporalReportedProblems: [] },
-    });
-
-    const output = parse(
-      await designConcernTools.adv_design_concern_disposition.execute(
-        validArgs,
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    expect(mocks.saveRecoveredDesignConcernDisposition).not.toHaveBeenCalled();
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.design_concern_dispositions).toHaveLength(1);
+    expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
   });
 
   test("does not recover generic signal failures", async () => {
     const store = storeFor(change());
-    mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+    mocks.workflowHandle.signal.mockRejectedValueOnce(
       new Error("task queue unavailable"),
     );
 
@@ -289,18 +332,19 @@ describe("adv_design_concern_disposition", () => {
     );
 
     expect(output.code).toBe("DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED");
-    expect(output.cause).toBe("query_failed");
-    expect(mocks.saveRecoveredDesignConcernDisposition).not.toHaveBeenCalled();
   });
 
-  test("requires operator review when poisoned signal error is not confirmed by describe", async () => {
-    const store = storeFor(change());
-    const poisonedError = new Error("Nondeterminism error detected");
-    mocks.fireSignalAndRefresh.mockRejectedValueOnce(poisonedError);
-    // describe() returns a healthy workflow — two authorities disagree.
+  test("recovers when signal error indicates poisoned history even if describe is clean", async () => {
+    tempDir = await createTempDir("adv-design-concern-recovery-");
+    const baseChange = change();
+    await seedProjection(tempDir, baseChange);
+    const store = storeFor(baseChange, tempDir);
     mocks.workflowHandle.describe.mockResolvedValue({
       searchAttributes: { TemporalReportedProblems: [] },
     });
+    mocks.workflowHandle.signal.mockRejectedValueOnce(
+      new Error("Nondeterminism error detected"),
+    );
 
     const output = parse(
       await designConcernTools.adv_design_concern_disposition.execute(
@@ -309,9 +353,11 @@ describe("adv_design_concern_disposition", () => {
       ),
     );
 
-    expect(output.error).toContain("operator review");
-    expect(output.code).toBe("DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED");
-    expect(output.cause).toBe("reachable_authority_disagrees");
-    expect(mocks.saveRecoveredDesignConcernDisposition).not.toHaveBeenCalled();
+    expect(output.success).toBe(true);
+    expect(output._recoveryMutation).toBe(true);
+    expect(output.recoveryMode).toBe("poisoned_history");
+    const disk = await loadChange(tempDir, "change-1");
+    expect(disk.data?.design_concern_dispositions).toHaveLength(1);
+    expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
   });
 });

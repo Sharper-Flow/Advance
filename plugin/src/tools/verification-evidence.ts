@@ -185,11 +185,12 @@ async function executeDisposition(
     intent: {
       changeId: args.changeId,
       mutationKind: "verification_evidence_disposition",
-      sendSignal: async (h, mutationReceiptId) => {
-        await h.signal(verificationEvidenceDispositionedSignal, {
-          ...disposition,
-          mutationReceiptId,
-        });
+      payload: (mutationReceiptId) => ({
+        ...disposition,
+        mutationReceiptId,
+      }),
+      sendSignal: async (h, payload) => {
+        await h.signal(verificationEvidenceDispositionedSignal, payload);
       },
       refresh: async (h) =>
         h.query(changeStateQuery) as Promise<ChangeWorkflowState>,

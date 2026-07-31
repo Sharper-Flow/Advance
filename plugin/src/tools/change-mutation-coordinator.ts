@@ -75,23 +75,30 @@ export interface MutationIntent<T> {
   mutationKind: string;
   /**
    * Send the typed signal to a live workflow. The coordinator supplies a
-   * mutation receipt id; callers must embed it in the signal payload so the
-   * workflow can record it deterministically.
+   * mutation receipt id and the full signal payload; callers must use both.
    */
   sendSignal: (
     handle: WorkflowHandleLike,
-    mutationReceiptId: string,
+    payload: Record<string, unknown>,
   ) => Promise<void>;
   /** Refresh authoritative state from Temporal after the signal is applied. */
   refresh: (handle: WorkflowHandleLike) => Promise<T>;
   /** Verify the intended postcondition against the refreshed Temporal state. */
   verifyTemporal: (value: T) => ProjectionCommitVerifyResult;
   /**
+   * Optional full signal payload generator. When provided, the coordinator
+   * records it in the projection commit audit for recovery authority commits
+   * so the mutation can be re-delivered to a reachable workflow.
+   */
+  payload?: (mutationReceiptId: string) => Record<string, unknown>;
+  /**
    * Apply the field-local mutation to the latest disk projection read inside
    * the commit transaction. Callers must derive the result from `latest`.
    */
   mutateLatestProjection: (latest: Change) => Change;
-  /** Verify the intended postcondition against the committed projection readback. */
+  /**
+   * Verify the intended postcondition against the committed projection readback.
+   */
   verifyProjection: (readback: Change) => ProjectionCommitVerifyResult;
 }
 
@@ -419,13 +426,17 @@ async function executeTemporalPath<T>({
   receiptTimeoutMs?: number;
 }): Promise<MutationOutcome<T>> {
   const mutationReceiptId = `mrec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const payload = intent.payload
+    ? intent.payload(mutationReceiptId)
+    : undefined;
 
   try {
-    await intent.sendSignal(authority.handle, mutationReceiptId);
+    await intent.sendSignal(authority.handle, payload ?? { mutationReceiptId });
   } catch (signalError) {
     // Signal dispatch failed before the healthy path could establish proof.
     // If the failure is recoverable and the caller supplied a projection
-    // directory, transition to the recovery path with the same intent.
+    // directory, transition to the recovery path with the same intent and the
+    // already-constructed payload so re-delivery remains byte-identical.
     const failure = normalizeWorkflowFailure(signalError);
     if (isRecoverableWorkflowFailure(failure) && changesDir) {
       return executeRecoveryPath({
@@ -440,6 +451,7 @@ async function executeTemporalPath<T>({
         >,
         intent,
         changesDir,
+        payload,
       });
     }
     return failureToMutationOutcome(failure);
@@ -491,6 +503,7 @@ async function executeTemporalPath<T>({
       mutationKind: intent.mutationKind,
       mutateLatest: intent.mutateLatestProjection,
       verify: ({ readback }) => intent.verifyProjection(readback),
+      payload,
     });
     const commitOutcome = mapCommitOutcome(commit);
     if (commitOutcome.kind !== "recovered_verified") {
@@ -514,6 +527,7 @@ async function executeRecoveryPath<T>({
   intent,
   changesDir,
   expectedRevision,
+  payload: inputPayload,
 }: {
   authority: Extract<
     ChangeAuthority,
@@ -522,6 +536,7 @@ async function executeRecoveryPath<T>({
   intent: MutationIntent<T>;
   changesDir?: string;
   expectedRevision?: number;
+  payload?: Record<string, unknown>;
 }): Promise<MutationOutcome<T>> {
   if (!changesDir) {
     return {
@@ -529,6 +544,11 @@ async function executeRecoveryPath<T>({
       reason: `Recovery authority ${authority.kind} requires a changesDir to commit the projection, but none was supplied.`,
     };
   }
+
+  const mutationReceiptId = `mrec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const payload =
+    inputPayload ??
+    (intent.payload ? intent.payload(mutationReceiptId) : undefined);
 
   const commit = await commitChangeProjection({
     changesDir,
@@ -542,6 +562,7 @@ async function executeRecoveryPath<T>({
     mutationKind: intent.mutationKind,
     mutateLatest: intent.mutateLatestProjection,
     verify: ({ readback }) => intent.verifyProjection(readback),
+    ...(payload !== undefined ? { payload } : {}),
   });
 
   return mapCommitOutcome(commit) as MutationOutcome<T>;

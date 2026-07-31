@@ -3538,6 +3538,13 @@
             "minLength": 1,
             "type": "string"
           },
+          "payload": {
+            "additionalProperties": {},
+            "propertyNames": {
+              "type": "string"
+            },
+            "type": "object"
+          },
           "payload_hash": {
             "minLength": 1,
             "type": "string"

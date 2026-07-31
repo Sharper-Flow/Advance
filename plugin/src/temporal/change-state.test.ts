@@ -2126,6 +2126,48 @@ describe("change-state pure mutation helpers", () => {
       expect(state.contract.reviewMatrix).toBeDefined();
     });
 
+    it("advances on design-concern disposition", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-design-concern",
+        title: "ARR design concern",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.acceptanceReadinessRevision = 6;
+
+      applyDesignConcernDispositionedToState(state, {
+        taskId: "tk-design",
+        concernKey: "component_correctness",
+        disposition: "fixed",
+        evidence: "Re-implemented with a semantic <button>.",
+        dispositionedAt: "2026-05-06T00:00:07.000Z",
+        mutationReceiptId: "mrec-design",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(7);
+      expect(state.design_concern_dispositions).toHaveLength(1);
+    });
+
+    it("advances on verification-evidence disposition", () => {
+      const state = createChangeWorkflowState({
+        changeId: "arr-verification-evidence",
+        title: "ARR verification evidence",
+        createdAt: "2026-05-06T00:00:00.000Z",
+      });
+      state.acceptanceReadinessRevision = 7;
+
+      applyVerificationEvidenceDispositionedToState(state, {
+        taskId: "tk-verify",
+        concernKey: "verification_mismatch",
+        disposition: "fixed",
+        evidence: "Re-ran targeted suite; binding now matches.",
+        dispositionedAt: "2026-05-06T00:00:08.000Z",
+        mutationReceiptId: "mrec-verify",
+      });
+
+      expect(state.acceptanceReadinessRevision).toBe(8);
+      expect(state.verification_evidence_dispositions).toHaveLength(1);
+    });
+
     it("preserves legacy default zero when seeding from a persisted change without the field", () => {
       const change: Change = {
         id: "arr-legacy",

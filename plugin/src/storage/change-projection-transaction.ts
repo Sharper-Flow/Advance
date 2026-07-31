@@ -155,6 +155,11 @@ export interface CommitChangeProjectionOptions {
    */
   afterCommit?: ProjectionCommitAfterCommit;
   lockTimeoutMs?: number;
+  /**
+   * Optional full signal payload. Recorded in the projection commit audit so
+   * recovery mutations can be re-delivered to a reachable workflow.
+   */
+  payload?: Record<string, unknown>;
 }
 
 /**
@@ -188,6 +193,7 @@ export async function commitChangeProjection(
     verify,
     afterCommit,
     lockTimeoutMs,
+    payload,
   } = options;
 
   if (isSyntheticValidationDraftPattern(changeId)) {
@@ -342,6 +348,7 @@ export async function commitChangeProjection(
       prior_revision: priorRevision,
       new_revision: newRevision,
       committed_at: committedAt,
+      ...(payload !== undefined ? { payload } : {}),
     };
 
     const priorCommits = candidate.projection_commits ?? [];

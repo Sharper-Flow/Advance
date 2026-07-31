@@ -178,7 +178,7 @@ async function saveRecoveredContract(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "contract_set",
-      sendSignal: async () => {},
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
@@ -571,12 +571,13 @@ export const contractTools = {
             intent: {
               changeId: args.changeId,
               mutationKind: "contract_review_matrix_set",
-              sendSignal: async (h, mutationReceiptId) => {
-                await h.signal(contractReviewMatrixSetSignal, {
-                  reviewMatrix,
-                  updatedAt,
-                  mutationReceiptId,
-                });
+              payload: (mutationReceiptId) => ({
+                reviewMatrix,
+                updatedAt,
+                mutationReceiptId,
+              }),
+              sendSignal: async (h, payload) => {
+                await h.signal(contractReviewMatrixSetSignal, payload);
               },
               refresh: async (h) =>
                 h.query(changeStateQuery) as Promise<ChangeWorkflowState>,

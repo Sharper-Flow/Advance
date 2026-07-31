@@ -163,7 +163,7 @@ export async function saveRecoveredTaskMutation(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "task_mutation",
-      sendSignal: async () => {},
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
@@ -218,7 +218,7 @@ export async function saveRecoveredTaskAdd(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "task_add",
-      sendSignal: async () => {},
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
@@ -253,6 +253,12 @@ export async function saveRecoveredGateCompletion(input: {
   authorization: RecoveryWriteAuthorization;
   gateId: keyof Gates;
   completion: Gates[keyof Gates];
+  /**
+   * Optional full signal payload generator. When provided, the coordinator
+   * records it in the projection commit audit so the gate-completion signal
+   * can be re-delivered to a reachable workflow during reconciliation.
+   */
+  payload?: (mutationReceiptId: string) => Record<string, unknown>;
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
   const gateId = input.gateId;
@@ -272,7 +278,8 @@ export async function saveRecoveredGateCompletion(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "gate_completion",
-      sendSignal: async () => {},
+      payload: input.payload,
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
@@ -317,7 +324,7 @@ export async function saveRecoveredArtifactMetadata(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "artifact_metadata",
-      sendSignal: async () => {},
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
@@ -358,7 +365,7 @@ export async function saveRecoveredChangeStatus(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "status_transition",
-      sendSignal: async () => {},
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => ({
@@ -409,7 +416,7 @@ export async function saveRecoveredDesignConcernDisposition(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "design_concern_disposition",
-      sendSignal: async () => {},
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
@@ -474,7 +481,7 @@ export async function saveRecoveredVerificationEvidenceDisposition(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "verification_evidence_disposition",
-      sendSignal: async () => {},
+      sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
       mutateLatestProjection: (latest) => {
@@ -717,7 +724,7 @@ export async function saveRecoveredSubagentReport(input: {
       intent: {
         changeId: input.change.id,
         mutationKind: "subagent_report",
-        sendSignal: async () => {},
+        sendSignal: async (_h, _payload) => {},
         refresh: async () => ({}) as never,
         verifyTemporal: () => true,
         mutateLatestProjection: (latest) => {
