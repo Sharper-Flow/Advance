@@ -117,6 +117,8 @@ export interface WipStateResponse {
   }>;
   /** Typed degradation metadata for slow or incomplete sources. */
   degradation?: WipStateDegradation;
+  /** Aggregate typed coordination claim inventory with completeness/overlap evidence. */
+  claim_inventory?: WipClaimInventory;
 }
 
 export interface WipStateDegradation {
@@ -129,6 +131,32 @@ export interface WipStateDegradation {
     candidateCount?: number;
     omitted?: number;
   };
+}
+
+/** A single valid typed coordination claim surfaced from an active change. */
+export interface WipClaimInventoryEntry {
+  change_id: string;
+  scope_summary: string;
+  responsibility: string;
+  exact_identifiers: string[];
+  generated_terms: string[];
+  claimed_at: string;
+  claimed_by?: string;
+}
+
+/** Exact-identifier conflict between two or more active changes. */
+export interface WipClaimInventoryConflict {
+  identifier: string;
+  change_ids: string[];
+}
+
+/** Aggregate claim inventory with structural completeness and overlap evidence. */
+export interface WipClaimInventory {
+  claims: WipClaimInventoryEntry[];
+  completeness: "complete" | "degraded" | "blocked";
+  can_conclude_clean: boolean;
+  conflicts: WipClaimInventoryConflict[];
+  warnings: string[];
 }
 
 /**
@@ -263,6 +291,119 @@ function toWipPoisonedWorkflowEntry(
   };
 }
 
+function isValidClaim(value: unknown): value is {
+  scope_summary: string;
+  responsibility: string;
+  exact_identifiers: string[];
+  generated_terms: string[];
+  claimed_at: string;
+  claimed_by?: string;
+} {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.scope_summary === "string" &&
+    typeof v.responsibility === "string" &&
+    Array.isArray(v.exact_identifiers) &&
+    Array.isArray(v.generated_terms) &&
+    typeof v.claimed_at === "string"
+  );
+}
+
+/**
+ * Build the aggregate claim inventory from active changes and determine
+ * whether it is complete enough to conclude "no conflict".
+ *
+ * Only exact_identifier overlap is checked; generated_terms are surfaced for
+ * transparency but intentionally excluded from conflict detection (fuzzy
+ * matching is out of scope).
+ */
+function buildClaimInventory(
+  activeChanges: Array<{ id: string; coordination_claim?: unknown }>,
+  worktreeState: {
+    available: boolean;
+    complete: boolean;
+    poisonedCount: number;
+  },
+  activeChangesAvailable: boolean,
+): WipClaimInventory {
+  const warnings: string[] = [];
+  let completeness: WipClaimInventory["completeness"] = "complete";
+
+  if (!activeChangesAvailable) {
+    completeness = "blocked";
+    warnings.push(
+      "Active change enumeration failed; claim inventory cannot be built.",
+    );
+  } else if (!worktreeState.available) {
+    completeness = "blocked";
+    warnings.push(
+      "Worktree inventory unavailable; claim inventory cannot be verified as complete.",
+    );
+  } else if (worktreeState.poisonedCount > 0) {
+    completeness = "degraded";
+    warnings.push(
+      `Worktree inventory includes ${worktreeState.poisonedCount} poisoned workflow(s); claim completeness is uncertain.`,
+    );
+  } else if (!worktreeState.complete) {
+    completeness = "degraded";
+    warnings.push(
+      "Worktree inventory is incomplete or timed out; claim inventory may be missing active changes.",
+    );
+  }
+
+  const claims: WipClaimInventoryEntry[] = [];
+  const identifierIndex = new Map<string, string[]>();
+
+  for (const change of activeChanges) {
+    if (!isValidClaim(change.coordination_claim)) continue;
+    const claim = change.coordination_claim;
+    claims.push({
+      change_id: change.id,
+      scope_summary: claim.scope_summary,
+      responsibility: claim.responsibility,
+      exact_identifiers: claim.exact_identifiers,
+      generated_terms: claim.generated_terms,
+      claimed_at: claim.claimed_at,
+      ...(claim.claimed_by !== undefined
+        ? { claimed_by: claim.claimed_by }
+        : {}),
+    });
+    for (const id of claim.exact_identifiers) {
+      const entry = identifierIndex.get(id);
+      if (entry) {
+        entry.push(change.id);
+      } else {
+        identifierIndex.set(id, [change.id]);
+      }
+    }
+  }
+
+  const conflicts: WipClaimInventoryConflict[] = [];
+  for (const [identifier, changeIds] of identifierIndex.entries()) {
+    if (changeIds.length > 1) {
+      conflicts.push({ identifier, change_ids: [...changeIds] });
+    }
+  }
+
+  if (conflicts.length > 0) {
+    warnings.push(
+      `Exact identifier overlap detected on ${conflicts.length} identifier(s); no-conflict conclusion is unsafe.`,
+    );
+  }
+
+  const can_conclude_clean =
+    completeness === "complete" && conflicts.length === 0;
+
+  return {
+    claims,
+    completeness,
+    can_conclude_clean,
+    conflicts,
+    warnings,
+  };
+}
+
 export const backlogTools = {
   adv_wip_state: {
     description:
@@ -288,6 +429,9 @@ export const backlogTools = {
       const projectRoot = store.paths.root;
       const warnings: Array<{ source: string; reason: string }> = [];
       const degradation: WipStateDegradation = {};
+      let worktreeInventoryAvailable: boolean;
+      let worktreeInventoryComplete: boolean;
+      let poisonedWorkflowCount = 0;
 
       const worktreesProvider =
         providers.worktreesProvider ?? defaultWorktreesProvider;
@@ -310,22 +454,27 @@ export const backlogTools = {
           ]);
 
         let active_changes: WipStateResponse["active_changes"] = [];
+        const rawActiveChanges: Array<{ id: string; coordination_claim?: unknown }> = [];
         if (changesResult.status === "fulfilled") {
-          active_changes = changesResult.value.changes
-            .filter((c) => c.status !== "archived" && c.status !== "closed")
-            .map((c) => ({
-              id: c.id,
-              title: c.title,
-              status: c.status,
-              created_at: c.created_at,
-              lastActivityAt: c.lastActivityAt,
-              taskCount: c.taskCount,
-              completedTasks: c.completedTasks,
-              ops_followup: compactOpsFollowupAnnotation(c.ops_followup),
-              ops_followup_links: compactOpsFollowupLinkAnnotations(
-                c.ops_followup_links,
-              ),
-            }));
+          const filtered = changesResult.value.changes.filter(
+            (c) => c.status !== "archived" && c.status !== "closed",
+          );
+          for (const c of filtered) {
+            rawActiveChanges.push(c);
+          }
+          active_changes = filtered.map((c) => ({
+            id: c.id,
+            title: c.title,
+            status: c.status,
+            created_at: c.created_at,
+            lastActivityAt: c.lastActivityAt,
+            taskCount: c.taskCount,
+            completedTasks: c.completedTasks,
+            ops_followup: compactOpsFollowupAnnotation(c.ops_followup),
+            ops_followup_links: compactOpsFollowupLinkAnnotations(
+              c.ops_followup_links,
+            ),
+          }));
         } else {
           warnings.push({
             source: "active_changes",
@@ -344,6 +493,13 @@ export const backlogTools = {
           poisoned_workflows = (value.poisonedWorkflows ?? []).map(
             toWipPoisonedWorkflowEntry,
           );
+          worktreeInventoryAvailable = true;
+          worktreeInventoryComplete = value.complete !== false;
+          poisonedWorkflowCount = value.poisonedWorkflows?.length ?? 0;
+          if (value.unavailable) {
+            worktreeInventoryAvailable = false;
+            worktreeInventoryComplete = false;
+          }
           for (const warning of value.warnings ?? []) {
             warnings.push({
               source: "worktrees",
@@ -382,6 +538,8 @@ export const backlogTools = {
                 ? worktreesResult.reason.message
                 : String(worktreesResult.reason),
           });
+          worktreeInventoryAvailable = false;
+          worktreeInventoryComplete = false;
           degradation.worktree = {
             complete: false,
             stopReason: "provider_error",
@@ -462,6 +620,16 @@ export const backlogTools = {
           }
         }
 
+        const claim_inventory = buildClaimInventory(
+          rawActiveChanges,
+          {
+            available: worktreeInventoryAvailable,
+            complete: worktreeInventoryComplete,
+            poisonedCount: poisonedWorkflowCount,
+          },
+          changesResult.status === "fulfilled",
+        );
+
         const response: WipStateResponse = {
           active_changes,
           worktrees,
@@ -469,6 +637,7 @@ export const backlogTools = {
           poisoned_workflows,
           generated_at: new Date().toISOString(),
           warnings,
+          claim_inventory,
           ...(orphan_warnings.length > 0 ? { orphan_warnings } : {}),
           ...(Object.keys(degradation).length > 0 ? { degradation } : {}),
         };
