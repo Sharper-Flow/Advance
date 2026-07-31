@@ -1150,9 +1150,9 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
 
     it("marks inventory blocked when active change enumeration fails", async () => {
       const store = makeMockStore([]);
-      store.changes.list = vi.fn().mockRejectedValue(
-        new Error("Visibility unreachable"),
-      );
+      store.changes.list = vi
+        .fn()
+        .mockRejectedValue(new Error("Visibility unreachable"));
 
       const result = await backlogTools.adv_wip_state.execute(
         {},
@@ -1421,7 +1421,11 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
         },
       ];
 
-      const result = rankAdvisorySearch("reviewer database", candidates, "complete");
+      const result = rankAdvisorySearch(
+        "reviewer database",
+        candidates,
+        "complete",
+      );
       expect(result.advisory).toBe(true);
       expect(result.results).toHaveLength(2);
       expect(result.results[0].change_id).toBe("reviewerChange");
