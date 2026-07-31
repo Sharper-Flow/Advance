@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "change_id": "preventInvalidCommandHandoffs",
+  "title": "Prevent invalid command handoffs",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Prevented invalid ADV command handoffs",
+    "highlights": [
+      "Wayfinder guidance will use the canonical registered command and fail closed when unavailable."
+    ],
+    "area": "ADV workflow"
+  }
+}
