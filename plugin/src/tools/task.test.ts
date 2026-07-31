@@ -1051,7 +1051,10 @@ describe("task tools — signal/query adapters", () => {
           })),
         },
       });
-      mocks.querySignal.mockResolvedValue({ id: "tk-abc", status: "in_progress" });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+      });
 
       const result = await taskTools.adv_task_update.execute(
         {
@@ -1069,7 +1072,9 @@ describe("task tools — signal/query adapters", () => {
       );
 
       expect(JSON.parse(result).success).toBe(true);
-      expect(mocks.fireSignalAndRefresh.mock.calls[0][4].partial.delegation_recovery).toBeUndefined();
+      expect(
+        mocks.fireSignalAndRefresh.mock.calls[0][4].partial.delegation_recovery,
+      ).toBeUndefined();
     });
 
     test.each([
@@ -1106,7 +1111,8 @@ describe("task tools — signal/query adapters", () => {
             contract_conflict: {
               kind: "overlapping_implements_verifies" as const,
               contract_ids: ["AC1"],
-              reason: "A task cannot both implement and verify the same acceptance criterion",
+              reason:
+                "A task cannot both implement and verify the same acceptance criterion",
             },
           },
         },
@@ -1135,7 +1141,10 @@ describe("task tools — signal/query adapters", () => {
             })),
           },
         });
-        mocks.querySignal.mockResolvedValue({ id: "tk-abc", status: "in_progress" });
+        mocks.querySignal.mockResolvedValue({
+          id: "tk-abc",
+          status: "in_progress",
+        });
 
         const result = await taskTools.adv_task_update.execute(
           { taskId: "tk-abc", status: "pending", error_recovery },
@@ -1143,7 +1152,10 @@ describe("task tools — signal/query adapters", () => {
         );
 
         expect(JSON.parse(result).success).toBe(true);
-        expect(mocks.fireSignalAndRefresh.mock.calls[0][4].partial.delegation_recovery).toBeUndefined();
+        expect(
+          mocks.fireSignalAndRefresh.mock.calls[0][4].partial
+            .delegation_recovery,
+        ).toBeUndefined();
       },
     );
 
@@ -1162,7 +1174,10 @@ describe("task tools — signal/query adapters", () => {
           })),
         },
       });
-      mocks.querySignal.mockResolvedValue({ id: "tk-abc", status: "in_progress" });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+      });
 
       const result = await taskTools.adv_task_update.execute(
         {
@@ -1189,7 +1204,9 @@ describe("task tools — signal/query adapters", () => {
       );
 
       expect(JSON.parse(result).success).toBe(true);
-      expect(mocks.fireSignalAndRefresh.mock.calls[0][4].partial.delegation_recovery).toBeUndefined();
+      expect(
+        mocks.fireSignalAndRefresh.mock.calls[0][4].partial.delegation_recovery,
+      ).toBeUndefined();
     });
 
     test("AC5: non-SEMANTIC error_recovery does not clear blocked delegation_recovery", async () => {
