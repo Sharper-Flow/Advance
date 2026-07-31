@@ -793,6 +793,9 @@ function stringifyEvidence(value: unknown): string {
   }
 }
 
+const TERMINAL_WORKFLOW_STATUS_RE =
+  /TERMINATED|COMPLETED|FAILED|CANCELLED|TIMED_OUT|CONTINUED_AS_NEW/i;
+
 async function hasPoisonedWorkflowDescription(
   input: TemporalStoreBackendInput,
   changeId: string,
@@ -805,7 +808,12 @@ async function hasPoisonedWorkflowDescription(
       timeoutMs: QUERY_TIMEOUT_MS,
       deadline,
     });
-    return POISONED_WORKFLOW_EVIDENCE_RE.test(stringifyEvidence(description));
+    const evidence = stringifyEvidence(description);
+    // Also treat terminal workflows as poisoned-from-read-perspective:
+    // queries to terminated/closed workflows on abandoned session queues
+    // hang indefinitely because no poller will answer.
+    if (TERMINAL_WORKFLOW_STATUS_RE.test(evidence)) return true;
+    return POISONED_WORKFLOW_EVIDENCE_RE.test(evidence);
   } catch (error) {
     logger.debug(
       `Poisoned workflow describe probe failed for change ${changeId}: ${collectErrorText(error)}`,
