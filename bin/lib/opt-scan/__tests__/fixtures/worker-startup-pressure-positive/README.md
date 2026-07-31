@@ -18,4 +18,4 @@ at the synchronous call; the scope evidence notes it is in a startup-named file.
 
 | Line | Content (key only)                          |
 |------|---------------------------------------------|
-| 4    | `const config = JSON.parse(readFileSync(...));` (trigger) |
+| 6    | `const config = JSON.parse(readFileSync(...));` (trigger) |

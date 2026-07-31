@@ -23,7 +23,7 @@ pieces of source evidence; unclear cases are rejected.
 
 | Line | Content (key only)                          |
 |------|---------------------------------------------|
-| 4    | `private cache = new Map<string, string>();` (ownership) |
-| 5    | `private ttl = 60_000;` (invalidation)      |
-| 8    | `const key = \`hash:\${input}\`;` (identity) |
-| 7    | `computeHash(input: string): string {` (trigger) |
+| 6    | `private cache = new Map<string, string>();` (ownership) |
+| 7    | `private ttl = 60_000;` (invalidation)      |
+| 10   | `const key = \`hash:\${input}\`;` (identity) |
+| 9    | `computeHash(input: string): string {` (trigger) |

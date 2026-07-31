@@ -18,5 +18,5 @@ and a surrounding scope evidence entry for the loop.
 
 | Line | Content (key only)                          |
 |------|---------------------------------------------|
-| 4    | `for (const id of ids) {` (scope)           |
-| 5    | `await fetch(\`/api/users/\${id}\`);` (trigger) |
+| 6    | `for (const id of ids) {` (scope)           |
+| 7    | `await fetch(\`/api/users/\${id}\`);` (trigger) |

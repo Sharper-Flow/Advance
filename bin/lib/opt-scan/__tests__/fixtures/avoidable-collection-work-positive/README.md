@@ -18,4 +18,4 @@ chained line.
 
 | Line | Content (key only)                          |
 |------|---------------------------------------------|
-| 4-6  | `.map(...).filter(...).reduce(...)` (trigger) |
+| 6-8  | `.map(...).filter(...).reduce(...)` (trigger) |
