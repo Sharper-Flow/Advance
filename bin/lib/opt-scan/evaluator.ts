@@ -25,7 +25,7 @@
 
 import { readdir, readFile, stat } from "fs/promises";
 import type { Dirent } from "fs";
-import { join } from "path";
+import { basename, join } from "path";
 
 import type {
   OptimizationCandidate,
@@ -70,6 +70,8 @@ const SCAN_IGNORE_DIRS: ReadonlySet<string> = new Set([
   ".cache",
   ".turbo",
   ".adv",
+  "__tests__",
+  "__mocks__",
 ]);
 
 const MAX_FILE_BYTES = 1_000_000;
@@ -217,6 +219,15 @@ async function walkRepo(repoRoot: string): Promise<FileCollection> {
   return { paths: out, truncated };
 }
 
+const TEST_ARTIFACT_SEGMENT_RE = /(?:^|\/)__(tests|mocks)__(?:\/|$)/;
+const TEST_ARTIFACT_BASENAME_RE = /\.(test|spec|itest)(\.[^./]+)?$/i;
+
+function isTestArtifactPath(relPath: string): boolean {
+  if (TEST_ARTIFACT_SEGMENT_RE.test(relPath)) return true;
+  const base = basename(relPath);
+  return TEST_ARTIFACT_BASENAME_RE.test(base);
+}
+
 /** Return relative paths matching any of the provided globs. */
 async function collectFiles(
   globs: readonly string[],
@@ -227,6 +238,7 @@ async function collectFiles(
   const all = await walkRepo(repoRoot);
   const result = new Set<string>();
   for (const relPath of all.paths) {
+    if (isTestArtifactPath(relPath)) continue;
     if (matchers.some((re) => re.test(relPath))) {
       result.add(relPath);
     }
@@ -366,7 +378,7 @@ function isAvoidableCollectionWork(lines: string[], hitLine: number): boolean {
 const STARTUP_FILE_RE = /\b(worker|server|index|main|app|entry|bootstrap|init)\b/i;
 
 function isStartupFile(relPath: string): boolean {
-  return STARTUP_FILE_RE.test(relPath);
+  return STARTUP_FILE_RE.test(basename(relPath));
 }
 
 const STARTUP_PATTERN_RE = /\b(readFileSync|require\s*\(\s*[^)]*\.json\s*\))\b/i;
@@ -423,7 +435,7 @@ function isWorkerStartupPressure(
 }
 
 const COMPUTE_NAMES_RE = /\b(hash|digest|compute|derive|calculate|build|serialize)\b/i;
-const CACHE_INVALIDATION_RE = /\b(cache|memo|lru|ttl|expire|invalid|refresh|version|evict)\b/i;
+const CACHE_INVALIDATION_RE = /\b(lru|ttl|expires?|invalid|invalidate|refresh|version|evict|eviction|stale)\b/i;
 
 function findCacheIdentityEvidence(
   funcBody: string,
