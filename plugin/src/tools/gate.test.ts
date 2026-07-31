@@ -13,6 +13,7 @@ import { tmpdir } from "os";
 import { COMMAND_MANIFEST } from "../manifest";
 import { gateTools, validateGateBoundary } from "./gate";
 import type { Store } from "../storage/store";
+import { loadChange } from "../storage/json";
 import {
   PARITY_ROWS,
   toolChangeFor,
@@ -384,6 +385,11 @@ describe("gate tools — signal-driven lifecycle", () => {
     });
 
     test("poisoned-history acceptance recovery writes disk projection", async () => {
+      const tmp = await mkdtemp(
+        join(tmpdir(), "adv-gate-acceptance-poisoned-"),
+      );
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -393,10 +399,21 @@ describe("gate tools — signal-driven lifecycle", () => {
         acceptance: { status: "pending" },
         release: { status: "pending" },
       } as import("../types").Gates;
+      const diskChange = {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates,
+      };
       const store = createMockStore({
         gates,
         change: {
-          gates,
+          ...diskChange,
           _source: "disk",
           _recovery: {
             mode: "temporal_query_fallback",
@@ -404,55 +421,76 @@ describe("gate tools — signal-driven lifecycle", () => {
           },
         } as Partial<import("../types").Change>,
       });
-      mocks.querySignal.mockRejectedValueOnce(
-        new Error("TMPRL1100: Nondeterminism error"),
-      );
-      // rq-internalMonotonicRecovery01 / AC5 + D4: the signal-error classifier
-      // requires describe() confirmation (reachable-authority agreement) before
-      // recovering — stricter than the retired error-text-only path. Inject a
-      // describe() carrying poison markers so recovery is authorized.
-      const describeMock = vi.fn(async () => ({
-        searchAttributes: {
-          TemporalReportedProblems: [
-            "category=WorkflowTaskFailed",
-            "cause=WorkflowTaskFailedCauseNonDeterministicError",
-          ],
-        },
-      }));
-      mocks.handleMock.describe = describeMock;
+      store.paths.changes = changesDir;
 
-      // No operator-supplied recovery args. priorApprovalEvidence remains
-      // (acceptance human checkpoint, AC6).
-      const result = await gateTools.adv_gate_complete.execute(
-        {
-          changeId: "test-change",
+      try {
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify(diskChange, null, 2),
+        );
+
+        mocks.querySignal.mockRejectedValueOnce(
+          new Error("TMPRL1100: Nondeterminism error"),
+        );
+        // rq-internalMonotonicRecovery01 / AC5 + D4: the signal-error classifier
+        // requires describe() confirmation (reachable-authority agreement) before
+        // recovering — stricter than the retired error-text-only path. Inject a
+        // describe() carrying poison markers so recovery is authorized.
+        const describeMock = vi.fn(async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "category=WorkflowTaskFailed",
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }));
+        mocks.handleMock.describe = describeMock;
+
+        // No operator-supplied recovery args. priorApprovalEvidence remains
+        // (acceptance human checkpoint, AC6).
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "acceptance",
+            completedBy: "agent",
+            notes: "Recovered gate after poisoned workflow",
+            compatibilityReason: "legacy replay lacks contract proof",
+            priorApprovalEvidence: "Prior user acceptance approval: approve",
+          },
+          store,
+        );
+        delete (mocks.handleMock as { describe?: unknown }).describe;
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(parsed.recovered).toBe(true);
+        expect(parsed.reconciliationWarning).toContain("not healed");
+        expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+
+        const disk = await loadChange(changesDir, "test-change");
+        expect(disk.success).toBe(true);
+        expect(disk.data?.gates?.acceptance).toMatchObject({
+          status: "done",
+          completed_by: "agent",
+          approval_evidence:
+            "Recovered gate after poisoned workflow; Prior user acceptance approval: approve",
+        });
+        expect(disk.data?.projection_commits?.[0].authority_kind).toBe(
+          "recovery",
+        );
+        expect(disk.data?.projection_commits?.[0].payload).toMatchObject({
           gateId: "acceptance",
           completedBy: "agent",
-          notes: "Recovered gate after poisoned workflow",
+          approvalEvidence:
+            "Recovered gate after poisoned workflow; Prior user acceptance approval: approve",
           compatibilityReason: "legacy replay lacks contract proof",
-          priorApprovalEvidence: "Prior user acceptance approval: approve",
-        },
-        store,
-      );
-      delete (mocks.handleMock as { describe?: unknown }).describe;
-
-      const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed._recoveryMutation).toBe(true);
-      expect(parsed.recovered).toBe(true);
-      expect(parsed.reconciliationWarning).toContain("not healed");
-      expect(store.changes.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          gates: expect.objectContaining({
-            acceptance: expect.objectContaining({
-              status: "done",
-              approval_evidence:
-                "Recovered gate after poisoned workflow; Prior user acceptance approval: approve",
-            }),
-          }),
-        }),
-      );
-      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+          mutationReceiptId: expect.stringMatching(/^mrec_/),
+        });
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
     });
 
     test("completed-workflow recovery uses one disk snapshot for gates and tasks", async () => {
@@ -649,15 +687,22 @@ describe("gate tools — signal-driven lifecycle", () => {
         expect(parsed._recoveryMutation).toBe(true);
         expect(describeMock).toHaveBeenCalled();
         expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-        // Poisoned (not completed) recovery persists via store.changes.save,
-        // not a disk-direct write (authority=workflow_poisoned_describe).
-        expect(store.changes.save).toHaveBeenCalledWith(
-          expect.objectContaining({
-            gates: expect.objectContaining({
-              acceptance: expect.objectContaining({ status: "done" }),
-            }),
-          }),
+        // Poisoned (not completed) recovery commits the disk projection through
+        // the conditional coordinator and records a re-deliverable payload.
+        const disk = await loadChange(changesDir, "test-change");
+        expect(disk.success).toBe(true);
+        expect(disk.data?.gates?.acceptance).toMatchObject({ status: "done" });
+        expect(disk.data?.projection_commits?.[0].authority_kind).toBe(
+          "recovery",
         );
+        expect(disk.data?.projection_commits?.[0].payload).toMatchObject({
+          gateId: "acceptance",
+          completedBy: "agent",
+          approvalEvidence:
+            "Recovered gate after poisoned workflow; Prior user acceptance approval: approve",
+          compatibilityReason: "legacy replay lacks contract proof",
+          mutationReceiptId: expect.stringMatching(/^mrec_/),
+        });
       } finally {
         delete (mocks.handleMock as { describe?: unknown }).describe;
         await rm(tmp, { recursive: true, force: true });
@@ -729,14 +774,21 @@ describe("gate tools — signal-driven lifecycle", () => {
         expect(parsed._recoveryMutation).toBe(true);
         expect(describeMock).toHaveBeenCalled();
         expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-        // Poisoned (not completed) recovery persists via store.changes.save.
-        expect(store.changes.save).toHaveBeenCalledWith(
-          expect.objectContaining({
-            gates: expect.objectContaining({
-              release: expect.objectContaining({ status: "done" }),
-            }),
-          }),
+        // Poisoned (not completed) recovery commits the disk projection through
+        // the conditional coordinator and records a re-deliverable payload.
+        const disk = await loadChange(changesDir, "test-change");
+        expect(disk.success).toBe(true);
+        expect(disk.data?.gates?.release).toMatchObject({ status: "done" });
+        expect(disk.data?.projection_commits?.[0].authority_kind).toBe(
+          "recovery",
         );
+        expect(disk.data?.projection_commits?.[0].payload).toMatchObject({
+          gateId: "release",
+          completedBy: "agent",
+          approvalEvidence: "Recovered release after poisoned workflow",
+          compatibilityReason: "legacy replay lacks contract proof",
+          mutationReceiptId: expect.stringMatching(/^mrec_/),
+        });
       } finally {
         delete (mocks.handleMock as { describe?: unknown }).describe;
         await rm(tmp, { recursive: true, force: true });
@@ -1324,6 +1376,11 @@ describe("gate tools — signal-driven lifecycle", () => {
       // internal probe-first path (rq-internalMonotonicRecovery01) without
       // attempting the signal (which silently resolves on poisoned replay).
       // The operator-supplied recoveryEvidence path remains as back-compat.
+      const tmp = await mkdtemp(
+        join(tmpdir(), "adv-gate-acceptance-describe-poisoned-"),
+      );
+      const changesDir = join(tmp, "changes");
+      const changeDir = join(changesDir, "test-change");
       const gates = {
         proposal: { status: "done" },
         discovery: { status: "done" },
@@ -1333,10 +1390,21 @@ describe("gate tools — signal-driven lifecycle", () => {
         acceptance: { status: "pending" },
         release: { status: "pending" },
       } as import("../types").Gates;
+      const diskChange = {
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        created_at: "2026-01-01T00:00:00Z",
+        created_by: "test",
+        tasks: [],
+        deltas: {},
+        wisdom: [],
+        gates,
+      };
       const store = createMockStore({
         gates,
         change: {
-          gates,
+          ...diskChange,
           _source: "disk",
           _recovery: {
             mode: "temporal_query_fallback",
@@ -1344,49 +1412,68 @@ describe("gate tools — signal-driven lifecycle", () => {
           },
         } as Partial<import("../types").Change>,
       });
+      store.paths.changes = changesDir;
 
-      // Healthy gates query succeeds; signal is NOT attempted because the
-      // internal probe-first path detects poison via describe() first.
-      mocks.querySignal.mockResolvedValueOnce(gates);
+      try {
+        await mkdir(changeDir, { recursive: true });
+        await writeFile(
+          join(changeDir, "change.json"),
+          JSON.stringify(diskChange, null, 2),
+        );
 
-      // Inject describe() that reports nondeterminism via TemporalReportedProblems.
-      const describeMock = vi.fn(async () => ({
-        searchAttributes: {
-          TemporalReportedProblems: [
-            "category=WorkflowTaskFailed",
-            "cause=WorkflowTaskFailedCauseNonDeterministicError",
-          ],
-        },
-      }));
-      mocks.handleMock.describe = describeMock;
+        // Healthy gates query succeeds; signal is NOT attempted because the
+        // internal probe-first path detects poison via describe() first.
+        mocks.querySignal.mockResolvedValueOnce(gates);
 
-      const result = await gateTools.adv_gate_complete.execute(
-        {
-          changeId: "test-change",
+        // Inject describe() that reports nondeterminism via TemporalReportedProblems.
+        const describeMock = vi.fn(async () => ({
+          searchAttributes: {
+            TemporalReportedProblems: [
+              "category=WorkflowTaskFailed",
+              "cause=WorkflowTaskFailedCauseNonDeterministicError",
+            ],
+          },
+        }));
+        mocks.handleMock.describe = describeMock;
+
+        const result = await gateTools.adv_gate_complete.execute(
+          {
+            changeId: "test-change",
+            gateId: "acceptance",
+            completedBy: "agent",
+            notes: "Prior user acceptance approval: approve",
+            compatibilityReason: "legacy replay lacks contract proof",
+            priorApprovalEvidence: "Prior user acceptance approval: approve",
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        expect(parsed.success).toBe(true);
+        expect(parsed._recoveryMutation).toBe(true);
+        expect(parsed.recovered).toBe(true);
+        expect(parsed.reconciliationWarning).toContain("not healed");
+        expect(describeMock).toHaveBeenCalled();
+
+        const disk = await loadChange(changesDir, "test-change");
+        expect(disk.success).toBe(true);
+        expect(disk.data?.gates?.acceptance).toMatchObject({ status: "done" });
+        expect(disk.data?.projection_commits?.[0].authority_kind).toBe(
+          "recovery",
+        );
+        expect(disk.data?.projection_commits?.[0].payload).toMatchObject({
           gateId: "acceptance",
           completedBy: "agent",
-          notes: "Prior user acceptance approval: approve",
+          approvalEvidence:
+            "Prior user acceptance approval: approve; Prior user acceptance approval: approve",
           compatibilityReason: "legacy replay lacks contract proof",
-          priorApprovalEvidence: "Prior user acceptance approval: approve",
-        },
-        store,
-      );
+          mutationReceiptId: expect.stringMatching(/^mrec_/),
+        });
 
-      const parsed = JSON.parse(result);
-      expect(parsed.success).toBe(true);
-      expect(parsed._recoveryMutation).toBe(true);
-      expect(parsed.recovered).toBe(true);
-      expect(parsed.reconciliationWarning).toContain("not healed");
-      expect(describeMock).toHaveBeenCalled();
-      expect(store.changes.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          gates: expect.objectContaining({
-            acceptance: expect.objectContaining({ status: "done" }),
-          }),
-        }),
-      );
-
-      delete (mocks.handleMock as { describe?: unknown }).describe;
+        delete (mocks.handleMock as { describe?: unknown }).describe;
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
     });
 
     test("planning gate completion triggers initial and execution_boundary profile evaluations", async () => {

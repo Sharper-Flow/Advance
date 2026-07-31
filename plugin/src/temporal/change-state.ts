@@ -2581,6 +2581,7 @@ export function applyDesignConcernDispositionedToState(
     dispositionedAt: payload.dispositionedAt,
   });
   state.design_concern_dispositions = next;
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.dispositionedAt);
   // rq-readinessMutationReceipt01: design-concern disposition clears an
   // otherwise-blocking concern in the gate-readiness evaluator. Record
@@ -2613,6 +2614,7 @@ export function applyVerificationEvidenceDispositionedToState(
     dispositionedAt: payload.dispositionedAt,
   });
   state.verification_evidence_dispositions = next;
+  advanceAcceptanceReadinessRevision(state);
   setLastSignalAt(state, payload.dispositionedAt);
   // rq-readinessMutationReceipt01: verification-evidence disposition
   // clears an otherwise-blocking VERIFICATION_EVIDENCE_MISSING readiness

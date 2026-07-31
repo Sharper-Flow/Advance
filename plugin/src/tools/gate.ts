@@ -40,6 +40,7 @@ import {
   withTargetPathStore,
 } from "./target-project";
 import { includeSnapshotSchema } from "./shared-args";
+import { reconcileRecoveredAcceptanceRemediation } from "./acceptance-reconciliation";
 import { getService } from "../temporal/service";
 import { getProjectId } from "../utils/project-id";
 import {
@@ -900,27 +901,37 @@ async function completeGateViaRecovery(input: {
         : input.notes,
     artifact_evidence: artifactEvidence,
   } as Gates[GateId];
-  const updatedGates: Gates = {
-    ...recoveryGates,
-    [input.gateId]: completion,
-  } as Gates;
-  if (input.diskDirect) {
-    await saveRecoveredGateCompletion({
-      store: input.store,
-      change: recoveryChange,
-      authorization: {
-        reason: recoveryReason,
-        evidence:
-          input.gateId === "acceptance"
-            ? `${recoveryEvidence}\nPrior approval evidence: ${priorApprovalEvidence}`
-            : recoveryEvidence,
-      },
-      gateId: input.gateId,
-      completion,
-    });
-  } else {
-    await input.store.changes.save({ ...recoveryChange, gates: updatedGates });
-  }
+
+  const recoveryEvidenceWithApproval =
+    input.gateId === "acceptance"
+      ? `${recoveryEvidence}\nPrior approval evidence: ${priorApprovalEvidence}`
+      : recoveryEvidence;
+
+  const payload = (mutationReceiptId: string) => ({
+    gateId: input.gateId,
+    completedAt,
+    completedBy: input.completedBy,
+    approvalEvidence: completion.approval_evidence,
+    ...(completion.artifact_evidence
+      ? { artifactEvidence: completion.artifact_evidence }
+      : {}),
+    ...(input.compatibilityReason
+      ? { compatibilityReason: input.compatibilityReason }
+      : {}),
+    mutationReceiptId,
+  });
+
+  await saveRecoveredGateCompletion({
+    store: input.store,
+    change: input.diskDirect ? recoveryChange : input.change,
+    authorization: {
+      reason: recoveryReason,
+      evidence: recoveryEvidenceWithApproval,
+    },
+    gateId: input.gateId,
+    completion,
+    payload,
+  });
   return formatToolOutput({
     success: true,
     changeId: input.changeId,
@@ -1882,6 +1893,31 @@ export const gateTools = {
               gateId,
             });
           }
+        }
+
+        // AC1/AC2/AC4: before the normal acceptance gate signal is fired,
+        // reconcile any recovered (disk-only) design-concern or
+        // verification-evidence dispositions back into the reachable workflow.
+        // Confirmed re-deliveries clear their recovery markers; failures return
+        // one actionable reconciliation block rather than replaying stale blockers.
+        if (gateId === "acceptance") {
+          const reconciliation = await reconcileRecoveredAcceptanceRemediation({
+            store: activeStore,
+            changeId,
+            handle,
+          });
+          if (reconciliation.kind === "blocked") {
+            return formatToolOutput({
+              error: reconciliation.message,
+              code: reconciliation.code,
+              changeId,
+              gateId,
+              failedItems: reconciliation.failedItems,
+              remediation: reconciliation.remediation,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            });
+          }
+          change = reconciliation.change;
         }
 
         // Signal-driven mutation: fire gateCompletedSignal after

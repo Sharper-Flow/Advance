@@ -253,6 +253,12 @@ export async function saveRecoveredGateCompletion(input: {
   authorization: RecoveryWriteAuthorization;
   gateId: keyof Gates;
   completion: Gates[keyof Gates];
+  /**
+   * Optional full signal payload generator. When provided, the coordinator
+   * records it in the projection commit audit so the gate-completion signal
+   * can be re-delivered to a reachable workflow during reconciliation.
+   */
+  payload?: (mutationReceiptId: string) => Record<string, unknown>;
 }): Promise<Change> {
   assertRecoveryAuthorization(input.authorization);
   const gateId = input.gateId;
@@ -272,6 +278,7 @@ export async function saveRecoveredGateCompletion(input: {
     intent: {
       changeId: input.change.id,
       mutationKind: "gate_completion",
+      payload: input.payload,
       sendSignal: async (_h, _payload) => {},
       refresh: async () => ({}) as never,
       verifyTemporal: () => true,
