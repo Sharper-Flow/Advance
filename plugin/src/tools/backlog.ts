@@ -157,6 +157,45 @@ export interface WipClaimInventory {
   can_conclude_clean: boolean;
   conflicts: WipClaimInventoryConflict[];
   warnings: string[];
+  /**
+   * Optional advisory ranked search results. Present only when a free-text
+   * query is supplied. Advisory search never assigns claims, establishes
+   * ownership, or emits a no-conflict result; the exact-identifier overlap
+   * path remains the sole authority.
+   */
+  advisory_search?: AdvisorySearchResult;
+}
+
+/** Input candidate for advisory free-text ranking. */
+export interface AdvisorySearchCandidate {
+  change_id: string;
+  title: string;
+  description?: string;
+  scope_summary?: string;
+  responsibility?: string;
+  exact_identifiers: string[];
+  generated_terms: string[];
+}
+
+/** A single ranked advisory match. */
+export interface AdvisorySearchResultItem {
+  change_id: string;
+  title: string;
+  responsibility?: string;
+  scope_summary?: string;
+  score: number;
+  rank: number;
+  matched_fields: string[];
+  matched_terms: string[];
+}
+
+/** Advisory free-text search output. */
+export interface AdvisorySearchResult {
+  advisory: true;
+  query: string;
+  results: AdvisorySearchResultItem[];
+  total_candidates: number;
+  note: string;
 }
 
 /**
@@ -311,6 +350,141 @@ function isValidClaim(value: unknown): value is {
 }
 
 /**
+ * Normalize and tokenize free text into lowercase alphanumeric tokens.
+ * Hyphens and underscores are treated as delimiters so that identifier-shaped
+ * substrings (e.g. "tk-refresh-001") collapse into searchable tokens.
+ */
+function tokenize(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(/\s+/)
+    .filter((t) => t.length > 0);
+}
+
+function tokenMatches(queryToken: string, fieldTokens: string[]): boolean {
+  return fieldTokens.some(
+    (fieldToken) =>
+      fieldToken === queryToken ||
+      fieldToken.startsWith(queryToken) ||
+      queryToken.startsWith(fieldToken),
+  );
+}
+
+const MAX_ADVISORY_RESULTS = 20;
+
+/**
+ * Rank active changes against a free-text query using title, description,
+ * scope summary, responsibility, exact identifiers, and generated terms.
+ * Results are strictly advisory: they do not create claims, assign ownership,
+ * or determine overlap/no-conflict.
+ */
+export function rankAdvisorySearch(
+  query: string,
+  candidates: AdvisorySearchCandidate[],
+  completeness: WipClaimInventory["completeness"],
+): AdvisorySearchResult {
+  const queryTokens = tokenize(query);
+  const resultItems: AdvisorySearchResultItem[] = [];
+
+  if (queryTokens.length > 0) {
+    for (const candidate of candidates) {
+      const titleTokens = tokenize(candidate.title);
+      const descriptionTokens = tokenize(candidate.description);
+      const scopeTokens = tokenize(candidate.scope_summary);
+      const responsibilityTokens = tokenize(candidate.responsibility ?? "");
+      const exactIdTokens = candidate.exact_identifiers.flatMap((id) =>
+        tokenize(id),
+      );
+      const generatedTokens = candidate.generated_terms.flatMap((t) =>
+        tokenize(t),
+      );
+
+      let score = 0;
+      const matchedFields = new Set<string>();
+      const matchedTerms = new Set<string>();
+
+      for (const token of queryTokens) {
+        if (tokenMatches(token, titleTokens)) {
+          score += 4;
+          matchedFields.add("title");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, descriptionTokens)) {
+          score += 2;
+          matchedFields.add("description");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, scopeTokens)) {
+          score += 3;
+          matchedFields.add("scope_summary");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, responsibilityTokens)) {
+          score += 2;
+          matchedFields.add("responsibility");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, exactIdTokens)) {
+          score += 3;
+          matchedFields.add("exact_identifiers");
+          matchedTerms.add(token);
+        }
+        if (tokenMatches(token, generatedTokens)) {
+          score += 1;
+          matchedFields.add("generated_terms");
+          matchedTerms.add(token);
+        }
+      }
+
+      if (score === 0) continue;
+
+      resultItems.push({
+        change_id: candidate.change_id,
+        title: candidate.title,
+        responsibility: candidate.responsibility,
+        scope_summary: candidate.scope_summary,
+        score,
+        rank: 0,
+        matched_fields: [...matchedFields],
+        matched_terms: [...matchedTerms],
+      });
+    }
+
+    resultItems.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.title.localeCompare(b.title);
+    });
+
+    let currentRank = 0;
+    let previousScore: number | undefined;
+    for (const item of resultItems.slice(0, MAX_ADVISORY_RESULTS)) {
+      if (item.score !== previousScore) {
+        currentRank += 1;
+        previousScore = item.score;
+      }
+      item.rank = currentRank;
+    }
+  }
+
+  const baseNote =
+    "Advisory discovery only. Exact identifier overlap in claim_inventory.conflicts remains the authority for ownership/no-conflict; search results do not assign claims.";
+  const completenessNote =
+    completeness !== "complete"
+      ? " Inventory completeness is not 'complete'; results may omit active changes."
+      : "";
+
+  return {
+    advisory: true,
+    query: query.trim(),
+    results: resultItems.slice(0, MAX_ADVISORY_RESULTS),
+    total_candidates: candidates.length,
+    note: `${baseNote}${completenessNote}`,
+  };
+}
+
+/**
  * Build the aggregate claim inventory from active changes and determine
  * whether it is complete enough to conclude "no conflict".
  *
@@ -319,13 +493,19 @@ function isValidClaim(value: unknown): value is {
  * matching is out of scope).
  */
 function buildClaimInventory(
-  activeChanges: Array<{ id: string; coordination_claim?: unknown }>,
+  activeChanges: Array<{
+    id: string;
+    title?: string;
+    description?: string;
+    coordination_claim?: unknown;
+  }>,
   worktreeState: {
     available: boolean;
     complete: boolean;
     poisonedCount: number;
   },
   activeChangesAvailable: boolean,
+  query?: string,
 ): WipClaimInventory {
   const warnings: string[] = [];
   let completeness: WipClaimInventory["completeness"] = "complete";
@@ -354,9 +534,24 @@ function buildClaimInventory(
 
   const claims: WipClaimInventoryEntry[] = [];
   const identifierIndex = new Map<string, string[]>();
+  const searchCandidates: AdvisorySearchCandidate[] = [];
 
   for (const change of activeChanges) {
-    if (!isValidClaim(change.coordination_claim)) continue;
+    const baseCandidate: AdvisorySearchCandidate = {
+      change_id: change.id,
+      title: change.title ?? "",
+      description: change.description,
+      exact_identifiers: [],
+      generated_terms: [],
+    };
+
+    if (!isValidClaim(change.coordination_claim)) {
+      if (activeChangesAvailable) {
+        searchCandidates.push(baseCandidate);
+      }
+      continue;
+    }
+
     const claim = change.coordination_claim;
     claims.push({
       change_id: change.id,
@@ -369,6 +564,15 @@ function buildClaimInventory(
         ? { claimed_by: claim.claimed_by }
         : {}),
     });
+
+    searchCandidates.push({
+      ...baseCandidate,
+      scope_summary: claim.scope_summary,
+      responsibility: claim.responsibility,
+      exact_identifiers: claim.exact_identifiers,
+      generated_terms: claim.generated_terms,
+    });
+
     for (const id of claim.exact_identifiers) {
       const entry = identifierIndex.get(id);
       if (entry) {
@@ -395,13 +599,24 @@ function buildClaimInventory(
   const can_conclude_clean =
     completeness === "complete" && conflicts.length === 0;
 
-  return {
+  const inventory: WipClaimInventory = {
     claims,
     completeness,
     can_conclude_clean,
     conflicts,
     warnings,
   };
+
+  const normalizedQuery = query?.trim();
+  if (normalizedQuery) {
+    inventory.advisory_search = rankAdvisorySearch(
+      normalizedQuery,
+      searchCandidates,
+      completeness,
+    );
+  }
+
+  return inventory;
 }
 
 export const backlogTools = {
@@ -409,13 +624,12 @@ export const backlogTools = {
     description:
       "Single-call aggregator: returns active changes (Temporal Visibility), worktrees (cross-change), and peer sessions in one tool response. Read-only. Source failures isolate per-section with warnings instead of failing the whole call (rq-backlogCoord04).",
     args: {
-      // No public args. The fourth execute parameter accepts test-only provider
-      // seams (omitted from the Zod schema so callers cannot pass them).
-      _placeholder: z
-        .never()
+      query: z
+        .string()
+        .max(200)
         .optional()
         .describe(
-          "Reserved — adv_wip_state takes no public arguments. Project scope is derived from store.paths.root.",
+          "Optional free-text advisory search query. When provided, claim_inventory includes ranked advisory results over titles, descriptions, scope claims, responsibility, and identifiers. Search is advisory only and never assigns claims or emits a no-conflict result.",
         ),
     },
     execute: async (
@@ -443,6 +657,9 @@ export const backlogTools = {
         timeoutMs: INVENTORY_INTERNAL_BUDGET_MS,
       });
 
+      const query =
+        typeof _args.query === "string" ? _args.query.trim() : undefined;
+
       try {
         const [changesResult, worktreesResult, sessionsResult] =
           await Promise.allSettled([
@@ -454,7 +671,12 @@ export const backlogTools = {
           ]);
 
         let active_changes: WipStateResponse["active_changes"] = [];
-        const rawActiveChanges: Array<{ id: string; coordination_claim?: unknown }> = [];
+        const rawActiveChanges: Array<{
+          id: string;
+          title?: string;
+          description?: string;
+          coordination_claim?: unknown;
+        }> = [];
         if (changesResult.status === "fulfilled") {
           const filtered = changesResult.value.changes.filter(
             (c) => c.status !== "archived" && c.status !== "closed",
@@ -628,6 +850,7 @@ export const backlogTools = {
             poisonedCount: poisonedWorkflowCount,
           },
           changesResult.status === "fulfilled",
+          query,
         );
 
         const response: WipStateResponse = {

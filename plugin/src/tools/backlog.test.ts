@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { backlogTools } from "./backlog";
+import { backlogTools, rankAdvisorySearch } from "./backlog";
 import type { Store } from "../storage/store-types";
 import { type InventoryBudget } from "./worktree/inventory-budget";
 
@@ -1233,6 +1233,288 @@ describe("adv_wip_state (rq-backlogCoord04)", () => {
       expect(parsed.claim_inventory.claims[0].change_id).toBe("activeChange");
       expect(parsed.claim_inventory.conflicts).toEqual([]);
       expect(parsed.claim_inventory.can_conclude_clean).toBe(true);
+    });
+  });
+
+  describe("advisory Concord search (SC6)", () => {
+    const makeSearchStore = (changes: unknown[]) =>
+      makeMockStore(
+        changes as Array<{
+          id: string;
+          title: string;
+          status: string;
+          created_at: string;
+          lastActivityAt: string;
+          taskCount: number;
+          completedTasks: number;
+          coordination_claim?: unknown;
+          description?: string;
+        }>,
+      );
+
+    it("omits advisory_search when no query is supplied", async () => {
+      const store = makeSearchStore([
+        {
+          id: "changeA",
+          title: "Change A",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer",
+            responsibility: "owner",
+            exact_identifiers: ["tk-abc123"],
+            generated_terms: ["auth"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        {},
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory).not.toHaveProperty("advisory_search");
+    });
+
+    it("ranks candidates by title, scope claim, and identifiers", async () => {
+      const store = makeSearchStore([
+        {
+          id: "authChange",
+          title: "Fix authentication bug",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer refactoring",
+            responsibility: "owner",
+            exact_identifiers: ["tk-auth-001"],
+            generated_terms: ["login", "auth"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+        {
+          id: "docsChange",
+          title: "Update documentation",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Docs refresh",
+            responsibility: "observer",
+            exact_identifiers: ["tk-docs-001"],
+            generated_terms: ["readme"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "auth" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      const search = parsed.claim_inventory.advisory_search;
+      expect(search).toBeDefined();
+      expect(search.advisory).toBe(true);
+      expect(search.query).toBe("auth");
+      expect(search.results).toHaveLength(1);
+      expect(search.results[0].change_id).toBe("authChange");
+      expect(search.results[0].rank).toBe(1);
+      expect(search.results[0].matched_fields).toContain("title");
+      expect(search.results[0].matched_fields).toContain("scope_summary");
+      expect(search.results[0].matched_fields).toContain("exact_identifiers");
+      expect(search.results[0].matched_fields).toContain("generated_terms");
+      expect(parsed.claim_inventory.can_conclude_clean).toBe(true);
+    });
+
+    it("matches normalized identifier tokens and stays advisory", async () => {
+      const store = makeSearchStore([
+        {
+          id: "tokenChange",
+          title: "Token refresh",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Token handling",
+            responsibility: "owner",
+            exact_identifiers: ["tk-refresh-001"],
+            generated_terms: ["token"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "REFRESH-001" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      const search = parsed.claim_inventory.advisory_search;
+      expect(search.results).toHaveLength(1);
+      expect(search.results[0].change_id).toBe("tokenChange");
+      expect(search.results[0].matched_fields).toContain("exact_identifiers");
+      expect(search.note).toMatch(
+        /exact identifier overlap.*authority for ownership\/no-conflict/i,
+      );
+    });
+
+    it("ranks responsibility and description when provided", () => {
+      const candidates = [
+        {
+          change_id: "reviewerChange",
+          title: "Backend refactor",
+          description: "Refactor the database layer",
+          scope_summary: "Database layer",
+          responsibility: "reviewer",
+          exact_identifiers: ["tk-db-001"],
+          generated_terms: ["postgres"],
+        },
+        {
+          change_id: "ownerChange",
+          title: "Database migration",
+          description: "Migrate users table",
+          scope_summary: "User migration",
+          responsibility: "owner",
+          exact_identifiers: ["tk-mig-001"],
+          generated_terms: ["migration"],
+        },
+      ];
+
+      const result = rankAdvisorySearch("reviewer database", candidates, "complete");
+      expect(result.advisory).toBe(true);
+      expect(result.results).toHaveLength(2);
+      expect(result.results[0].change_id).toBe("reviewerChange");
+      expect(result.results[0].matched_fields).toContain("responsibility");
+      expect(result.results[0].matched_fields).toContain("description");
+      expect(result.results[1].change_id).toBe("ownerChange");
+      expect(result.results[0].score).toBeGreaterThan(result.results[1].score);
+    });
+
+    it("does not produce search results for non-matching queries", async () => {
+      const store = makeSearchStore([
+        {
+          id: "authChange",
+          title: "Fix authentication bug",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer refactoring",
+            responsibility: "owner",
+            exact_identifiers: ["tk-auth-001"],
+            generated_terms: ["login"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "billing" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => [],
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.advisory_search.results).toEqual([]);
+      expect(parsed.claim_inventory.advisory_search.total_candidates).toBe(1);
+    });
+
+    it("exposes a degraded-inventory note but still returns advisory results", async () => {
+      const store = makeSearchStore([
+        {
+          id: "authChange",
+          title: "Fix authentication bug",
+          status: "active",
+          created_at: "2026-05-11T00:00:00.000Z",
+          lastActivityAt: "2026-05-11T01:00:00.000Z",
+          taskCount: 1,
+          completedTasks: 0,
+          coordination_claim: {
+            scope_summary: "Authentication layer refactoring",
+            responsibility: "owner",
+            exact_identifiers: ["tk-auth-001"],
+            generated_terms: ["login"],
+            claimed_at: "2026-05-11T00:00:00.000Z",
+          },
+        },
+      ]);
+
+      const result = await backlogTools.adv_wip_state.execute(
+        { query: "auth" },
+        store,
+        undefined,
+        {
+          worktreesProvider: async () => ({
+            worktrees: [],
+            complete: false,
+            stopReason: "budget_exhausted",
+            stoppedStage: "visibility_enumeration",
+          }),
+          sessionsProvider: async () => ({
+            sessions: [],
+            total: 0,
+            deadFiltered: 0,
+          }),
+        },
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.claim_inventory.completeness).toBe("degraded");
+      expect(parsed.claim_inventory.advisory_search.results).toHaveLength(1);
+      expect(parsed.claim_inventory.advisory_search.note).toContain(
+        "Inventory completeness is not 'complete'",
+      );
     });
   });
 });
