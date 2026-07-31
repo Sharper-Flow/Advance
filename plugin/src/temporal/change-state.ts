@@ -2024,6 +2024,20 @@ export function applySubagentReportSubmittedToState(
 
   const blockers = blockerSummary(payload.report);
   if (task && blockers) {
+    // Issue #349: deduplicate auto-generated strategy_label so repeat
+    // submissions from the same agent don't produce identical labels that
+    // fail schema validation ("strategy_label values must be distinct").
+    const existingLabels = new Set(
+      (task.error_recovery?.attempts ?? []).map((a) => a.strategy_label),
+    );
+    const baseLabel = `${payload.report.agent}-reported-blocker`;
+    let strategyLabel = baseLabel;
+    let suffix = 2;
+    while (existingLabels.has(strategyLabel)) {
+      strategyLabel = `${baseLabel}-${suffix}`;
+      suffix++;
+    }
+
     task.error_recovery = {
       last_error: blockers.summary,
       retry_count: payload.report.attempt,
@@ -2037,7 +2051,7 @@ export function applySubagentReportSubmittedToState(
           error: blockers.summary,
           diagnosis: blockers.diagnosis,
           fix_tried: "Sub-agent report submission recorded blocker",
-          strategy_label: `${payload.report.agent}-reported-blocker`,
+          strategy_label: strategyLabel,
           outcome: "failed",
           attempted_at: payload.submittedAt,
         },

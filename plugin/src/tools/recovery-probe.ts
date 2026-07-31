@@ -17,6 +17,7 @@ import {
   isPreciseWorkflowRecoveryEvidence,
   isWorkflowCompletedError,
 } from "../temporal/recovery-classification";
+import { isPoisonedWorkflowForChange } from "../storage/store-temporal/poisoned-workflow-cache";
 import { createLogger } from "../utils/debug-log";
 
 const logger = createLogger("recovery-probe");
@@ -203,4 +204,17 @@ function summarizeEvidence(text: string): string {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (normalized.length <= MAX_EVIDENCE_SUMMARY_CHARS) return normalized;
   return `${normalized.slice(0, MAX_EVIDENCE_SUMMARY_CHARS - 1)}…`;
+}
+
+/**
+ * Fast probe: checks the store-layer poisoned-workflow cache for a change.
+ * This is the recovery probe used by adv_change_show to surface a `_poisoned`
+ * marker without issuing a Temporal query that could hang for 10 seconds on a
+ * TMPRL1100 poisoned workflow.
+ */
+export function changeWorkflowIsPoisoned(
+  projectId: string,
+  changeId: string,
+): boolean {
+  return isPoisonedWorkflowForChange(projectId, changeId);
 }
