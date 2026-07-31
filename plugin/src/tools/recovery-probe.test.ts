@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  changeWorkflowIsPoisoned,
   classifyCompletedOrPoisonedRecovery,
   logRecoveryProbeDiagnostics,
   shouldTakeRecoveryBranch,
@@ -8,6 +9,10 @@ import {
   workflowPoisonedDescriptionEvidence,
   workflowHasPoisonedRecoveryEvidence,
 } from "./recovery-probe";
+import {
+  markPoisonedWorkflowForChange,
+  clearPoisonedWorkflowCache,
+} from "../storage/store-temporal/poisoned-workflow-cache";
 
 describe("workflow poisoned description probe", () => {
   it("returns null/false when describe is unavailable or fails", async () => {
@@ -237,5 +242,28 @@ describe("logRecoveryProbeDiagnostics", () => {
     await expect(
       logRecoveryProbeDiagnostics(handle as never, "test-change"),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe("changeWorkflowIsPoisoned cache probe", () => {
+  afterEach(() => {
+    clearPoisonedWorkflowCache();
+  });
+
+  it("returns true when the change's workflow is in the poisoned cache", () => {
+    markPoisonedWorkflowForChange("project-1", "poisonedChange");
+    expect(changeWorkflowIsPoisoned("project-1", "poisonedChange")).toBe(true);
+  });
+
+  it("returns false for an unknown change", () => {
+    expect(changeWorkflowIsPoisoned("project-1", "cleanChange")).toBe(false);
+  });
+
+  it("returns false after the cache entry expires", async () => {
+    markPoisonedWorkflowForChange("project-1", "expiredChange", 1);
+    expect(changeWorkflowIsPoisoned("project-1", "expiredChange")).toBe(true);
+    // Advance past the 1ms TTL without blocking the event loop.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(changeWorkflowIsPoisoned("project-1", "expiredChange")).toBe(false);
   });
 });

@@ -113,6 +113,7 @@ import {
   logRecoveryProbeDiagnostics,
   shouldTakeRecoveryBranch,
 } from "./recovery-probe";
+import { markPoisonedWorkflowForChange } from "../storage/store-temporal/poisoned-workflow-cache";
 import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { reconcileRecoveredGates } from "./gate";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
@@ -1929,6 +1930,13 @@ export const changeTools = {
             "Examples: wisdom-id, task-id, or note-line ref. " +
             "Parse-only legacy: agenda-id ('ag-...') values remain readable for historical records.",
         ),
+      forceRecreate: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "Bypass duplicate detection when the existing active change's workflow is poisoned and a new change is required. Only allowed when the duplicate is poisoned.",
+        ),
       ...includeSnapshotSchema.shape,
     },
     execute: async (
@@ -1958,6 +1966,7 @@ export const changeTools = {
         origin_kind,
         origin_issue_number,
         origin_source_artifact,
+        forceRecreate,
         include,
       }: {
         summary: string;
@@ -1985,6 +1994,7 @@ export const changeTools = {
         origin_kind?: ChangeOrigin["kind"];
         origin_issue_number?: number;
         origin_source_artifact?: string;
+        forceRecreate?: boolean;
         include?: { snapshot?: boolean };
       },
       store: Store,
@@ -2146,6 +2156,7 @@ export const changeTools = {
           epic_owner_target_confirmed,
           epic_owner_confirmationEvidence,
           store,
+          forceRecreate,
         });
       }
       let fastFollowOf: FastFollowOf | undefined;
@@ -2169,7 +2180,11 @@ export const changeTools = {
       if (!scopeResolution.ok) {
         return formatToolOutput({ error: scopeResolution.error });
       }
-      const duplicateError = await checkActiveDuplicateChange(store, summary);
+      const projectId = (await getProjectId(store.paths.root)) ?? "";
+      const duplicateError = await checkActiveDuplicateChange(store, summary, {
+        forceRecreate,
+        projectId,
+      });
       if (duplicateError) {
         return formatToolOutput(duplicateError);
       }
@@ -3097,9 +3112,9 @@ export const changeTools = {
         };
         // Operator-supplied recovery branch (fixPoisonedClosePathPrecheck):
         // when the operator has provided precise poisoned-history evidence,
-        // skip the describe() precheck (which can fail on Terminated/zombie
-        // workflows), attempt the signal, and fall back to the disk projection
-        // if the signal fails.
+        // skip the describe() precheck and the workflow signal entirely and
+        // write the closed disk projection directly. This avoids the 10-second
+        // timeout on a poisoned workflow that cannot accept signals.
         if (
           shouldTakeRecoveryBranch({
             recoveryMode,
@@ -3108,54 +3123,29 @@ export const changeTools = {
             approvalEvidence,
           })
         ) {
-          try {
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              changeId,
-              changeCancelledSignal,
-              buildChangeClosePayload(closeInput),
-            );
-            let cleanupWarning: string | undefined;
-            if (activeStore.paths?.changes) {
-              try {
-                await removeChangeDir(activeStore.paths.changes, changeId);
-              } catch (err) {
-                cleanupWarning = `Source cleanup warning: failed to remove changes/${changeId}: ${err instanceof Error ? err.message : String(err)}`;
-              }
-            }
-            return formatToolOutput({
-              success: true,
-              changeId,
-              message: cleanupWarning
-                ? `Closed change ${changeId} as ${reason}. ${cleanupWarning}`
-                : `Closed change ${changeId} as ${reason}.`,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          } catch {
-            const { saveRecoveredChangeStatus } =
-              await import("./_recovery-writers");
-            const { buildChangeClosure } = await import("./change/recovery");
-            await saveRecoveredChangeStatus({
-              store: activeStore,
-              change: result.data,
-              authorization: {
-                reason: "poisoned_history",
-                evidence: recoveryEvidence as string,
-              },
-              status: "closed",
-              closure: buildChangeClosure(closeInput),
-            });
-            return formatToolOutput({
-              success: true,
-              _recoveryMutation: true,
-              diskProjectionRetained: true,
-              changeId,
-              reason,
-              message: `Closed change ${changeId} as ${reason} via operator-supplied poisoned-history recovery branch. Retained closed disk projection for stale-visibility reconciliation.`,
-              ...(projectContext ? { _projectContext: projectContext } : {}),
-            });
-          }
+          markPoisonedWorkflowForChange(projectId, changeId);
+          const { saveRecoveredChangeStatus } =
+            await import("./_recovery-writers");
+          const { buildChangeClosure } = await import("./change/recovery");
+          await saveRecoveredChangeStatus({
+            store: activeStore,
+            change: result.data,
+            authorization: {
+              reason: "poisoned_history",
+              evidence: recoveryEvidence as string,
+            },
+            status: "closed",
+            closure: buildChangeClosure(closeInput),
+          });
+          return formatToolOutput({
+            success: true,
+            _recoveryMutation: true,
+            diskProjectionRetained: true,
+            changeId,
+            reason,
+            message: `Closed change ${changeId} as ${reason} via operator-supplied poisoned-history recovery branch (workflow signal skipped). Retained closed disk projection for stale-visibility reconciliation.`,
+            ...(projectContext ? { _projectContext: projectContext } : {}),
+          });
         }
         // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
         // probe describe() to auto-detect poisoned/completed workflows without

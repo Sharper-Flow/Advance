@@ -84,6 +84,7 @@ import {
   buildSummaryCommitProjection,
   type ChangeCommandOutcome,
 } from "./shared";
+import { isPoisonedWorkflowForChange } from "./poisoned-workflow-cache";
 import { computeHostCommandPayloadHash } from "../../utils/command-payload-hash";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 import {
@@ -1498,6 +1499,13 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       // getTemporalChange: absence or corruption of a projection must never
       // obtain a workflow handle or trigger orphan hydration.
       const result = snapshotToLoadResult(await readChangeSnapshot(changeId));
+      // Surface a poisoned-workflow marker on routine reads so callers
+      // (e.g. adv_change_show) can report it without ever touching Temporal.
+      if (result.success && result.data) {
+        if (isPoisonedWorkflowForChange(deps.input.projectId, changeId)) {
+          (result.data as Change & { _poisoned?: true })._poisoned = true;
+        }
+      }
       // Schema errors are not recoverable through a workflow round-trip;
       // surface them verbatim so callers do not mistake corruption for
       // "not found" or a generic Temporal failure.

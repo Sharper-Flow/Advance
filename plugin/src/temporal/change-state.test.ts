@@ -3144,3 +3144,81 @@ describe("AC3/SC3 — acceptanceCriteriaFromContract legacy projection", () => {
     ]);
   });
 });
+
+// Issue #349: duplicate strategy_label corruption
+describe("error_recovery strategy_label deduplication (issue #349)", () => {
+  it("produces distinct strategy_labels when the same agent submits blockers twice", () => {
+    const state = createChangeWorkflowState({
+      changeId: "issue-349-dedup",
+      title: "Issue 349 dedup",
+      createdAt: "2026-07-31T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-blocked",
+        title: "Blocked task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-07-31T00:00:01.000Z",
+      },
+      addedAt: "2026-07-31T00:00:01.000Z",
+    });
+
+    const blockerReport = {
+      schema_version: "1.0" as const,
+      change_id: "issue-349-dedup",
+      scope: { kind: "task" as const, task_id: "tk-blocked" },
+      attempt: 1,
+      agent: "adv-reviewer" as const,
+      status: "complete" as const,
+      evidence_binding_version: "typed-v1" as const,
+      files_touched: [],
+      verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
+      decisions: [],
+      blocking_findings: [
+        {
+          finding: "Test failure in foo",
+          contract_ids: ["AC1"],
+          scope: "in_scope" as const,
+          in_scope_remediation: "Fix foo",
+          source: {
+            label: "test",
+            locator: "test.ts:1",
+            summary: "fail",
+          },
+        },
+      ],
+      changes_made: [],
+      scope_drift: null,
+      follow_ups: [],
+      required_main_agent_actions: [],
+      related_scan: "",
+      context_update_for_adv: {
+        what_ads_needs_to_know: "",
+        suggested_next_action: "",
+      },
+    };
+
+    // First submission with blocker
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-blocked",
+      report: blockerReport,
+      submittedAt: "2026-07-31T00:00:02.000Z",
+    });
+
+    // Second submission with same blocker (e.g. resubmission after verification_missing)
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-blocked",
+      report: { ...blockerReport, attempt: 2 },
+      submittedAt: "2026-07-31T00:00:03.000Z",
+    });
+
+    const attempts = state.tasks[0]?.error_recovery?.attempts ?? [];
+    expect(attempts).toHaveLength(2);
+    const labels = attempts.map((a) => a.strategy_label);
+    expect(labels[0]).toBe("adv-reviewer-reported-blocker");
+    expect(labels[1]).toBe("adv-reviewer-reported-blocker-2");
+    expect(new Set(labels).size).toBe(2); // distinct
+  });
+});
