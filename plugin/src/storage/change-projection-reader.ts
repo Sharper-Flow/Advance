@@ -45,7 +45,7 @@ export type LoadResult<T> =
       success: false;
       error: string;
       type: "not_found" | "schema_error" | "read_error";
-      source?: "read_model";
+      source?: "disk" | "archive" | "read_model";
       degraded?: unknown;
     };
 

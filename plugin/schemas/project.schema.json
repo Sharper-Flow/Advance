@@ -43,15 +43,9 @@
               "type": "array"
             }
           },
-          "required": [
-            "format"
-          ],
           "type": "object"
         }
       },
-      "required": [
-        "pr_title_policy"
-      ],
       "type": "object"
     },
     "archive_dir": {
@@ -151,12 +145,6 @@
               "type": "integer"
             }
           },
-          "required": [
-            "nesting_depth_threshold",
-            "defensive_guard_threshold",
-            "complexity_threshold",
-            "ast_timeout_ms"
-          ],
           "type": "object"
         },
         "tdd_enforcement": {
@@ -185,23 +173,12 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "tdd_enforcement",
-        "worktree_auto_create",
-        "gate_enforcement",
-        "wisdom_accumulation",
-        "worktree_guard_enforce",
-        "worker_singleton_enforce",
-        "clarify_enforcement",
-        "slop_scan"
-      ],
       "type": "object"
     },
     "name": {
       "type": "string"
     },
     "product": {
-      "additionalProperties": false,
       "properties": {
         "id": {
           "minLength": 1,
@@ -236,8 +213,7 @@
         "id",
         "role",
         "repo_id",
-        "primary_repo_id",
-        "missing_primary_policy"
+        "primary_repo_id"
       ],
       "type": "object"
     },
@@ -280,8 +256,7 @@
         },
         "required": [
           "id",
-          "path",
-          "trusted"
+          "path"
         ],
         "type": "object"
       },
@@ -296,17 +271,7 @@
     }
   },
   "required": [
-    "name",
-    "specs_dir",
-    "changes_dir",
-    "archive_dir",
-    "docs_dir",
-    "db_dir",
-    "project_file",
-    "archive_mode",
-    "auto_push",
-    "archive",
-    "features"
+    "name"
   ],
   "title": "ADV Project Configuration",
   "type": "object"

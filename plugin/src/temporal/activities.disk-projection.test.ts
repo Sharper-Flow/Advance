@@ -15,7 +15,7 @@ function makeState(changeId = "projection-change"): ChangeWorkflowState {
     id: changeId,
     title: "Projection test",
     initializedAt: "2026-05-05T00:00:00.000Z",
-    status: "active",
+    status: "draft",
     createdAt: "2026-05-05T00:00:00.000Z",
     tasks: [],
     wisdom: [],
@@ -181,6 +181,43 @@ describe("writeChangeProjection", () => {
       expect(JSON.parse(perChangeRaw).state.changeId).toBe(
         "aggregate-fail-change",
       );
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  });
+
+  it("publishes a summary pointer and exposes its projection_revision in the aggregate", async () => {
+    const dir = await createTempDir();
+    try {
+      const externalRoot = join(dir, "external");
+      const projectionChangesDir = join(externalRoot, "changes");
+      const state = makeState("revision-change");
+      state.status = "draft";
+      state.state_revision = 7;
+
+      const result = await writeChangeProjection({
+        projectionChangesDir,
+        state,
+        projectedAt: "2026-05-05T01:00:00.000Z",
+      });
+
+      expect(result.ok).toBe(true);
+      const pointerPath = join(
+        externalRoot,
+        "summaries",
+        "revision-change",
+        "current.json",
+      );
+      const pointerRaw = JSON.parse(await readFile(pointerPath, "utf-8"));
+      expect(pointerRaw.projection_revision).toBe(7);
+
+      const aggregatePath = join(externalRoot, "active-launcher-state.json");
+      const aggregate = LauncherProjectionSchema.parse(
+        JSON.parse(await readFile(aggregatePath, "utf-8")),
+      );
+      expect(aggregate.active_count).toBe(1);
+      expect(aggregate.changes[0]?.id).toBe("revision-change");
+      expect(aggregate.changes[0]?.projection_revision).toBe(7);
     } finally {
       await cleanupTempDir(dir);
     }

@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   collectSaveChangeCallSitesFromText,
   findExecutableSaveChangeCalls,
   isAllowedSaveChangeCaller,
 } from "./save-change-allow-list";
 import { dirname, resolve } from "node:path";
+import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 
 const repoRoot = resolve(dirname(import.meta.filename), "../../..");
 
@@ -66,6 +69,33 @@ describe("saveChange AST call detection", () => {
       expect(isAllowedSaveChangeCaller(call.file, call.contexts).allowed).toBe(
         false,
       );
+    }
+  });
+
+  it("prefilters candidate files before AST validation", async () => {
+    const fixtureRoot = await createTempDir("save-change-allow-list-");
+    try {
+      const storageDir = join(fixtureRoot, "plugin/src/storage");
+      await mkdir(storageDir, { recursive: true });
+      await writeFile(
+        join(storageDir, "writer.ts"),
+        `// saveChange comment is a candidate but not a call.\nsaveChange("x", {});`,
+      );
+      await writeFile(
+        join(storageDir, "malformed-unrelated.ts"),
+        "this is not valid TypeScript and must not be parsed",
+      );
+
+      const calls = await findExecutableSaveChangeCalls(fixtureRoot);
+
+      expect(calls).toEqual([
+        expect.objectContaining({
+          file: "plugin/src/storage/writer.ts",
+          line: 2,
+        }),
+      ]);
+    } finally {
+      await cleanupTempDir(fixtureRoot);
     }
   });
 });

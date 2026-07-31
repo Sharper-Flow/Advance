@@ -296,13 +296,7 @@ export interface ReadStore extends StoreBase {
       offset?: number;
     }) => Promise<
       ChangeListResponse & {
-        hydrationStats?: {
-          totalIds: number;
-          fromMemo: number;
-          fromCache: number;
-          fromHydration: number;
-          deadlineExceeded?: boolean;
-        };
+        hydrationStats?: import("../types").HydrationStats;
       }
     >;
     listConflictAuthority?: (options?: {
@@ -821,18 +815,7 @@ export interface Store extends ReadStore, CommandStore {
       offset?: number;
     }) => Promise<
       ChangeListResponse & {
-        hydrationStats?: {
-          totalIds: number;
-          fromMemo: number;
-          fromCache: number;
-          fromHydration: number;
-          /**
-           * True when the request-scoped aggregate read deadline expired
-           * before all cold-miss hydrations resolved; the row set is
-           * explicitly degraded, never a complete-looking partial.
-           */
-          deadlineExceeded?: boolean;
-        };
+        hydrationStats?: import("../types").HydrationStats;
       }
     >;
   };

@@ -158,14 +158,13 @@ describe("disk-authoritative change read convergence", () => {
     expect(result.data?.id).toBe("hungQueryChange");
     expect(result.source).toBe("disk");
     expect(
-      (result.data as Change & { _recovery?: { reason: string } })._recovery
-        ?.reason,
-    ).toBe("workflow_unresponsive");
+      (result.data as Change & { _recovery?: { reason: string } })._recovery,
+    ).toBeUndefined();
     expect(elapsed).toBeLessThan(PER_MEMBER_QUERY_CAP_MS + 500);
-    expect(queryCalls.length).toBe(1);
+    expect(queryCalls.length).toBe(0);
   }, 15_000);
 
-  it("uses the workflow result when the query responds quickly", async () => {
+  it("returns the disk projection even when the workflow query responds quickly", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     const change = activeChange("fastQueryChange");
@@ -194,7 +193,7 @@ describe("disk-authoritative change read convergence", () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.title).toBe("Active fastQueryChange");
-    expect(result.source).toBe("workflow");
+    expect(result.source).toBe("disk");
     expect(
       (result.data as Change & { _recovery?: { reason: string } })._recovery,
     ).toBeUndefined();

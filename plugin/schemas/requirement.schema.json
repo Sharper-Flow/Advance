@@ -10,7 +10,6 @@
       "type": "string"
     },
     "meta": {
-      "additionalProperties": false,
       "properties": {
         "merged_from": {
           "type": "string"

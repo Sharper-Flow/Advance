@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Connection } from "@temporalio/client";
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDiskStore } from "../store-disk";
+import { rebuildSummaryIndex } from "../change-summary-shard";
 import { createDefaultGates, type Change } from "../../types";
 import { createTemporalStoreBackend } from "./index";
 import {
@@ -99,29 +100,6 @@ function activeChange(id: string): Change {
     gates: createDefaultGates(),
     reentry_history: [],
     wisdom: [],
-  };
-}
-
-function workflowStateFor(change: Change) {
-  return {
-    id: change.id,
-    changeId: change.id,
-    title: change.title,
-    status: change.status,
-    createdAt: change.created_at,
-    initializedAt: change.created_at,
-    projectId: "project-1",
-    tasks: [],
-    deltas: {},
-    wisdom: [],
-    gates: createDefaultGates(),
-    reentry_history: [],
-    artifacts: {},
-    documents: {},
-    reflections: [],
-    worktrees: {},
-    conformance: { lockedSpecs: [], overrides: [] },
-    worktree_auto_managed: false,
   };
 }
 
@@ -273,7 +251,7 @@ describe("Temporal read context", () => {
   });
 });
 
-describe("Temporal read context — change/gate/status stages", () => {
+describe("Temporal read context — routine reads avoid Temporal enrichment", () => {
   let tempDir: string;
 
   beforeEach(() => {
@@ -289,8 +267,12 @@ describe("Temporal read context — change/gate/status stages", () => {
   async function createStoreWithMockConnection(changeIds: string[]) {
     const legacy = await createDiskStore(tempDir);
     for (const id of changeIds) {
-      await legacy.changes.create(`Change ${id}`);
+      await legacy.changes.save(activeChange(id));
     }
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
 
     const deadlineCalls: DeadlineCall[] = [];
     const abortCalls: AbortCall[] = [];
@@ -334,22 +316,22 @@ describe("Temporal read context — change/gate/status stages", () => {
       },
     } as unknown as Connection;
 
-    const getHandle = (workflowId: string) => {
-      const changeId = workflowId.split("/").pop() ?? changeIds[0];
-      return {
-        query: async () => workflowStateFor(activeChange(changeId)),
-      };
-    };
-
     const temporal = {
       connection,
       client: {
         workflow: {
-          getHandle,
+          getHandle: () => {
+            throw new Error(
+              "routine read must not hydrate from workflow query",
+            );
+          },
           list: async () => {
-            return changeIds.map((id) => ({
-              workflowId: `adv/change/project-1/${id}`,
-            }));
+            throw new Error(
+              "routine read must not enumerate Temporal Visibility",
+            );
+          },
+          start: async () => {
+            throw new Error("routine read must not start a workflow");
           },
         },
       },
@@ -363,69 +345,60 @@ describe("Temporal read context — change/gate/status stages", () => {
     return { store, connection, deadlineCalls, abortCalls };
   }
 
-  it("change.get threads one deadline and one abort signal through the query", async () => {
+  it("change.get returns the durable projection without any Temporal query", async () => {
     tempDir = await createTempDir();
     const { store, deadlineCalls, abortCalls } =
       await createStoreWithMockConnection(["change-a"]);
 
-    await store.changes.get("change-a");
+    const result = await store.changes.get("change-a");
 
-    expect(deadlineCalls).toHaveLength(1);
-    expect(abortCalls).toHaveLength(1);
-    expect(deadlineCalls[0].deadline).toBeGreaterThan(Date.now());
-    expect(deadlineCalls[0].deadline).toBeLessThanOrEqual(Date.now() + 5_000);
+    expect(result).toMatchObject({
+      success: true,
+      source: "disk",
+      data: expect.objectContaining({ id: "change-a" }),
+    });
+    expect(deadlineCalls).toHaveLength(0);
+    expect(abortCalls).toHaveLength(0);
   });
 
-  it("gate.get threads one deadline and one abort signal through the query", async () => {
+  it("gate.get returns gates from the durable projection without any Temporal query", async () => {
     tempDir = await createTempDir();
     const { store, deadlineCalls, abortCalls } =
       await createStoreWithMockConnection(["change-a"]);
 
-    await store.gates.get("change-a");
+    const result = await store.gates.get("change-a");
 
-    expect(deadlineCalls).toHaveLength(1);
-    expect(abortCalls).toHaveLength(1);
-    expect(deadlineCalls[0].deadline).toBeGreaterThan(Date.now());
-    expect(deadlineCalls[0].deadline).toBeLessThanOrEqual(Date.now() + 5_000);
+    expect(result).toEqual(createDefaultGates());
+    expect(deadlineCalls).toHaveLength(0);
+    expect(abortCalls).toHaveLength(0);
   });
 
-  it("status threads the same deadline and abort signal through visibility and every change query", async () => {
+  it("status serves bounded summary from durable shards without Temporal RPCs", async () => {
     tempDir = await createTempDir();
     const { store, deadlineCalls, abortCalls } =
       await createStoreWithMockConnection(["change-a", "change-b"]);
 
-    await store.status();
+    const status = await store.status({ recentLimit: 10 });
 
-    // Disk-authoritative reads (bl-HiZJbUuy): status() enumerates via one
-    // visibility-list RPC and hydrates each change from its on-disk change.json
-    // projection, so the per-change workflow queries (the old N+1) are gone. The
-    // visibility RPC still threads the shared deadline + abort signal; the
-    // coherence invariant below holds for whatever Temporal RPCs occur.
-    expect(deadlineCalls.length).toBeGreaterThanOrEqual(1);
-    expect(abortCalls.length).toBeGreaterThanOrEqual(1);
-
-    const firstDeadline = deadlineCalls[0].deadline;
-    const firstSignal = abortCalls[0].signal;
-    for (const call of deadlineCalls) {
-      expect(call.deadline).toBe(firstDeadline);
-    }
-    for (const call of abortCalls) {
-      expect(call.signal).toBe(firstSignal);
-    }
+    expect(status.changes.recent.map((r) => r.id).sort()).toEqual([
+      "change-a",
+      "change-b",
+    ]);
+    expect(deadlineCalls).toHaveLength(0);
+    expect(abortCalls).toHaveLength(0);
   });
 
   it("status does not grant mutation authority from a degraded read", async () => {
     tempDir = await createTempDir();
-    const { store, deadlineCalls } = await createStoreWithMockConnection([
-      "change-a",
-    ]);
+    const { store, deadlineCalls, abortCalls } =
+      await createStoreWithMockConnection(["change-a"]);
 
-    await store.status();
+    const status = await store.status();
 
-    // The status read resolves all candidates it can; the result itself is a
-    // read-only projection, so no mutation methods are invoked. This is a
-    // structural guard: degraded reads are never promoted into cache authority
-    // or projection writes.
-    expect(deadlineCalls.length).toBeGreaterThanOrEqual(1);
+    // The status result is a read-only projection; no Temporal RPC or
+    // mutation-side effect is invoked.
+    expect(status.resolvedChanges?.size ?? 0).toBe(0);
+    expect(deadlineCalls).toHaveLength(0);
+    expect(abortCalls).toHaveLength(0);
   });
 });

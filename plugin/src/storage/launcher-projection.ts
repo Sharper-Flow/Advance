@@ -13,6 +13,7 @@ export const LauncherChangeSummarySchema = z.object({
   last_activity_at: z.string(),
   task_count: z.number().int().nonnegative(),
   completed_tasks: z.number().int().nonnegative(),
+  projection_revision: z.number().int().nonnegative(),
   epic_membership: z
     .object({
       epic_id: z.string(),
@@ -81,6 +82,7 @@ export async function buildLauncherProjection(
         last_activity_at: summary.last_activity_at,
         task_count: summary.task_count,
         completed_tasks: summary.completed_tasks,
+        projection_revision: summary.projection_revision,
         ...(summary.epic_membership
           ? { epic_membership: summary.epic_membership }
           : {}),

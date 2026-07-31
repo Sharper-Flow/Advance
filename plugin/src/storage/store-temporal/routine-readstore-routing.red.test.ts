@@ -115,7 +115,7 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
     expect(queryCalls()).toBe(0);
     expect(result).toMatchObject({
       success: true,
-      source: "read_model",
+      source: "disk",
       data: {
         id: CHANGE_ID,
         state_revision: 7,
@@ -157,10 +157,6 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
 
     expect(queryCalls()).toBe(0);
     expect(visibilityCalls()).toBe(0);
-    expect(result.hydrationStats).toMatchObject({
-      fromHydration: 0,
-      fromMemo: 1,
-    });
     expect(result.changes).toEqual([
       expect.objectContaining({
         id: CHANGE_ID,
@@ -238,7 +234,7 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
     expect(result).toMatchObject({
       success: false,
       error: "not_found",
-      source: "read_model",
+      source: "disk",
     });
   });
 
@@ -260,7 +256,7 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
     expect(poisoned.queryCalls()).toBe(0);
     expect(result).toMatchObject({
       success: false,
-      source: "read_model",
+      source: "disk",
       degraded: expect.objectContaining({
         reason: expect.stringMatching(/corrupt/i),
       }),

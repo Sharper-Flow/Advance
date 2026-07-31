@@ -32,8 +32,18 @@ import {
   type ShowSpecInput,
   type ShowSpecResult,
 } from "../storage/spec-filesystem";
+import {
+  deriveSummaryShard,
+  summaryPaths,
+  type SummaryIndexPaths,
+} from "../storage/change-summary-shard-reader";
 import type { ChangeWorkflowState } from "./contracts";
 import { CHANGE_BRANCH_PREFIX } from "./contracts";
+import {
+  ChangeStatusSchema,
+  normalizeLegacyChangeStatus,
+  type Change,
+} from "../types";
 import { renderBriefSummary } from "../utils/archive-summary";
 import { applySpecDelta } from "../utils/spec-deltas";
 import { appendWisdom } from "../utils/wisdom-append";
@@ -478,14 +488,59 @@ export async function writeChangeProjection(
     return { ok: false, error: `Projection write failed: ${message}` };
   }
 
-  // Best-effort aggregate launcher projection. The per-change projection is
-  // authoritative; this aggregate is a downstream cache and must not fail the
-  // activity or change the return value.
+  // Canonical post-pointer aggregate producer: publish an immutable summary
+  // shard and atomic per-change pointer, then rebuild the launcher aggregate
+  // solely from the durable summary pointers. The per-change wrapper projection
+  // remains authoritative; the aggregate and pointer are downstream caches and
+  // must not fail the activity or change the return value.
   try {
     const externalRoot = dirname(input.projectionChangesDir);
+    const summariesDir = join(externalRoot, "summaries");
+    const paths: SummaryIndexPaths = {
+      changesDir: input.projectionChangesDir,
+      summariesDir,
+    };
+    const summary = summaryPaths(paths, input.state.changeId);
+    await mkdir(summary.changeDir, { recursive: true });
+    await mkdir(summary.revDir, { recursive: true });
+
+    const projectionRevision = input.state.state_revision ?? 0;
+    const stateRevision = input.state.state_revision ?? 0;
+    const operationId = `projection:${input.state.changeId}:${input.state.lastSignalAt ?? input.projectedAt}`;
+
+    const normalizedStatus = ChangeStatusSchema.parse(
+      normalizeLegacyChangeStatus(input.state.status),
+    );
+    const shard = deriveSummaryShard(
+      {
+        ...input.state,
+        created_at: input.state.createdAt,
+        status: normalizedStatus,
+      } as Change,
+      operationId,
+      projectionRevision,
+    );
+    const shardPath = join(summary.revDir, `${projectionRevision}.json`);
+    await atomicWriteFile(shardPath, `${JSON.stringify(shard, null, 2)}\n`);
+
+    const pointer = {
+      schema_version: 1 as const,
+      change_id: input.state.changeId,
+      state_revision: stateRevision,
+      projection_revision: projectionRevision,
+      operation_id: operationId,
+      shard_path: shardPath,
+      snapshot_path: path,
+      committed_at: input.projectedAt,
+    };
+    await atomicWriteFile(
+      summary.pointerPath,
+      `${JSON.stringify(pointer, null, 2)}\n`,
+    );
+
     const projection = await buildLauncherProjection({
       changesDir: input.projectionChangesDir,
-      summariesDir: join(externalRoot, "summaries"),
+      summariesDir,
       generatedAt: input.state.lastSignalAt ?? input.projectedAt,
       degradedThresholdMs: 300_000,
     });

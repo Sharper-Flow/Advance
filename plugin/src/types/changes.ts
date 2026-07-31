@@ -72,11 +72,7 @@ const ChangeCoordinationClaimIdentifierSchema = z
   );
 
 export const ChangeCoordinationClaimSchema = z.object({
-  scope_summary: z
-    .string()
-    .trim()
-    .min(1)
-    .max(200),
+  scope_summary: z.string().trim().min(1).max(200),
   responsibility: ChangeCoordinationClaimResponsibilitySchema,
   exact_identifiers: z
     .array(ChangeCoordinationClaimIdentifierSchema)

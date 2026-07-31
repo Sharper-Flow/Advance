@@ -16,6 +16,7 @@ import {
   TOOL_CLASSIFICATIONS,
   executeTier4Tool,
   type Tier4ToolName,
+  type CreateToolMapFn,
 } from "./tools/index.js";
 import { wrapTier4Tool } from "./degradation.js";
 import { createDiskStore } from "../storage/store-disk.js";
@@ -27,6 +28,17 @@ vi.mock("../storage/store-disk.js", () => ({
 afterEach(() => {
   vi.restoreAllMocks();
 });
+
+function mockFactory(): CreateToolMapFn {
+  return vi.fn(() => ({
+    adv_epic_list: {
+      execute: vi.fn(async () => "epic_list result"),
+    },
+    adv_tool_catalog: {
+      execute: vi.fn(async () => JSON.stringify({ ok: true })),
+    },
+  })) as unknown as CreateToolMapFn;
+}
 
 const ALLOWED_CLASSIFICATIONS = new Set([
   "pure",
@@ -82,7 +94,14 @@ describe("Runtime degradation behavior", () => {
       new Error("read-model outage"),
     );
 
-    const result = await executeTier4Tool(process.cwd(), "epic_list", {});
+    const result = await executeTier4Tool(
+      process.cwd(),
+      "epic_list",
+      {},
+      {
+        createToolMap: mockFactory(),
+      },
+    );
     const parsed = JSON.parse(result);
 
     expect(parsed.degraded).toBe(true);
@@ -94,7 +113,14 @@ describe("Runtime degradation behavior", () => {
       new Error("read-model outage"),
     );
 
-    const result = await executeTier4Tool(process.cwd(), "tool_catalog", {});
+    const result = await executeTier4Tool(
+      process.cwd(),
+      "tool_catalog",
+      {},
+      {
+        createToolMap: mockFactory(),
+      },
+    );
     const parsed = JSON.parse(result);
 
     expect(parsed.error).toBeUndefined();

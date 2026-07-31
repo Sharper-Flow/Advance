@@ -16,7 +16,8 @@
  */
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { Worker } from "@temporalio/worker";
+import { Worker, bundleWorkflowCode } from "@temporalio/worker";
+import type { WorkflowHandle } from "@temporalio/client";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 import { ensureChangeWorkflowStarted } from "../workflow-start";
 import { createDefaultGates } from "../../types";
@@ -73,6 +74,38 @@ function makeChangeInput(
   };
 }
 
+/**
+ * Bounded poller-readiness seam for the time-skipping test environment.
+ *
+ * Temporal signals/queries sent before the first workflow task has started
+ * can block or fail fast with "workflow execution not found" / "not ready".
+ * This helper retries `changeStateQuery` with a short real-time backoff until
+ * the workflow is reachable or the deadline expires. It is safe under time-
+ * skipping because it only advances test-clock time by issuing Temporal client
+ * calls, not by sleeping inside the workflow.
+ */
+async function waitForWorkflowReachable(
+  handle: WorkflowHandle<unknown>,
+  timeoutMs = 3_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      await handle.query(changeStateQuery);
+      return;
+    } catch (err) {
+      lastError = err;
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+
+  throw new Error(
+    `Legacy workflow not reachable within ${timeoutMs}ms: ` +
+      (lastError instanceof Error ? lastError.message : String(lastError)),
+  );
+}
+
 describe("AC3: legacy queue co-polling (isolateAdvWorkerTaskQueues)", () => {
   it("legacy workflow on advance-{P} still receives signals when worker polls both project + session queues", async () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
@@ -81,18 +114,27 @@ describe("AC3: legacy queue co-polling (isolateAdvWorkerTaskQueues)", () => {
       const projectQueue = buildProjectTaskQueue(PROJECT_ID);
       const sessionQueue = buildSessionTaskQueue(PROJECT_ID, SESSION_ID);
 
+      // Compile the workflow bundle once. Reusing it for both workers avoids
+      // the double webpack build that pushes this 5s-timeout test over the
+      // limit, while still covering the production multi-queue co-poll shape.
+      const workflowBundle = await bundleWorkflowCode({ workflowsPath });
+
       // Two workers sharing one native connection — models the production
       // multi-queue worker (worker-multi.ts) at integration-test scale.
-      const projectWorker = await Worker.create({
-        connection: env.nativeConnection,
-        workflowsPath,
-        taskQueue: projectQueue,
-      });
-      const sessionWorker = await Worker.create({
-        connection: env.nativeConnection,
-        workflowsPath,
-        taskQueue: sessionQueue,
-      });
+      // Create both concurrently so both queues begin polling as soon as the
+      // shared bundle is ready.
+      const [projectWorker, sessionWorker] = await Promise.all([
+        Worker.create({
+          connection: env.nativeConnection,
+          workflowBundle,
+          taskQueue: projectQueue,
+        }),
+        Worker.create({
+          connection: env.nativeConnection,
+          workflowBundle,
+          taskQueue: sessionQueue,
+        }),
+      ]);
 
       await Promise.all([
         projectWorker.runUntil(async () => {
@@ -109,6 +151,14 @@ describe("AC3: legacy queue co-polling (isolateAdvWorkerTaskQueues)", () => {
             // Confirm routing: legacy is on the project queue, not session.
             const legacyDesc = await legacyHandle.describe();
             expect(legacyDesc.taskQueue).toBe(projectQueue);
+
+            // Bounded poller-readiness seam: prove the legacy workflow has
+            // been started and is reachable on the project queue before the
+            // first signal/query. This closes the "signal sent before the
+            // first workflow task" race that can hang in time-skipping envs.
+            await waitForWorkflowReachable(
+              legacyHandle as WorkflowHandle<unknown>,
+            );
 
             // AC3: signal the legacy workflow and prove it's processed.
             // The signal call resolves once the workflow's signal handler

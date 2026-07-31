@@ -65,12 +65,12 @@ function makeDeps(change: Change | null = makeChange("c1")): StoreDeps {
             snapshot: change,
             stateRevision: 1,
             projectionRevision: 1,
-            source: "read_model" as const,
+            source: "disk" as const,
           }
         : {
             found: false as const,
             reason: "not_found" as const,
-            source: "read_model" as const,
+            source: "disk" as const,
           },
     ),
     getTemporalChange,

@@ -455,10 +455,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(gates).toEqual(change.gates);
   });
 
-  // rq-replayFallback01.3 — non-terminal change + poisoned history + re-seed
-  // itself fails. The fix in reseedChangeFromDisk's catch block returns the
-  // disk projection rather than null, so callers don't see a TMPRL1100 throw.
-  it("returns disk projection for non-terminal poisoned change when re-seed itself fails", async () => {
+  it("returns disk projection for non-terminal poisoned change without touching Temporal", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("activePoisonedReseedFail"));
@@ -470,17 +467,16 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("activePoisonedReseedFail");
     // Legacy stored "active" normalizes to "draft" at the disk load path
-    // (loadChange); the poisoned-history disk fallback inherits it.
+    // (loadChange); the disk-first read returns it directly.
     expect(result.data?.status).toBe("draft");
     const recovered = result.data as Change & {
       _source?: string;
       _recovery?: { mode?: string; reason?: string };
     };
     expect(recovered._source).toBe("disk");
-    expect(recovered._recovery?.reason).toBe("poisoned_history");
-    expect(recovered._recovery?.mode).toBe("temporal_query_fallback");
-    // re-seed was attempted exactly once (non-destructive: not retried)
-    expect(startCallCount()).toBe(1);
+    expect(recovered._recovery).toBeUndefined();
+    // No workflow start or query is attempted for a routine read.
+    expect(startCallCount()).toBe(0);
   });
 
   it("returns recovered gates for non-terminal poisoned change with reseed failure", async () => {
@@ -495,7 +491,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(gates).toEqual(change.gates);
   });
 
-  it("re-seeds an active disk-only change on direct read", async () => {
+  it("returns an active disk-only change on direct read without re-seeding", async () => {
     tempDir = await createTempDir();
     const active = activeChange("activeDiskOnlyRead");
     const { store, startInputs } =
@@ -505,19 +501,12 @@ describe("createTemporalStoreBackend change projection fallback", () => {
 
     expect(result.success).toBe(true);
     // Legacy stored "active" normalizes to "draft" at the disk load path
-    // (loadChange) and the seed boundary (changeSeedStateFromChange) — the
-    // re-seeded workflow state never carries the legacy status.
+    // (loadChange) — the disk-first read returns it directly.
     expect(result.data).toMatchObject({
       id: "activeDiskOnlyRead",
       status: "draft",
     });
-    expect(startInputs()).toHaveLength(1);
-    expect(startInputs()[0]).toEqual(
-      expect.objectContaining({
-        changeId: "activeDiskOnlyRead",
-        seedState: expect.objectContaining({ status: "draft" }),
-      }),
-    );
+    expect(startInputs()).toHaveLength(0);
   });
 
   it("serves active disk-only changes from disk without resurrecting any workflow", async () => {
@@ -557,7 +546,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(queryCount("closedDiskOnlyList")).toBe(0);
   });
 
-  it("seeds contract proof fields when recovering a poisoned non-terminal change", async () => {
+  it("preserves contract proof fields in a disk-first read", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     const change = {
@@ -570,40 +559,35 @@ describe("createTemporalStoreBackend change projection fallback", () => {
 
     const { store, startArgs } =
       await createPoisonedPostReseedFailureStore(tempDir);
-    await store.changes.get("activePoisonedContractSeed");
-    const startOptions = startArgs()?.find(
-      (arg): arg is { args: unknown[] } =>
-        Boolean(arg) && typeof arg === "object" && "args" in arg,
-    );
+    const result = await store.changes.get("activePoisonedContractSeed");
 
-    expect(startOptions).toEqual(
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(
       expect.objectContaining({
-        args: [
-          expect.objectContaining({
-            seedState: expect.objectContaining({
-              contract: change.contract,
-              acceptanceCriteria: ["Contract proof is preserved."],
-              documents: { agreement: "# Agreement" },
-            }),
-          }),
-        ],
+        id: "activePoisonedContractSeed",
+        contract: change.contract,
+        acceptanceCriteria: ["Contract proof is preserved."],
+        documents: { agreement: "# Agreement" },
       }),
     );
+    expect(startArgs()).toBeUndefined();
   });
 
-  it("does NOT mask missing-workflow errors when re-seed itself fails", async () => {
+  it("returns disk projection for an active disk-only change without querying workflow", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("activeMissingReseedFail"));
 
     const store = await createMissingWorkflowReseedFailureStore(tempDir);
 
-    await expect(store.changes.get("activeMissingReseedFail")).rejects.toThrow(
-      /Workflow execution not found/,
-    );
+    const result = await store.changes.get("activeMissingReseedFail");
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("activeMissingReseedFail");
+    expect(result.data?.status).toBe("draft");
+    expect(result.source).toBe("disk");
   });
 
-  it("returns disk projection for generic query failure when visibility reports nondeterminism", async () => {
+  it("returns disk projection for a generic query failure without querying workflow", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("genericPoisonedVisibility"));
@@ -619,9 +603,8 @@ describe("createTemporalStoreBackend change projection fallback", () => {
       _recovery?: { mode?: string; reason?: string };
     };
     expect(recovered._source).toBe("disk");
-    expect(recovered._recovery?.reason).toBe("poisoned_history");
-    expect(recovered._recovery?.mode).toBe("temporal_query_fallback");
-    expect(startCallCount()).toBe(1);
+    expect(recovered._recovery).toBeUndefined();
+    expect(startCallCount()).toBe(0);
   });
 
   it("returns recovered gates for generic query failure when visibility reports nondeterminism", async () => {
@@ -637,7 +620,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(gates).toEqual(change.gates);
   });
 
-  it("does NOT recover generic query failures without poisoned-history evidence", async () => {
+  it("returns disk projection for a generic query failure without poisoned-history evidence", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("genericUnproven"));
@@ -645,14 +628,15 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const { store, startCallCount } =
       await createGenericQueryUnprovenStore(tempDir);
 
-    await expect(store.changes.get("genericUnproven")).rejects.toThrow(
-      /Failed to query Workflow/,
-    );
+    const result = await store.changes.get("genericUnproven");
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("genericUnproven");
+    expect(result.source).toBe("disk");
     // query_failed never authorizes re-seed mutation.
     expect(startCallCount()).toBe(0);
   });
 
-  it("does NOT re-seed for fallback-class query failures typed query_failed", async () => {
+  it("returns disk projection for a fallback-class query failure without re-seeding", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("unregisteredQuery"));
@@ -660,9 +644,10 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const { store, startCallCount } =
       await createUnregisteredQueryStore(tempDir);
 
-    await expect(store.changes.get("unregisteredQuery")).rejects.toThrow(
-      /not registered/,
-    );
+    const result = await store.changes.get("unregisteredQuery");
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("unregisteredQuery");
+    expect(result.source).toBe("disk");
     expect(startCallCount()).toBe(0);
   });
 });
@@ -1199,10 +1184,10 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
       projectId: "project-1",
     });
 
-    // Warm memo with active status
+    // Warm memo with disk-normalized status (active is normalized to draft).
     const getResult = await store.changes.get("staleMemoChange");
     expect(getResult.success).toBe(true);
-    expect(getResult.data?.status).toBe("active");
+    expect(getResult.data?.status).toBe("draft");
 
     // Simulate session B archiving the change: create archive bundle
     const archiveBundleDir = join(

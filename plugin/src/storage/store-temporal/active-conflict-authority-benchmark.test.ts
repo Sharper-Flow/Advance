@@ -46,8 +46,9 @@ const forceNotFound = new Set<string>();
 
 let lastQueryCompleteMs = 0;
 
-vi.mock("../json", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../json")>();
+vi.mock("../change-projection-reader", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../change-projection-reader")>();
   return {
     ...actual,
     loadChange: async (root: string, id: string) => {

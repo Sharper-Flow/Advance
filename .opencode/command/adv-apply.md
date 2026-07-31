@@ -1,6 +1,6 @@
 ---
 name: adv-apply
-description: "Implement change with task-appropriate proof, TDD where required, retry on failure, and final verification"
+description: "Implement change with TDD, retry on failure, and final verification"
 phaseGoal: "Execute the approved plan autonomously. Add discovered tasks within scope. Escalate only on failure."
 ---
 

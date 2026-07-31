@@ -1,6 +1,5 @@
 import type { Change, Task } from "../../types";
 import { loadChange, type LoadResult } from "../change-projection-reader";
-import type { ReadSnapshot } from "../store-types";
 
 /**
  * A full active-change projection is the authority for routine reads. This
@@ -14,17 +13,38 @@ import type { ReadSnapshot } from "../store-types";
  * rq-projectionReadModel02
  */
 export type ChangeReadSnapshot =
-  | ReadSnapshot<Change>
+  | {
+      found: true;
+      snapshot: Change;
+      stateRevision: number;
+      projectionRevision: number;
+      source: "disk" | "archive";
+      degraded?: { reason: string };
+    }
+  | {
+      found: false;
+      reason: "not_found";
+      source: "disk" | "archive";
+    }
   | {
       found: false;
       reason: "corrupt";
-      source: "read_model";
+      source: "disk" | "archive";
+      error: string;
+      degraded: { reason: "corrupt_projection"; repair: "repair_snapshot" };
+    }
+  | {
+      found: false;
+      reason: "schema_error";
+      source: "disk" | "archive";
+      error: string;
       degraded: { reason: "corrupt_projection"; repair: "repair_snapshot" };
     };
 
 export async function readChangeSnapshot(
   changesDir: string,
   changeId: string,
+  source: "disk" | "archive" = "disk",
 ): Promise<ChangeReadSnapshot> {
   const result = await loadChange(changesDir, changeId);
   if (result.success && result.data) {
@@ -34,19 +54,29 @@ export async function readChangeSnapshot(
       snapshot,
       stateRevision: snapshot.state_revision ?? 0,
       projectionRevision: snapshot.projection_revision ?? 0,
-      source: "read_model",
+      source,
     };
   }
   if (result.success) {
-    return { found: false, reason: "not_found", source: "read_model" };
+    return { found: false, reason: "not_found", source };
   }
   if (!result.success && result.type === "not_found") {
-    return { found: false, reason: "not_found", source: "read_model" };
+    return { found: false, reason: "not_found", source };
+  }
+  if (!result.success && result.type === "schema_error") {
+    return {
+      found: false,
+      reason: "schema_error",
+      source,
+      error: result.error,
+      degraded: { reason: "corrupt_projection", repair: "repair_snapshot" },
+    };
   }
   return {
     found: false,
     reason: "corrupt",
-    source: "read_model",
+    source,
+    error: result.error,
     degraded: { reason: "corrupt_projection", repair: "repair_snapshot" },
   };
 }
@@ -54,23 +84,39 @@ export async function readChangeSnapshot(
 /** Preserve the public LoadResult envelope while retaining read-model source. */
 export function snapshotToLoadResult(
   snapshot: ChangeReadSnapshot,
-): LoadResult<Change | null> & { source?: "read_model"; degraded?: unknown } {
+): LoadResult<Change | null> & {
+  source?: "disk" | "archive";
+  degraded?: unknown;
+} {
   if (snapshot.found) {
-    return { success: true, data: snapshot.snapshot, source: "read_model" };
+    return {
+      success: true,
+      data: { ...snapshot.snapshot, _source: snapshot.source },
+      source: snapshot.source,
+    };
   }
   if (snapshot.reason === "not_found") {
     return {
       success: false,
       error: "not_found",
       type: "not_found",
-      source: "read_model",
+      source: snapshot.source,
+    };
+  }
+  if (snapshot.reason === "schema_error") {
+    return {
+      success: false,
+      error: snapshot.error,
+      type: "schema_error",
+      source: snapshot.source,
+      degraded: snapshot.degraded,
     };
   }
   return {
     success: false,
-    error: "corrupt_projection: repair_snapshot",
-    type: "schema_error",
-    source: "read_model",
+    error: snapshot.error,
+    type: "read_error",
+    source: snapshot.source,
     degraded: snapshot.degraded,
   };
 }

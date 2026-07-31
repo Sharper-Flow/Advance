@@ -3,7 +3,8 @@
  *
  * Exposes a minimal read surface over the Model Context Protocol:
  *   - adv_handshake: capability/version meta-tool
- *   - project_context: read project.md via the plugin tool registry
+ *   - Tier-4 read tools (including project_context) dispatched through a
+ *     narrow injected factory covering exactly the 13 catalog tools
  *
  * The server resolves the project id at startup, uses the plugin version as
  * its serverInfo.version, and never accepts per-call project_root overrides
@@ -19,8 +20,8 @@ import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { getProjectId } from "../utils/project-id.js";
 import { handleHandshake } from "./handshake.js";
 import { HANDSHAKE_TIER4_TOOLS } from "./handshake.js";
-import { handleProjectContext } from "./tools/project_context.js";
 import { executeTier4Tool, TIER4_TOOL_DESCRIPTIONS } from "./tools/index.js";
+import { createTier4ToolMap } from "./tier4-tool-map.js";
 import { formatArgRejection, rejectMutationShapedArgs } from "./security.js";
 
 export interface StartServerOptions {
@@ -44,9 +45,9 @@ async function loadVersion(): Promise<string> {
 /**
  * Start the ADV MCP server on stdio (or the provided streams).
  *
- * Resolves the project id from `process.cwd()` and binds the two read tools.
- * Does not block on Temporal at startup; the project_context tool lazily
- * creates a disk-only store when invoked.
+ * Resolves the project id from `process.cwd()` and binds the read tools.
+ * Does not block on Temporal at startup; each read tool lazily creates a
+ * disk-only store when invoked via the generic dispatcher.
  */
 export async function startServer(
   options: StartServerOptions = {},
@@ -89,35 +90,7 @@ export async function startServer(
     },
   );
 
-  mcp.registerTool(
-    "project_context",
-    {
-      description:
-        "Read the project context file (project.md) containing tech stack, conventions, domain knowledge, and constraints.",
-      inputSchema: anyArgsSchema,
-    },
-    async (args) => {
-      const check = rejectMutationShapedArgs(args);
-      if (check.rejected) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: formatArgRejection(check.arg),
-            },
-          ],
-        };
-      }
-
-      const text = await handleProjectContext(cwd, args);
-      return {
-        content: [{ type: "text" as const, text }],
-      };
-    },
-  );
-
   for (const toolName of HANDSHAKE_TIER4_TOOLS) {
-    if (toolName === "project_context") continue;
     mcp.registerTool(
       toolName,
       {
@@ -137,7 +110,9 @@ export async function startServer(
           };
         }
 
-        const text = await executeTier4Tool(cwd, toolName, args);
+        const text = await executeTier4Tool(cwd, toolName, args, {
+          createToolMap: createTier4ToolMap,
+        });
         return {
           content: [{ type: "text" as const, text }],
         };

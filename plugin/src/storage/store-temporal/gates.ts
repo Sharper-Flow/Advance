@@ -118,6 +118,9 @@ export function createGateOps(deps: StoreDeps): Store["gates"] {
     ...legacy.gates,
     get: async (changeId: string) => {
       const snapshot = await readChangeSnapshot(changeId);
+      if (!snapshot.found && snapshot.reason === "schema_error") {
+        throw new Error(snapshot.error);
+      }
       return snapshot.found ? (snapshot.snapshot.gates ?? null) : null;
     },
     complete: async (

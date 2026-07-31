@@ -2,7 +2,11 @@ import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import { derivePhasePlanFromState } from "../utils/phase-plan";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
-import type { ChangeStatus, CoordinationClaimSetSignalPayload, GateReadinessBlocker } from "../types";
+import type {
+  ChangeStatus,
+  CoordinationClaimSetSignalPayload,
+  GateReadinessBlocker,
+} from "../types";
 import { normalizeLegacyChangeStatus } from "../types";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {

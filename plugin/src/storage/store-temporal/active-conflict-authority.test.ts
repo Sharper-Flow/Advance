@@ -22,6 +22,7 @@
  * sleeps (DC10).
  */
 
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -42,12 +43,13 @@ const archiveReadCalls: { fn: string; args: unknown[] }[] = [];
  */
 const forceNotFound = new Set<string>();
 
-vi.mock("../json", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../json")>();
+vi.mock("../change-projection-reader", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../change-projection-reader")>();
   return {
     ...actual,
     listChangeDirs: async (path: string): Promise<string[]> => {
-      if (String(path).includes("archive")) {
+      if (String(path).includes("archive") && existsSync(path)) {
         archiveReadCalls.push({ fn: "listChangeDirs", args: [path] });
         throw new Error(
           "archive directory read should not happen in active conflict authority",
@@ -56,7 +58,7 @@ vi.mock("../json", async (importOriginal) => {
       return actual.listChangeDirs(path);
     },
     loadChange: async (root: string, id: string) => {
-      if (String(root).includes("archive")) {
+      if (String(root).includes("archive") && existsSync(root)) {
         archiveReadCalls.push({ fn: "loadChange", args: [root, id] });
         throw new Error(
           "archive bundle read should not happen in active conflict authority",
@@ -70,10 +72,6 @@ vi.mock("../json", async (importOriginal) => {
         };
       }
       return actual.loadChange(root, id);
-    },
-    hasArchiveBundle: async (root: string, id: string) => {
-      archiveReadCalls.push({ fn: "hasArchiveBundle", args: [root, id] });
-      return actual.hasArchiveBundle(root, id);
     },
   };
 });
