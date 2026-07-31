@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "change_id": "hardenExecutionDiagnosis",
+  "title": "Harden execution diagnosis",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Harden execution failure diagnosis and recovery",
+    "highlights": [
+      "Require typed evidence for failure attribution and non-retry contract conflicts.",
+      "Bound malformed worker recovery to one retry with explicit inline diagnosis proof.",
+      "Persist verifier failure evidence and enforce the `/adv-apply` prompt budget."
+    ],
+    "area": "ADV execution and verification"
+  }
+}

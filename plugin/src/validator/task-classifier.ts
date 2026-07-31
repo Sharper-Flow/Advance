@@ -236,6 +236,11 @@ function resolveCompatibility(
 /**
  * Pure, table-driven resolver for a task's normalized evidence plan.
  *
+ * Implements rq-ADVEXEC06: normalized evidence-plan compatibility boundary
+ * and advisory proxies. Quality proxies are advisory only; non-test routes for
+ * logic-bearing work require a bounded rationale and linked review conclusion;
+ * legacy plans are normalized on read with explicit compatibility provenance.
+ *
  * Returns exactly one evidence policy, one proof target, explicit compatibility
  * provenance, and structural errors for new or materially reclassified tasks.
  *

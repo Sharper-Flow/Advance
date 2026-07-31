@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-31T22:08:18.243Z",
+  "capabilities": [],
+  "change_hash": "a2af6d5c7cec360d820e6738d92a174491b4183cdaa80415aae8ab1c27725a59",
+  "change_id": "hardenExecutionDiagnosis",
+  "completed_tasks": 5,
+  "created_at": "2026-07-30T00:45:24.211Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-31T22:00:17.392Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "c6278b812e01f742bbd58a3ba29d4c6de81ca9111a86b0495e198755ae9798eb",
+  "task_count": 5,
+  "title": "Harden execution diagnosis",
+  "version": "1"
+}

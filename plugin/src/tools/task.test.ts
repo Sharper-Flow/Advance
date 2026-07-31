@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { taskTools } from "./task";
 import type { Store } from "../storage/store";
 import { ContractEvidencePolicySchema, TaskTypeSchema } from "../types";
+import { taskUpdatedSignal } from "../temporal/messages";
 
 async function seedProjection(
   change: import("../types").Change,
@@ -948,6 +949,323 @@ describe("task tools — signal/query adapters", () => {
         taskId: "tk-abc",
         partial: { status: "pending", notes: "Updated" },
       });
+    });
+
+    test("AC5: SEMANTIC error_recovery on taskUpdatedSignal clears blocked delegation_recovery", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Blocked Recovery Task",
+              status: "in_progress",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              delegation_recovery: {
+                empty_or_malformed_count: 2,
+                narrower_retry_count: 1,
+                inline_diagnosis_evidence: false,
+                last_updated_at: "2026-07-30T01:00:00.000Z",
+                blocked_scope: "task:tk-abc:agent:adv-engineer",
+              },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+        delegation_recovery: {
+          empty_or_malformed_count: 2,
+          narrower_retry_count: 1,
+          inline_diagnosis_evidence: true,
+          last_updated_at: expect.any(String),
+          blocked_scope: "task:tk-abc:agent:adv-engineer",
+        },
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "Inline diagnosis recorded",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "empty sub-agent report",
+                diagnosis: "worker returned empty payload",
+                fix_tried: "record inline diagnosis evidence",
+                outcome: "failed" as const,
+                attempted_at: "2026-07-30T01:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[3]).toBe(taskUpdatedSignal);
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        partial: {
+          status: "pending",
+          delegation_recovery: {
+            empty_or_malformed_count: 2,
+            narrower_retry_count: 1,
+            inline_diagnosis_evidence: true,
+            blocked_scope: "task:tk-abc:agent:adv-engineer",
+          },
+        },
+      });
+    });
+
+    test("AC5: SEMANTIC error_recovery without attempts does not clear blocked delegation_recovery", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Blocked Recovery Task",
+              status: "in_progress",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              delegation_recovery: {
+                empty_or_malformed_count: 2,
+                narrower_retry_count: 1,
+                inline_diagnosis_evidence: false,
+                last_updated_at: "2026-07-30T01:00:00.000Z",
+                blocked_scope: "task:tk-abc:agent:adv-engineer",
+              },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "Diagnosis lacks an attempt",
+            retry_count: 0,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [],
+          },
+        },
+        store,
+      );
+
+      expect(JSON.parse(result).success).toBe(true);
+      expect(
+        mocks.fireSignalAndRefresh.mock.calls[0][4].partial.delegation_recovery,
+      ).toBeUndefined();
+    });
+
+    test.each([
+      {
+        error_class: "ENVIRONMENTAL" as const,
+        error_recovery: {
+          last_error: "Missing required service",
+          retry_count: 0,
+          max_retries: 0,
+          error_class: "ENVIRONMENTAL" as const,
+          attempts: [],
+        },
+      },
+      {
+        error_class: "FATAL" as const,
+        error_recovery: {
+          last_error: "Unsafe state",
+          retry_count: 0,
+          max_retries: 0,
+          error_class: "FATAL" as const,
+          attempts: [],
+        },
+      },
+      {
+        error_class: "CONTRACT_CONFLICT" as const,
+        error_recovery: {
+          last_error: "Task contract refs conflict",
+          retry_count: 0,
+          max_retries: 0,
+          error_class: "CONTRACT_CONFLICT" as const,
+          failure_attribution: {
+            kind: "contract_conflict" as const,
+            description: "AC1 is both implemented and verified",
+            contract_conflict: {
+              kind: "overlapping_implements_verifies" as const,
+              contract_ids: ["AC1"],
+              reason:
+                "A task cannot both implement and verify the same acceptance criterion",
+            },
+          },
+        },
+      },
+    ])(
+      "AC5: $error_class error_recovery does not clear blocked delegation_recovery",
+      async ({ error_recovery }) => {
+        const store = createMockStore({
+          tasks: {
+            show: vi.fn(async (taskId: string) => ({
+              task: {
+                id: taskId,
+                title: "Blocked Recovery Task",
+                status: "in_progress",
+                priority: 0,
+                created_at: "2026-01-01T00:00:00Z",
+                delegation_recovery: {
+                  empty_or_malformed_count: 2,
+                  narrower_retry_count: 1,
+                  inline_diagnosis_evidence: false,
+                  last_updated_at: "2026-07-30T01:00:00.000Z",
+                  blocked_scope: "task:tk-abc:agent:adv-engineer",
+                },
+              } as import("../types").Task,
+              changeId: "test-change",
+            })),
+          },
+        });
+        mocks.querySignal.mockResolvedValue({
+          id: "tk-abc",
+          status: "in_progress",
+        });
+
+        const result = await taskTools.adv_task_update.execute(
+          { taskId: "tk-abc", status: "pending", error_recovery },
+          store,
+        );
+
+        expect(JSON.parse(result).success).toBe(true);
+        expect(
+          mocks.fireSignalAndRefresh.mock.calls[0][4].partial
+            .delegation_recovery,
+        ).toBeUndefined();
+      },
+    );
+
+    test("AC5: SEMANTIC evidence on an unblocked task does not mutate delegation_recovery", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Unblocked Recovery Task",
+              status: "in_progress",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "Inline diagnosis recorded",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "empty sub-agent report",
+                diagnosis: "worker returned empty payload",
+                fix_tried: "record inline diagnosis evidence",
+                outcome: "failed" as const,
+                attempted_at: "2026-07-30T01:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      expect(JSON.parse(result).success).toBe(true);
+      expect(
+        mocks.fireSignalAndRefresh.mock.calls[0][4].partial.delegation_recovery,
+      ).toBeUndefined();
+    });
+
+    test("AC5: non-SEMANTIC error_recovery does not clear blocked delegation_recovery", async () => {
+      const store = createMockStore({
+        tasks: {
+          show: vi.fn(async (taskId: string) => ({
+            task: {
+              id: taskId,
+              title: "Blocked Recovery Task",
+              status: "in_progress",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+              delegation_recovery: {
+                empty_or_malformed_count: 2,
+                narrower_retry_count: 1,
+                inline_diagnosis_evidence: false,
+                last_updated_at: "2026-07-30T01:00:00.000Z",
+                blocked_scope: "task:tk-abc:agent:adv-engineer",
+              },
+            } as import("../types").Task,
+            changeId: "test-change",
+          })),
+        },
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "pending",
+          error_recovery: {
+            last_error: "transient network failure",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "TRANSIENT",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "ECONNRESET",
+                diagnosis: "network blip",
+                fix_tried: "retry",
+                outcome: "failed" as const,
+                attempted_at: "2026-07-30T01:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[3]).toBe(taskUpdatedSignal);
+      expect(signalCall[4].partial.delegation_recovery).toBeUndefined();
     });
 
     test("patches contract_refs on an already done task without recompleting it", async () => {

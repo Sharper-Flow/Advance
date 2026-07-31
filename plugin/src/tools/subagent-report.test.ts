@@ -1883,7 +1883,7 @@ describe("subagentReportTools", () => {
     );
   });
 
-  test("AC5: first valid retry after malformed worker output records inline diagnosis evidence", async () => {
+  test("AC5: first valid retry after malformed worker output resolves delegation recovery to clean", async () => {
     const task = {
       id: "tk-1",
       title: "Task one",
@@ -1916,9 +1916,9 @@ describe("subagentReportTools", () => {
         taskId: "tk-1",
         partial: {
           delegation_recovery: expect.objectContaining({
-            empty_or_malformed_count: 1,
-            narrower_retry_count: 1,
-            inline_diagnosis_evidence: true,
+            empty_or_malformed_count: 0,
+            narrower_retry_count: 0,
+            inline_diagnosis_evidence: false,
           }),
         },
       }),
