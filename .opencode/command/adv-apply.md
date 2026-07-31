@@ -247,6 +247,29 @@ Each attempt must differ. After each failed attempt: `adv_task_update` with `err
 
 Budget exhaustion: emit banner with 3 attempts, classify SEMANTIC/KNOWLEDGE/ENVIRONMENTAL. Ask via `question`: Provide hint, Take over task, Void contract. × "Skip task" is NOT an option.
 
+### AC5 Delegation-Recovery Inline Diagnosis
+
+When same-scope delegation is blocked because of exhausted empty/malformed recovery (`delegation_recovery.narrower_retry_count > 0` and `inline_diagnosis_evidence: false`), do **not** re-delegate to the same agent/scope. Clear the block only by recording typed inline diagnosis evidence:
+
+```
+adv_task_update
+  taskId: <task-id>
+  status: in_progress
+  error_recovery: {
+    error_class: "SEMANTIC",
+    attempts: [{
+      attempt_number: <n>,
+      error: "<concise failure>",
+      diagnosis: "<root cause>",
+      fix_tried: "<approach>",
+      outcome: "failed",
+      attempted_at: "<ISO8601>"
+    }]
+  }
+```
+
+A valid `adv_subagent_report_submit` retry after a single empty/malformed incident resolves the recovery state to clean; it does **not** record inline diagnosis evidence. Malformed/empty worker output stays in `delegation_recovery`, never in `error_recovery.attempts`.
+
 ---
 
 ## Phase 3: TDD Work Loop
