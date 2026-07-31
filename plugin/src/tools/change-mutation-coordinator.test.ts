@@ -66,6 +66,7 @@ function makeIntent(
   return {
     changeId: "coordinator-change",
     mutationKind: "test:set-value",
+    payload: (mutationReceiptId) => ({ mutationReceiptId }),
     sendSignal: vi.fn().mockResolvedValue(undefined),
     refresh: vi.fn().mockResolvedValue({ value: "refreshed" }),
     verifyTemporal: vi.fn().mockReturnValue(true),
@@ -262,7 +263,9 @@ describe("coordinateChangeMutation", () => {
 
     expect(intent.sendSignal).toHaveBeenCalledWith(
       handle,
-      expect.stringMatching(/^mrec_/),
+      expect.objectContaining({
+        mutationReceiptId: expect.stringMatching(/^mrec_/),
+      }),
     );
     expect(intent.refresh).toHaveBeenCalledWith(handle);
     expect(mockedCommitChangeProjection).not.toHaveBeenCalled();
@@ -356,6 +359,9 @@ describe("coordinateChangeMutation", () => {
     expect(result.value.title).toBe("recovered");
     expect(result.recoveryAudit.authority_kind).toBe("recovery");
     expect(result.recoveryAudit.recovery_reason).toBe("missing_workflow");
+    expect(result.recoveryAudit.payload).toMatchObject({
+      mutationReceiptId: expect.stringMatching(/^mrec_/),
+    });
   });
 
   it("returns recovered_unverified when recovery commit lacks visible postcondition", async () => {
@@ -425,6 +431,9 @@ describe("coordinateChangeMutation", () => {
     expect(result.kind).toBe("recovered_verified");
     if (result.kind !== "recovered_verified") return;
     expect(result.recoveryAudit.recovery_reason).toBe("missing_workflow");
+    expect(result.recoveryAudit.payload).toMatchObject({
+      mutationReceiptId: expect.stringMatching(/^mrec_/),
+    });
   });
 
   it("requires operator when recovery authority is given without a changesDir", async () => {

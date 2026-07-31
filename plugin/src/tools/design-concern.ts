@@ -1,20 +1,25 @@
 import { z } from "zod";
-import { randomUUID } from "node:crypto";
 import type { Store } from "../storage/store-types";
 import { getService } from "../temporal/service";
-import { designConcernDispositionedSignal } from "../temporal/messages";
-import { DesignConcernDispositionSchema, type Change } from "../types";
+import {
+  changeStateQuery,
+  designConcernDispositionedSignal,
+} from "../temporal/messages";
+import {
+  DesignConcernDispositionSchema,
+  type Change,
+  type DesignConcernDisposition,
+} from "../types";
 import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
 import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import {
-  fireSignalAndRefresh,
-  getChangeHandle,
-  MutationApplicationUnconfirmedError,
-} from "./_adapters";
-import { saveRecoveredDesignConcernDisposition } from "./_recovery-writers";
+import { getChangeHandle } from "./_adapters";
 import { logRecoveryProbeDiagnostics } from "./recovery-probe";
-import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
+import {
+  coordinateChangeMutation,
+  resolveChangeAuthority,
+} from "./change-mutation-coordinator";
+import type { ChangeWorkflowState } from "../temporal/contracts";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -81,6 +86,35 @@ async function loadChange(store: Store, changeId: string): Promise<Change> {
   return result.data;
 }
 
+function upsertDesignConcernDisposition(
+  existing: DesignConcernDisposition[] | undefined,
+  disposition: DesignConcernDisposition,
+): DesignConcernDisposition[] {
+  const next = (existing ?? []).filter(
+    (d) =>
+      !(
+        d.taskId === disposition.taskId &&
+        d.concernKey === disposition.concernKey
+      ),
+  );
+  next.push(disposition);
+  return next;
+}
+
+function dispositionPostcondition(
+  list: DesignConcernDisposition[] | undefined,
+  expected: DesignConcernDisposition,
+): boolean {
+  const found = (list ?? []).find(
+    (d) => d.taskId === expected.taskId && d.concernKey === expected.concernKey,
+  );
+  if (!found) return false;
+  return (
+    found.disposition === expected.disposition &&
+    found.evidence === expected.evidence
+  );
+}
+
 async function executeDisposition(
   args: DispositionArgs,
   store: Store,
@@ -129,108 +163,105 @@ async function executeDisposition(
   }
 
   const handle = await getChangeHandleForChangeId(store, args.changeId);
-  const mutationReceiptId = `mrec_${randomUUID()}`;
-  // D4 internal classification (rq-internalMonotonicRecovery01): probe
-  // describe() to auto-detect poisoned/completed workflows without operator
-  // evidence-copy ceremony (AC5/SC3).
-  {
-    const internalDecision = await classifyMutationRecoveryDecision({ handle });
-    if (internalDecision.kind === "recover_via_disk") {
-      await logRecoveryProbeDiagnostics(handle, args.changeId);
-      await saveRecoveredDesignConcernDisposition({
-        store,
-        change,
-        authorization: {
-          reason: internalDecision.reason,
-          evidence: internalDecision.evidence,
-        },
-        disposition,
-      });
-      return formatToolOutput({
-        success: true,
-        changeId: args.changeId,
-        disposition,
-        _recoveryMutation: true,
-        recovered: true,
-        recoveryMode: "poisoned_history",
-        reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-        note: `Disk-direct recovery; signal skipped (D4 auto-classified, authority=${internalDecision.authority})`,
-        ...proj,
-      });
-    }
-    if (internalDecision.kind === "operator_required") {
-      return formatToolOutput({
-        error: `Cannot safely record design concern disposition: ${internalDecision.detail}`,
-        code: "DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED",
-        cause: internalDecision.cause,
-        changeId: args.changeId,
-      });
-    }
-  }
-  try {
-    await fireSignalAndRefresh(
-      handle,
-      store,
-      args.changeId,
-      designConcernDispositionedSignal,
-      { ...disposition, mutationReceiptId },
-    );
-  } catch (signalError) {
-    if (signalError instanceof MutationApplicationUnconfirmedError) {
-      return formatToolOutput({
-        error: signalError.message,
-        code: signalError.code,
-        changeId: args.changeId,
-        mutationReceiptId,
-      });
-    }
-    // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
-    // signal-error recovery is classified internally from the signal error +
-    // describe() evidence via the unified classifier — no operator-supplied
-    // recovery args.
-    const decision = await classifyMutationRecoveryDecision({
-      signalError,
-      handle,
+  const authority = await resolveChangeAuthority({
+    changeId: args.changeId,
+    handle,
+  });
+  if (authority.kind === "operator_required") {
+    return formatToolOutput({
+      error: `Cannot safely record design concern disposition: ${authority.reason}`,
+      code: "DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED",
+      changeId: args.changeId,
+      ...proj,
     });
-    if (decision.kind === "recover_via_disk") {
-      await saveRecoveredDesignConcernDisposition({
-        store,
-        change,
-        authorization: {
-          reason: decision.reason,
-          evidence: decision.evidence,
-        },
-        disposition,
-      });
-      return formatToolOutput({
-        success: true,
-        changeId: args.changeId,
-        disposition,
-        _recoveryMutation: true,
-        recovered: true,
-        recoveryMode: "poisoned_history",
-        reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-        note: `Disk-direct recovery after signal error (D4 auto-classified, authority=${decision.authority})`,
-        ...proj,
-      });
-    }
-    if (decision.kind === "operator_required") {
-      return formatToolOutput({
-        error: `Cannot safely record design concern disposition: ${decision.detail}`,
-        code: "DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED",
-        cause: decision.cause,
-        changeId: args.changeId,
-      });
-    }
-    throw signalError;
+  }
+  if (authority.kind !== "temporal_live") {
+    await logRecoveryProbeDiagnostics(handle, args.changeId);
   }
 
-  return formatToolOutput({
-    success: true,
-    changeId: args.changeId,
-    disposition,
-    ...proj,
+  const outcome = await coordinateChangeMutation<ChangeWorkflowState>({
+    authority,
+    changesDir: store.paths.changes,
+    intent: {
+      changeId: args.changeId,
+      mutationKind: "design_concern_disposition",
+      payload: (mutationReceiptId) => ({
+        ...disposition,
+        mutationReceiptId,
+      }),
+      sendSignal: async (h, payload) => {
+        await h.signal(designConcernDispositionedSignal, payload);
+      },
+      refresh: async (h) =>
+        h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
+      verifyTemporal: (state) =>
+        dispositionPostcondition(
+          state.design_concern_dispositions,
+          disposition,
+        ),
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        design_concern_dispositions: upsertDesignConcernDisposition(
+          latest.design_concern_dispositions,
+          disposition,
+        ),
+      }),
+      verifyProjection: (readback) =>
+        dispositionPostcondition(
+          readback.design_concern_dispositions,
+          disposition,
+        ),
+    },
   });
+
+  switch (outcome.kind) {
+    case "applied_temporal":
+    case "recovered_verified": {
+      const recovered = outcome.kind === "recovered_verified";
+      return formatToolOutput({
+        success: true,
+        changeId: args.changeId,
+        disposition,
+        ...(recovered
+          ? {
+              _recoveryMutation: true,
+              recovered: true,
+              recoveryMode: "poisoned_history",
+              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+              note: `Disk-direct recovery after signal error (coordinator, authority=${authority.kind})`,
+            }
+          : {}),
+        ...proj,
+      });
+    }
+    case "recovered_unverified":
+      return formatToolOutput({
+        error: `Design-concern disposition recovery wrote the disk projection but the postcondition could not be verified: ${outcome.reason}`,
+        code: "DESIGN_CONCERN_DISPOSITION_RECOVERY_UNVERIFIED",
+        changeId: args.changeId,
+        ...proj,
+      });
+    case "stale_revision":
+      return formatToolOutput({
+        error: `Design-concern disposition recovery encountered a stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`,
+        code: "DESIGN_CONCERN_DISPOSITION_STALE_REVISION",
+        changeId: args.changeId,
+        ...proj,
+      });
+    case "operator_required":
+      return formatToolOutput({
+        error: `Cannot safely record design concern disposition: ${outcome.reason}`,
+        code: "DESIGN_CONSENT_MUTATION_OPERATOR_REQUIRED",
+        changeId: args.changeId,
+        ...proj,
+      });
+    default: {
+      const _exhaustive: never = outcome;
+      throw new Error(
+        `Unexpected design-concern disposition mutation outcome: ${String(_exhaustive)}`,
+      );
+    }
+  }
 }
 
 export const designConcernTools = {

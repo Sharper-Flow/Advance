@@ -155,6 +155,42 @@ describe("commitChangeProjection", () => {
     expect(loaded.data.projection_commits?.[2].new_revision).toBe(3);
   });
 
+  it("records the optional payload in the projection commit audit", async () => {
+    const changeId = "payload-audit";
+    await seedChange(changesDir, makeChange(changeId));
+
+    const result = await commitChangeProjection({
+      changesDir,
+      changeId,
+      authority: RECOVERY_AUTHORITY,
+      mutationKind: "test:payload",
+      payload: {
+        taskId: "tk-1",
+        concernKey: "verification",
+        disposition: "fixed",
+      },
+      mutateLatest: (latest) => ({ ...latest, title: "payloaded" }),
+      verify: ({ readback }) => readback.title === "payloaded",
+    });
+
+    expect(result.kind).toBe("committed");
+    if (result.kind !== "committed") return;
+    expect(result.audit.payload).toEqual({
+      taskId: "tk-1",
+      concernKey: "verification",
+      disposition: "fixed",
+    });
+
+    const loaded = await loadChange(changesDir, changeId);
+    expect(loaded.success).toBe(true);
+    if (!loaded.success || !loaded.data) return;
+    expect(loaded.data.projection_commits?.[0].payload).toEqual({
+      taskId: "tk-1",
+      concernKey: "verification",
+      disposition: "fixed",
+    });
+  });
+
   it("returns stale_revision when expectedRevision does not match latest", async () => {
     const changeId = "stale";
     await seedChange(

@@ -287,6 +287,13 @@ describe("adv_verification_evidence_disposition", () => {
     });
     expect(disk.data?.projection_revision).toBe(1);
     expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
+    expect(disk.data?.projection_commits?.[0].payload).toMatchObject({
+      taskId: "tk-1",
+      concernKey: "verification",
+      disposition: "fixed",
+      evidence: "verification re-run and captured in commit abc123",
+      mutationReceiptId: expect.stringMatching(/^mrec_/),
+    });
   });
 
   test("recovers via D4 internal classification when describe shows poisoned", async () => {
