@@ -1,6 +1,6 @@
 {
-  "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerated for fixBaselineSuiteFailures: legitimate body growth from adv_run_test invocation policy binding in adv-designer.md and adv-engineer.md; the frozen byte counts are updated, the mode-guidance byte budget is lowered to 400, and external MCP grants are unchanged.",
-  "frozenFrom": "change/fixBaselineSuiteFailures: legitimate body growth from adv_run_test policy binding; budget tightened to 400",
+  "description": "Frozen effective assembled-prompt baseline for the mode-neutral MCP contract. Regenerated for hardenExecutionDiagnosis: adv-verifier prompt legitimately grew by the AC6 failure-attribution section and Verification Triage Result example added in b16fae15; adv prompt legitimately grew by the Command binding paragraph added in fc2d14cf; budget remains 400 and external MCP grants are unchanged.",
+  "frozenFrom": "change/hardenExecutionDiagnosis: legitimate adv-verifier growth from AC6 failure-attribution contract binding and adv growth from Command binding paragraph; budget unchanged at 400",
   "frozenAt": "2026-07-31",
   "byteBudget": 400,
   "contractBytes": 305,
@@ -118,7 +118,7 @@
       ]
     },
     "adv-verifier": {
-      "bytes": 8716,
+      "bytes": 9818,
       "mcpCapable": true,
       "grants": [
         "lgrep_get_file_outline=true",
@@ -148,7 +148,7 @@
       ]
     },
     "adv": {
-      "bytes": 29835,
+      "bytes": 30406,
       "mcpCapable": true,
       "grants": [
         "context7_*=true",
