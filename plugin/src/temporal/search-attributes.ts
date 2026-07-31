@@ -29,6 +29,10 @@ export const ADV_SEARCH_ATTRIBUTES = {
   AdvBacklogIssueNumber: "Keyword",
   AdvEpicId: "Keyword",
   AdvEpicStatus: "Keyword",
+  // rq-coordinationClaim01 — Text attribute (tokenized) for searchable claim
+  // terms. Does not consume a KeywordList slot; projection gated to open
+  // lifecycle + running workflow authority.
+  AdvCoordinationClaim: "Text",
 } as const;
 
 const SEARCH_ATTRIBUTE_TYPE_CODE = {
@@ -235,6 +239,23 @@ export function buildChangeSearchAttributes(
   // so Epic member lookup can use Visibility without hydrating all changes.
   if (state.epic_membership?.epic_id !== undefined) {
     attrs.AdvEpicId = [state.epic_membership.epic_id];
+  }
+
+  // rq-coordinationClaim01: populate AdvCoordinationClaim from
+  // state.coordination_claim only when the change lifecycle is open. The
+  // workflow is running by definition when search attributes are upserted, so
+  // the open lifecycle gate is the sole authority check here.
+  const lifecycle =
+    state.lifecycleState ?? normalizeChangeLifecycleState(state.status);
+  if (lifecycle === "open" && state.coordination_claim) {
+    const claim = state.coordination_claim;
+    const terms = [
+      claim.responsibility,
+      claim.scope_summary,
+      ...claim.exact_identifiers,
+      ...claim.generated_terms,
+    ].join(" ");
+    attrs.AdvCoordinationClaim = [terms];
   }
 
   return attrs;

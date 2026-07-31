@@ -26,6 +26,8 @@ const SIGNAL_SEARCH_ATTRIBUTE_NAMES = [
   "AdvEpicId",
   // rq-epicRetiredListing01 — single-value Keyword indexing Epic workflow lifecycle.
   "AdvEpicStatus",
+  // rq-coordinationClaim01 — searchable Text projection for typed claims.
+  "AdvCoordinationClaim",
 ] as const;
 
 const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
@@ -46,6 +48,8 @@ const SIGNAL_REQUIRED_SEARCH_ATTRIBUTES = [
   { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
   // rq-epicRetiredListing01 — lifecycle index for active/default Epic lists.
   { name: "AdvEpicStatus", type: "Keyword", typeCode: 2 },
+  // rq-coordinationClaim01 — searchable Text projection for typed claims.
+  { name: "AdvCoordinationClaim", type: "Text", typeCode: 1 },
 ] as const;
 
 describe("temporal observability helpers", () => {
@@ -123,11 +127,14 @@ describe("temporal observability helpers", () => {
   //   INDEXED_VALUE_TYPE_DATETIME    = 6;
   //   INDEXED_VALUE_TYPE_KEYWORD_LIST = 7;
   it("uses canonical Temporal IndexedValueType numeric codes", () => {
+    const CANONICAL_TEXT = 1;
     const CANONICAL_KEYWORD = 2;
     const CANONICAL_BOOL = 5;
     const attrs = requiredAdvSearchAttributes();
     for (const attr of attrs) {
-      if (attr.type === "Keyword") {
+      if (attr.type === "Text") {
+        expect(attr.typeCode).toBe(CANONICAL_TEXT);
+      } else if (attr.type === "Keyword") {
         expect(attr.typeCode).toBe(CANONICAL_KEYWORD);
       } else if (attr.type === "Bool") {
         expect(attr.typeCode).toBe(CANONICAL_BOOL);
@@ -173,6 +180,7 @@ describe("temporal observability helpers", () => {
       "AdvBacklogIssueNumber",
       "AdvEpicId",
       "AdvEpicStatus",
+      "AdvCoordinationClaim",
     ]);
     expect(result.wrongType).toEqual([
       {
@@ -252,6 +260,7 @@ describe("temporal observability helpers", () => {
         AdvBacklogIssueNumber: 2,
         AdvEpicId: 2,
         AdvEpicStatus: 2,
+        AdvCoordinationClaim: 1,
       },
     });
     expect(result).toEqual({
@@ -270,6 +279,7 @@ describe("temporal observability helpers", () => {
         { name: "AdvBacklogIssueNumber", type: "Keyword", typeCode: 2 },
         { name: "AdvEpicId", type: "Keyword", typeCode: 2 },
         { name: "AdvEpicStatus", type: "Keyword", typeCode: 2 },
+        { name: "AdvCoordinationClaim", type: "Text", typeCode: 1 },
       ],
       skipped: [
         { name: "AdvChangeId", type: "Keyword", typeCode: 2 },

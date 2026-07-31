@@ -132,6 +132,7 @@ const designSignalKeys = [
   "workerBundleProvenanceRecorded",
   "workerBundleImpactSet",
   "releaseNotesSet",
+  "coordinationClaimSet",
   "archiveChange",
   "closeChange",
   "prepareBatchClose",
@@ -156,7 +157,7 @@ describe("change workflow message contract", () => {
     const surfacedKeys = Object.keys(CHANGE_WORKFLOW_SIGNAL_NAMES);
 
     expect(surfacedKeys).toEqual([...designSignalKeys]);
-    expect(surfacedKeys).toHaveLength(68);
+    expect(surfacedKeys).toHaveLength(69);
 
     for (const key of designSignalKeys) {
       expect(CHANGE_WORKFLOW_SIGNAL_NAMES[key]).toBe(`adv.change.${key}`);

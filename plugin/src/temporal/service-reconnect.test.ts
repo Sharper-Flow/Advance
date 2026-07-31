@@ -23,6 +23,8 @@ const mocks = vi.hoisted(() => {
     AdvEpicId: { indexedValueType: 2 },
     // rq-epicRetiredListing01 — lifecycle index for active/default Epic lists.
     AdvEpicStatus: { indexedValueType: 2 },
+    // rq-coordinationClaim01 — searchable Text projection for typed claims.
+    AdvCoordinationClaim: { indexedValueType: 1 },
   };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});

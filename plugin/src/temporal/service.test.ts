@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 // Hoist all mock creation so they're available in both vi.mock factories and tests
 const mocks = vi.hoisted(() => {
   // Current ADV search-attribute set (must match plugin/src/temporal/search-attributes.ts).
-  // Type codes: 2=Keyword, 5=Bool, 6=Datetime, 7=KeywordList.
+  // Type codes: 1=Text, 2=Keyword, 5=Bool, 6=Datetime, 7=KeywordList.
   const ADV_SA_FULL_PRESENT = {
     AdvChangeId: { indexedValueType: 2 },
     AdvChangeStatus: { indexedValueType: 2 },
@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => {
     AdvBacklogIssueNumber: { indexedValueType: 2 },
     AdvEpicId: { indexedValueType: 2 },
     AdvEpicStatus: { indexedValueType: 2 },
+    AdvCoordinationClaim: { indexedValueType: 1 },
   };
   const connectionClose = vi.fn().mockResolvedValue(undefined);
   const addSearchAttributes = vi.fn().mockResolvedValue({});
@@ -129,6 +130,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
         AdvBacklogIssueNumber: 2,
         AdvEpicId: 2,
         AdvEpicStatus: 2,
+        AdvCoordinationClaim: 1,
       },
     });
   });

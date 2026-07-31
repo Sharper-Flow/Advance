@@ -44,6 +44,7 @@ export const ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {
   backlogIssueNumber: "AdvBacklogIssueNumber",
   epicId: "AdvEpicId",
   epicStatus: "AdvEpicStatus",
+  coordinationClaim: "AdvCoordinationClaim",
 } as const;
 
 export const CHANGE_WORKFLOW_QUERY_NAMES = {
@@ -140,6 +141,7 @@ export const CHANGE_WORKFLOW_SIGNAL_NAMES = {
   workerBundleProvenanceRecorded: "adv.change.workerBundleProvenanceRecorded",
   workerBundleImpactSet: "adv.change.workerBundleImpactSet",
   releaseNotesSet: "adv.change.releaseNotesSet",
+  coordinationClaimSet: "adv.change.coordinationClaimSet",
   archiveChange: "adv.change.archiveChange",
   closeChange: "adv.change.closeChange",
   prepareBatchClose: "adv.change.prepareBatchClose",
@@ -327,6 +329,7 @@ export interface ChangeWorkflowInput {
       | "ops_followup_links"
       | "lightweight_profile"
       | "epic_membership"
+      | "coordination_claim"
       | "creation_request_hash"
       | "worker_bundle_impact"
       | "workerBundleProvenance"
@@ -646,6 +649,12 @@ export interface ChangeWorkflowState extends ChangeWorkflowInput {
    * attribute (rq-epicTemporalConstraints01).
    */
   epic_membership?: import("../types").Change["epic_membership"];
+  /**
+   * Typed coordination claim. Mirrors `ChangeSchema.coordination_claim` on disk.
+   * Set by `coordinationClaimSetSignal`; full replacement. Search-attribute
+   * projection is gated to open lifecycle + running workflow authority.
+   */
+  coordination_claim?: import("../types").Change["coordination_claim"];
   /** Cross-project provenance for target follow-up changes. */
   cross_project_origin?: import("../types").Change["cross_project_origin"];
   /** Source-side outbound links to target project follow-up changes. */

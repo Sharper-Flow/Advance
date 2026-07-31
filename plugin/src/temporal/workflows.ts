@@ -2,7 +2,7 @@ import * as wf from "@temporalio/workflow";
 import { bucketCtxFromState, deriveBucket } from "../utils/buckets";
 import { derivePhasePlanFromState } from "../utils/phase-plan";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
-import type { ChangeStatus, GateReadinessBlocker } from "../types";
+import type { ChangeStatus, CoordinationClaimSetSignalPayload, GateReadinessBlocker } from "../types";
 import { normalizeLegacyChangeStatus } from "../types";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
@@ -39,6 +39,7 @@ import {
   applyAgreementUpdatedToState,
   applyArchiveRequestedToState,
   applyChangeCancelledToState,
+  applyCoordinationClaimSetToState,
   applyConformanceLockedToState,
   applyConformanceOverriddenToState,
   applyConformanceVerdictToState,
@@ -367,6 +368,9 @@ const workerBundleImpactSetSignal = wf.defineSignal<
 const releaseNotesSetSignal = wf.defineSignal<
   [import("../types").ReleaseNotesSetSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.releaseNotesSet);
+const coordinationClaimSetSignal = wf.defineSignal<
+  [CoordinationClaimSetSignalPayload]
+>(CHANGE_WORKFLOW_SIGNAL_NAMES.coordinationClaimSet);
 const subagentReportSubmittedSignal = wf.defineSignal<
   [import("../types").SubagentReportSubmittedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.subagentReportSubmitted);
@@ -1660,6 +1664,12 @@ export async function changeWorkflow(
       "releaseNotesSet",
       (payload) => applyReleaseNotesSetToState(state, payload),
       { projectAfter: true },
+    ),
+  );
+  wf.setHandler(
+    coordinationClaimSetSignal,
+    signalMutation("coordinationClaimSet", (payload) =>
+      applyCoordinationClaimSetToState(state, payload),
     ),
   );
   wf.setHandler(

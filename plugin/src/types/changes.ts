@@ -41,6 +41,58 @@ export const WorkerBundleImpactSchema = z.object({
 export type WorkerBundleImpact = z.infer<typeof WorkerBundleImpactSchema>;
 
 // =============================================================================
+// Coordination Claims
+// =============================================================================
+
+/**
+ * Typed coordination claim: lightweight, agent-authored scope ownership
+ * projection stored on the change workflow. No separate store — the claim is
+ * authoritative only on open lifecycle + running workflow.
+ */
+export const ChangeCoordinationClaimResponsibilitySchema = z.enum([
+  "owner",
+  "reviewer",
+  "stakeholder",
+  "observer",
+]);
+
+export type ChangeCoordinationClaimResponsibility = z.infer<
+  typeof ChangeCoordinationClaimResponsibilitySchema
+>;
+
+const ChangeCoordinationClaimIdentifierSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1)
+  .max(64)
+  .regex(
+    /^[a-z0-9_-]+$/,
+    "Invalid identifier: only lowercase letters, numbers, hyphens, and underscores are allowed",
+  );
+
+export const ChangeCoordinationClaimSchema = z.object({
+  scope_summary: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200),
+  responsibility: ChangeCoordinationClaimResponsibilitySchema,
+  exact_identifiers: z
+    .array(ChangeCoordinationClaimIdentifierSchema)
+    .max(20),
+  generated_terms: z
+    .array(ChangeCoordinationClaimIdentifierSchema)
+    .max(20),
+  claimed_at: z.string(),
+  claimed_by: z.string().optional(),
+});
+
+export type ChangeCoordinationClaim = z.infer<
+  typeof ChangeCoordinationClaimSchema
+>;
+
+// =============================================================================
 // Release Notes
 // =============================================================================
 
@@ -1376,6 +1428,14 @@ export const ChangeSchema = z
      * loading and Visibility lookup via AdvEpicId search attribute.
      */
     epic_membership: EpicMembershipSchema.optional(),
+
+    /**
+     * Typed coordination claim: bounded scope summary, responsibility enum,
+     * normalized exact identifiers, and generated terms. Stored on the change
+     * workflow only; no separate store. Search-attribute projection is gated
+     * to open lifecycle + running workflow authority.
+     */
+    coordination_claim: ChangeCoordinationClaimSchema.optional(),
 
     /**
      * Optional release-notes content for this change. Additive/backward-
