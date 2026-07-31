@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-31T18:03:47.827Z",
+  "capabilities": [],
+  "change_hash": "59c03775953353aeed10b7230c4ead22d944d921cd1c9078d4a67363728236a3",
+  "change_id": "fixAcceptanceRecovery",
+  "completed_tasks": 4,
+  "created_at": "2026-07-31T00:31:53.674Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-31T17:35:04.692Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "32fb5fe00b49ce1bd303bcd553e7b7081285750934b3795c6374813b93ca0850",
+  "task_count": 4,
+  "title": "Fix acceptance recovery divergence",
+  "version": "1"
+}

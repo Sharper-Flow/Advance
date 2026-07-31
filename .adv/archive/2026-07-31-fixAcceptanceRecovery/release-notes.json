@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixAcceptanceRecovery",
+  "title": "Fix acceptance recovery divergence",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "highlights": [
+      "Acceptance recovery now reconciles persisted mutations with reachable workflow state before acceptance proceeds.",
+      "Recovery markers remain actionable when reconciliation cannot confirm delivery."
+    ],
+    "area": "ADV acceptance recovery"
+  }
+}
