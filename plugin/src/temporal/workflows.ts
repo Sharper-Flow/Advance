@@ -723,6 +723,7 @@ export function buildChangeWorkflowContinueAsNewSeed(
       lightweight_profile: state.lightweight_profile,
       creation_request_hash: state.creation_request_hash,
       epic_membership: state.epic_membership,
+      coordination_claim: state.coordination_claim,
       same_project_dependencies: state.same_project_dependencies,
       worker_bundle_impact: state.worker_bundle_impact,
       workerBundleProvenance: state.workerBundleProvenance,
@@ -881,6 +882,9 @@ export async function changeWorkflow(
     }
     if (input.seedState.epic_membership) {
       state.epic_membership = input.seedState.epic_membership;
+    }
+    if (input.seedState.coordination_claim) {
+      state.coordination_claim = input.seedState.coordination_claim;
     }
     if (input.seedState.same_project_dependencies) {
       state.same_project_dependencies =
@@ -1668,8 +1672,12 @@ export async function changeWorkflow(
   );
   wf.setHandler(
     coordinationClaimSetSignal,
-    signalMutation("coordinationClaimSet", (payload) =>
-      applyCoordinationClaimSetToState(state, payload),
+    signalMutation(
+      "coordinationClaimSet",
+      (payload) => applyCoordinationClaimSetToState(state, payload),
+      // adv_wip_state reads persisted change summaries; keep the claim
+      // inventory current after each accepted or rejected claim signal.
+      { projectAfter: true },
     ),
   );
   wf.setHandler(
