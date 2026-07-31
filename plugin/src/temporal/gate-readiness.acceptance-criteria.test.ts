@@ -4,7 +4,11 @@ import {
   deriveAcceptanceCriteriaProjection,
   evaluateGateCriteria,
 } from "./gate-readiness";
-import { applyGateCompletedToState } from "./change-state";
+import {
+  applyGateCompletedToState,
+  applyDesignConcernDispositionedToState,
+  applyVerificationEvidenceDispositionedToState,
+} from "./change-state";
 import type { ChangeWorkflowState } from "./contracts";
 import type { GateCriterion } from "../types";
 
@@ -208,6 +212,73 @@ describe("acceptance criteria projection", () => {
 
     expect(projection.snapshot).toEqual(snapshotCriteria);
     expect(projection.freshness).toBe("stale");
+  });
+});
+
+describe("AC4: disposition remediation invalidates prior acceptance readiness evidence", () => {
+  function makeSnapshotCriteria(): GateCriterion[] {
+    return [
+      {
+        id: "REVIEW_MATRIX_COMPLETE",
+        label: "Review matrix complete",
+        status: "pass",
+        evaluatedAt: "2026-05-20T00:00:00.000Z",
+      },
+    ];
+  }
+
+  it("marks a previously fresh acceptance snapshot stale after a design-concern disposition", () => {
+    const state = makeState({
+      acceptanceReadinessRevision: 2,
+      acceptanceCriteriaSnapshot: {
+        criteria: makeSnapshotCriteria(),
+        basisRevision: 2,
+      },
+      contract: makeContract({ itemIds: ["AC1"], rowIds: ["AC1"] }),
+    });
+
+    applyDesignConcernDispositionedToState(state, {
+      taskId: "tk-design",
+      concernKey: "component_correctness",
+      disposition: "fixed",
+      evidence: "Re-implemented with a semantic <button>.",
+      dispositionedAt: "2026-05-20T00:00:01.000Z",
+      mutationReceiptId: "mrec-design",
+    });
+
+    const projection = deriveAcceptanceCriteriaProjection(state);
+
+    expect(state.acceptanceReadinessRevision).toBe(3);
+    expect(projection.basisRevision).toBe(3);
+    expect(projection.freshness).toBe("stale");
+    expect(projection.snapshot).toEqual(makeSnapshotCriteria());
+  });
+
+  it("marks a previously fresh acceptance snapshot stale after a verification-evidence disposition", () => {
+    const state = makeState({
+      acceptanceReadinessRevision: 4,
+      acceptanceCriteriaSnapshot: {
+        criteria: makeSnapshotCriteria(),
+        basisRevision: 4,
+      },
+      contract: makeContract({ itemIds: ["AC1"], rowIds: ["AC1"] }),
+    });
+
+    applyVerificationEvidenceDispositionedToState(state, {
+      taskId: "tk-verify",
+      concernKey: "verification_mismatch",
+      disposition: "fixed",
+      evidence: "Re-ran targeted suite; binding now matches.",
+      dispositionedAt: "2026-05-20T00:00:02.000Z",
+      mutationReceiptId: "mrec-verify",
+    });
+
+    const projection = deriveAcceptanceCriteriaProjection(state);
+
+    expect(state.acceptanceReadinessRevision).toBe(5);
+    expect(projection.basisRevision).toBe(5);
+    expect(projection.freshness).toBe("stale");
+    expect(projection.snapshot).toEqual(makeSnapshotCriteria());
   });
 });
 
