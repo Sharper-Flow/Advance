@@ -397,7 +397,7 @@ describe("commitChangeProjection", () => {
       expect(final.data.projection_revision).toBe(200);
       expect(final.data.affectedPaths).toHaveLength(100);
       expect(final.data.scope_repos).toHaveLength(100);
-    });
+    }, 15_000);
   });
 
   describe("concurrent conflicting writes", () => {

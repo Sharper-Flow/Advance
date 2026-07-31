@@ -1189,7 +1189,8 @@ export const ProjectionCommitAuditEntrySchema = z.object({
   committed_at: z.string(),
   /**
    * Optional full signal payload recorded for recovery authority commits so
-   * the mutation can be re-delivered to a reachable workflow during reconciliation.
+   * the mutation can be re-delivered to a reachable workflow during
+   * reconciliation.
    */
   payload: z.record(z.string(), z.unknown()).optional(),
 });
