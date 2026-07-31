@@ -28,7 +28,10 @@ const WF = (changeId: string) => `adv/change/${PROJECT}/${changeId}`;
 
 function client(
   entries: Array<{ workflowId: string; status?: string }>,
-): TerminalReconcileClient {
+  terminate: () => Promise<void> = vi.fn(async () => {}),
+): TerminalReconcileClient & {
+  workflow: { terminate: () => Promise<void> };
+} {
   return {
     workflow: {
       list: () =>
@@ -40,6 +43,7 @@ function client(
             };
           }
         })(),
+      terminate,
     },
   };
 }
@@ -58,8 +62,9 @@ function deps(
 describe("reconcileTerminalWorkflows", () => {
   it("completes a RUNNING workflow whose change is archived on disk", async () => {
     const fireTerminal = vi.fn(async () => {});
+    const terminate = vi.fn(async () => {});
     const result = await reconcileTerminalWorkflows(
-      client([{ workflowId: WF("archivedOne") }]),
+      client([{ workflowId: WF("archivedOne") }], terminate),
       PROJECT,
       deps({
         listArchivedChangeIds: async () => new Set(["archivedOne"]),
@@ -68,6 +73,7 @@ describe("reconcileTerminalWorkflows", () => {
     );
 
     expect(fireTerminal).toHaveBeenCalledWith("archivedOne");
+    expect(terminate).not.toHaveBeenCalled();
     expect(result.reconciled).toEqual(["archivedOne"]);
     expect(result.failed).toEqual([]);
   });
