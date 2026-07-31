@@ -1364,8 +1364,7 @@ export async function advWorktreeCreate(
 }
 
 export type AdvWorktreeResumeTarget =
-  | { branch: string; changeId?: string }
-  | { changeId: string; branch?: string };
+  { branch: string; changeId?: string } | { changeId: string; branch?: string };
 
 export type AdvWorktreeResumeResult =
   | {
@@ -2171,8 +2170,7 @@ export async function advWorktreeDelete(
   // 1. Resolve registry entry and worktree path. Registry wins over path
   // derivation so missing-from-disk cleanup can operate on stale records.
   let registryEntry:
-    | { branch: string; changeId?: string; path: string }
-    | undefined;
+    { branch: string; changeId?: string; path: string } | undefined;
   try {
     registryEntry = await getWorktreeRegistryEntry(branch, deps);
   } catch (error) {
