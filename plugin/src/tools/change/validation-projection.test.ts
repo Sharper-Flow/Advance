@@ -442,4 +442,131 @@ describe("loadValidationInventory", () => {
     expect(inventory.entries).toHaveLength(1);
     expect(store.listCallCount()).toBe(0);
   });
+
+  test("propagates authorityDiagnostics from active conflict authority", async () => {
+    const diagnostics = {
+      source: "active-conflict-authority",
+      activeCandidateCount: 2,
+      omittedCount: 0,
+      shadowCount: 0,
+      elapsedMs: 15,
+    };
+    const authority: ChangeConflictAuthority = {
+      active: [
+        {
+          id: "peer-a",
+          title: "Peer A",
+          status: "draft",
+          capabilities: ["cap-a"],
+        },
+      ],
+      completeness: "complete",
+      canConcludeClean: true,
+      warnings: [],
+      source: "active-conflict-authority",
+      candidateCount: 1,
+      omittedCount: 0,
+      authorityDiagnostics: diagnostics,
+    };
+    const store = createMockStore([]) as Store & {
+      changes: { listConflictAuthority: ReturnType<typeof vi.fn> };
+    };
+    store.changes.listConflictAuthority = vi.fn().mockResolvedValue(authority);
+
+    const inventory = await loadValidationInventory(store, "own-change");
+
+    expect(inventory.authorityDiagnostics).toEqual(diagnostics);
+  });
+
+  test("synthesizes stable authorityDiagnostics from complete active authority when not provided", async () => {
+    const authority: ChangeConflictAuthority = {
+      active: [
+        {
+          id: "peer-a",
+          title: "Peer A",
+          status: "draft",
+          capabilities: ["cap-a"],
+        },
+      ],
+      completeness: "complete",
+      canConcludeClean: true,
+      warnings: [],
+      source: "active-conflict-authority",
+      candidateCount: 1,
+      omittedCount: 0,
+    };
+    const store = createMockStore([]) as Store & {
+      changes: { listConflictAuthority: ReturnType<typeof vi.fn> };
+    };
+    store.changes.listConflictAuthority = vi.fn().mockResolvedValue(authority);
+
+    const inventory = await loadValidationInventory(store, "own-change");
+
+    expect(inventory.authorityDiagnostics).toMatchObject({
+      source: "active-conflict-authority",
+      activeCandidateCount: 1,
+      omittedCount: 0,
+      shadowCount: null,
+      elapsedMs: null,
+    });
+  });
+
+  test("legacy list path exposes stable authorityDiagnostics with unestablished counts", async () => {
+    const peers: MockPeer[] = [
+      {
+        id: "peer-a",
+        title: "Peer A",
+        status: "active",
+        capabilities: ["cap-a"],
+      },
+    ];
+    const store = createMockStore(peers);
+
+    const inventory = await loadValidationInventory(store, "own-change");
+
+    expect(inventory.authorityDiagnostics).toMatchObject({
+      source: "validation-inventory-projection",
+      activeCandidateCount: null,
+      omittedCount: null,
+      shadowCount: null,
+    });
+    expect(typeof inventory.authorityDiagnostics!.elapsedMs).toBe("number");
+  });
+
+  test("blocked active authority exposes stable authorityDiagnostics with null counts", async () => {
+    const store = createMockStore([]) as Store & {
+      changes: { listConflictAuthority: ReturnType<typeof vi.fn> };
+    };
+    store.changes.listConflictAuthority = vi
+      .fn()
+      .mockRejectedValue(new Error("visibility unavailable"));
+
+    const inventory = await loadValidationInventory(store, "own-change");
+
+    expect(inventory.completeness).toBe("blocked");
+    expect(inventory.authorityDiagnostics).toMatchObject({
+      source: "active-conflict-authority",
+      activeCandidateCount: null,
+      omittedCount: null,
+      shadowCount: null,
+    });
+    expect(typeof inventory.authorityDiagnostics!.elapsedMs).toBe("number");
+  });
+
+  test("blocked legacy list exposes stable authorityDiagnostics with null counts", async () => {
+    const store = createMockStore([], {
+      listError: new Error("Temporal visibility unavailable"),
+    });
+
+    const inventory = await loadValidationInventory(store, "own-change");
+
+    expect(inventory.completeness).toBe("blocked");
+    expect(inventory.authorityDiagnostics).toMatchObject({
+      source: "validation-inventory-projection",
+      activeCandidateCount: null,
+      omittedCount: null,
+      shadowCount: null,
+    });
+    expect(typeof inventory.authorityDiagnostics!.elapsedMs).toBe("number");
+  });
 });

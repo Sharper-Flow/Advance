@@ -56,6 +56,25 @@ export interface ResolvedChangeList {
 }
 
 /**
+ * Stable, source-keyed diagnostics from a project authority.
+ *
+ * Unknown counts are represented as `null` rather than fabricated zeros so
+ * callers can distinguish "none" from "could not be established".
+ */
+export interface AuthorityDiagnostics {
+  /** Source identifier for the authority producing the diagnostics. */
+  source: string;
+  /** Number of active candidates established by the authority; null when unknown. */
+  activeCandidateCount: number | null;
+  /** Number of candidates whose facts could not be established; null when unknown. */
+  omittedCount: number | null;
+  /** Number of candidates reconciled to a confirmed terminal shadow; null when unknown. */
+  shadowCount: number | null;
+  /** Wall-clock elapsed milliseconds spent resolving the authority; null when unavailable. */
+  elapsedMs: number | null;
+}
+
+/**
  * Single active change proven by the active conflict authority.
  * Membership comes only from Visibility; facts come only from validated
  * durable active projections or a capped workflow fallback.
@@ -93,6 +112,8 @@ export interface ChangeConflictAuthority {
   warnings: string[];
   /** Source identifier for auditability. */
   source: string;
+  /** Stable diagnostics for the authority source. */
+  authorityDiagnostics?: AuthorityDiagnostics;
   /** Number of Visibility-proven active candidates (including omitted ones). */
   candidateCount: number;
   /** Number of candidates whose facts could not be established. */

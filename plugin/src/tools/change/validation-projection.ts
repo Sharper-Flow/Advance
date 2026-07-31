@@ -6,7 +6,11 @@
  * active-peer hydration loop from validation context loading.
  */
 
-import type { Store, ChangeConflictAuthority } from "../../storage/store-types";
+import type {
+  Store,
+  ChangeConflictAuthority,
+  AuthorityDiagnostics,
+} from "../../storage/store-types";
 import type {
   ConflictInventory,
   ConflictInventoryEntry,
@@ -23,6 +27,21 @@ export interface ValidationInventoryOptions {
    * admitted against the remaining budget.
    */
   deadline?: TemporalReadDeadline;
+}
+
+function makeDiagnostics(
+  source: string,
+  startMs: number,
+  overrides?: Partial<AuthorityDiagnostics>,
+): AuthorityDiagnostics {
+  return {
+    source,
+    activeCandidateCount: null,
+    omittedCount: null,
+    shadowCount: null,
+    elapsedMs: Date.now() - startMs,
+    ...overrides,
+  };
 }
 
 /**
@@ -104,6 +123,7 @@ export async function loadValidationInventory(
   options?: ValidationInventoryOptions,
 ): Promise<ConflictInventory> {
   const deadline = options?.deadline;
+  const startMs = Date.now();
 
   // Prefer the dedicated active-only conflict authority when the Store exposes
   // it. This path performs zero terminal/archive enumeration and is the only
@@ -123,6 +143,10 @@ export async function loadValidationInventory(
           `Active conflict authority unreachable: ${err instanceof Error ? err.message : String(err)}`,
         ],
         source: "validation-inventory-projection",
+        authorityDiagnostics: makeDiagnostics(
+          "active-conflict-authority",
+          startMs,
+        ),
         ownChangeId: changeId,
         canConcludeClean: false,
       };
@@ -153,11 +177,21 @@ export async function loadValidationInventory(
     const completeness: ConflictInventory["completeness"] =
       authority.completeness === "complete" ? "complete" : "non-conclusive";
 
+    const authorityDiagnostics: AuthorityDiagnostics =
+      authority.authorityDiagnostics ??
+      makeDiagnostics(authority.source, startMs, {
+        activeCandidateCount: authority.candidateCount ?? null,
+        omittedCount: authority.omittedCount ?? null,
+        shadowCount: authority.shadowCount ?? null,
+        elapsedMs: null,
+      });
+
     return {
       entries,
       completeness,
       warnings: authority.warnings,
       source: "validation-inventory-projection",
+      authorityDiagnostics,
       ownChangeId: changeId,
       canConcludeClean: authority.canConcludeClean,
     };
@@ -185,6 +219,10 @@ export async function loadValidationInventory(
       completeness: "blocked",
       warnings,
       source: "validation-inventory-projection",
+      authorityDiagnostics: makeDiagnostics(
+        "validation-inventory-projection",
+        startMs,
+      ),
       ownChangeId: changeId,
       canConcludeClean: false,
     };
@@ -273,6 +311,10 @@ export async function loadValidationInventory(
     completeness,
     warnings,
     source: "validation-inventory-projection",
+    authorityDiagnostics: makeDiagnostics(
+      "validation-inventory-projection",
+      startMs,
+    ),
     ownChangeId: changeId,
     canConcludeClean: completeness === "complete",
   };

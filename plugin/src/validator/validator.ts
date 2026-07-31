@@ -13,6 +13,7 @@ import type {
   ActiveChange,
   ConflictInventory,
 } from "./types";
+import type { AuthorityDiagnostics } from "../storage/store-types";
 import { runCompletenessChecks } from "./completeness";
 import { runConflictChecks } from "./conflicts";
 
@@ -205,12 +206,23 @@ export async function validateChange(
   const canConcludeClean =
     context.conflictInventory?.canConcludeClean !== false;
 
+  const authorityDiagnostics: AuthorityDiagnostics = context.conflictInventory
+    ?.authorityDiagnostics ?? {
+    source:
+      context.conflictInventory?.source ?? "validation-inventory-projection",
+    activeCandidateCount: null,
+    omittedCount: null,
+    shadowCount: null,
+    elapsedMs: null,
+  };
+
   return {
     passed: errors.length === 0 && canConcludeClean,
     errors,
     warnings,
     checkedAt: new Date().toISOString(),
     checksPerformed,
+    authorityDiagnostics,
   };
 }
 

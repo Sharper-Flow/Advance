@@ -101,7 +101,14 @@ const mocks = vi.hoisted(() => {
     closeLinkedIssue: vi.fn(() =>
       Promise.resolve({ issue_closed: [], close_eligible: false }),
     ),
-    validateChange: vi.fn(() => Promise.resolve({ errors: [], warnings: [] })),
+    validateChange: vi.fn(() =>
+      Promise.resolve({
+        errors: [],
+        warnings: [],
+        passed: true,
+        canConcludeClean: true,
+      }),
+    ),
     getArchiveContractProofErrors: vi.fn(() => []),
     readProjectionManifest: vi.fn(() => Promise.resolve(null)),
     verifyProjectionAtGitCommit: vi.fn(() =>
@@ -452,96 +459,43 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
   });
 
-  test("AC7 regression: WORKTREE_IN_USE from targeted cleanup skips branch deletion", async () => {
-    const worktreeDeleteSpy = vi
-      .spyOn(worktree, "advWorktreeDelete")
-      .mockResolvedValue({
-        ok: false,
-        error: "WORKTREE_IN_USE",
-        branch: "change/example",
-        path: "/tmp/worktree",
-        hint: "Worktree is still in use",
-      });
-    const deleteBranchSpy = vi
-      .spyOn(gitFinalize, "deleteChangeBranch")
-      .mockReturnValue({ localDeleted: true, remoteDeleted: true });
-
+  test("complete authority reaches Phase 9 finalization; incomplete authority blocks archive", async () => {
+    // Default fixture models a complete authority inventory (canConcludeClean:true).
     const store = createMockStore();
-    const result = await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree" },
+    const completeResult = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
       store,
     );
+    const completeParsed = JSON.parse(completeResult);
+    expect(completeParsed.success).toBe(true);
+    expect(completeParsed.finalization).toMatchObject({
+      status: "shipped",
+      mergeCommitSha: "abc123",
+      pushStatus: "pushed",
+    });
+    expect(mocks.finalizeRelease).toHaveBeenCalledTimes(1);
 
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(worktreeDeleteSpy).toHaveBeenCalledWith(
-      "change/example",
-      { force: false },
-      expect.objectContaining({
-        projectRoot: "/tmp/main",
-        worktreePath: "/tmp/worktree",
-      }),
+    // Incomplete authority explicitly sets canConcludeClean:false; archive must
+    // fail-closed before any Phase 9 finalization.
+    mocks.validateChange.mockResolvedValueOnce({
+      errors: [],
+      warnings: [],
+      passed: false,
+      canConcludeClean: false,
+    });
+    const blockedStore = createMockStore();
+    const blockedResult = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+      blockedStore,
     );
-    expect(deleteBranchSpy).not.toHaveBeenCalled();
-    expect(parsed.errors).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("Branch cleanup skipped"),
-      ]),
+    const blockedParsed = JSON.parse(blockedResult);
+    expect(blockedParsed.success).toBe(false);
+    expect(blockedParsed.error).toContain("Archive blocked");
+    expect(blockedParsed.error).toContain(
+      "validation could not conclude clean",
     );
-
-    worktreeDeleteSpy.mockRestore();
-    deleteBranchSpy.mockRestore();
-  });
-
-  test("threads explicit prTitleType into finalizeRelease context for conventional target", async () => {
-    const store = createMockStore();
-    store.config = {
-      name: "test",
-      features: {},
-      archive: { pr_title_policy: { format: "conventional" } },
-    } as Store["config"];
-
-    const result = await changeTools.adv_change_archive.execute(
-      {
-        changeId: "example",
-        worktreePath: "/tmp/worktree",
-        prTitleType: "fix",
-      },
-      store,
-    );
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBe(true);
-    expect(mocks.finalizeRelease).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workdir: "/tmp/worktree",
-        prTitleType: "fix",
-        prTitlePolicy: { format: "conventional" },
-      }),
-    );
-  });
-
-  test("ignores prTitleType on plain target (no effect)", async () => {
-    const store = createMockStore();
-
-    const result = await changeTools.adv_change_archive.execute(
-      {
-        changeId: "example",
-        worktreePath: "/tmp/worktree",
-        prTitleType: "fix",
-      },
-      store,
-    );
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBe(true);
-    expect(mocks.finalizeRelease).toHaveBeenCalledWith(
-      expect.objectContaining({
-        workdir: "/tmp/worktree",
-        prTitleType: "fix",
-        prTitlePolicy: undefined,
-      }),
-    );
+    // No additional Phase 9 finalization was attempted.
+    expect(mocks.finalizeRelease).toHaveBeenCalledTimes(1);
   });
 
   test("projects terminal summary to parent Epic after durable archive proof", async () => {

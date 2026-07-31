@@ -3,7 +3,7 @@
  *
  * Fixture: 50 active changes whose durable projections are missing, forcing the
  * capped workflow fallback. Each fallback is poisoned with a slow query; the
- * cap and concurrency prevent the budget from being consumed. 50 terminal
+ * cap and concurrency prevent the budget from being consumed. 250 terminal
  * archive bundles are present but must not be read by the authority.
  *
  * Runs 30 cold + 30 warm authority calls at fact-load concurrency 1/2/4/8 under
@@ -29,7 +29,7 @@ import { createTemporalReadDeadline } from "../../temporal/retry-wrapper";
 import { TEMPORAL_READ_DEADLINE_BUDGET_MS } from "./shared";
 
 const ACTIVE_COUNT = 50;
-const TERMINAL_COUNT = 50;
+const TERMINAL_COUNT = 250;
 const COLD_RUNS = 30;
 const WARM_RUNS = 30;
 const CONCURRENCY_LEVELS = [1, 2, 4, 8];
@@ -215,6 +215,10 @@ function nearestRankP95(sortedMs: number[]): number {
   return sortedMs[Math.min(rank, n) - 1];
 }
 
+it("regression fixture targets at least 250 terminal candidates", () => {
+  expect(TERMINAL_COUNT).toBeGreaterThanOrEqual(250);
+});
+
 describe("active conflict authority benchmark gate", () => {
   let tempDir: string | undefined;
 
@@ -232,7 +236,7 @@ describe("active conflict authority benchmark gate", () => {
   });
 
   it.each(CONCURRENCY_LEVELS)(
-    "concurrency=%i: 50 poisoned active + 50 terminal within envelope",
+    "concurrency=%i: 50 poisoned active + 250 terminal within envelope",
     async (concurrency) => {
       tempDir = await createTempDir();
       const legacy = await createDiskStore(tempDir);

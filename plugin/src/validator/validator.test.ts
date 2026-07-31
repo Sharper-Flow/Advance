@@ -148,4 +148,41 @@ describe("validateChange canConcludeClean", () => {
       result.errors.some((i) => i.code === "DUPLICATE_REQUIREMENT_ID"),
     ).toBe(true);
   });
+
+  test("includes authorityDiagnostics in validation result when inventory provides them", async () => {
+    const change = makeMinimalChange();
+    const diagnostics = {
+      source: "active-conflict-authority",
+      activeCandidateCount: 3,
+      omittedCount: 1,
+      shadowCount: 0,
+      elapsedMs: 42,
+    };
+    const result = await validateChange(change, {
+      specs: [],
+      conflictInventory: makeInventory({
+        canConcludeClean: true,
+        authorityDiagnostics: diagnostics,
+      }),
+    });
+    expect(result.authorityDiagnostics).toEqual(diagnostics);
+  });
+
+  test("synthesizes stable authorityDiagnostics when inventory does not provide them", async () => {
+    const change = makeMinimalChange();
+    const result = await validateChange(change, {
+      specs: [],
+      conflictInventory: makeInventory({
+        source: "test-inventory",
+        canConcludeClean: true,
+      }),
+    });
+    expect(result.authorityDiagnostics).toEqual({
+      source: "test-inventory",
+      activeCandidateCount: null,
+      omittedCount: null,
+      shadowCount: null,
+      elapsedMs: null,
+    });
+  });
 });

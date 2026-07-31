@@ -1,5 +1,8 @@
-import type { Store, ChangeConflictAuthority } from "../store-types";
-import { snapshotToLoadResult } from "./read-model";
+import type {
+  Store,
+  ChangeConflictAuthority,
+  AuthorityDiagnostics,
+} from "../store-types";
 import {
   type ArtifactKind,
   type ArtifactPayload,
@@ -1949,6 +1952,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const deadline = options?.deadline ?? createTemporalReadDeadline();
       const expired = (): boolean => remainingDeadlineMs(deadline) <= 0;
       const warnings: string[] = [];
+      const startMs = Date.now();
+      let visibilitySucceeded = false;
 
       const bundle = input.temporal as {
         client?: { workflow?: { list?: unknown } };
@@ -1963,6 +1968,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             ),
             deadline,
           );
+          visibilitySucceeded = true;
         } catch (err) {
           const hitDeadline =
             err instanceof TemporalQueryTimeoutError || expired();
@@ -2157,12 +2163,29 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const completeness: ChangeConflictAuthority["completeness"] =
         warnings.length === 0 && omittedCount === 0 ? "complete" : "incomplete";
 
+      const authorityDiagnostics: AuthorityDiagnostics = visibilitySucceeded
+        ? {
+            source: "active-conflict-authority",
+            activeCandidateCount: activeIds.length,
+            omittedCount,
+            shadowCount,
+            elapsedMs: Date.now() - startMs,
+          }
+        : {
+            source: "active-conflict-authority",
+            activeCandidateCount: null,
+            omittedCount: null,
+            shadowCount: null,
+            elapsedMs: Date.now() - startMs,
+          };
+
       return {
         active,
         completeness,
         canConcludeClean: completeness === "complete",
         warnings,
         source: "active-conflict-authority",
+        authorityDiagnostics,
         candidateCount: activeIds.length,
         omittedCount,
         shadowCount,
