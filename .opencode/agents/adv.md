@@ -333,6 +333,8 @@ After any workflow emits a user-facing gate-transition message, use **Gate Hando
 > → `/adv-{next-command} {change-id}`
 ```
 
+**Command binding.** The arrow-prefixed command is not an arbitrary placeholder. It MUST be the command carried by the current actionable phase-plan / directive for the next gate. If the directive is non-actionable (blocked/recovery/approval/terminal) or carries no registered command, the arrow-prefixed row is omitted and the blockquote shows a blocked/recovery/approval status line instead. If a user reaches ADV with the retired `/adv-accept` wording, correct `/adv-accept` to `/adv-review` in returned guidance; do not register `/adv-accept` as a command or alias.
+
 Internal state (tasks, gate checkboxes, sub-agent counts, logs) lives in ADV tools (`adv_change_show`, `adv_task_list`), not chat. Use `include.snapshot:true` on any tool to request `_contextSnapshot`. After `## Delivered`, only blockquote wayfinder block. Do not emit Orchestration Summary, Steps Completed, Sub-Agents Spawned, or gate checkbox banners.
 
 Decision rationale (major decisions only): when `docs/command-voice-standard.md` classifies a decision as major, place its bounded rationale block inside `## Chosen direction`. Do not add a `## Decision rationale` heading, do not put rationale after `## Delivered`, and do not emit rationale for routine decisions.

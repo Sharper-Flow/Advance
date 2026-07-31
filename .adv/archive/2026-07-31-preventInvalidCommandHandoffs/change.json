@@ -1,0 +1,1181 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "preventInvalidCommandHandoffs",
+  "title": "Prevent invalid command handoffs",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-31T01:15:39.025Z",
+  "tasks": [
+    {
+      "id": "tk-72d6de3f71ce",
+      "title": "Bind shared wayfinder guidance to canonical commands",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-31T02:09:32.654Z",
+      "started_at": "2026-07-31T02:11:39.986Z",
+      "completed_at": "2026-07-31T03:01:25.599Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Reviewer remediation verified: 219 targeted tests passed with durable run tr_ms8cvm9d_5c818c05.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/utils/context-snapshot.test.ts",
+        "plugin/src/utils/context-snapshot.ts"
+      ],
+      "checkpointSha": "40412d7b342d96f292023d41069ed4e5b042e61a",
+      "completedAt": "2026-07-31T03:01:25.599Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "OOS1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/utils/context-snapshot.test.ts",
+        "plugin/src/utils/context-snapshot.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "preventInvalidCommandHandoffs",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/preventInvalidCommandHandoffs",
+          "task_id": "tk-72d6de3f71ce",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-72d6de3f71ce"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/utils/context-snapshot.ts",
+            "plugin/src/utils/context-snapshot.test.ts",
+            "plugin/src/handoff-footer-drift.test.ts",
+            ".opencode/agents/adv.md",
+            "docs/command-voice-standard.md",
+            ".adv/specs/advance-workflow/spec.json",
+            "docs/specs/advance-workflow.md"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms8ck4s5_c5274c37",
+              "command": "bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts",
+              "exit_code": 0,
+              "summary": "218 tests passed across 3 targeted test files"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Fail closed in formatDirectiveNextLine when an actionable directive lacks a registered command",
+              "why": "AC2 requires a clear blocked state and zero runnable arrow when the canonical command is missing; returning a gate-only line would still be ambiguous."
+            },
+            {
+              "what": "Reused the existing GATE_COMMAND/phase-plan mapping as the single authority for runnable wayfinder commands",
+              "why": "Avoids a second mapping, preserves gate ownership and manifest parity, and satisfies C1/DONT1."
+            },
+            {
+              "what": "Added retired /adv-accept wording correction to shared docs/agent/spec instead of registering an alias",
+              "why": "Satisfies AC3 and C2 by correcting the stale wording without making it executable."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Aligned command-voice standard, agent output contract, and advance-workflow spec law; added renderer tests for missing command and acceptance route; handoff-footer-drift tests already cover all gate transitions and now assert manifest registration and retired-wording correction.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task complete. Bound shared wayfinder command to the phase-plan directive command, made missing command fail closed, and documented retired /adv-accept -> /adv-review correction. Targeted tests (218) pass. Note: pnpm run check currently fails on a pre-existing schemas:check error (Zod transform cannot be represented in JSON Schema) and unrelated Prettier warnings in other files; these are not introduced by this change.",
+            "suggested_next_action": "Run the targeted test suite to confirm; address the upstream schemas:check failure separately if CI requires it."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms8ck4s5_c5274c37"
+            }
+          ]
+        }
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-07-31T02:55:16.638Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "preventInvalidCommandHandoffs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation: prevent invalid command handoffs",
+      "sources": [
+        {
+          "label": "GATE_COMMAND manifest-parity mapping",
+          "locator": "plugin/src/utils/phase-plan.ts:75-83",
+          "summary": "acceptance -> adv-review; all 7 gates bound to a single command each. Confirms SC2/AC1; authority already manifest-aligned."
+        },
+        {
+          "label": "actionableGuidance / actionablePlan call sites",
+          "locator": "plugin/src/utils/phase-plan.ts:492-524",
+          "summary": "Read GATE_COMMAND[gateId]; emit bound command into guidance and the actionable plan command field. Cited levers behave as the design claims."
+        },
+        {
+          "label": "Fail-closed plan kinds",
+          "locator": "plugin/src/utils/phase-plan.ts:549-586",
+          "summary": "recovery-required/approval-required/blocked set failClosed:true and carry NO command field; DegradedPhasePlan (:628-642) likewise. DDC2 structurally pre-supported."
+        },
+        {
+          "label": "formatDirectiveNextLine typed renderer",
+          "locator": "plugin/src/utils/context-snapshot.ts:316-336",
+          "summary": "Non-actionable kinds return 'Next: blocked/recovery/approval' with no arrow; actionable branch emits arrow ONLY when gate AND command present. Typed path already correct; sources from directive, not inferred prose."
+        },
+        {
+          "label": "Agent Output Contract blockquote (defect lever)",
+          "locator": ".opencode/agents/adv.md:315-336",
+          "summary": "Handoff blockquote uses free /adv-{next-command} {change-id} placeholder the LLM fills. This IS the unconstrained prose authority the design identifies as the root defect."
+        },
+        {
+          "label": "Parity + mismatch-detection test",
+          "locator": "plugin/src/utils/phase-plan-parity.test.ts:192-273",
+          "summary": "Parametric over all 7 gates; manifest primary == mapping == expected; plus rename/missing/extra/missing-manifest mismatch proofs. DDC3 (7 gates + missing) already substantially covered; 'extend' is grounded."
+        },
+        {
+          "label": "/adv-accept registration absence",
+          "locator": "grep /adv-accept across .opencode/ and plugin/src",
+          "summary": "No /adv-accept command/alias registered in .opencode/ (zero hits); plugin/src hits are only mkdtemp('adv-acceptance-*') tmpdir prefixes. Confirms C2 baseline and AC3 correction-only feasibility."
+        }
+      ],
+      "architecture_assessment": "Root-cause diagnosis is accurate and source-verified: the typed phase-plan path (GATE_COMMAND -> actionablePlan -> formatDirectiveNextLine) already produces only manifest-bound commands and already fails closed (no arrow) for blocked/recovery/approval/degraded/missing states. The actual defect is the free-text {next-command} blockquote in the agent Output Contract (.opencode/agents/adv.md:315-336), an independent prose authority the LLM fills unconstrained. The design fixes exactly that shared source (DONT1 honored) by binding the blockquote to the typed directive command, reuses the existing fail-closed state instead of inventing a second (DONT2 honored), leaves manifest/GATE_COMMAND/lifecycle untouched (C1/C3 honored), and treats /adv-accept as correction-only text with regressions and no alias/registration (C2 honored; no existing alias to retire). All four DDCs are structurally pre-supported. Spec-law implication: design step 2 correctly scopes spec-law edits to only surfaces defining the same shared wayfinder contract and rewrites no lifecycle (C3) or command ownership (C1); parity between agent Output Contract, command-voice-standard.md, and any matching workflow spec projection must be held together to avoid re-drifting the prose authority. One inherent property (tradeoff, not blocker): the chat-handoff binding is instruction/static-drift-test enforced, not a runtime structural interceptor that strips non-manifest commands from LLM output; structural interception would require output-filtering machinery or a lifecycle redesign, both out of scope under C3, and matches how every other ADV output contract is enforced.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "All 6 cited levers verified against source. AC1-AC4 and SC1-SC2 all map to existing typed machinery the design reuses. C1-C3 and DONT1-DONT2 satisfied by scope. Evidence policies consistent: AC1-AC4 test-governed and design extends existing parity + handoff-footer-drift suites (both present; the latter already references adv-review at :66); C1-C3 static_check-governed and verifiable by unchanged manifest + no-alias assertions. required_validation_consistency: pass (all ACs map to deliverable test/static-check evidence)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Chat-handoff command binding is instruction/static-drift-test enforced, not a runtime structural interceptor; an LLM can still occasionally emit a non-manifest command in free text. Inherent given C3 (no lifecycle redesign) and matches how all ADV output contracts are enforced.",
+          "Docs/spec/test-only change with no runtime behavior change to the already-correct typed path: very low regression risk, but the objective is achieved via hardening + regressions rather than a new guarantee mechanism.",
+          "Extends existing test suites rather than adding a new one (pro: locality/DONT1-aligned; con: coverage of the missing-route guidance rendering depends on the test author exercising formatDirectiveNextLine's gate-and-command-absent branch)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Register /adv-accept as a compatibility alias forwarding to /adv-review",
+            "disposition": "rejected",
+            "rationale": "Violates C2 (must not add /adv-accept as command/alias); reintroduces a second runnable surface for the same gate."
+          },
+          {
+            "option": "Per-gate symptom patches (special-case acceptance, then each other gate)",
+            "disposition": "rejected",
+            "rationale": "Violates DONT1; the shared wayfinder is the root cause and can be corrected once."
+          },
+          {
+            "option": "Runtime output validator that strips non-manifest commands from agent handoff text",
+            "disposition": "deferred",
+            "rationale": "Out of scope under C3 and heavier than necessary; would need new machinery to intercept/rewrite free-text LLM output. The instruction+drift-test binding is the reversible LBP now; revisit only if drift recurs."
+          },
+          {
+            "option": "Invent a best-effort inferred command when GATE_COMMAND mapping unavailable",
+            "disposition": "rejected",
+            "rationale": "Violates DONT2; the design correctly reuses BlockedPhasePlan/DegradedPhasePlan fail-closed state instead."
+          }
+        ],
+        "recommendation": "Proceed to planning. The chosen design is the smallest durable fix: it removes the independent prose authority (the free {next-command} blockquote) and binds the shared wayfinder to the already-correct typed directive, reusing existing fail-closed state. No in-scope blockers. Carry one forward requirement into planning: the test extension must explicitly exercise formatDirectiveNextLine's actionable-but-no-command and blocked branches (not just the 7 happy-path gate commands) so AC2/DDC2's 'zero runnable arrows + reason' is proven at the rendering layer, since DDC3's missing-case coverage currently rests on the parity suite's derivation-level mismatch proofs rather than on the guidance-rendering layer this change hardens."
+      },
+      "recommendation": "Proceed to planning. The design binds the shared wayfinder to the already-correct typed phase-plan directive (acceptance -> /adv-review via GATE_COMMAND), reuses existing fail-closed state for blocked/missing cases, and treats /adv-accept as correction-only text with regressions and no alias. All 6 cited levers verified against source; all SCs/ACs/constraints/avoidances satisfied. One planning-time carry: extend the drift tests to cover formatDirectiveNextLine's no-command branches (rendering layer), not just the 7 happy-path gate commands, so AC2/DDC2 is proven at the surface this change actually edits.",
+      "follow_ups": [
+        "Planning must specify a test that exercises formatDirectiveNextLine rendering for actionable-but-command-absent and blocked cases to fully close AC2/DDC2 at the guidance-rendering layer."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "preventInvalidCommandHandoffs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/preventInvalidCommandHandoffs",
+      "task_id": "tk-72d6de3f71ce",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-72d6de3f71ce"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/utils/context-snapshot.ts",
+        "plugin/src/utils/context-snapshot.test.ts",
+        "plugin/src/handoff-footer-drift.test.ts",
+        ".opencode/agents/adv.md",
+        "docs/command-voice-standard.md",
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms8ck4s5_c5274c37",
+          "command": "bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts",
+          "exit_code": 0,
+          "summary": "218 tests passed across 3 targeted test files"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Fail closed in formatDirectiveNextLine when an actionable directive lacks a registered command",
+          "why": "AC2 requires a clear blocked state and zero runnable arrow when the canonical command is missing; returning a gate-only line would still be ambiguous."
+        },
+        {
+          "what": "Reused the existing GATE_COMMAND/phase-plan mapping as the single authority for runnable wayfinder commands",
+          "why": "Avoids a second mapping, preserves gate ownership and manifest parity, and satisfies C1/DONT1."
+        },
+        {
+          "what": "Added retired /adv-accept wording correction to shared docs/agent/spec instead of registering an alias",
+          "why": "Satisfies AC3 and C2 by correcting the stale wording without making it executable."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Aligned command-voice standard, agent output contract, and advance-workflow spec law; added renderer tests for missing command and acceptance route; handoff-footer-drift tests already cover all gate transitions and now assert manifest registration and retired-wording correction.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task complete. Bound shared wayfinder command to the phase-plan directive command, made missing command fail closed, and documented retired /adv-accept -> /adv-review correction. Targeted tests (218) pass. Note: pnpm run check currently fails on a pre-existing schemas:check error (Zod transform cannot be represented in JSON Schema) and unrelated Prettier warnings in other files; these are not introduced by this change.",
+        "suggested_next_action": "Run the targeted test suite to confirm; address the upstream schemas:check failure separately if CI requires it."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms8ck4s5_c5274c37"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "preventInvalidCommandHandoffs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/preventInvalidCommandHandoffs",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/utils/context-snapshot.ts",
+          "summary": "Fail-closed Next-line rendering now emits a runnable command only when it matches the canonical gate command; absent, mismatched, or unregistered directive commands render a blocked gate status.",
+          "verification": "Targeted 219-test suite passed; TypeScript typecheck passed."
+        },
+        {
+          "file": "plugin/src/utils/context-snapshot.test.ts",
+          "summary": "Added regression coverage for an actionable directive carrying an unknown command, asserting no runnable /adv-* route is rendered.",
+          "verification": "bin/oc-test targeted passed 219 tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "pattern",
+          "content": "Presentation consumers that render actionable commands must validate the command against the canonical gate mapping, not merely require a non-empty command string; otherwise malformed directives can become runnable guidance."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts",
+          "pnpm --dir plugin run typecheck",
+          "git diff --check ed1499a8"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 3 files, 219 tests passed. `tsc --noEmit` passed. `git diff --check ed1499a8` produced no whitespace errors. Reviewed committed diff fc2d14cf against ed1499a8; no remaining contract, docs/spec parity, security, scope, or lifecycle defects found."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Reviewer remediation is intentionally uncommitted; main agent must include it in the task's normal checkpoint flow.",
+        "No browser/UI surface is affected; visual review was not applicable."
+      ],
+      "required_main_agent_actions": [
+        "Inspect the two uncommitted reviewer remediation files and include them in the normal task checkpoint/commit; do not alter gate or task state from this report.",
+        "Leave unchanged: command ownership, gate lifecycle mapping, /adv-accept alias absence, and unrelated handoff text outside the canonical docs/spec and snapshot renderer."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check ed1499a8"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "preventInvalidCommandHandoffs",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/preventInvalidCommandHandoffs",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "For user-visible command handoffs, validate a directive command against the canonical gate mapping at render time and fail closed rather than displaying a guessed runnable route."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts",
+          "git diff --check origin/trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite passed: 3 files, 219 tests, exit 0 (11.94s). Diff whitespace check exited 0. Source lines 333-337 render a route only when the directive command exactly matches GATE_COMMAND[gate]; lines 427-508 cover acceptance /adv-review plus missing and unregistered commands failing closed. Phase-plan lines 62-83 define the canonical gate mapping, including acceptance → adv-review. Current task report contains no blockers, follow-ups, or required main-agent actions; accepted review matrix records all contract rows pass/respected. User-confirmed clean, aborted dry-run merge with origin/trunk is reused as merge-compatibility evidence."
+      },
+      "scope_drift": null,
+      "risks": [
+        "oc-fresh reports this worktree is one commit behind origin/trunk; rerun the normal clean-tree merge/rebase compatibility check against current origin/trunk immediately before merge/release.",
+        "No browser proof applies: agreement declares visual_surface false; this is an internal command-contract formatter."
+      ],
+      "required_main_agent_actions": [
+        "Before merge/release, refresh against current origin/trunk and rerun the normal clean-tree merge compatibility verification because this worktree is currently behind by one commit.",
+        "No scoped code or documentation changes required; leave plugin/src/utils/context-snapshot.ts and plugin/src/utils/context-snapshot.test.ts unchanged."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check origin/trunk...HEAD"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-72d6de3f71ce": [
+      {
+        "runId": "tr_ms8ck4s5_c5274c37",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts",
+        "durationMs": 8201.0798290018,
+        "recordedAt": "2026-07-31T02:52:19.721Z"
+      },
+      {
+        "runId": "tr_ms8cn5el_6221174b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts",
+        "durationMs": 5150.177687000483,
+        "recordedAt": "2026-07-31T02:54:40.436Z"
+      },
+      {
+        "runId": "tr_ms8cvm9d_5c818c05",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/utils/phase-plan-parity.test.ts src/handoff-footer-drift.test.ts src/utils/context-snapshot.test.ts",
+        "durationMs": 8591.900136999786,
+        "recordedAt": "2026-07-31T03:01:15.634Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-31T01:17:42.917Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved the completed proposal: \"approve\".",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "b3f2491dd84d18b6021e82c58d006ac212bbd435f629b8684b096a4efa7ea14f",
+        "non_whitespace_chars": 4177,
+        "checked_at": "2026-07-31T01:15:39.341Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-31T01:47:40.413Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved discovery criteria and agreement: \"approve\".",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "non_whitespace_chars": 2159,
+        "checked_at": "2026-07-31T01:15:39.342Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-31T02:08:08.207Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Design persisted; leverage scout auto-adopted four low-risk contract-tied improvements; independent validator clean pass with no blockers.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "f909e02e4b677886a39e23f357e7364d6f9eb87d0465c73b0ce65bb7102dbf29",
+        "non_whitespace_chars": 6497,
+        "checked_at": "2026-07-31T01:15:39.343Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-31T02:11:08.321Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved the implementation plan: \"approve\"."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-31T02:56:32.647Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All planned tasks complete. Durable verify evidence tr_ms8cn5el_6221174b passed: 218 targeted tests."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-31T05:47:37.804Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "Acceptance review matrix recorded with 12 passing/respected rows; user accepted delivery.",
+      "started_at": "2026-07-31T05:47:10.824Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "053f259ff651cb791fdda76ea8c6bbecb262ca4fc8e7f69de7e26ce013fac3d2",
+        "non_whitespace_chars": 1165,
+        "checked_at": "2026-07-31T01:15:39.344Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+      "approvedAt": "2026-07-31T01:47:34.583Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "ADV guidance never sends a person to an unregistered command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Acceptance guidance reliably directs users to `/adv-review`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given acceptance is the next gate, when ADV renders its runnable handoff, then it names `/adv-review {change-id}`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "acceptance is the next gate",
+          "trigger": "ADV renders its runnable handoff",
+          "outcome": "it names `/adv-review {change-id}`"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a handoff has no registered canonical command, when ADV prepares guidance, then it presents a clear blocked state and no runnable guessed command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a handoff has no registered canonical command",
+          "trigger": "ADV prepares guidance",
+          "outcome": "it presents a clear blocked state and no runnable guessed command"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a user reaches ADV with the retired `/adv-accept` wording, when guidance is returned, then it directs them to `/adv-review` without creating an alias.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a user reaches ADV with the retired `/adv-accept` wording",
+          "trigger": "guidance is returned",
+          "outcome": "it directs them to `/adv-review` without creating an alias"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given a standard gate handoff is rendered through the shared wayfinder path, when its command is shown, then the command is registered for that transition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a standard gate handoff is rendered through the shared wayfinder path",
+          "trigger": "its command is shown",
+          "outcome": "the command is registered for that transition"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must preserve existing gate ownership and registered command names.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must preserve existing gate ownership and registered command names"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must not add `/adv-accept` as a command or alias.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not add `/adv-accept` as a command or alias"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must not redesign the seven-gate lifecycle.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not redesign the seven-gate lifecycle"
+        }
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not implement separate symptom patches for individual gates when the shared handoff source can be corrected.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not present a best-effort inferred command when the canonical mapping is unavailable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "External integrations, cross-repository changes, and unrelated slash-command routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-31T06:03:00.000Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Independent review confirmed shared wayfinder is bound to manifest-backed phase-plan commands."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance route is verified as `/adv-review`."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted suite run tr_ms8cvm9d_5c818c05 passed acceptance-route coverage."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Targeted suite run tr_ms8cvm9d_5c818c05 passed missing/unregistered route fail-closed coverage."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Handoff drift tests cover correction-only `/adv-accept` wording with no alias."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Handoff drift tests assert each displayed continuation command is manifest registered."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Manifest and seven-gate mapping were preserved; renderer checks the existing GATE_COMMAND mapping."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No `/adv-accept` command or alias was registered; tests assert its absence."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No lifecycle state or gate ownership change was made."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Single shared handoff contract and renderer path were hardened; no per-gate symptom patch."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Unregistered/missing directives render blocked guidance without a guessed command."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No external integrations, cross-repository work, or unrelated routing changed."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given acceptance is the next gate, when ADV renders its runnable handoff, then it names `/adv-review {change-id}`.",
+    "Given a handoff has no registered canonical command, when ADV prepares guidance, then it presents a clear blocked state and no runnable guessed command.",
+    "Given a user reaches ADV with the retired `/adv-accept` wording, when guidance is returned, then it directs them to `/adv-review` without creating an alias.",
+    "Given a standard gate handoff is rendered through the shared wayfinder path, when its command is shown, then the command is registered for that transition."
+  ],
+  "documents": {
+    "proposal": "# Prevent invalid command handoffs\n\n## Why\n\nADV agents can emit the non-existent `/adv-accept` command at the acceptance handoff, even though current source and installed commands define acceptance as `/adv-review`.\n\n## Root Cause Analysis\n\n**Defect origin:** Agents sometimes direct acceptance work to `/adv-accept`, which is not available.\n\n**Evidence gathered:**\n- Tier 1: current source and global command directories contain `adv-review.md` but no `adv-accept.md`; `GATE_COMMAND` maps acceptance to `adv-review`; the manifest omits `adv-accept`.\n- Tier 2: not applicable — all affected surfaces are repo-owned.\n\n**Leading hypothesis:** LLM-filled wayfinder guidance is not structurally validated against the command registry. A historical changelog entry is the only current local `/adv-accept` reference.\n\n**Ruled-out paths:** No stale deployed command file exists.\n\n**Spec-law impact:** Existing runnable-handoff law does not prove registry membership; discovery will determine whether a delta is required.\n\n## What Changes\n\nEnsure command handoffs resolve from the supported command set and cannot present an unregistered command as runnable.\n\n## User Outcomes\n\n- People receive a working command when ADV directs them to continue acceptance work.\n- Acceptance guidance consistently names `/adv-review`.\n- Invalid command handoffs are prevented rather than corrected after a failed attempt.\n\n## Scope\n\n### In Scope\n\n- Acceptance-to-review command selection and rendered handoff guidance.\n- Canonical command manifest and gate-to-command mapping as they govern acceptance.\n- Regression coverage for registered versus unregistered handoff commands.\n- Safe treatment of the historical `/adv-accept` reference.\n\n### Out of Scope\n\n- Changing seven-gate lifecycle or acceptance ownership.\n- Adding `/adv-accept` as a command or alias.\n- Unrelated slash-command routing and external integrations.\n\n### Must Not\n\n- Change acceptance ownership from `/adv-review`.\n- Preserve `/adv-accept` as a runnable compatibility path.\n- Treat model naming inference as command authority.\n\n## Affected Code\n\nLikely command manifest, phase-plan mapping, handoff/prompt assembly or validation, command-contract assets, and adjacent tests under `plugin/src`.\n\n## Related Repositories\n\n- `advance` only.\n\n## Constraints\n\n- Preserve registered command names and gate ownership.\n- Keep historical release records truthful.\n- Follow generated-manifest and schema conventions where discovered surfaces require them.\n\n## Impact\n\nRemoves a misleading acceptance handoff and avoidable failed user action.\n\n## Discovery Findings\n\n### Discovery Checklist\n\n| Step | Result | Evidence |\n|---|---|---|\n| Skills considered | PASS | No specialized skill needed; repo-owned command contract is covered by existing agent-tool contract guidance. |\n| Prior research extension | PASS | Extends `/adv-problem` RCA; new finding: typed runtime paths already use the canonical mapping. |\n| Conflict scan | PASS | 30-change inventory complete; no matching active change. `fixAcceptanceRecovery` is related only by acceptance terminology. |\n| Edge cases | PASS | Invalid mapped command; stale historical term; missing registry entry; manual invalid user input. |\n| Design question depth | PASS | Validation location and failure behavior remain design decisions. |\n| Draft spec deltas | PARTIAL | Candidate workflow requirement; final delta decision deferred to design after test-surface review. |\n| Related-pattern scan | PASS | Other gates use the same LLM-filled wayfinder placeholder; typed phase-plan paths are already registry-backed. |\n| LBP check | PASS | Internal structural validation is the only viable direction; no external solution applies. |\n| Completeness verification | PASS | Typed runtime emission is safe; orchestrator-rendered wayfinder is the unvalidated secondary surface. |\n\n### Current State\n\n`GATE_COMMAND` maps acceptance to `adv-review` and typed phase-plan/snapshot paths consume that mapping. Manifest parity tests protect those typed paths. The orchestrator’s gate-handoff template contains an LLM-filled `{next-command}` placeholder; it can bypass that typed mapping. The current historical changelog contains the lone local `/adv-accept` reference and does not reach installed command discovery.\n\n### Edge Cases\n\n- A future gate mapping has no registered successor: handoff must not guess a command.\n- A stale or retired command appears in prompt context: it must not become a runnable wayfinder.\n- A user manually enters `/adv-accept`: no alias is added; recovery behavior needs an explicit scope decision.\n- A typed phase-plan and rendered handoff disagree: the registered mapping must win.\n\n### Open Design Questions\n\n- **Where validation belongs** — agent-only; high blast radius across handoff outputs; options are prompt-level canonical binding, output validation, or both.\n- **Failure behavior** — joint; medium blast radius; options are safe blocked guidance, a corrected canonical command where mapping is known, or an unsafe inferred fallback (rejected).\n- **Historical reference treatment** — agent-only; low blast radius; preserve release-history accuracy while preventing current-contract ambiguity.\n\n### Draft Spec Deltas\n\nCandidate: `advance-workflow` requirement that a runnable wayfinder command must resolve to a registered canonical command for the stated next gate. Given a gate transition, when a handoff is rendered, then it names that gate’s registered command or reports a safe block. Final shape depends on design evidence.\n\n### Related Pattern Scan\n\nAll gate handoffs share the same template risk. Typed runtime directives are not in scope for remediation because their command derives from `GATE_COMMAND`; their parity coverage is supporting evidence.\n\n### LBP Check\n\nNo external-solution check: this is an internal prompt/contract integrity defect. A registry-backed source of truth plus deterministic regression coverage matches the existing manifest and phase-plan architecture.\n\n### Completeness Verification\n\n**Problem completeness:** high confidence. Typed command routing is already correct; the defect is limited to unvalidated LLM-rendered handoff prose.\n\n**Solution scope:** medium confidence. Every user-visible runnable wayfinder may share the defect; discovery needs user scope confirmation before treating broader handoff coverage as in scope. No sole-entry claim is made for all prose.\n\n### AMBIGUITY ANALYSIS\n\n- B1 HIGH — Boundary: `\"Acceptance-to-review command selection\"` does not state whether protection applies to all gate-handoff wayfinders that use the same placeholder.\n- F1 LOW — Functional scope: `\"cannot present an unregistered command\"` needs a defined safe response when no valid mapping exists.\n- S1 LOW — Completion signal: `\"regression coverage\"` does not yet name the protected surface set.\n- M1 LOW — Missing information: manual `/adv-accept` user-entry behavior is unspecified.\n\nCoverage: B:P F:P S:P M:P\n\n## Discovery Agenda\n\n- Confirm user-facing boundary for shared wayfinder protection.\n- Confirm safe response for a missing/unregistered command mapping.\n- Confirm whether manual use of the retired name needs a guided correction.\n- Decide final spec-delta and enforcement location during design.",
+    "problemStatement": "## Problem Statement\n\nADV agents can emit the non-existent `/adv-accept` command at the acceptance handoff, even though the current source and installed command sets define acceptance as `/adv-review`. This sends users to an invalid workflow entry point.\n\n## Desired Outcome\n\nEvery acceptance handoff names the registered canonical command `/adv-review`; invalid or stale command names cannot be emitted as authoritative ADV guidance.\n\n## Expected Scope\n\nTrace command-selection and handoff rendering, make command choice registry-backed or otherwise structurally validated, address the stale terminology source safely, and add regression coverage. Preserve the existing seven-gate lifecycle and acceptance behavior.",
+    "agreement": "# Agreement\n\n## Objectives\n\n- Prevent ADV from emitting unregistered runnable command handoffs.\n- Keep acceptance ownership and its canonical user route as `/adv-review`.\n- Fix the shared handoff source rather than adding per-gate symptom patches.\n\n## Success Criteria\n\n- SC1: ADV guidance never sends a person to an unregistered command.\n- SC2: Acceptance guidance reliably directs users to `/adv-review`.\n\n## Acceptance Criteria\n\n- AC1: Given acceptance is the next gate, when ADV renders its runnable handoff, then it names `/adv-review {change-id}`.\n- AC2: Given a handoff has no registered canonical command, when ADV prepares guidance, then it presents a clear blocked state and no runnable guessed command.\n- AC3: Given a user reaches ADV with the retired `/adv-accept` wording, when guidance is returned, then it directs them to `/adv-review` without creating an alias.\n- AC4: Given a standard gate handoff is rendered through the shared wayfinder path, when its command is shown, then the command is registered for that transition.\n\n## Constraints\n\n- C1: Must preserve existing gate ownership and registered command names.\n- C2: Must not add `/adv-accept` as a command or alias.\n- C3: Must not redesign the seven-gate lifecycle.\n\n## Avoidances\n\n- DONT1: Do not implement separate symptom patches for individual gates when the shared handoff source can be corrected.\n- DONT2: Do not present a best-effort inferred command when the canonical mapping is unavailable.\n\n## Out of Scope\n\n- OOS1: External integrations, cross-repository changes, and unrelated slash-command routing.\n\n## Preview Applicability\n\nvisual_surface: false\n\npreview_expectation:\n- exact_route_required: false\n- data_state_expectation: not_applicable\n- viewport_expectation: not_applicable\n- rationale: This is an internal command-contract and text-guidance change with no browser-visible surface.\n\n## Decisions\n\n### User Decisions\n\n- **Scope:** Fix the shared root cause rather than independently hardening each gate’s symptom.\n- **Missing mapping:** Show a safe blocked state; never guess a command.\n- **Retired wording:** Clearly correct `/adv-accept` to `/adv-review` without adding an alias.\n\n### Agent Decisions (LBP)\n\n- Typed phase-plan routing already resolves acceptance through `GATE_COMMAND`; remediation should target the unvalidated LLM-rendered wayfinder surface.\n- Preserve historical changelog accuracy; determine the least ambiguous treatment in design.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nCriteria approved by user in this session: \"approve\".",
+    "design": "# Design\n\n## Architecture Overview\n\nUse the existing typed phase-plan route as the sole authority for runnable ADV wayfinders. `GATE_COMMAND` is already reconciled with the command manifest; `actionablePlan()` binds the selected gate to that command, while blocked plans fail closed. The shared agent-facing handoff contract will require the wayfinder to echo this bound command only. It must never fill a command name by prose inference.\n\nFor a normal actionable plan, the agent renders exactly the supplied command and change ID. For a non-actionable, blocked, recovery, or missing-command plan, it renders the established blocked guidance without an arrow-prefixed runnable command. A retired `/adv-accept` mention is treated as correction text—`/adv-review` is named as the canonical route—but no command, alias, manifest entry, or lifecycle edge is added.\n\n### Lever citations\n\n- `plugin/src/utils/phase-plan.ts:492-505` is the command-to-guidance call site: `actionableGuidance()` reads `GATE_COMMAND[gateId]` and emits the bound route.\n- `plugin/src/utils/phase-plan.ts:507-524` is the phase-plan emission call site: `actionablePlan()` places the same bound command in the actionable plan.\n- `plugin/src/utils/context-snapshot.ts:404-406` calls `formatDirectiveNextLine()` to display the directive; the existing formatter uses the typed directive rather than an inferred command.\n- `.opencode/agents/adv.md:315-336` is the LLM-facing handoff call site that currently leaves `{next-command}` unconstrained. This is the defect lever.\n- `plugin/src/utils/phase-plan-parity.test.ts:192-235` proves that the mapping reaches manifest ownership and has no earlier filter or alternate command-selection stage. The mapping is exactly the seven-gate set and each command is the manifest primary.\n\n## Key Decisions\n\n1. **Bind the shared wayfinder to the typed phase-plan command.** The agent contract will state that the only runnable command is the actionable plan/directive command, which must be registered for its gate. This preserves the existing manifest and gate ownership.\n2. **Reuse the existing fail-closed state.** A missing or unavailable canonical command uses `BlockedPhasePlan` and its non-runnable `Next: blocked` style instead of a second blocked-state representation.\n3. **Make retired-name handling explicit, not executable.** The shared agent contract will tell ADV to correct `/adv-accept` to `/adv-review` in returned guidance and forbid aliases. Regression coverage will ensure no runnable `/adv-accept` route is introduced.\n4. **Extend existing contract tests.** The phase-plan parity and handoff-footer drift suites will test authority binding, blocked behavior, acceptance routing, and retired-name correction. No per-gate patches or new duplicate test subsystem.\n\nNo ADR is warranted: this reuses a reversible, established routing authority and does not introduce a surprising architecture tradeoff.\n\n## Implementation Strategy\n\n1. Strengthen the shared agent Output Contract and canonical voice documentation: describe the command source as the current actionable phase-plan/directive, require registry-backed rendering, and describe the fail-closed/retired-wording paths.\n2. Update the relevant spec-law wording/generated projection only where it defines the same shared wayfinder contract, keeping the examples readable while prohibiting arbitrary replacement values.\n3. Extend the existing parity and footer-drift tests to prove:\n   - acceptance resolves to `/adv-review {change-id}`;\n   - a missing canonical command cannot produce a runnable wayfinder;\n   - shared handoff guidance cannot use a command absent from the manifest;\n   - `/adv-accept` is correction-only and never becomes an alias or runnable route;\n   - the rendering layer (`formatDirectiveNextLine`) emits zero runnable arrow rows and a reason for both command-absent and blocked paths.\n4. Run focused tests first, then repository checks required by affected generated/docs surfaces.\n\n## LBP Analysis\n\nThis is the smallest durable fix because it removes the independent prose authority that caused the defect and reuses the command route already produced by the typed state machine. A new mapping, an `/adv-accept` compatibility alias, or separate per-gate instructions would reintroduce multiple authorities, violate the approved constraints, and increase future drift risk.\n\n## Affected Components\n\n- Shared agent handoff contract in `.opencode/agents/adv.md`.\n- Canonical handoff guidance in `docs/command-voice-standard.md` and corresponding workflow spec projection when required for parity.\n- Typed routing proof in `plugin/src/utils/phase-plan-parity.test.ts`.\n- Handoff asset/drift proof in `plugin/src/handoff-footer-drift.test.ts` and adjacent `context-snapshot` renderer coverage for correction-only and non-runnable paths.\n- Existing routing authority remains `plugin/src/utils/phase-plan.ts` and `plugin/src/manifest.ts`; it is not redesigned.\n\n## Design-Derived Criteria\n\n- DDC1: A runnable wayfinder must be derived only from an actionable typed directive whose command equals the manifest primary for its gate; no free-text fallback is permitted.\n- DDC2: A non-actionable/missing route must contain zero arrow-prefixed runnable command rows and retain a machine-readable blocked/recovery reason.\n- DDC3: The regression suite must cover all seven manifest-owned gate routes plus one missing-route negative case at the rendering layer.\n- DDC4: `/adv-accept` may appear only in explicit correction/regression assertions; it must not appear in command registration, aliases, or runnable footer fixtures.\n\n## Risks / Mitigations\n\n- **Prompt/runtime boundary:** agent prose cannot be made executable by documentation alone. Mitigate by binding it to the already emitted typed directive and asserting the asset contract against manifest parity.\n- **Documentation-example drift:** placeholder examples can accidentally imply free substitution. Mitigate by retaining examples only with explicit typed-source/fail-closed semantics and testing them.\n- **Retired wording ambiguity:** an unknown slash command may be rejected before an agent receives it. Mitigate within ADV-owned guidance when the wording reaches ADV; do not claim to intercept host-level unknown-command dispatch or add an alias.\n- **Historical record integrity:** leave the changelog record unchanged; it is evidence of prior terminology, not a live route.\n\n## Design Leverage Scout\n\n- Candidates considered: 5.\n- Auto-adopted: 4 — bind the prose template to the typed directive; reuse `BlockedPhasePlan`; extend existing parity/footer suites; add a no-revival assertion around executable `/adv-accept` usage.\n- Surfaced: 1 — generating every placeholder from a single documentation source is an untied, medium-risk documentation refactor. It is not needed for this change and will not be adopted.\n- Scout clarification: AC3 requires correction when retired wording reaches ADV, so the no-revival guard supplements rather than replaces explicit correction guidance.\n\n## Validation\n\nValidator: clean pass.\n\nThe independent validator confirmed that the typed path already binds acceptance to `adv-review`, existing non-actionable plans fail closed, and the unconstrained shared agent template is the defect lever. No contract compromise, security/release blocker, or in-scope blocker was found. The validator added one implementation requirement incorporated above: prove missing and blocked routes at the guidance-rendering layer, not only derivation parity.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV handoffs now derive their runnable command from the canonical, manifest-backed gate route. Acceptance guidance points to `/adv-review`; missing or unregistered routes fail closed rather than guessing.\n\n## Why It Matters\n\nPeople receive a runnable next step or a clear blocked state instead of misleading navigation.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Bound shared wayfinder guidance to the typed canonical command for the current gate.\n2. Added fail-closed rendering for missing or unregistered directive routes.\n3. Added correction-only `/adv-accept` → `/adv-review` guidance without registering an alias.\n4. Added regression coverage for acceptance routing, command registration, and blocked rendering.\n\n## What Was Verified\n\n- Verdict: APPROVED after independent review; one fail-open unknown-command rendering case was remediated before final review.\n- Tests: 219 targeted tests passed across phase-plan parity, handoff-footer drift, and context snapshot coverage (`tr_ms8cvm9d_5c818c05`).\n- Preview URL: not_applicable — this is an internal workflow and documentation change with no browser-visible surface.\n- Contract matrix: 12 required rows passed, respected, or were not applicable; no failing or unknown rows.\n\n## Remaining Concerns\n\n- The repository-wide `pnpm run check` remains blocked by a pre-existing schema-generation limitation and unrelated formatting warnings; this change did not introduce that failure.\n- Host-level rejection of unknown slash commands before ADV receives them is outside this change.\n\n## Supporting Evidence\n\n- Task `tk-72d6de3f71ce` checkpoint and verification evidence.\n- Targeted test run `tr_ms8cvm9d_5c818c05`.\n- Typed contract review matrix generated for 12 contract items.\n- Independent implementation, review, and hardening reports persisted on the change.\n\n## Consequence Context\n\n1. **Delivered value — complete:** Canonical, manifest-backed handoff commands prevent invalid guidance; supported by the completed task and contract matrix.\n2. **Enabling-only/follow-up dependency — none:** No required follow-up or external dependency is recorded.\n3. **Ops readiness — complete:** No operational deploy, runtime configuration, or production runbook is required for this internal plugin behavior change; harden report found no release blocker.\n4. **Migration/data impact — n/a:** No data model, migration, or persisted user-data behavior changed.\n5. **Frontend/preview impact — n/a:** No browser-visible surface changed; preview proof is not applicable.\n6. **Collision/release risk — warning:** The change branch is one commit behind `origin/trunk`; a clean dry-run merge was verified, and freshness must be rechecked immediately before merge/archive.\n7. **Open follow-ups — none:** No required follow-up is recorded for this change.\n8. **Next action — archive sign-off:** Archive preflight may proceed; user release sign-off is required before finalization.\n\n## Release Readiness Summary\n\n- **Status:** READY.\n- **Test coverage/TDD:** 219 targeted tests passed; acceptance route and missing/unregistered route coverage is present.\n- **AI-slop and structural correctness:** The canonical mapping fails closed; no scoped structural issue was found.\n- **Documentation and cleanup:** Drift coverage passed; no scoped cleanup was needed.\n- **Production/deployment readiness:** No worker-bundle, browser surface, environment variable, migration, external service, or deployment change is involved.\n- **Merge compatibility:** A clean dry-run merge against `origin/trunk` was completed and aborted. The branch remains one commit behind and must be refreshed immediately before merge/archive.\n- **Follow-ups:** None blocking; no report-created follow-up requires a separate change.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-31T05:47:29.982Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | ADV guidance never sends a person to an unregistered command. | pass | Independent review confirmed shared wayfinder is bound to manifest-backed phase-plan commands. |\n| SC2 | success_criterion | Acceptance guidance reliably directs users to `/adv-review`. | pass | Acceptance route is verified as `/adv-review`. |\n| AC1 | acceptance_criterion | Given acceptance is the next gate, when ADV renders its runnable handoff, then it names `/adv-review {change-id}`. | pass | Targeted suite run tr_ms8cvm9d_5c818c05 passed acceptance-route coverage. |\n| AC2 | acceptance_criterion | Given a handoff has no registered canonical command, when ADV prepares guidance, then it presents a clear blocked state and no runnable guessed command. | pass | Targeted suite run tr_ms8cvm9d_5c818c05 passed missing/unregistered route fail-closed coverage. |\n| AC3 | acceptance_criterion | Given a user reaches ADV with the retired `/adv-accept` wording, when guidance is returned, then it directs them to `/adv-review` without creating an alias. | pass | Handoff drift tests cover correction-only `/adv-accept` wording with no alias. |\n| AC4 | acceptance_criterion | Given a standard gate handoff is rendered through the shared wayfinder path, when its command is shown, then the command is registered for that transition. | pass | Handoff drift tests assert each displayed continuation command is manifest registered. |\n| C1 | constraint | Must preserve existing gate ownership and registered command names. | respected | Manifest and seven-gate mapping were preserved; renderer checks the existing GATE_COMMAND mapping. |\n| C2 | constraint | Must not add `/adv-accept` as a command or alias. | respected | No `/adv-accept` command or alias was registered; tests assert its absence. |\n| C3 | constraint | Must not redesign the seven-gate lifecycle. | respected | No lifecycle state or gate ownership change was made. |\n| DONT1 | avoidance | Do not implement separate symptom patches for individual gates when the shared handoff source can be corrected. | respected | Single shared handoff contract and renderer path were hardened; no per-gate symptom patch. |\n| DONT2 | avoidance | Do not present a best-effort inferred command when the canonical mapping is unavailable. | respected | Unregistered/missing directives render blocked guidance without a guessed command. |\n| OOS1 | out_of_scope | External integrations, cross-repository changes, and unrelated slash-command routing. | not_applicable | No external integrations, cross-repository work, or unrelated routing changed. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-31T01:39:18.890Z",
+      "contentHash": "802631253cbdf4e42eeecd9caa8c53acf403e6622c3b16f6bfa9bd134a1d305b",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-31T01:15:39.592Z",
+      "contentHash": "1651bd83bfdb6f5f1012eb45d68670bbddd3b56210d26fd1b155f6a623e6ee68",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-31T01:47:28.341Z",
+      "contentHash": "f2b8bff396afc5d5fcdca22e54ea12046b476cd87634c5e2b458a9ed665c2bdf",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-31T02:07:57.921Z",
+      "contentHash": "f909e02e4b677886a39e23f357e7364d6f9eb87d0465c73b0ce65bb7102dbf29",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-31T17:11:17.146Z",
+      "contentHash": "021e2f8dd3e8306b03deb6c5a48bc223fc8bfeffc927cd577e613004edfa4205",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-07-31T01:17:37.972Z",
+      "resolved": true,
+      "resolved_at": "2026-07-31T01:47:50.814Z"
+    }
+  ],
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-31T17:11:17.146Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Prevented invalid ADV command handoffs",
+    "highlights": [
+      "Wayfinder guidance will use the canonical registered command and fail closed when unavailable."
+    ],
+    "area": "ADV workflow"
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "The planned work changes agent/documentation handoff contracts and unit tests only; it does not change Temporal workflow-reachable worker code or worker-bundle behavior.",
+    "confirmed_at": "2026-07-31T02:09:02.851Z"
+  },
+  "creation_request_hash": "43e534e1be221548a64e1bd19f3c30a91e21c829ee154e3fd30c620dab1f6dbd",
+  "projection_revision": 38,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a9aa990d17aa88481f742824bdd15ac93899aa35cdcedddca2c673cc19b30440:createArtifacts:proposal",
+      "operation_id": "a9aa990d17aa88481f742824bdd15ac93899aa35cdcedddca2c673cc19b30440:createArtifacts:proposal",
+      "payload_hash": "03a3b3010e4d49b981b5af42329283a572cc68af1b0614df17bec6c14338623d",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-07-31T01:15:40.224Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a9aa990d17aa88481f742824bdd15ac93899aa35cdcedddca2c673cc19b30440:createArtifacts:problemStatement",
+      "operation_id": "a9aa990d17aa88481f742824bdd15ac93899aa35cdcedddca2c673cc19b30440:createArtifacts:problemStatement",
+      "payload_hash": "44e02139398d0c1aa0419af41d22647041ddcaaca8293570e6ce886a925b66b5",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-07-31T01:15:41.202Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0792148c1995d195820d71ad6bb50dec5edd4c99dcc10635c5003c29ddd11546:updateArtifacts:proposal",
+      "operation_id": "0792148c1995d195820d71ad6bb50dec5edd4c99dcc10635c5003c29ddd11546:updateArtifacts:proposal",
+      "payload_hash": "773142f90135575aba422fb0d423460608bcd9c65674a1525b19e79ce7de2974",
+      "state_revision": 3,
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-31T01:16:06.054Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-31T01:17:43.222Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "dc78af12045ac8756e3ff8ef3908dbb3d3fb0f924984ccacdbe291b2ad981c07:updateArtifacts:proposal",
+      "operation_id": "dc78af12045ac8756e3ff8ef3908dbb3d3fb0f924984ccacdbe291b2ad981c07:updateArtifacts:proposal",
+      "payload_hash": "2c4324229a5118b3172194790cc91d749fc756338599f3cd3048199457e2d72d",
+      "state_revision": 4,
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-31T01:39:19.372Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "23b878b556ab1f45c1da0fc25c78d7117b0b24d8154a9e7911d21fb7ca33200c:updateArtifacts:agreement",
+      "operation_id": "23b878b556ab1f45c1da0fc25c78d7117b0b24d8154a9e7911d21fb7ca33200c:updateArtifacts:agreement",
+      "payload_hash": "df7168529c692fcdf2fec08bb1399332a0d9ceb2f0edff4a4cafea4f224a8b36",
+      "state_revision": 5,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-31T01:46:32.881Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f893b495d798b000e885462f9332f72ccceda4d42215c039ddc1ebb4f8686ca9:updateArtifacts:agreement",
+      "operation_id": "f893b495d798b000e885462f9332f72ccceda4d42215c039ddc1ebb4f8686ca9:updateArtifacts:agreement",
+      "payload_hash": "506e6839632a31867ba5db4d68ce10733aab59ee6207740b003ae4f6154bd87d",
+      "state_revision": 6,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-31T01:47:28.986Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-31T01:47:35.199Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-31T01:47:40.806Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "5534c9bc7c09708425c4b0a3096f129f2f8ef78ba9b18ee46d42fb12dbc467e7:updateArtifacts:design",
+      "operation_id": "5534c9bc7c09708425c4b0a3096f129f2f8ef78ba9b18ee46d42fb12dbc467e7:updateArtifacts:design",
+      "payload_hash": "912ea37df91bb207ff3b7166460ce962ef070566555ab8208b01ba198847379d",
+      "state_revision": 7,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-31T02:02:44.027Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-31T02:06:59.172Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-31T02:06:59.449Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "dac4c01c8bd3be9373252f26b1de5dbac5960224a57a06b246d32dd245d29a3a:updateArtifacts:design",
+      "operation_id": "dac4c01c8bd3be9373252f26b1de5dbac5960224a57a06b246d32dd245d29a3a:updateArtifacts:design",
+      "payload_hash": "b1975ba6c851ab903d164c936e72c4bd0de45a023cdb8f11216b824f8cc22a4d",
+      "state_revision": 8,
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-31T02:07:59.244Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-31T02:08:08.627Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9e99ade239dee7159dcd83ef5fb95a6166a5458e7e88b1b9cd8198976d48b053:releaseNotesSet",
+      "operation_id": "9e99ade239dee7159dcd83ef5fb95a6166a5458e7e88b1b9cd8198976d48b053:releaseNotesSet",
+      "payload_hash": "3d525075aa9d2cef441bd99030ec7f689b52954dae583e763c844c702a178d6c",
+      "state_revision": 9,
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-31T02:08:55.049Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-31T02:09:03.732Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-31T02:09:32.526Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-31T02:09:32.888Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-31T02:11:08.688Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-31T02:11:40.374Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-31T02:53:45.206Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-31T02:53:45.548Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "990a377f96a51256b7a74409944805afda11523a82cece008902f0c8af73b378:taskUpdated",
+      "operation_id": "990a377f96a51256b7a74409944805afda11523a82cece008902f0c8af73b378:taskUpdated",
+      "payload_hash": "a4d79afeba7d6a5a3cbf6c431252441faedd9da781ef8e0cad245213f81cfd7f",
+      "state_revision": 10,
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-31T02:55:16.952Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-31T02:55:25.858Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-31T02:56:07.393Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-31T02:56:32.915Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-31T03:00:36.977Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-31T03:00:37.278Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-31T03:01:26.085Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "5b87ce0afcd103f6f8512143fc8708385dfa2044f52e177a5940a2c469052f7a:updateArtifacts:executiveSummary",
+      "operation_id": "5b87ce0afcd103f6f8512143fc8708385dfa2044f52e177a5940a2c469052f7a:updateArtifacts:executiveSummary",
+      "payload_hash": "5a6e6547036a14446a61deb924f5dc7eff1444c2e19241246e672378f5419064",
+      "state_revision": 11,
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-31T03:01:47.081Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-31T05:47:11.192Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785476850239_tvr7qpff",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-31T05:47:30.678Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-31T05:47:38.172Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785517321906_nknjycd4",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-31T17:02:02.634Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "888b60ad28ca4a3852042ab49498700ebc53b8d2553b1f18323809b4095e9847:updateArtifacts:executiveSummary",
+      "operation_id": "888b60ad28ca4a3852042ab49498700ebc53b8d2553b1f18323809b4095e9847:updateArtifacts:executiveSummary",
+      "payload_hash": "7ff10f48844ad2dba2225e350854a85d5e97fc87b4635be5dc05b12c764030ec",
+      "state_revision": 12,
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-31T17:03:28.272Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-31T17:10:05.298Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "preventInvalidCommandHandoffs",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-31T17:10:06.129Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c8d5fe495656923ecb67f618ed50b268bddf14b97cfa8492d1b72a6979865f98:updateArtifacts:executiveSummary",
+      "operation_id": "c8d5fe495656923ecb67f618ed50b268bddf14b97cfa8492d1b72a6979865f98:updateArtifacts:executiveSummary",
+      "payload_hash": "d9761da2cf6fa386849bd88283e99b84f3d9895e918b6c5312dd663bf4fea2e7",
+      "state_revision": 13,
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-31T17:11:18.795Z"
+    }
+  ],
+  "state_revision": 13
+}

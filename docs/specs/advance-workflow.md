@@ -2125,7 +2125,7 @@ When an agent identifies that a proposed design can only be delivered by comprom
 
 **ID:** `rq-handoffVoice01` | **Priority:** **[MUST]**
 
-Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single command needed to continue — no redundant or alternative command lines. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
+Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single manifest-registered command needed to continue the next gate transition, taken from the current actionable phase-plan / directive. It MUST NOT be inferred, guessed, or substituted from prose. If no actionable command is available (blocked, recovery, approval, terminal, or missing command), the arrow-prefixed row MUST be omitted and the blockquote MUST show a blocked/recovery/approval status line. If a user reaches ADV with the retired `/adv-accept` wording, returned guidance MUST correct `/adv-accept` to `/adv-review` and MUST NOT register `/adv-accept` as a command or alias. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.
 
 **Tags:** `voice`, `handoff`, `presentation`
 
@@ -2197,6 +2197,29 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 - Exactly one runnable command is shown in the wayfinder block (in the arrow-prefixed row)
 - No redundant alternative command lines appear
 - The command shown is the single next action needed to continue
+
+**Shared wayfinder command is registered for the transition** (`rq-handoffVoice01.6`)
+
+**Given:**
+- An /adv-* command emits a user-facing gate-transition message through the shared wayfinder
+
+**When:** The arrow-prefixed command row is inspected
+
+**Then:**
+- The command equals the current actionable phase-plan / directive command for the next gate
+- The command is the manifest-registered primary command for that gate transition
+- If no actionable command is available, the arrow-prefixed row is omitted and the blockquote shows a blocked/recovery/approval status line
+
+**Retired /adv-accept wording is corrected to /adv-review without alias** (`rq-handoffVoice01.7`)
+
+**Given:**
+- A user reaches ADV with the retired /adv-accept wording
+
+**When:** Guidance is returned
+
+**Then:**
+- The returned guidance names /adv-review as the canonical acceptance route
+- No /adv-accept command, alias, or runnable route is emitted or registered
 
 ---
 

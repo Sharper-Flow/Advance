@@ -327,6 +327,8 @@ Every gate handoff uses exactly three narrative sections, in this order:
 
 No other sections, headings, or structural elements in the handoff. The blockquote wayfinder block is the only content after `## Delivered`. Internal state lives in ADV tools (`adv_change_show`, `adv_task_list`, `_contextSnapshot`), not chat.
 
+**Command binding.** The arrow-prefixed command is not an arbitrary placeholder. It MUST be the manifest-registered command from the current actionable phase-plan / directive for the next gate. If the directive is non-actionable (blocked/recovery/approval/terminal) or carries no registered command, the arrow-prefixed row is omitted and the blockquote shows a blocked/recovery/approval status line instead. If a user reaches ADV with the retired `/adv-accept` wording, correct `/adv-accept` to `/adv-review` in returned guidance; do not register `/adv-accept` as a command or alias.
+
 ### Decision rationale (major decisions only)
 
 Major decisions MAY enrich `## Chosen direction` with one nested block. The block lives inside `## Chosen direction`. This is not a fourth spine heading, not post-`## Delivered` content, and not part of the blockquote wayfinder.

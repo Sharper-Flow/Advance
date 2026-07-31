@@ -12,6 +12,7 @@
 // Types
 // =============================================================================
 
+import { GATE_COMMAND } from "./phase-plan";
 import type { WorkflowDirective } from "./workflow-directive";
 
 export interface GateInfo {
@@ -329,9 +330,11 @@ function formatDirectiveNextLine(directive: WorkflowDirective): string {
     case "never_started":
     case "continue":
     default:
-      if (gate && command) return `Next: ${gate} → /${command}`;
-      if (gate) return `Next: ${gate}`;
-      return `Next: ${action.kind}`;
+      if (gate && command === GATE_COMMAND[gate]) {
+        return `Next: ${gate} → /${command}`;
+      }
+      if (gate) return `Next: blocked · ${gate}`;
+      return `Next: blocked`;
   }
 }
 
