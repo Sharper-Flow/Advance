@@ -1,0 +1,20 @@
+{
+  "archived_at": "2026-07-31T01:36:16.116Z",
+  "capabilities": [],
+  "change_hash": "1ef90b272c1f869d48141fe1f010fa3a71725dbf3cfaaaec7122c107910939fe",
+  "change_id": "migrateExistingAdvWorktrees",
+  "completed_tasks": 3,
+  "created_at": "2026-07-30T00:48:06.015Z",
+  "current_gate": "release",
+  "fast_follow_of": {
+    "linked_at": "2026-07-30T00:48:05.964Z",
+    "parent_change_id": "fixMultiSessionConcurrency"
+  },
+  "last_activity_at": "2026-07-31T01:24:27.681Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "9a734c61a157e80efc95cc6582eccf2c39dec7fab243b14e2f290ec9aaa2bfe9",
+  "task_count": 3,
+  "title": "Migrate existing ADV worktrees",
+  "version": "1"
+}

@@ -1,0 +1,1885 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "migrateExistingAdvWorktrees",
+  "title": "Migrate existing ADV worktrees",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-30T00:48:06.015Z",
+  "tasks": [
+    {
+      "id": "tk-b6db4c282071",
+      "title": "Add nonterminal dematerialize state and receipt contracts",
+      "type": "code",
+      "section": "Durable state",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-30T19:14:31.257Z",
+      "started_at": "2026-07-30T20:13:14.587Z",
+      "completed_at": "2026-07-30T20:56:02.538Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Targeted Temporal state/message tests: 30 passed; smoke gate passed (94 smoke tests plus typecheck, lint, format, schemas, manifests, frontmatter, and test isolation). Full suite timed out after five minutes in integration worktree tests.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "e66297171b48a30efa40052589285f102c522eca",
+      "completedAt": "2026-07-30T20:56:02.538Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "DONT1",
+          "DONT2",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-4961a653458e",
+      "title": "Implement exact-batch worktree detach preflight and apply flow",
+      "type": "code",
+      "section": "Detach authority",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b6db4c282071"
+        }
+      ],
+      "created_at": "2026-07-30T19:14:40.782Z",
+      "started_at": "2026-07-30T20:56:35.257Z",
+      "completed_at": "2026-07-31T01:18:45.579Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Reviewer remediation re-review READY. 32 targeted tests, typecheck, lint, formatting, and diff check passed; durable targeted evidence tr_ms88u689_18982345 recorded. Storage Temporal suite failures reproduce on trunk and change branch.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.worktree-dematerialize.test.ts",
+        "plugin/src/tools/worktree/detach.test.ts",
+        "plugin/src/tools/worktree/detach.ts",
+        "plugin/src/types/signals.ts"
+      ],
+      "checkpointSha": "2dfbf706570ffb878d91229dcc4939f94ce5ce02",
+      "completedAt": "2026-07-31T01:18:45.579Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.worktree-dematerialize.test.ts",
+        "plugin/src/tools/worktree/detach.test.ts",
+        "plugin/src/tools/worktree/detach.ts",
+        "plugin/src/types/signals.ts"
+      ]
+    },
+    {
+      "id": "tk-699853a8fc59",
+      "title": "Expose typed detach tool and preserve lifecycle boundaries",
+      "type": "code",
+      "section": "Tool boundary",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4961a653458e"
+        }
+      ],
+      "created_at": "2026-07-30T19:14:52.448Z",
+      "started_at": "2026-07-30T21:25:28.410Z",
+      "completed_at": "2026-07-30T22:29:33.496Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Detach/lifecycle tests 42 passed; registry/policy/preflight/title tests 165 passed; agent asset tests 155 passed; pnpm --dir plugin run check passed. A separate storage Temporal test file has 26 unrelated pre-existing/environmental failures.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "fe1303de59a21a6c288209ba9a40b62c294781f1",
+      "completedAt": "2026-07-30T22:29:33.496Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC5",
+          "AC8",
+          "AC9"
+        ],
+        "respects": [
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "migrateExistingAdvWorktrees",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/migrateExistingAdvWorktrees",
+          "task_id": "tk-699853a8fc59",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-699853a8fc59"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "docs/cli-surface-matrix.md",
+            "docs/tool-ownership.md",
+            "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json",
+            "plugin/src/__tests__/worktree-lifecycle-assets.test.ts",
+            "plugin/src/adv-designer-assets.test.ts",
+            "plugin/src/adv-engineer-assets.test.ts",
+            "plugin/src/adv-reviewer-asset.test.ts",
+            "plugin/src/adv-verifier-assets.test.ts",
+            "plugin/src/cli-bridge-contract.test.ts",
+            "plugin/src/tool-registry.inventory.test.ts",
+            "plugin/src/tool-registry.test.ts",
+            "plugin/src/tool-registry.ts",
+            "plugin/src/tool-role-policy.ts",
+            "plugin/src/tools/adv-worktree.test.ts",
+            "plugin/src/tools/adv-worktree.ts",
+            "plugin/src/utils/tool-arg-preflight.ts",
+            "plugin/src/utils/tool-title.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms830ysn_89c09b25",
+              "command": "pnpm --dir plugin exec vitest run src/tools/adv-worktree.test.ts src/__tests__/worktree-lifecycle-assets.test.ts",
+              "exit_code": 0,
+              "summary": "2 files, 42 tests passed"
+            },
+            {
+              "test_run_id": "tr_ms831ftb_0da2857a",
+              "command": "pnpm --dir plugin exec vitest run src/tool-registry.test.ts src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/utils/tool-arg-preflight.test.ts src/utils/tool-title.test.ts",
+              "exit_code": 0,
+              "summary": "5 files, 165 tests passed"
+            },
+            {
+              "test_run_id": "tr_ms831ft3_6e263afc",
+              "command": "pnpm --dir plugin exec vitest run src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-verifier-assets.test.ts src/cli-bridge-contract.test.ts",
+              "exit_code": 0,
+              "summary": "5 files, 155 tests passed"
+            },
+            {
+              "test_run_id": "tr_ms834gj4_9af6fdb7",
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "schemas, typecheck, manifests, frontmatter, test isolation, lockfile policy, lint, and format:check all green; 3 pre-existing eslint warnings in manifest-frontmatter.ts"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Classified adv_worktree_detach as operator-only in tool-role-policy and denied it in all agent asset tests",
+              "why": "Task requires the tool never be auto-invoked by agents; lifecycle law enforcement depends on role policy plus prompt manifests."
+            },
+            {
+              "what": "Added a regression asset test that scans cleanup/reaper/startup/triage/migration files for advWorktreeDetachBatch calls",
+              "why": "Structural proof that the directory-only detach primitive stays out of terminal cleanup paths."
+            },
+            {
+              "what": "Included adv_worktree_cleanup in the adv-verifier explicit blocked list",
+              "why": "The verifier asset test was missing the already-registered worktree cleanup tool; adding it keeps the deny list complete and passed CI."
+            },
+            {
+              "what": "Regenerated the frozen codemode MCP contract baseline",
+              "why": "Adding a tool changes the assembled prompt size; the baseline must be re-frozen and annotated with the change summary."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [
+            "Investigate the 26 unrelated failures in plugin/src/storage/store-temporal/index.test.ts (archive-first terminal projection and aggregate metadata); likely Temporal worker/environmental, not caused by this change."
+          ],
+          "required_main_agent_actions": [
+            "Re-run the full plugin test suite once the Temporal worker is healthy to confirm the store-temporal failures are environmental.",
+            "Review the PR diff and conventional-commit title (suggest `feat: expose operator-only adv_worktree_detach tool`)."
+          ],
+          "related_scan": "Verified advWorktreeDetachBatch is not called from worktree/index.ts, worktree/triage.ts, storage/store-temporal/index.ts, or temporal/change-state.ts; updated every agent asset test to deny/allow the new tool consistently.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented and verified the operator-only adv_worktree_detach tool wrapper. All targeted tests and the repo-wide check pass. Checkpoint commit fe1303de was created, but ADV task recording returned 'Task not found: tk-699853a8fc59' (likely Temporal/worker connectivity). The storage/store-temporal/index.test.ts failures are unrelated to this change.",
+            "suggested_next_action": "Confirm the task ID in the ADV workflow, re-run the full plugin test suite once Temporal is healthy, and proceed with PR review."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms830ysn_89c09b25"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms831ftb_0da2857a"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms831ft3_6e263afc"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms834gj4_9af6fdb7"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "migrateExistingAdvWorktrees",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:discovery-opportunity-scout"
+      },
+      "agent": "adv-researcher",
+      "topic": "Discovery opportunity scout: directory-only stale-worktree detach authority",
+      "sources": [
+        {
+          "label": "advWorktreeResume rematerialization fallthrough",
+          "locator": "plugin/src/tools/worktree/index.ts:1406-1505 (resume falls through to advWorktreeCreate when materialized===false)",
+          "summary": "advWorktreeResume reuses the worktree only when materialized!==false AND path exists; otherwise falls through to advWorktreeCreate. A materialized=false record rematerializes via the normal create path for free."
+        },
+        {
+          "label": "census unmaterialized projection",
+          "locator": "plugin/src/tools/worktree/census.ts:174-213 (materialized:false, status:'unmaterialized')",
+          "summary": "Read projection already models branch-without-worktree as materialized:false / 'unmaterialized'. No type change needed to represent a detached record."
+        },
+        {
+          "label": "removeWorktree is terminal (worktreeDeletedSignal)",
+          "locator": "plugin/src/tools/worktree/state.ts:594-648",
+          "summary": "removeWorktree signals worktreeDeletedSignal with reason 'missing_from_disk_cleanup' and is gated to terminal (archived/closed) changes. There is NO existing write that sets materialized=false while keeping an OPEN change record."
+        },
+        {
+          "label": "maybeRemoveMissingFromDiskRegistryEntry is post-hoc + terminal-only",
+          "locator": "plugin/src/tools/worktree/index.ts:2023-2084",
+          "summary": "Existing stale-registry cleanup only fires AFTER the directory is already gone and only for terminal changes. It is the inverse of the requested (pre-hoc, non-terminal) detach - confirms the detach is genuinely a new authority, not a reuse of existing cleanup."
+        },
+        {
+          "label": "cutover-receipt durable receipt pattern",
+          "locator": "plugin/src/migration/cutover-receipt.ts:1-69 + cutover-receipt.test.ts (receipt-history.jsonl)",
+          "summary": "Proven in-repo pattern: atomic tmp+rename write, idempotent-by-identity receipt, schema-validated, append-only JSONL audit history, quarantine-on-malformed. Maps directly to AC6 durable audit receipt + idempotent replay."
+        },
+        {
+          "label": "approvalEvidence blank:reject preflight convention",
+          "locator": "plugin/src/utils/tool-arg-preflight.ts:235-374",
+          "summary": "Established ADV convention: approvalEvidence is a required non-empty audit field enforced by tool-arg-preflight blank:reject. Direct fit for AC2 non-empty approval evidence."
+        },
+        {
+          "label": "git-worktree-flock concurrency primitive",
+          "locator": "plugin/src/utils/git-worktree-flock.ts:1-68; index.ts:1159,2501",
+          "summary": "Per-project flock is the ONLY client-side coordination point for git worktree add/remove; ADV state mutations are serialized by Temporal workflow updates (no client-side lock). AC7 serialization is already structural."
+        },
+        {
+          "label": "cross-project branch-to-multi-path ambiguity",
+          "locator": "plugin/src/tools/worktree/cleanup-targets.ts:56-95",
+          "summary": "collectWorktreeCleanupTargets emits the SAME change/{id} branch for current + target + scope roles = multiple physical directories for one branch. A branch identifier alone is ambiguous for cross-project/product-linked changes."
+        },
+        {
+          "label": "git worktree remove semantics",
+          "locator": "https://git-scm.com/docs/git-worktree",
+          "summary": "git worktree remove unlinks a clean working tree (dirty/submodule requires --force) and removes administrative files; the branch and its commits are retained (evidenced by the emergency-fix add-commit-remove example leaving the branch intact)."
+        }
+      ],
+      "architecture_assessment": "The agreement is well-formed and contract-tight. The single most important realization: the registry-write half of AC4/AC5 has NO existing primitive. removeWorktree/maybeRemoveMissingFromDiskRegistryEntry are terminal (worktreeDeletedSignal, archived/closed-gated) and only run post-hoc once the directory is already gone. The requested detach is the inverse: a PRE-hoc, NON-terminal dematerialize that must remove the directory then set materialized=false + empty path while keeping the open change record. The read+rematerialization half (AC5) IS already structural: advWorktreeResume falls through to advWorktreeCreate when materialized===false, and census already projects materialized:false. So the design splits cleanly into (a) a new non-terminal dematerialize signal/workflow-update (new surface) and (b) reuse of existing resume/create/census (free). Concurrency (AC7) and audit (AC6) both have proven in-repo primitives (git-worktree-flock + workflow updates; cutover-receipt pattern + approvalEvidence preflight). The agreement does not contain a blocker; the one caution is that the new dematerialize workflow update may be a design-scope decision about whether it belongs in this fast-follow or in the parent fixMultiSessionConcurrency change.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No agreement blocker. Caution driver: the dematerialize registry-write primitive does not exist (only terminal worktreeDeletedSignal exists), so the design phase must introduce a new non-terminal workflow update/signal and decide ownership (this change vs parent). All other ACs map to existing structural primitives."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "New non-terminal dematerialize signal expands this change's surface into Temporal workflow handlers (vs deferring to parent fixMultiSessionConcurrency).",
+          "Reusing materialized=false resume-fallthrough keeps rematerialization free but couples detach correctness to the existing create path's base-ref/prune behavior.",
+          "Reusing cutover-receipt pattern gives durable idempotent audit cheaply but adds a per-project JSONL receipt file to maintain.",
+          "Refusing multi-path ambiguity (rather than expanding the request shape with path/repoId) keeps scope tight but means cross-project detach is intentionally unavailable here."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Reuse removeWorktree/worktreeDeletedSignal for the detach registry write",
+            "disposition": "rejected",
+            "rationale": "That signal is terminal and missing-from-disk-gated; using it would close/terminal-mark the owning change, directly violating AC4 ('does not close, archive, cancel, re-enter, or otherwise change the owning ADV change')."
+          },
+          {
+            "option": "Filesystem-only detach: rm the directory and rely on census to project materialized:false on next read",
+            "disposition": "rejected",
+            "rationale": "Violates the constraint 'Use the existing Git/worktree abstraction and durable registry authority; no shell escape hatch' and AC7. The registry must be authoritatively updated, not lazily inferred."
+          },
+          {
+            "option": "Expand detach request to accept path/repoId qualifier for cross-project branches",
+            "disposition": "deferred",
+            "rationale": "Constraint 'No production deployment or cross-project mutation in this change' puts cross-project detach out of scope. Refusing ambiguous multi-path mappings stays in-scope and satisfies AC3 'unambiguous mapping'."
+          }
+        ],
+        "recommendation": "Proceed to design. Resolve the one caution first: confirm whether the new non-terminal dematerialize workflow update (distinct from worktreeDeletedSignal) is owned by this change or the parent fixMultiSessionConcurrency, since the detach cannot satisfy AC4/AC5 without it. Then adopt the four low-risk structural reuses (materialized=false resume fallthrough, cutover-receipt audit pattern, approvalEvidence preflight, git-worktree-flock serialization) and implement AC3 multi-path-ambiguity as a typed refusal rather than a request-shape expansion."
+      },
+      "recommendation": "Adopt candidates 1/3/4 now (contract-tied, low-risk structural reuse); route candidate 2 (new dematerialize signal) as a design-scope decision for the orchestrator; route candidate 5 (multi-path ambiguity) as a typed refusal in the design.",
+      "follow_ups": [
+        "Design phase must define the exact dematerialize workflow update/signal name and its poison-history/unavailable-Temporal refusal behavior (constraint: 'Do not treat unavailable Temporal, failed registry lookup, or poisoned history as safe to detach').",
+        "Verify idempotent-replay semantics: git worktree remove errors on an already-removed worktree, so the typed authority must treat an already-materialized=false record as idempotent success keyed on request identity (AC6/AC7).",
+        "Confirm startup pending-delete drain (index.ts:3235) and adv_worktree_cleanup discover path never re-touch a detached materialized=false record (AC8 'never auto-triggered') - structurally likely safe since terminal cleanup requires terminal change state, but add a regression test."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "migrateExistingAdvWorktrees",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/migrateExistingAdvWorktrees",
+      "task_id": "tk-699853a8fc59",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-699853a8fc59"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "docs/cli-surface-matrix.md",
+        "docs/tool-ownership.md",
+        "plugin/src/__fixtures__/codemode-mcp-contract-baseline.json",
+        "plugin/src/__tests__/worktree-lifecycle-assets.test.ts",
+        "plugin/src/adv-designer-assets.test.ts",
+        "plugin/src/adv-engineer-assets.test.ts",
+        "plugin/src/adv-reviewer-asset.test.ts",
+        "plugin/src/adv-verifier-assets.test.ts",
+        "plugin/src/cli-bridge-contract.test.ts",
+        "plugin/src/tool-registry.inventory.test.ts",
+        "plugin/src/tool-registry.test.ts",
+        "plugin/src/tool-registry.ts",
+        "plugin/src/tool-role-policy.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/utils/tool-arg-preflight.ts",
+        "plugin/src/utils/tool-title.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms830ysn_89c09b25",
+          "command": "pnpm --dir plugin exec vitest run src/tools/adv-worktree.test.ts src/__tests__/worktree-lifecycle-assets.test.ts",
+          "exit_code": 0,
+          "summary": "2 files, 42 tests passed"
+        },
+        {
+          "test_run_id": "tr_ms831ftb_0da2857a",
+          "command": "pnpm --dir plugin exec vitest run src/tool-registry.test.ts src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/utils/tool-arg-preflight.test.ts src/utils/tool-title.test.ts",
+          "exit_code": 0,
+          "summary": "5 files, 165 tests passed"
+        },
+        {
+          "test_run_id": "tr_ms831ft3_6e263afc",
+          "command": "pnpm --dir plugin exec vitest run src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-verifier-assets.test.ts src/cli-bridge-contract.test.ts",
+          "exit_code": 0,
+          "summary": "5 files, 155 tests passed"
+        },
+        {
+          "test_run_id": "tr_ms834gj4_9af6fdb7",
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "schemas, typecheck, manifests, frontmatter, test isolation, lockfile policy, lint, and format:check all green; 3 pre-existing eslint warnings in manifest-frontmatter.ts"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Classified adv_worktree_detach as operator-only in tool-role-policy and denied it in all agent asset tests",
+          "why": "Task requires the tool never be auto-invoked by agents; lifecycle law enforcement depends on role policy plus prompt manifests."
+        },
+        {
+          "what": "Added a regression asset test that scans cleanup/reaper/startup/triage/migration files for advWorktreeDetachBatch calls",
+          "why": "Structural proof that the directory-only detach primitive stays out of terminal cleanup paths."
+        },
+        {
+          "what": "Included adv_worktree_cleanup in the adv-verifier explicit blocked list",
+          "why": "The verifier asset test was missing the already-registered worktree cleanup tool; adding it keeps the deny list complete and passed CI."
+        },
+        {
+          "what": "Regenerated the frozen codemode MCP contract baseline",
+          "why": "Adding a tool changes the assembled prompt size; the baseline must be re-frozen and annotated with the change summary."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [
+        "Investigate the 26 unrelated failures in plugin/src/storage/store-temporal/index.test.ts (archive-first terminal projection and aggregate metadata); likely Temporal worker/environmental, not caused by this change."
+      ],
+      "required_main_agent_actions": [
+        "Re-run the full plugin test suite once the Temporal worker is healthy to confirm the store-temporal failures are environmental.",
+        "Review the PR diff and conventional-commit title (suggest `feat: expose operator-only adv_worktree_detach tool`)."
+      ],
+      "related_scan": "Verified advWorktreeDetachBatch is not called from worktree/index.ts, worktree/triage.ts, storage/store-temporal/index.ts, or temporal/change-state.ts; updated every agent asset test to deny/allow the new tool consistently.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented and verified the operator-only adv_worktree_detach tool wrapper. All targeted tests and the repo-wide check pass. Checkpoint commit fe1303de was created, but ADV task recording returned 'Task not found: tk-699853a8fc59' (likely Temporal/worker connectivity). The storage/store-temporal/index.test.ts failures are unrelated to this change.",
+        "suggested_next_action": "Confirm the task ID in the ADV workflow, re-run the full plugin test suite once Temporal is healthy, and proceed with PR review."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms830ysn_89c09b25"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms831ftb_0da2857a"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms831ft3_6e263afc"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms834gj4_9af6fdb7"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "migrateExistingAdvWorktrees",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/migrateExistingAdvWorktrees",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "review-c5-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/worktree/detach.ts",
+          "line": 401,
+          "what": "Temporal workflow lookup failures fall back to registry lastSeenAt and can mark a branch eligible.",
+          "why": "C5/R5 require fail-closed refusal when Temporal or workflow evidence is unavailable or poisoned; a stale registry record cannot substitute for the required durable workflow activity evidence.",
+          "fix": "Refuse when getChangeWorkflowState returns null (including unavailable Temporal/query failure), and add a test proving no git removal occurs."
+        },
+        {
+          "id": "review-ac6-2",
+          "label": "blocker",
+          "file": "plugin/src/tools/worktree/detach.ts",
+          "line": 555,
+          "what": "Apply requests refused for blank approval evidence or request-binding mismatch return before emitting a durable receipt.",
+          "why": "AC6 requires durable receipts for both successful and refused requests, including request identity, preflight facts, outcome, timestamp, and approval evidence.",
+          "fix": "Persist typed refusal receipts for these early refusal paths; align the receipt schema so blank approval evidence can be represented for the approval-required refusal."
+        },
+        {
+          "id": "review-ac6-3",
+          "label": "blocker",
+          "file": "plugin/src/tools/worktree/detach.ts",
+          "line": 677,
+          "what": "A failed or timed-out post-removal dematerialize signal is downgraded to a warning while outcome remains detached.",
+          "why": "The directory can be removed without the required durable state transition and AC6 receipt, leaving the preserved registry marked materialized and preventing idempotent recovery.",
+          "fix": "Make durable receipt/state persistence a required recovery-safe completion step, with a deterministic reconciliation path for a removal that completes before signal acknowledgement; test signal failure/timeout."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "For destructive directory-only operations, a warning-only failure after filesystem mutation is not safe when durable state is the idempotency and audit authority; test unavailable workflow and post-mutation signal failure explicitly."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted plugin/src/tools/worktree/detach.test.ts plugin/src/temporal/change-state.worktree-dematerialize.test.ts plugin/src/__tests__/worktree-lifecycle-assets.test.ts plugin/src/tools/adv-worktree.test.ts",
+          "bin/oc-test targeted src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/__tests__/worktree-lifecycle-assets.test.ts src/tools/adv-worktree.test.ts",
+          "git diff --check origin/trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "First targeted invocation used repository-prefixed paths although the test wrapper runs from plugin/ and returned 'No test files found' (exit 1). Corrected invocation passed 65 tests across 4 files in 17.21s. git diff --check passed; worktree remained clean."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Current test suite lacks failure-path coverage for unavailable Temporal/workflow evidence, early apply refusal receipt persistence, and post-removal signal failure.",
+        "Worktree is 9 commits behind origin/trunk; review assesses the supplied change branch snapshot."
+      ],
+      "required_main_agent_actions": [
+        "Remediate all three blockers in plugin/src/tools/worktree/detach.ts and extend targeted tests before acceptance.",
+        "Rerun the corrected targeted worktree detach/state/lifecycle/wrapper suite and the relevant quality check after remediation.",
+        "Leave terminal cleanup, reaper, startup cleanup, triage, migration automation, local branches, and owning change lifecycle state unchanged; they are outside this review scope."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted plugin/src/tools/worktree/detach.test.ts plugin/src/temporal/change-state.worktree-dematerialize.test.ts plugin/src/__tests__/worktree-lifecycle-assets.test.ts plugin/src/tools/adv-worktree.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/__tests__/worktree-lifecycle-assets.test.ts src/tools/adv-worktree.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check origin/trunk...HEAD"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "migrateExistingAdvWorktrees",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/migrateExistingAdvWorktrees",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/worktree/detach.ts",
+          "summary": "Made refusal and failed-removal receipt delivery fail closed, and omitted blank approval evidence from refused receipt payloads.",
+          "verification": "Targeted detach and state/message tests pass; TypeScript typecheck, ESLint, Prettier, and git diff check pass."
+        },
+        {
+          "file": "plugin/src/types/signals.ts",
+          "summary": "Allowed approval evidence to be omitted only for refused receipts; retained non-empty evidence as a structural requirement for detached and idempotent outcomes.",
+          "verification": "Schema tests cover both rejected detached and accepted refused payloads."
+        },
+        {
+          "file": "plugin/src/tools/worktree/detach.test.ts",
+          "summary": "Added regression coverage that early-refusal receipts are schema-valid and that inability to record one is a hard failure.",
+          "verification": "bin/oc-test targeted src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/temporal/messages.test.ts: 32 tests passed."
+        },
+        {
+          "file": "plugin/src/temporal/change-state.worktree-dematerialize.test.ts",
+          "summary": "Distinguished approval-evidence requirements for actual detaches from legitimate evidence-free refusal receipts.",
+          "verification": "Targeted state/message tests pass."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A signal payload's Zod schema must model refused mutations separately from successful ones: a mandatory approval field makes an approval-required refusal receipt structurally invalid. Receipt delivery failure must be a typed hard failure, not a warning, whenever auditability is required."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/temporal/messages.test.ts",
+          "pnpm --dir plugin run typecheck",
+          "pnpm --dir plugin exec eslint src/tools/worktree/detach.ts src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/types/signals.ts",
+          "pnpm --dir plugin exec prettier --check src/tools/worktree/detach.ts src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/types/signals.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "32 targeted tests passed. TypeScript typecheck, scoped ESLint, scoped Prettier, and diff whitespace validation passed. The known baseline storage-suite failures were not rerun; user states they reproduce on trunk and change branch and are unrelated to detach."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is 9 commits behind origin/trunk per oc-fresh status. Rebase is a worktree/orchestration mutation outside reviewer authority; acceptance must be revalidated after the orchestrator resolves freshness.",
+        "The full storage suite remains baseline-red on trunk and this branch, as supplied by the user; it is not detach evidence."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint the four scoped remediation files using the owning task/worktree workflow; reviewer must not perform ADV task or checkpoint mutations.",
+        "Resolve the branch's 9-commit origin/trunk freshness gap, then rerun applicable acceptance verification before final acceptance decision.",
+        "Do not revisit unrelated baseline storage-suite failures in this detach remediation; they are known to reproduce on trunk."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/temporal/messages.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec eslint src/tools/worktree/detach.ts src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/types/signals.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin exec prettier --check src/tools/worktree/detach.ts src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/types/signals.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-b6db4c282071": [
+      {
+        "runId": "tr_ms7yvqoa_c8066b4e",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.worktree-dematerialize.test.ts",
+        "durationMs": 3567.516088999808,
+        "recordedAt": "2026-07-30T20:29:26.667Z"
+      },
+      {
+        "runId": "tr_ms7z2i1m_00d59ef0",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.worktree-dematerialize.test.ts",
+        "durationMs": 4221.376745999791,
+        "recordedAt": "2026-07-30T20:34:42.093Z"
+      },
+      {
+        "runId": "tr_ms7z2zy6_741fb45a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/messages.test.ts",
+        "durationMs": 6115.5957270003855,
+        "recordedAt": "2026-07-30T20:35:05.255Z"
+      },
+      {
+        "runId": "tr_ms7z3rml_1686f935",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/temporal/messages.test.ts",
+        "durationMs": 4979.0562000004575,
+        "recordedAt": "2026-07-30T20:35:41.121Z"
+      },
+      {
+        "runId": "tr_ms7zeppa_6342c7a5",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/temporal/change-state.worktree-auto-manage.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/temporal/messages.test.ts",
+        "durationMs": 4042.722192999907,
+        "recordedAt": "2026-07-30T20:44:11.828Z"
+      },
+      {
+        "runId": "tr_ms7znjpc_500a4ae0",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test full",
+        "durationMs": 300290.2138129994,
+        "recordedAt": "2026-07-30T20:51:04.107Z"
+      },
+      {
+        "runId": "tr_ms7zr4m4_27928dbd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 104581.18480699975,
+        "recordedAt": "2026-07-30T20:53:51.050Z"
+      }
+    ],
+    "tk-699853a8fc59": [
+      {
+        "runId": "tr_ms830ysn_89c09b25",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/tools/adv-worktree.test.ts src/__tests__/worktree-lifecycle-assets.test.ts",
+        "durationMs": 17915.66472100094,
+        "recordedAt": "2026-07-30T22:25:28.910Z"
+      },
+      {
+        "runId": "tr_ms831ft3_6e263afc",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/adv-engineer-assets.test.ts src/adv-designer-assets.test.ts src/adv-reviewer-asset.test.ts src/adv-verifier-assets.test.ts src/cli-bridge-contract.test.ts",
+        "durationMs": 8808.612036999315,
+        "recordedAt": "2026-07-30T22:25:50.958Z"
+      },
+      {
+        "runId": "tr_ms831ftb_0da2857a",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/tool-registry.test.ts src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/utils/tool-arg-preflight.test.ts src/utils/tool-title.test.ts",
+        "durationMs": 10697.5223480016,
+        "recordedAt": "2026-07-30T22:25:51.002Z"
+      },
+      {
+        "runId": "tr_ms832a6k_5562cb05",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 30120.935979999602,
+        "recordedAt": "2026-07-30T22:26:30.331Z"
+      },
+      {
+        "runId": "tr_ms834gj4_9af6fdb7",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 92045.44660099968,
+        "recordedAt": "2026-07-30T22:28:11.924Z"
+      },
+      {
+        "runId": "tr_ms89dt6c_6ce38a88",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/__tests__/worktree-lifecycle-assets.test.ts src/tool-registry.test.ts src/tool-registry.inventory.test.ts src/tool-role-policy.test.ts src/utils/tool-arg-preflight.test.ts src/utils/tool-title.test.ts",
+        "durationMs": 19495.432695001364,
+        "recordedAt": "2026-07-31T01:23:25.907Z"
+      }
+    ],
+    "tk-4961a653458e": [
+      {
+        "runId": "tr_ms88u689_18982345",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/temporal/messages.test.ts src/tools/adv-worktree.test.ts",
+        "durationMs": 19764.46471099928,
+        "recordedAt": "2026-07-31T01:08:09.636Z"
+      },
+      {
+        "runId": "tr_ms88usvl_4a8f5288",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts",
+        "durationMs": 8349.813603002578,
+        "recordedAt": "2026-07-31T01:08:39.033Z"
+      },
+      {
+        "runId": "tr_ms88v7pq_c1699134",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/storage/store-temporal/index.test.ts",
+        "durationMs": 6918.495267000049,
+        "recordedAt": "2026-07-31T01:08:58.285Z"
+      },
+      {
+        "runId": "tr_ms898ppl_19b17ff7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/detach.test.ts src/temporal/change-state.worktree-dematerialize.test.ts src/temporal/messages.test.ts src/tools/adv-worktree.test.ts",
+        "durationMs": 19461.0742460005,
+        "recordedAt": "2026-07-31T01:19:28.080Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-30T17:21:15.142Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User confirmed the expanded problem statement: stale clean inactive directories need audited directory-only detach while branches and ADV records remain recoverable.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "124d975d7e3d83788d1dd6755ae822fab74ab8956fc6a8132fc25aedf9aa6364",
+        "non_whitespace_chars": 1989,
+        "checked_at": "2026-07-30T00:48:06.128Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-30T19:03:31.805Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User-approved strict 24-item contract minted. Discovery verified terminal cleanup separation, existing branch-only resume, and required nonterminal dematerialize update.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "non_whitespace_chars": 4106,
+        "checked_at": "2026-07-30T00:48:06.129Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-30T19:14:01.039Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Independent validator CAUTION resolved in design with mandatory R1–R7 invariants: distinct dematerialize state/signal, durable receipt schema, lock-held idempotency, hard refusals, and no reaper integration.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "4acea77e87a4b8746750f03855df2f67f022a196591053011e5fb19ab2e1dbb5",
+        "non_whitespace_chars": 3185,
+        "checked_at": "2026-07-30T00:48:06.130Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-30T20:12:41.109Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved three-task graph with strict contract coverage and inline TDD sequencing."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-30T22:29:53.840Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "All three checkpointed tasks complete. Targeted detach/state/message/asset suites and plugin check passed. Full suite remains blocked by 26 unrelated storage Temporal failures reported by worker."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-07-31T01:24:27.681Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "Reviewer READY after remediation. Executive summary and content hash persisted; 24-row review matrix passes.",
+      "started_at": "2026-07-31T01:24:07.388Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "aa7479af9492e59ff8c2a8418ae186407ab777d62acc17fe301389483adb60e3",
+        "non_whitespace_chars": 865,
+        "checked_at": "2026-07-30T00:48:06.131Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+      "approvedAt": "2026-07-30T19:03:22.834Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Given an exact branch batch and a ten-day cutoff, when each requested worktree has both last branch commit activity and last ADV change activity older than the cutoff, then preview returns one deterministic eligible/refused disposition per branch without mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an exact branch batch and a ten-day cutoff",
+          "trigger": "each requested worktree has both last branch commit activity and last ADV change activity older than the cutoff",
+          "outcome": "preview returns one deterministic eligible/refused disposition per branch without mutation"
+        }
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Given a clean, inactive, unambiguous branch and an approved matching apply request, when detach succeeds, then the directory is removed while the branch, commits, and ADV change record remain recoverable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a clean, inactive, unambiguous branch and an approved matching apply request",
+          "trigger": "detach succeeds",
+          "outcome": "the directory is removed while the branch, commits",
+          "boundaries": [
+            "ADV change record remain recoverable"
+          ]
+        }
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Evidence: detach receipt retention via durable change-record storage proves request, preflight facts, outcome, and approval evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved",
+        "variant": {
+          "kind": "evidence",
+          "subject": "detach receipt retention",
+          "method": "durable change-record storage proves request, preflight facts, outcome, and approval evidence"
+        }
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a dry-run request with exact branch identifiers and a positive cutoff, when preflight evaluates it, then no Git, workspace, registry, or ADV lifecycle state changes and every branch has a typed disposition.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a dry-run request with exact branch identifiers and a positive cutoff",
+          "trigger": "preflight evaluates it",
+          "outcome": "no Git, workspace, registry, or ADV lifecycle state changes and every branch has a typed disposition"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given an apply request, when its branch list differs from the approved dry-run set, its cutoff differs, or approval evidence is blank, then every affected branch is refused before detach.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an apply request",
+          "trigger": "its branch list differs from the approved dry-run set, its cutoff differs, or approval evidence is blank",
+          "outcome": "every affected branch is refused before detach"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a requested branch, when it is dirty, locked, current-CWD, has an active ADV session, has ambiguous branch-to-path ownership, or its registry/workflow evidence is missing or poisoned, then it is refused with a typed reason.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a requested branch",
+          "trigger": "it is dirty, locked, current-CWD, has an active ADV session, has ambiguous branch-to-path ownership, or its registry/workflow evidence is missing or poisoned",
+          "outcome": "it is refused with a typed reason"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given an eligible branch, when detach succeeds, then only its worktree directory is removed; its local branch, commits, and owning ADV change state are unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an eligible branch",
+          "trigger": "detach succeeds",
+          "outcome": "only its worktree directory is removed; its local branch, commits",
+          "boundaries": [
+            "owning ADV change state are unchanged"
+          ]
+        }
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a successful detach, when the owning change is resumed later, then the preserved branch record rematerializes through the normal worktree-create path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_worktree_resume"
+        ],
+        "variant": {
+          "kind": "behavioral",
+          "context": "a successful detach",
+          "trigger": "the owning change is resumed later",
+          "outcome": "the preserved branch record rematerializes through the normal worktree-create path"
+        }
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given a successful or refused request, when its result is recorded, then a durable receipt retained with the change includes request identity, cutoff, branch, preflight facts, outcome, timestamp, and approval evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a successful or refused request",
+          "trigger": "its result is recorded",
+          "outcome": "a durable receipt retained with the change includes request identity, cutoff, branch, preflight facts, outcome, timestamp",
+          "boundaries": [
+            "approval evidence"
+          ]
+        }
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given concurrent or replayed requests for the same branch, when they carry the same request identity, then at most one directory removal occurs and an already-detached branch returns an idempotent result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "concurrent or replayed requests for the same branch",
+          "trigger": "they carry the same request identity",
+          "outcome": "at most one directory removal occurs and an already-detached branch returns an idempotent result"
+        }
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given terminal cleanup, startup cleanup, triage, or automatic migration, when it runs without an explicit detach request, then it does not invoke directory-only detach.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "terminal cleanup, startup cleanup, triage, or automatic migration",
+          "trigger": "it runs without an explicit detach request",
+          "outcome": "it does not invoke directory-only detach"
+        }
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Evidence: automated test coverage via the worktree test suite proves eligible detach, dry-run non-mutation, approval/cutoff mismatch, each refusal condition, registry preservation/rematerialization, receipt retention, idempotent replay/concurrency, and terminal-cleanup non-regression.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "evidence",
+          "subject": "automated test coverage",
+          "method": "the worktree test suite proves eligible detach, dry-run non-mutation, approval/cutoff mismatch, each refusal condition, registry preservation/rematerialization, receipt retention, idempotent replay/concurrency, and terminal-cleanup non-regression"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must require both last Git branch activity and last ADV change activity to exceed the configured cutoff.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must require both last Git branch activity and last ADV change activity to exceed the configured cutoff"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must require an exact immutable branch batch; no filesystem glob, inferred batch, or age-only deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must require an exact immutable branch batch; no filesystem glob, inferred batch, or age-only deletion"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must preserve all ADV records, local branches, commits, and uncommitted work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must preserve all ADV records, local branches, commits, and uncommitted work"
+        }
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Must use the existing Git/worktree abstraction and durable registry authority; no shell escape hatch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must use the existing Git/worktree abstraction and durable registry authority; no shell escape hatch"
+        }
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Must refuse unavailable Temporal, failed registry lookup, and poisoned history.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must refuse unavailable Temporal, failed registry lookup, and poisoned history"
+        }
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Must retain audit receipts with the owning change record.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must retain audit receipts with the owning change record"
+        }
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not close, archive, cancel, re-enter, or otherwise mutate an owning ADV change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not delete a Git branch or commit.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not auto-trigger detach from startup, triage, cleanup, or migration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not change terminal cleanup eligibility or integration rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Production deployment or cross-project mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Automatic garbage collection or migration of live worktrees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-07-31T01:24:00.210Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; dual-staleness tested."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; directory-only detach and rollback tested."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; receipt persistence tested."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms898ppl_19b17ff7"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms898ppl_19b17ff7"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms898ppl_19b17ff7"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms898ppl_19b17ff7"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms898ppl_19b17ff7"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms898ppl_19b17ff7"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms898ppl_19b17ff7"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms89dt6c_6ce38a88"
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tr_ms89dt6c_6ce38a88"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer READY; dual-clock guard."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer READY; exact batch binding."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer READY; branch and records preserved."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer READY; shared Git helper."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer READY; unavailable state refuses."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Reviewer READY; durable receipts."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; no lifecycle mutation."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; directory-only."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "tr_ms89dt6c_6ce38a88 lifecycle boundary suite."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Reviewer READY; terminal cleanup unchanged."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No production or cross-project mutation."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "No automatic garbage collection or live migration."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given a dry-run request with exact branch identifiers and a positive cutoff, when preflight evaluates it, then no Git, workspace, registry, or ADV lifecycle state changes and every branch has a typed disposition.",
+    "Given an apply request, when its branch list differs from the approved dry-run set, its cutoff differs, or approval evidence is blank, then every affected branch is refused before detach.",
+    "Given a requested branch, when it is dirty, locked, current-CWD, has an active ADV session, has ambiguous branch-to-path ownership, or its registry/workflow evidence is missing or poisoned, then it is refused with a typed reason.",
+    "Given an eligible branch, when detach succeeds, then only its worktree directory is removed; its local branch, commits, and owning ADV change state are unchanged.",
+    "Given a successful detach, when the owning change is resumed later, then the preserved branch record rematerializes through the normal worktree-create path.",
+    "Given a successful or refused request, when its result is recorded, then a durable receipt retained with the change includes request identity, cutoff, branch, preflight facts, outcome, timestamp, and approval evidence.",
+    "Given concurrent or replayed requests for the same branch, when they carry the same request identity, then at most one directory removal occurs and an already-detached branch returns an idempotent result.",
+    "Given terminal cleanup, startup cleanup, triage, or automatic migration, when it runs without an explicit detach request, then it does not invoke directory-only detach.",
+    "Evidence: automated test coverage via the worktree test suite proves eligible detach, dry-run non-mutation, approval/cutoff mismatch, each refusal condition, registry preservation/rematerialization, receipt retention, idempotent replay/concurrency, and terminal-cleanup non-regression."
+  ],
+  "documents": {
+    "proposal": "# Migrate Existing ADV Worktrees\n\n## Why\n\nThe parent change deliberately avoids automatically rewriting existing worktrees. The operator wants every existing ADV worktree on this machine—including pokeedge, pokeedge-web, Advance, and other ADV projects—migrated after the new isolation mechanisms ship.\n\n## User Outcomes\n\n- Existing worktrees adopt each project's approved isolation model without losing uncommitted work.\n- Live agents are not silently disrupted.\n- Every worktree has a recorded migrated, skipped-with-reason, blocked, retired, or detached state.\n- Partial failure is resumable and reversible.\n- Stale inactive worktree directories can be removed without deleting their ADV change records or local branch commits.\n\n## Scope\n\n### In Scope\n- Inventory all ADV projects and registered/materialized worktrees on this machine.\n- Classify liveness, cleanliness, owning change/session, dependency mode, ports/PIDs, and mutable resource namespaces.\n- Define project-specific migration adapters based on shipped target mechanisms.\n- Execute bounded staged migration with dry-run, approval, rollback, and evidence.\n- Reconcile stale registry entries only through existing typed authority.\n- Add an operator-only detach action for selected worktrees whose staleness exceeds a supplied cutoff:\n  - accepts exact branch identifiers only;\n  - removes only the worktree directory;\n  - retains the local branch, commits, and ADV change record;\n  - refuses the current process CWD, any active session, dirty worktree, or missing/ambiguous identity;\n  - requires dry-run preview plus explicit user approval evidence and writes an audit receipt.\n\n### Out of Scope\n- Designing the isolation mechanisms owned by `fixMultiSessionConcurrency` and its target changes.\n- Deleting local branches or commits.\n- Production deployment or broad branch cleanup outside the explicit detach action.\n\n### Must Not\n- Rewrite live or dirty worktrees without exact preflight and approval.\n- Discard source, secrets, generated evidence, local branches, or unmerged commits.\n- Infer liveness from path age alone.\n- Bypass ADV worktree deletion/registry authority.\n\n## Discovery Findings\n\n- Existing terminal cleanup correctly refuses nonterminal or unmerged worktrees; a separate typed authority is required.\n- `adv_worktree_resume` already rematerializes a branch-only registry record, so detach must only preserve branch ownership while clearing materialization/path.\n- The current registry has no nonterminal dematerialize signal; the change must add one rather than reuse terminal deletion semantics.\n- Exact branch identity can map to multiple worktree paths in cross-project cases; ambiguity is a refusal condition.\n\n## Dependency\n\nBegins only after `fixMultiSessionConcurrency`, `hardenBackendWorktreeSafety`, and `isolateFrontendWorktree` have merged and their migration adapters are available.",
+    "problemStatement": "Stale, clean, inactive ADV worktree directories consume disk and confuse inventory. Operators need to remove directories older than a configured cutoff while retaining every ADV change record and local branch commit for recovery. Existing deletion safety intentionally rejects this operation because it treats deletion as terminal lifecycle cleanup; a separately audited, directory-only detach path is required.",
+    "agreement": "# Agreement — Directory-only stale worktree detach\n\n## Objectives\n\n- Provide an operator-only, audited path to remove selected stale worktree directories while preserving ADV change records, local branches, and commits.\n- Make eligibility deterministic, explicit, and fail-closed.\n- Preserve terminal cleanup as the only lifecycle-deletion path.\n\n## Success Criteria\n\n- SC1: Given an exact branch batch and a ten-day cutoff, when each requested worktree has both last branch commit activity and last ADV change activity older than the cutoff, then preview returns one deterministic eligible/refused disposition per branch without mutation.\n- SC2: Given a clean, inactive, unambiguous branch and an approved matching apply request, when detach succeeds, then the directory is removed while the branch, commits, and ADV change record remain recoverable.\n- SC3: Evidence: detach receipt retention via durable change-record storage proves request, preflight facts, outcome, and approval evidence.\n\n## Acceptance Criteria\n\n- AC1: Given a dry-run request with exact branch identifiers and a positive cutoff, when preflight evaluates it, then no Git, workspace, registry, or ADV lifecycle state changes and every branch has a typed disposition.\n- AC2: Given an apply request, when its branch list differs from the approved dry-run set, its cutoff differs, or approval evidence is blank, then every affected branch is refused before detach.\n- AC3: Given a requested branch, when it is dirty, locked, current-CWD, has an active ADV session, has ambiguous branch-to-path ownership, or its registry/workflow evidence is missing or poisoned, then it is refused with a typed reason.\n- AC4: Given an eligible branch, when detach succeeds, then only its worktree directory is removed; its local branch, commits, and owning ADV change state are unchanged.\n- AC5: Given a successful detach, when the owning change is resumed later, then the preserved branch record rematerializes through the normal worktree-create path. [warrant: tool:adv_worktree_resume]\n- AC6: Given a successful or refused request, when its result is recorded, then a durable receipt retained with the change includes request identity, cutoff, branch, preflight facts, outcome, timestamp, and approval evidence.\n- AC7: Given concurrent or replayed requests for the same branch, when they carry the same request identity, then at most one directory removal occurs and an already-detached branch returns an idempotent result.\n- AC8: Given terminal cleanup, startup cleanup, triage, or automatic migration, when it runs without an explicit detach request, then it does not invoke directory-only detach.\n- AC9: Evidence: automated test coverage via the worktree test suite proves eligible detach, dry-run non-mutation, approval/cutoff mismatch, each refusal condition, registry preservation/rematerialization, receipt retention, idempotent replay/concurrency, and terminal-cleanup non-regression.\n\n## Constraints\n\n- C1: Must require both last Git branch activity and last ADV change activity to exceed the configured cutoff.\n- C2: Must require an exact immutable branch batch; no filesystem glob, inferred batch, or age-only deletion.\n- C3: Must preserve all ADV records, local branches, commits, and uncommitted work.\n- C4: Must use the existing Git/worktree abstraction and durable registry authority; no shell escape hatch.\n- C5: Must refuse unavailable Temporal, failed registry lookup, and poisoned history.\n- C6: Must retain audit receipts with the owning change record.\n\n## Avoidances\n\n- DONT1: Do not close, archive, cancel, re-enter, or otherwise mutate an owning ADV change.\n- DONT2: Do not delete a Git branch or commit.\n- DONT3: Do not auto-trigger detach from startup, triage, cleanup, or migration.\n- DONT4: Do not change terminal cleanup eligibility or integration rules.\n\n## Out of Scope\n\n- OOS1: Production deployment or cross-project mutation.\n- OOS2: Automatic garbage collection or migration of live worktrees.\n\n## Preview Applicability\n\nvisual_surface: false — CLI/tool and durable registry behavior only.\npreview_expectation: exact_route_required=not_applicable; data_state_expectation=not_applicable; viewport_expectation=not_applicable.\n\n## Decisions\n\n### User Decisions\n\n- Both last branch commit and last ADV activity must be older than ten days.\n- One approved exact batch may apply the matching dry-run candidate list.\n- Audit receipts remain with the owning change record.\n- Detach removes directories only; local branches and commits remain.\n\n### Agent Decisions (LBP)\n\n- Use a nonterminal dematerialize registry update; terminal deletion cannot preserve open state.\n- Refuse branch-to-multiple-path ambiguity.\n- Reuse existing branch-only resume, durable receipt, and serialized Git operation patterns.\n\n## Deferred Questions\n\nNone.",
+    "design": "# Design — directory-only stale worktree detach\n\n## Architecture\n\nAdd a distinct typed **dematerialize** authority for nonterminal worktrees. It reuses the existing Git worktree removal helper and lock, but is not terminal cleanup and never invokes `worktreeDeletedSignal`, a reaper, triage, startup cleanup, or migration automation.\n\n## Request model\n\nThe entry point accepts only an exact branch batch, positive cutoff, dry-run/apply mode, approval evidence, and a request identity bound to the normalized branch set plus cutoff. A candidate is eligible only when both branch-tip commit time and durable ADV activity time exceed the cutoff.\n\nPreflight is fail-closed. It returns typed per-branch results and refuses dirty, locked, active-session, current-CWD, missing, poisoned, and branch-to-multiple-path cases. A request never infers a target from age or globbing.\n\n## Operation ordering\n\n1. Acquire `git-worktree-flock` before registry read.\n2. Resolve exactly one durable materialized record and validate both activity clocks and all safety checks.\n3. If the same request identity finds `materialized=false`, return an idempotent already-detached result.\n4. Dry run returns only dispositions.\n5. Apply removes the Git worktree directory through the shared helper, then fires the new dematerialize signal.\n6. Persist the typed receipt atomically with the state transition; return the receipt identity and outcome.\n\n## Durable state\n\nThe new `applyWorktreeDematerializedToState` handler stores `status:\"unmaterialized\"`, `materialized:false`, and clears `path`. It preserves `branch`, ownership, commits, and `setupReady:true`; it must not reuse terminal `status:\"deleted\"` semantics or set `setup_failed`.\n\nA named durable `worktree_detach_receipts` state field stores request identity, normalized batch, cutoff, preflight facts, outcome/refusal reason, timestamp, and approval evidence. The state schema, signal payload schema, and receipt serializer validate this shape structurally.\n\nThis durable transition keeps `worktreeExistsForChange` correct after directory removal. `adv_worktree_resume` already sees branch-only records and rematerializes the same branch through the strict create path.\n\n## Invariants\n\n- **R1:** dematerialization clears path and materialization only; setup readiness remains true.\n- **R2:** dematerialization has a distinct nonterminal signal/handler and state value.\n- **R3:** receipt field and payload are schema-validated and durable.\n- **R4:** flock spans idempotency read through Git removal and state signal.\n- **R5:** unsafe candidates hard-refuse and never enter pending-delete queues.\n- **R6:** reaper, triage, startup cleanup, and migration never call detach.\n- **R7:** terminal deletion remains unchanged; dematerialization uses shared Git removal but is typed and audited separately.\n\n## Spec-law disposition\n\n`rq-terminalCleanupSafety01` remains authoritative for terminal lifecycle deletion. This design does not weaken it: directory-only dematerialization is a separately typed nonterminal operation with stricter explicit-batch, dual-staleness, approval, and audit guards. `rq-wl-branchRegistry01.1` defines the resulting branch-only record shape.\n\n## Verification\n\nTest dry-run non-mutation, apply request binding, each typed refusal, directory-only removal, branch preservation, branch-only resume, durable receipt retention, replay/concurrency, and import/static checks that automatic cleanup surfaces cannot reference detach. Preserve terminal cleanup tests unchanged.\n\n## Deferred follow-up\n\nPath-qualified detach for legitimate cross-project multi-path branches remains out of scope; ambiguity refuses safely.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nAdded the operator-only `adv_worktree_detach` capability for directory-only removal of selected stale ADV worktrees. Local branches, commits, and durable ADV change records remain recoverable.\n\n## Value\n\nOperators can reclaim stale worktree directories without weakening terminal cleanup or discarding unmerged work.\n\n## Verification\n\n- Acceptance reviewer verdict: READY after remediation.\n- 67 targeted detach/state/message/tool tests passed after rebase (`tr_ms898ppl_19b17ff7`).\n- 207 tool/lifecycle/registry/policy tests passed (`tr_ms89dt6c_6ce38a88`).\n- 24-item contract review matrix: all pass/respected.\n\n## Safety\n\nThe operation requires an exact approved batch and dual staleness checks, refuses unavailable/unsafe state, records every outcome, and compensates when post-removal state signaling fails.\n\n## Remaining concern\n\n`store-temporal/index.test.ts` failures reproduce unchanged on trunk and this branch; they are unrelated baseline failures.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-07-31T01:24:00.210Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Given an exact branch batch and a ten-day cutoff, when each requested worktree has both last branch commit activity and last ADV change activity older than the cutoff, then preview returns one deterministic eligible/refused disposition per branch without mutation. | pass | Reviewer READY; dual-staleness tested. |\n| SC2 | success_criterion | Given a clean, inactive, unambiguous branch and an approved matching apply request, when detach succeeds, then the directory is removed while the branch, commits, and ADV change record remain recoverable. | pass | Reviewer READY; directory-only detach and rollback tested. |\n| SC3 | success_criterion | Evidence: detach receipt retention via durable change-record storage proves request, preflight facts, outcome, and approval evidence. | pass | Reviewer READY; receipt persistence tested. |\n| AC1 | acceptance_criterion | Given a dry-run request with exact branch identifiers and a positive cutoff, when preflight evaluates it, then no Git, workspace, registry, or ADV lifecycle state changes and every branch has a typed disposition. | pass | tr_ms898ppl_19b17ff7 |\n| AC2 | acceptance_criterion | Given an apply request, when its branch list differs from the approved dry-run set, its cutoff differs, or approval evidence is blank, then every affected branch is refused before detach. | pass | tr_ms898ppl_19b17ff7 |\n| AC3 | acceptance_criterion | Given a requested branch, when it is dirty, locked, current-CWD, has an active ADV session, has ambiguous branch-to-path ownership, or its registry/workflow evidence is missing or poisoned, then it is refused with a typed reason. | pass | tr_ms898ppl_19b17ff7 |\n| AC4 | acceptance_criterion | Given an eligible branch, when detach succeeds, then only its worktree directory is removed; its local branch, commits, and owning ADV change state are unchanged. | pass | tr_ms898ppl_19b17ff7 |\n| AC5 | acceptance_criterion | Given a successful detach, when the owning change is resumed later, then the preserved branch record rematerializes through the normal worktree-create path. | pass | tr_ms898ppl_19b17ff7 |\n| AC6 | acceptance_criterion | Given a successful or refused request, when its result is recorded, then a durable receipt retained with the change includes request identity, cutoff, branch, preflight facts, outcome, timestamp, and approval evidence. | pass | tr_ms898ppl_19b17ff7 |\n| AC7 | acceptance_criterion | Given concurrent or replayed requests for the same branch, when they carry the same request identity, then at most one directory removal occurs and an already-detached branch returns an idempotent result. | pass | tr_ms898ppl_19b17ff7 |\n| AC8 | acceptance_criterion | Given terminal cleanup, startup cleanup, triage, or automatic migration, when it runs without an explicit detach request, then it does not invoke directory-only detach. | pass | tr_ms89dt6c_6ce38a88 |\n| AC9 | acceptance_criterion | Evidence: automated test coverage via the worktree test suite proves eligible detach, dry-run non-mutation, approval/cutoff mismatch, each refusal condition, registry preservation/rematerialization, receipt retention, idempotent replay/concurrency, and terminal-cleanup non-regression. | pass | tr_ms89dt6c_6ce38a88 |\n| C1 | constraint | Must require both last Git branch activity and last ADV change activity to exceed the configured cutoff. | respected | Reviewer READY; dual-clock guard. |\n| C2 | constraint | Must require an exact immutable branch batch; no filesystem glob, inferred batch, or age-only deletion. | respected | Reviewer READY; exact batch binding. |\n| C3 | constraint | Must preserve all ADV records, local branches, commits, and uncommitted work. | respected | Reviewer READY; branch and records preserved. |\n| C4 | constraint | Must use the existing Git/worktree abstraction and durable registry authority; no shell escape hatch. | respected | Reviewer READY; shared Git helper. |\n| C5 | constraint | Must refuse unavailable Temporal, failed registry lookup, and poisoned history. | respected | Reviewer READY; unavailable state refuses. |\n| C6 | constraint | Must retain audit receipts with the owning change record. | respected | Reviewer READY; durable receipts. |\n| DONT1 | avoidance | Do not close, archive, cancel, re-enter, or otherwise mutate an owning ADV change. | respected | Reviewer READY; no lifecycle mutation. |\n| DONT2 | avoidance | Do not delete a Git branch or commit. | respected | Reviewer READY; directory-only. |\n| DONT3 | avoidance | Do not auto-trigger detach from startup, triage, cleanup, or migration. | respected | tr_ms89dt6c_6ce38a88 lifecycle boundary suite. |\n| DONT4 | avoidance | Do not change terminal cleanup eligibility or integration rules. | respected | Reviewer READY; terminal cleanup unchanged. |\n| OOS1 | out_of_scope | Production deployment or cross-project mutation. | not_applicable | No production or cross-project mutation. |\n| OOS2 | out_of_scope | Automatic garbage collection or migration of live worktrees. | not_applicable | No automatic garbage collection or live migration. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-30T17:33:09.959Z",
+      "contentHash": "de7e2dd492fe48044c8b9a4dee083fa5538965829d9f4562157277863b4f6251",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-30T17:21:06.752Z",
+      "contentHash": "cf93e2bac607d26faf3766423f6b1764851ebf9b8ff1be63cb26c07246895c2f",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-30T19:03:14.788Z",
+      "contentHash": "407e674f4f07e174c11f720ae99dc25f3ed8c88527caf3613b78816babef3869",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-30T19:13:53.712Z",
+      "contentHash": "4acea77e87a4b8746750f03855df2f67f022a196591053011e5fb19ab2e1dbb5",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-07-31T01:24:18.134Z",
+      "contentHash": "aa7479af9492e59ff8c2a8418ae186407ab777d62acc17fe301389483adb60e3",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-07-31T01:24:27.681Z",
+  "fast_follow_of": {
+    "parent_change_id": "fixMultiSessionConcurrency",
+    "linked_at": "2026-07-30T00:48:05.964Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "fixMultiSessionConcurrency:bulk-migration-follow-up"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-699853a8fc59",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Durable adv_run_test evidence tr_ms89dt6c_6ce38a88: 207 targeted tool/lifecycle/registry/policy tests passed after rebase.",
+      "dispositionedAt": "2026-07-31T01:23:36.911Z"
+    }
+  ],
+  "creation_request_hash": "105db86a3d89a39467c8c96e829e2a8b6fa3c740f4d4ccd8739db7e27e9467e2",
+  "projection_revision": 44,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ad13ccc529d2eefa53f8e4ce7a7464391025fc6681f7ab785347e047a4ee66d5:createArtifacts:proposal",
+      "operation_id": "ad13ccc529d2eefa53f8e4ce7a7464391025fc6681f7ab785347e047a4ee66d5:createArtifacts:proposal",
+      "payload_hash": "fd83e5dfbeabad948fa2995533ce91a8af1f66da5ab847892d4754d06c3d6e61",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-07-30T00:48:06.427Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ad13ccc529d2eefa53f8e4ce7a7464391025fc6681f7ab785347e047a4ee66d5:createArtifacts:problemStatement",
+      "operation_id": "ad13ccc529d2eefa53f8e4ce7a7464391025fc6681f7ab785347e047a4ee66d5:createArtifacts:problemStatement",
+      "payload_hash": "be8dc9032e7b58f93df111201e2e43a5deb67fe291dc7497b4657ee4d4ab784b",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-07-30T00:48:06.599Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a8887e98fada7eb14d114c07999c8d4b6b123a1a3613d6edab488e3b8aba8106:updateArtifacts:proposal",
+      "operation_id": "a8887e98fada7eb14d114c07999c8d4b6b123a1a3613d6edab488e3b8aba8106:updateArtifacts:proposal",
+      "payload_hash": "0792b169f4fa92442c4f87e54da18bde59f8aa1f1e787217b6b32c16d09bec2f",
+      "state_revision": 3,
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-30T17:21:06.984Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a8887e98fada7eb14d114c07999c8d4b6b123a1a3613d6edab488e3b8aba8106:updateArtifacts:problemStatement",
+      "operation_id": "a8887e98fada7eb14d114c07999c8d4b6b123a1a3613d6edab488e3b8aba8106:updateArtifacts:problemStatement",
+      "payload_hash": "dc9b96be43caa80a1b8554b60aacf029ae72cf5d9d31e3b80ade176dfa80174c",
+      "state_revision": 4,
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-30T17:21:07.479Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-30T17:21:15.399Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c49f3a547b679a5da33286a75b584215327d2944e946f288b884895f65d1e2c2:updateArtifacts:agreement",
+      "operation_id": "c49f3a547b679a5da33286a75b584215327d2944e946f288b884895f65d1e2c2:updateArtifacts:agreement",
+      "payload_hash": "6476e89f93747bb63d0cd72fb7e0d5abaf8722c92570659a73913a37e7d3354b",
+      "state_revision": 5,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-30T17:22:26.828Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-30T17:32:05.843Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-30T17:32:06.172Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a70e22b16114bed7f1dc14b689b586a5da6894aab22d72ebcb318cbff4e786ab:updateArtifacts:agreement",
+      "operation_id": "a70e22b16114bed7f1dc14b689b586a5da6894aab22d72ebcb318cbff4e786ab:updateArtifacts:agreement",
+      "payload_hash": "dce4b052161b7cabb7047f4d1b5bb7537585eb1aab00d8b5d94fa084db17a60f",
+      "state_revision": 7,
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-30T17:34:23.750Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fb6e1bae728212e59b35c0a0879e644f2268215e90d87366df539a21a4526984:updateArtifacts:agreement",
+      "operation_id": "fb6e1bae728212e59b35c0a0879e644f2268215e90d87366df539a21a4526984:updateArtifacts:agreement",
+      "payload_hash": "4e5e02476272aa3844b60b6d40ff3bf8ac3b5e62a686a9c9947a45fcad8b4058",
+      "state_revision": 8,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-30T19:02:35.919Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "771b5910648ce6788d5553645ed680f4fe6eff30c3869e79f9f1b485c16c8abf:updateArtifacts:agreement",
+      "operation_id": "771b5910648ce6788d5553645ed680f4fe6eff30c3869e79f9f1b485c16c8abf:updateArtifacts:agreement",
+      "payload_hash": "57e9df996b4dcac4c34a764025d0f8079d930ea5a677b5edca6c2e22cbdbc584",
+      "state_revision": 9,
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-30T19:03:15.255Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-30T19:03:23.535Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-30T19:03:32.048Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "5a896461b7d6ff77932df5eb731f4b735eb408a7f318d78a54e025a3e0e1830e:updateArtifacts:design",
+      "operation_id": "5a896461b7d6ff77932df5eb731f4b735eb408a7f318d78a54e025a3e0e1830e:updateArtifacts:design",
+      "payload_hash": "d89266f1bdbbc7f483d751a9231689b4d8233cb6888d1ef01ab1b699e3576225",
+      "state_revision": 10,
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-30T19:13:54.361Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-30T19:14:01.376Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-30T19:14:31.166Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-30T19:14:31.541Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-30T19:14:41.068Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-30T19:14:52.822Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-30T20:12:41.557Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-30T20:13:15.020Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-30T20:56:02.894Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-30T20:56:35.542Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-30T21:24:13.254Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-30T21:25:28.566Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-30T22:24:58.784Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-30T22:28:57.089Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-30T22:28:57.433Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-30T22:29:33.768Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-30T22:29:54.033Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-30T22:33:05.357Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-30T22:33:05.579Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-30T23:33:15.088Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-31T01:08:19.937Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-31T01:18:12.038Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-31T01:18:12.438Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-31T01:18:46.039Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-07-31T01:22:45.224Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785461017001_1865sdy1",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-07-31T01:23:37.561Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785461040399_14tgkqxm",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-07-31T01:24:00.663Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-07-31T01:24:07.692Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "47096ff706fc71eda90be28447e0b21947c0e3b51d846f47a34b208729813c9c:updateArtifacts:executiveSummary",
+      "operation_id": "47096ff706fc71eda90be28447e0b21947c0e3b51d846f47a34b208729813c9c:updateArtifacts:executiveSummary",
+      "payload_hash": "564d8de94cb7173f5f6b8be2f09c878bfd67cd778249d6436155fec8ed101d1c",
+      "state_revision": 11,
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-07-31T01:24:18.838Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-07-31T01:24:27.927Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "migrateExistingAdvWorktrees",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-07-31T01:33:14.363Z"
+    }
+  ],
+  "state_revision": 11
+}
