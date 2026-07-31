@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-07-31T17:15:14.761Z",
+  "capabilities": [],
+  "change_hash": "3e6564ee4365cf57d5f00e0c1f8d4845fc2ca662980994e2fbea03ed1025f0b9",
+  "change_id": "preventInvalidCommandHandoffs",
+  "completed_tasks": 1,
+  "created_at": "2026-07-31T01:15:39.025Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-07-31T05:47:37.804Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "49f7c2a258ed184602376a7b8f9704fc98e11abb6ce2c226e61453e6470dcc27",
+  "task_count": 1,
+  "title": "Prevent invalid command handoffs",
+  "version": "1"
+}
