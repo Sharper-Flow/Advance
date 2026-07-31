@@ -353,6 +353,7 @@ export function buildPendingMergePhase9Status(input: {
     prUrl: input.finalization.prUrl,
     autoMergeArmed: input.finalization.autoMergeArmed,
     route: input.finalization.route,
+    changeTipSha: input.finalization.changeTipSha,
   });
 }
 
@@ -627,6 +628,7 @@ export async function reconcileArchivedBundleRetry(input: {
         startedAt:
           input.change.phase9_status?.startedAt ?? new Date().toISOString(),
         completedAt: new Date().toISOString(),
+        changeTipSha: input.change.phase9_status?.changeTipSha,
       }),
     });
   }
@@ -813,6 +815,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       prUrl: input.change?.phase9_status?.prUrl,
       autoMergeArmed: false,
       pushStatus: "pushed",
+      changeTipSha: input.change?.phase9_status?.changeTipSha,
     };
   }
   if (reachability.proof === "origin_push_unverified") {

@@ -18,6 +18,9 @@ export interface GitFinalizeOutcome {
    *  For direct/no_remote routes this is the verified default-branch HEAD;
    *  for PR routes it is the merged PR commit OID. */
   releasedCommitSha?: string;
+  /** SHA of the change branch tip captured before merge/cleanup so tree-SHA
+   *  re-proof can survive branch deletion (rq-fixArchivedBranchFinalization SC1). */
+  changeTipSha?: string;
   /** SHA of the dirty-main checkpoint commit, set when ADV committed pre-existing
    *  main checkout changes before merge (rq-releaseFinalization01.7). */
   mainCheckpointCommitSha?: string;
@@ -1796,6 +1799,7 @@ export function executePullRequestHandoff(
     changeTitle: string;
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
+    changeTipSha?: string;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -1900,6 +1904,7 @@ export function executePullRequestHandoff(
       route: input.route.route,
       releasedCommitSha: reachability.mergeCommitOid,
       mergeCommitSha: reachability.mergeCommitOid,
+      changeTipSha: input.changeTipSha,
       pushStatus: "pushed",
       pushFailureReason: input.pushFailureReason,
       prBranch: input.branch,
@@ -1920,6 +1925,7 @@ export function executePullRequestHandoff(
       prNumber: pr.number,
       prUrl: pr.url,
       autoMergeArmed: true,
+      changeTipSha: input.changeTipSha,
     };
   }
 
@@ -1952,6 +1958,7 @@ export function completeMergeQueueHandoff(
     changeTitle: string;
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
+    changeTipSha?: string;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -2008,6 +2015,7 @@ export function completeMergeQueueHandoff(
       changeTitle: input.changeTitle,
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
+      changeTipSha: input.changeTipSha,
     },
     deps,
   );
@@ -2024,6 +2032,7 @@ function completeProtectedBranchViaPullRequest(
     changeTitle: string;
     prTitleType?: string;
     prTitlePolicy?: PrTitlePolicy;
+    changeTipSha?: string;
   },
   deps: GitFinalizeDeps = {},
 ): GitFinalizeOutcome {
@@ -2104,6 +2113,7 @@ function completeProtectedBranchViaPullRequest(
       changeTitle: input.changeTitle,
       prTitleType: input.prTitleType,
       prTitlePolicy: input.prTitlePolicy,
+      changeTipSha: input.changeTipSha,
     },
     deps,
   );
@@ -2610,6 +2620,25 @@ export function resolveReleaseReachability(
       deps,
     );
     if (!local.reachable) {
+      // rq-fixArchivedBranchFinalization SC1: when the live change/{id} ref is
+      // absent (branch cleaned up after merge), fall back to a content-addressed
+      // tree-SHA proof using the persisted changeTipSha. This is the only route
+      // that lacks such a fallback; direct/PR already have one.
+      if (input.changeTipSha) {
+        const treeMatch = detectSquashMergeByTree(
+          input.mainCheckout,
+          input.defaultBranch,
+          input.changeId,
+          { ...deps, changeTipSha: input.changeTipSha },
+        );
+        if (treeMatch.reachable && treeMatch.mergeCommitOid) {
+          return {
+            reachable: true,
+            proof: "local_merge",
+            releasedCommitSha: treeMatch.mergeCommitOid,
+          };
+        }
+      }
       return {
         reachable: false,
         proof: "local_unmerged",
@@ -3186,6 +3215,21 @@ export async function finalizeRelease(
       },
     };
   }
+
+  // Capture the change branch tip before any merge/cleanup so that
+  // content-addressed tree re-proof can survive branch deletion
+  // (rq-fixArchivedBranchFinalization SC1).
+  let changeTipSha: string | undefined;
+  try {
+    changeTipSha = runGitOrThrow(
+      mainCheckout,
+      ["rev-parse", `change/${ctx.changeId}`],
+      deps,
+    );
+  } catch {
+    changeTipSha = undefined;
+  }
+
   const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps);
 
   // Per-invocation accumulator: caches idempotent git queries and tracks
@@ -3245,6 +3289,7 @@ export async function finalizeRelease(
           changeTitle: ctx.changeTitle,
           prTitleType: ctx.prTitleType,
           prTitlePolicy: ctx.prTitlePolicy,
+          changeTipSha,
         },
         deps,
       );
@@ -3261,6 +3306,7 @@ export async function finalizeRelease(
         changeTitle: ctx.changeTitle,
         prTitleType: ctx.prTitleType,
         prTitlePolicy: ctx.prTitlePolicy,
+        changeTipSha,
       },
       deps,
     );
@@ -3397,6 +3443,7 @@ export async function finalizeRelease(
       route: "no_remote",
       releasedCommitSha: mergeCommitSha,
       mergeCommitSha,
+      changeTipSha,
       mainCheckpointCommitSha,
       pushStatus: "skipped",
       pushFailureReason:
@@ -3444,6 +3491,7 @@ export async function finalizeRelease(
       route: "direct",
       releasedCommitSha: remoteDefault.sha,
       mergeCommitSha,
+      changeTipSha,
       mainCheckpointCommitSha,
       pushStatus: "pushed",
     };
@@ -3480,6 +3528,7 @@ export async function finalizeRelease(
           changeTitle: ctx.changeTitle,
           prTitleType: ctx.prTitleType,
           prTitlePolicy: ctx.prTitlePolicy,
+          changeTipSha,
         },
         deps,
       );
@@ -3514,6 +3563,7 @@ export async function finalizeRelease(
           changeTitle: ctx.changeTitle,
           prTitleType: ctx.prTitleType,
           prTitlePolicy: ctx.prTitlePolicy,
+          changeTipSha,
         },
         deps,
       );
