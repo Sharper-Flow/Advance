@@ -18,9 +18,14 @@
  */
 
 import { parseArgs } from "node:util";
+import { readFile } from "node:fs/promises";
 
 import { runOptBridge, BRIDGE_DEGRADED_ID } from "./lib/opt-scan/bridge";
 import { renderReport } from "./lib/opt-scan/report";
+import {
+  processCandidateIntake,
+  renderIntakeReport,
+} from "./lib/opt-scan/intake";
 import type { BridgeOptions } from "./lib/opt-scan/bridge";
 
 type Phase = 1 | 3 | "all";
@@ -36,13 +41,17 @@ Options:
   --phase <1|3|all>               Detection phase filter (default: all)
   --detector-id <id>              Narrow to a single detector id
   --regex-timeout-ms <n>          Per-pattern regex budget in ms (default: 5000)
+  --intake <path>                 Read a single candidate JSON from <path>
+                                  (use '-' for stdin) and render a read-only
+                                  optimizer recommendation instead of scanning
   -h, --help                      Show this help
 
-Positional <repoRoot> defaults to the current working directory.
+Positional <repoRoot> defaults to the current working directory unless
+--intake is provided.
 
 Exit codes:
-  0  scan completed
-  1  bridge error (missing repo, scan crash)
+  0  scan completed, or intake candidate accepted
+  1  bridge error (missing repo, scan crash), or intake candidate rejected
   2  invalid arguments
 `;
 
@@ -52,6 +61,7 @@ interface ParsedArgs {
   readonly detectorId?: string;
   readonly regexTimeoutMs: number;
   readonly repoRoot: string;
+  readonly intake?: string;
   readonly help: boolean;
 }
 
@@ -70,6 +80,7 @@ function parseCliArgs(argv: string[]): ParseOutcome {
         phase: { type: "string", default: "all" },
         "detector-id": { type: "string" },
         "regex-timeout-ms": { type: "string", default: "5000" },
+        intake: { type: "string" },
         help: { type: "boolean", short: "h" },
       },
       allowPositionals: true,
@@ -122,6 +133,7 @@ function parseCliArgs(argv: string[]): ParseOutcome {
 
   const repoRoot = parsed.positionals[0] ?? process.cwd();
   const detectorId = parsed.values["detector-id"];
+  const intake = parsed.values.intake;
 
   return {
     kind: "ok",
@@ -131,9 +143,50 @@ function parseCliArgs(argv: string[]): ParseOutcome {
       detectorId,
       regexTimeoutMs: timeoutNum,
       repoRoot,
+      intake,
       help: false,
     },
   };
+}
+
+async function readIntakeInput(path: string): Promise<string> {
+  if (path === "-") {
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) {
+      chunks.push(chunk as Buffer);
+    }
+    return Buffer.concat(chunks).toString("utf8");
+  }
+  return readFile(path, "utf8");
+}
+
+async function runIntake(path: string, format: "text" | "json"): Promise<number> {
+  let raw: string;
+  try {
+    raw = await readIntakeInput(path);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`opt-scan: failed to read intake input: ${msg}\n`);
+    return 1;
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(raw);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`opt-scan: invalid JSON in intake input: ${msg}\n`);
+    return 2;
+  }
+
+  const result = processCandidateIntake(parsedJson);
+  const output = renderIntakeReport(result, format);
+  process.stdout.write(output);
+  if (!output.endsWith("\n")) {
+    process.stdout.write("\n");
+  }
+
+  return result.status === "accepted" ? 0 : 1;
 }
 
 async function run(argv: string[]): Promise<number> {
@@ -151,6 +204,11 @@ async function run(argv: string[]): Promise<number> {
   }
 
   const parsed = outcome.args;
+
+  if (parsed.intake !== undefined) {
+    return runIntake(parsed.intake, parsed.format);
+  }
+
   const options: CliOptions = {
     repoRoot: parsed.repoRoot,
     phase: parsed.phase,
