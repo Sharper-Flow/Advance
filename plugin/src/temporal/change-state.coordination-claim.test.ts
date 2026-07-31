@@ -90,6 +90,35 @@ describe("applyCoordinationClaimSetToState", () => {
     ]);
   });
 
+  it("deduplicates exact identifiers and generated terms after normalization", () => {
+    const state = baseState();
+    applyCoordinationClaimSetToState(
+      state,
+      validPayload({
+        claim: {
+          scope_summary: "Plumbing",
+          responsibility: "reviewer",
+          exact_identifiers: [
+            "TK-04DE57F4F04E",
+            "tk-04de57f4f04e",
+            "TK-04DE57F4F04E",
+          ],
+          generated_terms: ["  Coordination  ", "coordination", "Claim"],
+          claimed_at: at,
+        },
+        set_at: "2026-01-01T00:00:01.000Z",
+      }),
+    );
+
+    expect(state.coordination_claim?.exact_identifiers).toEqual([
+      "tk-04de57f4f04e",
+    ]);
+    expect(state.coordination_claim?.generated_terms).toEqual([
+      "coordination",
+      "claim",
+    ]);
+  });
+
   it("rejects empty identifiers and records signal rejection", () => {
     const state = baseState();
     applyCoordinationClaimSetToState(state, {

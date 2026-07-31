@@ -80,10 +80,12 @@ export const ChangeCoordinationClaimSchema = z.object({
   responsibility: ChangeCoordinationClaimResponsibilitySchema,
   exact_identifiers: z
     .array(ChangeCoordinationClaimIdentifierSchema)
-    .max(20),
+    .max(20)
+    .transform((arr) => [...new Set(arr)]),
   generated_terms: z
     .array(ChangeCoordinationClaimIdentifierSchema)
-    .max(20),
+    .max(20)
+    .transform((arr) => [...new Set(arr)]),
   claimed_at: z.string(),
   claimed_by: z.string().optional(),
 });
