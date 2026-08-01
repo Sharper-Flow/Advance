@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixAcceptanceMatrixRecovery",
+  "title": "Fix acceptance matrix recovery",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Recovered acceptance review matrices now reconcile into live workflow state.",
+    "highlights": [
+      "Pre-acceptance reconciliation re-delivers recovered matrix evidence without weakening fail-closed readiness checks."
+    ],
+    "area": "acceptance workflow"
+  }
+}
