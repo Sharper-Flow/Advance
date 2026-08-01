@@ -2009,7 +2009,14 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         }
 
         if (diskResult && isSchemaError(diskResult)) {
-          throw new Error(diskResult.error);
+          // A schema-invalid peer is an omitted candidate, not an authority
+          // outage. Failing the whole read here would let one malformed
+          // record block conflict detection — and therefore archive — for
+          // every other change in the project.
+          return {
+            kind: "fail",
+            warning: `Active candidate ${changeId} has a schema-invalid durable projection; omitted from active authority: ${diskResult.error}`,
+          };
         }
         if (diskResult?.success && diskResult.data) {
           const data = diskResult.data;
