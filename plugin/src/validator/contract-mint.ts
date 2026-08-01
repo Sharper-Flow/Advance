@@ -25,7 +25,8 @@ interface BuildContractFromAgreementInput {
    * is verified and an unresolved ref fails the mint with
    * CONTRACT_UNRESOLVED_WARRANT. When omitted (pure unit tests not exercising
    * warrants), declared refs are still parsed/recorded but not verified — the
-   * single production mint path (adv_contract_mint) always injects this.
+   * production mint path (adv_contract_mint) injects this whenever the approved
+   * agreement declares a warrant tag.
    */
   warrantLookup?: WarrantLookup;
 }

@@ -39,8 +39,6 @@ import {
   withTargetPathStore,
 } from "./target-project";
 
-const toolRegistryPromise = import("../tool-registry");
-
 const targetArgs = {
   target_path: z.string().optional(),
   target_confirmed: z.literal(true).optional(),
@@ -92,18 +90,17 @@ async function loadChange(store: Store, changeId: string): Promise<Change> {
 /**
  * Build the live capability-warrant lookup (addAcWarrantGuard).
  *
- * The tool surface is read from the assembled tool registry. A module-level
- * dynamic import promise is kicked off at load time so the registry is already
- * resolving when the handler runs; this avoids the >5s first-call latency under
- * Vitest that produced test timeouts, while still avoiding a static import cycle
- * with tool-registry.ts.
+ * The tool surface is read from the assembled tool registry only when the
+ * approved agreement declares a warrant. Behavioral-only agreements have no
+ * capability reference to resolve, so they must not wait for the registry's
+ * cycle-breaking dynamic import.
  *
  * Spec ids are collected best-effort from the active store; if specs are
  * unreadable, spec:* warrants simply do not resolve (fail-closed) rather than
  * throwing here.
  */
 async function buildWarrantLookup(store: Store): Promise<WarrantLookup> {
-  const { getToolSurface } = await toolRegistryPromise;
+  const { getToolSurface } = await import("../tool-registry");
   const toolSurface = getToolSurface();
   const specIds = new Set<string>();
   try {
@@ -342,7 +339,9 @@ export const contractTools = {
             });
           }
           const agreement = await readAgreement(activeStore, change);
-          const warrantLookup = await buildWarrantLookup(activeStore);
+          const warrantLookup = /\[warrant:/i.test(agreement)
+            ? await buildWarrantLookup(activeStore)
+            : undefined;
           const contract = buildContractFromAgreement({
             agreement,
             approvedAt: contractApprovedAt({
