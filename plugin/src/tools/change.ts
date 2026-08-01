@@ -4544,7 +4544,6 @@ export const changeTools = {
             change,
             changeId,
             finalization,
-            existingBundlePath: archiveResult.archivePath,
           });
           if (!releaseResult.ok) {
             return formatToolOutput({
