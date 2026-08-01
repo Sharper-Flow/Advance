@@ -1147,6 +1147,10 @@ describe("listResolvedChanges circuit breaker", () => {
       type: "not_found" as const,
     });
 
+    for (const id of changeIds) {
+      await mkdir(join(legacy.paths.changes, id), { recursive: true });
+    }
+
     let queryCalls = 0;
     const temporal = {
       client: {
@@ -1157,11 +1161,6 @@ describe("listResolvedChanges circuit breaker", () => {
               return new Promise<never>(() => {});
             },
           }),
-          list: async function* () {
-            for (const id of changeIds) {
-              yield { workflowId: `adv/change/project-1/${id}` };
-            }
-          },
           start: async () => {
             throw new Error("start should not be called");
           },
@@ -1799,7 +1798,7 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
     tempDir = undefined;
   });
 
-  it("reports visibility source degradation on terminal list when visibility list fails", async () => {
+  it("reports active-disk summary degradation on terminal list when summary index is unreadable", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
 
@@ -1815,6 +1814,10 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       JSON.stringify(archivedChange("archiveVisibilityFail"), null, 2),
     );
 
+    // Make the summary index unreadable so the terminal read relies on the
+    // archive bundle while surfacing a durable-source degradation warning.
+    await writeFile(legacy.paths.summariesDir, "not a directory");
+
     const temporal = {
       client: {
         workflow: {
@@ -1823,10 +1826,6 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
               throw new Error("query should not be called");
             },
           }),
-          list: async function* () {
-            yield { workflowId: "unrelated/placeholder" };
-            throw new Error("visibility list unavailable");
-          },
           start: async () => {
             throw new Error("start should not be called");
           },
@@ -1849,8 +1848,8 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       expect.arrayContaining([
         expect.objectContaining({
           code: "TERMINAL_SOURCE_DEGRADED",
-          source: "visibility",
-          message: expect.stringContaining("visibility"),
+          source: "active_disk",
+          message: expect.stringContaining("summaries"),
         }),
       ]),
     );
@@ -1867,13 +1866,19 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
 
-    // Archive dir exists but contains no usable change.json, simulating a
-    // corrupt or partially-written archive bundle.
+    // Active disk directory exists but contains no change.json, so the
+    // projection-only list discovers the candidate from durable disk
+    // enumeration, cannot load it from disk or archive, and falls back to a
+    // workflow query that also fails.
+    await mkdir(join(legacy.paths.changes, "corruptArchive"), {
+      recursive: true,
+    });
+
+    // Archive bundle for the same id is also corrupt.
     const archiveDir = join(tempDir, ".adv", "archive", "corruptArchive");
     await mkdir(archiveDir, { recursive: true });
     await writeFile(join(archiveDir, "change.json"), "not valid json");
 
-    // No active disk shadow for this change.
     const temporal = {
       client: {
         workflow: {
@@ -1882,9 +1887,6 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
               throw workflowNotFoundError();
             },
           }),
-          list: async function* () {
-            yield { workflowId: "adv/change/project-1/corruptArchive" };
-          },
           start: async () => {
             throw new Error("start should not be called");
           },
