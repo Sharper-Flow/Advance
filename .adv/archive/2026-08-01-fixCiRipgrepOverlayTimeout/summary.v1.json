@@ -1,0 +1,20 @@
+{
+  "archived_at": "2026-08-01T17:53:11.472Z",
+  "capabilities": [],
+  "change_hash": "e87d4d885ec64e4d99827118624b0191c4bb0f88bf46b0633fc07418d1a31c25",
+  "change_id": "fixCiRipgrepOverlayTimeout",
+  "completed_tasks": 9,
+  "created_at": "2026-07-31T07:36:05.098Z",
+  "current_gate": "release",
+  "fast_follow_of": {
+    "linked_at": "2026-07-31T07:36:04.907Z",
+    "parent_change_id": "fixBaselineSuiteFailures"
+  },
+  "last_activity_at": "2026-08-01T17:46:41.116Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "76ddfed54c07881fc26573fa60a3c2824b3b099e3a0bdc9ac032d69b1c7b45a4",
+  "task_count": 9,
+  "title": "Fix CI ripgrep and overlay timeout",
+  "version": "1"
+}
