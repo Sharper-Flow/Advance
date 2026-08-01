@@ -564,9 +564,10 @@ async function fireTaskCompletedFromCheckpoint(
     }
 
     const recordedFiles = recordedTask.filesTouched ?? [];
+    const touchedSet = new Set(touchedFiles);
     const filesMatch =
       recordedFiles.length === touchedFiles.length &&
-      recordedFiles.every((file, index) => file === touchedFiles[index]);
+      recordedFiles.every((file) => touchedSet.has(file));
     if (!filesMatch) {
       return {
         recorded: false,
@@ -869,6 +870,21 @@ export const checkpointTools = {
 
         if (statusOutput.trim() === "") {
           // Clean tree — idempotent, no commit needed
+          // Compute touchedFiles from the last commit diff so the
+          // completion signal carries the real file set.
+          let cleanTouchedFiles: string[] = [];
+          try {
+            const { stdout: cleanDiffOutput } = await runGit(
+              ["diff", "--name-only", "HEAD~1"],
+              cwd,
+            );
+            cleanTouchedFiles = cleanDiffOutput
+              .split("\n")
+              .map((f) => f.trim())
+              .filter((f) => f.length > 0);
+          } catch {
+            cleanTouchedFiles = [];
+          }
           // For complete mode, fire taskCompletedSignal so the task is marked done
           let checkpointRecording: CheckpointRecordingResult = {
             recorded: mode !== "complete",
@@ -879,7 +895,7 @@ export const checkpointTools = {
               args.taskId,
               actualHeadSha,
               args.verification ?? "Clean tree checkpoint",
-              [],
+              cleanTouchedFiles,
             );
           }
           return formatToolOutput({

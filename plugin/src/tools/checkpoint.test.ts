@@ -873,7 +873,7 @@ describe("checkpoint tools — signal-driven", () => {
       });
       mockRecordedTask({
         verification: "Clean tree checkpoint",
-        filesTouched: [],
+        filesTouched: ["src/file.ts"],
       });
 
       const result = await checkpointTools.adv_task_checkpoint.execute(
@@ -892,7 +892,7 @@ describe("checkpoint tools — signal-driven", () => {
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         verification: "Clean tree checkpoint",
-        filesTouched: [],
+        filesTouched: ["src/file.ts"],
       });
     });
 
@@ -1053,6 +1053,33 @@ describe("checkpoint tools — signal-driven", () => {
         expect(parsed.remediation).toContain("adv_task_checkpoint");
       },
     );
+
+    test("records checkpoint when filesTouched order differs from git order (set comparison)", async () => {
+      const store = createMockStore();
+      mockGitResponses({
+        "status --porcelain": { stdout: " M src/alpha.ts\n M src/beta.ts\n" },
+        "diff --name-only HEAD~1": {
+          stdout: "src/alpha.ts\nsrc/beta.ts\n",
+        },
+      });
+      // Recorded task has files in reversed order vs git output
+      mockRecordedTask({
+        filesTouched: ["src/beta.ts", "src/alpha.ts"],
+      });
+
+      const result = await checkpointTools.adv_task_checkpoint.execute(
+        {
+          taskId: "tk-abc",
+          mode: "complete",
+          verification: "Tests passed",
+        },
+        store,
+        "/tmp/test",
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.checkpointRecorded).toBe(true);
+    });
 
     test("routes target_path checkpoint through the target store", async () => {
       const store = createMockStore();
