@@ -528,6 +528,9 @@
       },
       "type": "object"
     },
+    "notes": {
+      "type": "string"
+    },
     "priority": {
       "default": 0,
       "type": "number"

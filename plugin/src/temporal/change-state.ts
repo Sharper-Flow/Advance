@@ -50,6 +50,7 @@ import type {
   SpecDeltaRetractedSignalPayload,
   SubagentReportSubmittedSignalPayload,
   Task,
+  TaskAcceptedPartial,
   TaskAddedSignalPayload,
   TaskAssignedSignalPayload,
   TaskBlockedSignalPayload,
@@ -874,7 +875,12 @@ import {
   ARTIFACT_HARD_CAP,
   ARTIFACT_SOFT_CAP,
 } from "../types";
-import { WisdomDraftSchema } from "../types/tasks";
+import {
+  DelegationRecoverySchema,
+  ErrorRecoverySchema,
+  TaskContractRefsSchema,
+  WisdomDraftSchema,
+} from "../types/tasks";
 
 const utf8 = new TextEncoder();
 function byteLength(content: string): number {
@@ -1390,6 +1396,55 @@ export function applyTaskRemovedToState(
   return state;
 }
 
+/**
+ * Apply an accepted non-transition partial to a task.
+ *
+ * Each nested substructure is validated independently at the workflow boundary
+ * so a malformed field drops while valid sibling fields still apply. Scalars
+ * are accepted only when they match the declared schema shape.
+ */
+function applyAcceptedPartialToTask(
+  task: Task,
+  acceptedPartial: TaskAcceptedPartial | undefined,
+): void {
+  if (!acceptedPartial) return;
+
+  if (acceptedPartial.error_recovery !== undefined) {
+    const parsed = ErrorRecoverySchema.safeParse(
+      acceptedPartial.error_recovery,
+    );
+    if (parsed.success) task.error_recovery = parsed.data;
+  }
+  if (acceptedPartial.contract_refs !== undefined) {
+    const parsed = TaskContractRefsSchema.safeParse(
+      acceptedPartial.contract_refs,
+    );
+    if (parsed.success) task.contract_refs = parsed.data;
+  }
+  if (acceptedPartial.implementation_summary !== undefined) {
+    if (typeof acceptedPartial.implementation_summary === "string") {
+      task.implementation_summary = acceptedPartial.implementation_summary;
+    }
+  }
+  if (acceptedPartial.notes !== undefined) {
+    if (typeof acceptedPartial.notes === "string") {
+      task.notes = acceptedPartial.notes;
+    }
+  }
+  if (acceptedPartial.delegation_recovery !== undefined) {
+    const parsed = DelegationRecoverySchema.safeParse(
+      acceptedPartial.delegation_recovery,
+    );
+    if (parsed.success) task.delegation_recovery = parsed.data;
+  }
+  if (acceptedPartial.wisdom_drafts !== undefined) {
+    const parsed = WisdomDraftSchema.array().safeParse(
+      acceptedPartial.wisdom_drafts,
+    );
+    if (parsed.success) task.wisdom_drafts = parsed.data;
+  }
+}
+
 export function applyTaskAssignedToState(
   state: ChangeWorkflowState,
   payload: TaskAssignedSignalPayload,
@@ -1401,6 +1456,7 @@ export function applyTaskAssignedToState(
   if (payload.applyCycle) {
     task.apply_cycle = payload.applyCycle;
   }
+  applyAcceptedPartialToTask(task, payload.acceptedPartial);
   setLastSignalAt(state, payload.assignedAt);
   return state;
 }
@@ -1705,6 +1761,10 @@ export function applyTaskCompletedToState(
       provenance: evidenceResolution.compatibility ?? "legacy",
     };
   }
+  // Apply accepted non-transition fields after guard-controlled status writes.
+  // This lets a caller-supplied implementation_summary or notes supersede the
+  // default summary-derived values while preserving the completion invariants.
+  applyAcceptedPartialToTask(task, payload.acceptedPartial);
   setLastSignalAt(state, payload.completedAt);
   return state;
 }
@@ -2071,9 +2131,8 @@ export function applyTaskBlockedToState(
   task.status = "blocked";
   task.blockReason = payload.reason;
   task.attempts = [...payload.attempts];
-  // rq-wisdomAutoSurfacing01.3: apply wisdom_drafts snapshot when present
-  // so a SEMANTIC error_recovery on a blocked-status update still records
-  // the draft. Legacy payloads omit the field → no-op (DDC6 backward-compat).
+  // rq-wisdomAutoSurfacing01.3: apply legacy top-level wisdom_drafts snapshot
+  // when present. Legacy payloads omit the field → no-op (DDC6 backward-compat).
   // security-4: validate at boundary; drop malformed silently.
   if (payload.wisdom_drafts !== undefined) {
     const parsed = WisdomDraftSchema.array().safeParse(payload.wisdom_drafts);
@@ -2081,6 +2140,10 @@ export function applyTaskBlockedToState(
       task.wisdom_drafts = parsed.data;
     }
   }
+  // acceptedPartial is authoritative for non-transition fields. Its optional
+  // wisdom_drafts overrides the legacy top-level field when both are supplied;
+  // absent acceptedPartial leaves the legacy replay behavior unchanged.
+  applyAcceptedPartialToTask(task, payload.acceptedPartial);
   setLastSignalAt(state, payload.blockedAt);
   return state;
 }

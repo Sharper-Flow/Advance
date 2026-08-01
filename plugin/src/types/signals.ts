@@ -33,7 +33,12 @@ import {
   DeltaRenameSchema,
   DeltaSchema,
 } from "./specs";
-import { AttemptSchema, TaskApplyCycleSchema, TaskSchema } from "./tasks";
+import {
+  AttemptSchema,
+  TaskAcceptedPartialSchema,
+  TaskApplyCycleSchema,
+  TaskSchema,
+} from "./tasks";
 import { TaskStructuredOutputSchema } from "./task-output";
 import {
   DesignConcernDispositionSchema,
@@ -200,6 +205,12 @@ export const TaskAssignedSignalPayloadSchema = z.object({
   sessionId: z.string(),
   assignedAt: IsoTimestampSchema,
   applyCycle: TaskApplyCycleSchema.optional(),
+  /**
+   * Optional accepted non-transition fields to persist atomically with the
+   * assigned transition. Malformed nested substructures are dropped at the
+   * workflow boundary; absent fields are no-ops.
+   */
+  acceptedPartial: TaskAcceptedPartialSchema.optional(),
 });
 export type TaskAssignedSignalPayload = z.infer<
   typeof TaskAssignedSignalPayloadSchema
@@ -220,6 +231,12 @@ export const TaskCompletedSignalPayloadSchema = z.object({
   lastGreenRunId: z.string().optional(),
   /** Evidence ref for non-inline TDD (separate_verification / not_applicable) */
   lastEvidenceRunId: z.string().optional(),
+  /**
+   * Optional accepted non-transition fields to persist atomically with the
+   * completed transition. Applied after guard-controlled status writes so a
+   * caller-supplied implementation_summary or notes can supersede defaults.
+   */
+  acceptedPartial: TaskAcceptedPartialSchema.optional(),
 });
 export type TaskCompletedSignalPayload = z.infer<
   typeof TaskCompletedSignalPayloadSchema
@@ -350,6 +367,13 @@ export const TaskBlockedSignalPayloadSchema = z.object({
    * Absent on legacy payloads; workflow handler treats undefined as no-op.
    */
   wisdom_drafts: z.array(WisdomDraftSchema).optional(),
+  /**
+   * Optional accepted non-transition fields to persist atomically with the
+   * blocked transition. Takes authority over the legacy top-level
+   * wisdom_drafts when both are present; absent fields are no-ops and legacy
+   * payloads replay unchanged.
+   */
+  acceptedPartial: TaskAcceptedPartialSchema.optional(),
 });
 export type TaskBlockedSignalPayload = z.infer<
   typeof TaskBlockedSignalPayloadSchema

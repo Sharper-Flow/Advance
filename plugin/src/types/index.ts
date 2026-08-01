@@ -154,6 +154,8 @@ export {
   type WisdomDraft,
   TaskSchema,
   type Task,
+  TaskAcceptedPartialSchema,
+  type TaskAcceptedPartial,
 } from "./tasks";
 
 // =============================================================================

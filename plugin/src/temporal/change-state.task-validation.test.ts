@@ -1,17 +1,20 @@
 /**
  * Task signal validation — workflow-boundary defense-in-depth tests.
  *
- * Covers applyTaskUpdatedToState and applyTaskBlockedToState validation paths
- * that guard against malformed signal payloads corrupting task state via
- * Object.assign. The validation pattern was introduced in addWisdomAutoSurfacing
- * (security-4) but shipped with no test coverage; this file closes that gap
- * and locks in the generalized TaskSchema.partial() safeParse behavior.
+ * Covers applyTaskUpdatedToState, applyTaskBlockedToState, applyTaskAssignedToState,
+ * and applyTaskCompletedToState validation paths that guard against malformed
+ * signal payloads corrupting task state via Object.assign. The validation pattern
+ * was introduced in addWisdomAutoSurfacing (security-4) but shipped with no test
+ * coverage; this file closes that gap and locks in the generalized
+ * TaskSchema.partial() / acceptedPartial safeParse behavior.
  */
 
 import { describe, expect, it } from "vitest";
 
 import {
+  applyTaskAssignedToState,
   applyTaskBlockedToState,
+  applyTaskCompletedToState,
   applyTaskUpdatedToState,
   createChangeWorkflowState,
 } from "./change-state";
@@ -50,6 +53,50 @@ function makeBaselineState(
   } as unknown as Task;
   state.tasks = [task];
   return state;
+}
+
+function validDraft(id: string) {
+  return {
+    id,
+    suggested_type: "failure" as const,
+    suggested_content: "diag → fix",
+    source_attempts: [1],
+    status: "suggested" as const,
+    created_at: "2026-07-21T17:00:00.000Z",
+  };
+}
+
+function validErrorRecovery() {
+  return {
+    last_error: "last",
+    retry_count: 1,
+    max_retries: 3,
+    error_class: "SEMANTIC" as const,
+    attempts: [
+      {
+        attempt_number: 1,
+        error: "e",
+        diagnosis: "d",
+        fix_tried: "f",
+        strategy_label: "label-1",
+        outcome: "failed" as const,
+        attempted_at: "2026-07-21T17:00:00.000Z",
+      },
+    ],
+  };
+}
+
+function validDelegationRecovery() {
+  return {
+    empty_or_malformed_count: 1,
+    narrower_retry_count: 0,
+    inline_diagnosis_evidence: false,
+    last_updated_at: "2026-07-21T17:00:00.000Z",
+  };
+}
+
+function validContractRefs() {
+  return { implements: ["AC1"], respects: ["C1"] };
 }
 
 describe("applyTaskUpdatedToState — workflow-boundary validation", () => {
@@ -266,5 +313,185 @@ describe("applyTaskBlockedToState — wisdom_drafts payload validation", () => {
     expect(task.status).toBe("blocked");
     expect(task.wisdom_drafts).toHaveLength(1);
     expect(task.wisdom_drafts?.[0]?.id).toBe("dr-existing");
+  });
+});
+
+describe("applyTaskAssignedToState — acceptedPartial persistence", () => {
+  it("applies acceptedPartial fields atomically after the status transition", () => {
+    const state = makeBaselineState();
+
+    applyTaskAssignedToState(state, {
+      taskId: "tk-validation",
+      sessionId: "agent-1",
+      assignedAt: "2026-07-21T17:01:00.000Z",
+      applyCycle: {
+        implementation_cycle_id: "ic-1",
+        started_at: "2026-07-21T17:01:00.000Z",
+        kind: "initial" as const,
+      },
+      acceptedPartial: {
+        notes: "assigned notes",
+        implementation_summary: "assigned summary",
+        contract_refs: validContractRefs(),
+        error_recovery: validErrorRecovery(),
+        delegation_recovery: validDelegationRecovery(),
+        wisdom_drafts: [validDraft("dr-assigned")],
+      },
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.status).toBe("in_progress");
+    expect(task.assignedTo).toBe("agent-1");
+    expect(task.notes).toBe("assigned notes");
+    expect(task.implementation_summary).toBe("assigned summary");
+    expect(task.contract_refs).toEqual(validContractRefs());
+    expect(task.error_recovery).toEqual(validErrorRecovery());
+    expect(task.delegation_recovery).toEqual(validDelegationRecovery());
+    expect(task.wisdom_drafts).toHaveLength(1);
+    expect(task.wisdom_drafts?.[0]?.id).toBe("dr-assigned");
+  });
+
+  it("absent acceptedPartial leaves non-transition fields untouched", () => {
+    const state = makeBaselineState({ notes: "keep-me" });
+
+    applyTaskAssignedToState(state, {
+      taskId: "tk-validation",
+      sessionId: "agent-1",
+      assignedAt: "2026-07-21T17:01:00.000Z",
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.status).toBe("in_progress");
+    expect(task.notes).toBe("keep-me");
+  });
+
+  it("drops malformed nested fields while applying valid siblings", () => {
+    const state = makeBaselineState({
+      error_recovery: { ...validErrorRecovery(), error_class: "TRANSIENT" },
+    });
+
+    applyTaskAssignedToState(state, {
+      taskId: "tk-validation",
+      sessionId: "agent-1",
+      assignedAt: "2026-07-21T17:01:00.000Z",
+      acceptedPartial: {
+        notes: "valid notes",
+        // Missing required attempts — ErrorRecoverySchema will reject.
+        error_recovery: { last_error: "missing attempts" } as any,
+      },
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.notes).toBe("valid notes");
+    // Existing error_recovery preserved because the accepted partial was invalid.
+    expect(task.error_recovery?.error_class).toBe("TRANSIENT");
+  });
+});
+
+describe("applyTaskBlockedToState — acceptedPartial authority + legacy replay", () => {
+  it("acceptedPartial wisdom_drafts overrides legacy top-level wisdom_drafts", () => {
+    const state = makeBaselineState();
+
+    applyTaskBlockedToState(state, {
+      taskId: "tk-validation",
+      reason: "Blocked",
+      attempts: [],
+      blockedAt: "2026-07-21T17:01:00.000Z",
+      wisdom_drafts: [validDraft("dr-legacy")],
+      acceptedPartial: {
+        notes: "blocked via partial",
+        wisdom_drafts: [validDraft("dr-partial")],
+      },
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.status).toBe("blocked");
+    expect(task.notes).toBe("blocked via partial");
+    expect(task.wisdom_drafts).toHaveLength(1);
+    expect(task.wisdom_drafts?.[0]?.id).toBe("dr-partial");
+  });
+
+  it("legacy top-level wisdom_drafts replays when acceptedPartial omits it", () => {
+    const state = makeBaselineState();
+
+    applyTaskBlockedToState(state, {
+      taskId: "tk-validation",
+      reason: "Blocked",
+      attempts: [],
+      blockedAt: "2026-07-21T17:01:00.000Z",
+      wisdom_drafts: [validDraft("dr-legacy")],
+      acceptedPartial: {
+        notes: "blocked via partial",
+      },
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.notes).toBe("blocked via partial");
+    expect(task.wisdom_drafts).toHaveLength(1);
+    expect(task.wisdom_drafts?.[0]?.id).toBe("dr-legacy");
+  });
+
+  it("drops malformed acceptedPartial.wisdom_drafts; existing task drafts survive", () => {
+    const state = makeBaselineState({
+      wisdom_drafts: [validDraft("dr-existing")] as any,
+    });
+
+    applyTaskBlockedToState(state, {
+      taskId: "tk-validation",
+      reason: "Blocked",
+      attempts: [],
+      blockedAt: "2026-07-21T17:01:00.000Z",
+      acceptedPartial: {
+        notes: "blocked via partial",
+        wisdom_drafts: [{ id: "dr-bad" }] as any,
+      },
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.notes).toBe("blocked via partial");
+    expect(task.wisdom_drafts).toHaveLength(1);
+    expect(task.wisdom_drafts?.[0]?.id).toBe("dr-existing");
+  });
+});
+
+describe("applyTaskCompletedToState — acceptedPartial persistence", () => {
+  it("applies acceptedPartial after completion status writes", () => {
+    const state = makeBaselineState();
+
+    applyTaskCompletedToState(state, {
+      taskId: "tk-validation",
+      verification: "tests passed",
+      summary: "signal summary",
+      filesTouched: ["a.ts"],
+      completedAt: "2026-07-21T17:01:00.000Z",
+      acceptedPartial: {
+        notes: "completed notes",
+        implementation_summary: "accepted summary",
+        contract_refs: validContractRefs(),
+      },
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.status).toBe("done");
+    expect(task.summary).toBe("signal summary");
+    expect(task.implementation_summary).toBe("accepted summary");
+    expect(task.notes).toBe("completed notes");
+    expect(task.contract_refs).toEqual(validContractRefs());
+  });
+
+  it("absent acceptedPartial leaves pre-existing non-transition fields untouched", () => {
+    const state = makeBaselineState({ notes: "keep-me" });
+
+    applyTaskCompletedToState(state, {
+      taskId: "tk-validation",
+      verification: "tests passed",
+      summary: "signal summary",
+      filesTouched: ["a.ts"],
+      completedAt: "2026-07-21T17:01:00.000Z",
+    } as any);
+
+    const task = state.tasks[0];
+    expect(task.status).toBe("done");
+    expect(task.notes).toBe("keep-me");
   });
 });

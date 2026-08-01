@@ -429,6 +429,27 @@ export const WisdomDraftSchema = z.object({
 export type WisdomDraft = z.infer<typeof WisdomDraftSchema>;
 
 // =============================================================================
+// Accepted non-transition partial (assigned / blocked / completed signals)
+// =============================================================================
+
+/**
+ * Shared optional partial for accepted non-transition task fields that may be
+ * persisted atomically by status-transition signals (assigned, blocked, completed).
+ * Each field is validated independently at the workflow boundary so a malformed
+ * nested substructure does not block valid sibling fields.
+ */
+export const TaskAcceptedPartialSchema = z.object({
+  error_recovery: ErrorRecoverySchema.optional(),
+  contract_refs: TaskContractRefsSchema.optional(),
+  implementation_summary: z.string().optional(),
+  notes: z.string().optional(),
+  wisdom_drafts: z.array(WisdomDraftSchema).optional(),
+  delegation_recovery: DelegationRecoverySchema.optional(),
+});
+
+export type TaskAcceptedPartial = z.infer<typeof TaskAcceptedPartialSchema>;
+
+// =============================================================================
 // Task
 // =============================================================================
 
@@ -471,6 +492,8 @@ export const TaskSchema = z
     completed_by: z.string().nullable().optional(),
     /** Structured summary of what was done and how — persisted at task completion */
     implementation_summary: z.string().optional(),
+    /** Free-form notes attached to the task by tools or agents. */
+    notes: z.string().optional(),
     /** Signal-driven completion proof supplied by taskCompletedSignal. */
     verification: z.string().optional(),
     /** Concise completion summary supplied by taskCompletedSignal. */
