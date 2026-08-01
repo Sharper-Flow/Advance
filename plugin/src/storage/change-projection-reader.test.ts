@@ -26,7 +26,10 @@ vi.mock("fs/promises", async (importOriginal) => {
         return {
           stat: async () => {
             statCalls += 1;
-            return { size: statCalls === 1 ? 10 : 20 } as import("fs").Stats;
+            return {
+              size: statCalls === 1 ? 10 : 20,
+              isFile: () => true,
+            } as unknown as import("fs").Stats;
           },
           read: async (
             buffer: Buffer,

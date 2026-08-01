@@ -112,6 +112,12 @@ export async function readBoundedProjectionDocument(
     const handle = await open(filePath, "r");
     try {
       const stats = await handle.stat();
+      if (!stats.isFile()) {
+        return {
+          kind: "unreadable",
+          error: `not a regular file: ${filePath}`,
+        };
+      }
       if (stats.size > limitBytes) {
         return { kind: "oversized", limit: limitBytes, actual: stats.size };
       }
