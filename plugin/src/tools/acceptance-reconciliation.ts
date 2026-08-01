@@ -315,10 +315,22 @@ function stripRecoveryAuditMarkers(
     }) as typeof array;
   }
 
-  if (items.some((item) => item.family === "contract_review_matrix")) {
+  const pendingMatrix = items.find(
+    (
+      item,
+    ): item is Extract<
+      PendingReconciliationItem,
+      { family: "contract_review_matrix" }
+    > => item.family === "contract_review_matrix",
+  );
+  if (pendingMatrix) {
     const matrix = next.contract?.reviewMatrix;
-    if (matrix) {
-      const { recovery_audit: _, ...rest } = matrix;
+    const recoveredMatrix = matrix as RecoveryAuditedMatrix | undefined;
+    if (
+      recoveredMatrix &&
+      matchesPendingRecoveredMatrix(recoveredMatrix, pendingMatrix)
+    ) {
+      const { recovery_audit: _, ...rest } = recoveredMatrix;
       next.contract = next.contract
         ? { ...next.contract, reviewMatrix: rest }
         : undefined;

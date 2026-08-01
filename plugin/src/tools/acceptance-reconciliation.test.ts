@@ -507,6 +507,57 @@ describe("reconcileRecoveredAcceptanceRemediation", () => {
     expect(disk.data?.projection_revision).toBe(1);
   });
 
+  test("retains a newer recovered matrix that arrives while clearing an older reconciliation", async () => {
+    const changesDir = await createTempDir("adv-acceptance-reconciliation-");
+    const older = contractReviewMatrix({ recovery_audit: recoveryAudit() });
+    await seedProjection(
+      changesDir,
+      baseChange({ contract: baseContract({ reviewMatrix: older }) }),
+    );
+    mocks.query.mockImplementation((queryName: string, receiptId?: string) => {
+      if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+        return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+      }
+      return Promise.resolve(workflowState({ matrix: contractReviewMatrix() }));
+    });
+
+    const newer = contractReviewMatrix({
+      reviewedAt: "2026-05-23T00:00:03.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "fail",
+          evidencePolicy: "test",
+          evidence: "A newer review found a regression.",
+        },
+      ],
+      recovery_audit: {
+        ...recoveryAudit(),
+        recovered_at: "2026-05-23T00:00:03.000Z",
+      },
+    });
+    mocks.signal.mockImplementationOnce(async () => {
+      await seedProjection(
+        changesDir,
+        baseChange({ contract: baseContract({ reviewMatrix: newer }) }),
+      );
+    });
+
+    const result = await reconcileRecoveredAcceptanceRemediation({
+      store: storeFor(changesDir),
+      changeId: "change-1",
+      handle: mocks.handle,
+    });
+
+    expect(result).toMatchObject({
+      kind: "blocked",
+      code: "ACCEPTANCE_RECONCILIATION_CLEAR_FAILED",
+    });
+    const disk = await loadChange(changesDir, "change-1");
+    expect(disk.data?.contract?.reviewMatrix).toEqual(newer);
+  });
+
   test("re-delivers dispositions and a contract review matrix together", async () => {
     const changesDir = await createTempDir("adv-acceptance-reconciliation-");
     const matrix = contractReviewMatrix({
