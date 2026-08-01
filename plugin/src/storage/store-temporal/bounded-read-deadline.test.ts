@@ -69,9 +69,21 @@ function poisonedTemporal() {
               throw new Error("routine list must not query workflow");
             },
           }),
-          list: async () => {
-            throw new Error("routine list must not enumerate Visibility");
-          },
+          // Returns an AsyncIterable synchronously and throws on iteration,
+          // matching the real client. An `async () => { throw }` would return
+          // a rejected promise that `for await...of` cannot iterate, so the
+          // rejection would never be awaited and would escape as an unhandled
+          // rejection. Written as an explicit iterator rather than an async
+          // generator because a generator with no `yield` trips require-yield.
+          list: () => ({
+            [Symbol.asyncIterator]() {
+              return {
+                next: async (): Promise<IteratorResult<never>> => {
+                  throw new Error("routine list must not enumerate Visibility");
+                },
+              };
+            },
+          }),
           start: async () => {
             throw new Error("routine list must not start a workflow");
           },

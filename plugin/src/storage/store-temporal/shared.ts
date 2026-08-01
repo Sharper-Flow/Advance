@@ -759,6 +759,14 @@ export async function raceWithTemporalDeadline<T>(
   op: Promise<T>,
   deadline: TemporalReadDeadline,
 ): Promise<T> {
+  // `op` is already in flight by the time we get here, and there are two paths
+  // where we abandon it: the deadline is already expired (below), or the timer
+  // wins the race. In both cases nothing awaits `op` again, so a later
+  // rejection surfaces as an unhandled rejection and fails the process even
+  // though the caller correctly handled the timeout. Attach a terminal no-op
+  // handler so abandonment is always safe. This does not swallow anything the
+  // caller would otherwise see: whoever wins the race below still propagates.
+  void op.catch(() => {});
   const remaining = remainingDeadlineMs(deadline);
   if (remaining <= 0) {
     throw new TemporalQueryTimeoutError(deadline.budgetMs);

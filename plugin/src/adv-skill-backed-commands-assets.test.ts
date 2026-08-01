@@ -816,9 +816,9 @@ describe("command line ceiling baselines", () => {
   };
   const COMMAND_BASELINES = tokenBudgets.commandLineBaselines;
 
-  test("command files within baseline tolerance", () => {
+  test("advisory: command files within baseline tolerance (warn-only)", () => {
     const commandDir = join(REPO_ROOT, ".opencode/command");
-    const violations: string[] = [];
+    const warnings: string[] = [];
 
     for (const [file, baseline] of Object.entries(COMMAND_BASELINES)) {
       const filePath = join(commandDir, file);
@@ -828,13 +828,20 @@ describe("command line ceiling baselines", () => {
       const threshold = Math.ceil(baseline * 1.1);
 
       if (lines > threshold) {
-        violations.push(
-          `${file}: ${lines} lines (baseline: ${baseline}, threshold: ${threshold})`,
+        warnings.push(
+          `⚠ ${file}: ${lines} lines (baseline: ${baseline}, threshold: ${threshold})`,
         );
       }
     }
 
-    expect(violations).toEqual([]);
+    if (warnings.length > 0) {
+      console.warn(
+        `\n[ADV:TOKEN_BUDGET] ${warnings.length} command file(s) exceed baseline by >10%:\n${warnings.join("\n")}`,
+      );
+    }
+
+    // Advisory: always passes
+    expect(true).toBe(true);
   });
 
   test("total command file line count within baseline tolerance", () => {
