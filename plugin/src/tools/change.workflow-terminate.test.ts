@@ -285,6 +285,38 @@ describe("adv_change_workflow_terminate", () => {
     expect(mocks.terminate).not.toHaveBeenCalled();
   });
 
+  test("operator-supplied poisoned_history recovery bypasses shipped-gate proof for unshipped changes", async () => {
+    // Unfinished poisoned changes (acceptance/release pending) cannot satisfy
+    // the shipped-terminal proof requirement, so the explicit recovery branch
+    // must be reachable before that gate check.
+    const gates = shippedGates();
+    (gates.acceptance as { status: string }).status = "pending";
+    (gates.release as { status: string }).status = "pending";
+    const store = createMockStore(
+      wedgedChange({ gates, status: "active" }),
+    );
+
+    const result = await tool().execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: TERMINATE_EVIDENCE,
+        recoveryMode: "poisoned_history",
+        recoveryEvidence:
+          "WorkflowTaskFailedCauseNonDeterministicError: TMPRL1100 No command scheduled for event",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.workflowTerminated).toBe(true);
+    expect(parsed.eligibilityClass).toBe("poisoned_history");
+    expect(mocks.describe).not.toHaveBeenCalled();
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+    expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+  });
+
   test("returns structured error when Temporal service is unavailable", async () => {
     const store = createMockStore(wedgedChange());
     mocks.getService.mockReturnValue(null);

@@ -5337,23 +5337,6 @@ export const changeTools = {
         });
       }
 
-      // Shipped proof: acceptance AND release gates done. This must pass
-      // BEFORE any idempotent completed/not-found handling — a gone workflow
-      // never masks an ineligible change.
-      const gates = change.gates ?? createDefaultGates();
-      const incompleteGates = WORKFLOW_TERMINATE_SHIPPED_GATES.filter(
-        (gateId) => gates[gateId]?.status !== "done",
-      );
-      if (incompleteGates.length > 0) {
-        return formatToolOutput({
-          success: false,
-          error: `Workflow termination refused: change ${changeId} has no shipped proof (gate(s) not done: ${incompleteGates.join(", ")}).`,
-          changeId,
-          incompleteGates,
-          hint: "Only shipped changes (acceptance AND release gates done) are eligible — their disk projection is fully authoritative. Complete the gates via the normal workflow.",
-        });
-      }
-
       const { getService } = await import("../temporal/service");
       const service = getService();
       const projectId = service ? await getProjectId(store.paths.root) : null;
@@ -5368,17 +5351,9 @@ export const changeTools = {
       }
       const { getChangeHandle } = await import("./_adapters");
       const handle = getChangeHandle(service.client, projectId, changeId);
-      if (typeof handle.describe !== "function") {
-        return formatToolOutput({
-          success: false,
-          error:
-            "Change workflow handle does not support describe() — cannot pin an exact run",
-          changeId,
-        });
-      }
 
-      // Idempotent completed/not-found handling — only reachable here, AFTER
-      // approval + existence + status + shipped-gate eligibility.
+      // Idempotent completed/not-found handling — reachable here, AFTER
+      // approval + existence + archived status eligibility.
       const refreshProjectionCache = async () => {
         try {
           await store.changes.refresh(changeId);
@@ -5392,9 +5367,13 @@ export const changeTools = {
         await import("../temporal/recovery-classification");
 
       // Operator-supplied poisoned-history recovery branch
-      // (fixPoisonedClosePathPrecheck): skip the describe() precheck when the
-      // operator has provided precise recovery evidence. This only applies to
-      // the poisoned_history eligibility class; shipped_terminal proof is unchanged.
+      // (fixPoisonedClosePathPrecheck): run after approval + existence +
+      // archived check but BEFORE shipped-gate proof. An unfinished poisoned
+      // change cannot satisfy acceptance+release shipped proof, so gating this
+      // branch behind shipped proof made it unreachable. This branch is
+      // recoveryMode-gated and evidence-gated: terminate only, refresh the
+      // cache, and never write convergence/status. Shipped-terminal/normal
+      // mode still requires full shipped proof + exact run pinning below.
       if (
         shouldTakeRecoveryBranch({
           recoveryMode,
@@ -5420,7 +5399,7 @@ export const changeTools = {
               terminate: (reason?: string) => Promise<unknown>;
             }
           ).terminate(
-            `adv_change_workflow_terminate: operator-approved termination of poisoned_history shipped change workflow ${changeId} (unpinned recovery branch)`,
+            `adv_change_workflow_terminate: operator-approved termination of poisoned_history change workflow ${changeId} (unpinned recovery branch)`,
           );
         } catch (error) {
           if (isWorkflowCompletedError(error)) {
@@ -5438,6 +5417,32 @@ export const changeTools = {
           ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
           eligibilityClass: "poisoned_history",
           message: `Terminated change ${changeId} workflow via operator-supplied poisoned-history recovery branch (describe skipped). Disk projection remains authoritative; subsequent reads fall through to disk.`,
+        });
+      }
+
+      // Shipped proof: acceptance AND release gates done. This must pass
+      // BEFORE idempotent completed/not-found handling in the normal path — a
+      // gone workflow never masks an ineligible change.
+      const gates = change.gates ?? createDefaultGates();
+      const incompleteGates = WORKFLOW_TERMINATE_SHIPPED_GATES.filter(
+        (gateId) => gates[gateId]?.status !== "done",
+      );
+      if (incompleteGates.length > 0) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} has no shipped proof (gate(s) not done: ${incompleteGates.join(", ")}).`,
+          changeId,
+          incompleteGates,
+          hint: "Only shipped changes (acceptance AND release gates done) are eligible — their disk projection is fully authoritative. Complete the gates via the normal workflow.",
+        });
+      }
+
+      if (typeof handle.describe !== "function") {
+        return formatToolOutput({
+          success: false,
+          error:
+            "Change workflow handle does not support describe() — cannot pin an exact run",
+          changeId,
         });
       }
 
