@@ -52,7 +52,6 @@ coverage/
 tmp/
 temp/
 *.tmp
-.firecrawl/
 
 # Provider eval output (regenerated per run)
 scripts/provider-eval-results/

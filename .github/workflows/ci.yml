@@ -75,30 +75,6 @@ jobs:
       - name: Install Temporal CLI
         uses: temporalio/setup-temporal@v0
 
-      - name: Start Temporal dev server and wait for readiness
-        shell: bash
-        run: |
-          # The setup action installs the CLI but does not start a server.
-          # Keep the gRPC endpoint available for both sequential test steps.
-          nohup temporal server start-dev --headless > /tmp/temporal-dev.log 2>&1 &
-          TEMPORAL_PID=$!
-          disown "$TEMPORAL_PID" 2>/dev/null || true
-          echo "Temporal dev server PID: $TEMPORAL_PID"
-
-          for attempt in $(seq 1 30); do
-            if temporal operator cluster health >/dev/null 2>&1; then
-              echo "Temporal is ready (attempt $attempt/30)"
-              exit 0
-            fi
-            echo "Waiting for Temporal... ($attempt/30)"
-            sleep 2
-          done
-
-          echo "::error::Temporal dev server failed to become ready within 60s"
-          echo "----- temporal dev server log -----"
-          cat /tmp/temporal-dev.log || true
-          exit 1
-
       - name: Install Bun
         # opencode-session-debt.test.ts shells out to `bun` to seed a bun:sqlite
         # database under the OpenCode debt-doctor scenario. Without bun on PATH
