@@ -810,6 +810,23 @@ describe("command line ceiling baselines", () => {
   // Baselines are structural: command files must stay within baseline + 10%.
   // Update token-budgets.json when a command file is intentionally expanded or
   // compressed. Regression coverage prevents silent prompt-budget drift.
+  //
+  // adv-apply.md baseline raised 492 -> 615 (fixCiRipgrepOverlayTimeout).
+  // Justification, recorded because raising a baseline to silence a failure is
+  // otherwise prohibited: this test caught real corruption, not drift. A batch
+  // merge committed 14 unresolved git conflict markers into adv-apply.md and
+  // shipped them to trunk, leaving the file at 852 lines of duplicated,
+  // contradictory instructions. The file was reconstructed from the clean
+  // pre-corruption trunk content plus the restructure base: the missing
+  // methodology sections (Error Classification, Budget Exhaustion, Reflexion
+  // diagnosis, Lightweight Change Profile, Prep Gate Approval Check, Tool
+  // Check, Recording, and the worktree-management subsections) were grafted
+  // back, while the Apply Context Packet, Designer Apply Context Packet, and
+  // Verification Triage Packet/Result bodies were kept in their canonical
+  // offloaded home at docs/apply-subagent-packets.md. 615 is the true size of
+  // that union with every heading appearing exactly once and zero markers
+  // remaining. The number went up because corruption was removed and missing
+  // documentation was restored, not because the ceiling was inconvenient.
   const tokenBudgets = JSON.parse(readFileSync(TOKEN_BUDGETS_PATH, "utf8")) as {
     advInstructionsLineBaseline: number;
     commandLineBaselines: Record<string, number>;

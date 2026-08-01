@@ -49,6 +49,9 @@ const MODIFY_DELTA = {
   changes: { title: "Updated requirement" },
 };
 
+// Shapes follow DeltaRemoveSchema / DeltaRenameSchema in types/specs.ts, whose
+// required fields differ from add and modify: remove requires `reason`, and
+// rename requires `new_title`.
 const REMOVE_DELTA = {
   id: "dl-RMV11111",
   operation: "remove" as const,
@@ -63,6 +66,7 @@ const RENAME_DELTA = {
   new_title: "Renamed requirement",
   new_id: "rq-renamed01",
 };
+
 function makeStateWithDelta() {
   return {
     changeId: "spec-delta-store-test",
@@ -140,6 +144,11 @@ function makeDeps(stateAfterSignal: unknown) {
     invalidateChange: vi.fn(),
     setCachedChange: vi.fn(),
     emitChangeSummarySignal: vi.fn(),
+    // Supplied as a spy specifically so the "not called" assertions below are
+    // live. `changeCommand` already commits the projection durably through the
+    // single writer, so spec-delta operations must NOT issue a second,
+    // unawaited write. Without this spy those assertions reference `undefined`
+    // and cannot fail, which is how the redundant write went unnoticed.
     persistStateToDisk: vi.fn(),
   };
 }
@@ -169,6 +178,9 @@ describe("createSpecDeltaOps", () => {
     );
 
     expect(result).toEqual(ADD_DELTA);
+    // The durable commit is changeCommand's responsibility; a successful add
+    // must not double-write through persistStateToDisk.
+    expect(deps.persistStateToDisk).not.toHaveBeenCalled();
     expect(signalMock).toHaveBeenCalledTimes(1);
     const [signalDef, payload] = signalMock.mock.calls[0]!;
     expect(signalDef).toMatchObject({
@@ -412,17 +424,32 @@ describe("createSpecDeltaOps", () => {
       },
     };
     const deps = makeDeps(mismatched);
+    // Without this the ledger query has no implementation and the command polls
+    // until the test times out, masking the mismatch assertion entirely.
     mockQueries(mismatched);
     const ops = createSpecDeltaOps(deps as never);
 
     await expect(
       ops.add("spec-delta-store-test", "collection-dashboard", ADD_DELTA),
     ).rejects.toThrow(/payload|mismatch|exact/i);
+    // `changeCommand` commits the projection and hydrates the cache before the
+    // readback is validated, so the workflow-confirmed state IS cached even
+    // when it diverges from what was requested. The workflow is the durable
+    // authority; the caller learns about the divergence from the thrown error.
+    // Asserting "not called" here would describe behaviour the current commit
+    // ordering cannot provide.
+    expect(deps.setCachedChange).toHaveBeenCalledWith(mismatched);
+    // These two are published by spec-deltas itself, after validation, so a
+    // rejected readback must not reach them.
     expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
     expect(deps.persistStateToDisk).not.toHaveBeenCalled();
   });
 
   it("rejects a modify readback whose id and operation match but payload differs", async () => {
+    // Built from makeStateWithDelta so the state carries the revision metadata
+    // the ledger check reads. A hand-rolled object omits it, so the command
+    // fails the revision comparison first and never reaches payload validation,
+    // which is the behaviour this test exists to cover.
     const mismatched = {
       ...makeStateWithDelta(),
       deltas: {
@@ -441,6 +468,9 @@ describe("createSpecDeltaOps", () => {
     await expect(
       ops.modify("spec-delta-store-test", "collection-dashboard", MODIFY_DELTA),
     ).rejects.toThrow(/payload|mismatch|exact/i);
+    // Same ordering as the add case above: commit and cache hydration happen
+    // inside changeCommand, before spec-deltas validates the readback payload.
+    expect(deps.setCachedChange).toHaveBeenCalledWith(mismatched);
     expect(deps.emitChangeSummarySignal).not.toHaveBeenCalled();
     expect(deps.persistStateToDisk).not.toHaveBeenCalled();
   });

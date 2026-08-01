@@ -1,33 +1,21 @@
 import { describe, expect, test, vi } from "vitest";
 import {
-  mkdtempSync,
   mkdirSync,
   readFileSync,
   rmSync,
-  utimesSync,
   writeFileSync,
   existsSync,
   symlinkSync,
 } from "fs";
 import { spawnSync } from "child_process";
-import { createHash } from "crypto";
-import { tmpdir } from "os";
 import { join, resolve } from "path";
+import {
+  createDeployFixture,
+  withDeployFixture,
+} from "./__tests__/deploy-local-fixture";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
-const FAKE_WORKER = "// fake worker\n";
-const FAKE_WORKFLOWS = "// fake workflows\n";
-const FAKE_MCP_SERVER = "// fake mcp server\n";
-const FAKE_TEMPORAL_MANIFEST = JSON.stringify({
-  schema_version: 1,
-  generation: "fake",
-  files: {
-    "worker.js": createHash("sha256").update(FAKE_WORKER).digest("hex"),
-    "workflows.js": createHash("sha256").update(FAKE_WORKFLOWS).digest("hex"),
-  },
-  built_at: "2026-01-01T00:00:00.000Z",
-});
 
 // deploy-local.sh can rebuild plugin/dist before syncing runtime assets in
 // addition to copying the single ADV runtime agent and provider hint assets;
@@ -44,6 +32,40 @@ vi.setConfig({ testTimeout: 240_000 });
 
 describe("overlay sync script support", () => {
   const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
+
+  test("deploy-local fixture refuses the repository root as working directory", () => {
+    const fixture = createDeployFixture();
+    try {
+      expect(() => fixture.runDeploy(["--fix"], {}, REPO_ROOT)).toThrow(
+        /Refusing to run deploy from repository root/i,
+      );
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  test("deploy-local fixture records no pnpm build during normal --fix", () => {
+    withDeployFixture((fixture) => {
+      const result = fixture.runDeploy(["--fix"]);
+      expect(result.status).toBe(0);
+      const pnpmLog = readFileSync(fixture.pnpmLog, "utf8");
+      expect(pnpmLog).toContain("run generate:manifests");
+      expect(pnpmLog).not.toContain("run build");
+    });
+  });
+
+  test("deploy-local fixture leaves the source worktree and build output unmodified", () => {
+    const before = spawnSync("git", ["status", "--porcelain"], {
+      encoding: "utf8",
+    }).stdout;
+    withDeployFixture((fixture) => {
+      fixture.runDeploy(["--fix"]);
+    });
+    const after = spawnSync("git", ["status", "--porcelain"], {
+      encoding: "utf8",
+    }).stdout;
+    expect(after).toBe(before);
+  });
 
   test("supports dry-run and diff options for overlay review", () => {
     expect(content).toContain("--dry-run");
@@ -107,321 +129,67 @@ describe("overlay sync script support", () => {
   });
 
   test("plugin dist freshness guard exercises build, dry-run, and failure paths", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-dist-guard-home-"));
-    const tempWorktreeRoot = mkdtempSync(join(tmpdir(), "adv-dist-guard-wt-"));
-    const tempWorktree = join(tempWorktreeRoot, "repo-worktree");
-    const fakeBin = join(tempHome, "bin");
-    const pnpmLog = join(tempHome, "pnpm.log");
-    const rsyncLog = join(tempHome, "rsync.log");
-
-    const makeStale = () => {
-      const distPath = join(tempWorktree, "plugin", "dist", "index.js");
-      const srcPath = join(tempWorktree, "plugin", "src", "index.ts");
-      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
-      writeFileSync(distPath, "// stale dist\n");
-      utimesSync(
-        distPath,
-        new Date("2020-01-01T00:00:00Z"),
-        new Date("2020-01-01T00:00:00Z"),
-      );
-      utimesSync(
-        srcPath,
-        new Date("2020-01-02T00:00:00Z"),
-        new Date("2020-01-02T00:00:00Z"),
-      );
-    };
-
-    const makeFresh = () => {
-      const distPath = join(tempWorktree, "plugin", "dist", "index.js");
-      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
-      mkdirSync(join(tempWorktree, "plugin", "dist", "temporal"), {
-        recursive: true,
-      });
-      writeFileSync(distPath, "// fresh dist\n");
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
-        FAKE_MCP_SERVER,
-      );
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
-        "// fresh worker\n",
-      );
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
-        "// fresh workflows\n",
-      );
-      writeFileSync(
-        join(
-          tempWorktree,
-          "plugin",
-          "dist",
-          "temporal",
-          "bundle-manifest.json",
-        ),
-        JSON.stringify({
-          schema_version: 1,
-          generation: "fresh",
-          files: {
-            "worker.js": createHash("sha256")
-              .update("// fresh worker\n")
-              .digest("hex"),
-            "workflows.js": createHash("sha256")
-              .update("// fresh workflows\n")
-              .digest("hex"),
-          },
-          built_at: "2026-01-01T00:00:00.000Z",
-        }),
-      );
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
-        JSON.stringify({
-          schema_version: 1,
-          generation: "fresh",
-          files: {
-            index: createHash("sha256").update("// fresh dist\n").digest("hex"),
-            "mcp-server": createHash("sha256")
-              .update(FAKE_MCP_SERVER)
-              .digest("hex"),
-          },
-          built_at: "2026-01-01T00:00:00.000Z",
-        }),
-      );
-      utimesSync(
-        distPath,
-        new Date("2030-01-01T00:00:00Z"),
-        new Date("2030-01-01T00:00:00Z"),
-      );
-      utimesSync(
-        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
-        new Date("2030-01-01T00:00:00Z"),
-        new Date("2030-01-01T00:00:00Z"),
-      );
-      utimesSync(
-        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
-        new Date("2030-01-01T00:00:00Z"),
-        new Date("2030-01-01T00:00:00Z"),
-      );
-      utimesSync(
-        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
-        new Date("2030-01-01T00:00:00Z"),
-        new Date("2030-01-01T00:00:00Z"),
-      );
-      utimesSync(
-        join(
-          tempWorktree,
-          "plugin",
-          "dist",
-          "temporal",
-          "bundle-manifest.json",
-        ),
-        new Date("2030-01-01T00:00:00Z"),
-        new Date("2030-01-01T00:00:00Z"),
-      );
-      utimesSync(
-        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
-        new Date("2030-01-01T00:00:00Z"),
-        new Date("2030-01-01T00:00:00Z"),
-      );
-    };
-
-    const makeBuildInputStale = () => {
-      const distPath = join(tempWorktree, "plugin", "dist", "index.js");
-      const packagePath = join(tempWorktree, "plugin", "package.json");
-      mkdirSync(join(tempWorktree, "plugin", "dist"), { recursive: true });
-      writeFileSync(distPath, "// stale dist\n");
-      utimesSync(
-        distPath,
-        new Date("2020-01-01T00:00:00Z"),
-        new Date("2020-01-01T00:00:00Z"),
-      );
-      utimesSync(
-        packagePath,
-        new Date("2020-01-02T00:00:00Z"),
-        new Date("2020-01-02T00:00:00Z"),
-      );
-    };
-
-    const runDeploy = (extraEnv: Record<string, string> = {}) =>
-      spawnSync(
-        "bash",
-        [join(tempWorktree, "scripts", "deploy-local.sh"), "--fix"],
-        {
-          cwd: tempWorktree,
-          env: {
-            ...process.env,
-            ...extraEnv,
-            HOME: tempHome,
-            CI: "true",
-            PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
-          },
-          encoding: "utf8",
-        },
-      );
-
+    const fixture = createDeployFixture();
     try {
-      const configDir = join(tempHome, ".config/opencode");
-      mkdirSync(configDir, { recursive: true });
-      mkdirSync(fakeBin, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
-      writeFileSync(
-        join(fakeBin, "pnpm"),
-        `#!/usr/bin/env bash
-printf '%s %s\\n' "$PWD" "$*" >> "$FAKE_PNPM_LOG"
-if [ "\${FAKE_PNPM_FAIL:-}" = "1" ]; then
-  exit 42
-fi
-if [ "$1 $2" = "run generate:manifests" ]; then
-  exit 0
-fi
-if [ "\${FAKE_PNPM_NO_REFRESH:-}" = "1" ]; then
-  exit 0
-fi
-mkdir -p "$PWD/dist"
-mkdir -p "$PWD/dist/temporal"
-printf '// fake build\n' > "$PWD/dist/index.js"
-printf '// fake mcp server\n' > "$PWD/dist/mcp-server.js"
-printf '// fake worker\n' > "$PWD/dist/temporal/worker.js"
-printf '// fake workflows\n' > "$PWD/dist/temporal/workflows.js"
-printf '%s\n' '${FAKE_TEMPORAL_MANIFEST}' > "$PWD/dist/temporal/bundle-manifest.json"
-printf '{"schema_version":1,"generation":"fake","files":{"index":"82e3168f13eece201be26f42f959cae43758b23e149704ba44728330d8d7ffad","mcp-server":"${createHash("sha256").update(FAKE_MCP_SERVER).digest("hex")}"},"built_at":"2026-01-01T00:00:00.000Z"}\n' > "$PWD/dist/plugin-bundle-manifest.json"
-touch "$PWD/dist/index.js"
-touch "$PWD/dist/mcp-server.js"
-touch "$PWD/dist/temporal/worker.js"
-touch "$PWD/dist/temporal/workflows.js"
-touch "$PWD/dist/temporal/bundle-manifest.json"
-touch "$PWD/dist/plugin-bundle-manifest.json"
-`,
-        { mode: 0o755 },
-      );
-      writeFileSync(
-        join(fakeBin, "rsync"),
-        `#!/usr/bin/env bash
-printf '%s\n' "$*" >> "$FAKE_RSYNC_LOG"
-src=""
-dest=""
-for arg in "$@"; do
-  src="$dest"
-  dest="$arg"
-done
-mkdir -p "$dest"
-cp -a "$src/." "$dest/"
-exit 0
-`,
-        { mode: 0o755 },
-      );
-
-      const addResult = spawnSync(
-        "git",
-        ["worktree", "add", "--detach", tempWorktree],
-        {
-          cwd: REPO_ROOT,
-          env: { ...process.env, CI: "true" },
-          encoding: "utf8",
-        },
-      );
-      expect(addResult.status).toBe(0);
-      writeFileSync(join(tempWorktree, "scripts", "deploy-local.sh"), content);
-
-      makeStale();
-      const dryRunResult = spawnSync(
-        "bash",
-        [
-          join(tempWorktree, "scripts", "deploy-local.sh"),
-          "--fix",
-          "--dry-run",
-        ],
-        {
-          cwd: tempWorktree,
-          env: {
-            ...process.env,
-            HOME: tempHome,
-            CI: "true",
-            PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
-            FAKE_PNPM_LOG: pnpmLog,
-            FAKE_RSYNC_LOG: rsyncLog,
-          },
-          encoding: "utf8",
-        },
-      );
+      fixture.makeDistStale();
+      const dryRunResult = fixture.runDeploy(["--fix", "--dry-run"]);
       expect(dryRunResult.status).toBe(0);
       expect(`${dryRunResult.stdout}${dryRunResult.stderr}`).toContain(
         "would rebuild plugin dist",
       );
-      expect(existsSync(pnpmLog)).toBe(false);
+      expect(existsSync(fixture.pnpmLog)).toBe(false);
 
-      makeFresh();
-      const freshResult = runDeploy({
-        FAKE_PNPM_LOG: pnpmLog,
-        FAKE_RSYNC_LOG: rsyncLog,
-      });
+      fixture.makeDistFresh();
+      const freshResult = fixture.runDeploy(["--fix"]);
       expect(
         freshResult.status,
         `${freshResult.stdout}${freshResult.stderr}`,
       ).toBe(0);
-      const freshPnpmLog = readFileSync(pnpmLog, "utf8");
+      const freshPnpmLog = readFileSync(fixture.pnpmLog, "utf8");
       expect(freshPnpmLog).toContain("run generate:manifests");
       expect(freshPnpmLog).not.toContain("run build");
-      expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
-      rmSync(rsyncLog, { force: true });
+      expect(readFileSync(fixture.rsyncLog, "utf8")).toContain("--delete");
+      rmSync(fixture.rsyncLog, { force: true });
 
-      makeStale();
-      const failureResult = runDeploy({
-        FAKE_PNPM_LOG: pnpmLog,
-        FAKE_RSYNC_LOG: rsyncLog,
+      fixture.makeDistStale();
+      const failureResult = fixture.runDeploy(["--fix"], {
         FAKE_PNPM_FAIL: "1",
       });
       expect(failureResult.status).not.toBe(0);
       expect(`${failureResult.stdout}${failureResult.stderr}`).toContain(
         "refusing to deploy stale dist",
       );
-      expect(existsSync(rsyncLog)).toBe(false);
+      expect(existsSync(fixture.rsyncLog)).toBe(false);
 
-      rmSync(pnpmLog, { force: true });
-      makeStale();
-      const postBuildFailureResult = runDeploy({
-        FAKE_PNPM_LOG: pnpmLog,
-        FAKE_RSYNC_LOG: rsyncLog,
+      rmSync(fixture.pnpmLog, { force: true });
+      fixture.makeDistStale();
+      const postBuildFailureResult = fixture.runDeploy(["--fix"], {
         FAKE_PNPM_NO_REFRESH: "1",
       });
       expect(postBuildFailureResult.status).not.toBe(0);
       expect(
         `${postBuildFailureResult.stdout}${postBuildFailureResult.stderr}`,
       ).toContain("refusing to deploy stale dist after build");
-      expect(existsSync(rsyncLog)).toBe(false);
+      expect(existsSync(fixture.rsyncLog)).toBe(false);
 
-      rmSync(pnpmLog, { force: true });
-      makeBuildInputStale();
-      const buildInputResult = runDeploy({
-        FAKE_PNPM_LOG: pnpmLog,
-        FAKE_RSYNC_LOG: rsyncLog,
-      });
+      rmSync(fixture.pnpmLog, { force: true });
+      fixture.makeBuildInputStale();
+      const buildInputResult = fixture.runDeploy(["--fix"]);
       expect(buildInputResult.status).toBe(0);
-      expect(readFileSync(pnpmLog, "utf8")).toContain("run build");
-      expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
-      rmSync(rsyncLog, { force: true });
-      rmSync(pnpmLog, { force: true });
+      expect(readFileSync(fixture.pnpmLog, "utf8")).toContain("run build");
+      expect(readFileSync(fixture.rsyncLog, "utf8")).toContain("--delete");
+      rmSync(fixture.rsyncLog, { force: true });
+      rmSync(fixture.pnpmLog, { force: true });
 
-      makeStale();
-      const successResult = runDeploy({
-        FAKE_PNPM_LOG: pnpmLog,
-        FAKE_RSYNC_LOG: rsyncLog,
-      });
+      fixture.makeDistStale();
+      const successResult = fixture.runDeploy(["--fix"]);
       expect(successResult.status).toBe(0);
-      const successPnpmLog = readFileSync(pnpmLog, "utf8");
+      const successPnpmLog = readFileSync(fixture.pnpmLog, "utf8");
       expect(successPnpmLog).toContain("run build");
       expect(successPnpmLog).toContain("run generate:manifests");
-      expect(readFileSync(rsyncLog, "utf8")).toContain("--delete");
+      expect(readFileSync(fixture.rsyncLog, "utf8")).toContain("--delete");
     } finally {
-      spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, CI: "true" },
-        encoding: "utf8",
-      });
-      rmSync(tempWorktreeRoot, { recursive: true, force: true });
-      rmSync(tempHome, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
@@ -431,85 +199,51 @@ exit 0
   });
 
   test("bootstraps missing shared adv agent on --fix", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-bootstrap-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      mkdirSync(configDir, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
+    withDeployFixture((fixture) => {
+      const result = fixture.runDeploy(["--fix"]);
+      const advPath = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "agents",
+        "adv.md",
       );
-
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
-
-      const advPath = join(configDir, "agents", "adv.md");
       expect(result.status).toBe(0);
       expect(readFileSync(advPath, "utf8")).toContain("ADV_SYNC:START adv");
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("removes stale global orca agent on --fix", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-orca-cleanup-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
-      writeFileSync(
-        join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
+    withDeployFixture((fixture) => {
+      const globalAgents = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "agents",
       );
       writeFileSync(join(globalAgents, "orca.md"), "stale orca\n");
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).toBe(0);
       expect(() =>
         readFileSync(join(globalAgents, "orca.md"), "utf8"),
       ).toThrow();
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("removes stale global scout and refine agents on --fix", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-scout-refine-cleanup-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
-      writeFileSync(
-        join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
+    withDeployFixture((fixture) => {
+      const globalAgents = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "agents",
       );
       writeFileSync(join(globalAgents, "scout.md"), "stale scout\n");
       writeFileSync(join(globalAgents, "refine.md"), "stale refine\n");
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).toBe(0);
       expect(() =>
@@ -518,85 +252,36 @@ exit 0
       expect(() =>
         readFileSync(join(globalAgents, "refine.md"), "utf8"),
       ).toThrow();
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("refuses unsafe regular adv file with generic schema_version text", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-unsafe-cli-home-"));
-    const fakeBin = join(tempHome, "fake-bin");
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const localBin = join(tempHome, ".local/bin");
-      mkdirSync(configDir, { recursive: true });
+    withDeployFixture((fixture) => {
+      const localBin = join(fixture.tempHome, ".local", "bin");
       mkdirSync(localBin, { recursive: true });
-      mkdirSync(fakeBin, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
       const unsafeAdv = join(localBin, "adv");
       const unsafeContent = `#!/usr/bin/env bash
 # unrelated local tool that happens to mention schema_version
 schema_version=1
 `;
       writeFileSync(unsafeAdv, unsafeContent, { mode: 0o755 });
-      writeFileSync(
-        join(fakeBin, "rsync"),
-        `#!/usr/bin/env bash
-src=""
-dest=""
-for arg in "$@"; do
-  src="$dest"
-  dest="$arg"
-done
-mkdir -p "$dest"
-cp -a "$src/." "$dest/"
-`,
-        { mode: 0o755 },
-      );
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          HOME: tempHome,
-          CI: "true",
-          PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
-        },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).not.toBe(0);
       expect(`${result.stdout}${result.stderr}`).toContain(
         "Refusing to overwrite unrelated file",
       );
       expect(readFileSync(unsafeAdv, "utf8")).toBe(unsafeContent);
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("refuses unsafe symlink with advance-like path but unrelated content", () => {
-    const tempHome = mkdtempSync(
-      join(tmpdir(), "adv-unsafe-cli-symlink-home-"),
-    );
-    const fakeBin = join(tempHome, "fake-bin");
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const localBin = join(tempHome, ".local/bin");
-      const unrelatedBin = join(tempHome, "advance-mal/bin");
-      mkdirSync(configDir, { recursive: true });
+    withDeployFixture((fixture) => {
+      const localBin = join(fixture.tempHome, ".local", "bin");
+      const unrelatedBin = join(fixture.tempHome, "advance-mal", "bin");
       mkdirSync(localBin, { recursive: true });
-      mkdirSync(fakeBin, { recursive: true });
       mkdirSync(unrelatedBin, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
       const unrelatedAdv = join(unrelatedBin, "adv");
       const unrelatedContent = `#!/usr/bin/env bash
 printf 'unrelated tool\n'
@@ -604,31 +289,8 @@ printf 'unrelated tool\n'
       writeFileSync(unrelatedAdv, unrelatedContent, { mode: 0o755 });
       const unsafeLink = join(localBin, "adv");
       symlinkSync(unrelatedAdv, unsafeLink);
-      writeFileSync(
-        join(fakeBin, "rsync"),
-        `#!/usr/bin/env bash
-src=""
-dest=""
-for arg in "$@"; do
-  src="$dest"
-  dest="$arg"
-done
-mkdir -p "$dest"
-cp -a "$src/." "$dest/"
-`,
-        { mode: 0o755 },
-      );
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: {
-          ...process.env,
-          HOME: tempHome,
-          CI: "true",
-          PATH: `${fakeBin}:${process.env.PATH ?? ""}`,
-        },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).not.toBe(0);
       expect(`${result.stdout}${result.stderr}`).toContain(
@@ -636,22 +298,19 @@ cp -a "$src/." "$dest/"
       );
       expect(readFileSync(unrelatedAdv, "utf8")).toBe(unrelatedContent);
       expect(readFileSync(unsafeLink, "utf8")).toBe(unrelatedContent);
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("removes stale scout and refine agent config keys on --fix", () => {
-    const tempHome = mkdtempSync(
-      join(tmpdir(), "adv-scout-refine-config-cleanup-"),
-    );
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
+    withDeployFixture((fixture) => {
+      const configPath = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "opencode.json",
+      );
       writeFileSync(
-        join(configDir, "opencode.json"),
+        configPath,
         JSON.stringify({
           plugin: [],
           instructions: [],
@@ -663,147 +322,21 @@ cp -a "$src/." "$dest/"
           },
         }),
       );
-      writeFileSync(
-        join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
-      );
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).toBe(0);
-      const patched = JSON.parse(
-        readFileSync(join(configDir, "opencode.json"), "utf8"),
-      );
+      const patched = JSON.parse(readFileSync(configPath, "utf8"));
       expect(patched.agent.scout).toBeUndefined();
       expect(patched.agent.refine).toBeUndefined();
       expect(patched.agent.plan).toEqual({});
       expect(patched.agent.build).toEqual({});
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("deploy run from a worktree uses stable runtime plugin and canonical instruction paths", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-worktree-home-"));
-    const tempWorktreeRoot = mkdtempSync(join(tmpdir(), "adv-worktree-root-"));
-    const tempWorktree = join(tempWorktreeRoot, "repo-worktree");
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
-      );
-      writeFileSync(
-        join(globalAgents, "adv.md"),
-        "---\ndescription: temp adv\n---\n",
-      );
-
-      const addResult = spawnSync(
-        "git",
-        ["worktree", "add", "--detach", tempWorktree],
-        {
-          cwd: REPO_ROOT,
-          env: { ...process.env, CI: "true" },
-          encoding: "utf8",
-        },
-      );
-      expect(addResult.status).toBe(0);
-
-      // The temp worktree is created from HEAD, but this test needs to execute
-      // the *current* working-tree version of deploy-local.sh under test.
-      writeFileSync(join(tempWorktree, "scripts", "deploy-local.sh"), content);
-      mkdirSync(join(tempWorktree, "plugin", "dist", "temporal"), {
-        recursive: true,
-      });
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "index.js"),
-        "// test dist is fresh\n",
-      );
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
-        FAKE_MCP_SERVER,
-      );
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
-        "// test worker is fresh\n",
-      );
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
-        "// test workflows is fresh\n",
-      );
-      writeFileSync(
-        join(
-          tempWorktree,
-          "plugin",
-          "dist",
-          "temporal",
-          "bundle-manifest.json",
-        ),
-        JSON.stringify({
-          schema_version: 1,
-          generation: "test",
-          files: {
-            "worker.js": createHash("sha256")
-              .update("// test worker is fresh\n")
-              .digest("hex"),
-            "workflows.js": createHash("sha256")
-              .update("// test workflows is fresh\n")
-              .digest("hex"),
-          },
-          built_at: "2026-01-01T00:00:00.000Z",
-        }),
-      );
-      writeFileSync(
-        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
-        JSON.stringify({
-          schema_version: 1,
-          generation:
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          files: {
-            index: createHash("sha256")
-              .update("// test dist is fresh\n")
-              .digest("hex"),
-            "mcp-server": createHash("sha256")
-              .update(FAKE_MCP_SERVER)
-              .digest("hex"),
-          },
-          built_at: "2026-07-16T00:00:00.000Z",
-        }),
-      );
-      for (const distFile of [
-        join(tempWorktree, "plugin", "dist", "index.js"),
-        join(tempWorktree, "plugin", "dist", "mcp-server.js"),
-        join(tempWorktree, "plugin", "dist", "plugin-bundle-manifest.json"),
-        join(tempWorktree, "plugin", "dist", "temporal", "worker.js"),
-        join(tempWorktree, "plugin", "dist", "temporal", "workflows.js"),
-        join(
-          tempWorktree,
-          "plugin",
-          "dist",
-          "temporal",
-          "bundle-manifest.json",
-        ),
-      ]) {
-        utimesSync(
-          distFile,
-          new Date("2030-01-01T00:00:00Z"),
-          new Date("2030-01-01T00:00:00Z"),
-        );
-      }
-
-      const worktreeScript = join(tempWorktree, "scripts", "deploy-local.sh");
-      const fixResult = spawnSync("bash", [worktreeScript, "--fix"], {
-        cwd: tempWorktree,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+    withDeployFixture((fixture) => {
+      const fixResult = fixture.runDeploy(["--fix"]);
       expect(fixResult.status, `${fixResult.stdout}${fixResult.stderr}`).toBe(
         0,
       );
@@ -817,31 +350,28 @@ cp -a "$src/." "$dest/"
       );
       const runtimePlugin =
         runtimePluginMatch?.[1]?.trim() ??
-        join(tempHome, ".local/share/Advance/plugin");
+        join(fixture.tempHome, ".local/share/Advance/plugin");
 
       const patched = JSON.parse(
-        readFileSync(join(configDir, "opencode.json"), "utf8"),
+        readFileSync(
+          join(fixture.tempHome, ".config", "opencode", "opencode.json"),
+          "utf8",
+        ),
       );
 
       expect(patched.plugin).toContain(runtimePlugin);
       expect(patched.plugin).not.toContain(join(canonicalRoot, "plugin"));
-      expect(patched.plugin).not.toContain(join(tempWorktree, "plugin"));
+      expect(patched.plugin).not.toContain(
+        join(fixture.tempWorktree, "plugin"),
+      );
 
       expect(patched.instructions ?? []).not.toContain(
         join(canonicalRoot, "ADV_INSTRUCTIONS.md"),
       );
       expect(patched.instructions).not.toContain(
-        join(tempWorktree, "ADV_INSTRUCTIONS.md"),
+        join(fixture.tempWorktree, "ADV_INSTRUCTIONS.md"),
       );
-    } finally {
-      spawnSync("git", ["worktree", "remove", "--force", tempWorktree], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, CI: "true" },
-        encoding: "utf8",
-      });
-      rmSync(tempWorktreeRoot, { recursive: true, force: true });
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   // ===========================================================================
@@ -849,26 +379,19 @@ cp -a "$src/." "$dest/"
   // ===========================================================================
 
   test("sync --fix does not generate provider ADV variants", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-single-agent-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
+    withDeployFixture((fixture) => {
+      const globalAgents = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "agents",
       );
       writeFileSync(
         join(globalAgents, "adv.md"),
         "---\ndescription: temp adv\n---\nCANONICAL BODY SHOULD MOVE TO PROMPT PART\n",
       );
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).toBe(0);
       expect(existsSync(join(globalAgents, "adv.md"))).toBe(true);
@@ -879,36 +402,30 @@ cp -a "$src/." "$dest/"
           `retired variant exists: adv-${p}.md`,
         ).toBe(false);
       }
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("synced adv.md contains lean canonical ADV runtime prompt without full ADV_INSTRUCTIONS append", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-single-runtime-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
+    withDeployFixture((fixture) => {
+      const globalAgents = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "agents",
       );
       writeFileSync(
         join(globalAgents, "adv.md"),
         "---\ndescription: temp adv\n---\nCANONICAL BODY SHOULD MOVE TO PROMPT PART\n",
       );
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).toBe(0);
       const config = JSON.parse(
-        readFileSync(join(configDir, "opencode.json"), "utf8"),
+        readFileSync(
+          join(fixture.tempHome, ".config", "opencode", "opencode.json"),
+          "utf8",
+        ),
       );
       const advContent = readFileSync(join(globalAgents, "adv.md"), "utf8");
       expect(advContent).toContain("ADV_SYNC:START adv");
@@ -919,9 +436,7 @@ cp -a "$src/." "$dest/"
       expect(advContent).not.toContain("### Provider ADV runtime hints");
       expect(advContent).not.toContain("<!-- PROVIDER_HINT:");
       expect(config.agent?.["adv-gpt"]?.prompt).toBeUndefined();
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("non-ADV build agent prompt is self-contained without ADV_INSTRUCTIONS section refs", () => {
@@ -940,73 +455,53 @@ cp -a "$src/." "$dest/"
   });
 
   test("sync --fix removes stale generated provider variants", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-provider-stale-clean-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      const globalAgents = join(configDir, "agents");
-      mkdirSync(globalAgents, { recursive: true });
-      writeFileSync(
-        join(configDir, "opencode.json"),
-        JSON.stringify({ plugin: [], instructions: [] }),
+    withDeployFixture((fixture) => {
+      const globalAgents = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "agents",
       );
       for (const p of ["claude", "gpt", "glm", "kimi", "minimax", "qwen"]) {
         writeFileSync(join(globalAgents, `adv-${p}.md`), `stale ${p}\n`);
       }
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).toBe(0);
       for (const p of ["claude", "gpt", "glm", "kimi", "minimax", "qwen"]) {
         expect(existsSync(join(globalAgents, `adv-${p}.md`))).toBe(false);
       }
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("sync --fix does not patch provider prompt refs or disable generic adv", () => {
-    const tempHome = mkdtempSync(
-      join(tmpdir(), "adv-provider-no-config-patch-"),
-    );
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      mkdirSync(configDir, { recursive: true });
+    withDeployFixture((fixture) => {
+      const configPath = join(
+        fixture.tempHome,
+        ".config",
+        "opencode",
+        "opencode.json",
+      );
       writeFileSync(
-        join(configDir, "opencode.json"),
+        configPath,
         JSON.stringify({ plugin: [], instructions: [], agent: {} }),
       );
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       expect(result.status).toBe(0);
-      const config = JSON.parse(
-        readFileSync(join(configDir, "opencode.json"), "utf8"),
-      );
+      const config = JSON.parse(readFileSync(configPath, "utf8"));
       expect(config.agent?.adv?.disable).toBeUndefined();
       for (const p of ["claude", "gpt", "glm", "kimi", "minimax", "qwen"]) {
         expect(config.agent?.[`adv-${p}`]?.prompt).toBeUndefined();
       }
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 
   test("fails loud on JSONC drift during --fix without stripping comments", () => {
-    const tempHome = mkdtempSync(join(tmpdir(), "adv-jsonc-protect-"));
-
-    try {
-      const configDir = join(tempHome, ".config/opencode");
-      mkdirSync(configDir, { recursive: true });
+    withDeployFixture((fixture) => {
+      const configDir = join(fixture.tempHome, ".config", "opencode");
       const jsoncPath = join(configDir, "opencode.jsonc");
       writeFileSync(
         jsoncPath,
@@ -1017,11 +512,7 @@ cp -a "$src/." "$dest/"
         }`,
       );
 
-      const result = spawnSync("bash", [DEPLOY_SCRIPT_PATH, "--fix"], {
-        cwd: REPO_ROOT,
-        env: { ...process.env, HOME: tempHome, CI: "true" },
-        encoding: "utf8",
-      });
+      const result = fixture.runDeploy(["--fix"]);
 
       // Should fail loud rather than silently strip comments.
       expect(result.status).toBe(1);
@@ -1030,8 +521,6 @@ cp -a "$src/." "$dest/"
       );
       const content = readFileSync(jsoncPath, "utf8");
       expect(content).toContain("// This is a comment");
-    } finally {
-      rmSync(tempHome, { recursive: true, force: true });
-    }
+    });
   });
 });
