@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-01T22:13:36.713Z",
+  "capabilities": [],
+  "change_hash": "eb1cc668367368ae853c48199305c2f1374716956d2b94589aa7db6d31562e0a",
+  "change_id": "fixQuarantineRouting",
+  "completed_tasks": 2,
+  "created_at": "2026-08-01T21:02:08.232Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-01T22:09:13.286Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "a19bce9a879abdf88cb70d0469b9e826972d86da4f2730c348eabd7b72a7e74c",
+  "task_count": 2,
+  "title": "Fix quarantine routing",
+  "version": "1"
+}
