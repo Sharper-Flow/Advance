@@ -631,6 +631,9 @@ export async function saveRecoveredArchiveConvergence(input: {
           ...(input.finalization.mergeCommitSha
             ? { mergeCommitSha: input.finalization.mergeCommitSha }
             : {}),
+          ...(input.finalization.changeTipSha
+            ? { changeTipSha: input.finalization.changeTipSha }
+            : {}),
           autoMergeArmed: false,
         });
         return {
@@ -4689,6 +4692,7 @@ export const changeTools = {
                   status: "done",
                   startedAt: change.phase9_status?.startedAt ?? archivedAt,
                   completedAt: archivedAt,
+                  changeTipSha: finalization?.changeTipSha,
                 },
               );
             }

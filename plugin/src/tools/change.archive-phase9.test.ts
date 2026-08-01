@@ -75,6 +75,7 @@ const mocks = vi.hoisted(() => {
         releasedCommitSha: "abc123",
         mergeCommitSha: "abc123",
         pushStatus: "pushed",
+        changeTipSha: "tip-abc-123",
       }),
     ),
     detectArchiveMode: vi.fn(() => ({ archiveMode: "direct", autoPush: true })),
@@ -1601,6 +1602,34 @@ describe("adv_change_archive Phase 9 behavior", () => {
         phase9_status: expect.objectContaining({
           status: "done",
           changeTipSha: "tip123abc",
+        }),
+      }),
+    );
+  });
+
+  // rq-fixArchivedBranchFinalization SC1: initial archive must capture the
+  // change-tip SHA from finalizeRelease and persist it in the done phase9
+  // status so branch-cleanup re-proof is possible later.
+  test("initial archive persists changeTipSha from finalization in phase9 done status", async () => {
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      changeTipSha: "tip-abc-123",
+    });
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "archived",
+        phase9_status: expect.objectContaining({
+          status: "done",
+          changeTipSha: "tip-abc-123",
         }),
       }),
     );
