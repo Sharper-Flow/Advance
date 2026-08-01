@@ -223,6 +223,38 @@ const tronReport = {
   workdir_used: "/tmp/worktree",
 };
 
+const tronOptimizationCandidate = {
+  id: "opt-rbw-1",
+  detector_id: "repeated_boundary_work",
+  description:
+    "Loop body calls a function that crosses a boundary on each iteration.",
+  evidence: [
+    {
+      role: "trigger",
+      file: "src/api.ts",
+      line: 12,
+      matchedSignal: "for.*await.*fetch",
+      snippet: "for (const id of ids) { await fetch(...); }",
+    },
+  ],
+  expected_cost_shape: {
+    family: "repeated_boundary_work",
+    pattern: "boundary",
+    description: "Repeated boundary calls inside a loop",
+  },
+  false_positive_caveat:
+    "The loop may be bounded or the boundary call may be required; verify before optimizing.",
+  verification_needed:
+    "Confirm the loop is hot and the boundary call is not required per iteration.",
+  recommendation:
+    "Run `/adv-optimizer src/api.ts` to synthesize a simplification proposal.",
+};
+
+const tronReportWithOptimizationCandidates = {
+  ...tronReport,
+  optimization_candidates: [tronOptimizationCandidate],
+};
+
 const scannerBundleReport = {
   schema_version: "1.0",
   change_id: "persistSubagentReports",
@@ -369,6 +401,143 @@ describe("Subagent report schemas", () => {
         verificationTriageBundleReport,
       ).agent,
     ).toBe("adv-verification-triage-bundle");
+  });
+
+  it("parses Tron reports with static opt-scan optimization candidates", () => {
+    const parsed = TronSubagentReportSchema.parse(
+      tronReportWithOptimizationCandidates,
+    );
+
+    expect(parsed.optimization_candidates).toHaveLength(1);
+    expect(parsed.optimization_candidates![0].detector_id).toBe(
+      "repeated_boundary_work",
+    );
+    expect(parsed.optimization_candidates![0].expected_cost_shape.family).toBe(
+      "repeated_boundary_work",
+    );
+    expect(parsed.optimization_candidates![0].expected_cost_shape.pattern).toBe(
+      "boundary",
+    );
+    expect(parsed.optimization_candidates![0].evidence[0].file).toBe(
+      "src/api.ts",
+    );
+    expect(parsed.optimization_candidates![0].recommendation).toContain(
+      "/adv-optimizer",
+    );
+  });
+
+  it("preserves source evidence with a null line", () => {
+    const parsed = TronSubagentReportSchema.parse({
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          evidence: [
+            {
+              ...tronOptimizationCandidate.evidence[0],
+              line: null,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.optimization_candidates![0].evidence[0].line).toBeNull();
+  });
+
+  it("rejects Tron optimization candidates with measured runtime-impact claims", () => {
+    const bad = {
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          description: "This yields a 50% speedup and reduces latency.",
+        },
+      ],
+    };
+
+    expect(() => TronSubagentReportSchema.parse(bad)).toThrow(
+      /cannot assert measured runtime impact/,
+    );
+  });
+
+  it("rejects Tron optimization candidates carrying a measured evidence branch", () => {
+    const bad = {
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          measured: {
+            provenance: "benchmark",
+            baseline: 100,
+            observed: 50,
+            unit: "ms",
+          },
+        },
+      ],
+    };
+
+    expect(() => TronSubagentReportSchema.parse(bad)).toThrow();
+  });
+
+  it("requires Tron optimization candidates to preserve source evidence", () => {
+    const bad = {
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          evidence: [],
+        },
+      ],
+    };
+
+    expect(() => TronSubagentReportSchema.parse(bad)).toThrow();
+  });
+
+  it("requires Tron optimization candidates to include cost-shape framing", () => {
+    const bad = {
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          expected_cost_shape: {
+            ...tronOptimizationCandidate.expected_cost_shape,
+            description: "",
+          },
+        },
+      ],
+    };
+
+    expect(() => TronSubagentReportSchema.parse(bad)).toThrow();
+  });
+
+  it("requires Tron optimization candidates to include false-positive caveat and verification route", () => {
+    const bad = {
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          false_positive_caveat: "",
+          verification_needed: "",
+        },
+      ],
+    };
+
+    expect(() => TronSubagentReportSchema.parse(bad)).toThrow();
+  });
+
+  it("requires Tron optimization candidates to recommend an optimizer handoff", () => {
+    const bad = {
+      ...tronReportWithOptimizationCandidates,
+      optimization_candidates: [
+        {
+          ...tronOptimizationCandidate,
+          recommendation: "",
+        },
+      ],
+    };
+
+    expect(() => TronSubagentReportSchema.parse(bad)).toThrow();
   });
 
   it("requires researcher architecture judgement for new ingest", () => {

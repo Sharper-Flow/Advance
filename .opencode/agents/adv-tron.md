@@ -153,6 +153,22 @@ Combination routing examples:
 - `/adv-slop-scan <target> then /adv-optimizer <target>` — first classify slop/deletion-safety evidence, then synthesize simplification proposal.
 - `/adv-arch-scan <target> then /adv-slop-scan <target>` — first validate architecture/structural boundary, then scan quality smells if source evidence also suggests code-level slop.
 
+## Opt-scan Candidate Intake (Tron-side)
+
+When the spawn packet includes an `OPTIMIZATION_CANDIDATES` block with validated opt-scan output, treat those candidates as read-only, static advisory findings. Tron does not run opt-scan itself and does not generate candidates from slop-scan PERF findings.
+
+- Preserve every source evidence record verbatim: `role`, `file`, `line`, `column`, `matchedSignal`, `snippet`.
+- Render each candidate in the `TRON_REPORT` `optimization_candidates` array with:
+  - `detector_id` — the opt-scan detector that emitted the candidate.
+  - `evidence` — source `file:line` evidence preserved from the candidate.
+  - `expected_cost_shape` — `family`, `pattern`, and human-readable `description`.
+  - `false_positive_caveat` — why the signal might be a false positive.
+  - `verification_needed` — what must be verified before optimizing.
+  - `recommendation` — handoff to `/adv-optimizer <target>` for simplification proposal synthesis.
+- Static candidates must NOT claim speedup, latency reduction, runtime impact, or numeric performance gains. If a supplied candidate carries measured evidence or measured-impact prose, do not include it in `optimization_candidates`; record it as a coverage gap instead.
+- Do not edit code, create caches, mutate ADV/task/gate state, or convert slop-scan PERF findings into optimization candidates.
+- If no `OPTIMIZATION_CANDIDATES` block is supplied, proceed normally; do not fabricate candidates.
+
 ## Response Format
 
 Return structured findings using this schema:
