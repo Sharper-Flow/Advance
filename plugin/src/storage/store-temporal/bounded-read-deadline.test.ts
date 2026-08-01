@@ -183,10 +183,9 @@ describe("projection-only change-list reads", () => {
       "closedOne",
     ]);
 
-    // Terminal reads still consult Visibility, and the client here always
-    // fails. The rows above therefore came from durable summary shards via the
-    // degraded path, which is exactly the fallback that must stay executable.
-    expect(poisoned.list).toHaveBeenCalled();
+    // Terminal reads are projection-only (#353): the rows above come from
+    // durable summary shards, so no Temporal surface is touched at all.
+    expect(poisoned.list).not.toHaveBeenCalled();
     expect(poisoned.query).not.toHaveBeenCalled();
     expect(poisoned.start).not.toHaveBeenCalled();
   });
@@ -312,8 +311,11 @@ describe("projection-only change-list reads", () => {
       ]),
     );
 
-    // With no durable evidence available, the bounded Visibility fallback is
-    // the only remaining source, so it must have been attempted.
-    expect(poisoned.list).toHaveBeenCalled();
+    // Projection-only reads (#353) do not fall back to Visibility: an
+    // unreadable summary index degrades to an empty, typed-degraded result
+    // rather than reaching for Temporal.
+    expect(poisoned.list).not.toHaveBeenCalled();
+    expect(poisoned.query).not.toHaveBeenCalled();
+    expect(poisoned.start).not.toHaveBeenCalled();
   });
 });
