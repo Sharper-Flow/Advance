@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   listSummaryChanges,
   type ChangeSummaryShard,
+  type ProjectionDocumentWarning,
 } from "./change-summary-shard-reader";
 
 export const LauncherChangeSummarySchema = z.object({
@@ -36,6 +37,17 @@ export const LauncherProjectionSchema = z.object({
   epics_available: z.boolean(),
   active_count: z.number().int().nonnegative(),
   changes: z.array(LauncherChangeSummarySchema).max(50),
+  warnings: z
+    .array(
+      z.object({
+        path: z.string(),
+        kind: z.enum(["oversized", "corrupt", "unreadable"]),
+        limit: z.number().optional(),
+        actual: z.number().optional(),
+        error: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export type LauncherProjection = z.infer<typeof LauncherProjectionSchema>;
@@ -47,7 +59,11 @@ export interface BuildLauncherProjectionInput {
   degradedThresholdMs: number;
   /** Injectable summary reader for deterministic projection tests. */
   readSummaries?: () => Promise<
-    | { kind: "ok"; summaries: ChangeSummaryShard[] }
+    | {
+        kind: "ok";
+        summaries: ChangeSummaryShard[];
+        warnings?: ProjectionDocumentWarning[];
+      }
     | { kind: "error"; error: string }
   >;
 }
@@ -112,5 +128,8 @@ export async function buildLauncherProjection(
     epics_available: false,
     active_count: activeSummaries.length,
     changes: activeSummaries.slice(0, 50),
+    ...(summaries.warnings && summaries.warnings.length > 0
+      ? { warnings: summaries.warnings }
+      : {}),
   };
 }

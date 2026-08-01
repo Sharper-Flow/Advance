@@ -16,7 +16,6 @@
 // rq-terminalHistoryBudget01
 
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   createTemporalReadDeadline,
@@ -25,6 +24,7 @@ import {
   type TemporalReadDeadline,
 } from "../temporal/retry-wrapper";
 import { listChangeDirs, loadChange, isSchemaError } from "../storage/json";
+import { readBoundedProjectionDocument } from "../storage/change-projection-reader";
 import { computeLastActivity, firstOpenGate } from "../storage/store-types";
 import {
   TERMINAL_SUMMARY_FILE,
@@ -45,8 +45,19 @@ import type {
   TerminalWarning,
 } from "../types";
 import type { EpicMembership } from "../types/epics";
+import type { ProjectionDocumentReadOutcome } from "../storage/change-projection-reader";
 
 export const TERMINAL_HISTORY_DEADLINE_BUDGET_MS = 20_000;
+
+function projectionReadError(
+  outcome: Exclude<ProjectionDocumentReadOutcome, { kind: "ok" }>,
+  label: string,
+): string {
+  if (outcome.kind === "not_found") return `${label} not found`;
+  if (outcome.kind === "oversized")
+    return `${label} oversized: ${outcome.actual} > ${outcome.limit} bytes`;
+  return `${label} ${outcome.kind}: ${outcome.error}`;
+}
 
 const logger = createLogger("terminal-history");
 
@@ -160,18 +171,31 @@ async function loadArchiveBundleRow(
   const bundlePath = join(archivePath, bundleDir);
 
   try {
-    const raw = await raceWithDeadline(
-      readFile(join(bundlePath, TERMINAL_SUMMARY_FILE), "utf-8"),
+    const summaryRead = await raceWithDeadline(
+      readBoundedProjectionDocument(join(bundlePath, TERMINAL_SUMMARY_FILE)),
       deadline,
     );
-    const summary = parseSummary(raw);
+    if (summaryRead.kind !== "ok") {
+      throw new Error(
+        projectionReadError(summaryRead, `Terminal summary for ${bundleDir}`),
+      );
+    }
+    const summary = parseSummary(summaryRead.content);
     if (summary && verifyTerminalArchiveSummaryHash(summary)) {
-      const changeJson = await raceWithDeadline(
-        readFile(join(bundlePath, "change.json"), "utf-8"),
+      const changeJsonRead = await raceWithDeadline(
+        readBoundedProjectionDocument(join(bundlePath, "change.json")),
         deadline,
       );
+      if (changeJsonRead.kind !== "ok") {
+        throw new Error(
+          projectionReadError(
+            changeJsonRead,
+            `Bundle change.json for ${bundleDir}`,
+          ),
+        );
+      }
       const changeHash = createHash("sha256")
-        .update(changeJson, "utf-8")
+        .update(changeJsonRead.content, "utf-8")
         .digest("hex");
       if (summary.change_hash !== changeHash) {
         throw new Error(

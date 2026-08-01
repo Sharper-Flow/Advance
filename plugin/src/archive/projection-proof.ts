@@ -1,11 +1,14 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SpecSchema } from "../types";
+import {
+  PROJECTION_DOCUMENT_BYTE_LIMIT,
+  readBoundedProjectionDocument,
+} from "../storage/change-projection-reader";
 import {
   ArchiveProjectionProofReceiptSchema,
   type ArchiveProjectionProofReceipt,
 } from "../types/archive-projection";
-import { spawnSyncGit } from "../utils/git-binary";
+import { spawnGitStreams, spawnSyncGit } from "../utils/git-binary";
 import {
   SpecProjectionManifestSchema,
   canonicalSha256,
@@ -41,15 +44,15 @@ interface ProjectionContentReader {
 export async function readProjectionManifest(
   bundlePath: string,
 ): Promise<SpecProjectionManifest | null> {
-  try {
-    return SpecProjectionManifestSchema.parse(
-      JSON.parse(
-        await readFile(join(bundlePath, "spec-projection.json"), "utf8"),
-      ),
-    );
-  } catch {
-    return null;
-  }
+  const result = await readBoundedProjectionDocument(
+    join(bundlePath, "spec-projection.json"),
+  );
+  if (result.kind !== "ok") return null;
+  const parsed = SpecProjectionManifestSchema.safeParse(
+    JSON.parse(result.content),
+  );
+  if (!parsed.success) return null;
+  return parsed.data;
 }
 
 async function verifyProjection(
@@ -237,15 +240,94 @@ export async function verifyProjectionAtPaths(input: {
     input.expectedDeltaSetSha256,
     input.expectedDeltaIdsByCapability,
     {
-      readSpec: (capability) =>
-        readFile(
+      readSpec: async (capability) => {
+        const result = await readBoundedProjectionDocument(
           join(input.root, ".adv", "specs", capability, "spec.json"),
-          "utf8",
-        ),
-      readDocument: (capability) =>
-        readFile(join(input.root, "docs", "specs", `${capability}.md`), "utf8"),
+        );
+        if (result.kind !== "ok") {
+          throw new Error(
+            result.kind === "not_found"
+              ? `spec not found: ${capability}`
+              : `spec unreadable for ${capability}: ${result.kind}`,
+          );
+        }
+        return result.content;
+      },
+      readDocument: async (capability) => {
+        const result = await readBoundedProjectionDocument(
+          join(input.root, "docs", "specs", `${capability}.md`),
+        );
+        if (result.kind !== "ok") {
+          throw new Error(
+            result.kind === "not_found"
+              ? `doc not found: ${capability}`
+              : `doc unreadable for ${capability}: ${result.kind}`,
+          );
+        }
+        return result.content;
+      },
     },
   );
+}
+
+/**
+ * Stream `git show {commit}:{path}` into memory, killing the process as soon
+ * as the output exceeds `limitBytes`. This prevents a runaway or malicious
+ * object from being buffered in full before the byte cap is applied.
+ */
+export async function readGitPathBounded(
+  repo: string,
+  commitSha: string,
+  path: string,
+  limitBytes: number = PROJECTION_DOCUMENT_BYTE_LIMIT,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawnGitStreams(["show", `${commitSha}:${path}`], {
+      cwd: repo,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    let killed = false;
+    let stderr = "";
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      if (killed) return;
+      totalBytes += chunk.length;
+      if (totalBytes > limitBytes) {
+        killed = true;
+        chunks.length = 0;
+        child.kill("SIGKILL");
+        reject(new Error(`git path exceeds bounded projection limit: ${path}`));
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString("utf8");
+    });
+
+    child.on("error", (error: Error) => {
+      if (killed) return;
+      reject(error);
+    });
+
+    child.on("close", (code, signal) => {
+      if (killed) return;
+      if (code !== 0) {
+        reject(
+          new Error(
+            stderr.trim() ||
+              `git show failed for ${path} (code=${code}, signal=${signal})`,
+          ),
+        );
+        return;
+      }
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    });
+  });
 }
 
 export async function verifyProjectionAtGitCommit(input: {
@@ -257,16 +339,8 @@ export async function verifyProjectionAtGitCommit(input: {
   expectedDeltaSetSha256: string;
   expectedDeltaIdsByCapability: Record<string, string[]>;
 }): Promise<ProjectionProofResult> {
-  const readGitPath = async (path: string): Promise<string> => {
-    const result = spawnSyncGit(
-      ["show", `${input.releasedCommitSha}:${path}`],
-      { cwd: input.repo, encoding: "utf8" },
-    );
-    if (result.status !== 0) {
-      throw new Error(String(result.stderr || `git show failed for ${path}`));
-    }
-    return String(result.stdout);
-  };
+  const readGitPath = async (path: string): Promise<string> =>
+    readGitPathBounded(input.repo, input.releasedCommitSha, path);
   let committedManifest: SpecProjectionManifest;
   try {
     committedManifest = SpecProjectionManifestSchema.parse(

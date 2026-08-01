@@ -123,6 +123,7 @@
 | `adv_change_workflow_terminate` | `no-cli-dangerous` | Operator-only pinned wedged-workflow termination; run pinned via describe, shipped-gate eligibility |
 | `adv_change_update_issues` | `no-cli-dangerous` | Issue linkage mutation |
 | `adv_change_repair_origin` | `no-cli-dangerous` | Origin-linkage repair mutation |
+| `adv_change_projection_quarantine` | `no-cli-dangerous` | Quarantine of corrupt/oversized active change projection; operator-only approval-gated |
 | `adv_change_reenter` | `no-cli-dangerous` | Change state mutation |
 | `adv_task_add` | `no-cli-dangerous` | Task mutation |
 | `adv_task_update` | `no-cli-dangerous` | Task mutation |

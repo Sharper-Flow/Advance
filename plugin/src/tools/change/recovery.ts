@@ -19,8 +19,7 @@ import { ChangeSchema } from "../../types/changes";
 import { ZodError } from "zod";
 import { formatZodError } from "../../utils/safe-execute";
 import { findArchiveBundle } from "../../archive/archive";
-import { readFile } from "fs/promises";
-import { join } from "path";
+import { basename, dirname } from "path";
 import { formatToolOutput } from "../../utils/tool-output";
 import { buildChangeContextSnapshot } from "../../utils/context-snapshot";
 import { changeToDirectiveState } from "../../temporal/change-state";
@@ -297,45 +296,39 @@ export async function computeShippedTerminalProof(input: {
   }
 
   // Step 5: bundle change.json is readable and schema-valid.
-  let bundleJsonText: string;
-  try {
-    bundleJsonText = await readFile(join(bundlePath, "change.json"), "utf-8");
-  } catch (error) {
-    return {
-      ok: false,
-      refusalCode: "PROOF_INVALID_BUNDLE",
-      evidence: `bundle change.json unreadable at ${bundlePath}: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-
-  let bundleParsed: unknown;
-  try {
-    bundleParsed = JSON.parse(bundleJsonText);
-  } catch (error) {
-    return {
-      ok: false,
-      refusalCode: "PROOF_INVALID_BUNDLE",
-      evidence: `bundle change.json JSON parse failed at ${bundlePath}: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-
-  let bundleChange: Change;
-  try {
-    bundleChange = ChangeSchema.parse(bundleParsed);
-  } catch (error) {
-    if (error instanceof ZodError) {
+  const bundleLoad = await loadChange(
+    dirname(bundlePath),
+    basename(bundlePath),
+  );
+  if (!bundleLoad.success || !bundleLoad.data) {
+    if (bundleLoad.success) {
       return {
         ok: false,
         refusalCode: "PROOF_INVALID_BUNDLE",
-        evidence: `bundle ChangeSchema parse failed: ${formatZodError(error)}`,
+        evidence: `bundle change.json empty at ${bundlePath}`,
+      };
+    }
+    if (bundleLoad.type === "corrupt") {
+      return {
+        ok: false,
+        refusalCode: "PROOF_INVALID_BUNDLE",
+        evidence: `bundle change.json JSON parse failed at ${bundlePath}: ${bundleLoad.error}`,
+      };
+    }
+    if (bundleLoad.type === "schema_error") {
+      return {
+        ok: false,
+        refusalCode: "PROOF_INVALID_BUNDLE",
+        evidence: `bundle ChangeSchema parse failed at ${bundlePath}: ${bundleLoad.error}`,
       };
     }
     return {
       ok: false,
       refusalCode: "PROOF_INVALID_BUNDLE",
-      evidence: `bundle ChangeSchema parse threw non-Zod error: ${error instanceof Error ? error.message : String(error)}`,
+      evidence: `bundle change.json unreadable at ${bundlePath}: ${bundleLoad.error}`,
     };
   }
+  const bundleChange = bundleLoad.data;
 
   // Step 6: bundle's embedded change.id strictly equals requested changeId.
   if (bundleChange.id !== changeId) {

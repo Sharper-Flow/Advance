@@ -2,13 +2,15 @@
  * Pure disk readers for active change projections.
  *
  * These helpers intentionally have no Temporal dependency and no write-side
- * policy beyond the legacy normalizers that `loadChange` applies when it
- * repairs an on-disk record in place. They are the only import surface for
- * routine read-model consumers.
+ * policy. Legacy normalizers are applied in-memory during read so poisoned or
+ * pre-migration records still parse, but readers never mutate disk. All durable
+ * projection writes route through the storage-owned writer paths (atomic writer
+ * / conditional commit primitive). They are the only import surface for routine
+ * read-model consumers.
  */
 
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
+import { readdir, open } from "fs/promises";
 import {
   ChangeSchema,
   normalizePersistedSubagentReportState,
@@ -16,10 +18,158 @@ import {
 } from "../types";
 import type { Change } from "../types";
 import { ZodError } from "zod";
-import { atomicWriteFile } from "../utils/fs";
 import { createLogger } from "../utils/debug-log";
 
 const logger = createLogger("change-projection-reader");
+
+// =============================================================================
+// Bounded projection/document read primitive
+// =============================================================================
+
+/**
+ * Default byte limit for active-projection JSON documents (change.json,
+ * spec.json, epic projections). Large enough for realistic ADV projections with
+ * many tasks and reports; small enough to prevent unbounded reads from
+ * blocking ADV operations on runaway/corrupt files.
+ */
+export const PROJECTION_DOCUMENT_BYTE_LIMIT = 8 * 1024 * 1024; // 8 MiB
+
+export type ProjectionDocumentReadOutcome =
+  | { kind: "ok"; content: string; bytesRead: number }
+  | { kind: "not_found" }
+  | { kind: "oversized"; limit: number; actual: number }
+  | { kind: "corrupt"; error: string }
+  | { kind: "unreadable"; error: string };
+
+// =============================================================================
+// Warning propagation for aggregate/list projection reads
+// =============================================================================
+
+export type ProjectionDocumentWarningKind =
+  | "oversized"
+  | "corrupt"
+  | "unreadable";
+
+export type ProjectionDocumentWarning = {
+  path: string;
+  kind: ProjectionDocumentWarningKind;
+  limit?: number;
+  actual?: number;
+  error?: string;
+};
+
+export function outcomeToWarning(
+  path: string,
+  outcome: Exclude<
+    ProjectionDocumentReadOutcome,
+    { kind: "ok" } | { kind: "not_found" }
+  >,
+): ProjectionDocumentWarning {
+  if (outcome.kind === "oversized") {
+    return {
+      path,
+      kind: "oversized",
+      limit: outcome.limit,
+      actual: outcome.actual,
+    };
+  }
+  return { path, kind: outcome.kind, error: outcome.error };
+}
+
+export function loadFailureToWarning(
+  path: string,
+  failure: { type: string; error: string },
+): ProjectionDocumentWarning {
+  switch (failure.type) {
+    case "oversized":
+      return { path, kind: "oversized", error: failure.error };
+    case "corrupt":
+    case "schema_error":
+      return { path, kind: "corrupt", error: failure.error };
+    case "unreadable":
+    case "read_error":
+    default:
+      return { path, kind: "unreadable", error: failure.error };
+  }
+}
+
+/**
+ * Byte-bounded disk read for a projection/document file.
+ *
+ * Opens the file once, checks its size against `limitBytes`, and only buffers
+ * content when it fits. The read loop caps the in-memory buffer at `limitBytes`
+ * and performs a one-byte probe after filling the cap; if the file grew during
+ * the read (or stat was stale), the probe returns a byte and the function
+ * reports `oversized` without ever buffering beyond the cap. Returns typed
+ * outcomes for oversized, corrupt, or unreadable files so callers can fail-closed
+ * with actionable diagnostics instead of blocking on an unbounded `readFile`.
+ */
+export async function readBoundedProjectionDocument(
+  filePath: string,
+  limitBytes: number = PROJECTION_DOCUMENT_BYTE_LIMIT,
+): Promise<ProjectionDocumentReadOutcome> {
+  try {
+    const handle = await open(filePath, "r");
+    try {
+      const stats = await handle.stat();
+      if (stats.size > limitBytes) {
+        return { kind: "oversized", limit: limitBytes, actual: stats.size };
+      }
+
+      // Bounded buffer: never allocate more than the cap for a single read.
+      const buffer = Buffer.alloc(limitBytes);
+      let totalRead = 0;
+
+      while (totalRead < limitBytes) {
+        const { bytesRead } = await handle.read(
+          buffer,
+          totalRead,
+          limitBytes - totalRead,
+          totalRead,
+        );
+        if (bytesRead === 0) {
+          break;
+        }
+        totalRead += bytesRead;
+      }
+
+      // If the cap was filled, probe the next byte. A non-zero probe proves the
+      // file is larger than the cap (grew during read or a race after stat).
+      if (totalRead === limitBytes) {
+        const probe = Buffer.alloc(1);
+        const { bytesRead } = await handle.read(probe, 0, 1, limitBytes);
+        if (bytesRead > 0) {
+          const finalStats = await handle.stat();
+          return {
+            kind: "oversized",
+            limit: limitBytes,
+            actual: finalStats.size,
+          };
+        }
+      }
+
+      const content = buffer.toString("utf-8", 0, totalRead);
+      return { kind: "ok", content, bytesRead: totalRead };
+    } finally {
+      await handle.close();
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") {
+      return { kind: "not_found" };
+    }
+    if (error instanceof SyntaxError) {
+      return {
+        kind: "corrupt",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+    return {
+      kind: "unreadable",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 // =============================================================================
 // Result Types
@@ -40,11 +190,18 @@ export type LoadResult<T> =
         | "active_projection"
         | "retired_projection"
         | "read_model";
+      warnings?: ProjectionDocumentWarning[];
     }
   | {
       success: false;
       error: string;
-      type: "not_found" | "schema_error" | "read_error";
+      type:
+        | "not_found"
+        | "schema_error"
+        | "read_error"
+        | "oversized"
+        | "corrupt"
+        | "unreadable";
       source?: "disk" | "archive" | "read_model";
       degraded?: unknown;
     };
@@ -138,6 +295,24 @@ function normalizeLegacyChangeRootStatus(value: unknown): [unknown, boolean] {
   return [value, false];
 }
 
+/**
+ * Apply in-memory legacy normalization to a parsed change projection.
+ *
+ * Returns the normalized value and whether any change was applied. This is a
+ * pure transform; it does not touch disk. Callers that need to persist the
+ * normalized form must use the storage-owned atomic writer.
+ */
+export function normalizeProjectionDocument(
+  value: unknown,
+): [unknown, boolean] {
+  const [gateNormalized, gateChanged] = normalizeLegacyGateData(value);
+  const [reportNormalized, reportChanged] =
+    normalizePersistedSubagentReportState(gateNormalized);
+  const [normalized, statusChanged] =
+    normalizeLegacyChangeRootStatus(reportNormalized);
+  return [normalized, gateChanged || reportChanged || statusChanged];
+}
+
 // =============================================================================
 // Change Operations
 // =============================================================================
@@ -190,20 +365,43 @@ export async function loadChange(
 ): Promise<LoadResult<Change | null>> {
   const changePath = join(changesDir, changeId, "change.json");
 
-  try {
-    const content = await readFile(changePath, "utf-8");
-    const parsed = JSON.parse(content);
-    const [gateNormalized, gateChanged] = normalizeLegacyGateData(parsed);
-    const [reportNormalized, reportChanged] =
-      normalizePersistedSubagentReportState(gateNormalized);
-    const [normalized, statusChanged] =
-      normalizeLegacyChangeRootStatus(reportNormalized);
-    const changed = gateChanged || reportChanged || statusChanged;
-
-    if (changed) {
-      await atomicWriteFile(changePath, JSON.stringify(normalized, null, 2));
+  const readResult = await readBoundedProjectionDocument(changePath);
+  if (readResult.kind !== "ok") {
+    switch (readResult.kind) {
+      case "not_found":
+        return { success: true, data: null };
+      case "oversized":
+        return {
+          success: false,
+          error: `Change projection ${changeId} exceeds byte limit: ${readResult.actual} bytes > ${readResult.limit} bytes (${changePath})`,
+          type: "oversized",
+        };
+      case "corrupt":
+        return {
+          success: false,
+          error: `Change projection ${changeId} is corrupt: ${readResult.error} (${changePath})`,
+          type: "corrupt",
+        };
+      case "unreadable":
+        return {
+          success: false,
+          error: `Failed to read change ${changeId}: ${readResult.error} (${changePath})`,
+          type: "unreadable",
+        };
+      default: {
+        const _exhaustive: never = readResult;
+        return {
+          success: false,
+          error: `Unexpected projection read outcome for ${changeId} (${changePath})`,
+          type: "read_error",
+        };
+      }
     }
+  }
 
+  try {
+    const parsed = JSON.parse(readResult.content);
+    const [normalized] = normalizeProjectionDocument(parsed);
     return { success: true, data: ChangeSchema.parse(normalized) };
   } catch (error) {
     if (error instanceof ZodError) {
@@ -216,15 +414,12 @@ export async function loadChange(
         }),
         type: "schema_error",
       };
-    } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return { success: true, data: null };
-    } else {
-      return {
-        success: false,
-        error: `Failed to read change ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
-        type: "read_error",
-      };
     }
+    return {
+      success: false,
+      error: `Failed to parse change ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+      type: "corrupt",
+    };
   }
 }
 

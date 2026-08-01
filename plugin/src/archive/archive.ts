@@ -6,7 +6,7 @@
  */
 
 import { join, dirname } from "path";
-import { readdir, readFile, mkdir } from "fs/promises";
+import { readdir, mkdir } from "fs/promises";
 import { atomicWriteFile, syncDir } from "../utils/fs";
 import {
   ChangeSchema,
@@ -37,6 +37,7 @@ import {
   type SpecProjectionManifest,
 } from "./projection";
 import { withArchiveProjectionLock } from "./projection-lock";
+import { readBoundedProjectionDocument } from "../storage/change-projection-reader";
 import {
   addProjectWisdom,
   listProjectWisdom,
@@ -940,9 +941,13 @@ async function archiveChangeUnderLock(
     if (!dryRun) {
       try {
         await writeSpecToDisk(projection.targetSpec, paths.specs);
-        const readback = SpecSchema.parse(
-          JSON.parse(await readFile(specPath, "utf8")),
-        );
+        const boundedSpec = await readBoundedProjectionDocument(specPath);
+        if (boundedSpec.kind !== "ok") {
+          throw new Error(
+            `spec readback failed: ${boundedSpec.kind}${boundedSpec.kind === "oversized" ? ` (${boundedSpec.actual} > ${boundedSpec.limit} bytes)` : ""}`,
+          );
+        }
+        const readback = SpecSchema.parse(JSON.parse(boundedSpec.content));
         if (specSha256(readback) !== specSha256(projection.targetSpec)) {
           throw new Error("spec readback digest mismatch");
         }
@@ -959,8 +964,15 @@ async function archiveChangeUnderLock(
           paths.docs,
         );
         docContent = doc.content;
-        const readback = await readFile(doc.filePath, "utf8");
-        if (canonicalSha256(readback) !== canonicalSha256(doc.content)) {
+        const boundedDoc = await readBoundedProjectionDocument(doc.filePath);
+        if (boundedDoc.kind !== "ok") {
+          throw new Error(
+            `generated doc readback failed: ${boundedDoc.kind}${boundedDoc.kind === "oversized" ? ` (${boundedDoc.actual} > ${boundedDoc.limit} bytes)` : ""}`,
+          );
+        }
+        if (
+          canonicalSha256(boundedDoc.content) !== canonicalSha256(doc.content)
+        ) {
           throw new Error("generated doc readback digest mismatch");
         }
         docsGenerated.push(doc.filePath);
@@ -1179,11 +1191,18 @@ async function createArchive(
           if (GENERATED_BUNDLE_FILES.has(entry.name) || !entry.isFile())
             continue;
           try {
-            const content = await readFile(
+            const bounded = await readBoundedProjectionDocument(
               join(sourceChangeDir, entry.name),
-              "utf-8",
             );
-            await atomicWriteFile(join(archivePath, entry.name), content);
+            if (bounded.kind !== "ok") {
+              throw new Error(
+                `artifact exceeds bounded projection limit: ${bounded.kind}${bounded.kind === "oversized" ? ` (${bounded.actual} > ${bounded.limit} bytes)` : ""}`,
+              );
+            }
+            await atomicWriteFile(
+              join(archivePath, entry.name),
+              bounded.content,
+            );
           } catch (err) {
             errors?.push(
               `Failed to copy change artifact ${entry.name}: ${err}`,
@@ -1284,11 +1303,15 @@ export async function createInRepoArchive(
       for (const entry of entries) {
         if (GENERATED_BUNDLE_FILES.has(entry.name) || !entry.isFile()) continue;
         try {
-          const content = await readFile(
+          const bounded = await readBoundedProjectionDocument(
             join(sourceChangeDir, entry.name),
-            "utf-8",
           );
-          await atomicWriteFile(join(archivePath, entry.name), content);
+          if (bounded.kind !== "ok") {
+            throw new Error(
+              `artifact exceeds bounded projection limit: ${bounded.kind}${bounded.kind === "oversized" ? ` (${bounded.actual} > ${bounded.limit} bytes)` : ""}`,
+            );
+          }
+          await atomicWriteFile(join(archivePath, entry.name), bounded.content);
         } catch {
           // Non-fatal — sibling file copy failure is a warning
         }
@@ -1353,8 +1376,10 @@ export async function findArchiveBundle(
   for (let i = matches.length - 1; i >= 0; i--) {
     const candidate = join(archiveDir, matches[i]);
     try {
-      await readFile(join(candidate, "change.json"), "utf-8");
-      return candidate;
+      const result = await readBoundedProjectionDocument(
+        join(candidate, "change.json"),
+      );
+      if (result.kind === "ok") return candidate;
     } catch {
       // Manifest missing or unreadable — try next candidate.
     }

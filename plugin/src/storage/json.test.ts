@@ -14,7 +14,7 @@ import {
   type MockInstance,
 } from "vitest";
 import { join } from "path";
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, rm } from "fs/promises";
 import {
   loadProjectConfig,
   loadProjectConfigWithDiagnostics,
@@ -36,6 +36,8 @@ import {
   resolveChangeId,
 } from "./json";
 import { mkdir } from "fs/promises";
+import { PROJECTION_DOCUMENT_BYTE_LIMIT } from "./change-projection-reader";
+import { readSpecFilesystem } from "./spec-filesystem";
 import {
   createTempDir,
   cleanupTempDir,
@@ -360,17 +362,17 @@ describe("Change Operations", () => {
     expect(result.data).toBeNull();
   });
 
-  test("loadChange handles malformed JSON", async () => {
+  test("loadChange returns corrupt for malformed JSON", async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const changePath = join(changesDir, "addFeature/change.json");
     await writeFile(changePath, "invalid json");
 
     const result = await loadChange(changesDir, "addFeature");
     expect(result.success).toBe(false);
-    expect(result.type).toBe("read_error");
+    expect(result.type).toBe("corrupt");
   });
 
-  test("loadChange rewrites legacy gate statuses and removes migration fields before validation", async () => {
+  test("loadChange normalizes legacy gate statuses in memory without rewriting disk", async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const changePath = join(changesDir, "addFeature/change.json");
     const raw = JSON.parse(await readFile(changePath, "utf-8"));
@@ -398,7 +400,8 @@ describe("Change Operations", () => {
       release: { status: "pending" },
     };
 
-    await writeFile(changePath, JSON.stringify(raw, null, 2));
+    const original = JSON.stringify(raw, null, 2);
+    await writeFile(changePath, original);
 
     const result = await loadChange(changesDir, "addFeature");
     expect(result.success).toBe(true);
@@ -412,13 +415,12 @@ describe("Change Operations", () => {
         .absorbed_completions,
     ).toBeUndefined();
 
-    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
-    expect(rewritten.gates.proposal.status).toBe("done");
-    expect(rewritten.gates.proposal.migrated_from).toBeUndefined();
-    expect(rewritten.gates.proposal.absorbed_completions).toBeUndefined();
+    // Readers must not mutate disk; the legacy file stays as written.
+    const after = await readFile(changePath, "utf-8");
+    expect(after).toBe(original);
   });
 
-  test('loadChange normalizes legacy root status "active" to "draft" before validation', async () => {
+  test('loadChange normalizes legacy root status "active" to "draft" in memory without rewriting disk', async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const changePath = join(changesDir, "addFeature/change.json");
     const raw = JSON.parse(await readFile(changePath, "utf-8"));
@@ -436,7 +438,8 @@ describe("Change Operations", () => {
       acceptance: { status: "pending" },
       release: { status: "pending" },
     };
-    await writeFile(changePath, JSON.stringify(raw, null, 2));
+    const original = JSON.stringify(raw, null, 2);
+    await writeFile(changePath, original);
 
     const result = await loadChange(changesDir, "addFeature");
 
@@ -446,30 +449,31 @@ describe("Change Operations", () => {
     expect(result.data!.gates.proposal.status).toBe("pending");
     expect(result.data!.gates.release.status).toBe("pending");
 
-    // The normalized form is persisted so subsequent loads are no-ops.
-    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
-    expect(rewritten.status).toBe("draft");
-    expect(rewritten.gates.proposal.status).toBe("pending");
+    // Readers must not mutate disk; the legacy file stays as written.
+    const after = await readFile(changePath, "utf-8");
+    expect(after).toBe(original);
   });
 
-  test('loadChange normalizes legacy root status "pending" to "draft" before validation', async () => {
+  test('loadChange normalizes legacy root status "pending" to "draft" in memory without rewriting disk', async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const changePath = join(changesDir, "addFeature/change.json");
     const raw = JSON.parse(await readFile(changePath, "utf-8"));
 
     raw.status = "pending";
-    await writeFile(changePath, JSON.stringify(raw, null, 2));
+    const original = JSON.stringify(raw, null, 2);
+    await writeFile(changePath, original);
 
     const result = await loadChange(changesDir, "addFeature");
 
     expect(result.success).toBe(true);
     expect(result.data!.status).toBe("draft");
 
-    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
-    expect(rewritten.status).toBe("draft");
+    // Readers must not mutate disk; the legacy file stays as written.
+    const after = await readFile(changePath, "utf-8");
+    expect(after).toBe(original);
   });
 
-  test("loadChange normalizes legacy task sub-agent reports before validation", async () => {
+  test("loadChange normalizes legacy task sub-agent reports in memory without rewriting disk", async () => {
     const changesDir = join(tempDir, ".adv/changes");
     const changePath = join(changesDir, "addFeature/change.json");
     const raw = JSON.parse(await readFile(changePath, "utf-8"));
@@ -499,7 +503,8 @@ describe("Change Operations", () => {
       },
     ];
 
-    await writeFile(changePath, JSON.stringify(raw, null, 2));
+    const original = JSON.stringify(raw, null, 2);
+    await writeFile(changePath, original);
 
     const result = await loadChange(changesDir, "addFeature");
 
@@ -509,11 +514,47 @@ describe("Change Operations", () => {
       required_main_agent_actions: [],
     });
 
-    const rewritten = JSON.parse(await readFile(changePath, "utf-8"));
-    expect(rewritten.tasks[0].subagent_reports[0].scope_drift).toBeNull();
-    expect(
-      rewritten.tasks[0].subagent_reports[0].required_main_agent_actions,
-    ).toEqual([]);
+    // Readers must not mutate disk; the legacy file stays as written.
+    const after = await readFile(changePath, "utf-8");
+    expect(after).toBe(original);
+  });
+
+  test("loadChange does not write to disk while reading", async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const raw = JSON.parse(await readFile(changePath, "utf-8"));
+    raw.status = "active";
+    const original = JSON.stringify(raw, null, 2);
+    await writeFile(changePath, original);
+
+    const result = await loadChange(changesDir, "addFeature");
+    expect(result.success).toBe(true);
+    expect(result.data!.status).toBe("draft");
+
+    const after = await readFile(changePath, "utf-8");
+    expect(after).toBe(original);
+  });
+
+  test("loadChange returns oversized for projections exceeding byte limit", async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    const huge = "x".repeat(PROJECTION_DOCUMENT_BYTE_LIMIT + 1);
+    await writeFile(changePath, huge);
+
+    const result = await loadChange(changesDir, "addFeature");
+    expect(result.success).toBe(false);
+    expect(result.type).toBe("oversized");
+  });
+
+  test("loadChange returns unreadable when projection path is not a file", async () => {
+    const changesDir = join(tempDir, ".adv/changes");
+    const changePath = join(changesDir, "addFeature/change.json");
+    await rm(changePath, { recursive: true, force: true });
+    await mkdir(changePath, { recursive: true });
+
+    const result = await loadChange(changesDir, "addFeature");
+    expect(result.success).toBe(false);
+    expect(result.type).toBe("unreadable");
   });
 
   test("saveChange writes change to JSON", async () => {
@@ -1250,6 +1291,58 @@ describe("updateChangeArtifacts with agreement and design", () => {
       "utf-8",
     );
     expect(execSummaryContent).toBe("# Updated Executive Summary");
+  });
+});
+
+describe("readSpecFilesystem", () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir();
+    await createTestProject(tempDir);
+  });
+
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
+  test("returns ok with content and path for an existing spec", async () => {
+    const result = await readSpecFilesystem({
+      specsDir: join(tempDir, ".adv/specs"),
+      capability: "test-capability",
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.path).toContain("test-capability/spec.json");
+    expect(result.content).toContain("test-capability");
+  });
+
+  test("returns not_found error shape for a missing spec", async () => {
+    const result = await readSpecFilesystem({
+      specsDir: join(tempDir, ".adv/specs"),
+      capability: "missing-capability",
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain("Spec not found");
+  });
+
+  test("returns oversized error shape for a spec exceeding the limit", async () => {
+    const specsDir = join(tempDir, ".adv/specs");
+    await writeFile(
+      join(specsDir, "test-capability", "spec.json"),
+      "x".repeat(101),
+      "utf-8",
+    );
+
+    const result = await readSpecFilesystem({
+      specsDir,
+      capability: "test-capability",
+      limitBytes: 100,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain("oversized");
   });
 });
 

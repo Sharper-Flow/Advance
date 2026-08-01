@@ -2,7 +2,6 @@
  * artifacts helpers extracted from change.ts.
  */
 import { join } from "path";
-import { readFile } from "fs/promises";
 import {
   GATE_ORDER,
   ARTIFACT_FILENAME,
@@ -15,6 +14,21 @@ import type { Store } from "../../storage/store";
 import { type ArtifactMetadata } from "../../temporal/contracts";
 import { fileExists } from "../../storage/json";
 import { findArchiveBundle } from "../../archive";
+import { readBoundedProjectionDocument } from "../../storage/change-projection-reader";
+import { createLogger } from "../../utils/debug-log";
+const logger = createLogger("change-artifacts");
+
+async function readArtifactFile(filePath: string): Promise<string | null> {
+  const result = await readBoundedProjectionDocument(filePath);
+  if (result.kind === "ok") return result.content;
+  if (result.kind !== "not_found") {
+    logger.warn(
+      `Artifact read bounded failure at ${filePath}: ${result.kind}${result.kind === "oversized" ? ` (${result.actual} > ${result.limit} bytes)` : ""}`,
+    );
+  }
+  return null;
+}
+
 export async function normalizeArtifactMetadataForReadback(
   artifacts: Change["artifacts"],
 ): Promise<Change["artifacts"]> {
@@ -91,8 +105,8 @@ export async function readArtifact(
   const changeDir = join(store.paths.changes, changeId);
   const filename = ARTIFACT_FILENAME[kind];
   try {
-    const text = await readFile(join(changeDir, filename), "utf-8");
-    if (text.trim().length > 0) return text;
+    const text = await readArtifactFile(join(changeDir, filename));
+    if (text && text.trim().length > 0) return text;
   } catch {
     // File missing — fall through.
   }
@@ -101,8 +115,8 @@ export async function readArtifact(
   const bundleDir = await findArchiveBundle(archiveDir, changeId);
   if (bundleDir) {
     try {
-      const text = await readFile(join(bundleDir, filename), "utf-8");
-      if (text.trim().length > 0) return text;
+      const text = await readArtifactFile(join(bundleDir, filename));
+      if (text && text.trim().length > 0) return text;
     } catch {
       // Bundle file missing — return null.
     }
@@ -189,8 +203,8 @@ export async function readArtifacts(
     const changeDir = join(store.paths.changes, changeId);
     const filename = ARTIFACT_FILENAME[kind];
     try {
-      const text = await readFile(join(changeDir, filename), "utf-8");
-      if (text.trim().length > 0) {
+      const text = await readArtifactFile(join(changeDir, filename));
+      if (text && text.trim().length > 0) {
         result[kind] = text;
         continue;
       }
@@ -201,8 +215,8 @@ export async function readArtifacts(
     const bundleDir = await findArchiveBundle(archiveDir, changeId);
     if (bundleDir) {
       try {
-        const text = await readFile(join(bundleDir, filename), "utf-8");
-        if (text.trim().length > 0) result[kind] = text;
+        const text = await readArtifactFile(join(bundleDir, filename));
+        if (text && text.trim().length > 0) result[kind] = text;
       } catch {
         // Skip missing artifact.
       }

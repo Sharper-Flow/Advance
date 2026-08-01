@@ -283,6 +283,7 @@ export function deriveToolRealm(name: string): ToolRealm {
 export const GROUP_OVERRIDES: Readonly<Record<string, ToolGroup>> = {
   // Repair / operator-only recovery surface
   adv_archive_purge: "repair",
+  adv_change_projection_quarantine: "repair",
   adv_change_repair_origin: "repair",
   adv_change_workflow_terminate: "repair",
   adv_doctor: "repair",

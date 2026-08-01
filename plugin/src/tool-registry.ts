@@ -94,6 +94,7 @@ import { checkpointTools } from "./tools/checkpoint";
 import { formatArchiveTimeoutResult } from "./tools/change/archive-timeout";
 import { formatGateCompleteTimeoutResult } from "./tools/gate-timeout";
 import { reflectionTools } from "./tools/reflection";
+import { changeProjectionQuarantineTools } from "./tools/change-projection-quarantine";
 import { snapshotHealthTools } from "./tools/snapshot";
 import { projectMetadataTools } from "./tools/project-metadata";
 import { conformanceTools } from "./tools/conformance";
@@ -796,6 +797,13 @@ export function createToolMap(
       store,
     ),
 
+    // Change Projection Quarantine Tool (operator-only repair surface)
+    adv_change_projection_quarantine: bindTool(
+      changeProjectionQuarantineTools.adv_change_projection_quarantine,
+      "adv_change_projection_quarantine",
+      store,
+    ),
+
     // Snapshot Health Tool
     adv_snapshot_health: bindTool(
       snapshotHealthTools.adv_snapshot_health,
@@ -1288,6 +1296,7 @@ const PUBLIC_TOOL_GROUPS = [
   checkpointTools,
   reflectionTools,
   snapshotHealthTools,
+  changeProjectionQuarantineTools,
   lightweightProfileTools,
   projectMetadataTools,
   conformanceTools,

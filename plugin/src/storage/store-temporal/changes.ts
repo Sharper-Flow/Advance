@@ -495,6 +495,17 @@ async function listChangeSummaries(
     };
   }
 
+  const baseWarnings: TerminalWarning[] =
+    summaryResult.warnings?.map((warning) => ({
+      code:
+        warning.kind === "oversized"
+          ? "SOURCE_BOUND_EXCEEDED"
+          : "TERMINAL_CANDIDATE_OMITTED",
+      source: "active_disk",
+      message: `${warning.kind} summary document at ${warning.path}${warning.error ? `: ${warning.error}` : ""}${warning.actual ? ` (${warning.actual} bytes)` : ""}`,
+      omittedCount: 1,
+    })) ?? [];
+
   const requestedStatus =
     filter?.status === "active" || filter?.status === "pending"
       ? "draft"
@@ -562,12 +573,14 @@ async function listChangeSummaries(
         limit === undefined ? undefined : offset + limit,
       ),
       totalIds: summaryResult.summaries.length,
+      warnings: baseWarnings.length > 0 ? baseWarnings : undefined,
     };
   }
 
   return {
     summaries: filtered,
     totalIds: summaryResult.summaries.length,
+    warnings: baseWarnings.length > 0 ? baseWarnings : undefined,
   };
 }
 

@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
@@ -9,6 +8,7 @@ import {
   isSchemaError,
   listChangeDirs,
   loadChange,
+  readBoundedProjectionDocument,
 } from "../change-projection-reader";
 import type {
   ChangeStatus,
@@ -1403,11 +1403,19 @@ export function createTemporalStoreBackend(
         async (id): Promise<SourceRankedCandidate> => {
           if (expired()) return { id, source: "disk" };
           try {
-            const raw = await raceWithTemporalDeadline(
-              readFile(join(legacy.paths.changes, id, "change.json"), "utf8"),
+            const readResult = await raceWithTemporalDeadline(
+              readBoundedProjectionDocument(
+                join(legacy.paths.changes, id, "change.json"),
+              ),
               deadline,
             );
-            const parsed = JSON.parse(raw) as Record<string, unknown>;
+            if (readResult.kind !== "ok") {
+              return { id, source: "disk" };
+            }
+            const parsed = JSON.parse(readResult.content) as Record<
+              string,
+              unknown
+            >;
             return {
               id,
               source: "disk",

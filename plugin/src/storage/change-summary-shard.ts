@@ -17,7 +17,7 @@
 
 import { z } from "zod";
 import { join } from "path";
-import { readdir, readFile } from "fs/promises";
+import { readdir } from "fs/promises";
 import type { Dirent } from "fs";
 import { atomicWriteFile } from "../utils/fs";
 import type { Change } from "../types";
@@ -28,6 +28,52 @@ import {
   type ProjectionCommitAfterCommit,
 } from "./change-projection-transaction";
 import { listChangeDirs, loadChange } from "./json";
+import {
+  readBoundedProjectionDocument,
+  outcomeToWarning,
+  type ProjectionDocumentWarning,
+} from "./change-projection-reader";
+
+// =============================================================================
+// Bounded projection read helpers for summary pointer/shard JSON
+// =============================================================================
+
+async function readBoundedSummaryJson<T>(
+  path: string,
+  schema: z.ZodType<T>,
+  context: { type: string; id: string },
+): Promise<
+  | { kind: "ok"; data: T; warning?: ProjectionDocumentWarning }
+  | { kind: "not_found" }
+  | { kind: "degraded"; reason: string; warning?: ProjectionDocumentWarning }
+> {
+  const outcome = await readBoundedProjectionDocument(path);
+  if (outcome.kind === "ok") {
+    try {
+      return { kind: "ok", data: schema.parse(JSON.parse(outcome.content)) };
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return {
+          kind: "degraded",
+          reason: `${context.type} schema invalid for ${context.id}: ${error.message}`,
+        };
+      }
+      return {
+        kind: "degraded",
+        reason: `${context.type} JSON parse failed for ${context.id}: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  }
+  if (outcome.kind === "not_found") {
+    return { kind: "not_found" };
+  }
+  const warning = outcomeToWarning(path, outcome);
+  return {
+    kind: "degraded",
+    reason: `${context.type} ${outcome.kind} for ${context.id}: ${warning.error ?? ""}`,
+    warning,
+  };
+}
 
 export const ChangeSummaryShardSchema = z.object({
   schema_version: z.literal(1),
@@ -118,7 +164,7 @@ const GATE_ORDER: readonly string[] = [
   "release",
 ];
 
-function assertSafeChangeId(changeId: string): void {
+export function assertSafeChangeId(changeId: string): void {
   if (
     changeId.includes("/") ||
     changeId.includes("\\") ||
@@ -145,7 +191,7 @@ function countDoneTasks(tasks: ReadonlyArray<{ status: string }>): number {
   return tasks.filter((t) => t.status === "done").length;
 }
 
-function deriveSummaryShard(
+export function deriveSummaryShard(
   change: Change,
   operationId: string,
   projectionRevision: number,
@@ -175,7 +221,7 @@ function deriveSummaryShard(
   return shard;
 }
 
-function summaryPaths(paths: SummaryIndexPaths, changeId: string) {
+export function summaryPaths(paths: SummaryIndexPaths, changeId: string) {
   assertSafeChangeId(changeId);
   return {
     changeDir: join(paths.summariesDir, changeId),
@@ -231,33 +277,51 @@ export async function commitChangeProjectionWithSummary(
     );
 
     // Readback proof: confirm shard and pointer are durable and consistent.
-    const readbackPointer = ChangeSummaryPointerSchema.safeParse(
-      JSON.parse(await readFile(summary.pointerPath, "utf-8")),
+    const pointerReadback = await readBoundedSummaryJson(
+      summary.pointerPath,
+      ChangeSummaryPointerSchema,
+      { type: "summary pointer readback", id: changeId },
     );
-    if (!readbackPointer.success) {
-      return { ok: false, error: "pointer readback failed schema validation" };
+    if (pointerReadback.kind === "not_found") {
+      return { ok: false, error: "pointer readback missing after commit" };
     }
+    if (pointerReadback.kind === "degraded") {
+      return {
+        ok: false,
+        error: `pointer readback failed: ${pointerReadback.reason}`,
+      };
+    }
+    const readbackPointer = pointerReadback.data;
     if (
-      readbackPointer.data.state_revision !== shard.state_revision ||
-      readbackPointer.data.projection_revision !== projectionRevision ||
-      readbackPointer.data.operation_id !== operationId ||
-      readbackPointer.data.shard_path !== shardPath ||
-      readbackPointer.data.snapshot_path !== summary.snapshotPath
+      readbackPointer.state_revision !== shard.state_revision ||
+      readbackPointer.projection_revision !== projectionRevision ||
+      readbackPointer.operation_id !== operationId ||
+      readbackPointer.shard_path !== shardPath ||
+      readbackPointer.snapshot_path !== summary.snapshotPath
     ) {
       return { ok: false, error: "pointer readback does not match commit" };
     }
 
-    const readbackShard = ChangeSummaryShardSchema.safeParse(
-      JSON.parse(await readFile(shardPath, "utf-8")),
+    const shardReadback = await readBoundedSummaryJson(
+      shardPath,
+      ChangeSummaryShardSchema,
+      { type: "summary shard readback", id: changeId },
     );
-    if (!readbackShard.success) {
-      return { ok: false, error: "shard readback failed schema validation" };
+    if (shardReadback.kind === "not_found") {
+      return { ok: false, error: "shard readback missing after commit" };
     }
+    if (shardReadback.kind === "degraded") {
+      return {
+        ok: false,
+        error: `shard readback failed: ${shardReadback.reason}`,
+      };
+    }
+    const readbackShard = shardReadback.data;
     if (
-      readbackShard.data.state_revision !== shard.state_revision ||
-      readbackShard.data.projection_revision !== projectionRevision ||
-      readbackShard.data.operation_id !== operationId ||
-      readbackShard.data.id !== changeId
+      readbackShard.state_revision !== shard.state_revision ||
+      readbackShard.projection_revision !== projectionRevision ||
+      readbackShard.operation_id !== operationId ||
+      readbackShard.id !== changeId
     ) {
       return { ok: false, error: "shard readback does not match commit" };
     }
@@ -284,17 +348,45 @@ export async function commitChangeProjectionWithSummary(
 
   switch (outcome.kind) {
     case "committed": {
-      const pointer = ChangeSummaryPointerSchema.parse(
-        JSON.parse(await readFile(summary.pointerPath, "utf-8")),
+      const pointerRead = await readBoundedSummaryJson(
+        summary.pointerPath,
+        ChangeSummaryPointerSchema,
+        { type: "summary pointer", id: changeId },
       );
-      const shard = ChangeSummaryShardSchema.parse(
-        JSON.parse(await readFile(pointer.shard_path, "utf-8")),
+      if (pointerRead.kind === "not_found") {
+        return {
+          kind: "error",
+          error: "Snapshot committed but summary pointer is missing",
+        };
+      }
+      if (pointerRead.kind === "degraded") {
+        return {
+          kind: "error",
+          error: `Snapshot committed but summary pointer unreadable: ${pointerRead.reason}`,
+        };
+      }
+      const shardRead = await readBoundedSummaryJson(
+        pointerRead.data.shard_path,
+        ChangeSummaryShardSchema,
+        { type: "summary shard", id: changeId },
       );
+      if (shardRead.kind === "not_found") {
+        return {
+          kind: "error",
+          error: "Snapshot committed but summary shard is missing",
+        };
+      }
+      if (shardRead.kind === "degraded") {
+        return {
+          kind: "error",
+          error: `Snapshot committed but summary shard unreadable: ${shardRead.reason}`,
+        };
+      }
       return {
         kind: outcome.idempotent ? "idempotent" : "committed",
         snapshotRevision: outcome.revision,
-        shard,
-        pointer,
+        shard: shardRead.data,
+        pointer: pointerRead.data,
       };
     }
     case "committed_unverified":
@@ -350,32 +442,22 @@ export async function readCurrentSummaryShard(
     snapshotError = error instanceof Error ? error.message : String(error);
   }
 
-  let pointerRaw: unknown;
-  try {
-    pointerRaw = JSON.parse(await readFile(summary.pointerPath, "utf-8"));
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") {
-      // No pointer. If the snapshot exists this is a crash-stale index; if
-      // neither exists the change is simply not indexed.
-      return snapshot
-        ? { kind: "degraded", reason: "missing current summary pointer" }
-        : { kind: "not_found" };
-    }
-    return {
-      kind: "degraded",
-      reason: `malformed pointer JSON: ${error instanceof Error ? error.message : String(error)}`,
-    };
+  const pointerRead = await readBoundedSummaryJson(
+    summary.pointerPath,
+    ChangeSummaryPointerSchema,
+    { type: "summary pointer", id: changeId },
+  );
+  if (pointerRead.kind === "not_found") {
+    // No pointer. If the snapshot exists this is a crash-stale index; if
+    // neither exists the change is simply not indexed.
+    return snapshot
+      ? { kind: "degraded", reason: "missing current summary pointer" }
+      : { kind: "not_found" };
   }
-
-  const pointerResult = ChangeSummaryPointerSchema.safeParse(pointerRaw);
-  if (!pointerResult.success) {
-    return {
-      kind: "degraded",
-      reason: `pointer schema invalid: ${pointerResult.error.message}`,
-    };
+  if (pointerRead.kind === "degraded") {
+    return { kind: "degraded", reason: pointerRead.reason };
   }
-  const pointer = pointerResult.data;
+  const pointer = pointerRead.data;
 
   if (pointer.change_id !== changeId) {
     return {
@@ -427,31 +509,21 @@ export async function readCurrentSummaryShard(
     }
   }
 
-  let shardRaw: unknown;
-  try {
-    shardRaw = JSON.parse(await readFile(pointer.shard_path, "utf-8"));
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") {
-      return {
-        kind: "degraded",
-        reason: "missing summary shard referenced by pointer",
-      };
-    }
+  const shardRead = await readBoundedSummaryJson(
+    pointer.shard_path,
+    ChangeSummaryShardSchema,
+    { type: "summary shard", id: changeId },
+  );
+  if (shardRead.kind === "not_found") {
     return {
       kind: "degraded",
-      reason: `malformed shard JSON: ${error instanceof Error ? error.message : String(error)}`,
+      reason: "missing summary shard referenced by pointer",
     };
   }
-
-  const shardResult = ChangeSummaryShardSchema.safeParse(shardRaw);
-  if (!shardResult.success) {
-    return {
-      kind: "degraded",
-      reason: `shard schema invalid: ${shardResult.error.message}`,
-    };
+  if (shardRead.kind === "degraded") {
+    return { kind: "degraded", reason: shardRead.reason };
   }
-  const shard = shardResult.data;
+  const shard = shardRead.data;
 
   if (shard.id !== changeId) {
     return { kind: "degraded", reason: "shard change id mismatch" };
@@ -581,10 +653,12 @@ export async function rebuildSummaryIndex(paths: SummaryIndexPaths): Promise<
  * List changes using only the durable summary pointers, without hydrating full
  * change projections.
  */
-export async function listSummaryChanges(
-  paths: SummaryIndexPaths,
-): Promise<
-  | { kind: "ok"; summaries: ChangeSummaryShard[] }
+export async function listSummaryChanges(paths: SummaryIndexPaths): Promise<
+  | {
+      kind: "ok";
+      summaries: ChangeSummaryShard[];
+      warnings?: ProjectionDocumentWarning[];
+    }
   | { kind: "error"; error: string }
 > {
   let entries: Dirent[];
@@ -602,6 +676,7 @@ export async function listSummaryChanges(
   }
 
   const summaries: ChangeSummaryShard[] = [];
+  const warnings: ProjectionDocumentWarning[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const changeId = entry.name;
@@ -609,34 +684,63 @@ export async function listSummaryChanges(
     if (changeId.includes("/") || changeId.includes("\\")) continue;
 
     const summary = summaryPaths(paths, changeId);
-    let pointerRaw: unknown;
-    try {
-      pointerRaw = JSON.parse(await readFile(summary.pointerPath, "utf-8"));
-    } catch {
+    const pointerRead = await readBoundedSummaryJson(
+      summary.pointerPath,
+      ChangeSummaryPointerSchema,
+      { type: "summary pointer", id: changeId },
+    );
+    if (pointerRead.kind === "not_found") continue;
+    if (pointerRead.kind === "degraded") {
+      if (pointerRead.warning) warnings.push(pointerRead.warning);
       continue;
     }
-    const pointerResult = ChangeSummaryPointerSchema.safeParse(pointerRaw);
-    if (!pointerResult.success) continue;
-    const pointer = pointerResult.data;
-    if (pointer.change_id !== changeId) continue;
+    const pointer = pointerRead.data;
+    if (pointer.change_id !== changeId) {
+      warnings.push({
+        path: summary.pointerPath,
+        kind: "corrupt",
+        error: `pointer change_id mismatch: ${pointer.change_id} !== ${changeId}`,
+      });
+      continue;
+    }
 
     const expectedShardPrefix = join(paths.summariesDir, changeId, "revisions");
-    if (!isPathUnder(expectedShardPrefix, pointer.shard_path)) continue;
-
-    let shardRaw: unknown;
-    try {
-      shardRaw = JSON.parse(await readFile(pointer.shard_path, "utf-8"));
-    } catch {
+    if (!isPathUnder(expectedShardPrefix, pointer.shard_path)) {
+      warnings.push({
+        path: summary.pointerPath,
+        kind: "corrupt",
+        error: "pointer shard_path escapes allowed directory",
+      });
       continue;
     }
-    const shardResult = ChangeSummaryShardSchema.safeParse(shardRaw);
-    if (!shardResult.success) continue;
-    if (shardResult.data.id !== changeId) continue;
 
-    summaries.push(shardResult.data);
+    const shardRead = await readBoundedSummaryJson(
+      pointer.shard_path,
+      ChangeSummaryShardSchema,
+      { type: "summary shard", id: changeId },
+    );
+    if (shardRead.kind === "not_found") continue;
+    if (shardRead.kind === "degraded") {
+      if (shardRead.warning) warnings.push(shardRead.warning);
+      continue;
+    }
+    if (shardRead.data.id !== changeId) {
+      warnings.push({
+        path: pointer.shard_path,
+        kind: "corrupt",
+        error: `shard id mismatch: ${shardRead.data.id} !== ${changeId}`,
+      });
+      continue;
+    }
+
+    summaries.push(shardRead.data);
   }
 
-  return { kind: "ok", summaries };
+  return {
+    kind: "ok",
+    summaries,
+    ...(warnings.length > 0 && { warnings }),
+  };
 }
 
 /**
@@ -673,12 +777,13 @@ export async function collectObsoleteSummaryShards(
     };
   }
 
-  let pointerRaw: unknown;
-  try {
-    pointerRaw = JSON.parse(await readFile(summary.pointerPath, "utf-8"));
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") {
+  const pointerRead = await readBoundedSummaryJson(
+    summary.pointerPath,
+    ChangeSummaryPointerSchema,
+    { type: "summary pointer", id: changeId },
+  );
+  if (pointerRead.kind !== "ok") {
+    if (pointerRead.kind === "not_found") {
       return {
         kind: "ok",
         obsolete: [],
@@ -690,20 +795,10 @@ export async function collectObsoleteSummaryShards(
       kind: "ok",
       obsolete: [],
       safe: false,
-      reason: "pointer unreadable",
+      reason: pointerRead.reason,
     };
   }
-
-  const pointerResult = ChangeSummaryPointerSchema.safeParse(pointerRaw);
-  if (!pointerResult.success) {
-    return {
-      kind: "ok",
-      obsolete: [],
-      safe: false,
-      reason: "pointer schema invalid",
-    };
-  }
-  const pointer = pointerResult.data;
+  const pointer = pointerRead.data;
 
   if (pointer.snapshot_path !== summary.snapshotPath) {
     return {
