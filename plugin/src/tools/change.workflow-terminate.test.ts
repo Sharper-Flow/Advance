@@ -696,7 +696,7 @@ function shippedTerminalChange(overrides: Partial<Change> = {}): Change {
       startedAt: "2026-01-01T00:00:00Z",
       completedAt: "2026-01-02T00:00:00Z",
       route: "direct",
-      changeTipSha: "abc123",
+      changeTipSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     },
     ...overrides,
   } as Change;
