@@ -33,7 +33,14 @@ const FAKE_TEMPORAL_MANIFEST = JSON.stringify({
 // addition to copying the single ADV runtime agent and provider hint assets;
 // the first integration-style spawn in a fresh checkout may pay that build
 // cost on top of the asset copies. Bump beyond the default 5s timeout.
-vi.setConfig({ testTimeout: 120_000 });
+//
+// 240s rather than 120s because CI is *always* the fresh-checkout case and
+// runs on slower shared hardware, so it always pays the full rebuild. The
+// "bootstraps missing shared adv agent on --fix" case measured 120_322ms on a
+// GitHub runner — over by 0.3% — while its siblings in this file take 55-86s.
+// The old budget left no headroom for the slowest spawn on the slowest
+// runner, which made this test a recurring red across multiple trunk runs.
+vi.setConfig({ testTimeout: 240_000 });
 
 describe("overlay sync script support", () => {
   const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
