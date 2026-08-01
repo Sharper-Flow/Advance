@@ -798,8 +798,6 @@ async function readProjectionChangeList(
   }
   addSourceIds(diskIds);
 
-  const durableCandidateCount = summaryRows.size + diskIds.length;
-
   // Archive bundles.
   // Build a canonical-id -> archive-directory map so duplicate date-prefixed
   // directories for the same change id are deduplicated, active-disk shadows can
@@ -847,49 +845,9 @@ async function readProjectionChangeList(
     for (const id of archiveCandidateMap.keys()) candidateIds.add(id);
   }
 
-  // Temporal Visibility enumeration (best-effort candidate discovery).
-  const bundle = input.temporal as {
-    client?: {
-      workflow?: {
-        list?: unknown;
-        getHandle?: (...args: unknown[]) => unknown;
-      };
-    };
-  };
-  let visibilityIds: string[] = [];
-  // Only enumerate Temporal Visibility when durable sources are absent or when
-  // terminal statuses are requested. Routine active reads must stay off the
-  // Visibility API when summary/disk projections already provide candidates.
-  if (
-    typeof bundle.client?.workflow?.list === "function" &&
-    (wantsTerminalStatuses || durableCandidateCount === 0)
-  ) {
-    try {
-      visibilityIds = await raceWithTemporalDeadline(
-        listChangeWorkflowIds(
-          bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-          {
-            projectId: input.projectId,
-            statuses: wantsTerminalStatuses ? null : undefined,
-          },
-        ),
-        deadline,
-      );
-    } catch (err) {
-      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
-      degradedSources.add("visibility");
-      if (wantsTerminalStatuses) {
-        warnings.push({
-          code: "TERMINAL_SOURCE_DEGRADED",
-          source: "visibility",
-          message: `Visibility list ${
-            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-          }: ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
-    }
-  }
-  addSourceIds(visibilityIds);
+  // Routine change-list reads must remain projection-only. Temporal Visibility
+  // enumeration is reserved for explicit recovery/diagnostic surfaces such as
+  // listConflictAuthority, not for routine list/listSummary reads.
 
   const fromMemo = summaryRows.size;
   const fromCache = 0;
@@ -978,7 +936,7 @@ async function readProjectionChangeList(
     }
 
     // Tier 3: capped workflow fallback only when durable evidence is missing.
-    if (typeof bundle.client?.workflow?.getHandle === "function") {
+    if (typeof input.temporal.client?.workflow?.getHandle === "function") {
       try {
         const result = await getTemporalChange(id, { context: ctx });
         if (result.success && result.data) {

@@ -178,6 +178,78 @@ describe("projection-only change-list reads", () => {
     expect(page.warnings).toBeUndefined();
   });
 
+  it("changes.listSummary includes archived rows when requested", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("activeOne"));
+    await legacy.changes.save(archivedChange("archivedOne"));
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal: poisonedTemporal().temporal,
+      projectId: "project-1",
+    });
+
+    const archived = await store.changes.listSummary!({
+      includeArchived: true,
+    });
+    expect(archived.changes.map((c) => c.id).sort()).toEqual([
+      "activeOne",
+      "archivedOne",
+    ]);
+    expect(archived.hydrationStats?.fromHydration).toBe(0);
+  });
+
+  it("changes.listSummary includes closed rows when requested", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await legacy.changes.save(activeChange("activeOne"));
+    await legacy.changes.save(closedChange("closedOne"));
+    await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
+
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal: poisonedTemporal().temporal,
+      projectId: "project-1",
+    });
+
+    const closed = await store.changes.listSummary!({ includeClosed: true });
+    expect(closed.changes.map((c) => c.id).sort()).toEqual([
+      "activeOne",
+      "closedOne",
+    ]);
+    expect(closed.hydrationStats?.fromHydration).toBe(0);
+  });
+
+  it("changes.listSummary returns empty results and degraded metadata when summary index is unreadable", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    await writeFile(legacy.paths.summariesDir, "not a directory");
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal: poisonedTemporal().temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.listSummary!({});
+    expect(result.changes).toEqual([]);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "TERMINAL_SOURCE_DEGRADED",
+          source: "active_disk",
+        }),
+      ]),
+    );
+  });
+
   it("changes.list returns empty results and degraded metadata when summary index is unreadable", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
