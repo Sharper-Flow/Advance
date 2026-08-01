@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "fs/promises";
 import { join } from "path";
 import { tmpdir } from "os";
 
-import { runOptScan } from "./scan";
+import { attachOptScanFailure, runOptScan } from "./scan";
 import { OPTIMIZATION_DETECTORS } from "./registry";
 
 describe("runOptScan", () => {
@@ -76,5 +76,33 @@ describe("runOptScan", () => {
     const result = await runOptScan({ repoRoot });
 
     expect(result.failure).toBeUndefined();
+  });
+
+  test("attaches failure only for important degraded coverage and clears stale failure state", () => {
+    const base = {
+      schema_version: "opt_scan_report.v1" as const,
+      generated_at: "2026-08-01T00:00:00.000Z",
+      scope: { repoRoot, phase: "all" as const },
+      candidates: [],
+    };
+    const degraded = attachOptScanFailure({
+      ...base,
+      coverage: [
+        { id: "optional", label: "Optional", state: "failed", reason: "ignored", important: false },
+        { id: "required", label: "Required", state: "degraded", reason: "broken", important: true },
+      ],
+    });
+
+    expect(degraded.failure?.code).toBe("OPT_SCAN_DEGRADED");
+    expect(degraded.failure?.failedDetectors.map((entry) => entry.id)).toEqual(["required"]);
+
+    const recovered = attachOptScanFailure({
+      ...base,
+      coverage: [
+        { id: "required", label: "Required", state: "run", reason: "complete", important: true },
+      ],
+      failure: degraded.failure,
+    });
+    expect(recovered.failure).toBeUndefined();
   });
 });

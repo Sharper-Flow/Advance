@@ -5,10 +5,10 @@
  * evaluator, and aggregates candidates + coverage into a single
  * {@link OptScanResult}.
  *
- * In the structural foundation, the evaluator is a stub that records each
- * detector as `skipped` with a deterministic reason. This gives the CLI a
- * stable JSON envelope and coverage breakdown while the per-detector logic
- * is implemented in a follow-up task.
+ * The V1 evaluator runs the four registered deterministic static detectors
+ * over bounded source traversal and regex execution. It records candidates
+ * and per-detector coverage in a stable JSON envelope; degraded required
+ * coverage is surfaced as an explicit report failure.
  */
 
 import { OPTIMIZATION_DETECTORS } from "./registry";
@@ -77,8 +77,8 @@ export function attachOptScanFailure(result: OptScanResult): OptScanResult {
  * Run the optimization scan.
  *
  * Selects detectors from the registry by phase and optional detector id,
- * then returns a stable report envelope with each detector recorded as
- * skipped (structural foundation stub). No file traversal is performed.
+ * then evaluates each selected detector with bounded source traversal and
+ * regex execution before returning a stable report envelope.
  */
 export async function runOptScan(options: ScanOptions): Promise<OptScanResult> {
   const phase: 1 | 3 | "all" = options.phase ?? "all";

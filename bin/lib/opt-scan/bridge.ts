@@ -15,7 +15,7 @@
  */
 
 import { access } from "fs/promises";
-import { runOptScan, attachOptScanFailure } from "./scan";
+import { runOptScan } from "./scan";
 import type { ScanOptions, OptScanResult } from "./scan";
 
 export const BRIDGE_DEGRADED_ID = "bridge";

@@ -51,7 +51,7 @@ export const OPTIMIZATION_DETECTORS: readonly OptimizationDetector[] = [
     signal_class: "static",
     trigger: {
       file_globs: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"],
-      // Placeholder bounded alternation of common boundary call names.
+      // Deliberately bounded alternation of common boundary call names.
       pattern: /\b(fetch|axios|request|rpc)\b/g,
       description:
         "Source calls a boundary (network/rpc/request) repeatedly in a loop-like context.",
@@ -71,7 +71,7 @@ export const OPTIMIZATION_DETECTORS: readonly OptimizationDetector[] = [
     signal_class: "static",
     trigger: {
       file_globs: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"],
-      // Placeholder bounded alternation of collection transformation names.
+      // Deliberately bounded alternation of collection transformation names.
       pattern: /\b(map|filter|reduce|flatMap|sort)\b/g,
       description:
         "Source builds or transforms intermediate collections that may be avoidable or fuseable.",

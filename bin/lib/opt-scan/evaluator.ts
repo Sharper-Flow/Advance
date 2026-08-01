@@ -342,7 +342,6 @@ function rejectedScopeEvidence(
 // ---------------------------------------------------------------------------
 
 const LOOP_KEYWORDS_RE = /\b(for|while)\s*\(|\.forEach\s*\(|\.map\s*\(|\.filter\s*\(/i;
-const BOUNDARY_CALL_RE = /\b(fetch|axios|request|rpc|http|https)\b|\.(get|post|put|patch|delete)\s*\(/i;
 
 function isRepeatedBoundaryWork(
   lines: string[],
@@ -380,8 +379,6 @@ const STARTUP_FILE_RE = /\b(worker|server|index|main|app|entry|bootstrap|init)\b
 function isStartupFile(relPath: string): boolean {
   return STARTUP_FILE_RE.test(basename(relPath));
 }
-
-const STARTUP_PATTERN_RE = /\b(readFileSync|require\s*\(\s*[^)]*\.json\s*\))\b/i;
 
 function topLevelBraceDepthBeforeLine(lines: string[], targetIndex: number): number {
   // Count unmatched opening braces before the target line. Strings and comments
@@ -431,7 +428,6 @@ function isWorkerStartupPressure(
   return { ok: true, reason: "synchronous I/O in startup-named file" };
 }
 
-const COMPUTE_NAMES_RE = /\b(hash|digest|compute|derive|calculate|build|serialize)\b/i;
 // Require a direct cache invalidation operation. Metadata such as `version`
 // or a standalone TTL declaration does not prove that a cache is ever
 // invalidated, so it is deliberately insufficient for an advisory candidate.

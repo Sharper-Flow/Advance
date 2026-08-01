@@ -10,6 +10,7 @@ import {
   validateExpectedCostShape,
   validateMeasuredEvidence,
   validateOptimizationCandidate,
+  validateOptimizationCoverage,
   validateOptimizationEvidence,
   type ExpectedCostShape,
   type MeasuredEvidence,
@@ -277,5 +278,20 @@ describe("opt-scan schema", () => {
       important: true,
     };
     expect(coverage.id).toBe("repeated_boundary_work");
+  });
+
+  test("validateOptimizationCoverage accepts documented states and rejects malformed entries", () => {
+    const coverage = {
+      id: "repeated_boundary_work",
+      label: "Repeated boundary work",
+      state: "degraded",
+      reason: "scan file limit reached",
+      important: true,
+    };
+
+    expect(validateOptimizationCoverage(coverage).ok).toBe(true);
+    expect(validateOptimizationCoverage({ ...coverage, state: "unknown" }).ok).toBe(false);
+    expect(validateOptimizationCoverage({ ...coverage, reason: "" }).ok).toBe(false);
+    expect(validateOptimizationCoverage({ ...coverage, important: "true" }).ok).toBe(false);
   });
 });
