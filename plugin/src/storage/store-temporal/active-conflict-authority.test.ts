@@ -470,6 +470,49 @@ describe("active conflict authority", () => {
     expect(result.warnings.some((w) => w.includes("mismatched"))).toBe(true);
   });
 
+  it("isolates a schema-invalid peer instead of failing the whole authority", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+
+    // Healthy peer that must still be reported as an active fact.
+    await legacy.changes.save(activeChange("active-01", ["healthy-cap"]));
+
+    // Corrupt peer: schema-invalid durable projection. One bad record must not
+    // make the whole conflict authority unreachable.
+    const corruptDir = join(tempDir, ".adv", "changes", "active-02");
+    await mkdir(corruptDir, { recursive: true });
+    await writeFile(
+      join(corruptDir, "change.json"),
+      JSON.stringify(
+        {
+          ...activeChange("active-02", ["corrupt-cap"]),
+          status: "not-a-status",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const temporal = mockTemporalClient({ ids: ["active-01", "active-02"] });
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "project-1",
+    });
+
+    const result = await store.changes.listConflictAuthority!();
+
+    expect(result.completeness).toBe("incomplete");
+    expect(result.canConcludeClean).toBe(false);
+    expect(result.active.map((c) => c.id)).toEqual(["active-01"]);
+    expect(result.omittedCount).toBe(1);
+    expect(
+      result.warnings.some(
+        (w) => w.includes("active-02") && w.includes("schema"),
+      ),
+    ).toBe(true);
+  });
+
   it("does not treat cache/memo warmth as authority", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);

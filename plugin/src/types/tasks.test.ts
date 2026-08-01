@@ -32,14 +32,42 @@ describe("ErrorRecoverySchema", () => {
     attempted_at: "2026-07-30T01:00:00.000Z",
   };
 
-  it("rejects retry history whose count does not match recorded attempts", () => {
+  it("derives retry_count from recorded attempts instead of rejecting drift", () => {
+    const parsed = ErrorRecoverySchema.parse({
+      last_error: attempt.error,
+      retry_count: 2,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+      attempts: [attempt],
+    });
+
+    expect(parsed.retry_count).toBe(1);
+    expect(parsed.attempts).toHaveLength(1);
+  });
+
+  it("keeps retry_count when no attempt history is recorded", () => {
+    const parsed = ErrorRecoverySchema.parse({
+      last_error: attempt.error,
+      retry_count: 2,
+      max_retries: 3,
+      error_class: "SEMANTIC",
+    });
+
+    expect(parsed.retry_count).toBe(2);
+    expect(parsed.attempts).toBeUndefined();
+  });
+
+  it("rejects recorded attempts that exceed the declared retry budget", () => {
     expect(() =>
       ErrorRecoverySchema.parse({
         last_error: attempt.error,
-        retry_count: 2,
-        max_retries: 3,
+        retry_count: 1,
+        max_retries: 1,
         error_class: "SEMANTIC",
-        attempts: [attempt],
+        attempts: [
+          attempt,
+          { ...attempt, attempt_number: 2, strategy_label: "inspect-fixture" },
+        ],
       }),
     ).toThrow();
   });

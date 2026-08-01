@@ -214,22 +214,17 @@ export const ErrorRecoverySchema = z
     failure_attribution: FailureAttributionSchema.optional(),
   })
   .superRefine((recovery, ctx) => {
-    if (recovery.retry_count > recovery.max_retries) {
+    // `attempts` is the retry record; `retry_count` is a projection of it.
+    // When history is present it is the only source of truth, so budget
+    // enforcement uses the recorded attempts rather than the caller's counter.
+    const effectiveRetryCount =
+      recovery.attempts?.length ?? recovery.retry_count;
+
+    if (effectiveRetryCount > recovery.max_retries) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["retry_count"],
         message: "retry_count must not exceed max_retries",
-      });
-    }
-
-    if (
-      recovery.attempts &&
-      recovery.retry_count !== recovery.attempts.length
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["attempts"],
-        message: "attempts length must match retry_count",
       });
     }
 
@@ -283,7 +278,15 @@ export const ErrorRecoverySchema = z
         });
       }
     }
-  });
+  })
+  // Normalize the projection so a stored record can never disagree with its
+  // own retry history. Callers may send a stale counter; the parsed value is
+  // always derived from `attempts` when history is recorded.
+  .transform((recovery) =>
+    recovery.attempts
+      ? { ...recovery, retry_count: recovery.attempts.length }
+      : recovery,
+  );
 
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 

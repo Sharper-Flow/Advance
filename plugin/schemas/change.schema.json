@@ -7264,7 +7264,6 @@
       ]
     },
     "tasks": {
-      "default": [],
       "items": {
         "additionalProperties": {},
         "properties": {
