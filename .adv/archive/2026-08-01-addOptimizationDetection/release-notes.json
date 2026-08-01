@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "change_id": "addOptimizationDetection",
+  "title": "Add optimization detection",
+  "release_notes": {
+    "audience": "internal",
+    "category": "added",
+    "headline_internal": "Add evidence-backed optimization candidate detection",
+    "highlights": [
+      "Adds four bounded deterministic opt-scan detector families with cited source evidence.",
+      "Keeps static findings advisory and rejects cache candidates without explicit invalidation evidence.",
+      "Connects validated candidates to read-only Tron and optimizer guidance."
+    ],
+    "area": "ADV optimization scanning"
+  }
+}
