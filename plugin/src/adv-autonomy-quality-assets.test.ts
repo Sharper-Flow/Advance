@@ -264,9 +264,6 @@ describe("Archive and spec assets", () => {
     const content = readAsset(join(COMMAND_DIR, "adv-archive.md"));
     expect(content).toMatch(/Refresh Merge Basis/i);
     expect(content).toMatch(/git -C "\$MAIN" fetch origin \{default-branch\}/);
-    expect(content).toMatch(
-      /git -C "\$MAIN" merge --ff-only change\/\{change-id\}/,
-    );
     // Remote-backed release now proves origin/default or merged-PR state;
     // conflicts still route through the classification + resolution flow.
     expect(content).toMatch(/origin\/\{default-branch\}|origin\/<default>/i);
@@ -280,14 +277,13 @@ describe("Archive and spec assets", () => {
     expect(content).toMatch(/merge\+push/i);
     expect(content).toMatch(/Completion bar/i);
     expect(content).toMatch(/Do not say "archived", "shipped", or "done"/i);
-    expect(content).toMatch(
-      /git -C "\$MAIN" merge --ff-only change\/\{change-id\}[\s\S]*git -C "\$MAIN" push origin \{default-branch\}/,
-    );
+    expect(content).toMatch(/git push origin \{default-branch\}/);
     expect(content).toMatch(/push failure[\s\S]*Pending auto-merge\./i);
     expect(content).toMatch(/push failure[\s\S]*Blocked\./i);
     expect(content).toMatch(
-      /Remote-backed push failure never becomes `Merged locally\.`/i,
+      /Remote-backed push failure never becomes a local-only success/i,
     );
+    expect(content).toMatch(/NO_REMOTE_RELEASE_AUTHORITY/);
     expect(content).not.toMatch(
       /If no remote is configured OR push is skipped OR push fails[\s\S]*Merged locally\./i,
     );
@@ -389,16 +385,18 @@ describe("Archive and spec assets", () => {
       join(REPO_ROOT, "docs/command-voice-standard.md"),
     );
     const shippedTemplate =
-      content.match(/\*\*Shipped\*\*[\s\S]*?\*\*Merged locally\*\*/)?.[0] ?? "";
-    const localTemplate =
       content.match(
-        /\*\*Merged locally\*\*[\s\S]*?\*\*Pending auto-merge\*\*/,
+        /\*\*Shipped\*\*[\s\S]*?\*\*Blocked — no origin remote\*\*/,
+      )?.[0] ?? "";
+    const blockedTemplate =
+      content.match(
+        /\*\*Blocked — no origin remote\*\*[\s\S]*?\*\*Pending auto-merge\*\*/,
       )?.[0] ?? "";
 
     expect(shippedTemplate).toContain(
       "- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}",
     );
-    expect(localTemplate).toContain(
+    expect(blockedTemplate).toContain(
       "- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}",
     );
   });
@@ -406,7 +404,7 @@ describe("Archive and spec assets", () => {
   test("advance-workflow spec encodes archive push-after-merge semantics", () => {
     const content = readAsset(ADVANCE_WORKFLOW_SPEC);
     expect(content).toMatch(/push origin \{default-branch\}/);
-    expect(content).toMatch(/Merged locally\./);
+    expect(content).toMatch(/NO_REMOTE_RELEASE_AUTHORITY/);
     expect(content).toMatch(/origin\/\{default-branch\}/);
     expect(content).toMatch(/Pending auto-merge\./);
     expect(content).toMatch(/Blocked\./);

@@ -1197,7 +1197,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
     });
   });
 
-  it("AC3: shipped no_remote route with skipped push accepts without mergeCommitSha requirement being the only blocker", async () => {
+  it("AC3: shipped no_remote route with skipped push is no longer accepted", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
       data: { gates: { release: { status: "pending" } } },
@@ -1220,13 +1220,8 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
     });
 
     expect(proof).toMatchObject({
-      ok: true,
-      accepted: true,
-      source: "shipped-finalization",
-      route: "no_remote",
-      pushStatus: "skipped",
-      releasedCommitSha: "local-merge-sha",
-      mergeCommitSha: "local-merge-sha",
+      ok: false,
+      accepted: false,
     });
   });
 });
@@ -1417,7 +1412,6 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
     pushStatus: "pushed" | "skipped";
     label: string;
   }> = [
-    { route: "no_remote", pushStatus: "skipped", label: "no_remote + skipped" },
     { route: "direct", pushStatus: "pushed", label: "direct + pushed" },
     {
       route: "pr_auto_merge",
@@ -1468,6 +1462,32 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
       expect(proof.gate?.status).toBe("done");
     },
   );
+
+  it("route matrix: no_remote shipped + skipped is rejected", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: { status: "pending" } } },
+    });
+    const finalization: GitFinalizeOutcome = {
+      ...shippedBase,
+      route: "no_remote",
+      pushStatus: "skipped",
+      releasedCommitSha: "no_remote-merge-sha",
+      mergeCommitSha: "no_remote-merge-sha",
+    };
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store: makeBothPendingStore(),
+      changeId: "shippedRoute-no_remote",
+      evidence: buildReleaseCompletionEvidence(finalization),
+      finalization,
+    });
+
+    expect(proof).toMatchObject({
+      ok: false,
+      accepted: false,
+    });
+  });
 
   it.each(["blocked", "pending_merge"] as const)(
     "guard preservation: %s finalizationStatus never satisfies shipped",

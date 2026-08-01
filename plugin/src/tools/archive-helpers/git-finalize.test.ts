@@ -7,7 +7,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, rm, writeFile } from "fs/promises";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, mkdtempSync } from "fs";
+import { tmpdir } from "os";
 import { join } from "path";
 import { spawnSync } from "child_process";
 import { createTempDir } from "../../__tests__/setup";
@@ -334,6 +335,35 @@ describe("git-finalize helpers", () => {
     expect(ghUnavailable).toMatchObject({
       route: "blocked",
       reason: "POLICY_DETECTION_FAILED",
+    });
+  });
+
+  it("classifyFinalizationRoute treats a local bare origin as direct", () => {
+    const bareRepo = mkdtempSync(join(tmpdir(), "adv-bare-origin-"));
+    spawnSync("git", ["init", "--bare", "-q", "-b", "trunk", bareRepo]);
+
+    const bareOrigin = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: `${bareRepo}\n`,
+            stderr: "",
+          };
+        }
+        if (
+          args.join(" ") === "rev-parse --is-bare-repository" &&
+          _cwd === bareRepo
+        ) {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(bareOrigin).toMatchObject({
+      route: "direct",
+      remoteUrl: bareRepo,
+      protected: false,
     });
   });
 
@@ -983,7 +1013,7 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("no_remote route returns local_merge when change branch reachable locally", () => {
+  it("no_remote route blocks with NO_REMOTE_RELEASE_AUTHORITY", () => {
     const result = resolveReleaseReachability(
       {
         mainCheckout: "/repo",
@@ -992,23 +1022,16 @@ describe("git-finalize helpers", () => {
         route: { route: "no_remote" },
       },
       {
-        runGit: (_cwd, args) => {
-          if (
-            args[0] === "log" &&
-            args[2] === "trunk..change/fixSquashMergeRelease"
-          )
-            return { status: 0, stdout: "", stderr: "" };
-          if (args[0] === "rev-parse" && args[1] === "HEAD")
-            return { status: 0, stdout: "local-head-sha\n", stderr: "" };
+        runGit: (_cwd, _args) => {
           return { status: 1, stdout: "", stderr: "unexpected" };
         },
       },
     );
 
     expect(result).toMatchObject({
-      reachable: true,
-      proof: "local_merge",
-      releasedCommitSha: "local-head-sha",
+      reachable: false,
+      proof: "blocked",
+      details: ["NO_REMOTE_RELEASE_AUTHORITY"],
     });
   });
 
@@ -1206,7 +1229,7 @@ describe("git-finalize helpers", () => {
       expect(ioCalled).toBe(false);
     });
 
-    it("no_remote route + unmerged change branch returns local_unmerged with actionable details", () => {
+    it("no_remote route returns blocked with NO_REMOTE_RELEASE_AUTHORITY", () => {
       const result = resolveReleaseReachability(
         {
           mainCheckout: "/repo",
@@ -1215,25 +1238,15 @@ describe("git-finalize helpers", () => {
           route: { route: "no_remote" },
         },
         {
-          runGit: (_cwd, args) => {
-            if (
-              args[0] === "log" &&
-              args[2] === "trunk..change/noRemoteUnmerged"
-            ) {
-              return {
-                status: 0,
-                stdout: "abc123 unmerged change commit\n",
-                stderr: "",
-              };
-            }
+          runGit: (_cwd, _args) => {
             return { status: 1, stdout: "", stderr: "unexpected" };
           },
         },
       );
 
       expect(result.reachable).toBe(false);
-      expect(result.proof).toBe("local_unmerged");
-      expect(result.details).toEqual(["abc123 unmerged change commit"]);
+      expect(result.proof).toBe("blocked");
+      expect(result.details).toEqual(["NO_REMOTE_RELEASE_AUTHORITY"]);
     });
 
     // rq-fixArchivedBranchFinalization SC1: no_remote route + deleted change
@@ -2403,14 +2416,20 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Dirty main on default branch is checkpointed. With no remote, local
-    // release proof is enough and the terminal is Merged locally.
+    // No remote → no-remote archive is blocked with NO_REMOTE_RELEASE_AUTHORITY
+    // and the shared default branch ref is never mutated.
     expect(result).toMatchObject({
-      status: "shipped",
+      status: "blocked",
       defaultBranch: "trunk",
       route: "no_remote",
-      pushStatus: "skipped",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "NO_REMOTE_RELEASE_AUTHORITY",
+      },
     });
+    const trunkHeadAfter = git(main, ["rev-parse", "refs/heads/trunk"]);
+    const trunkHeadBefore = git(main, ["rev-parse", "trunk"]);
+    expect(trunkHeadAfter).toBe(trunkHeadBefore);
     // The shared main checkout is no longer inspected or checkpointed; dirty
     // files in the main checkout remain untouched (remote-first isolation).
     expect(git(main, ["status", "--porcelain"])).toContain("?? dirty.txt");
@@ -2452,7 +2471,7 @@ describe("git-finalize helpers", () => {
     );
   });
 
-  it("finalizeRelease completes no-remote local archive", async () => {
+  it("finalizeRelease blocks no-remote archive with NO_REMOTE_RELEASE_AUTHORITY", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
@@ -2461,6 +2480,7 @@ describe("git-finalize helpers", () => {
     await writeFile(join(worktree, "feature.txt"), "feature\n");
     git(worktree, ["add", "feature.txt"]);
     git(worktree, ["commit", "-m", "feature"]);
+    const trunkBefore = git(main, ["rev-parse", "trunk"]);
 
     const skipped = await finalizeRelease({
       changeId: "example",
@@ -2469,15 +2489,11 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    expect(skipped.status).toBe("shipped");
+    expect(skipped.status).toBe("blocked");
     expect(skipped.route).toBe("no_remote");
-    expect(skipped.pushStatus).toBe("skipped");
-    expect(skipped.pushFailureReason).toContain("origin");
-    // rq-fixArchivedBranchFinalization SC1: change-tip SHA is captured from the
-    // change branch before merge/cleanup so tree re-proof can survive deletion.
-    expect(skipped.changeTipSha).toBe(
-      git(main, ["rev-parse", "change/example"]),
-    );
+    expect(skipped.pushStatus).toBe("not_attempted");
+    expect(skipped.blocked?.reason).toBe("NO_REMOTE_RELEASE_AUTHORITY");
+    expect(git(main, ["rev-parse", "trunk"])).toBe(trunkBefore);
   });
 
   it("finalizeRelease in PR mode opens PR and returns pending auto-merge", async () => {
@@ -2995,7 +3011,7 @@ describe("git-finalize helpers", () => {
 
   // --- rq-releaseFinalization01.7/.8 regression coverage ---
 
-  it("finalizeRelease succeeds even when main checkout is on a different branch", async () => {
+  it("finalizeRelease blocks no-remote archive even when main checkout is on a different branch", async () => {
     const main = join(tempRoot, "wrong-branch");
     const worktree = join(tempRoot, "wrong-branch-wt");
     await mkdir(main);
@@ -3004,6 +3020,7 @@ describe("git-finalize helpers", () => {
     // not be inspected or mutated.
     git(main, ["checkout", "-b", "feature/other"]);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    const trunkBefore = git(main, ["rev-parse", "trunk"]);
 
     const result = await finalizeRelease({
       changeId: "example",
@@ -3013,13 +3030,17 @@ describe("git-finalize helpers", () => {
     });
 
     expect(result).toMatchObject({
-      status: "shipped",
+      status: "blocked",
       route: "no_remote",
-      pushStatus: "skipped",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "NO_REMOTE_RELEASE_AUTHORITY",
+      },
     });
+    expect(git(main, ["rev-parse", "trunk"])).toBe(trunkBefore);
   });
 
-  it("finalizeRelease ships no-remote archive without mutating dirty main checkout", async () => {
+  it("finalizeRelease blocks no-remote archive without mutating dirty main checkout", async () => {
     const main = join(tempRoot, "checkpoint-shipped");
     const worktree = join(tempRoot, "checkpoint-shipped-wt");
     await mkdir(main);
@@ -3027,6 +3048,7 @@ describe("git-finalize helpers", () => {
     // Make main dirty; the shared checkout must not be checkpointed or merged.
     await writeFile(join(main, "dirty.txt"), "dirty content\n");
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    const trunkBefore = git(main, ["rev-parse", "trunk"]);
 
     const result = await finalizeRelease({
       changeId: "example",
@@ -3036,10 +3058,14 @@ describe("git-finalize helpers", () => {
     });
 
     expect(result).toMatchObject({
-      status: "shipped",
+      status: "blocked",
       route: "no_remote",
-      pushStatus: "skipped",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "NO_REMOTE_RELEASE_AUTHORITY",
+      },
     });
+    expect(git(main, ["rev-parse", "trunk"])).toBe(trunkBefore);
     // Dirty file in shared main checkout remains untouched.
     expect(git(main, ["status", "--porcelain"])).toContain("?? dirty.txt");
   });
@@ -4476,9 +4502,10 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
         { runGit: realRunGit },
       );
 
-      // No remote → route is "no_remote", status shipped, push skipped.
-      expect(result.status).toBe("shipped");
+      // No remote → route is "no_remote", status blocked with NO_REMOTE_RELEASE_AUTHORITY.
+      expect(result.status).toBe("blocked");
       expect(result.route).toBe("no_remote");
+      expect(result.blocked?.reason).toBe("NO_REMOTE_RELEASE_AUTHORITY");
 
       // SC1: at most 1 fetch attempt (and the no-remote repo returns 128, but
       // the count tracks attempts, not successes).

@@ -872,14 +872,19 @@ export function verifyReleaseEvidenceFromMain(input: {
     pushStatus: "not_attempted",
     blocked: {
       reason:
-        reachability.proof === "origin_unmerged"
-          ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
-          : "CHANGE_BRANCH_NOT_REACHABLE",
+        route.route === "no_remote" && reachability.proof === "blocked"
+          ? "NO_REMOTE_RELEASE_AUTHORITY"
+          : reachability.proof === "origin_unmerged"
+            ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
+            : "CHANGE_BRANCH_NOT_REACHABLE",
       // rq-fixPhase9SquashMergeRedetect AC4: when reachability cannot be
       // established, surface adv_doctor as the recovery path
       // for changes whose branch was legitimately squash-merged and deleted
       // after shipping (gates-done + bundle-present invariant).
-      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01). If the branch was squash-merged and deleted after the change shipped, run adv_doctor to diagnose the wedged projection (status-flip recovery being internalized per design D4).`,
+      remediation:
+        route.route === "no_remote" && reachability.proof === "blocked"
+          ? `No origin remote is configured for ${repoRoot}. Configure a canonical origin (a bare repository or a remote-backed repository) before release completion.`
+          : `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01). If the branch was squash-merged and deleted after the change shipped, run adv_doctor to diagnose the wedged projection (status-flip recovery being internalized per design D4).`,
       details: reachability.details,
     },
   };
@@ -1235,8 +1240,7 @@ export async function verifyReleaseGateDurableForArchive(input: {
       route === "pr_manual" ||
       route === "merge_queue";
     const validRoutePushCombo =
-      (route === "no_remote" && pushStatus === "skipped") ||
-      ((route === "direct" || prRoute) && pushStatus === "pushed");
+      (route === "direct" || prRoute) && pushStatus === "pushed";
     if (releasedCommitSha && validRoutePushCombo) {
       return {
         accepted: true,

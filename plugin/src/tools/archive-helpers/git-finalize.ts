@@ -1,4 +1,4 @@
-import { realpathSync, mkdtempSync, rmSync } from "fs";
+import { realpathSync, mkdtempSync, rmSync, statSync } from "fs";
 import { spawnSync } from "child_process";
 import {
   dirname,
@@ -483,6 +483,31 @@ export function parseGitHubRepoFromRemote(url: string): string | undefined {
   return owner && repo ? `${owner}/${repo}` : undefined;
 }
 
+/**
+ * Detect whether the origin remote is a canonical local bare repository that can
+ * act as a valid remote authority. This keeps a local bare origin on the direct
+ * push path instead of forcing a no_remote block.
+ */
+function isCanonicalLocalRemoteOrigin(
+  repoRoot: string,
+  remoteUrl: string,
+  deps: Pick<GitFinalizeDeps, "runGit"> = {},
+): boolean {
+  if (!remoteUrl) return false;
+  const localPath = isAbsolute(remoteUrl)
+    ? remoteUrl
+    : join(repoRoot, remoteUrl);
+  try {
+    const resolved = realpathSync(localPath);
+    if (!statSync(resolved).isDirectory()) return false;
+  } catch {
+    return false;
+  }
+  const runGit = deps.runGit ?? defaultRunGit;
+  const result = runGit(localPath, ["rev-parse", "--is-bare-repository"]);
+  return result.status === 0 && result.stdout.trim() === "true";
+}
+
 function getOriginRemote(
   repoRoot: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
@@ -538,6 +563,16 @@ export function classifyFinalizationRoute(
   }
 
   if (!origin.repo) {
+    if (isCanonicalLocalRemoteOrigin(repoRoot, origin.remoteUrl, deps)) {
+      return {
+        route: "direct",
+        remoteUrl: origin.remoteUrl,
+        protected: false,
+        parsedRules: [],
+        details: ["Local bare origin is a valid remote route"],
+      };
+    }
+
     return {
       route: "pr_manual",
       remoteUrl: origin.remoteUrl,
@@ -2261,47 +2296,10 @@ export function resolveReleaseReachability(
   }
 
   if (route.route === "no_remote") {
-    const local = verifyChangeBranchReachable(
-      input.repoRoot,
-      input.defaultBranch,
-      input.changeId,
-      deps,
-    );
-    if (!local.reachable) {
-      // rq-fixArchivedBranchFinalization SC1: when the live change/{id} ref is
-      // absent (branch cleaned up after merge), fall back to a content-addressed
-      // tree-SHA proof using the persisted changeTipSha. This is the only route
-      // that lacks such a fallback; direct/PR already have one.
-      if (input.changeTipSha) {
-        const treeMatch = detectSquashMergeByTree(
-          input.repoRoot,
-          input.defaultBranch,
-          input.changeId,
-          { ...deps, changeTipSha: input.changeTipSha },
-        );
-        if (treeMatch.reachable && treeMatch.mergeCommitOid) {
-          return {
-            reachable: true,
-            proof: "local_merge",
-            releasedCommitSha: treeMatch.mergeCommitOid,
-          };
-        }
-      }
-      return {
-        reachable: false,
-        proof: "local_unmerged",
-        details: local.unmergedCommits,
-      };
-    }
-    const localHead = runGitOrThrow(
-      input.repoRoot,
-      ["rev-parse", "HEAD"],
-      deps,
-    );
     return {
-      reachable: true,
-      proof: "local_merge",
-      releasedCommitSha: localHead,
+      reachable: false,
+      proof: "blocked",
+      details: ["NO_REMOTE_RELEASE_AUTHORITY"],
     };
   }
 
@@ -2932,11 +2930,26 @@ export async function finalizeRelease(
   }
 
   const runGit = deps.runGit ?? defaultRunGit;
-  const preferredBaseRef =
-    route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`;
+
+  if (route.route === "no_remote") {
+    return {
+      status: "blocked",
+      repoRoot,
+      defaultBranch,
+      route: "no_remote",
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "NO_REMOTE_RELEASE_AUTHORITY",
+        remediation: `No origin remote is configured for ${repoRoot}. Configure a canonical origin (a bare repository or a remote-backed repository) before release completion.`,
+        details: route.details ?? (route.reason ? [route.reason] : undefined),
+      },
+    };
+  }
+
   const baseRef =
-    runGit(repoRoot, ["rev-parse", "--verify", preferredBaseRef]).status === 0
-      ? preferredBaseRef
+    runGit(repoRoot, ["rev-parse", "--verify", `origin/${defaultBranch}`])
+      .status === 0
+      ? `origin/${defaultBranch}`
       : defaultBranch;
 
   try {
@@ -2965,112 +2978,6 @@ export async function finalizeRelease(
               remediation: `Resolve Phase 9 merge blockers for change/${ctx.changeId}, then rerun archive finalization (rq-releaseFinalization01).`,
               details: merge.conflictFiles,
             },
-          };
-        }
-
-        if (route.route === "no_remote") {
-          // Update the local default-branch ref directly. A native push to the
-          // same non-bare repository is rejected when the branch is checked out
-          // in the shared main worktree, so we use a compare-and-set ref update
-          // while preserving the fast-forward invariant (old HEAD must be an
-          // ancestor of the merged commit). The shared main checkout worktree
-          // is left untouched; callers should verify via origin/default or, in
-          // the no-remote case, via local reachability from the updated ref.
-          const runGit = deps.runGit ?? defaultRunGit;
-          const oldDefaultHead = runGit(ephemeral, [
-            "rev-parse",
-            `refs/heads/${defaultBranch}`,
-          ]);
-          if (oldDefaultHead.status !== 0 || !oldDefaultHead.stdout.trim()) {
-            return {
-              status: "blocked",
-              repoRoot,
-              defaultBranch,
-              route: "no_remote",
-              mergeCommitSha: merge.mergeCommitSha,
-              pushStatus: "failed",
-              pushFailureReason: oldDefaultHead.stderr || oldDefaultHead.stdout,
-              blocked: {
-                reason: "LOCAL_DEFAULT_BRANCH_HEAD_UNRESOLVED",
-                remediation: `Unable to resolve current local ${defaultBranch} before updating it with the merged archive.`,
-              },
-            };
-          }
-          const oldSha = oldDefaultHead.stdout.trim();
-          const ffCheck = runGit(ephemeral, [
-            "merge-base",
-            "--is-ancestor",
-            oldSha,
-            "HEAD",
-          ]);
-          if (ffCheck.status !== 0) {
-            return {
-              status: "blocked",
-              repoRoot,
-              defaultBranch,
-              route: "no_remote",
-              mergeCommitSha: merge.mergeCommitSha,
-              pushStatus: "failed",
-              pushFailureReason: `local ${defaultBranch} is not an ancestor of the merged commit`,
-              blocked: {
-                reason: "LOCAL_DEFAULT_BRANCH_NOT_FAST_FORWARD",
-                remediation: `Resolve diverged ${defaultBranch} manually before no-remote archive finalization.`,
-              },
-            };
-          }
-          const updateRef = runGit(ephemeral, [
-            "update-ref",
-            `refs/heads/${defaultBranch}`,
-            "HEAD",
-            oldSha,
-          ]);
-          if (updateRef.status !== 0) {
-            return {
-              status: "blocked",
-              repoRoot,
-              defaultBranch,
-              route: "no_remote",
-              mergeCommitSha: merge.mergeCommitSha,
-              pushStatus: "failed",
-              pushFailureReason: updateRef.stderr || updateRef.stdout,
-              blocked: {
-                reason: "LOCAL_DEFAULT_BRANCH_UPDATE_FAILED",
-                remediation: `Failed to update local ${defaultBranch} with the merged archive. Resolve the git error and retry.`,
-              },
-            };
-          }
-          const reachable = verifyChangeBranchReachable(
-            repoRoot,
-            defaultBranch,
-            ctx.changeId,
-            deps,
-          );
-          if (!reachable.reachable) {
-            return {
-              status: "blocked",
-              repoRoot,
-              defaultBranch,
-              route: "no_remote",
-              mergeCommitSha: merge.mergeCommitSha,
-              pushStatus: "failed",
-              pushFailureReason: "local merge verification failed",
-              blocked: {
-                reason: "LOCAL_MERGE_NOT_VERIFIED",
-                remediation: `Change branch change/${ctx.changeId} is not reachable from local ${defaultBranch} after merge.`,
-                details: reachable.unmergedCommits,
-              },
-            };
-          }
-          const head = runGitOrThrow(ephemeral, ["rev-parse", "HEAD"], deps);
-          return {
-            status: "shipped",
-            repoRoot,
-            defaultBranch,
-            route: "no_remote",
-            releasedCommitSha: head,
-            mergeCommitSha: head,
-            pushStatus: "skipped",
-            pushFailureReason: route.reason ?? "origin remote not configured",
           };
         }
 

@@ -451,25 +451,26 @@ When a user explicitly grants merge authority for the current ADV change and req
 
 **ID:** `rq-releaseFinalization01` | **Priority:** **[MUST]**
 
-Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` may complete as local-only and report `Merged locally.`. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or `Merged locally.` for `no_remote`), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
+Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update the shared default-branch ref. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. A local bare origin is a valid remote route and is treated as `direct`. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
 
 **Tags:** `workflow`, `archive`, `worktree`, `git`
 
 #### Scenarios
 
-**No-remote archive uses local fast path** (`rq-releaseFinalization01.1`)
+**No-remote archive blocks with NO_REMOTE_RELEASE_AUTHORITY** (`rq-releaseFinalization01.1`)
 
 **Given:**
 - A change branch is already on the current default-branch basis
-- No `origin` remote is configured
+- No `origin` remote is configured and no local bare origin exists
 - No overlap-risk or PR-only policy applies
 
 **When:** Phase 9 Git Finalization chooses an integration path
 
 **Then:**
-- The archive uses the local `--ff-only` path
-- No branch rewrite is required
-- The archive may complete release locally and report `Merged locally.`
+- The archive blocks with `NO_REMOTE_RELEASE_AUTHORITY`
+- No `git update-ref` or other shared default-branch ref mutation is attempted
+- The shared main checkout remains untouched
+- The change stays active so the user can configure a canonical origin and retry
 
 **Conflicting reconcile stops before cleanup** (`rq-releaseFinalization01.2`)
 
@@ -512,7 +513,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 
 **Given:**
 - A change has completed all gates before release
-- The change lacks no-remote local proof, post-fetch `origin/{default-branch}` reachability, and merged PR state
+- The change lacks post-fetch `origin/{default-branch}` reachability, and merged PR state
 
 **When:** Any caller invokes `adv_gate_complete` with `gateId: "release"`
 
@@ -566,7 +567,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 - Active merge/rebase/cherry-pick/revert: archive blocks with MAIN_IN_PROGRESS_STATE and lists the detected in-progress operation
 - Checkpoint commit failure: archive blocks with MAIN_CHECKPOINT_FAILED and the underlying git error
 - Merge conflict during merge-back: archive blocks with existing conflict reporting and does not delete the worktree
-- Required remote push failure: archive routes to `Pending auto-merge.` or `Blocked.` without release completion; no-remote archives are the only local-only success path
+- Required remote push failure: archive routes to `Pending auto-merge.` or `Blocked.` without release completion; no-remote archives never succeed locally and must report `NO_REMOTE_RELEASE_AUTHORITY`
 - Unverifiable release evidence: archive blocks per rq-releaseProjectionDurability01
 
 **Phase 9 skip cannot bypass release proof** (`rq-releaseFinalization01.9`)
@@ -579,7 +580,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 
 **Then:**
 - The archive revalidates the same release proof required by normal Phase 9
-- Without no-remote local proof, post-fetch `origin/{default-branch}` reachability, merged PR state, or explicit audited override evidence, the archive refuses to mark release done or archived
+- Without post-fetch `origin/{default-branch}` reachability, merged PR state, or explicit audited override evidence, the archive refuses to mark release done or archived
 - The response reports `Blocked.` with the missing proof reason
 
 **Release recovery revalidates release proof** (`rq-releaseFinalization01.10`)
@@ -591,7 +592,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 **When:** The recovery path considers recording `gateId: "release"` as done
 
 **Then:**
-- Recovery revalidates no-remote local proof, post-fetch `origin/{default-branch}` reachability, or merged PR state before recording release
+- Recovery revalidates post-fetch `origin/{default-branch}` reachability, or merged PR state before recording release
 - Pending auto-merge, unmerged PRs, local-only remote-backed branches, and unverifiable evidence are refused
 - The recovery audit cites the proof source used
 
@@ -613,12 +614,12 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 
 **Given:**
 - A direct (non-PR) archive dispatches Phase 9 Git Finalization
-- The change requires post-fetch `origin/{default-branch}` reachability, merged PR state, or no-remote local proof before release
+- The change requires post-fetch `origin/{default-branch}` reachability or merged PR state before release
 
 **When:** Phase 9 finalization runs to completion, throws, or is interrupted after dispatch and then resumes
 
 **Then:**
-- Finalization is awaited to a durable terminal state before archive completion is reported: `Shipped.` only after post-fetch `origin/{default-branch}` reachability (or `Merged locally.` for `no_remote`), else a recorded failed outcome with actionable recovery evidence
+- Finalization is awaited to a durable terminal state before archive completion is reported: `Shipped.` only after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence
 - Direct merge work is not detached behind a fire-and-forget promise and finalization failures are not swallowed
 - Interruption after dispatch resumes to the same durable shipped-or-failed state rather than losing merge work, with no automatic retry
 - Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release
@@ -691,7 +692,7 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 
 **ID:** `rq-releaseFinalization03` | **Priority:** **[MUST]**
 
-ADV archive finalization MUST NOT inspect, reset, merge, or commit into the shared main checkout. All merge and push operations happen in ephemeral detached worktrees forked from the canonical remote default branch (or the local default branch when no remote exists). The shared main checkout's working tree, index, and checked-out branch remain untouched. In the no-remote case, the local default branch ref is updated only via a fast-forward-only compare-and-set `git update-ref`; divergence is surfaced without mutation. Release completion remains gated solely by `verifyReleaseEvidenceFromMain` and the persisted tip + origin/PR proof chain.
+ADV archive finalization MUST NOT inspect, reset, merge, or commit into the shared main checkout. All merge and push operations happen in ephemeral detached worktrees forked from the canonical remote default branch (or the local default branch when a local bare origin is used as the remote). The shared main checkout's working tree, index, and checked-out branch remain untouched. In the no-remote case, finalization blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update any shared ref. Release completion remains gated solely by `verifyReleaseEvidenceFromMain` and the persisted tip + origin/PR proof chain.
 
 **Tags:** `workflow`, `archive`, `git`
 
@@ -722,18 +723,18 @@ ADV archive finalization MUST NOT inspect, reset, merge, or commit into the shar
 - Finalization proceeds using the ephemeral worktree and remote/local proof
 - The main checkout remains as the user left it
 
-**No-remote local ref update is fast-forward-only** (`rq-releaseFinalization03.3`)
+**No-remote archive blocks with NO_REMOTE_RELEASE_AUTHORITY** (`rq-releaseFinalization03.3`)
 
 **Given:**
-- No origin remote is configured
-- The local default branch is an ancestor of the merged commit
+- No origin remote is configured and no local bare origin exists
 
-**When:** ADV updates the local default branch
+**When:** ADV finalizes the archive
 
 **Then:**
-- The update uses `git update-ref` with the expected old SHA
-- The update succeeds only if the old SHA is an ancestor of `HEAD`
-- Divergence is surfaced as a blocker without mutating the local branch
+- Finalization returns `Blocked.` with `NO_REMOTE_RELEASE_AUTHORITY`
+- The shared default branch ref is never updated
+- The shared main checkout remains untouched
+- The user receives a remediation to configure a canonical origin (bare repository or remote-backed origin) and retry
 
 **Failure surfaces without mutating main checkout** (`rq-releaseFinalization03.4`)
 
@@ -799,7 +800,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 **Archive success proves gate-status-equivalent release done** (`rq-releaseProjectionDurability01.1`)
 
 **Given:**
-- Phase 9 finalization returns no-remote local proof, direct shipped origin proof, or merged PR proof
+- Phase 9 finalization returns direct shipped origin proof, local bare origin proof, or merged PR proof
 - The release gate completion signal or recovery path has run
 
 **When:** adv_change_archive phase9:"run" is about to return success
@@ -954,7 +955,7 @@ When a change is declared `worker_bundle_impact: required`, ADV MUST enforce wor
 
 **ID:** `rq-archiveRecoveryConsistency01` | **Priority:** **[MUST]**
 
-Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. Status-repair success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery is consolidated through `adv_doctor`, which diagnoses the release-stuck projection and applies the safe repair path; batch terminal-projection repair over all release-stuck candidates and single-change targeted status flip are internalized behind `adv_doctor` and gated on structural branch-merge evidence or precise workflow evidence.
+Archive finalization recovery and status repair MUST be structural, idempotent, and read-after-write verified. A stale `phase9_status: pending_merge` MAY be finalized only when merged PR evidence or post-fetch `origin/{default-branch}` reachability proves release completion; successful recovery MUST record `phase9_status: done` before archived status is reported. A `phase9_status: failed` state without structural release proof MUST return a typed blocker classification and MUST NOT mark the change archived. Status-repair success MUST be gated by the same durable read model used by `adv_change_show` and `adv_change_list`: immediate show reads archived, in-flight lists omit the change, and archived lists include it exactly once. Target-project repair MUST mutate the target directly only when target confirmation and fresh queue/serviceability proof are present; otherwise it MUST emit an exact same-project recovery packet and fail closed without target mutation. No archive recovery path may read or write ADV external state files directly. Recovery is consolidated through `adv_doctor`, which diagnoses the release-stuck projection and applies the safe repair path; batch terminal-projection repair over all release-stuck candidates and single-change targeted status flip are internalized behind `adv_doctor` and gated on structural branch-merge evidence or precise workflow evidence.
 
 **Tags:** `workflow`, `archive`, `repair`, `status`, `target-path`
 
@@ -969,7 +970,7 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 **When:** Archive finalization recovery runs
 
 **Then:**
-- Recovery uses PR merge evidence, no-remote local proof, or post-fetch `origin/{default-branch}` reachability rather than title matching or branch ancestry alone
+- Recovery uses PR merge evidence or post-fetch `origin/{default-branch}` reachability rather than title matching or branch ancestry alone
 - The release gate is recorded done with Phase 9 evidence before archived status is saved
 - `phase9_status` is recorded as `done` before success is reported
 - Re-running the recovery remains safe and idempotent
@@ -978,7 +979,7 @@ Archive finalization recovery and status repair MUST be structural, idempotent, 
 
 **Given:**
 - A change has `phase9_status: failed`
-- Merged PR, no-remote local, and post-fetch origin/default release proof are absent or unverifiable
+- Merged PR and post-fetch origin/default release proof are absent or unverifiable
 
 **When:** Archive finalization recovery runs
 
@@ -2142,7 +2143,7 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 - The blockquote contains a row with `**{change-id}**` (bolded change ID)
 - The blockquote contains a row with `{gate} ✓ → {next-gate}` (gate transition)
 - The blockquote contains an arrow-prefixed row `→ `/adv-{next-command} {change-id}`` showing exactly one runnable command
-- The archive terminal variant uses a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb for final states (Shipped. when `origin/{default-branch}` reachability or merged PR proof exists, Merged locally. only when no `origin` remote is configured); non-final remote-backed states use `release pending` / `release blocked` with `Pending auto-merge.` or `Blocked.` and leave the change active
+- The archive terminal variant uses a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb for final states (Shipped. when `origin/{default-branch}` reachability, merged PR proof, or verified local bare origin push exists); non-final remote-backed states use `release pending` / `release blocked` with `Pending auto-merge.` or `Blocked.` and leave the change active
 - When the handoff is paired with a human-checkpoint approval, reply instructions appear as plain prose below the blockquote (not inside it); the three-section spine (Problem / Chosen direction / Delivered) is unchanged
 
 **No mechanics leakage** (`rq-handoffVoice01.2`)
@@ -2182,7 +2183,7 @@ Every /adv-* command that emits a user-facing gate-transition message MUST use t
 **Then:**
 - ## Next stage and ## Next headings are absent from the handoff
 - A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command
-- The archive terminal variant ends with a single-line blockquote using `release ✓` only for final states (Shipped. or no-remote Merged locally.); Pending auto-merge. and Blocked. use `release pending` or `release blocked` and no separate labeled block
+- The archive terminal variant ends with a single-line blockquote using `release ✓` only for final states (`Shipped.`); Pending auto-merge. and Blocked. use `release pending` or `release blocked` and no separate labeled block
 - Optional reply instructions for human checkpoints (Inline Approval Voice) appear as plain prose below the blockquote, not inside it
 
 **Blockquote wayfinder shows only the needed command** (`rq-handoffVoice01.5`)
