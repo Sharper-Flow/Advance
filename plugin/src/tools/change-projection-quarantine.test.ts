@@ -8,6 +8,7 @@
 
 import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdir, rm, writeFile, stat } from "node:fs/promises";
+import { execSync } from "node:child_process";
 import { join } from "node:path";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { changeProjectionQuarantineTools } from "./change-projection-quarantine";
@@ -534,5 +535,72 @@ describe("adv_change_projection_quarantine", () => {
     // Active read path is gone; retained bytes are in quarantine.
     await expect(stat(sourcePath)).rejects.toThrow();
     await expect(stat(result.quarantine_path as string)).resolves.toBeDefined();
+  });
+
+  test("resolves project identity from git root when external state root is non-git", async () => {
+    const gitRoot = await createTempDir("adv-quarantine-git-root-");
+    const externalDir = await createTempDir("adv-quarantine-external-");
+
+    try {
+      // Real committed Git fixture for identity resolution.
+      execSync("git init -b main", { cwd: gitRoot, stdio: "ignore" });
+      execSync("git config user.email test@test.com", {
+        cwd: gitRoot,
+        stdio: "ignore",
+      });
+      execSync("git config user.name Test", { cwd: gitRoot, stdio: "ignore" });
+      await writeFile(join(gitRoot, "README.md"), "# test");
+      execSync("git add README.md && git commit -m initial", {
+        cwd: gitRoot,
+        stdio: "ignore",
+      });
+
+      // External state is intentionally outside the git repo (non-git).
+      const extChangesDir = join(externalDir, "changes");
+      const content = "x".repeat(PROJECTION_DOCUMENT_BYTE_LIMIT + 1);
+      const sourcePath = await writeChangeJson(
+        extChangesDir,
+        "oversized",
+        content,
+      );
+
+      const extStore = createMockStore(gitRoot, extChangesDir);
+      extStore.paths.external = externalDir;
+
+      // Identity resolution must not receive the non-git external path.
+      mocks.getProjectId.mockImplementation(async (dir: string) => {
+        if (dir === externalDir) return null;
+        return "test-project-id";
+      });
+
+      const result = parseResult(
+        await changeProjectionQuarantineTools.adv_change_projection_quarantine.execute(
+          {
+            changeId: "oversized",
+            approvedByUser: true,
+            approvalEvidence: "operator approved",
+          },
+          extStore,
+        ),
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.code).toBe("QUARANTINED");
+      expect(result.change_id).toBe("oversized");
+      expect(mocks.getProjectId).toHaveBeenCalledWith(gitRoot);
+      expect(mocks.getProjectId).not.toHaveBeenCalledWith(externalDir);
+
+      // Quarantine and audit land in external state, not in-repo.
+      expect((result.quarantine_path as string).startsWith(externalDir)).toBe(
+        true,
+      );
+      const audits = await listChangeProjectionQuarantineAudits(externalDir);
+      expect(audits).toHaveLength(1);
+      expect(audits[0]?.change_id).toBe("oversized");
+      await expect(stat(sourcePath)).rejects.toThrow();
+    } finally {
+      await cleanupTempDir(gitRoot);
+      await cleanupTempDir(externalDir);
+    }
   });
 });

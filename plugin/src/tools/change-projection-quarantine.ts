@@ -140,8 +140,9 @@ export const changeProjectionQuarantineTools = {
       },
       store: Store,
     ) => {
-      const projectDir = store.paths.external ?? store.paths.root;
-      const projectId = await getProjectId(projectDir);
+      const gitRoot = store.paths.root;
+      const stateRoot = store.paths.external ?? store.paths.root;
+      const projectId = await getProjectId(gitRoot);
 
       if (!projectId) {
         return formatToolOutput({
@@ -155,7 +156,7 @@ export const changeProjectionQuarantineTools = {
         approvedByUser: args.approvedByUser ?? false,
         approvalEvidence: args.approvalEvidence ?? "",
         dryRun: args.dryRun ?? false,
-        projectDir,
+        stateRoot,
         changesDir: store.paths.changes,
       });
 
@@ -173,7 +174,7 @@ interface QuarantineExecuteInput {
   approvedByUser: boolean;
   approvalEvidence: string;
   dryRun: boolean;
-  projectDir: string;
+  stateRoot: string;
   changesDir: string;
 }
 
@@ -185,7 +186,7 @@ export async function executeQuarantine(
     approvedByUser,
     approvalEvidence,
     dryRun,
-    projectDir,
+    stateRoot,
     changesDir,
   } = input;
 
@@ -201,7 +202,7 @@ export async function executeQuarantine(
 
   const sourcePath = join(changesDir, changeId, "change.json");
   const quarantineDir = join(
-    projectDir,
+    stateRoot,
     ".adv",
     "quarantine",
     "changes",
@@ -348,7 +349,7 @@ export async function executeQuarantine(
 
     let auditId: string;
     try {
-      const audit = await appendChangeProjectionQuarantineAudit(projectDir, {
+      const audit = await appendChangeProjectionQuarantineAudit(stateRoot, {
         change_id: changeId,
         reason: lockedDiagnosis.reason,
         action: "quarantine",
