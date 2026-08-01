@@ -6,12 +6,16 @@
  * read-model consumers.
  */
 
-import { readFile, readdir } from "fs/promises";
+import { readdir } from "fs/promises";
 import { join } from "path";
 import { ZodError } from "zod";
 import { SpecSchema } from "../types";
 import type { Spec } from "../types";
 import { atomicWriteFile } from "../utils/fs";
+import {
+  readBoundedProjectionDocument,
+  PROJECTION_DOCUMENT_BYTE_LIMIT,
+} from "./change-projection-reader";
 
 export interface ListSpecsInput {
   specsDir: string;
@@ -36,6 +40,12 @@ export async function listSpecsFilesystem(
 export interface ShowSpecInput {
   specsDir: string;
   capability: string;
+  /**
+   * Optional byte limit for the bounded read. Defaults to
+   * PROJECTION_DOCUMENT_BYTE_LIMIT. Intended for tests and callers that need
+   * stricter caps.
+   */
+  limitBytes?: number;
 }
 
 export type ShowSpecResult =
@@ -46,19 +56,37 @@ export async function readSpecFilesystem(
   input: ShowSpecInput,
 ): Promise<ShowSpecResult> {
   const path = join(input.specsDir, input.capability, "spec.json");
-  try {
-    const content = await readFile(path, "utf-8");
-    return { ok: true, content, path };
-  } catch (err) {
-    const code = (err as NodeJS.ErrnoException).code;
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      ok: false,
-      error:
-        code === "ENOENT"
-          ? `Spec not found: ${input.capability} (${path})`
-          : `Read failed (${code ?? "unknown"}): ${message}`,
-    };
+  const result = await readBoundedProjectionDocument(
+    path,
+    input.limitBytes ?? PROJECTION_DOCUMENT_BYTE_LIMIT,
+  );
+  switch (result.kind) {
+    case "ok":
+      return { ok: true, content: result.content, path };
+    case "not_found":
+      return {
+        ok: false,
+        error: `Spec not found: ${input.capability} (${path})`,
+      };
+    case "oversized":
+      return {
+        ok: false,
+        error: `Read failed (oversized): spec ${input.capability} is ${result.actual} bytes > ${result.limit} byte limit (${path})`,
+      };
+    case "corrupt":
+      return {
+        ok: false,
+        error: `Read failed (corrupt): ${result.error} (${path})`,
+      };
+    case "unreadable":
+      return {
+        ok: false,
+        error: `Read failed (unreadable): ${result.error} (${path})`,
+      };
+    default: {
+      const _exhaustive: never = result;
+      return { ok: false, error: `Read failed (unknown): ${path}` };
+    }
   }
 }
 
@@ -80,7 +108,16 @@ function formatZodError(
 
 export type SpecLoadResult =
   | { success: true; data: Spec | null }
-  | { success: false; error: string; type: "schema_error" | "read_error" };
+  | {
+      success: false;
+      error: string;
+      type:
+        | "schema_error"
+        | "read_error"
+        | "oversized"
+        | "corrupt"
+        | "unreadable";
+    };
 
 export async function listSpecDirs(specsDir: string): Promise<string[]> {
   try {
@@ -100,9 +137,45 @@ export async function loadSpec(
 ): Promise<SpecLoadResult> {
   const specPath = join(specsDir, capability, "spec.json");
 
+  const readResult = await readBoundedProjectionDocument(specPath);
+  if (readResult.kind !== "ok") {
+    switch (readResult.kind) {
+      case "not_found":
+        return { success: true, data: null };
+      case "oversized":
+        return {
+          success: false,
+          error: `Spec ${capability} exceeds byte limit: ${readResult.actual} bytes > ${readResult.limit} bytes (${specPath})`,
+          type: "oversized",
+        };
+      case "corrupt":
+        return {
+          success: false,
+          error: `Spec ${capability} is corrupt: ${readResult.error} (${specPath})`,
+          type: "corrupt",
+        };
+      case "unreadable":
+        return {
+          success: false,
+          error: `Failed to read spec ${capability}: ${readResult.error} (${specPath})`,
+          type: "unreadable",
+        };
+      default: {
+        const _exhaustive: never = readResult;
+        return {
+          success: false,
+          error: `Unexpected projection read outcome for spec ${capability} (${specPath})`,
+          type: "read_error",
+        };
+      }
+    }
+  }
+
   try {
-    const content = await readFile(specPath, "utf-8");
-    return { success: true, data: SpecSchema.parse(JSON.parse(content)) };
+    return {
+      success: true,
+      data: SpecSchema.parse(JSON.parse(readResult.content)),
+    };
   } catch (error) {
     if (error instanceof ZodError) {
       return {
@@ -114,15 +187,12 @@ export async function loadSpec(
         }),
         type: "schema_error",
       };
-    } else if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return { success: true, data: null };
-    } else {
-      return {
-        success: false,
-        error: `Failed to load spec ${capability}: ${String(error)}`,
-        type: "read_error",
-      };
     }
+    return {
+      success: false,
+      error: `Failed to load spec ${capability}: ${String(error)}`,
+      type: "corrupt",
+    };
   }
 }
 

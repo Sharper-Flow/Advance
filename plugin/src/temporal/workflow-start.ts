@@ -12,6 +12,7 @@ import { readDiskArtifactsForHydration } from "../storage/store-temporal/hydrate
 import { changeStateQuery } from "./messages";
 import { changeWorkflow, epicWorkflow } from "./workflows";
 import { enforceMutationEligibilityForError } from "./mutation-safety";
+import { createLogger } from "../utils/debug-log";
 import {
   resolveCreationIdempotency,
   ChangeCreationHashConflictError,
@@ -20,6 +21,8 @@ import {
   hasActiveSessionPinnedWorkflows,
   type OrphanListClient,
 } from "./list-orphan-session-queues";
+
+const logger = createLogger("workflow-start");
 
 export interface WorkflowHandleLike {
   query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
@@ -123,11 +126,19 @@ export async function ensureChangeWorkflowStarted(
       input.projectionChangesDir,
       input.changeId,
     );
-    if (hydrated) {
+    if (hydrated.documents) {
       inputWithHydration = {
         ...input,
-        seedState: { ...(input.seedState ?? {}), documents: hydrated },
+        seedState: {
+          ...(input.seedState ?? {}),
+          documents: hydrated.documents,
+        },
       };
+    }
+    if (hydrated.warnings.length > 0) {
+      logger.warn(
+        `Hydration warnings for ${input.changeId}: ${hydrated.warnings.map((w) => `${w.kind} ${w.path}${w.actual ? ` (${w.actual} bytes)` : ""}`).join(", ")}`,
+      );
     }
   }
 

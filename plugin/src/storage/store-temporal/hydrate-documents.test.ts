@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 
 import { readDiskArtifactsForHydration } from "./hydrate-documents";
 import { cleanupTempDir, createTempDir } from "../../__tests__/setup";
+import { PROJECTION_DOCUMENT_BYTE_LIMIT } from "../change-projection-reader";
 
 describe("readDiskArtifactsForHydration — AC9", () => {
   it("returns undefined when change dir does not exist (new change)", async () => {
@@ -26,7 +27,8 @@ describe("readDiskArtifactsForHydration — AC9", () => {
         changesDir,
         "missing-change",
       );
-      expect(result).toBeUndefined();
+      expect(result.documents).toBeUndefined();
+      expect(result.warnings).toEqual([]);
     } finally {
       await cleanupTempDir(dir);
     }
@@ -43,7 +45,8 @@ describe("readDiskArtifactsForHydration — AC9", () => {
         changesDir,
         "empty-change",
       );
-      expect(result).toBeUndefined();
+      expect(result.documents).toBeUndefined();
+      expect(result.warnings).toEqual([]);
     } finally {
       await cleanupTempDir(dir);
     }
@@ -72,13 +75,15 @@ describe("readDiskArtifactsForHydration — AC9", () => {
         changesDir,
         "legacy-change",
       );
-      expect(result).toBeDefined();
-      expect(result?.proposal).toBe("# Proposal\n\nbody");
-      expect(result?.problemStatement).toBe("# Problem\n\nbody");
-      expect(result?.agreement).toBe("# Agreement\n\nbody");
-      expect(result?.design).toBe("# Design\n\nbody");
-      expect(result?.executiveSummary).toBe("# Executive Summary\n\nbody");
-      expect(result?.acceptance).toBe("# Acceptance\n\nbody");
+      expect(result.documents).toBeDefined();
+      expect(result.documents?.proposal).toBe("# Proposal\n\nbody");
+      expect(result.documents?.problemStatement).toBe("# Problem\n\nbody");
+      expect(result.documents?.agreement).toBe("# Agreement\n\nbody");
+      expect(result.documents?.design).toBe("# Design\n\nbody");
+      expect(result.documents?.executiveSummary).toBe(
+        "# Executive Summary\n\nbody",
+      );
+      expect(result.documents?.acceptance).toBe("# Acceptance\n\nbody");
     } finally {
       await cleanupTempDir(dir);
     }
@@ -98,11 +103,11 @@ describe("readDiskArtifactsForHydration — AC9", () => {
         changesDir,
         "partial-change",
       );
-      expect(result).toEqual({
+      expect(result.documents).toEqual({
         proposal: "proposal text",
         design: "design text",
       });
-      expect("problemStatement" in (result ?? {})).toBe(false);
+      expect("problemStatement" in (result.documents ?? {})).toBe(false);
     } finally {
       await cleanupTempDir(dir);
     }
@@ -122,25 +127,37 @@ describe("readDiskArtifactsForHydration — AC9", () => {
         changesDir,
         "truncated-change",
       );
-      expect(result).toEqual({ proposal: "valid proposal" });
-      expect("design" in (result ?? {})).toBe(false);
-      expect("agreement" in (result ?? {})).toBe(false);
+      expect(result.documents).toEqual({ proposal: "valid proposal" });
+      expect("design" in (result.documents ?? {})).toBe(false);
+      expect("agreement" in (result.documents ?? {})).toBe(false);
     } finally {
       await cleanupTempDir(dir);
     }
   });
 
-  it("hydration is idempotent — running twice produces the same result", async () => {
+  it("reports an oversized artifact warning and omits that document", async () => {
     const dir = await createTempDir();
     try {
       const changesDir = join(dir, "changes");
-      const changeDir = join(changesDir, "stable");
+      const changeDir = join(changesDir, "oversized-change");
       await mkdir(changeDir, { recursive: true });
-      await writeFile(join(changeDir, "proposal.md"), "stable content");
+      await writeFile(
+        join(changeDir, "proposal.md"),
+        "x".repeat(PROJECTION_DOCUMENT_BYTE_LIMIT + 1),
+      );
+      await writeFile(join(changeDir, "design.md"), "design text");
 
-      const first = await readDiskArtifactsForHydration(changesDir, "stable");
-      const second = await readDiskArtifactsForHydration(changesDir, "stable");
-      expect(first).toEqual(second);
+      const result = await readDiskArtifactsForHydration(
+        changesDir,
+        "oversized-change",
+      );
+      expect(result.documents).toEqual({ design: "design text" });
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]?.kind).toBe("oversized");
+      expect(result.warnings[0]?.path).toContain("proposal.md");
+      expect(result.warnings[0]?.actual).toBeGreaterThan(
+        PROJECTION_DOCUMENT_BYTE_LIMIT,
+      );
     } finally {
       await cleanupTempDir(dir);
     }

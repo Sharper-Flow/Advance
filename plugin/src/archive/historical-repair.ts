@@ -1,6 +1,7 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
+import { readBoundedProjectionDocument } from "../storage/change-projection-reader";
 import {
   DeltaSchema,
   SHA256DigestSchema,
@@ -163,9 +164,25 @@ async function loadArchiveChanges(archiveDir: string): Promise<
   }> = [];
   for (const entry of entries) {
     const path = join(archiveDir, entry);
+    const changePath = join(path, "change.json");
     try {
+      const readResult = await readBoundedProjectionDocument(changePath);
+      if (readResult.kind !== "ok") {
+        loaded.push({
+          path,
+          archivedAt: entry.slice(0, 10),
+          changeId: `unreadable:${entry}`,
+          error:
+            readResult.kind === "oversized"
+              ? `change.json oversized: ${readResult.actual} bytes > ${readResult.limit} bytes`
+              : readResult.kind === "not_found"
+                ? "change.json not found"
+                : `${readResult.kind}: ${readResult.error ?? "unknown"}`,
+        });
+        continue;
+      }
       const change = HistoricalArchiveChangeSchema.parse(
-        JSON.parse(await readFile(join(path, "change.json"), "utf8")),
+        JSON.parse(readResult.content),
       );
       loaded.push({
         path,

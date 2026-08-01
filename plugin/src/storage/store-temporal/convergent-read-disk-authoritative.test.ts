@@ -15,6 +15,8 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import type { Connection } from "@temporalio/client";
+import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
 
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDefaultGates, type Change } from "../../types";
@@ -200,14 +202,18 @@ describe("disk-authoritative change read convergence", () => {
   }, 15_000);
 
   it("trips the circuit-breaker after 3 consecutive unresponsive members", async () => {
-    // Force the list path into getTemporalChange by making the disk-first read
-    // miss. The CB is per-TemporalReadContext, so 3 consecutive unresponsive
-    // queries short-circuit the 4th and 5th.
+    // Force the list path into getTemporalChange by creating active-disk
+    // directories without change.json files. The projection-only list reads
+    // durable disk candidates (not Visibility), then falls back to workflow
+    // queries per candidate. The CB is per-TemporalReadContext, so 3
+    // consecutive unresponsive queries short-circuit the 4th and 5th.
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
 
     const changeIds = ["cbA", "cbB", "cbC", "cbD", "cbE"];
-    legacy.changes.get = async () => ({ success: false, error: "not found" });
+    for (const id of changeIds) {
+      await mkdir(join(legacy.paths.changes, id), { recursive: true });
+    }
 
     let queryCalls = 0;
     const temporal = {
@@ -219,11 +225,6 @@ describe("disk-authoritative change read convergence", () => {
               return new Promise<never>(() => {});
             },
           }),
-          list: async function* () {
-            for (const id of changeIds) {
-              yield { workflowId: `adv/change/project-1/${id}` };
-            }
-          },
           start: async () => {
             throw new Error("start should not be called");
           },
