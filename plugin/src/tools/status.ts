@@ -31,7 +31,7 @@ import { getCacheTokenTelemetry } from "../utils/cache-token-telemetry";
 import type { ToolSchemaProjection } from "../utils/tool-schema-projection";
 import { z } from "zod";
 import { withOptionalTargetPathStore } from "./target-project";
-import { resolveMainCheckout } from "./archive-helpers/git-finalize";
+import { resolveRepoRoot } from "./archive-helpers/git-finalize";
 import { getPluginRuntimeInfo } from "../utils/plugin-runtime-info";
 import { type ProbeCacheFreshness } from "./probe-cache";
 import { advWorktreeCleanup } from "./worktree";
@@ -798,9 +798,7 @@ export const statusTools = {
 
             if (plan.archivedBranchHygiene) {
               try {
-                const mainCheckout = resolveMainCheckout(
-                  activeStore.paths.root,
-                );
+                const repoRoot = resolveRepoRoot(activeStore.paths.root);
                 const hygieneStatus: StatusRecommendationCarrier & {
                   archived_branch_hygiene?: ArchivedBranchHygieneSection;
                 } = {
@@ -811,7 +809,7 @@ export const statusTools = {
                 await appendArchivedBranchHygieneRecommendations(
                   hygieneStatus,
                   activeStore,
-                  mainCheckout,
+                  repoRoot,
                 );
                 status.recommendations = hygieneStatus.recommendations;
                 (status as StatusRecommendationCarrier).recommendation_items =

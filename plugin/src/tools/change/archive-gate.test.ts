@@ -60,10 +60,10 @@ vi.mock("../../storage/json", async () => {
   return { ...actual, loadChange: diskLoadMocks.loadChange };
 });
 
-function createStore(mainCheckout: string): Store {
+function createStore(repoRoot: string): Store {
   return {
     paths: {
-      root: mainCheckout,
+      root: repoRoot,
       changes: "/tmp/.adv/changes",
       archive: "/tmp/.adv/archive",
     },
@@ -95,7 +95,7 @@ describe("verifyReleaseEvidenceFromMain", () => {
   // rq-fixPhase9PrDetection AC2: PR archive mode + deleted branch + no
   // prNumber must discover the merged PR and return shipped.
   it("returns shipped when PR mode has no prNumber but a merged PR is discoverable", () => {
-    const mainCheckout = "/repo";
+    const repoRoot = "/repo";
     const change = createChange({
       phase9_status: {
         status: "pending",
@@ -174,7 +174,7 @@ describe("verifyReleaseEvidenceFromMain", () => {
     };
 
     const result = verifyReleaseEvidenceFromMain({
-      store: createStore(mainCheckout),
+      store: createStore(repoRoot),
       changeId: "fixPhase9PrDetection",
       archiveMode: "pr",
       change,
@@ -328,7 +328,7 @@ describe("buildPendingMergePhase9Status", () => {
     const result = buildPendingMergePhase9Status({
       finalization: {
         status: "pending_merge",
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         pushStatus: "pushed",
         route: "pr_auto_merge",
@@ -508,7 +508,7 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
   };
   const shippedFinalization: GitFinalizeOutcome = {
     status: "shipped",
-    mainCheckout: "/repo",
+    repoRoot: "/repo",
     defaultBranch: "trunk",
     pushStatus: "pushed",
     mergeCommitSha: "merge-sha-1",
@@ -629,7 +629,7 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
 describe("completeReleaseGateAfterFinalization — bounded release-gate query (AC1/AC2)", () => {
   const shippedFinalization: GitFinalizeOutcome = {
     status: "shipped",
-    mainCheckout: "/repo",
+    repoRoot: "/repo",
     defaultBranch: "trunk",
     pushStatus: "pushed",
     mergeCommitSha: "merge-sha-1",
@@ -722,7 +722,7 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
   };
   const shippedFinalization: GitFinalizeOutcome = {
     status: "shipped",
-    mainCheckout: "/repo",
+    repoRoot: "/repo",
     defaultBranch: "trunk",
     pushStatus: "pushed",
     mergeCommitSha: "merge-sha-1",
@@ -865,7 +865,7 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
   };
   const shippedFinalization: GitFinalizeOutcome = {
     status: "shipped",
-    mainCheckout: "/repo",
+    repoRoot: "/repo",
     defaultBranch: "trunk",
     pushStatus: "pushed",
     releasedCommitSha: "merge-sha-1",
@@ -962,7 +962,7 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
 describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", () => {
   const shippedFinalization: GitFinalizeOutcome = {
     status: "shipped",
-    mainCheckout: "/repo",
+    repoRoot: "/repo",
     defaultBranch: "trunk",
     route: "direct",
     pushStatus: "pushed",
@@ -994,7 +994,7 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
       evidence: "legitimate-finalization-evidence",
       finalization: {
         status: "pending_merge",
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         pushStatus: "not_attempted",
       },
@@ -1084,7 +1084,7 @@ describe("verifyReleaseGateDurableForArchive — forge-guard regression (AC4)", 
 describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fixReleaseProofShippedFalse)", () => {
   const shippedFinalization: GitFinalizeOutcome = {
     status: "shipped",
-    mainCheckout: "/repo",
+    repoRoot: "/repo",
     defaultBranch: "trunk",
     route: "direct",
     pushStatus: "pushed",
@@ -1152,7 +1152,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
       evidence: "irrelevant",
       finalization: {
         status: "pending_merge",
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         pushStatus: "pushed",
         mergeCommitSha: "merge-sha-123",
@@ -1181,7 +1181,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
       evidence: "irrelevant",
       finalization: {
         status: "shipped",
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         route: "direct",
         pushStatus: "pushed",
@@ -1210,7 +1210,7 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
       evidence: "irrelevant",
       finalization: {
         status: "shipped",
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         route: "no_remote",
         pushStatus: "skipped",
@@ -1268,7 +1268,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
 
   const shippedBase: GitFinalizeOutcome = {
     status: "shipped",
-    mainCheckout: "/repo",
+    repoRoot: "/repo",
     defaultBranch: "trunk",
     pushStatus: "pushed",
     releasedCommitSha: "merge-sha-matrix",
@@ -1333,7 +1333,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
   it("AC4 regression: un-shipped + store release done with matching evidence accepts", async () => {
     const finalization: GitFinalizeOutcome = {
       status: "blocked",
-      mainCheckout: "/repo",
+      repoRoot: "/repo",
       defaultBranch: "trunk",
       pushStatus: "not_attempted",
     };
@@ -1374,7 +1374,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
       evidence: "new-evidence",
       finalization: {
         status: "pending_merge",
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         pushStatus: "pushed",
         mergeCommitSha: "abc",
@@ -1399,7 +1399,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
       evidence: "irrelevant",
       finalization: {
         status: "shipped",
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         route: "direct",
         pushStatus: "pushed",
@@ -1483,7 +1483,7 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
         evidence: "irrelevant",
         finalization: {
           status,
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           route: "direct",
           pushStatus: "pushed",

@@ -1,6 +1,13 @@
-import { realpathSync } from "fs";
+import { realpathSync, mkdtempSync, rmSync } from "fs";
 import { spawnSync } from "child_process";
-import { dirname, isAbsolute, normalize, sep as pathSeparator } from "path";
+import {
+  dirname,
+  isAbsolute,
+  join,
+  normalize,
+  sep as pathSeparator,
+} from "path";
+import { tmpdir } from "os";
 import { spawnSyncGit } from "../../utils/git-binary";
 import { parseWorktreeListPorcelain } from "../worktree/porcelain-parser";
 import { CHANGE_BRANCH_PREFIX } from "../../temporal/contracts";
@@ -10,7 +17,8 @@ export type ArchiveMode = "direct" | "pr";
 
 export interface GitFinalizeOutcome {
   status: "shipped" | "blocked" | "pending_merge";
-  mainCheckout: string;
+  /** Project git root (main checkout or bare repository) used for remote-first isolated finalization. */
+  repoRoot: string;
   defaultBranch: string;
   route?: ReleaseFinalizationRouteName;
   mergeCommitSha?: string;
@@ -18,12 +26,6 @@ export interface GitFinalizeOutcome {
    *  For direct/no_remote routes this is the verified default-branch HEAD;
    *  for PR routes it is the merged PR commit OID. */
   releasedCommitSha?: string;
-  /** SHA of the change branch tip captured before merge/cleanup so tree-SHA
-   *  re-proof can survive branch deletion (rq-fixArchivedBranchFinalization SC1). */
-  changeTipSha?: string;
-  /** SHA of the dirty-main checkpoint commit, set when ADV committed pre-existing
-   *  main checkout changes before merge (rq-releaseFinalization01.7). */
-  mainCheckpointCommitSha?: string;
   pushStatus: "pushed" | "skipped" | "failed" | "not_attempted";
   pushFailureReason?: string;
   prBranch?: string;
@@ -43,6 +45,22 @@ export interface GitFinalizeDeps {
   runGit?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
   runGh?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
   requireCleanWorktree?: boolean;
+  /**
+   * Optional per-project worktree file-lock used by the remote-first isolated
+   * archive finalization path to serialize ephemeral `git worktree add/remove`
+   * operations against peer sessions. The lock callback is supplied by the caller
+   * (e.g. `adv_change_archive`) so `git-finalize.ts` does not need to import
+   * worker-lock / temporal internals, preserving the workflow-bundle boundary.
+   */
+  ephemeralWorktreeLock?: {
+    acquire: (
+      projectStateDir: string,
+    ) =>
+      | Promise<{ owned: boolean; release: () => Promise<void> }>
+      | { owned: boolean; release: () => Promise<void> };
+  };
+  /** Project state directory required when `ephemeralWorktreeLock` is provided. */
+  projectStateDir?: string;
 }
 
 export type ReleaseFinalizationRouteName =
@@ -70,6 +88,80 @@ export interface ReconcileResult {
   reason?: string;
   remediation?: string;
   conflictFiles?: string[];
+}
+
+const EPHEMERAL_WORKTREE_PREFIX = "adv-archive-wt-";
+const EPHEMERAL_WORKTREE_REMOVE_TIMEOUT_MS = 30_000;
+
+/**
+ * Create a short-lived detached worktree from the default-branch basis,
+ * run `fn`, then remove it. The worktree is created under the OS temp directory
+ * and is never reused across invocations.
+ *
+ * rq-releaseFinalization03: archive finalization must not inspect or mutate the
+ * shared main checkout; all git mutations happen inside this ephemeral worktree.
+ *
+ *
+ * If `deps.ephemeralWorktreeLock` + `deps.projectStateDir` are provided, the
+ * add/remove operations are serialized with the per-project git worktree flock.
+ * Lock acquisition failures throw so the caller can report a bounded retry.
+ *
+ * The caller receives the ephemeral worktree path. All git mutations inside the
+ * worktree are isolated from the shared main checkout and any peer worktrees.
+ */
+async function withEphemeralDefaultBranchWorktree<T>(
+  repoRoot: string,
+  baseRef: string,
+  deps: GitFinalizeDeps,
+  fn: (ephemeralPath: string) => Promise<T>,
+): Promise<T> {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const ephemeralPath = mkdtempSync(join(tmpdir(), EPHEMERAL_WORKTREE_PREFIX));
+  let lockRelease: (() => Promise<void>) | undefined;
+
+  if (deps.ephemeralWorktreeLock && deps.projectStateDir) {
+    const acquired = await deps.ephemeralWorktreeLock.acquire(
+      deps.projectStateDir,
+    );
+    if (!acquired.owned) {
+      rmSync(ephemeralPath, { recursive: true, force: true });
+      throw new Error(
+        "WORKTREE_FLOCK_CONTENTION: another session holds the git worktree lock; retry archive finalization",
+      );
+    }
+    lockRelease = acquired.release;
+  }
+
+  try {
+    const add = runGit(repoRoot, [
+      "worktree",
+      "add",
+      "--detach",
+      ephemeralPath,
+      baseRef,
+    ]);
+    if (add.status !== 0) {
+      throw new Error(
+        `git worktree add failed: ${add.stderr || add.stdout || "unknown error"}`,
+      );
+    }
+    try {
+      return await fn(ephemeralPath);
+    } finally {
+      runGit(
+        repoRoot,
+        ["worktree", "remove", "--force", ephemeralPath],
+        EPHEMERAL_WORKTREE_REMOVE_TIMEOUT_MS,
+      );
+    }
+  } finally {
+    if (lockRelease) {
+      await lockRelease().catch(() => {
+        /* best-effort release */
+      });
+    }
+    rmSync(ephemeralPath, { recursive: true, force: true });
+  }
 }
 
 export function reconcileChangeBranchWithDefault(
@@ -138,205 +230,6 @@ export function reconcileChangeBranchWithDefault(
   };
 }
 
-/**
- * rq-releaseFinalization03 / rq-fixPhase9SquashMergeRedetect fast-follow:
- * After a watched PR reaches `MERGED`, ADV runs this helper against the main
- * checkout to bring the local default branch in sync with `origin/{default}`.
- *
- * Behavioral contract (design §`syncDefaultBranchAfterMerge`):
- * - Pure `runGit`-injected function. Mirrors `reconcileChangeBranchWithDefault`.
- * - Performs `git fetch origin {default}`, computes divergence with two
- *   bounded `rev-list --count` calls, then either:
- *     (a) `git merge --ff-only origin/{default}` when local has no commits ahead
- *         of origin (the common case after a remote squash merge) → `synced`.
- *     (b) returns `diverged` without mutating local when local has commits
- *         ahead of origin — caller surfaces the reconcile instructions and
- *         still completes release on the proven origin reachability.
- *     (c) returns `blocked` when the fetch fails.
- *
- * Invariants enforced structurally:
- * - NEVER runs `git checkout`/`git switch` (C1: main stays on default branch).
- * - NEVER runs `git reset`/`git pull` (C6, DONT5: blind pull can wedge main).
- * - NEVER records release-done — return type has no `releaseDone`/`recorded`
- *   field and the helper has no store/signal surface (rq-releaseFinalization03.3
- *   closes validator follow-up `ag-fJ57GzXO`). Release remains gated solely
- *   by `verifyReleaseEvidenceFromMain`.
- * - Bounded: at most `fetch` + two `rev-list --count` + one `merge --ff-only`
- *   + two `log --format=%H` calls (DDC1).
- */
-export interface SyncDefaultBranchAfterMergeInput {
-  mainCheckout: string;
-  defaultBranch: string;
-}
-
-export type SyncDefaultBranchAfterMergeDeps = Pick<GitFinalizeDeps, "runGit">;
-
-export type SyncDefaultBranchAfterMergeStatus =
-  | "synced"
-  | "diverged"
-  | "blocked";
-
-export interface SyncDefaultBranchAfterMergeOutcome {
-  status: SyncDefaultBranchAfterMergeStatus;
-  reason?: string;
-  remediation?: string;
-  /** When `diverged`: bounded list (max 50) of local-only commit SHAs. */
-  localOnlyCommits?: string[];
-  /** When `synced`: SHAs brought in by the fast-forward merge. */
-  ffCommits?: string[];
-  details?: string[];
-}
-
-const SYNC_LOCAL_ONLY_LIMIT = 50;
-
-export function syncDefaultBranchAfterMerge(
-  input: SyncDefaultBranchAfterMergeInput,
-  deps: SyncDefaultBranchAfterMergeDeps = {},
-): SyncDefaultBranchAfterMergeOutcome {
-  const runGit = deps.runGit ?? defaultRunGit;
-  const { mainCheckout, defaultBranch } = input;
-  const defaultRef = `origin/${defaultBranch}`;
-
-  // Step 1: refuse a dirty main checkout before even fetching. A fetch advances
-  // origin/* refs, so it is local mutation and must not happen while preserving
-  // a user's uninspected work is the priority.
-  const statusRaw = runGit(mainCheckout, ["status", "--porcelain"]);
-  if (statusRaw.status !== 0) {
-    return {
-      status: "blocked",
-      reason: "STATUS_FAILED",
-      remediation: `Could not inspect local ${defaultBranch} checkout status. Resolve the git status error before retrying archive.`,
-      details: splitLines(statusRaw.stderr || statusRaw.stdout),
-    };
-  }
-  if ((statusRaw.stdout || "").trim()) {
-    return {
-      status: "blocked",
-      reason: "MAIN_DIRTY",
-      remediation: `Main checkout has uncommitted changes. Run git status in "${mainCheckout}" (or git -C "${mainCheckout}" status --short). Commit, stash, or relocate the work before retrying archive; ADV will not modify a dirty ${defaultBranch} checkout.`,
-      details: splitLines(statusRaw.stdout),
-    };
-  }
-
-  // Step 1.5: structural guard — main checkout must be on the default branch
-  // before any fetch or merge. Prevents mutation of a feature branch checkout.
-  const headBranchRaw = runGit(mainCheckout, [
-    "rev-parse",
-    "--abbrev-ref",
-    "HEAD",
-  ]);
-  const currentBranch = (headBranchRaw.stdout || "").trim();
-  if (headBranchRaw.status !== 0 || currentBranch !== defaultBranch) {
-    return {
-      status: "blocked",
-      reason: "MAIN_NOT_ON_DEFAULT",
-      remediation: `Main checkout HEAD is on branch ${currentBranch}, expected ${defaultBranch}. Restore main to ${defaultBranch} (commit or stash any work, then \`git switch ${defaultBranch}\`) and retry archive.`,
-      details: [`HEAD=${currentBranch}`],
-    };
-  }
-
-  // Step 2: fetch origin/{default}. Never destructive to the worktree; a
-  // non-zero exit is recorded and returned as `blocked`.
-  const fetchResult = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
-  if (fetchResult.status !== 0) {
-    return {
-      status: "blocked",
-      reason: "FETCH_FAILED",
-      remediation: `Failed to fetch ${defaultRef}. Verify network, origin reachability, and that ${defaultBranch} exists on the remote. Then re-run \`adv_change_archive phase9:"run"\` to retry the auto-drive.`,
-      details: splitLines(fetchResult.stderr || fetchResult.stdout),
-    };
-  }
-
-  // Step 3: compute divergence via two bounded rev-list --count calls.
-  // ahead  = local-only commits (local {default} ahead of origin/{default})
-  // behind = origin/{default} ahead of local {default}
-  const aheadRaw = runGit(mainCheckout, [
-    "rev-list",
-    "--count",
-    `${defaultRef}..${defaultBranch}`,
-  ]);
-  const behindRaw = runGit(mainCheckout, [
-    "rev-list",
-    "--count",
-    `${defaultBranch}..${defaultRef}`,
-  ]);
-  const aheadCount = parseRevListCount(aheadRaw);
-  const behindCount = parseRevListCount(behindRaw);
-  if (!aheadCount.ok || !behindCount.ok) {
-    return {
-      status: "blocked",
-      reason: "REV_LIST_FAILED",
-      remediation: `rev-list failed for ${defaultRef}..${defaultBranch} (or ${defaultBranch}..${defaultRef}). Inspect the default branch exists locally and on origin, then re-run archive.`,
-      details: splitLines(aheadRaw.stderr || aheadRaw.stdout),
-    };
-  }
-  const ahead = aheadCount.count;
-  const behind = behindCount.count;
-
-  // Step 4: diverge -> surface, do NOT merge or reset.
-  if (ahead > 0) {
-    const localListRaw = runGit(mainCheckout, [
-      "rev-list",
-      `${defaultRef}..${defaultBranch}`,
-      `--max-count=${SYNC_LOCAL_ONLY_LIMIT}`,
-      "--format=%H",
-    ]);
-    const localOnlyCommits = splitLines(localListRaw.stdout)
-      .map((line) => line.trim())
-      .filter((line) => /^[0-9a-f]{40}$/.test(line));
-    return {
-      status: "diverged",
-      reason: "LOCAL_AHEAD_OF_ORIGIN",
-      remediation: `Local ${defaultBranch} has ${ahead} commit(s) ahead of ${defaultRef}. Trunk sync was skipped to avoid a destructive rebase/reset. Inspect with: git -C "${mainCheckout}" log ${defaultRef}..${defaultBranch} --oneline. Reconcile manually (rebase/cherry-pick) before retrying archive. Release still completes on the proven ${defaultRef} reachability; only trunk pointer sync is deferred to the human.`,
-      localOnlyCommits,
-      details: [
-        `local ${defaultBranch} ahead by ${ahead} commit(s)`,
-        `origin ahead by ${behind} commit(s)`,
-      ],
-    };
-  }
-
-  // Step 5: clean case -- fast-forward. behind>=0 always; ahead==0 by Step 4.
-  // Capture local HEAD before merge so we can report the ff-only delta.
-  const beforeHeadRaw = runGit(mainCheckout, ["rev-parse", defaultBranch]);
-  const beforeHead = (beforeHeadRaw.stdout || "").trim();
-  const mergeResult = runGit(mainCheckout, ["merge", "--ff-only", defaultRef]);
-  if (mergeResult.status !== 0) {
-    return {
-      status: "blocked",
-      reason: "FF_MERGE_FAILED",
-      remediation: `Local ${defaultBranch} could not fast-forward to ${defaultRef} even though \`rev-list\` reported zero local-only commits. This is a TOCTOU race (a concurrent local commit landed between \`fetch\` and \`merge\`). Re-run archive after re-fetching; if the race persists, surface as a release blocker rather than retrying blindly.`,
-      details: splitLines(mergeResult.stderr || mergeResult.stdout),
-    };
-  }
-
-  const afterHeadRaw = runGit(mainCheckout, ["rev-parse", defaultBranch]);
-  const afterHead = (afterHeadRaw.stdout || "").trim();
-  const ffCommits: string[] = [];
-  if (afterHead && beforeHead && afterHead !== beforeHead) {
-    const ffRaw = runGit(mainCheckout, [
-      "log",
-      "--format=%H",
-      `${beforeHead}..${afterHead}`,
-    ]);
-    for (const line of splitLines(ffRaw.stdout)) {
-      const trimmed = line.trim();
-      if (/^[0-9a-f]{40}$/.test(trimmed)) ffCommits.push(trimmed);
-    }
-  }
-
-  return {
-    status: "synced",
-    ffCommits,
-    details:
-      ffCommits.length > 0
-        ? [
-            `fast-forwarded local ${defaultBranch} by ${ffCommits.length} commit(s)`,
-          ]
-        : [`local ${defaultBranch} already at ${defaultRef}; no ff delta`],
-  };
-}
-
 export interface PullRequestMergeState {
   state: string;
   mergedAt?: string | null;
@@ -354,7 +247,7 @@ interface PullRequestSummary {
 }
 
 export interface ReleaseReachabilityInput {
-  mainCheckout: string;
+  repoRoot: string;
   defaultBranch: string;
   changeId: string;
   route?: FinalizationRoute;
@@ -410,7 +303,7 @@ export interface DeleteChangeBranchResult {
  * ADV changes must be squash-merge-safe and not rely on `git branch --merged`.
  */
 export function deleteChangeBranch(
-  mainCheckout: string,
+  repoRoot: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
 ): DeleteChangeBranchResult {
@@ -418,7 +311,7 @@ export function deleteChangeBranch(
   const branchName = `change/${changeId}`;
 
   // Delete local branch (safe — only works if fully merged)
-  const localResult = runGit(mainCheckout, ["branch", "-d", branchName]);
+  const localResult = runGit(repoRoot, ["branch", "-d", branchName]);
   if (localResult.status !== 0) {
     return {
       localDeleted: false,
@@ -428,7 +321,7 @@ export function deleteChangeBranch(
   }
 
   // Delete remote branch (best-effort)
-  const remoteResult = runGit(mainCheckout, [
+  const remoteResult = runGit(repoRoot, [
     "push",
     "origin",
     "--delete",
@@ -564,15 +457,6 @@ function runGitOrThrow(
   return result.stdout.trim();
 }
 
-function parseRevListCount(
-  raw: RunGitResult,
-): { ok: true; count: number } | { ok: false } {
-  if (raw.status !== 0) return { ok: false };
-  const trimmed = (raw.stdout || "").trim();
-  if (!/^\d+$/.test(trimmed)) return { ok: false };
-  return { ok: true, count: Number(trimmed) };
-}
-
 function splitLines(value: string): string[] {
   return value
     .split(/\r?\n/)
@@ -600,13 +484,13 @@ export function parseGitHubRepoFromRemote(url: string): string | undefined {
 }
 
 function getOriginRemote(
-  mainCheckout: string,
+  repoRoot: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
 ):
   | { configured: true; remoteUrl: string; repo?: string }
   | { configured: false; reason: string } {
   const runGit = deps.runGit ?? defaultRunGit;
-  const remote = runGit(mainCheckout, ["remote", "get-url", "origin"]);
+  const remote = runGit(repoRoot, ["remote", "get-url", "origin"]);
   if (remote.status !== 0 || !remote.stdout.trim()) {
     return {
       configured: false,
@@ -641,11 +525,11 @@ function ghFailureReason(result: RunGitResult): string {
 }
 
 export function classifyFinalizationRoute(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   deps: Pick<GitFinalizeDeps, "runGit" | "runGh"> = {},
 ): FinalizationRoute {
-  const origin = getOriginRemote(mainCheckout, deps);
+  const origin = getOriginRemote(repoRoot, deps);
   if (!origin.configured) {
     return {
       route: "no_remote",
@@ -665,7 +549,7 @@ export function classifyFinalizationRoute(
   }
 
   const runGh = deps.runGh ?? defaultRunGh;
-  const rules = runGh(mainCheckout, [
+  const rules = runGh(repoRoot, [
     "api",
     `repos/${origin.repo}/rules/branches/${encodeURIComponent(defaultBranch)}`,
   ]);
@@ -732,7 +616,7 @@ export function classifyFinalizationRoute(
     };
   }
 
-  const allowAutoMerge = runGh(mainCheckout, [
+  const allowAutoMerge = runGh(repoRoot, [
     "api",
     `repos/${origin.repo}`,
     "--jq",
@@ -791,7 +675,13 @@ export function coercePrWorkflowRoute(
   };
 }
 
-export function resolveMainCheckout(
+/**
+ * Resolve the project git root from any worktree or main checkout workdir.
+ * Returns the directory containing the shared `.git` directory. This is the
+ * remote-first isolated archive path: no shared trunk is mutated; ephemeral
+ * worktrees are forked from this root.
+ */
+export function resolveRepoRoot(
   workdir: string,
   deps: GitFinalizeDeps = {},
 ): string {
@@ -804,13 +694,13 @@ export function resolveMainCheckout(
 }
 
 export function detectDefaultBranch(
-  mainCheckout: string,
+  repoRoot: string,
   deps: GitFinalizeDeps = {},
 ): { branch: string; source: string } {
   const runGit = deps.runGit ?? defaultRunGit;
 
   // Prefer origin/HEAD first (avoids stale local main winning in trunk repos)
-  const originHead = runGit(mainCheckout, [
+  const originHead = runGit(repoRoot, [
     "symbolic-ref",
     "--short",
     "refs/remotes/origin/HEAD",
@@ -828,7 +718,7 @@ export function detectDefaultBranch(
   // Then repository-local init.defaultBranch config. Do not let a user's global
   // init.defaultBranch override an already-initialized repository's local
   // branch set during archive finalization.
-  const configured = runGit(mainCheckout, [
+  const configured = runGit(repoRoot, [
     "config",
     "--local",
     "--get",
@@ -840,7 +730,7 @@ export function detectDefaultBranch(
 
   // Then local branches
   for (const branch of ["main", "trunk"]) {
-    const result = runGit(mainCheckout, [
+    const result = runGit(repoRoot, [
       "rev-parse",
       "--verify",
       `refs/heads/${branch}`,
@@ -853,178 +743,13 @@ export function detectDefaultBranch(
   );
 }
 
-export type MainInvariantResult =
-  | { ok: true; branch: string; dirtyFiles: [] }
-  | {
-      ok: false;
-      code: "MAIN_BRANCH_MISMATCH" | "DIRTY_MAIN_CHECKOUT";
-      branch: string;
-      dirtyFiles?: string[];
-      message: string;
-    };
-
-export function verifyMainInvariants(
-  mainCheckout: string,
-  defaultBranch: string,
-  deps: GitFinalizeDeps = {},
-): MainInvariantResult {
-  const branch = runGitOrThrow(
-    mainCheckout,
-    ["branch", "--show-current"],
-    deps,
-  );
-  if (branch !== defaultBranch) {
-    return {
-      ok: false,
-      code: "MAIN_BRANCH_MISMATCH",
-      branch,
-      message: `Main checkout is on ${branch}, expected ${defaultBranch}`,
-    };
-  }
-
-  const porcelain = runGitOrThrow(
-    mainCheckout,
-    ["status", "--porcelain"],
-    deps,
-  );
-  const dirtyFiles = splitLines(porcelain);
-  if (dirtyFiles.length > 0) {
-    return {
-      ok: false,
-      code: "DIRTY_MAIN_CHECKOUT",
-      branch,
-      dirtyFiles,
-      message: "Main checkout has uncommitted changes",
-    };
-  }
-
-  return { ok: true, branch, dirtyFiles: [] };
-}
-
-// --- Dirty-main checkpoint helpers (rq-releaseFinalization01.7/.8) ---
-
-export function verifyGitIdentity(
-  mainCheckout: string,
-  deps: GitFinalizeDeps = {},
-): { ok: true; ident: string } | { ok: false; message: string } {
-  const runGit = deps.runGit ?? defaultRunGit;
-  const result = runGit(mainCheckout, ["var", "GIT_COMMITTER_IDENT"]);
-  if (result.status !== 0 || !result.stdout.trim()) {
-    return {
-      ok: false,
-      message:
-        "Git committer identity is not configured. Set user.name and user.email in the main checkout and retry.",
-    };
-  }
-  return { ok: true, ident: result.stdout.trim() };
-}
-
-export type InProgressState =
-  | "merging"
-  | "rebasing"
-  | "cherry-picking"
-  | "reverting";
-
-export function detectMainInProgressState(
-  mainCheckout: string,
-  deps: GitFinalizeDeps = {},
-): { inProgress: false } | { inProgress: true; state: InProgressState } {
-  const runGit = deps.runGit ?? defaultRunGit;
-
-  // MERGE_HEAD
-  const mergeHead = runGit(mainCheckout, [
-    "rev-parse",
-    "--verify",
-    "MERGE_HEAD",
-  ]);
-  if (mergeHead.status === 0) {
-    return { inProgress: true, state: "merging" };
-  }
-
-  // REBASE_HEAD or .git/rebase-merge
-  const rebaseHead = runGit(mainCheckout, [
-    "rev-parse",
-    "--verify",
-    "REBASE_HEAD",
-  ]);
-  if (rebaseHead.status === 0) {
-    return { inProgress: true, state: "rebasing" };
-  }
-
-  // CHERRY_PICK_HEAD
-  const cherryPick = runGit(mainCheckout, [
-    "rev-parse",
-    "--verify",
-    "CHERRY_PICK_HEAD",
-  ]);
-  if (cherryPick.status === 0) {
-    return { inProgress: true, state: "cherry-picking" };
-  }
-
-  // REVERT_HEAD
-  const revertHead = runGit(mainCheckout, [
-    "rev-parse",
-    "--verify",
-    "REVERT_HEAD",
-  ]);
-  if (revertHead.status === 0) {
-    return { inProgress: true, state: "reverting" };
-  }
-
-  return { inProgress: false };
-}
-
-export function commitDirtyMainCheckpoint(
-  mainCheckout: string,
-  changeId: string,
-  deps: GitFinalizeDeps = {},
-): { committed: boolean; commitSha?: string; error?: string } {
-  const runGit = deps.runGit ?? defaultRunGit;
-
-  const status = runGit(mainCheckout, ["status", "--porcelain"]);
-  if (status.status !== 0) {
-    return {
-      committed: false,
-      error: `git status failed: ${status.stderr}`,
-    };
-  }
-  const changes = splitLines(status.stdout);
-  if (changes.length === 0) {
-    return { committed: false };
-  }
-
-  // Stage all non-ignored changes (tracked + untracked)
-  const add = runGit(mainCheckout, ["add", "-A"]);
-  if (add.status !== 0) {
-    return {
-      committed: false,
-      error: `git add -A failed: ${add.stderr}`,
-    };
-  }
-
-  const commit = runGit(mainCheckout, [
-    "commit",
-    "-m",
-    `chore(adv-archive): checkpoint main before archiving ${changeId}`,
-  ]);
-  if (commit.status !== 0) {
-    return {
-      committed: false,
-      error: `git commit failed: ${commit.stderr}`,
-    };
-  }
-
-  const sha = runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps);
-  return { committed: true, commitSha: sha };
-}
-
 export function verifyChangeBranchReachable(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
 ): { reachable: boolean; unmergedCommits: string[] } {
-  const result = (deps.runGit ?? defaultRunGit)(mainCheckout, [
+  const result = (deps.runGit ?? defaultRunGit)(repoRoot, [
     "log",
     "--oneline",
     `${defaultBranch}..change/${changeId}`,
@@ -1040,20 +765,20 @@ export function verifyChangeBranchReachable(
 }
 
 export function verifyChangeBranchReachableFromOrigin(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
 ): { reachable: boolean; unmergedCommits: string[] } {
   const runGit = deps.runGit ?? defaultRunGit;
-  const fetch = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
+  const fetch = runGit(repoRoot, ["fetch", "origin", defaultBranch]);
   if (fetch.status !== 0) {
     return {
       reachable: false,
       unmergedCommits: splitLines(fetch.stderr || fetch.stdout),
     };
   }
-  const result = runGit(mainCheckout, [
+  const result = runGit(repoRoot, [
     "log",
     "--oneline",
     `origin/${defaultBranch}..change/${changeId}`,
@@ -1084,7 +809,7 @@ export type MergeChangeBranchResult =
     };
 
 export function mergeChangeBranch(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
@@ -1094,7 +819,7 @@ export function mergeChangeBranch(
   // Detect before invoking `git merge` so a previously-merged (FF or no-FF
   // squash) change branch doesn't surface as MERGE_FAILED.
   const reachability = verifyChangeBranchReachable(
-    mainCheckout,
+    repoRoot,
     defaultBranch,
     changeId,
     deps,
@@ -1102,28 +827,24 @@ export function mergeChangeBranch(
   if (reachability.reachable) {
     return {
       status: "merged",
-      mergeCommitSha: runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps),
+      mergeCommitSha: runGitOrThrow(repoRoot, ["rev-parse", "HEAD"], deps),
       mergeMethod: "already-reachable",
     };
   }
-  const merge = runGit(mainCheckout, [
-    "merge",
-    "--ff-only",
-    `change/${changeId}`,
-  ]);
+  const merge = runGit(repoRoot, ["merge", "--ff-only", `change/${changeId}`]);
   if (merge.status === 0) {
     return {
       status: "merged",
-      mergeCommitSha: runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps),
+      mergeCommitSha: runGitOrThrow(repoRoot, ["rev-parse", "HEAD"], deps),
       mergeMethod: "ff-only",
     };
   }
 
   const message = merge.stderr || merge.stdout || "merge failed";
   const conflictFiles = splitLines(
-    runGit(mainCheckout, ["diff", "--name-only", "--diff-filter=U"]).stdout,
+    runGit(repoRoot, ["diff", "--name-only", "--diff-filter=U"]).stdout,
   );
-  runGit(mainCheckout, ["merge", "--abort"]);
+  runGit(repoRoot, ["merge", "--abort"]);
 
   if (
     merge.status === 1 ||
@@ -1144,7 +865,7 @@ export function mergeChangeBranch(
   // change branch). Try --no-ff, which preserves both histories.
   // Conflict detection above already short-circuited; this path only
   // runs when histories are genuinely mergeable but not fast-forwardable.
-  const noff = runGit(mainCheckout, [
+  const noff = runGit(repoRoot, [
     "merge",
     "--no-ff",
     "--no-edit",
@@ -1155,7 +876,7 @@ export function mergeChangeBranch(
   if (noff.status === 0) {
     return {
       status: "merged",
-      mergeCommitSha: runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps),
+      mergeCommitSha: runGitOrThrow(repoRoot, ["rev-parse", "HEAD"], deps),
       mergeMethod: "no-ff",
     };
   }
@@ -1163,9 +884,9 @@ export function mergeChangeBranch(
   // no-ff also failed — abort any partial state and report the original
   // failure cause.
   const noffConflictFiles = splitLines(
-    runGit(mainCheckout, ["diff", "--name-only", "--diff-filter=U"]).stdout,
+    runGit(repoRoot, ["diff", "--name-only", "--diff-filter=U"]).stdout,
   );
-  runGit(mainCheckout, ["merge", "--abort"]);
+  runGit(repoRoot, ["merge", "--abort"]);
   const noffMessage = noff.stderr || noff.stdout || message;
   if (noffConflictFiles.length > 0 || /CONFLICT/i.test(noffMessage)) {
     return {
@@ -1182,7 +903,7 @@ export function mergeChangeBranch(
 export const mergeToTrunk = mergeChangeBranch;
 
 export function pushToOrigin(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   options: {
     autoPush: boolean;
@@ -1199,8 +920,8 @@ export function pushToOrigin(
     return { status: "skipped", reason: "auto_push disabled" };
 
   const push = (options.runGit ?? defaultRunGit)(
-    mainCheckout,
-    ["push", "origin", defaultBranch],
+    repoRoot,
+    ["push", "origin", `HEAD:${defaultBranch}`],
     DEFAULT_GIT_PUSH_TIMEOUT_MS,
   );
   if (push.status === 0) {
@@ -1245,12 +966,12 @@ export function pushChangeBranch(
 }
 
 export function verifyChangeBranchPushed(
-  mainCheckout: string,
+  repoRoot: string,
   changeId: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
 ): { pushed: boolean; reason?: string } {
   const runGit = deps.runGit ?? defaultRunGit;
-  const local = runGit(mainCheckout, [
+  const local = runGit(repoRoot, [
     "rev-parse",
     `refs/heads/change/${changeId}`,
   ]);
@@ -1265,7 +986,7 @@ export function verifyChangeBranchPushed(
     };
   }
 
-  const lsRemote = runGit(mainCheckout, [
+  const lsRemote = runGit(repoRoot, [
     "ls-remote",
     "origin",
     `refs/heads/change/${changeId}`,
@@ -1287,13 +1008,13 @@ export function verifyChangeBranchPushed(
 }
 
 export function verifyDefaultBranchPushed(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
 ): { pushed: true; sha: string } | { pushed: false; reason: string } {
   const runGit = deps.runGit ?? defaultRunGit;
-  runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
-  const localHead = runGit(mainCheckout, ["rev-parse", "HEAD"]);
+  runGit(repoRoot, ["fetch", "origin", defaultBranch]);
+  const localHead = runGit(repoRoot, ["rev-parse", "HEAD"]);
   if (localHead.status !== 0 || !localHead.stdout.trim()) {
     return {
       pushed: false,
@@ -1304,7 +1025,7 @@ export function verifyDefaultBranchPushed(
       ).trim(),
     };
   }
-  const remoteHead = runGit(mainCheckout, [
+  const remoteHead = runGit(repoRoot, [
     "ls-remote",
     "origin",
     `refs/heads/${defaultBranch}`,
@@ -1330,7 +1051,7 @@ export function verifyDefaultBranchPushed(
 }
 
 export function readPrMergeState(
-  mainCheckout: string,
+  repoRoot: string,
   repo: string | undefined,
   prNumber: number,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
@@ -1339,7 +1060,7 @@ export function readPrMergeState(
   const args = ["pr", "view", String(prNumber)];
   if (repo) args.push("--repo", repo);
   args.push("--json", "state,mergedAt,mergeCommit,autoMergeRequest");
-  const result = runGh(mainCheckout, args);
+  const result = runGh(repoRoot, args);
   if (result.status !== 0) {
     return {
       error: ghFailureReason(result),
@@ -1374,7 +1095,7 @@ export function readPrMergeState(
 }
 
 export function discoverMergedPr(
-  mainCheckout: string,
+  repoRoot: string,
   repo: string | undefined,
   changeId: string,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
@@ -1394,7 +1115,7 @@ export function discoverMergedPr(
     "--limit",
     "1",
   );
-  const result = runGh(mainCheckout, args);
+  const result = runGh(repoRoot, args);
   if (result.status !== 0) {
     return {
       error: ghFailureReason(result),
@@ -1422,7 +1143,7 @@ export function discoverMergedPr(
 }
 
 export function detectSquashMergeByTree(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   changeId: string,
   deps: Pick<GitFinalizeDeps, "runGit"> & {
@@ -1437,7 +1158,7 @@ export function detectSquashMergeByTree(
   // Get tree SHA of change branch HEAD. Prefer the persisted tip SHA when
   // available (survives branch deletion); fall back to the live branch ref.
   const tipRef = deps.changeTipSha ?? `change/${changeId}`;
-  const changeTree = runGit(mainCheckout, ["rev-parse", `${tipRef}^{tree}`]);
+  const changeTree = runGit(repoRoot, ["rev-parse", `${tipRef}^{tree}`]);
   if (changeTree.status !== 0) {
     return { reachable: false };
   }
@@ -1447,7 +1168,7 @@ export function detectSquashMergeByTree(
   }
 
   // Get recent trunk commits (last 50) with tree SHAs
-  const trunkCommits = runGit(mainCheckout, [
+  const trunkCommits = runGit(repoRoot, [
     "log",
     "--format=%H %T",
     "-50",
@@ -1500,13 +1221,13 @@ function parsePullRequestSummary(
 }
 
 function readPullRequestByBranch(
-  mainCheckout: string,
+  repoRoot: string,
   repo: string,
   branch: string,
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ): PullRequestSummary | { error: string; details?: string[] } {
   const runGh = deps.runGh ?? defaultRunGh;
-  const result = runGh(mainCheckout, [
+  const result = runGh(repoRoot, [
     "pr",
     "view",
     branch,
@@ -1530,7 +1251,7 @@ function readPullRequestByBranch(
 
 export function createArchivePullRequest(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     repo: string;
     branch: string;
     defaultBranch: string;
@@ -1563,7 +1284,7 @@ export function createArchivePullRequest(
     title = `Archive ${input.changeId}`;
   }
 
-  const result = runGh(input.mainCheckout, [
+  const result = runGh(input.repoRoot, [
     "pr",
     "create",
     "--repo",
@@ -1589,7 +1310,7 @@ export function createArchivePullRequest(
 
 function ensureArchivePullRequest(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     repo: string;
     branch: string;
     defaultBranch: string;
@@ -1601,7 +1322,7 @@ function ensureArchivePullRequest(
   deps: Pick<GitFinalizeDeps, "runGh"> = {},
 ): PullRequestSummary | { error: string; details?: string[] } {
   const existing = readPullRequestByBranch(
-    input.mainCheckout,
+    input.repoRoot,
     input.repo,
     input.branch,
     deps,
@@ -1622,7 +1343,7 @@ function ensureArchivePullRequest(
   }
 
   const afterCreate = readPullRequestByBranch(
-    input.mainCheckout,
+    input.repoRoot,
     input.repo,
     input.branch,
     deps,
@@ -1640,7 +1361,7 @@ function ensureArchivePullRequest(
 }
 
 export function armPullRequestAutoMerge(
-  mainCheckout: string,
+  repoRoot: string,
   repo: string,
   prNumber: number,
   changeTitle: string,
@@ -1665,7 +1386,7 @@ export function armPullRequestAutoMerge(
 
     let liveTitle = prTitle;
     if (liveTitle === undefined) {
-      const titleResult = runGh(mainCheckout, [
+      const titleResult = runGh(repoRoot, [
         "pr",
         "view",
         String(prNumber),
@@ -1738,7 +1459,7 @@ export function armPullRequestAutoMerge(
 
   // Intentionally omits -d/--delete-branch. Merge-queue merges complete at PR
   // state MERGED and cli/cli rejects --auto combined with --delete-branch.
-  const result = runGh(mainCheckout, [
+  const result = runGh(repoRoot, [
     "pr",
     "merge",
     String(prNumber),
@@ -1757,38 +1478,9 @@ export function armPullRequestAutoMerge(
   return { ok: true };
 }
 
-function resetMainToOriginDefault(
-  mainCheckout: string,
-  defaultBranch: string,
-  deps: Pick<GitFinalizeDeps, "runGit"> = {},
-): { ok: true } | { ok: false; reason: string; details?: string[] } {
-  const runGit = deps.runGit ?? defaultRunGit;
-  const fetch = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
-  if (fetch.status !== 0) {
-    return {
-      ok: false,
-      reason: "DEFAULT_BRANCH_FETCH_FAILED",
-      details: splitLines(fetch.stderr || fetch.stdout),
-    };
-  }
-  const reset = runGit(mainCheckout, [
-    "reset",
-    "--hard",
-    `origin/${defaultBranch}`,
-  ]);
-  if (reset.status !== 0) {
-    return {
-      ok: false,
-      reason: "DEFAULT_BRANCH_RESET_FAILED",
-      details: splitLines(reset.stderr || reset.stdout),
-    };
-  }
-  return { ok: true };
-}
-
 export function executePullRequestHandoff(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     workdir: string;
     repo: string;
     branch: string;
@@ -1810,7 +1502,7 @@ export function executePullRequestHandoff(
   if (branchPush.status !== "pushed") {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       pushStatus: branchPush.status,
@@ -1829,7 +1521,7 @@ export function executePullRequestHandoff(
 
   const pr = ensureArchivePullRequest(
     {
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       repo: input.repo,
       branch: input.branch,
       defaultBranch: input.defaultBranch,
@@ -1843,7 +1535,7 @@ export function executePullRequestHandoff(
   if ("error" in pr) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       pushStatus: "pushed",
@@ -1858,7 +1550,7 @@ export function executePullRequestHandoff(
   }
 
   const armed = armPullRequestAutoMerge(
-    input.mainCheckout,
+    input.repoRoot,
     input.repo,
     pr.number,
     input.changeTitle,
@@ -1870,7 +1562,7 @@ export function executePullRequestHandoff(
   if (!armed.ok) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       pushStatus: "pushed",
@@ -1888,7 +1580,7 @@ export function executePullRequestHandoff(
 
   const reachability = resolveReleaseReachability(
     {
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       changeId: input.changeId,
       route: input.route,
@@ -1899,7 +1591,7 @@ export function executePullRequestHandoff(
   if (reachability.reachable && reachability.proof === "pr_merged") {
     return {
       status: "shipped",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       releasedCommitSha: reachability.mergeCommitOid,
@@ -1916,7 +1608,7 @@ export function executePullRequestHandoff(
   if (!reachability.reachable && reachability.autoMergeArmed) {
     return {
       status: "pending_merge",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       pushStatus: "pushed",
@@ -1931,7 +1623,7 @@ export function executePullRequestHandoff(
 
   return {
     status: "blocked",
-    mainCheckout: input.mainCheckout,
+    repoRoot: input.repoRoot,
     defaultBranch: input.defaultBranch,
     route: input.route.route,
     pushStatus: "pushed",
@@ -1950,7 +1642,7 @@ export function executePullRequestHandoff(
 
 export function completeMergeQueueHandoff(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     workdir: string;
     defaultBranch: string;
     changeId: string;
@@ -1966,7 +1658,7 @@ export function completeMergeQueueHandoff(
   if (!input.route.repo) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       pushStatus: "failed",
@@ -1980,31 +1672,9 @@ export function completeMergeQueueHandoff(
     };
   }
 
-  const reset = resetMainToOriginDefault(
-    input.mainCheckout,
-    input.defaultBranch,
-    deps,
-  );
-  if (!reset.ok) {
-    return {
-      status: "blocked",
-      mainCheckout: input.mainCheckout,
-      defaultBranch: input.defaultBranch,
-      route: input.route.route,
-      pushStatus: "failed",
-      pushFailureReason: "merge_queue_required",
-      prBranch: branch,
-      blocked: {
-        reason: reset.reason,
-        remediation: `Default branch ${input.defaultBranch} must be reconciled to origin/${input.defaultBranch} before merge queue handoff (rq-releaseFinalization01).`,
-        details: reset.details,
-      },
-    };
-  }
-
   return executePullRequestHandoff(
     {
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       workdir: input.workdir,
       repo: input.route.repo,
       branch,
@@ -2023,7 +1693,7 @@ export function completeMergeQueueHandoff(
 
 function completeProtectedBranchViaPullRequest(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     workdir: string;
     changeId: string;
     defaultBranch: string;
@@ -2040,7 +1710,7 @@ function completeProtectedBranchViaPullRequest(
   if (!input.route.repo) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       pushStatus: "failed",
@@ -2050,28 +1720,6 @@ function completeProtectedBranchViaPullRequest(
         reason: "GITHUB_REPO_UNRESOLVABLE",
         remediation: `Unable to derive GitHub repo for ${branch}; create or merge a PR manually before release completion (rq-releaseFinalization01).`,
         details: input.route.details,
-      },
-    };
-  }
-
-  const reset = resetMainToOriginDefault(
-    input.mainCheckout,
-    input.defaultBranch,
-    deps,
-  );
-  if (!reset.ok) {
-    return {
-      status: "blocked",
-      mainCheckout: input.mainCheckout,
-      defaultBranch: input.defaultBranch,
-      route: input.route.route,
-      pushStatus: "failed",
-      pushFailureReason: input.pushFailureReason,
-      prBranch: branch,
-      blocked: {
-        reason: reset.reason,
-        remediation: `Default branch ${input.defaultBranch} must be reconciled to origin/${input.defaultBranch} before PR auto-merge handoff (rq-releaseFinalization01).`,
-        details: reset.details,
       },
     };
   }
@@ -2087,7 +1735,7 @@ function completeProtectedBranchViaPullRequest(
   if (reconcileResult.status !== "ok") {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: input.route.route,
       pushStatus: "not_attempted",
@@ -2102,7 +1750,7 @@ function completeProtectedBranchViaPullRequest(
 
   return executePullRequestHandoff(
     {
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       workdir: input.workdir,
       repo: input.route.repo,
       branch,
@@ -2176,7 +1824,7 @@ function parseRemoteChangeBranchRefs(output: string): Array<{
 
 export function detectArchivedUnmergedBranches(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     defaultBranch: string;
     archivedChangeIds?: string[];
   },
@@ -2186,7 +1834,7 @@ export function detectArchivedUnmergedBranches(
   const archivedSet = input.archivedChangeIds
     ? new Set(input.archivedChangeIds)
     : null;
-  const remoteBranches = runGit(input.mainCheckout, [
+  const remoteBranches = runGit(input.repoRoot, [
     "ls-remote",
     "--heads",
     "origin",
@@ -2200,7 +1848,7 @@ export function detectArchivedUnmergedBranches(
     };
   }
 
-  const defaultFetch = runGit(input.mainCheckout, [
+  const defaultFetch = runGit(input.repoRoot, [
     "fetch",
     "origin",
     input.defaultBranch,
@@ -2218,7 +1866,7 @@ export function detectArchivedUnmergedBranches(
   );
   const branches: ArchivedUnmergedBranch[] = [];
   for (const candidate of candidates) {
-    const branchFetch = runGit(input.mainCheckout, [
+    const branchFetch = runGit(input.repoRoot, [
       "fetch",
       "origin",
       `+refs/heads/${candidate.branch}:refs/remotes/origin/${candidate.branch}`,
@@ -2230,7 +1878,7 @@ export function detectArchivedUnmergedBranches(
       });
       continue;
     }
-    const unmerged = runGit(input.mainCheckout, [
+    const unmerged = runGit(input.repoRoot, [
       "log",
       "--oneline",
       `origin/${input.defaultBranch}..origin/${candidate.branch}`,
@@ -2293,11 +1941,11 @@ export type ListLocalChangeBranchesResult =
  * (rq-archivedBranchCleanupInversion01).
  */
 export function listLocalChangeBranchEntries(
-  mainCheckout: string,
+  repoRoot: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
 ): ListLocalChangeBranchesResult {
   const runGit = deps.runGit ?? defaultRunGit;
-  const localBranches = runGit(mainCheckout, [
+  const localBranches = runGit(repoRoot, [
     "branch",
     "--list",
     "--format=%(refname:short) %(objectname)",
@@ -2318,7 +1966,7 @@ export function listLocalChangeBranchEntries(
 
 export function detectArchivedMergedBranches(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     defaultBranch: string;
     archivedChangeIds?: string[];
   },
@@ -2329,7 +1977,7 @@ export function detectArchivedMergedBranches(
     ? new Set(input.archivedChangeIds)
     : null;
 
-  const local = listLocalChangeBranchEntries(input.mainCheckout, deps);
+  const local = listLocalChangeBranchEntries(input.repoRoot, deps);
   if (local.status === "blocked") {
     return {
       status: "blocked",
@@ -2346,7 +1994,7 @@ export function detectArchivedMergedBranches(
 
   for (const candidate of candidates) {
     const treeCheck = detectSquashMergeByTree(
-      input.mainCheckout,
+      input.repoRoot,
       input.defaultBranch,
       candidate.changeId,
       deps,
@@ -2364,7 +2012,7 @@ export function detectArchivedMergedBranches(
       continue;
     }
 
-    const cherry = runGit(input.mainCheckout, [
+    const cherry = runGit(input.repoRoot, [
       "cherry",
       "-v",
       input.defaultBranch,
@@ -2399,12 +2047,12 @@ export interface CheckedOutChangeBranchesResult {
 }
 
 export function getCheckedOutChangeBranches(
-  mainCheckout: string,
+  repoRoot: string,
   deps: Pick<GitFinalizeDeps, "runGit"> = {},
 ): CheckedOutChangeBranchesResult {
   const runGit = deps.runGit ?? defaultRunGit;
 
-  const output = runGit(mainCheckout, ["worktree", "list", "--porcelain"]);
+  const output = runGit(repoRoot, ["worktree", "list", "--porcelain"]);
   if (output.status !== 0) {
     return {
       status: "blocked",
@@ -2429,7 +2077,7 @@ export function getCheckedOutChangeBranches(
 
 export function redriveArchivedUnmergedBranch(
   input: {
-    mainCheckout: string;
+    repoRoot: string;
     defaultBranch: string;
     changeId: string;
     changeTitle: string;
@@ -2440,7 +2088,7 @@ export function redriveArchivedUnmergedBranch(
 ): GitFinalizeOutcome {
   const branch = `change/${input.changeId}`;
   const runGit = deps.runGit ?? defaultRunGit;
-  const remoteBranch = runGit(input.mainCheckout, [
+  const remoteBranch = runGit(input.repoRoot, [
     "ls-remote",
     "--heads",
     "origin",
@@ -2449,7 +2097,7 @@ export function redriveArchivedUnmergedBranch(
   if (remoteBranch.status !== 0 || !remoteBranch.stdout.trim()) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       pushStatus: "not_attempted",
       prBranch: branch,
@@ -2462,14 +2110,14 @@ export function redriveArchivedUnmergedBranch(
   }
 
   const route = classifyFinalizationRoute(
-    input.mainCheckout,
+    input.repoRoot,
     input.defaultBranch,
     deps,
   );
   if (route.route !== "pr_auto_merge" || !route.repo) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: route.route,
       pushStatus: "not_attempted",
@@ -2484,7 +2132,7 @@ export function redriveArchivedUnmergedBranch(
 
   const pr = ensureArchivePullRequest(
     {
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       repo: route.repo,
       branch,
       defaultBranch: input.defaultBranch,
@@ -2498,7 +2146,7 @@ export function redriveArchivedUnmergedBranch(
   if ("error" in pr) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: route.route,
       pushStatus: "not_attempted",
@@ -2512,7 +2160,7 @@ export function redriveArchivedUnmergedBranch(
   }
 
   const armed = armPullRequestAutoMerge(
-    input.mainCheckout,
+    input.repoRoot,
     route.repo,
     pr.number,
     input.changeTitle,
@@ -2524,7 +2172,7 @@ export function redriveArchivedUnmergedBranch(
   if (!armed.ok) {
     return {
       status: "blocked",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: route.route,
       pushStatus: "not_attempted",
@@ -2541,7 +2189,7 @@ export function redriveArchivedUnmergedBranch(
 
   const reachability = resolveReleaseReachability(
     {
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       changeId: input.changeId,
       route,
@@ -2552,7 +2200,7 @@ export function redriveArchivedUnmergedBranch(
   if (reachability.reachable && reachability.proof === "pr_merged") {
     return {
       status: "shipped",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: route.route,
       releasedCommitSha: reachability.mergeCommitOid,
@@ -2567,7 +2215,7 @@ export function redriveArchivedUnmergedBranch(
   if (!reachability.reachable && reachability.autoMergeArmed) {
     return {
       status: "pending_merge",
-      mainCheckout: input.mainCheckout,
+      repoRoot: input.repoRoot,
       defaultBranch: input.defaultBranch,
       route: route.route,
       pushStatus: "pushed",
@@ -2580,7 +2228,7 @@ export function redriveArchivedUnmergedBranch(
 
   return {
     status: "blocked",
-    mainCheckout: input.mainCheckout,
+    repoRoot: input.repoRoot,
     defaultBranch: input.defaultBranch,
     route: route.route,
     pushStatus: "not_attempted",
@@ -2602,7 +2250,7 @@ export function resolveReleaseReachability(
 ): ReleaseReachabilityProof {
   const route =
     input.route ??
-    classifyFinalizationRoute(input.mainCheckout, input.defaultBranch, deps);
+    classifyFinalizationRoute(input.repoRoot, input.defaultBranch, deps);
 
   if (route.route === "blocked") {
     return {
@@ -2614,7 +2262,7 @@ export function resolveReleaseReachability(
 
   if (route.route === "no_remote") {
     const local = verifyChangeBranchReachable(
-      input.mainCheckout,
+      input.repoRoot,
       input.defaultBranch,
       input.changeId,
       deps,
@@ -2626,7 +2274,7 @@ export function resolveReleaseReachability(
       // that lacks such a fallback; direct/PR already have one.
       if (input.changeTipSha) {
         const treeMatch = detectSquashMergeByTree(
-          input.mainCheckout,
+          input.repoRoot,
           input.defaultBranch,
           input.changeId,
           { ...deps, changeTipSha: input.changeTipSha },
@@ -2646,7 +2294,7 @@ export function resolveReleaseReachability(
       };
     }
     const localHead = runGitOrThrow(
-      input.mainCheckout,
+      input.repoRoot,
       ["rev-parse", "HEAD"],
       deps,
     );
@@ -2659,7 +2307,7 @@ export function resolveReleaseReachability(
 
   if (route.route === "direct") {
     const pushed = verifyDefaultBranchPushed(
-      input.mainCheckout,
+      input.repoRoot,
       input.defaultBranch,
       deps,
     );
@@ -2671,7 +2319,7 @@ export function resolveReleaseReachability(
       };
     }
     const originReachability = verifyChangeBranchReachableFromOrigin(
-      input.mainCheckout,
+      input.repoRoot,
       input.defaultBranch,
       input.changeId,
       deps,
@@ -2689,7 +2337,7 @@ export function resolveReleaseReachability(
     const directRepo = input.repo ?? route.repo;
     if (!effectivePrNumber && directRepo) {
       const discovered = discoverMergedPr(
-        input.mainCheckout,
+        input.repoRoot,
         directRepo,
         input.changeId,
         deps,
@@ -2702,7 +2350,7 @@ export function resolveReleaseReachability(
     // Existing PR merge state check (now with auto-discovered PR)
     if (effectivePrNumber && directRepo) {
       const prState = readPrMergeState(
-        input.mainCheckout,
+        input.repoRoot,
         directRepo,
         effectivePrNumber,
         deps,
@@ -2726,7 +2374,7 @@ export function resolveReleaseReachability(
     // NEW: Tree-based fallback (rq-fixPhase9SquashMergeRedetect: thread
     // changeTipSha so detection survives branch deletion)
     const treeMatch = detectSquashMergeByTree(
-      input.mainCheckout,
+      input.repoRoot,
       `origin/${input.defaultBranch}`,
       input.changeId,
       { ...deps, changeTipSha: input.changeTipSha },
@@ -2754,7 +2402,7 @@ export function resolveReleaseReachability(
   let discoveryError: string | undefined;
   if (!effectivePrNumber) {
     const discovered = discoverMergedPr(
-      input.mainCheckout,
+      input.repoRoot,
       repo,
       input.changeId,
       deps,
@@ -2768,7 +2416,7 @@ export function resolveReleaseReachability(
 
   if (effectivePrNumber) {
     const prState = readPrMergeState(
-      input.mainCheckout,
+      input.repoRoot,
       repo,
       effectivePrNumber,
       deps,
@@ -2807,7 +2455,7 @@ export function resolveReleaseReachability(
   // persisted tip SHA is available (rq-fixPhase9SquashMergeRedetect).
   if (input.changeTipSha) {
     const treeMatch = detectSquashMergeByTree(
-      input.mainCheckout,
+      input.repoRoot,
       `origin/${input.defaultBranch}`,
       input.changeId,
       { ...deps, changeTipSha: input.changeTipSha },
@@ -2847,7 +2495,7 @@ export function detectArchiveMode(
 
 export interface ValidateWorktreeResult {
   valid: boolean;
-  mainCheckout: string;
+  repoRoot: string;
   currentBranch?: string;
   error?: string;
 }
@@ -2860,13 +2508,13 @@ export function validateChangeWorktree(
   const runGit = deps.runGit ?? defaultRunGit;
 
   // 1. Must share git-common-dir with the project root
-  let mainCheckout: string;
+  let repoRoot: string;
   try {
-    mainCheckout = resolveMainCheckout(workdir, deps);
+    repoRoot = resolveRepoRoot(workdir, deps);
   } catch {
     return {
       valid: false,
-      mainCheckout: "",
+      repoRoot: "",
       error: `Worktree ${workdir} is not inside a git repository`,
     };
   }
@@ -2878,7 +2526,7 @@ export function validateChangeWorktree(
   if (currentBranch !== expectedBranch) {
     return {
       valid: false,
-      mainCheckout,
+      repoRoot,
       currentBranch,
       error: `Worktree is on ${currentBranch || "(detached)"}, expected ${expectedBranch}`,
     };
@@ -2888,7 +2536,7 @@ export function validateChangeWorktree(
   if (topLevel.status !== 0 || !topLevel.stdout.trim()) {
     return {
       valid: false,
-      mainCheckout,
+      repoRoot,
       currentBranch,
       error: `Unable to resolve worktree root for ${workdir}`,
     };
@@ -2898,7 +2546,7 @@ export function validateChangeWorktree(
     if (realpathSync(workdir) !== realpathSync(topLevel.stdout.trim())) {
       return {
         valid: false,
-        mainCheckout,
+        repoRoot,
         currentBranch,
         error: `Worktree path ${workdir} is not the repository root ${topLevel.stdout.trim()}`,
       };
@@ -2906,7 +2554,7 @@ export function validateChangeWorktree(
   } catch (error) {
     return {
       valid: false,
-      mainCheckout,
+      repoRoot,
       currentBranch,
       error: error instanceof Error ? error.message : String(error),
     };
@@ -2917,46 +2565,14 @@ export function validateChangeWorktree(
     if (dirty.length > 0) {
       return {
         valid: false,
-        mainCheckout,
+        repoRoot,
         currentBranch,
         error: `Worktree has uncommitted changes before archive writes: ${dirty.join(", ")}`,
       };
     }
   }
 
-  return { valid: true, mainCheckout, currentBranch };
-}
-
-function verifyRemoteNotAhead(
-  mainCheckout: string,
-  defaultBranch: string,
-  deps: GitFinalizeDeps = {},
-): { ok: true } | { ok: false; reason: string } {
-  const runGit = deps.runGit ?? defaultRunGit;
-  const fetch = runGit(mainCheckout, ["fetch", "origin", defaultBranch]);
-  if (fetch.status !== 0) return { ok: true };
-
-  const divergence = runGit(mainCheckout, [
-    "rev-list",
-    "--left-right",
-    "--count",
-    `${defaultBranch}...origin/${defaultBranch}`,
-  ]);
-  if (divergence.status !== 0 || !divergence.stdout.trim()) {
-    return { ok: true };
-  }
-
-  const [_localAhead, remoteAhead] = divergence.stdout
-    .trim()
-    .split(/\s+/)
-    .map((value) => Number.parseInt(value, 10));
-  if (remoteAhead > 0) {
-    return {
-      ok: false,
-      reason: `origin/${defaultBranch} has ${remoteAhead} commit(s) not present locally`,
-    };
-  }
-  return { ok: true };
+  return { valid: true, repoRoot, currentBranch };
 }
 
 export function commitArchiveArtifacts(
@@ -3023,7 +2639,7 @@ export function commitArchiveArtifacts(
 export interface GitFinalizeContext {
   changeId: string;
   workdir: string;
-  expectedMainCheckout?: string;
+  expectedRepoRoot?: string;
   archiveMode: ArchiveMode;
   autoPush: boolean;
   skipPush?: boolean;
@@ -3056,7 +2672,7 @@ export interface GitFinalizeContext {
  */
 export interface FinalizeInvocationState {
   // Static (set at construction)
-  readonly mainCheckout: string;
+  readonly repoRoot: string;
   readonly defaultBranch: string;
   readonly deps: GitFinalizeDeps;
 
@@ -3082,12 +2698,12 @@ export type MutationKind =
   | "execute-pull-request-handoff";
 
 export function createState(
-  mainCheckout: string,
+  repoRoot: string,
   defaultBranch: string,
   deps: GitFinalizeDeps,
 ): FinalizeInvocationState {
   return {
-    mainCheckout,
+    repoRoot,
     defaultBranch,
     deps,
     originDefaultFetched: false,
@@ -3151,7 +2767,7 @@ export function invalidate(
 export function getRoute(state: FinalizeInvocationState): FinalizationRoute {
   if (state.route) return state.route;
   state.route = classifyFinalizationRoute(
-    state.mainCheckout,
+    state.repoRoot,
     state.defaultBranch,
     state.deps,
   );
@@ -3168,7 +2784,7 @@ export function ensureOriginDefaultFetched(
     return { status: 0, stdout: "", stderr: "" };
   }
   const runGit = state.deps.runGit ?? defaultRunGit;
-  const result = runGit(state.mainCheckout, [
+  const result = runGit(state.repoRoot, [
     "fetch",
     "origin",
     state.defaultBranch,
@@ -3192,7 +2808,7 @@ export async function finalizeRelease(
   if (!worktreeValidation.valid) {
     return {
       status: "blocked",
-      mainCheckout: worktreeValidation.mainCheckout,
+      repoRoot: worktreeValidation.repoRoot,
       defaultBranch: "",
       pushStatus: "not_attempted",
       blocked: {
@@ -3202,39 +2818,25 @@ export async function finalizeRelease(
     };
   }
 
-  const mainCheckout = worktreeValidation.mainCheckout;
-  if (ctx.expectedMainCheckout && mainCheckout !== ctx.expectedMainCheckout) {
+  const repoRoot = worktreeValidation.repoRoot;
+  if (ctx.expectedRepoRoot && repoRoot !== ctx.expectedRepoRoot) {
     return {
       status: "blocked",
-      mainCheckout,
+      repoRoot,
       defaultBranch: "",
       pushStatus: "not_attempted",
       blocked: {
         reason: "WORKTREE_PROJECT_MISMATCH",
-        remediation: `Worktree ${ctx.workdir} belongs to ${mainCheckout}, expected ${ctx.expectedMainCheckout}. rq-releaseFinalization01 requires finalization inside this ADV project.`,
+        remediation: `Worktree ${ctx.workdir} belongs to ${repoRoot}, expected ${ctx.expectedRepoRoot}. rq-releaseFinalization01 requires finalization inside this ADV project.`,
       },
     };
   }
 
-  // Capture the change branch tip before any merge/cleanup so that
-  // content-addressed tree re-proof can survive branch deletion
-  // (rq-fixArchivedBranchFinalization SC1).
-  let changeTipSha: string | undefined;
-  try {
-    changeTipSha = runGitOrThrow(
-      mainCheckout,
-      ["rev-parse", `change/${ctx.changeId}`],
-      deps,
-    );
-  } catch {
-    changeTipSha = undefined;
-  }
-
-  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps);
+  const { branch: defaultBranch } = detectDefaultBranch(repoRoot, deps);
 
   // Per-invocation accumulator: caches idempotent git queries and tracks
   // fetch dedup. Mutations call invalidate(state, kind) to drop stale entries.
-  const state = createState(mainCheckout, defaultBranch, deps);
+  const state = createState(repoRoot, defaultBranch, deps);
 
   // Commit in-repo archive artifacts before merge
   const commitResult = commitArchiveArtifacts(
@@ -3247,7 +2849,7 @@ export async function finalizeRelease(
   if (commitResult.error) {
     return {
       status: "blocked",
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       pushStatus: "not_attempted",
       blocked: {
@@ -3262,7 +2864,7 @@ export async function finalizeRelease(
     if (route.route === "no_remote" || route.route === "blocked") {
       return {
         status: "blocked",
-        mainCheckout,
+        repoRoot,
         defaultBranch,
         route: route.route,
         prBranch: `change/${ctx.changeId}`,
@@ -3281,7 +2883,7 @@ export async function finalizeRelease(
     if (route.route === "merge_queue") {
       return completeMergeQueueHandoff(
         {
-          mainCheckout,
+          repoRoot,
           workdir: ctx.workdir,
           defaultBranch,
           changeId: ctx.changeId,
@@ -3289,7 +2891,6 @@ export async function finalizeRelease(
           changeTitle: ctx.changeTitle,
           prTitleType: ctx.prTitleType,
           prTitlePolicy: ctx.prTitlePolicy,
-          changeTipSha,
         },
         deps,
       );
@@ -3297,7 +2898,7 @@ export async function finalizeRelease(
 
     return completeProtectedBranchViaPullRequest(
       {
-        mainCheckout,
+        repoRoot,
         defaultBranch,
         workdir: ctx.workdir,
         changeId: ctx.changeId,
@@ -3311,299 +2912,292 @@ export async function finalizeRelease(
       deps,
     );
   }
-
-  // rq-releaseFinalization01.7/.8: Readiness check replaces old invariant gate.
-  // Wrong branch still blocks; dirty default-branch main is checkpointed and
-  // continues; unsafe states block with diagnostics.
-  const branch = runGitOrThrow(
-    mainCheckout,
-    ["branch", "--show-current"],
-    deps,
-  );
-  if (branch !== defaultBranch) {
+  // Direct / no_remote path: perform merge+push inside an ephemeral detached
+  // worktree forked from the canonical remote (or local) default branch. No
+  // shared main checkout is inspected or mutated.
+  const route = getRoute(state);
+  if (route.route === "blocked") {
     return {
       status: "blocked",
-      mainCheckout,
+      repoRoot,
       defaultBranch,
+      route: route.route,
       pushStatus: "not_attempted",
       blocked: {
-        reason: "MAIN_BRANCH_MISMATCH",
-        remediation: `Main checkout is on ${branch}, expected ${defaultBranch}. ADV will not switch branches. Restore main to ${defaultBranch} and retry. rq-releaseFinalization01 requires the correct branch.`,
+        reason: route.reason ?? "ROUTE_CLASSIFICATION_BLOCKED",
+        remediation: "Unable to classify archive finalization route.",
+        details: route.details,
       },
     };
   }
 
-  // Verify git identity before any checkpoint commit attempt
-  const identity = verifyGitIdentity(mainCheckout, deps);
-  if (!identity.ok) {
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      pushStatus: "not_attempted",
-      blocked: {
-        reason: "MISSING_GIT_IDENTITY",
-        remediation: `${identity.message} rq-releaseFinalization01.8 requires a configured git identity for checkpoint.`,
-      },
-    };
-  }
+  const runGit = deps.runGit ?? defaultRunGit;
+  const preferredBaseRef =
+    route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`;
+  const baseRef =
+    runGit(repoRoot, ["rev-parse", "--verify", preferredBaseRef]).status === 0
+      ? preferredBaseRef
+      : defaultBranch;
 
-  // Detect in-progress git operations (rq-releaseFinalization01.8)
-  const inProgress = detectMainInProgressState(mainCheckout, deps);
-  if (inProgress.inProgress) {
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      pushStatus: "not_attempted",
-      blocked: {
-        reason: "MAIN_IN_PROGRESS_STATE",
-        remediation: `Main checkout is in an active ${inProgress.state} state. ADV will not commit over in-progress git operations. Resolve the ${inProgress.state} state and retry. rq-releaseFinalization01.8.`,
-      },
-    };
-  }
-
-  // Dirty-main checkpoint (rq-releaseFinalization01.7)
-  let mainCheckpointCommitSha: string | undefined;
-  const checkpoint = commitDirtyMainCheckpoint(
-    mainCheckout,
-    ctx.changeId,
-    deps,
-  );
-  invalidate(state, "commit-dirty-main-checkpoint");
-  if (checkpoint.error) {
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      pushStatus: "not_attempted",
-      blocked: {
-        reason: "MAIN_CHECKPOINT_FAILED",
-        remediation: `Dirty-main checkpoint failed: ${checkpoint.error}. rq-releaseFinalization01.8 blocks on checkpoint failure.`,
-      },
-    };
-  }
-  if (checkpoint.committed) {
-    mainCheckpointCommitSha = checkpoint.commitSha;
-  }
-
-  const beforeMergeReachability = verifyChangeBranchReachable(
-    mainCheckout,
-    defaultBranch,
-    ctx.changeId,
-    deps,
-  );
-
-  const remotePreflight = verifyRemoteNotAhead(
-    mainCheckout,
-    defaultBranch,
-    deps,
-  );
-  if (!remotePreflight.ok) {
-    return {
-      status: "blocked",
-      mainCheckout,
-      defaultBranch,
-      pushStatus: "not_attempted",
-      blocked: {
-        reason: "DEFAULT_BRANCH_REMOTE_DIVERGED",
-        remediation: `${remotePreflight.reason}. Update ${defaultBranch} before archive finalization; no local default-branch mutation was performed (rq-releaseFinalization01).`,
-      },
-    };
-  }
-
-  let mergeCommitSha: string | undefined;
-  if (!beforeMergeReachability.reachable) {
-    const merge = mergeToTrunk(mainCheckout, defaultBranch, ctx.changeId, deps);
-    invalidate(state, "merge-change-branch");
-    if (merge.status === "blocked") {
-      return {
-        status: "blocked",
-        mainCheckout,
-        defaultBranch,
-        pushStatus: "not_attempted",
-        blocked: {
-          reason: merge.code,
-          remediation: `Resolve Phase 9 merge blockers for change/${ctx.changeId}, then rerun archive finalization (rq-releaseFinalization01).`,
-          details: merge.conflictFiles,
-        },
-      };
-    }
-    mergeCommitSha = merge.mergeCommitSha;
-  } else {
-    mergeCommitSha = runGitOrThrow(mainCheckout, ["rev-parse", "HEAD"], deps);
-  }
-
-  const routeAfterMerge = getRoute(state);
-  if (routeAfterMerge.route === "no_remote") {
-    return {
-      status: "shipped",
-      mainCheckout,
-      defaultBranch,
-      route: "no_remote",
-      releasedCommitSha: mergeCommitSha,
-      mergeCommitSha,
-      changeTipSha,
-      mainCheckpointCommitSha,
-      pushStatus: "skipped",
-      pushFailureReason:
-        routeAfterMerge.reason ?? "origin remote not configured",
-    };
-  }
-
-  const push = pushToOrigin(mainCheckout, defaultBranch, {
-    autoPush: ctx.autoPush,
-    skipPush: ctx.skipPush,
-    runGit: deps.runGit,
-  });
-  invalidate(state, "push-to-origin");
-
-  if (push.status === "pushed") {
-    // A successful push process is not itself release proof: refresh and
-    // compare the remote default branch before allowing Phase 9 to ship or
-    // use this SHA for immutable projection verification.
-    const remoteDefault = verifyDefaultBranchPushed(
-      mainCheckout,
-      defaultBranch,
+  try {
+    return await withEphemeralDefaultBranchWorktree(
+      repoRoot,
+      baseRef,
       deps,
+      async (ephemeral) => {
+        // Merge the change branch into the detached default-branch HEAD.
+        const merge = mergeToTrunk(
+          ephemeral,
+          defaultBranch,
+          ctx.changeId,
+          deps,
+        );
+        invalidate(state, "merge-change-branch");
+        if (merge.status === "blocked") {
+          return {
+            status: "blocked",
+            repoRoot,
+            defaultBranch,
+            route: route.route,
+            pushStatus: "not_attempted",
+            blocked: {
+              reason: merge.code,
+              remediation: `Resolve Phase 9 merge blockers for change/${ctx.changeId}, then rerun archive finalization (rq-releaseFinalization01).`,
+              details: merge.conflictFiles,
+            },
+          };
+        }
+
+        if (route.route === "no_remote") {
+          // Update the local default-branch ref directly. A native push to the
+          // same non-bare repository is rejected when the branch is checked out
+          // in the shared main worktree, so we use a compare-and-set ref update
+          // while preserving the fast-forward invariant (old HEAD must be an
+          // ancestor of the merged commit). The shared main checkout worktree
+          // is left untouched; callers should verify via origin/default or, in
+          // the no-remote case, via local reachability from the updated ref.
+          const runGit = deps.runGit ?? defaultRunGit;
+          const oldDefaultHead = runGit(ephemeral, [
+            "rev-parse",
+            `refs/heads/${defaultBranch}`,
+          ]);
+          if (oldDefaultHead.status !== 0 || !oldDefaultHead.stdout.trim()) {
+            return {
+              status: "blocked",
+              repoRoot,
+              defaultBranch,
+              route: "no_remote",
+              mergeCommitSha: merge.mergeCommitSha,
+              pushStatus: "failed",
+              pushFailureReason: oldDefaultHead.stderr || oldDefaultHead.stdout,
+              blocked: {
+                reason: "LOCAL_DEFAULT_BRANCH_HEAD_UNRESOLVED",
+                remediation: `Unable to resolve current local ${defaultBranch} before updating it with the merged archive.`,
+              },
+            };
+          }
+          const oldSha = oldDefaultHead.stdout.trim();
+          const ffCheck = runGit(ephemeral, [
+            "merge-base",
+            "--is-ancestor",
+            oldSha,
+            "HEAD",
+          ]);
+          if (ffCheck.status !== 0) {
+            return {
+              status: "blocked",
+              repoRoot,
+              defaultBranch,
+              route: "no_remote",
+              mergeCommitSha: merge.mergeCommitSha,
+              pushStatus: "failed",
+              pushFailureReason: `local ${defaultBranch} is not an ancestor of the merged commit`,
+              blocked: {
+                reason: "LOCAL_DEFAULT_BRANCH_NOT_FAST_FORWARD",
+                remediation: `Resolve diverged ${defaultBranch} manually before no-remote archive finalization.`,
+              },
+            };
+          }
+          const updateRef = runGit(ephemeral, [
+            "update-ref",
+            `refs/heads/${defaultBranch}`,
+            "HEAD",
+            oldSha,
+          ]);
+          if (updateRef.status !== 0) {
+            return {
+              status: "blocked",
+              repoRoot,
+              defaultBranch,
+              route: "no_remote",
+              mergeCommitSha: merge.mergeCommitSha,
+              pushStatus: "failed",
+              pushFailureReason: updateRef.stderr || updateRef.stdout,
+              blocked: {
+                reason: "LOCAL_DEFAULT_BRANCH_UPDATE_FAILED",
+                remediation: `Failed to update local ${defaultBranch} with the merged archive. Resolve the git error and retry.`,
+              },
+            };
+          }
+          const reachable = verifyChangeBranchReachable(
+            repoRoot,
+            defaultBranch,
+            ctx.changeId,
+            deps,
+          );
+          if (!reachable.reachable) {
+            return {
+              status: "blocked",
+              repoRoot,
+              defaultBranch,
+              route: "no_remote",
+              mergeCommitSha: merge.mergeCommitSha,
+              pushStatus: "failed",
+              pushFailureReason: "local merge verification failed",
+              blocked: {
+                reason: "LOCAL_MERGE_NOT_VERIFIED",
+                remediation: `Change branch change/${ctx.changeId} is not reachable from local ${defaultBranch} after merge.`,
+                details: reachable.unmergedCommits,
+              },
+            };
+          }
+          const head = runGitOrThrow(ephemeral, ["rev-parse", "HEAD"], deps);
+          return {
+            status: "shipped",
+            repoRoot,
+            defaultBranch,
+            route: "no_remote",
+            releasedCommitSha: head,
+            mergeCommitSha: head,
+            pushStatus: "skipped",
+            pushFailureReason: route.reason ?? "origin remote not configured",
+          };
+        }
+
+        // Remote direct path: push from the ephemeral worktree and verify.
+        const push = pushToOrigin(ephemeral, defaultBranch, {
+          autoPush: ctx.autoPush,
+          skipPush: ctx.skipPush,
+          runGit: deps.runGit,
+        });
+        invalidate(state, "push-to-origin");
+
+        if (push.status === "pushed") {
+          const remoteDefault = verifyDefaultBranchPushed(
+            ephemeral,
+            defaultBranch,
+            deps,
+          );
+          if (!remoteDefault.pushed) {
+            return {
+              status: "blocked",
+              repoRoot,
+              defaultBranch,
+              route: "direct",
+              mergeCommitSha: merge.mergeCommitSha,
+              pushStatus: "failed",
+              pushFailureReason: remoteDefault.reason,
+              blocked: {
+                reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
+                remediation: `Default branch ${defaultBranch} must be fetched and match origin/${defaultBranch} before release completion (rq-releaseFinalization01).`,
+                details: remoteDefault.reason
+                  ? [remoteDefault.reason]
+                  : undefined,
+              },
+            };
+          }
+          return {
+            status: "shipped",
+            repoRoot,
+            defaultBranch,
+            route: "direct",
+            releasedCommitSha: remoteDefault.sha,
+            mergeCommitSha: merge.mergeCommitSha,
+            pushStatus: "pushed",
+          };
+        }
+
+        if (push.status === "failed") {
+          if (route.route === "merge_queue") {
+            return completeMergeQueueHandoff(
+              {
+                repoRoot,
+                workdir: ctx.workdir,
+                changeId: ctx.changeId,
+                defaultBranch,
+                route,
+                changeTitle: ctx.changeTitle,
+                prTitleType: ctx.prTitleType,
+                prTitlePolicy: ctx.prTitlePolicy,
+              },
+              deps,
+            );
+          }
+          if (route.route === "pr_auto_merge") {
+            return completeProtectedBranchViaPullRequest(
+              {
+                repoRoot,
+                workdir: ctx.workdir,
+                changeId: ctx.changeId,
+                defaultBranch,
+                route,
+                pushFailureReason: push.reason,
+                changeTitle: ctx.changeTitle,
+                prTitleType: ctx.prTitleType,
+                prTitlePolicy: ctx.prTitlePolicy,
+              },
+              deps,
+            );
+          }
+          if (route.route === "pr_manual") {
+            return {
+              status: "blocked",
+              repoRoot,
+              defaultBranch,
+              route: route.route,
+              mergeCommitSha: merge.mergeCommitSha,
+              pushStatus: push.status,
+              pushFailureReason: push.reason,
+              prBranch: `change/${ctx.changeId}`,
+              blocked: {
+                reason: route.reason ?? "PR_MANUAL_REQUIRED",
+                remediation: `Default branch push failed and ADV could not arm auto-merge. Manually open or merge PR for change/${ctx.changeId}, then rerun archive finalization (rq-releaseFinalization01).`,
+                details: [push.reason, ...(route.details ?? [])],
+              },
+            };
+          }
+        }
+
+        return {
+          status: "blocked",
+          repoRoot,
+          defaultBranch,
+          route: "direct",
+          mergeCommitSha: merge.mergeCommitSha,
+          pushStatus: push.status,
+          pushFailureReason: push.reason,
+          blocked: {
+            reason:
+              push.status === "failed"
+                ? "DEFAULT_BRANCH_PUSH_FAILED"
+                : "DEFAULT_BRANCH_PUSH_SKIPPED",
+            remediation: `Default branch ${defaultBranch} must be pushed before archive finalization can complete (rq-releaseFinalization01).`,
+            details: [push.reason],
+          },
+        };
+      },
     );
-    if (!remoteDefault.pushed) {
-      return {
-        status: "blocked",
-        mainCheckout,
-        defaultBranch,
-        route: "direct",
-        mergeCommitSha,
-        mainCheckpointCommitSha,
-        pushStatus: "failed",
-        pushFailureReason: remoteDefault.reason,
-        blocked: {
-          reason: "DEFAULT_BRANCH_PUSH_NOT_VERIFIED",
-          remediation: `Default branch ${defaultBranch} must be fetched and match origin/${defaultBranch} before release completion (rq-releaseFinalization01).`,
-          details: remoteDefault.reason ? [remoteDefault.reason] : undefined,
-        },
-      };
-    }
+  } catch (error) {
     return {
-      status: "shipped",
-      mainCheckout,
+      status: "blocked",
+      repoRoot,
       defaultBranch,
-      route: "direct",
-      releasedCommitSha: remoteDefault.sha,
-      mergeCommitSha,
-      changeTipSha,
-      mainCheckpointCommitSha,
-      pushStatus: "pushed",
+      route: route.route,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "EPHEMERAL_WORKTREE_FAILED",
+        remediation: error instanceof Error ? error.message : String(error),
+      },
     };
   }
-
-  if (push.status === "failed") {
-    const route = getRoute(state);
-    if (route.route === "merge_queue") {
-      if (mainCheckpointCommitSha) {
-        return {
-          status: "blocked",
-          mainCheckout,
-          defaultBranch,
-          route: route.route,
-          mergeCommitSha,
-          mainCheckpointCommitSha,
-          pushStatus: push.status,
-          pushFailureReason: push.reason,
-          prBranch: `change/${ctx.changeId}`,
-          blocked: {
-            reason: "MAIN_CHECKPOINT_PR_HANDOFF_UNSAFE",
-            remediation: `Default branch ${defaultBranch} has an ADV checkpoint commit ${mainCheckpointCommitSha}; manually reconcile it before merge queue handoff (rq-releaseFinalization01).`,
-            details: [push.reason],
-          },
-        };
-      }
-      return completeMergeQueueHandoff(
-        {
-          mainCheckout,
-          workdir: ctx.workdir,
-          changeId: ctx.changeId,
-          defaultBranch,
-          route,
-          changeTitle: ctx.changeTitle,
-          prTitleType: ctx.prTitleType,
-          prTitlePolicy: ctx.prTitlePolicy,
-          changeTipSha,
-        },
-        deps,
-      );
-    }
-    if (route.route === "pr_auto_merge") {
-      if (mainCheckpointCommitSha) {
-        return {
-          status: "blocked",
-          mainCheckout,
-          defaultBranch,
-          route: route.route,
-          mergeCommitSha,
-          mainCheckpointCommitSha,
-          pushStatus: push.status,
-          pushFailureReason: push.reason,
-          prBranch: `change/${ctx.changeId}`,
-          blocked: {
-            reason: "MAIN_CHECKPOINT_PR_HANDOFF_UNSAFE",
-            remediation: `Default branch ${defaultBranch} has an ADV checkpoint commit ${mainCheckpointCommitSha}; manually reconcile it before PR auto-merge handoff (rq-releaseFinalization01).`,
-            details: [push.reason],
-          },
-        };
-      }
-      return completeProtectedBranchViaPullRequest(
-        {
-          mainCheckout,
-          workdir: ctx.workdir,
-          changeId: ctx.changeId,
-          defaultBranch,
-          route,
-          pushFailureReason: push.reason,
-          changeTitle: ctx.changeTitle,
-          prTitleType: ctx.prTitleType,
-          prTitlePolicy: ctx.prTitlePolicy,
-          changeTipSha,
-        },
-        deps,
-      );
-    }
-    if (route.route === "pr_manual") {
-      return {
-        status: "blocked",
-        mainCheckout,
-        defaultBranch,
-        route: route.route,
-        mergeCommitSha,
-        mainCheckpointCommitSha,
-        pushStatus: push.status,
-        pushFailureReason: push.reason,
-        prBranch: `change/${ctx.changeId}`,
-        blocked: {
-          reason: route.reason ?? "PR_MANUAL_REQUIRED",
-          remediation: `Default branch push failed and ADV could not arm auto-merge. Manually open or merge PR for change/${ctx.changeId}, then rerun archive finalization (rq-releaseFinalization01).`,
-          details: [push.reason, ...(route.details ?? [])],
-        },
-      };
-    }
-  }
-
-  return {
-    status: "blocked",
-    mainCheckout,
-    defaultBranch,
-    route: "direct",
-    mergeCommitSha,
-    mainCheckpointCommitSha,
-    pushStatus: push.status,
-    pushFailureReason: push.reason,
-    blocked: {
-      reason:
-        push.status === "failed"
-          ? "DEFAULT_BRANCH_PUSH_FAILED"
-          : "DEFAULT_BRANCH_PUSH_SKIPPED",
-      remediation: `Default branch ${defaultBranch} must be pushed before archive finalization can complete (rq-releaseFinalization01).`,
-      details: [push.reason],
-    },
-  };
 }

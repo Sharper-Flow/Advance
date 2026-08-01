@@ -26,7 +26,7 @@ import {
   getCheckedOutChangeBranches,
   listLocalChangeBranchEntries,
   makeBoundedRunGit,
-  resolveMainCheckout,
+  resolveRepoRoot,
   type LocalChangeBranchEntry,
 } from "./git-finalize";
 
@@ -169,14 +169,14 @@ async function mapWithConcurrency<T, R>(
  */
 async function buildArchivedCandidatesFromLocal(params: {
   store: Store;
-  mainCheckout: string;
+  repoRoot: string;
   deadlineAt: number;
 }): Promise<
   | { blocked: true; reason: string; details: string[] }
   | { blocked: false; archivedChangeIds: string[]; omissions: Omission[] }
 > {
-  const { store, mainCheckout, deadlineAt } = params;
-  const local = listLocalChangeBranchEntries(mainCheckout);
+  const { store, repoRoot, deadlineAt } = params;
+  const local = listLocalChangeBranchEntries(repoRoot);
   if (local.status === "blocked") {
     return { blocked: true, reason: local.reason, details: local.details };
   }
@@ -246,7 +246,7 @@ function isPartial(omissions: Omission[]): boolean {
 
 function buildPartialResult(params: {
   dryRun?: boolean;
-  mainCheckout: string;
+  repoRoot: string;
   defaultBranch: string;
   omissions: Omission[];
   fetchWarnings: string[];
@@ -256,7 +256,7 @@ function buildPartialResult(params: {
     partial: true,
     mode: "archived_branches",
     dryRun: !!params.dryRun,
-    mainCheckout: params.mainCheckout,
+    repoRoot: params.repoRoot,
     defaultBranch: params.defaultBranch,
     omissions: params.omissions,
     ...(params.fetchWarnings.length > 0
@@ -303,10 +303,10 @@ export async function cleanupArchivedMergedBranches(
   const boundedRunGit = () =>
     makeBoundedRunGit(Math.max(1, Math.min(MIN_PER_CALL_GIT_MS, remaining())));
 
-  const mainCheckout = resolveMainCheckout(store.paths.root, {
+  const repoRoot = resolveRepoRoot(store.paths.root, {
     runGit: boundedRunGit(),
   });
-  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout, {
+  const { branch: defaultBranch } = detectDefaultBranch(repoRoot, {
     runGit: boundedRunGit(),
   });
 
@@ -332,7 +332,7 @@ export async function cleanupArchivedMergedBranches(
   } else {
     const built = await buildArchivedCandidatesFromLocal({
       store,
-      mainCheckout,
+      repoRoot,
       deadlineAt,
     });
     if (built.blocked) {
@@ -351,7 +351,7 @@ export async function cleanupArchivedMergedBranches(
   if (remaining() <= 0) {
     return buildPartialResult({
       dryRun,
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       omissions: withDeadlineExceeded(omissions, targetArchivedChangeIds),
       fetchWarnings: [],
@@ -366,7 +366,7 @@ export async function cleanupArchivedMergedBranches(
       Math.max(MIN_PER_ITEM_MS, Math.floor(remaining() / 2)),
     );
     try {
-      await execGit(["fetch", "origin", defaultBranch], mainCheckout, fetchMs);
+      await execGit(["fetch", "origin", defaultBranch], repoRoot, fetchMs);
     } catch (err) {
       fetchWarnings.push(
         `Best-effort default-branch fetch failed or timed out (${fetchMs}ms budget): ${err instanceof Error ? err.message : String(err)}`,
@@ -378,7 +378,7 @@ export async function cleanupArchivedMergedBranches(
   if (remaining() <= 0) {
     return buildPartialResult({
       dryRun,
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       omissions: withDeadlineExceeded(omissions, targetArchivedChangeIds),
       fetchWarnings,
@@ -391,7 +391,7 @@ export async function cleanupArchivedMergedBranches(
     Math.floor(remaining() / Math.max(1, targetArchivedChangeIds.length)),
   );
   const detect = detectArchivedMergedBranches(
-    { mainCheckout, defaultBranch, archivedChangeIds: targetArchivedChangeIds },
+    { repoRoot, defaultBranch, archivedChangeIds: targetArchivedChangeIds },
     { runGit: makeBoundedRunGit(perCallMs) },
   );
   if (detect.status === "blocked") {
@@ -405,7 +405,7 @@ export async function cleanupArchivedMergedBranches(
   if (remaining() <= 0) {
     return buildPartialResult({
       dryRun,
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       omissions: withDeadlineExceeded(omissions, targetArchivedChangeIds),
       fetchWarnings,
@@ -413,7 +413,7 @@ export async function cleanupArchivedMergedBranches(
   }
 
   // PHASE 5 — worktree safety filter.
-  const checkedOut = getCheckedOutChangeBranches(mainCheckout, {
+  const checkedOut = getCheckedOutChangeBranches(repoRoot, {
     runGit: boundedRunGit(),
   });
   if (checkedOut.status === "blocked") {
@@ -445,7 +445,7 @@ export async function cleanupArchivedMergedBranches(
       success: true,
       mode: "archived_branches",
       dryRun: true,
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       candidates,
       skipped,
@@ -458,7 +458,7 @@ export async function cleanupArchivedMergedBranches(
 
   const results = candidates.map((b) => {
     try {
-      const deletion = deleteChangeBranch(mainCheckout, b.changeId);
+      const deletion = deleteChangeBranch(repoRoot, b.changeId);
       return {
         changeId: b.changeId,
         branch: b.branch,
@@ -491,7 +491,7 @@ export async function cleanupArchivedMergedBranches(
     success: true,
     mode: "archived_branches",
     dryRun: false,
-    mainCheckout,
+    repoRoot,
     defaultBranch,
     results,
     skipped,

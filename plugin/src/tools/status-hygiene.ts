@@ -245,7 +245,7 @@ export async function appendArchivedBranchHygieneRecommendations(
     archived_branch_hygiene?: ArchivedBranchHygieneSection;
   },
   store: Store,
-  mainCheckout: string,
+  repoRoot: string,
   deps?: { runGit?: GitFinalizeDeps["runGit"] },
 ): Promise<void> {
   const archivedList = await store.changes.list({
@@ -258,28 +258,28 @@ export async function appendArchivedBranchHygieneRecommendations(
 
   let defaultBranch: string;
   try {
-    ({ branch: defaultBranch } = detectDefaultBranch(mainCheckout, deps));
+    ({ branch: defaultBranch } = detectDefaultBranch(repoRoot, deps));
   } catch {
     return;
   }
 
   // Best-effort fetch; failure is non-blocking.
   try {
-    deps?.runGit?.(mainCheckout, ["fetch", "origin", defaultBranch]);
+    deps?.runGit?.(repoRoot, ["fetch", "origin", defaultBranch]);
   } catch {
     // proceed with local state
   }
 
   const archivedChangeIds = archivedList.changes.map((c) => c.id);
   const result = detectArchivedMergedBranches(
-    { mainCheckout, defaultBranch, archivedChangeIds },
+    { repoRoot, defaultBranch, archivedChangeIds },
     { runGit: deps?.runGit },
   );
   if (result.status === "blocked" || result.branches.length === 0) {
     return;
   }
 
-  const checkedOut = getCheckedOutChangeBranches(mainCheckout, {
+  const checkedOut = getCheckedOutChangeBranches(repoRoot, {
     runGit: deps?.runGit,
   });
   if (checkedOut.status === "blocked") {

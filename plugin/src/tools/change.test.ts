@@ -1054,7 +1054,7 @@ describe("change tools — signal-driven lifecycle", () => {
             recovery_audit: {
               reason: "completed_workflow_release_gate_recovery",
               evidence:
-                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
+                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
               recovered_at: "2026-01-01T00:00:01Z",
             },
           },
@@ -5702,7 +5702,7 @@ describe("change tools — signal-driven lifecycle", () => {
         // succeed solely because the store release gate is marked done; the gate
         // must carry matching Phase 9 structural evidence so the no-op path is
         // evidence-authoritative, not status-authoritative.
-        const releaseEvidence = `Phase 9 finalization shipped; defaultBranch=main; mainCheckout=${tempDir}; pushStatus=pushed; route=no_remote`;
+        const releaseEvidence = `Phase 9 finalization shipped; defaultBranch=main; repoRoot=${tempDir}; pushStatus=pushed; route=no_remote`;
         const gates = {
           ...allDoneGates,
           release: { status: "done", approval_evidence: releaseEvidence },
@@ -5719,7 +5719,7 @@ describe("change tools — signal-driven lifecycle", () => {
           .spyOn(gitFinalize, "finalizeRelease")
           .mockResolvedValue({
             status: "shipped",
-            mainCheckout: tempDir,
+            repoRoot: tempDir,
             defaultBranch: "main",
             pushStatus: "pushed",
           } as Awaited<ReturnType<typeof gitFinalize.finalizeRelease>>);

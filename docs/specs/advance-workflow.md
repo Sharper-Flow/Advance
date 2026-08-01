@@ -647,7 +647,7 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 **Then:**
 - ADV spawns “adv-ci-waiter” against the PR via the Task tool
 - The main agent does not poll CI status itself
-- ADV reads “finalization.prNumber”, “finalization.prUrl”, “finalization.mainCheckout”, “finalization.defaultBranch” from the structured return (fields are nested inside “finalization”, not top-level)
+- ADV reads “finalization.prNumber”, “finalization.prUrl”, “finalization.repoRoot”, “finalization.defaultBranch” from the structured return (fields are nested inside “finalization”, not top-level)
 
 **Auto-drive completes end-to-end on merge** (`rq-releaseFinalization02.2`)
 
@@ -657,7 +657,7 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 **When:** ADV continues the auto-drive flow
 
 **Then:**
-- ADV invokes “syncDefaultBranchAfterMerge” against local trunk
+- ADV merges and pushes the archive from an ephemeral detached worktree; the shared main checkout is not inspected or mutated
 - ADV re-calls “adv_change_archive phase9:“run”” and lets “verifyReleaseEvidenceFromMain” return “Shipped.” via the “pr_merged” proof branch-ref-independent
 - No second human turn is required; the change reaches the “Shipped.” state end-to-end
 
@@ -687,66 +687,65 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 
 ---
 
-### Post-Merge Local Default-Branch Sync
+### No Shared Main Checkout Mutation
 
 **ID:** `rq-releaseFinalization03` | **Priority:** **[MUST]**
 
-After the watched PR reaches “MERGED”, ADV updates the local default branch in place to match “origin/{default}” so the human does not have to run a manual “git pull”. The sync must NEVER mutate the working tree destructively: it MUST NOT switch branches, run “reset”, or run a blind “pull” (the diverged-with-conflict case verified during discovery wedges the main checkout in a half-merge state, violating the main-clean-on-default-branch invariant). When the local default branch already equals “origin/{default}” (the common case after a fetch), the sync fast-forwards via “git merge --ff-only origin/{default}”. When the local default branch has commits absent from “origin/{default}” (e.g. an ADV checkpoint that did not push), the sync MUST NOT auto-merge, MUST NOT reset, and MUST surface the divergence with reconcile instructions; release still completes on the proven origin reachability. The sync helper NEVER records release-done — release completion remains gated solely by “verifyReleaseEvidenceFromMain” and the persisted tip + origin/PR proof chain. The helper is a pure “runGit”-injected function co-located with “reconcileChangeBranchWithDefault” in “plugin/src/tools/archive-helpers/git-finalize.ts”.
+ADV archive finalization MUST NOT inspect, reset, merge, or commit into the shared main checkout. All merge and push operations happen in ephemeral detached worktrees forked from the canonical remote default branch (or the local default branch when no remote exists). The shared main checkout's working tree, index, and checked-out branch remain untouched. In the no-remote case, the local default branch ref is updated only via a fast-forward-only compare-and-set `git update-ref`; divergence is surfaced without mutation. Release completion remains gated solely by `verifyReleaseEvidenceFromMain` and the persisted tip + origin/PR proof chain.
 
 **Tags:** `workflow`, `archive`, `git`
 
 #### Scenarios
 
-**Clean ff-only sync** (`rq-releaseFinalization03.1`)
+**Remote direct merge leaves main checkout untouched** (`rq-releaseFinalization03.1`)
 
 **Given:**
-- The watched PR reached “MERGED”
-- “git -C {main} rev-list origin/{default}..HEAD” returns zero commits
-- “git -C {main} rev-list HEAD..origin/{default}” returns N>0 commits ahead
+- A remote-backed archive finalization is running
+- The change worktree is on `change/{id}` and shares git state with the project
 
-**When:** ADV calls “syncDefaultBranchAfterMerge”
+**When:** ADV merges and pushes the archive
 
 **Then:**
-- The helper returns “status: ‘synced’”
-- Local “{default}” now points at “origin/{default}” (verified by “git -C {main} rev-parse HEAD” matching “origin/{default}” tip)
-- The set of new commits brought in by the fast-forward is captured in the “ffCommits” field for audit
+- The merge and push run inside an ephemeral detached worktree
+- The shared main checkout is not reset, merged, or switched
+- Default branch is updated only via a native push to origin
 
-**Diverged: surface, do not mutate** (`rq-releaseFinalization03.2`)
+**Dirty or wrong-branch main checkout is ignored** (`rq-releaseFinalization03.2`)
 
 **Given:**
-- The watched PR reached “MERGED”
-- “git -C {main} rev-list origin/{default}..HEAD” returns N>0 commits (local-only commits)
+- The shared main checkout has uncommitted changes or is on a non-default branch
 
-**When:** ADV calls “syncDefaultBranchAfterMerge”
+**When:** ADV runs archive finalization
 
 **Then:**
-- The helper returns “status: ‘diverged’”
-- Local “{default}” is UNCHANGED (HEAD SHA identical pre- and post-call)
-- The helper returns a bounded list of local-only SHAs and a reconcile remediation message; release still completes on the proven origin reachability
+- Finalization does not inspect or checkpoint the main checkout state
+- Finalization proceeds using the ephemeral worktree and remote/local proof
+- The main checkout remains as the user left it
 
-**Helper never records release-done** (`rq-releaseFinalization03.3`)
+**No-remote local ref update is fast-forward-only** (`rq-releaseFinalization03.3`)
 
 **Given:**
-- The helper signature and body are reviewed
+- No origin remote is configured
+- The local default branch is an ancestor of the merged commit
 
-**When:** ADV inspects “syncDefaultBranchAfterMerge” (e.g. via review/harden)
+**When:** ADV updates the local default branch
 
 **Then:**
-- The return type contains no “releaseDone”/“recorded”/equivalent field
-- The helper does not invoke any store-mutation surface (no “store.X” calls, no signal writes)
-- Release completion remains gated solely by “verifyReleaseEvidenceFromMain”; the sync helper cannot shortcut the origin/PR proof chain
+- The update uses `git update-ref` with the expected old SHA
+- The update succeeds only if the old SHA is an ancestor of `HEAD`
+- Divergence is surfaced as a blocker without mutating the local branch
 
-**Fetch failure is surfaced** (`rq-releaseFinalization03.4`)
+**Failure surfaces without mutating main checkout** (`rq-releaseFinalization03.4`)
 
 **Given:**
-- “git -C {main} fetch origin {default}” exits non-zero
+- Any archive finalization step fails (merge, push, verification)
 
-**When:** ADV calls “syncDefaultBranchAfterMerge”
+**When:** ADV handles the failure
 
 **Then:**
-- The helper returns “status: ‘blocked’” with “reason: ‘FETCH_FAILED’”
-- The remediation string instructs the human to verify network/origin and re-invoke the archive flow
-- No destructive mutation runs after fetch fails
+- No write is made to the shared main checkout working tree or index
+- The ephemeral worktree is removed on completion or failure
+- The user receives a blocked status with actionable remediation
 
 ---
 

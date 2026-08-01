@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => {
     querySignal: vi.fn(),
     getChangeHandle: vi.fn(() => handleMock),
     detectArchiveMode: vi.fn(() => ({ archiveMode: "direct", autoPush: true })),
-    resolveMainCheckout: vi.fn(() => "/tmp/main"),
+    resolveRepoRoot: vi.fn(() => "/tmp/main"),
     detectDefaultBranch: vi.fn(() => ({
       branch: "trunk",
       source: "local-trunk",
@@ -89,7 +89,7 @@ vi.mock("./archive-helpers/git-finalize", async () => {
   return {
     ...actual,
     detectArchiveMode: mocks.detectArchiveMode,
-    resolveMainCheckout: mocks.resolveMainCheckout,
+    resolveRepoRoot: mocks.resolveRepoRoot,
     detectDefaultBranch: mocks.detectDefaultBranch,
     verifyChangeBranchReachable: mocks.verifyChangeBranchReachable,
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,

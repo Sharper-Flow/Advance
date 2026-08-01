@@ -76,7 +76,7 @@ vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
     await importOriginal<typeof import("./archive-helpers/git-finalize")>();
   return {
     ...actual,
-    resolveMainCheckout: vi.fn().mockReturnValue(null),
+    resolveRepoRoot: vi.fn().mockReturnValue(null),
     detectArchivedMergedBranches: vi
       .fn()
       .mockReturnValue({ status: "ok", branches: [] }),

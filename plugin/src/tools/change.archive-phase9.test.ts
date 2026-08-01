@@ -70,7 +70,7 @@ const mocks = vi.hoisted(() => {
     finalizeRelease: vi.fn(() =>
       Promise.resolve({
         status: "shipped",
-        mainCheckout: "/tmp/main",
+        repoRoot: "/tmp/main",
         defaultBranch: "trunk",
         releasedCommitSha: "abc123",
         mergeCommitSha: "abc123",
@@ -82,7 +82,7 @@ const mocks = vi.hoisted(() => {
     detectDefaultBranch: vi.fn(() => ({ branch: "trunk", source: "test" })),
     validateChangeWorktree: vi.fn(() => ({
       valid: true,
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       currentBranch: "change/example",
     })),
     verifyChangeBranchReachable: vi.fn(() => ({
@@ -121,10 +121,6 @@ const mocks = vi.hoisted(() => {
     ),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
-    syncDefaultBranchAfterMerge: vi.fn(() => ({
-      status: "synced",
-      ffCommits: [],
-    })),
     fireSignalAndRefresh: vi.fn(async () => {}),
     getProjectId: vi.fn(() => Promise.resolve("test-project")),
     getService: vi.fn(() => ({
@@ -183,7 +179,6 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
     classifyFinalizationRoute: mocks.classifyFinalizationRoute,
     resolveReleaseReachability: mocks.resolveReleaseReachability,
-    syncDefaultBranchAfterMerge: mocks.syncDefaultBranchAfterMerge,
   };
 });
 
@@ -434,7 +429,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.finalizeRelease).toHaveBeenCalledWith(
       expect.objectContaining({
         workdir: "/tmp/worktree",
-        expectedMainCheckout: "/tmp/main",
+        expectedRepoRoot: "/tmp/main",
       }),
     );
     expect(mocks.workflow.handle.signal).toHaveBeenCalledWith(
@@ -725,7 +720,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const changesDir = join(tmp, "changes");
     const changeDir = join(changesDir, "example");
     const evidence =
-      "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
+      "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
 
     try {
       const store = createMockStore({ durableReleasePending: true });
@@ -797,11 +792,11 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // text does NOT substring-match the freshly computed finalization evidence
     // must still be accepted when finalizationStatus === "shipped".
     const structuredEvidence =
-      "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=NEWBUNDLE999";
+      "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/tmp/main; pushStatus=pushed; mergeCommitSha=NEWBUNDLE999";
 
     const shippedFinalization: GitFinalizeOutcome = {
       status: "shipped",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "pushed",
       mergeCommitSha: "NEWBUNDLE999",
@@ -809,7 +804,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     };
     const blockedFinalization: GitFinalizeOutcome = {
       status: "blocked",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "not_attempted",
     };
@@ -1015,11 +1010,11 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
   describe("finalizationShipped reconciliation (fixReleaseDurabilityFalse)", () => {
     const structuredEvidence =
-      "Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
+      "Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123";
 
     const shippedFinalization: GitFinalizeOutcome = {
       status: "shipped",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "pushed",
       mergeCommitSha: "abc123",
@@ -1027,7 +1022,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     };
     const blockedFinalization: GitFinalizeOutcome = {
       status: "blocked",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "not_attempted",
     };
@@ -1173,7 +1168,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   test("does not archive when finalization is blocked", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "blocked",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "not_attempted",
       blocked: {
@@ -1239,7 +1234,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   test("keeps change active when finalization is pending auto-merge", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "pending_merge",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "pushed",
       prBranch: "change/example",
@@ -1297,7 +1292,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "pending_merge",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "pushed",
       prBranch: "change/example",
@@ -1379,7 +1374,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.resolveReleaseReachability).toHaveBeenCalledTimes(1);
     const rrCall = mocks.resolveReleaseReachability.mock.calls[0];
     expect(rrCall?.[0]).toMatchObject({
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       changeId: "example",
     });
@@ -1476,7 +1471,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
   });
 
-  test("re-drive after PR merged invokes syncDefaultBranchAfterMerge and surfaces trunkSync outcome (KD3/AC4)", async () => {
+  test("re-drive after PR merged does not invoke syncDefaultBranchAfterMerge or surface trunkSync (remote-first isolation)", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.resolveReleaseReachability.mockReturnValueOnce({
       reachable: true,
@@ -1484,11 +1479,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
       prNumber: 42,
       mergeCommitOid: "merge-42",
       details: ["PR #42 merged"],
-    });
-    mocks.syncDefaultBranchAfterMerge.mockReturnValueOnce({
-      status: "blocked",
-      reason: "MAIN_DIRTY",
-      remediation: "Inspect local trunk changes before syncing.",
     });
     const store = createMockStore({
       phase9_status: {
@@ -1508,15 +1498,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
-    expect(mocks.syncDefaultBranchAfterMerge).toHaveBeenCalledTimes(1);
-    expect(mocks.syncDefaultBranchAfterMerge).toHaveBeenCalledWith({
-      mainCheckout: "/tmp/main",
-      defaultBranch: "trunk",
-    });
-    expect(parsed.trunkSync).toMatchObject({
-      status: "blocked",
-      reason: "MAIN_DIRTY",
-    });
+    expect(parsed.trunkSync).toBeUndefined();
     expect(store.changes.save).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "archived",
@@ -1948,7 +1930,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   test("rejects invalid worktree before archive writes", async () => {
     mocks.validateChangeWorktree.mockReturnValueOnce({
       valid: false,
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       error: "wrong branch",
     });
 
@@ -1973,7 +1955,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "pr_pushed",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       prBranch: "change/example",
       pushStatus: "pushed",
@@ -2066,7 +2048,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // finalization proof and persist a canonical done release gate.
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "shipped",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       route: "direct",
       pushStatus: "pushed",
@@ -2213,7 +2195,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   test("phase9=run records pending_merge terminal without archiving", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "pending_merge",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "pushed",
       prBranch: "change/example",
@@ -2248,7 +2230,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
   test("phase9=run returns blocked error without residual pending state", async () => {
     mocks.finalizeRelease.mockResolvedValueOnce({
       status: "blocked",
-      mainCheckout: "/tmp/main",
+      repoRoot: "/tmp/main",
       defaultBranch: "trunk",
       pushStatus: "not_attempted",
       blocked: {

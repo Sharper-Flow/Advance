@@ -26,14 +26,10 @@ import {
   pushToOrigin,
   pushChangeBranch,
   reconcileChangeBranchWithDefault,
-  resolveMainCheckout,
+  resolveRepoRoot,
   verifyChangeBranchPushed,
   verifyChangeBranchReachable,
   verifyDefaultBranchPushed,
-  verifyMainInvariants,
-  verifyGitIdentity,
-  detectMainInProgressState,
-  commitDirtyMainCheckpoint,
   redactGitOutput,
   resolveReleaseReachability,
   validateChangeWorktree,
@@ -45,7 +41,6 @@ import {
   detectArchivedMergedBranches,
   listLocalChangeBranchEntries,
   getCheckedOutChangeBranches,
-  syncDefaultBranchAfterMerge,
   armPullRequestAutoMerge,
   // rq-optimizePhase9GitCalls AC7 — internal accumulator exports for direct matrix testing.
   createState,
@@ -88,14 +83,14 @@ describe("git-finalize helpers", () => {
     await rm(tempRoot, { recursive: true, force: true });
   });
 
-  it("resolveMainCheckout returns the main checkout from a linked worktree", async () => {
+  it("resolveRepoRoot returns the project git root from a linked worktree", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
     await initRepo(main);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
 
-    expect(resolveMainCheckout(worktree)).toBe(main);
+    expect(resolveRepoRoot(worktree)).toBe(main);
   });
 
   it("detectDefaultBranch prefers origin/HEAD, then init.defaultBranch, then local main/trunk", async () => {
@@ -188,33 +183,6 @@ describe("git-finalize helpers", () => {
       "--get",
       "init.defaultBranch",
     ]);
-  });
-
-  it("verifyMainInvariants reports branch mismatch and dirty files", async () => {
-    const repo = join(tempRoot, "repo");
-    await mkdir(repo);
-    await initRepo(repo);
-
-    expect(verifyMainInvariants(repo, "trunk")).toMatchObject({
-      ok: true,
-      branch: "trunk",
-    });
-
-    await writeFile(join(repo, "dirty.txt"), "dirty\n");
-    expect(verifyMainInvariants(repo, "trunk")).toMatchObject({
-      ok: false,
-      code: "DIRTY_MAIN_CHECKOUT",
-      dirtyFiles: ["?? dirty.txt"],
-    });
-
-    git(repo, ["add", "dirty.txt"]);
-    git(repo, ["commit", "-m", "dirty fixture"]);
-    git(repo, ["checkout", "-b", "topic"]);
-    expect(verifyMainInvariants(repo, "trunk")).toMatchObject({
-      ok: false,
-      code: "MAIN_BRANCH_MISMATCH",
-      branch: "topic",
-    });
   });
 
   it("verifyChangeBranchReachable detects unmerged and merged change branches", async () => {
@@ -2442,10 +2410,10 @@ describe("git-finalize helpers", () => {
       defaultBranch: "trunk",
       route: "no_remote",
       pushStatus: "skipped",
-      mainCheckpointCommitSha: expect.any(String),
     });
-    // Verify the checkpoint commit actually happened on main
-    expect(result.mainCheckpointCommitSha).toBeTruthy();
+    // The shared main checkout is no longer inspected or checkpointed; dirty
+    // files in the main checkout remain untouched (remote-first isolation).
+    expect(git(main, ["status", "--porcelain"])).toContain("?? dirty.txt");
   });
 
   it("finalizeRelease commits archive artifacts before merge", async () => {
@@ -2476,7 +2444,12 @@ describe("git-finalize helpers", () => {
     expect(result.releasedCommitSha).toBe(
       git(main, ["rev-parse", "origin/trunk"]),
     );
-    expect(git(main, ["show", "HEAD:.adv/archive/bundle.txt"])).toBe("bundle");
+    // The shared main checkout is no longer updated; fetch the remote default
+    // branch to verify the archive bundle landed on origin.
+    git(main, ["fetch", "origin", "trunk"]);
+    expect(git(main, ["show", "origin/trunk:.adv/archive/bundle.txt"])).toBe(
+      "bundle",
+    );
   });
 
   it("finalizeRelease completes no-remote local archive", async () => {
@@ -2746,7 +2719,6 @@ describe("git-finalize helpers", () => {
       autoMergeArmed: true,
       pushStatus: "pushed",
     });
-    expect(gitCalls).toContainEqual(["reset", "--hard", "origin/trunk"]);
     expect(ghCalls).toContainEqual([
       "pr",
       "merge",
@@ -3023,161 +2995,13 @@ describe("git-finalize helpers", () => {
 
   // --- rq-releaseFinalization01.7/.8 regression coverage ---
 
-  describe("verifyGitIdentity", () => {
-    it("succeeds when git identity is configured", async () => {
-      const repo = join(tempRoot, "identity-ok");
-      await mkdir(repo);
-      await initRepo(repo);
-
-      const result = verifyGitIdentity(repo);
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.ident).toContain("ADV Test");
-      }
-    });
-
-    it("fails when git identity is missing", async () => {
-      const repo = join(tempRoot, "identity-missing");
-      await mkdir(repo);
-      git(repo, ["init", "-q", "-b", "trunk"]);
-      // Deliberately do NOT configure user.name/user.email
-      // Use a mock runGit to simulate missing identity
-      const result = verifyGitIdentity(repo, {
-        runGit: () => ({
-          status: 128,
-          stdout: "",
-          stderr: "fatal: EINVAL: invalid argument",
-        }),
-      });
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.message).toContain("identity");
-      }
-    });
-  });
-
-  describe("detectMainInProgressState", () => {
-    it("returns no in-progress state for clean repo", async () => {
-      const repo = join(tempRoot, "clean-state");
-      await mkdir(repo);
-      await initRepo(repo);
-
-      const result = detectMainInProgressState(repo);
-      expect(result.inProgress).toBe(false);
-    });
-  });
-
-  describe("commitDirtyMainCheckpoint", () => {
-    it("commits tracked dirty files", async () => {
-      const repo = join(tempRoot, "dirty-tracked");
-      await mkdir(repo);
-      await initRepo(repo);
-      await writeFile(join(repo, "existing.txt"), "original\n");
-      git(repo, ["add", "existing.txt"]);
-      git(repo, ["commit", "-m", "initial"]);
-
-      // Modify tracked file
-      await writeFile(join(repo, "existing.txt"), "modified\n");
-
-      const result = commitDirtyMainCheckpoint(repo, "test-change");
-      expect(result.committed).toBe(true);
-      expect(result.commitSha).toBeTruthy();
-
-      // Verify the file is committed
-      const status = git(repo, ["status", "--porcelain"]);
-      expect(status).toBe("");
-    });
-
-    it("commits untracked non-ignored files", async () => {
-      const repo = join(tempRoot, "dirty-untracked");
-      await mkdir(repo);
-      await initRepo(repo);
-      await writeFile(join(repo, "new-file.txt"), "new content\n");
-
-      const result = commitDirtyMainCheckpoint(repo, "test-change");
-      expect(result.committed).toBe(true);
-      expect(result.commitSha).toBeTruthy();
-
-      // Verify the untracked file is now committed
-      const status = git(repo, ["status", "--porcelain"]);
-      expect(status).toBe("");
-    });
-
-    it("returns committed:false for clean repo", async () => {
-      const repo = join(tempRoot, "dirty-clean");
-      await mkdir(repo);
-      await initRepo(repo);
-
-      const result = commitDirtyMainCheckpoint(repo, "test-change");
-      expect(result.committed).toBe(false);
-    });
-
-    it("returns error when git add fails", async () => {
-      const result = commitDirtyMainCheckpoint(
-        "/nonexistent/path",
-        "test-change",
-        {
-          runGit: (_cwd: string, args: string[]) => {
-            if (args[0] === "status") {
-              return {
-                status: 0,
-                stdout: "M file.txt\n",
-                stderr: "",
-              };
-            }
-            if (args[0] === "add") {
-              return {
-                status: 1,
-                stdout: "",
-                stderr: "error: add failed",
-              };
-            }
-            return { status: 0, stdout: "", stderr: "" };
-          },
-        },
-      );
-      expect(result.committed).toBe(false);
-      expect(result.error).toContain("git add -A failed");
-    });
-
-    it("returns error when git commit fails", async () => {
-      const result = commitDirtyMainCheckpoint(
-        "/tmp/no-matter",
-        "test-change",
-        {
-          runGit: (_cwd: string, args: string[]) => {
-            if (args[0] === "status") {
-              return {
-                status: 0,
-                stdout: "M file.txt\n",
-                stderr: "",
-              };
-            }
-            if (args[0] === "add") {
-              return { status: 0, stdout: "", stderr: "" };
-            }
-            if (args[0] === "commit") {
-              return {
-                status: 1,
-                stdout: "",
-                stderr: "error: commit failed",
-              };
-            }
-            return { status: 0, stdout: "", stderr: "" };
-          },
-        },
-      );
-      expect(result.committed).toBe(false);
-      expect(result.error).toContain("git commit failed");
-    });
-  });
-
-  it("finalizeRelease blocks wrong branch (rq-releaseFinalization01.8)", async () => {
+  it("finalizeRelease succeeds even when main checkout is on a different branch", async () => {
     const main = join(tempRoot, "wrong-branch");
     const worktree = join(tempRoot, "wrong-branch-wt");
     await mkdir(main);
     await initRepo(main);
-    // Switch main to a non-default branch
+    // Switch main checkout to a non-default branch; the shared checkout should
+    // not be inspected or mutated.
     git(main, ["checkout", "-b", "feature/other"]);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
 
@@ -3189,20 +3013,18 @@ describe("git-finalize helpers", () => {
     });
 
     expect(result).toMatchObject({
-      status: "blocked",
-      blocked: {
-        reason: "MAIN_BRANCH_MISMATCH",
-        remediation: expect.stringContaining("feature/other"),
-      },
+      status: "shipped",
+      route: "no_remote",
+      pushStatus: "skipped",
     });
   });
 
-  it("finalizeRelease includes mainCheckpointCommitSha in shipped result", async () => {
+  it("finalizeRelease ships no-remote archive without mutating dirty main checkout", async () => {
     const main = join(tempRoot, "checkpoint-shipped");
     const worktree = join(tempRoot, "checkpoint-shipped-wt");
     await mkdir(main);
     await initRepo(main);
-    // Make main dirty
+    // Make main dirty; the shared checkout must not be checkpointed or merged.
     await writeFile(join(main, "dirty.txt"), "dirty content\n");
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
 
@@ -3213,14 +3035,13 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Push is skipped because no remote exists, but no-remote local proof is
-    // release-complete and checkpoint evidence is preserved.
     expect(result).toMatchObject({
       status: "shipped",
       route: "no_remote",
       pushStatus: "skipped",
-      mainCheckpointCommitSha: expect.any(String),
     });
+    // Dirty file in shared main checkout remains untouched.
+    expect(git(main, ["status", "--porcelain"])).toContain("?? dirty.txt");
   });
 
   describe("deleteChangeBranch", () => {
@@ -3548,352 +3369,6 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  describe("syncDefaultBranchAfterMerge (rq-releaseFinalization03)", () => {
-    async function setupRepoWithOrigin(
-      suffix: string,
-      opts: {
-        localAhead?: number;
-        originAhead?: number;
-        sameCommit?: boolean;
-      } = {},
-    ): Promise<{ origin: string; main: string }> {
-      const origin = join(tempRoot, `sync-${suffix}-origin`);
-      const main = join(tempRoot, `sync-${suffix}-main`);
-      await mkdir(origin);
-      git(origin, ["init", "-q", "--bare", "-b", "trunk"]);
-      await mkdir(main);
-      git(main, ["init", "-q", "-b", "trunk"]);
-      git(main, ["config", "user.email", "adv-test@example.invalid"]);
-      git(main, ["config", "user.name", "ADV Test"]);
-      git(main, ["remote", "add", "origin", origin]);
-      await writeFile(join(main, "README.md"), "initial\n");
-      git(main, ["add", "README.md"]);
-      git(main, ["commit", "-m", "initial"]);
-      git(main, ["push", "-u", "origin", "trunk"]);
-
-      // Push `originAhead` commits to origin directly (simulating a remote squash-merge landing).
-      if (opts.originAhead && opts.originAhead > 0) {
-        const remoteWork = join(tempRoot, `sync-${suffix}-rw`);
-        await mkdir(remoteWork);
-        git(remoteWork, ["init", "-q", "-b", "trunk"]);
-        git(remoteWork, ["config", "user.email", "adv-test@example.invalid"]);
-        git(remoteWork, ["config", "user.name", "ADV Test"]);
-        git(remoteWork, ["remote", "add", "origin", origin]);
-        git(remoteWork, ["fetch", "origin", "trunk"]);
-        git(remoteWork, ["checkout", "-b", "scratch", "origin/trunk"]);
-        for (let i = 0; i < opts.originAhead; i++) {
-          await writeFile(
-            join(remoteWork, `remote-${i}.txt`),
-            `remote-commit-${i}\n`,
-          );
-          git(remoteWork, ["add", "."]);
-          git(remoteWork, [
-            "commit",
-            "-m",
-            opts.sameCommit ? `local-only-${i}` : `squash-merge-${i}`,
-          ]);
-        }
-        git(remoteWork, ["push", "origin", "scratch:trunk"]);
-      }
-
-      // Add local-only commits (simulating an unpushed ADV checkpoint).
-      if (opts.localAhead && opts.localAhead > 0) {
-        for (let i = 0; i < opts.localAhead; i++) {
-          await writeFile(join(main, `local-${i}.txt`), `local-commit-${i}\n`);
-          git(main, ["add", "."]);
-          git(main, ["commit", "-m", `local-checkpoint-${i}`]);
-        }
-      }
-      return { origin, main };
-    }
-
-    it("clean ff-only: local fast-forwards to origin/{default} with delta captured", async () => {
-      const { main } = await setupRepoWithOrigin("clean-ff", {
-        localAhead: 0,
-        originAhead: 2,
-      });
-
-      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: main,
-        defaultBranch: "trunk",
-      });
-      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-
-      expect(result.status).toBe("synced");
-      expect(Array.isArray(result.ffCommits)).toBe(true);
-      expect((result.ffCommits ?? []).length).toBe(2);
-      expect(afterHead).not.toBe(beforeHead);
-      const originHead = (
-        git(main, ["rev-parse", "origin/trunk"]) || ""
-      ).trim();
-      expect(afterHead).toBe(originHead);
-    });
-
-    it("diverged: surfaces without mutating local (rq-releaseFinalization03.2)", async () => {
-      const { main } = await setupRepoWithOrigin("diverged", {
-        localAhead: 2,
-        originAhead: 3,
-      });
-      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-      const beforeStatus = git(main, ["status", "--porcelain"]);
-
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: main,
-        defaultBranch: "trunk",
-      });
-      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-      const afterStatus = git(main, ["status", "--porcelain"]);
-
-      expect(result.status).toBe("diverged");
-      expect(result.reason).toBe("LOCAL_AHEAD_OF_ORIGIN");
-      expect((result.localOnlyCommits ?? []).length).toBe(2);
-      expect(afterHead).toBe(beforeHead);
-      expect(afterStatus).toBe(beforeStatus); // no merge conflict markers
-    });
-
-    it("fetch failure: returns blocked with FETCH_FAILED (rq-releaseFinalization03.4)", async () => {
-      // No remote configured — fetch will fail.
-      const noRemote = join(tempRoot, "sync-noremote");
-      await mkdir(noRemote);
-      git(noRemote, ["init", "-q", "-b", "trunk"]);
-      git(noRemote, ["config", "user.email", "adv-test@example.invalid"]);
-      git(noRemote, ["config", "user.name", "ADV Test"]);
-      await writeFile(join(noRemote, "README.md"), "x");
-      git(noRemote, ["add", "README.md"]);
-      git(noRemote, ["commit", "-m", "x"]);
-
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: noRemote,
-        defaultBranch: "trunk",
-      });
-
-      expect(result.status).toBe("blocked");
-      expect(result.reason).toBe("FETCH_FAILED");
-      expect(typeof result.remediation).toBe("string");
-    });
-
-    it("does not mutate the working tree destructively (rq-releaseFinalization03 + DONT5)", async () => {
-      // Spy runGit: collect every argv it receives and assert no `reset --hard`,
-      // `checkout`, `switch`, or `pull` ever appears.
-      const calls: string[][] = [];
-      const spyRunGit: typeof defaultRunGit = (cwd, args, timeoutMs) => {
-        calls.push(args);
-        return defaultRunGit(cwd, args, timeoutMs);
-      };
-
-      const { main } = await setupRepoWithOrigin("no-destructive-ops", {
-        localAhead: 1,
-        originAhead: 1,
-      });
-
-      const result = syncDefaultBranchAfterMerge(
-        {
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        },
-        { runGit: spyRunGit },
-      );
-      expect(result.status).toBe("diverged"); // expect diverged to fire the safety branch
-
-      const flat = calls.map((argv) => argv.join(" ")).join("\n");
-      expect(flat).not.toMatch(/\breset(\s|$)/);
-      expect(flat).not.toMatch(/\bcheckout(\s|$)/);
-      expect(flat).not.toMatch(/\bswitch(\s|$)/);
-      expect(flat).not.toMatch(/\bpull(\s|$)/);
-    });
-
-    it("merge path: does not mutate the working tree destructively", async () => {
-      const calls: string[][] = [];
-      const spyRunGit: typeof defaultRunGit = (cwd, args, timeoutMs) => {
-        calls.push(args);
-        return defaultRunGit(cwd, args, timeoutMs);
-      };
-
-      const { main } = await setupRepoWithOrigin("no-destructive-ops-merge", {
-        localAhead: 0,
-        originAhead: 1,
-      });
-
-      const result = syncDefaultBranchAfterMerge(
-        {
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        },
-        { runGit: spyRunGit },
-      );
-      expect(result.status).toBe("synced");
-
-      const flat = calls.map((argv) => argv.join(" ")).join("\n");
-      expect(flat).not.toMatch(/\breset(\s|$)/);
-      expect(flat).not.toMatch(/\bcheckout(\s|$)/);
-      expect(flat).not.toMatch(/\bswitch(\s|$)/);
-      expect(flat).not.toMatch(/\bpull(\s|$)/);
-    });
-
-    it("does not record release-done (rq-releaseFinalization03.3 closes validator ag-fJ57GzXO)", async () => {
-      // Pure type-level contract: the outcome shape must have no `releaseDone` /
-      // `recorded` field that could let the helper shortcut verifyReleaseEvidenceFromMain.
-      const sample: import("./git-finalize").SyncDefaultBranchAfterMergeOutcome =
-        {
-          status: "synced",
-          ffCommits: ["abc123"],
-        };
-      expect("releaseDone" in sample).toBe(false);
-      expect("recorded" in sample).toBe(false);
-      // Allowed keys (any subset may be present depending on status):
-      expect(
-        Object.keys(sample).every((k) =>
-          [
-            "status",
-            "reason",
-            "remediation",
-            "localOnlyCommits",
-            "ffCommits",
-            "details",
-          ].includes(k),
-        ),
-      ).toBe(true);
-      expect(sample.status).toBe("synced");
-    });
-
-    it("already in sync (no-op): ahead==0 && behind==0 returns synced with empty ffCommits (rq-releaseFinalization03 / ce-5)", async () => {
-      // Trivial no-op case: local and origin are at the same commit.
-      const { main } = await setupRepoWithOrigin("no-op-sync", {
-        localAhead: 0,
-        originAhead: 0,
-      });
-      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: main,
-        defaultBranch: "trunk",
-      });
-      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-
-      expect(result.status).toBe("synced");
-      expect(result.ffCommits ?? []).toEqual([]);
-      expect(afterHead).toBe(beforeHead);
-      expect(result.details?.[0]).toMatch(/already at/);
-    });
-
-    describe("auto-drive regression guards", () => {
-      it("rev-list failure returns blocked REV_LIST_FAILED (ce-1)", async () => {
-        const { main } = await setupRepoWithOrigin("revlist-fail", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        const result = syncDefaultBranchAfterMerge(
-          { mainCheckout: main, defaultBranch: "trunk" },
-          {
-            runGit: (cwd, args) => {
-              if (args[0] === "fetch" && args[1] === "origin") {
-                return defaultRunGit(cwd, args);
-              }
-              if (
-                args[0] === "rev-parse" &&
-                args[1] === "--abbrev-ref" &&
-                args[2] === "HEAD"
-              ) {
-                return { status: 0, stdout: "trunk\n", stderr: "" };
-              }
-              if (args[0] === "rev-list" && args[1] === "--count") {
-                return {
-                  status: 128,
-                  stdout: "",
-                  stderr: `fatal: malformed revision '${args[2]}'\n`,
-                };
-              }
-              return defaultRunGit(cwd, args);
-            },
-          },
-        );
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("REV_LIST_FAILED");
-        expect(result.remediation).toContain("rev-list failed");
-      });
-
-      it("non-numeric rev-list count returns blocked REV_LIST_FAILED (ce-1)", async () => {
-        const { main } = await setupRepoWithOrigin("revlist-nan", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        let revListCount = 0;
-        const result = syncDefaultBranchAfterMerge(
-          { mainCheckout: main, defaultBranch: "trunk" },
-          {
-            runGit: (cwd, args) => {
-              if (args[0] === "fetch" && args[1] === "origin") {
-                return defaultRunGit(cwd, args);
-              }
-              if (
-                args[0] === "rev-parse" &&
-                args[1] === "--abbrev-ref" &&
-                args[2] === "HEAD"
-              ) {
-                return { status: 0, stdout: "trunk\n", stderr: "" };
-              }
-              if (args[0] === "rev-list" && args[1] === "--count") {
-                revListCount++;
-                const bad = revListCount === 1;
-                return {
-                  status: 0,
-                  stdout: bad ? "not-a-number\n" : "1\n",
-                  stderr: "",
-                };
-              }
-              return defaultRunGit(cwd, args);
-            },
-          },
-        );
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("REV_LIST_FAILED");
-      });
-
-      it("HEAD on wrong branch returns blocked MAIN_NOT_ON_DEFAULT (ce-2)", async () => {
-        const { main } = await setupRepoWithOrigin("head-wrong-branch", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        git(main, ["checkout", "-b", "feature"]);
-        const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        const result = syncDefaultBranchAfterMerge({
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        });
-        const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("MAIN_NOT_ON_DEFAULT");
-        expect(result.details).toContain("HEAD=feature");
-        expect(afterHead).toBe(beforeHead);
-      });
-
-      it("dirty main checkout returns blocked MAIN_DIRTY without mutation (KD3)", async () => {
-        const { main } = await setupRepoWithOrigin("dirty-main", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        await writeFile(join(main, "dirty.txt"), "untracked-local-change\n");
-        const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        const beforeStatus = git(main, ["status", "--porcelain"]);
-        expect(beforeStatus).not.toBe("");
-
-        const result = syncDefaultBranchAfterMerge({
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        });
-        const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        const afterStatus = git(main, ["status", "--porcelain"]);
-
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("MAIN_DIRTY");
-        expect(afterHead).toBe(beforeHead);
-        expect(afterStatus).toBe(beforeStatus);
-        expect(result.remediation).toContain("git status");
-      });
-    });
-  });
-
   describe("merge queue handoff", () => {
     function queueGhMock(
       opts: {
@@ -4051,8 +3526,6 @@ describe("git-finalize helpers", () => {
         autoMergeArmed: true,
         pushStatus: "pushed",
       });
-      expect(gitMock.calls).toContainEqual(["fetch", "origin", "trunk"]);
-      expect(gitMock.calls).toContainEqual(["reset", "--hard", "origin/trunk"]);
     });
 
     it("completeMergeQueueHandoff collapses to shipped when PR is already merged", () => {
@@ -4651,34 +4124,6 @@ function defaultRunGit(cwd: string, args: string[]) {
 // checks (no live remote, no Temporal) since the existing parent-change tests
 // already exercise direct/no-remote/ff-only runtime paths.
 describe("auto-drive regression guards (rq-releaseFinalization02 / DONT1 / DONT3)", () => {
-  it("syncDefaultBranchAfterMerge is exported but not invoked internally by git-finalize helpers", () => {
-    // The helper must be exported for the archive handler but must NOT be
-    // auto-invoked by any other git-finalize helper. DONT3 / AC7.
-    const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
-    // Find any helper that calls syncDefaultBranchAfterMerge (other than its own
-    // declaration) — that would be an unintended internal dependency.
-    const lines = src.split("\n");
-    let declaredAt = -1;
-    for (let i = 0; i < lines.length; i++) {
-      if (/export function syncDefaultBranchAfterMerge/.test(lines[i])) {
-        declaredAt = i;
-        break;
-      }
-    }
-    expect(declaredAt).toBeGreaterThan(-1);
-
-    // Count call sites and exclude the declaration line + its immediate docblock
-    const callSites = lines
-      .map((line, idx) => ({ line, idx }))
-      .filter(
-        ({ idx, line }) =>
-          idx !== declaredAt &&
-          /syncDefaultBranchAfterMerge\s*\(/.test(line) &&
-          !/^\s*\*\s/.test(line), // skip JSDoc lines
-      );
-    expect(callSites).toEqual([]); // zero internal call sites
-  });
-
   it("git-finalize.ts adds no new temporal/* imports beyond the existing CHANGE_BRANCH_PREFIX (AC7 layer-boundary)", () => {
     // Reading the file confirms my edit retained only the pre-existing
     // CHANGE_BRANCH_PREFIX import from temporal/contracts and added no other
@@ -4733,8 +4178,8 @@ describe("adv-archive.md auto-drive (rq-releaseFinalization02 DONT3)", () => {
     expect(section).not.toMatch(/redriveArchivedUnmergedBranch/);
     // The section must reference the correct completion entry instead.
     expect(section).toContain("verifyReleaseEvidenceFromMain");
-    // And the new helper it delegates to.
-    expect(section).toContain("syncDefaultBranchAfterMerge");
+    // The removed local-trunk sync helper is no longer mentioned.
+    expect(section).not.toContain("syncDefaultBranchAfterMerge");
   });
 });
 

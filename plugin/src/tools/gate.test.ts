@@ -76,7 +76,7 @@ const mocks = vi.hoisted(() => {
       archiveMode: "direct",
       autoPush: false,
     })),
-    resolveMainCheckout: vi.fn(() => "/tmp/main"),
+    resolveRepoRoot: vi.fn(() => "/tmp/main"),
     detectDefaultBranch: vi.fn(() => ({ branch: "main" })),
     classifyFinalizationRoute: vi.fn(() => ({
       route: "direct",
@@ -112,7 +112,7 @@ vi.mock("./archive-helpers/git-finalize", async () => {
   return {
     ...actual,
     detectArchiveMode: mocks.detectArchiveMode,
-    resolveMainCheckout: mocks.resolveMainCheckout,
+    resolveRepoRoot: mocks.resolveRepoRoot,
     detectDefaultBranch: mocks.detectDefaultBranch,
     classifyFinalizationRoute: mocks.classifyFinalizationRoute,
     resolveReleaseReachability: mocks.resolveReleaseReachability,
@@ -2231,7 +2231,7 @@ describe("gate tools — signal-driven lifecycle", () => {
             recovery_audit: {
               reason: "completed_workflow_release_gate_recovery",
               evidence:
-                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
+                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
               recovered_at: "2026-01-01T00:00:01Z",
             },
           },
@@ -2307,7 +2307,7 @@ describe("gate tools — signal-driven lifecycle", () => {
             recovery_audit: {
               reason: "completed_workflow_release_gate_recovery",
               evidence:
-                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
+                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
               recovered_at: "2026-01-01T00:00:01Z",
             },
           },
