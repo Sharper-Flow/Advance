@@ -5312,6 +5312,100 @@ export const changeTools = {
         });
       }
 
+      // Operator-supplied poisoned-history recovery branch (fixWedgedWorkflowRecovery).
+      // Evaluated BEFORE any Temporal-backed store query so that a poisoned
+      // workflow that cannot answer changeStateQuery does not hang the tool.
+      // Existence and archived status are read from the authoritative disk
+      // projection only; dryRun is fully no-mutation.
+      if (
+        shouldTakeRecoveryBranch({
+          recoveryMode,
+          recoveryEvidence,
+          approvedByUser,
+          approvalEvidence,
+        })
+      ) {
+        const diskResult = await loadChange(store.paths.changes, changeId);
+        if (!diskResult.success || !diskResult.data) {
+          return formatToolOutput({
+            success: false,
+            error: `Change not found: ${changeId}`,
+            changeId,
+          });
+        }
+        if (diskResult.data.status === "archived") {
+          return formatToolOutput({
+            success: false,
+            error: `Workflow termination refused: change ${changeId} is archived.`,
+            changeId,
+            currentStatus: diskResult.data.status,
+            hint: "Use adv_archive_purge for archived changes — it is the sole archived-change workflow termination lever.",
+          });
+        }
+        if (dryRun) {
+          return formatToolOutput({
+            success: true,
+            dryRun: true,
+            wouldTerminate: true,
+            changeId,
+            eligibilityClass: "poisoned_history",
+            message: `Would terminate change ${changeId} via operator-supplied poisoned-history recovery branch (describe skipped).`,
+          });
+        }
+
+        const { getService } = await import("../temporal/service");
+        const service = getService();
+        const projectId = service ? await getProjectId(store.paths.root) : null;
+        if (!service || !projectId) {
+          return formatToolOutput({
+            success: false,
+            error:
+              "Temporal service not available — cannot terminate the change workflow",
+            changeId,
+            hint: "Restore the Temporal service (adv_doctor) and retry the termination.",
+          });
+        }
+        const { getChangeHandle } = await import("./_adapters");
+        const handle = getChangeHandle(service.client, projectId, changeId);
+        const { isWorkflowCompletedError } =
+          await import("../temporal/recovery-classification");
+
+        let alreadyTerminated = false;
+        try {
+          await (
+            handle as unknown as {
+              terminate: (reason?: string) => Promise<unknown>;
+            }
+          ).terminate(
+            `adv_change_workflow_terminate: operator-approved termination of poisoned_history change workflow ${changeId} (unpinned recovery branch)`,
+          );
+        } catch (error) {
+          if (isWorkflowCompletedError(error)) {
+            alreadyTerminated = true;
+          }
+          // Non-completed errors are treated as an unreachable wedged workflow
+          // because the operator provided precise recovery evidence; fall
+          // through to the disk-projection refresh.
+        }
+
+        try {
+          await store.changes.refresh(changeId);
+        } catch (error) {
+          logger.debug(
+            `Post-termination cache refresh failed for ${changeId}: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+
+        return formatToolOutput({
+          success: true,
+          changeId,
+          workflowTerminated: true,
+          ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
+          eligibilityClass: "poisoned_history",
+          message: `Terminated change ${changeId} workflow via operator-supplied poisoned-history recovery branch (describe skipped). Disk projection remains authoritative; subsequent reads fall through to disk.`,
+        });
+      }
+
       const result = await store.changes.get(changeId);
       if (!result.success) {
         return formatToolOutput({ success: false, error: result.error });
@@ -5365,60 +5459,6 @@ export const changeTools = {
       };
       const { isWorkflowCompletedError } =
         await import("../temporal/recovery-classification");
-
-      // Operator-supplied poisoned-history recovery branch
-      // (fixPoisonedClosePathPrecheck): run after approval + existence +
-      // archived check but BEFORE shipped-gate proof. An unfinished poisoned
-      // change cannot satisfy acceptance+release shipped proof, so gating this
-      // branch behind shipped proof made it unreachable. This branch is
-      // recoveryMode-gated and evidence-gated: terminate only, refresh the
-      // cache, and never write convergence/status. Shipped-terminal/normal
-      // mode still requires full shipped proof + exact run pinning below.
-      if (
-        shouldTakeRecoveryBranch({
-          recoveryMode,
-          recoveryEvidence,
-          approvedByUser,
-          approvalEvidence,
-        })
-      ) {
-        if (dryRun) {
-          return formatToolOutput({
-            success: true,
-            dryRun: true,
-            wouldTerminate: true,
-            changeId,
-            eligibilityClass: "poisoned_history",
-            message: `Would terminate change ${changeId} via operator-supplied poisoned-history recovery branch (describe skipped).`,
-          });
-        }
-        let alreadyTerminated = false;
-        try {
-          await (
-            handle as unknown as {
-              terminate: (reason?: string) => Promise<unknown>;
-            }
-          ).terminate(
-            `adv_change_workflow_terminate: operator-approved termination of poisoned_history change workflow ${changeId} (unpinned recovery branch)`,
-          );
-        } catch (error) {
-          if (isWorkflowCompletedError(error)) {
-            alreadyTerminated = true;
-          }
-          // Non-completed errors are treated as an unreachable wedged workflow
-          // because the operator provided precise recovery evidence; fall
-          // through to the disk-projection refresh.
-        }
-        await refreshProjectionCache();
-        return formatToolOutput({
-          success: true,
-          changeId,
-          workflowTerminated: true,
-          ...(alreadyTerminated ? { alreadyTerminated: true } : {}),
-          eligibilityClass: "poisoned_history",
-          message: `Terminated change ${changeId} workflow via operator-supplied poisoned-history recovery branch (describe skipped). Disk projection remains authoritative; subsequent reads fall through to disk.`,
-        });
-      }
 
       // Shipped proof: acceptance AND release gates done. This must pass
       // BEFORE idempotent completed/not-found handling in the normal path — a
