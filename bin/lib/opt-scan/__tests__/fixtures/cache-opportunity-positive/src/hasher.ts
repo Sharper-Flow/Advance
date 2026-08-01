@@ -4,7 +4,6 @@
  */
 export class Hasher {
   private cache = new Map<string, string>();
-  private ttl = 60_000;
 
   computeHash(input: string): string {
     const key = `hash:${input}`;
@@ -13,6 +12,10 @@ export class Hasher {
     const digest = this.expensiveHash(input);
     this.cache.set(key, digest);
     return digest;
+  }
+
+  invalidateCache(): void {
+    this.cache.clear();
   }
 
   private expensiveHash(input: string): string {

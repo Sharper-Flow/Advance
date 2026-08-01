@@ -290,6 +290,41 @@ export class Worker {
 
       expect(result.candidates).toHaveLength(0);
     });
+
+    test("rejects metadata and standalone TTL text as cache invalidation evidence", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "opt-scan-cache-version-"));
+      try {
+        mkdirSync(join(tmp, "src"), { recursive: true });
+        writeFileSync(
+          join(tmp, "src", "calculator.ts"),
+          `export class Calculator {
+  private cache = new Map<string, number>();
+  private version = 1;
+  private ttl = 60_000;
+
+  compute(input: number): number {
+    const key = String(input);
+    const cached = this.cache.get(key);
+    if (cached !== undefined) return cached;
+    const result = input * input;
+    this.cache.set(key, result);
+    return result;
+  }
+}
+`,
+        );
+
+        const result = await runOptScan({
+          repoRoot: tmp,
+          detectorId: id,
+          phase: 1,
+        });
+
+        expect(result.candidates).toHaveLength(0);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
   });
 
   test("skips test artifact files and directories during collection", async () => {

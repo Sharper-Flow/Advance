@@ -213,14 +213,18 @@ export function validateOptimizationEvidence(
   pushIf(
     issues,
     value.line !== null &&
-      (typeof value.line !== "number" || !Number.isFinite(value.line)),
-    `${path}.line must be a number or null`,
+      (typeof value.line !== "number" ||
+        !Number.isInteger(value.line) ||
+        value.line <= 0),
+    `${path}.line must be a positive integer or null`,
   );
   pushIf(
     issues,
     value.column !== undefined &&
-      (typeof value.column !== "number" || !Number.isFinite(value.column)),
-    `${path}.column must be a number when present`,
+      (typeof value.column !== "number" ||
+        !Number.isInteger(value.column) ||
+        value.column <= 0),
+    `${path}.column must be a positive integer when present`,
   );
   pushIf(
     issues,
@@ -427,6 +431,9 @@ export function validateOptimizationCandidate(
   if (!Array.isArray(value.evidence)) {
     issues.push("candidate.evidence must be an array");
   } else {
+    if (value.evidence.length === 0) {
+      issues.push("candidate.evidence must contain at least one source record");
+    }
     value.evidence.forEach((entry, index) => {
       const sub = validateOptimizationEvidence(entry, `evidence[${index}]`);
       if (!sub.ok) issues.push(...sub.issues);
