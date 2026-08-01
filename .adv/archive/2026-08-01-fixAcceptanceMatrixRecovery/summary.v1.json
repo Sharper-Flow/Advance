@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-01T17:49:20.281Z",
+  "capabilities": [],
+  "change_hash": "875060a6ad7cf529d7b207420fe02a9c5088f949a3a1f7ac155b3e11a6ca4807",
+  "change_id": "fixAcceptanceMatrixRecovery",
+  "completed_tasks": 2,
+  "created_at": "2026-07-31T21:57:06.962Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-01T17:48:15.849Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "50ba43cdf1b34b83532b50c46b7f9c1c77ae8e9cac453d3e9a80dded8e9051bf",
+  "task_count": 2,
+  "title": "Fix acceptance matrix recovery",
+  "version": "1"
+}

@@ -4,6 +4,7 @@ import { join } from "node:path";
 import {
   saveRecoveredArtifactMetadata,
   saveRecoveredChangeStatus,
+  saveRecoveredContractReviewMatrix,
   saveRecoveredDesignConcernDisposition,
   saveRecoveredGateCompletion,
   saveRecoveredSubagentReport,
@@ -456,6 +457,131 @@ describe("recovery writers via conditional projection commit", () => {
             disposition: "fixed",
             evidence: "reran tests",
             dispositionedAt: "2026-05-22T00:00:00Z",
+          },
+        } as any),
+      ).rejects.toThrow(/recovery authorization/);
+    });
+  });
+
+  describe("saveRecoveredContractReviewMatrix", () => {
+    function changeWithContract(): Change {
+      return {
+        ...baseChange(),
+        contract: {
+          version: 1,
+          rigor: "standard" as const,
+          source: { artifact: "agreement", approvedAt: "2026-05-22T00:00:00Z" },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion" as const,
+              text: "Criterion one",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test" as const,
+              status: "approved" as const,
+            },
+          ],
+          amendments: [],
+        },
+      } as Change;
+    }
+
+    it("records a review matrix with a recovery_audit marker through conditional commit", async () => {
+      const change = changeWithContract();
+      await seedProjection(changesDir, change);
+
+      const reviewMatrix = {
+        reviewedAt: "2026-05-22T00:00:00Z",
+        rows: [
+          {
+            contractId: "AC1",
+            kind: "acceptance_criterion" as const,
+            status: "pass" as const,
+            evidencePolicy: "test" as const,
+            evidence: "reran tests",
+          },
+        ],
+      };
+
+      const updated = await saveRecoveredContractReviewMatrix({
+        store,
+        change,
+        authorization: {
+          reason: "poisoned_history_contract_review_matrix_recovery",
+          evidence: "TMPRL1100",
+        },
+        reviewMatrix,
+      });
+
+      expect(updated.contract?.reviewMatrix).toMatchObject(reviewMatrix);
+      expect(updated.contract?.reviewMatrix?.recovery_audit).toMatchObject({
+        reason: "poisoned_history_contract_review_matrix_recovery",
+        evidence: "TMPRL1100",
+      });
+      const disk = JSON.parse(
+        await readFile(join(changesDir, "test-change", "change.json"), "utf-8"),
+      );
+      expect(disk.projection_revision).toBe(1);
+      expect(disk.contract.reviewMatrix.rows).toHaveLength(1);
+      expect(disk.contract.reviewMatrix.recovery_audit).toBeDefined();
+      expect(() => ChangeSchema.parse(disk)).not.toThrow();
+    });
+
+    it("stores a clean signal payload in projection_commits for re-delivery", async () => {
+      const change = changeWithContract();
+      await seedProjection(changesDir, change);
+
+      const reviewMatrix = {
+        reviewedAt: "2026-05-22T00:00:00Z",
+        rows: [
+          {
+            contractId: "AC1",
+            kind: "acceptance_criterion" as const,
+            status: "pass" as const,
+            evidencePolicy: "test" as const,
+            evidence: "reran tests",
+          },
+        ],
+      };
+
+      await saveRecoveredContractReviewMatrix({
+        store,
+        change,
+        authorization: {
+          reason: "poisoned_history_contract_review_matrix_recovery",
+          evidence: "TMPRL1100",
+        },
+        reviewMatrix,
+      });
+
+      const disk = JSON.parse(
+        await readFile(join(changesDir, "test-change", "change.json"), "utf-8"),
+      );
+      const commit = disk.projection_commits?.[0];
+      expect(commit).toBeDefined();
+      expect(commit.authority_kind).toBe("recovery");
+      expect(commit.payload.reviewMatrix).toEqual(reviewMatrix);
+      expect(commit.payload.reviewMatrix.recovery_audit).toBeUndefined();
+    });
+
+    it("requires recovery authorization", async () => {
+      await seedProjection(changesDir, changeWithContract());
+      await expect(
+        saveRecoveredContractReviewMatrix({
+          store,
+          change: changeWithContract(),
+          reviewMatrix: {
+            reviewedAt: "2026-05-22T00:00:00Z",
+            rows: [
+              {
+                contractId: "AC1",
+                kind: "acceptance_criterion",
+                status: "pass",
+                evidencePolicy: "test",
+                evidence: "reran tests",
+              },
+            ],
           },
         } as any),
       ).rejects.toThrow(/recovery authorization/);

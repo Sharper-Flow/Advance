@@ -16,6 +16,7 @@ import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import type { Store } from "../storage/store-types";
 import type {
   Change,
+  ContractReviewMatrix,
   DesignConcernDisposition,
   VerificationEvidenceDisposition,
 } from "../types";
@@ -128,13 +129,58 @@ function recoveryAudit() {
   };
 }
 
+function baseContract(
+  overrides: Partial<NonNullable<Change["contract"]>> = {},
+): NonNullable<Change["contract"]> {
+  return {
+    version: 1,
+    rigor: "standard",
+    source: { artifact: "agreement", approvedAt: "2026-05-23T00:00:00.000Z" },
+    items: [
+      {
+        id: "AC1",
+        kind: "acceptance_criterion",
+        text: "Matrix row exists.",
+        sourceArtifact: "agreement",
+        verificationRequired: true,
+        evidencePolicy: "test",
+        status: "approved",
+      },
+    ],
+    amendments: [],
+    ...overrides,
+  } as NonNullable<Change["contract"]>;
+}
+
+function contractReviewMatrix(
+  overrides: Partial<ContractReviewMatrix> = {},
+): ContractReviewMatrix {
+  return {
+    reviewedAt: "2026-05-23T00:00:00.000Z",
+    rows: [
+      {
+        contractId: "AC1",
+        kind: "acceptance_criterion",
+        status: "pass",
+        evidencePolicy: "test",
+        evidence: "Targeted suite passes.",
+      },
+    ],
+    ...overrides,
+  };
+}
+
 function workflowState(dispositions: {
   design?: DesignConcernDisposition[];
   verification?: VerificationEvidenceDisposition[];
+  matrix?: ContractReviewMatrix;
 }) {
   return {
     design_concern_dispositions: dispositions.design ?? [],
     verification_evidence_dispositions: dispositions.verification ?? [],
+    contract: dispositions.matrix
+      ? { reviewMatrix: dispositions.matrix }
+      : undefined,
   };
 }
 
@@ -418,5 +464,204 @@ describe("reconcileRecoveredAcceptanceRemediation", () => {
     if (result.kind === "blocked") {
       expect(result.code).toBe("ACCEPTANCE_RECONCILIATION_CLEAR_FAILED");
     }
+  });
+
+  test("re-delivers a recovered contract review matrix and clears the marker", async () => {
+    const changesDir = await createTempDir("adv-acceptance-reconciliation-");
+    const matrix = contractReviewMatrix({
+      recovery_audit: recoveryAudit(),
+    });
+    const change = baseChange({
+      contract: baseContract({ reviewMatrix: matrix }),
+    });
+    await seedProjection(changesDir, change);
+    mocks.query.mockImplementation((queryName: string, receiptId?: string) => {
+      if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+        return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+      }
+      return Promise.resolve(workflowState({ matrix: contractReviewMatrix() }));
+    });
+
+    const result = await reconcileRecoveredAcceptanceRemediation({
+      store: storeFor(changesDir),
+      changeId: "change-1",
+      handle: mocks.handle,
+    });
+
+    expect(result.kind).toBe("reconciled");
+    if (result.kind === "reconciled") {
+      expect(result.clearedCount).toBe(1);
+      expect(
+        result.change.contract?.reviewMatrix?.recovery_audit,
+      ).toBeUndefined();
+    }
+    expect(mocks.signal).toHaveBeenCalledTimes(1);
+    const signalArgs = mocks.signal.mock.calls[0];
+    expect(
+      (signalArgs[1] as { reviewMatrix: ContractReviewMatrix }).reviewMatrix
+        .recovery_audit,
+    ).toBeUndefined();
+    const disk = await loadChange(changesDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeUndefined();
+    expect(disk.data?.projection_revision).toBe(1);
+  });
+
+  test("retains a newer recovered matrix that arrives while clearing an older reconciliation", async () => {
+    const changesDir = await createTempDir("adv-acceptance-reconciliation-");
+    const older = contractReviewMatrix({ recovery_audit: recoveryAudit() });
+    await seedProjection(
+      changesDir,
+      baseChange({ contract: baseContract({ reviewMatrix: older }) }),
+    );
+    mocks.query.mockImplementation((queryName: string, receiptId?: string) => {
+      if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+        return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+      }
+      return Promise.resolve(workflowState({ matrix: contractReviewMatrix() }));
+    });
+
+    const newer = contractReviewMatrix({
+      reviewedAt: "2026-05-23T00:00:03.000Z",
+      rows: [
+        {
+          contractId: "AC1",
+          kind: "acceptance_criterion",
+          status: "fail",
+          evidencePolicy: "test",
+          evidence: "A newer review found a regression.",
+        },
+      ],
+      recovery_audit: {
+        ...recoveryAudit(),
+        recovered_at: "2026-05-23T00:00:03.000Z",
+      },
+    });
+    mocks.signal.mockImplementationOnce(async () => {
+      await seedProjection(
+        changesDir,
+        baseChange({ contract: baseContract({ reviewMatrix: newer }) }),
+      );
+    });
+
+    const result = await reconcileRecoveredAcceptanceRemediation({
+      store: storeFor(changesDir),
+      changeId: "change-1",
+      handle: mocks.handle,
+    });
+
+    expect(result).toMatchObject({
+      kind: "blocked",
+      code: "ACCEPTANCE_RECONCILIATION_CLEAR_FAILED",
+    });
+    const disk = await loadChange(changesDir, "change-1");
+    expect(disk.data?.contract?.reviewMatrix).toEqual(newer);
+  });
+
+  test("re-delivers dispositions and a contract review matrix together", async () => {
+    const changesDir = await createTempDir("adv-acceptance-reconciliation-");
+    const matrix = contractReviewMatrix({
+      recovery_audit: recoveryAudit(),
+    });
+    const change = baseChange({
+      design_concern_dispositions: [
+        { ...designConcernDisposition(), recovery_audit: recoveryAudit() },
+      ],
+      contract: baseContract({ reviewMatrix: matrix }),
+    });
+    await seedProjection(changesDir, change);
+    mocks.query.mockImplementation((queryName: string, receiptId?: string) => {
+      if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+        return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+      }
+      return Promise.resolve(
+        workflowState({
+          design: [designConcernDisposition()],
+          matrix: contractReviewMatrix(),
+        }),
+      );
+    });
+
+    const result = await reconcileRecoveredAcceptanceRemediation({
+      store: storeFor(changesDir),
+      changeId: "change-1",
+      handle: mocks.handle,
+    });
+
+    expect(result.kind).toBe("reconciled");
+    if (result.kind === "reconciled") {
+      expect(result.clearedCount).toBe(2);
+    }
+    expect(mocks.signal).toHaveBeenCalledTimes(2);
+    const disk = await loadChange(changesDir, "change-1");
+    expect(disk.success).toBe(true);
+    expect(
+      disk.data?.design_concern_dispositions?.[0].recovery_audit,
+    ).toBeUndefined();
+    expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeUndefined();
+  });
+
+  test("strips recovery_audit from the matrix signal payload", async () => {
+    const changesDir = await createTempDir("adv-acceptance-reconciliation-");
+    const matrix = contractReviewMatrix({
+      recovery_audit: recoveryAudit(),
+    });
+    const change = baseChange({
+      contract: baseContract({ reviewMatrix: matrix }),
+    });
+    await seedProjection(changesDir, change);
+    mocks.query.mockImplementation((queryName: string, receiptId?: string) => {
+      if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+        return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+      }
+      return Promise.resolve(workflowState({ matrix: contractReviewMatrix() }));
+    });
+
+    await reconcileRecoveredAcceptanceRemediation({
+      store: storeFor(changesDir),
+      changeId: "change-1",
+      handle: mocks.handle,
+    });
+
+    const payload = mocks.signal.mock.calls[0][1] as {
+      reviewMatrix: ContractReviewMatrix;
+      updatedAt: string;
+      mutationReceiptId: string;
+    };
+    expect(payload.reviewMatrix).toEqual(contractReviewMatrix());
+    expect(payload.reviewMatrix.recovery_audit).toBeUndefined();
+    expect(payload.mutationReceiptId).toMatch(/^mrec_/);
+  });
+
+  test("returns a blocked result when matrix redelivery is not confirmed", async () => {
+    const changesDir = await createTempDir("adv-acceptance-reconciliation-");
+    const matrix = contractReviewMatrix({
+      recovery_audit: recoveryAudit(),
+    });
+    const change = baseChange({
+      contract: baseContract({ reviewMatrix: matrix }),
+    });
+    await seedProjection(changesDir, change);
+    mocks.query.mockImplementation((queryName: string, _receiptId?: string) => {
+      if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+        return Promise.resolve(undefined);
+      }
+      return Promise.resolve(workflowState({ matrix: contractReviewMatrix() }));
+    });
+
+    const result = await reconcileRecoveredAcceptanceRemediation({
+      store: storeFor(changesDir),
+      changeId: "change-1",
+      handle: mocks.handle,
+    });
+
+    expect(result.kind).toBe("blocked");
+    if (result.kind === "blocked") {
+      expect(result.code).toBe("ACCEPTANCE_RECONCILIATION_SIGNAL_FAILED");
+      expect(result.failedItems).toHaveLength(1);
+      expect(result.failedItems[0].family).toBe("contract_review_matrix");
+    }
+    const disk = await loadChange(changesDir, "change-1");
+    expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeDefined();
   });
 });

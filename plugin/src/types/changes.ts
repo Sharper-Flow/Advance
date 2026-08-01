@@ -21,7 +21,7 @@ import {
 } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
-import { GatesSchema, GateIdSchema } from "./gates";
+import { GatesSchema, GateIdSchema, GateRecoveryAuditSchema } from "./gates";
 import { AcceptanceCriteriaSnapshotSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
 import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
@@ -1019,6 +1019,14 @@ export type ContractReviewMatrixRow = z.infer<
 export const ContractReviewMatrixSchema = z.object({
   reviewedAt: z.string(),
   rows: z.array(ContractReviewMatrixRowSchema),
+  /**
+   * Recovery-audit marker stamped by saveRecoveredContractReviewMatrix when a
+   * poisoned/completed-workflow recovery write lands on the disk projection.
+   * Optional for backward compatibility with matrices recorded via the normal
+   * contractReviewMatrixSetSignal path. Stripped before the signal is re-fired
+   * during acceptance reconciliation.
+   */
+  recovery_audit: GateRecoveryAuditSchema.optional(),
 });
 export type ContractReviewMatrix = z.infer<typeof ContractReviewMatrixSchema>;
 

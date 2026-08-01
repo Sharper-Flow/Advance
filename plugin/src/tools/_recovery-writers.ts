@@ -26,6 +26,7 @@ import { join } from "node:path";
 import type { Store } from "../storage/store-types";
 import type {
   Change,
+  ContractReviewMatrix,
   DesignConcernDisposition,
   Gates,
   VerificationEvidenceDisposition,
@@ -514,6 +515,93 @@ export async function saveRecoveredVerificationEvidenceDisposition(input: {
     input.change.id,
     outcome,
   );
+}
+
+/**
+ * Recover a contract review matrix on the disk projection when the owning
+ * workflow is poisoned/completed and cannot accept contractReviewMatrixSetSignal.
+ *
+ * The recovered matrix carries a recovery_audit marker so acceptance
+ * reconciliation can later re-fire the signal into a reachable workflow and
+ * clear the marker. The projection-commit payload stores the clean (marker-free)
+ * matrix so re-delivery does not send recovery metadata into workflow state.
+ */
+export async function saveRecoveredContractReviewMatrix(input: {
+  store: Store;
+  change: Change;
+  authorization: RecoveryWriteAuthorization;
+  reviewMatrix: ContractReviewMatrix;
+}): Promise<Change> {
+  assertRecoveryAuthorization(input.authorization);
+  if (!input.change.contract) {
+    throw new Error(
+      `Cannot recover contract review matrix for ${input.change.id}: no contract is set`,
+    );
+  }
+  const reviewMatrix = input.reviewMatrix;
+  const auditedMatrix = {
+    ...reviewMatrix,
+    recovery_audit: {
+      reason: input.authorization.reason,
+      evidence: input.authorization.evidence,
+      recovered_at: new Date().toISOString(),
+    },
+  };
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: recoveryAuthority(input.authorization),
+    changesDir: input.store.paths.changes,
+    intent: {
+      changeId: input.change.id,
+      mutationKind: "contract_review_matrix_set",
+      payload: (mutationReceiptId) => ({
+        reviewMatrix,
+        updatedAt: new Date().toISOString(),
+        mutationReceiptId,
+      }),
+      sendSignal: async (_h, _payload) => {},
+      refresh: async () => ({}) as never,
+      verifyTemporal: () => true,
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        contract: latest.contract
+          ? { ...latest.contract, reviewMatrix: auditedMatrix }
+          : undefined,
+      }),
+      verifyProjection: (readback) =>
+        contractReviewMatrixPostcondition(
+          readback.contract?.reviewMatrix,
+          reviewMatrix,
+        ),
+    },
+  });
+  return requireRecoveredChange(
+    "contract_review_matrix_set",
+    input.change.id,
+    outcome,
+  );
+}
+
+function contractReviewMatrixPostcondition(
+  actual: ContractReviewMatrix | undefined,
+  expected: ContractReviewMatrix,
+): boolean {
+  if (!actual) return false;
+  if (actual.reviewedAt !== expected.reviewedAt) return false;
+  if (actual.rows.length !== expected.rows.length) return false;
+  const expectedById = new Map(
+    expected.rows.map((row) => [row.contractId, row]),
+  );
+  return actual.rows.every((row) => {
+    const exp = expectedById.get(row.contractId);
+    if (!exp) return false;
+    return (
+      row.kind === exp.kind &&
+      row.status === exp.status &&
+      row.evidencePolicy === exp.evidencePolicy &&
+      row.evidence === exp.evidence &&
+      row.notes === exp.notes
+    );
+  });
 }
 
 /**
