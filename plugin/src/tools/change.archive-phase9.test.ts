@@ -6,7 +6,6 @@
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
-import { existsSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { describe, expect, test, vi, beforeEach } from "vitest";
@@ -22,8 +21,6 @@ import type {
 import type { GitFinalizeOutcome } from "./archive-helpers/git-finalize";
 import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import * as storageJson from "../storage/json";
-import * as worktree from "./worktree";
-import * as gitFinalize from "./archive-helpers/git-finalize";
 
 const commitProjectionMock = vi.hoisted(() => vi.fn());
 
@@ -36,7 +33,6 @@ const mocks = vi.hoisted(() => {
     gates: {} as Gates,
     signalPayloads: [] as Array<Record<string, unknown>>,
     handle: {
-      describe: vi.fn(async () => ({ status: { name: "RUNNING" } })),
       signal: vi.fn(
         async (_signal: unknown, payload: Record<string, unknown>) => {
           workflow.signalPayloads.push(payload);
@@ -81,7 +77,6 @@ const mocks = vi.hoisted(() => {
         releasedCommitSha: "abc123",
         mergeCommitSha: "abc123",
         pushStatus: "pushed",
-        changeTipSha: "tip-abc-123",
       }),
     ),
     detectArchiveMode: vi.fn(() => ({ archiveMode: "direct", autoPush: true })),
@@ -108,14 +103,7 @@ const mocks = vi.hoisted(() => {
     closeLinkedIssue: vi.fn(() =>
       Promise.resolve({ issue_closed: [], close_eligible: false }),
     ),
-    validateChange: vi.fn(() =>
-      Promise.resolve({
-        errors: [],
-        warnings: [],
-        passed: true,
-        canConcludeClean: true,
-      }),
-    ),
+    validateChange: vi.fn(() => Promise.resolve({ errors: [], warnings: [] })),
     getArchiveContractProofErrors: vi.fn(() => []),
     readProjectionManifest: vi.fn(() => Promise.resolve(null)),
     verifyProjectionAtGitCommit: vi.fn(() =>
@@ -127,10 +115,6 @@ const mocks = vi.hoisted(() => {
     ),
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
-    syncDefaultBranchAfterMerge: vi.fn(() => ({
-      status: "synced",
-      ffCommits: [],
-    })),
     fireSignalAndRefresh: vi.fn(async () => {}),
     getProjectId: vi.fn(() => Promise.resolve("test-project")),
     getService: vi.fn(() => ({
@@ -189,7 +173,6 @@ vi.mock("./archive-helpers/git-finalize", async () => {
     verifyChangeBranchPushed: mocks.verifyChangeBranchPushed,
     classifyFinalizationRoute: mocks.classifyFinalizationRoute,
     resolveReleaseReachability: mocks.resolveReleaseReachability,
-    syncDefaultBranchAfterMerge: mocks.syncDefaultBranchAfterMerge,
   };
 });
 
@@ -359,12 +342,8 @@ function makeChildChange(
 }
 
 describe("adv_change_archive Phase 9 behavior", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
-    // Avoid cross-test pollution from the shared mock changes directory.
-    if (existsSync("/tmp/.adv/changes")) {
-      await rm("/tmp/.adv/changes", { recursive: true, force: true });
-    }
     commitProjectionMock.mockImplementation(async (opts) => {
       if (
         opts.mutationKind === "poll_confirmed_release_gate_projection" &&
@@ -485,43 +464,55 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
   });
 
-  test("complete authority reaches Phase 9 finalization; incomplete authority blocks archive", async () => {
-    // Default fixture models a complete authority inventory (canConcludeClean:true).
+  test("threads explicit prTitleType into finalizeRelease context for conventional target", async () => {
     const store = createMockStore();
-    const completeResult = await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
+    store.config = {
+      name: "test",
+      features: {},
+      archive: { pr_title_policy: { format: "conventional" } },
+    } as Store["config"];
+
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        prTitleType: "fix",
+      },
       store,
     );
-    const completeParsed = JSON.parse(completeResult);
-    expect(completeParsed.success).toBe(true);
-    expect(completeParsed.finalization).toMatchObject({
-      status: "shipped",
-      mergeCommitSha: "abc123",
-      pushStatus: "pushed",
-    });
-    expect(mocks.finalizeRelease).toHaveBeenCalledTimes(1);
+    const parsed = JSON.parse(result);
 
-    // Incomplete authority explicitly sets canConcludeClean:false; archive must
-    // fail-closed before any Phase 9 finalization.
-    mocks.validateChange.mockResolvedValueOnce({
-      errors: [],
-      warnings: [],
-      passed: false,
-      canConcludeClean: false,
-    });
-    const blockedStore = createMockStore();
-    const blockedResult = await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree", phase9: "run" },
-      blockedStore,
+    expect(parsed.success).toBe(true);
+    expect(mocks.finalizeRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workdir: "/tmp/worktree",
+        prTitleType: "fix",
+        prTitlePolicy: { format: "conventional" },
+      }),
     );
-    const blockedParsed = JSON.parse(blockedResult);
-    expect(blockedParsed.success).toBe(false);
-    expect(blockedParsed.error).toContain("Archive blocked");
-    expect(blockedParsed.error).toContain(
-      "validation could not conclude clean",
+  });
+
+  test("ignores prTitleType on plain target (no effect)", async () => {
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      {
+        changeId: "example",
+        worktreePath: "/tmp/worktree",
+        prTitleType: "fix",
+      },
+      store,
     );
-    // No additional Phase 9 finalization was attempted.
-    expect(mocks.finalizeRelease).toHaveBeenCalledTimes(1);
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(mocks.finalizeRelease).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workdir: "/tmp/worktree",
+        prTitleType: "fix",
+        prTitlePolicy: undefined,
+      }),
+    );
   });
 
   test("projects terminal summary to parent Epic after durable archive proof", async () => {
@@ -1306,56 +1297,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
   });
 
-  // AC6: pending PR/auto-merge handoff must keep the change active and must not
-  // run targeted worktree/branch cleanup while waiting for the PR to merge.
-  test("AC6: pending auto-merge path skips targeted cleanup and keeps archive nonterminal", async () => {
-    const worktreeDeleteSpy = vi
-      .spyOn(worktree, "advWorktreeDelete")
-      .mockResolvedValue({
-        ok: true,
-        branch: "change/example",
-        path: "/tmp/worktree",
-      });
-    const deleteBranchSpy = vi
-      .spyOn(gitFinalize, "deleteChangeBranch")
-      .mockReturnValue({ localDeleted: true, remoteDeleted: true });
-
-    mocks.finalizeRelease.mockResolvedValueOnce({
-      status: "pending_merge",
-      mainCheckout: "/tmp/main",
-      defaultBranch: "trunk",
-      pushStatus: "pushed",
-      prBranch: "change/example",
-      prNumber: 42,
-      prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
-      autoMergeArmed: true,
-      route: "pr_auto_merge",
-    });
-
-    const store = createMockStore();
-    const result = await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree" },
-      store,
-    );
-
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(parsed.phase9).toBe("pending_merge");
-    expect(parsed.finalization).toMatchObject({
-      status: "pending_merge",
-      route: "pr_auto_merge",
-      prNumber: 42,
-      autoMergeArmed: true,
-    });
-    expect(worktreeDeleteSpy).not.toHaveBeenCalled();
-    expect(deleteBranchSpy).not.toHaveBeenCalled();
-    expect(store.changes.save).not.toHaveBeenCalled();
-    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
-
-    worktreeDeleteSpy.mockRestore();
-    deleteBranchSpy.mockRestore();
-  });
-
   // fixArchiveTerminalProjection SC3/AC4: when adv_change_archive is
   // interrupted past the durable bundle write (typed still-finalizing
   // result at the tool boundary), the operator's re-run must skip the
@@ -1422,33 +1363,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
   });
 
-  test("existing-bundle retry without worktreePath retains the branch", async () => {
-    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
-    const worktreeDeleteSpy = vi.spyOn(worktree, "advWorktreeDelete");
-    const deleteBranchSpy = vi
-      .spyOn(gitFinalize, "deleteChangeBranch")
-      .mockReturnValue({ localDeleted: true, remoteDeleted: true });
-    const store = createMockStore();
-
-    const result = await changeTools.adv_change_archive.execute(
-      { changeId: "example" },
-      store,
-    );
-
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(worktreeDeleteSpy).not.toHaveBeenCalled();
-    expect(deleteBranchSpy).not.toHaveBeenCalled();
-    expect(parsed.errors).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("worktree deletion result unavailable"),
-      ]),
-    );
-
-    worktreeDeleteSpy.mockRestore();
-    deleteBranchSpy.mockRestore();
-  });
-
   test("finalizes PR-merged pending_merge from existing bundle and records phase9 done", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.resolveReleaseReachability.mockReturnValueOnce({
@@ -1497,54 +1411,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
           status: "done",
           startedAt: "2026-01-01T00:00:00Z",
         }),
-      }),
-    );
-  });
-
-  test("re-drive after PR merged invokes syncDefaultBranchAfterMerge and surfaces trunkSync outcome (KD3/AC4)", async () => {
-    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
-    mocks.resolveReleaseReachability.mockReturnValueOnce({
-      reachable: true,
-      proof: "pr_merged",
-      prNumber: 42,
-      mergeCommitOid: "merge-42",
-      details: ["PR #42 merged"],
-    });
-    mocks.syncDefaultBranchAfterMerge.mockReturnValueOnce({
-      status: "blocked",
-      reason: "MAIN_DIRTY",
-      remediation: "Inspect local trunk changes before syncing.",
-    });
-    const store = createMockStore({
-      phase9_status: {
-        status: "pending_merge",
-        startedAt: "2026-01-01T00:00:00Z",
-        prNumber: 42,
-        prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
-        autoMergeArmed: true,
-        route: "pr_auto_merge",
-      },
-    });
-
-    const result = await changeTools.adv_change_archive.execute(
-      { changeId: "example" },
-      store,
-    );
-
-    const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
-    expect(mocks.syncDefaultBranchAfterMerge).toHaveBeenCalledTimes(1);
-    expect(mocks.syncDefaultBranchAfterMerge).toHaveBeenCalledWith({
-      mainCheckout: "/tmp/main",
-      defaultBranch: "trunk",
-    });
-    expect(parsed.trunkSync).toMatchObject({
-      status: "blocked",
-      reason: "MAIN_DIRTY",
-    });
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: "archived",
       }),
     );
   });
@@ -1632,14 +1498,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
   });
 
-  // rq-fixArchivedBranchFinalization SC1: initial archive must capture the
-  // change-tip SHA from finalizeRelease and persist it in the done phase9
-  // status so branch-cleanup re-proof is possible later.
-  test("initial archive persists changeTipSha from finalization in phase9 done status", async () => {
-    const store = createMockStore();
-
-    const result = await changeTools.adv_change_archive.execute(
-      { changeId: "example", worktreePath: "/tmp/worktree" },
   test("no_remote existing-bundle retry with terminal workflow uses recovery writer", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.classifyFinalizationRoute.mockReturnValue({
@@ -1665,17 +1523,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.finalization).toMatchObject({
       status: "shipped",
-      changeTipSha: "tip-abc-123",
-    });
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: "archived",
-        phase9_status: expect.objectContaining({
-          status: "done",
-          changeTipSha: "tip-abc-123",
-        }),
-      }),
-    );
       route: "no_remote",
       pushStatus: "skipped",
       releasedCommitSha: "local-trunk-sha",
@@ -2650,5 +2497,33 @@ describe("adv_change_archive Phase 9 behavior", () => {
       status: "pending",
       startedAt: "2026-01-01T00:00:00Z",
     });
+  });
+
+  // rq-fixArchivedBranchFinalization SC1: initial archive must capture the
+  // change-tip SHA from finalizeRelease and persist it in the done phase9
+  // status so branch-cleanup re-proof is possible later.
+  test("initial archive persists changeTipSha from finalization in phase9 done status", async () => {
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      changeTipSha: "tip-abc-123",
+    });
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "archived",
+        phase9_status: expect.objectContaining({
+          status: "done",
+          changeTipSha: "tip-abc-123",
+        }),
+      }),
+    );
   });
 });

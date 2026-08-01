@@ -58,14 +58,13 @@ import {
   type ReleaseGateProof,
   type DurableReleaseGateProofResult,
 } from "./release-proof";
-import { commitChangeProjection } from "../../storage/change-projection-transaction";
 import { saveChange } from "../../storage/json";
 import { findArchiveBundle, bundleJsonStringify } from "../../archive/archive";
 import { withArchiveProjectionLock } from "../../archive/projection-lock";
 import { sha256HexString } from "../../archive/terminal-summary";
 import { atomicWriteFile } from "../../utils/fs";
 import { readFile } from "fs/promises";
-import { basename, join } from "path";
+import { join } from "path";
 const logger = createLogger("change");
 export function getArchiveTaskPreflightError(change: {
   tasks: {

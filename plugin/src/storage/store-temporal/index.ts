@@ -41,7 +41,6 @@ import {
   mapTemporalChangeStateToChange,
   projectTemporalStateOntoLatest,
   getGuardedChangeHandle,
-  getChangeHandle,
   classifyTemporalReadFailure,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
@@ -60,10 +59,7 @@ import {
   changeStateQuery,
   worktreeAutoManagedSignal,
 } from "../../temporal/messages";
-import {
-  isPoisonedWorkflowForChange,
-  markPoisonedWorkflowForChange,
-} from "./poisoned-workflow-cache";
+import { isPoisonedWorkflowForChange } from "./poisoned-workflow-cache";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { getCurrentSessionId } from "../../utils/session-id";
 import { changeSeedStateFromChange } from "../../temporal/change-state";

@@ -872,7 +872,7 @@ export const checkpointTools = {
           // Clean tree — idempotent, no commit needed
           // Compute touchedFiles from the last commit diff so the
           // completion signal carries the real file set.
-          let cleanTouchedFiles: string[] = [];
+          let cleanTouchedFiles: string[];
           try {
             const { stdout: cleanDiffOutput } = await runGit(
               ["diff", "--name-only", "HEAD~1"],
