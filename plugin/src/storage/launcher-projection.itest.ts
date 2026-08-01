@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
@@ -13,10 +13,6 @@ import {
   gateCompletedSignal,
 } from "../temporal/messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "../temporal/__tests__/with-test-env";
-
-const workflowsPath = fileURLToPath(
-  new URL("../temporal/workflows.ts", import.meta.url),
-);
 
 function makeChangeInput(
   changeId: string,
@@ -54,7 +50,7 @@ describe("launcher projection aggregate (signal-driven)", () => {
         const taskQueue = `launcher-projection-${Date.now()}`;
         const worker = await Worker.create({
           connection: env.nativeConnection,
-          workflowsPath,
+          workflowBundle: await getSharedWorkflowBundle(),
           activities: { writeChangeProjection },
           taskQueue,
         });

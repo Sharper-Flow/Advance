@@ -15,7 +15,7 @@
  * Integration tests run in the `temporal` vitest project (sequential,
  * fileParallelism: false).
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
@@ -29,9 +29,6 @@ import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
 import { requiredAdvSearchAttributes } from "../observability";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 const PROJECT_ID = "proj-session-route-001";
 const SESSION_ID = "sess_RouteItest1";
 
@@ -95,7 +92,7 @@ describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", 
       const sessionQueue = buildSessionTaskQueue(PROJECT_ID, SESSION_ID);
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: sessionQueue,
       });
 
@@ -122,7 +119,7 @@ describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", 
       const projectQueue = buildProjectTaskQueue(PROJECT_ID);
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: projectQueue,
       });
 
@@ -147,7 +144,7 @@ describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", 
       const projectQueue = buildProjectTaskQueue(PROJECT_ID);
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: projectQueue,
       });
 

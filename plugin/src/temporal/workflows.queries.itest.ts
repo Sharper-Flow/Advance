@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 
@@ -22,8 +22,6 @@ import {
   taskCompletedSignal,
 } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
-
-const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
 
 function makeTask(id: string, status: Task["status"] = "pending"): Task {
   return {
@@ -76,7 +74,7 @@ describe("changeWorkflow query handlers", () => {
       const taskQueue = "workflow-query-handlers";
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 

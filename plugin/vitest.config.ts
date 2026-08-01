@@ -23,6 +23,11 @@ export default defineConfig({
           name: "temporal",
           include: ["src/**/*.itest.ts"],
           fileParallelism: false,
+          // Files already run sequentially. Disabling module isolation lets the
+          // module-level shared workflow-bundle cache in with-test-env.ts persist
+          // across files, so the 188 KB workflow graph is webpack-bundled ONCE per
+          // run instead of once per file (was the dominant cost of this project).
+          isolate: false,
           env: {
             ADV_TEST_PROJECT: "temporal",
             ADV_TEST_FILE_PARALLELISM: "false",

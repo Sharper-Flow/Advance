@@ -23,7 +23,7 @@
  *         the adopter so the orphaned workflow becomes queryable.
  *   AC7 — adoption state surfaces in getDiagnostics().
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it, vi } from "vitest";
 import { Worker } from "@temporalio/worker";
 
@@ -35,10 +35,6 @@ import type { OrphanListClient } from "../list-orphan-session-queues";
 import { OrphanQueueAdopter } from "../orphan-queue-adopter";
 import { attachWorkerWithAdoption } from "../../plugin-init";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
-
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 
 const PROJECT_ID = "orphan-adopt-001";
 const SESSION_ID = "sess_AdoptE2E1";
@@ -105,7 +101,7 @@ describe("rq-isolSessionTaskQueue05: orphan session queue adoption (real worker 
       const registerQueue = vi.fn(async (queue: string) => {
         const worker = await Worker.create({
           connection: env.nativeConnection,
-          workflowsPath,
+          workflowBundle: await getSharedWorkflowBundle(),
           taskQueue: queue,
         });
         spawned.push(worker);
@@ -201,7 +197,7 @@ describe("rq-isolSessionTaskQueue05: orphan session queue adoption (real worker 
           registerQueue: vi.fn(async (queue: string) => {
             const w = await Worker.create({
               connection: env.nativeConnection,
-              workflowsPath,
+              workflowBundle: await getSharedWorkflowBundle(),
               taskQueue: queue,
             });
             spawned.push(w);

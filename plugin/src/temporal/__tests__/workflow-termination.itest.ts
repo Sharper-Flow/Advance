@@ -11,7 +11,7 @@
  *
  * Pattern follows `replay-determinism.test.ts` for env + worker setup.
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
@@ -20,10 +20,6 @@ import { archiveRequestedSignal, changeCancelledSignal } from "../messages";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput } from "../contracts";
 import { requiredAdvSearchAttributes } from "../observability";
-
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 
 async function registerAdvSearchAttributes(
   env: TestWorkflowEnvironment,
@@ -89,7 +85,7 @@ describe("changeWorkflow terminal-state exit (terminatechangeworkflowonarchi)", 
 
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "termination-test-archive",
       });
 
@@ -126,7 +122,7 @@ describe("changeWorkflow terminal-state exit (terminatechangeworkflowonarchi)", 
 
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "termination-test-close",
       });
 

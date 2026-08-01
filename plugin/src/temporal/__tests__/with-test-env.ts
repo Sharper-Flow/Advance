@@ -2,6 +2,8 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { TestWorkflowEnvironment } from "@temporalio/testing";
+import { bundleWorkflowCode } from "@temporalio/worker";
+import { fileURLToPath } from "node:url";
 
 /**
  * Shared harness for Temporal test environments.
@@ -231,4 +233,40 @@ export function withTimeSkippingTestWorkflowEnvironment<TResult>(
     fn,
     options,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Shared workflow bundle (test-suite performance)
+//
+// Passing `workflowsPath` to `Worker.create` makes Temporal run a full webpack
+// bundle of the workflow graph for EVERY worker. The itest suite creates ~58
+// workers, so that is ~58 rebuilds of the same 188 KB artifact and it dominated
+// total suite runtime.
+//
+// `bundleWorkflowCode` produces a reusable artifact. Cache it in a module-level
+// promise so the bundle is built at most once per Vitest worker process and
+// every `Worker.create` reuses it.
+// ---------------------------------------------------------------------------
+
+const SHARED_WORKFLOWS_PATH = fileURLToPath(
+  new URL("../workflows.ts", import.meta.url),
+);
+
+let sharedWorkflowBundlePromise:
+  | Promise<{ code: string; sourceMap?: string }>
+  | undefined;
+
+/**
+ * Build (once) and return the shared workflow bundle for integration tests.
+ * Pass the result to `Worker.create({ workflowBundle })` instead of
+ * `Worker.create({ workflowsPath })`.
+ */
+export function getSharedWorkflowBundle(): Promise<{
+  code: string;
+  sourceMap?: string;
+}> {
+  sharedWorkflowBundlePromise ??= bundleWorkflowCode({
+    workflowsPath: SHARED_WORKFLOWS_PATH,
+  });
+  return sharedWorkflowBundlePromise;
 }

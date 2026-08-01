@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
 import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -158,7 +159,7 @@ async function withSignalWorker(
     const taskQueue = `signal-handlers-${name}`;
     const worker = await Worker.create({
       connection: env.nativeConnection,
-      workflowsPath,
+      workflowBundle: await getSharedWorkflowBundle(),
       taskQueue,
     });
 
@@ -184,7 +185,7 @@ async function withArtifactSignalWorker(
     const taskQueue = `signal-handlers-${name}`;
     const worker = await Worker.create({
       connection: env.nativeConnection,
-      workflowsPath,
+      workflowBundle: await getSharedWorkflowBundle(),
       taskQueue,
       activities: {
         inspectArtifactActivity,
@@ -1392,7 +1393,7 @@ describe("changeWorkflow signal handlers", () => {
         let amendmentSent = false;
         const worker = await Worker.create({
           connection: env.nativeConnection,
-          workflowsPath,
+          workflowBundle: await getSharedWorkflowBundle(),
           taskQueue,
           activities: {
             inspectArtifactActivity,
@@ -1535,7 +1536,7 @@ describe("changeWorkflow signal handlers", () => {
         let amendmentSent = false;
         const worker = await Worker.create({
           connection: env.nativeConnection,
-          workflowsPath,
+          workflowBundle: await getSharedWorkflowBundle(),
           taskQueue,
           activities: {
             inspectArtifactActivity,

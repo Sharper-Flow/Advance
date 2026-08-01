@@ -23,16 +23,13 @@
  * because that RPC is not reliably available in the test environment;
  * the structural cap is the source of truth and is unit-tested.
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
 import { getAdvWorkerTuningOptions } from "../worker-tuning";
 
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 const PROJECT_ID = "proj-poller-footprint-001";
 const SESSION_IDS = [
   "sess_PollerSess1",
@@ -63,7 +60,7 @@ describe("AC7: 3-session poller footprint bounded by getAdvWorkerTuningOptions c
           const sessionQueue = buildSessionTaskQueue(PROJECT_ID, sid);
           const sessionWorker = await Worker.create({
             connection: env.nativeConnection,
-            workflowsPath,
+            workflowBundle: await getSharedWorkflowBundle(),
             taskQueue: sessionQueue,
             // AC7: cap options spread here — same shape production uses.
             ...getAdvWorkerTuningOptions(),
