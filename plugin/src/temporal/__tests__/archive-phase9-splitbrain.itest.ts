@@ -49,6 +49,7 @@ import {
   parseToolOutput,
 } from "../../__tests__/setup";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
+import { readFile } from "node:fs/promises";
 
 const CHANGE_ID = "splitbrainPhase9Recovery";
 
@@ -262,6 +263,12 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
             noOp?: boolean;
             error?: string;
             releaseGate?: { status?: string };
+            finalization?: {
+              status?: string;
+              route?: string;
+              pushStatus?: string;
+              releasedCommitSha?: string;
+            };
           }>(output);
           // The re-run itself must succeed (reached the phase9 recording step).
           expect(
@@ -270,16 +277,43 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
           ).toBeUndefined();
           expect(parsed.success).toBe(true);
 
+          // No-remote finalization must retain shipped semantics and the
+          // structural proof shape required by the durable release-gate verifier.
+          expect(parsed.finalization).toMatchObject({
+            status: "shipped",
+            route: "no_remote",
+            pushStatus: "skipped",
+            releasedCommitSha: expect.any(String),
+          });
+
           // The release gate reconciled to done through live Temporal.
           const stateAfter: ChangeWorkflowState =
             await handle.query(getChangeStateQuery);
           expect(stateAfter.gates.release?.status).toBe("done");
+
+          // AC1: the poll-confirmed release gate is durably projected into the
+          // active disk snapshot so the store.gates.get proof observes done
+          // without a second workflow query.
+          const gatesAfter = await store.gates.get(CHANGE_ID);
+          expect(gatesAfter?.release?.status).toBe("done");
+          expect(gatesAfter?.release?.approval_evidence).toBeTruthy();
 
           // AC3 core: phase9_status is durably recorded as done via the live
           // Temporal phase9StatusUpdatedSignal. RED against the unfixed guard
           // (unset phase9_status is skipped), GREEN once recorded.
           expect(stateAfter.phase9_status?.status).toBe("done");
           expect(stateAfter.phase9_status?.completedAt).toBeTruthy();
+
+          // Existing-bundle split-brain: the archive bundle manifest must also
+          // carry the poll-confirmed release gate so the disk projection is
+          // consistent with the Temporal signal path.
+          const bundleRaw = await readFile(
+            join(bundleDir, "change.json"),
+            "utf-8",
+          );
+          const bundleManifest = JSON.parse(bundleRaw) as Change;
+          expect(bundleManifest.gates?.release?.status).toBe("done");
+          expect(bundleManifest.gates?.release?.approval_evidence).toBeTruthy();
         } finally {
           await worker.shutdown();
           await closeStsl();

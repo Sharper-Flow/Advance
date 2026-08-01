@@ -25,6 +25,12 @@ import * as storageJson from "../storage/json";
 import * as worktree from "./worktree";
 import * as gitFinalize from "./archive-helpers/git-finalize";
 
+const commitProjectionMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../storage/change-projection-transaction", () => ({
+  commitChangeProjection: commitProjectionMock,
+}));
+
 const mocks = vi.hoisted(() => {
   const workflow = {
     gates: {} as Gates,
@@ -239,6 +245,9 @@ function createMockStore(
     acceptance: { status: "done" },
     release: { status: options.releaseDone ? "done" : "pending" },
   };
+  if (options.durableReleasePending) {
+    gates.release = { status: "pending" };
+  }
   const change: Change = {
     id: "example",
     title: "Example",
@@ -298,12 +307,7 @@ function createMockStore(
     tasks: {} as Store["tasks"],
     wisdom: {} as Store["wisdom"],
     gates: {
-      get: vi.fn(async () => ({
-        ...mocks.workflow.gates,
-        ...(options.durableReleasePending
-          ? { release: { status: "pending" } }
-          : {}),
-      })),
+      get: vi.fn(async () => mocks.workflow.gates),
     } as unknown as Store["gates"],
     epics: {
       setEntryTerminalSummary: vi.fn(async () => ({
@@ -361,6 +365,27 @@ describe("adv_change_archive Phase 9 behavior", () => {
     if (existsSync("/tmp/.adv/changes")) {
       await rm("/tmp/.adv/changes", { recursive: true, force: true });
     }
+    commitProjectionMock.mockImplementation(async (opts) => {
+      if (
+        opts.mutationKind === "poll_confirmed_release_gate_projection" &&
+        typeof opts.mutateLatest === "function"
+      ) {
+        const mutated = opts.mutateLatest({ gates: {} } as Change);
+        if (mutated.gates?.release) {
+          mocks.workflow.gates = {
+            ...mocks.workflow.gates,
+            release: mutated.gates.release,
+          };
+        }
+      }
+      return {
+        kind: "committed" as const,
+        value: {} as never,
+        revision: 1,
+        readback: {} as never,
+        audit: {} as never,
+      };
+    });
     mocks.workflow.gates = {} as Gates;
     mocks.workflow.signalPayloads = [];
     mocks.workflow.handle.query.mockImplementation(
@@ -702,7 +727,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
   });
 
-  test("blocks archive success when store-backed release proof remains pending", async () => {
+  test("succeeds when the poll-confirmed release gate is persisted to the durable projection", async () => {
     const store = createMockStore({ durableReleasePending: true });
 
     const result = await changeTools.adv_change_archive.execute(
@@ -711,13 +736,13 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(false);
-    expect(parsed.requirement).toBe("rq-releaseProjectionDurability01");
-    expect(parsed.error).toContain("durable release gate proof");
-    expect(parsed.releaseGateStatus).toBe("pending");
+    expect(parsed.success).toBe(true);
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
     expect(store.gates.get).toHaveBeenCalledWith("example");
-    expect(store.changes.save).not.toHaveBeenCalled();
-    expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+    expect(store.changes.save).toHaveBeenCalled();
   });
 
   test("accepts audited disk release recovery when store-backed proof is stale", async () => {
@@ -1615,6 +1640,24 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree" },
+  test("no_remote existing-bundle retry with terminal workflow uses recovery writer", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "no_remote",
+      reason: "origin remote not configured",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "local_merge",
+      releasedCommitSha: "local-trunk-sha",
+    });
+    mocks.workflow.handle.describe = vi.fn(async () => ({
+      status: { name: "COMPLETED" },
+    }));
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
       store,
     );
 
@@ -1633,6 +1676,84 @@ describe("adv_change_archive Phase 9 behavior", () => {
         }),
       }),
     );
+      route: "no_remote",
+      pushStatus: "skipped",
+      releasedCommitSha: "local-trunk-sha",
+    });
+    // Completed workflow must NOT be signaled; recovery writer reconciles the
+    // release gate and phase9_status is skipped.
+    expect(parsed._recoveryMutation).toBe(true);
+    expect(mocks.saveRecoveredGateCompletion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gateId: "release",
+        authorization: expect.objectContaining({
+          reason: "completed_workflow_release_gate_recovery",
+        }),
+      }),
+    );
+    const phase9Signals = mocks.workflow.signalPayloads.filter(
+      (p) => p.phase9_status !== undefined,
+    );
+    expect(phase9Signals).toHaveLength(0);
+  });
+
+  test("no_remote existing-bundle retry with healthy workflow uses poll-confirmed projection writer", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "no_remote",
+      reason: "origin remote not configured",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "local_merge",
+      releasedCommitSha: "local-trunk-sha",
+    });
+    mocks.workflow.handle.describe = vi.fn(async () => ({
+      status: { name: "RUNNING" },
+    }));
+    const pendingGate = { status: "pending" };
+    mocks.workflow.handle.query.mockImplementation(
+      async (_query: unknown, gateId?: keyof Gates) => {
+        if (gateId === "release") {
+          // First call: pre-signal check; second call: poll confirmation.
+          const current = mocks.workflow.gates.release;
+          return current ?? pendingGate;
+        }
+        return mocks.workflow.gates;
+      },
+    );
+    const store = createMockStore({ status: "archived" });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      route: "no_remote",
+      pushStatus: "skipped",
+    });
+    // Healthy workflow path must NOT use the recovery writer.
+    expect(parsed._recoveryMutation).toBeUndefined();
+    expect(mocks.saveRecoveredGateCompletion).not.toHaveBeenCalled();
+    // Poll-confirmed projection writer commits the release gate to the active
+    // projection before the second durable proof and phase9 recording.
+    expect(commitProjectionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutationKind: "poll_confirmed_release_gate_projection",
+      }),
+    );
+    // phase9_status is recorded via a live Temporal signal.
+    const phase9Signals = mocks.workflow.signalPayloads.filter(
+      (p) => p.phase9_status !== undefined,
+    );
+    expect(phase9Signals).toHaveLength(1);
+    expect(phase9Signals[0]).toMatchObject({
+      phase9_status: expect.objectContaining({ status: "done" }),
+    });
   });
 
   test("re-running after PR-merged pending_merge recovery remains idempotent", async () => {
@@ -2037,13 +2158,14 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
   });
 
-  // rq-releaseProjectionDurability01 AC2: release completion is recorded only
-  // after structural Phase 9 evidence exists. When the durable proof check
-  // fails (store-backed gate still shows pending), archive must NOT proceed
-  // to status transition.
-  test("blocks archive status transition when durable release proof fails after signal", async () => {
-    // Signal succeeds, but the store-backed gate read returns pending
-    // (simulating a race where the projection hasn't landed yet).
+  // rq-releaseProjectionDurability01 AC2: the poll-confirmed release gate is
+  // written to the durable projection before the second store-backed proof, so
+  // a transiently-pending store read no longer blocks the archive status
+  // transition.
+  test("proceeds to archive status transition when the release gate is durably projected", async () => {
+    // Signal succeeds, but the store-backed gate read still returns pending
+    // (simulating a stale cache read). The writer's disk projection keeps the
+    // durable proof authoritative.
     const store = createMockStore({ durableReleasePending: true });
 
     const result = await changeTools.adv_change_archive.execute(
@@ -2052,11 +2174,13 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(false);
-    expect(parsed.requirement).toBe("rq-releaseProjectionDurability01");
-    expect(parsed.error).toContain("durable release gate proof");
-    // Archive status must NOT be saved when proof fails
-    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(parsed.success).toBe(true);
+    expect(parsed.releaseGate).toMatchObject({
+      status: "done",
+      completed_by: "adv-archive",
+    });
+    // Archive status IS saved once the durable projection proves release done.
+    expect(store.changes.save).toHaveBeenCalled();
   });
 
   test("AC1: archives a shipped change when store and disk release projections remain pending", async () => {
