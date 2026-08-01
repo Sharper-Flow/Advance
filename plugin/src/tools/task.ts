@@ -21,7 +21,9 @@ import {
   type TaskContractRefs,
   type TddReclassification,
   type Task,
+  type TaskAcceptedPartial,
   type TaskEvidencePlan,
+  type WisdomDraft,
 } from "../types";
 import {
   resolveTaskEvidence,
@@ -114,9 +116,9 @@ function serializeContractCoverage(
 
 /**
  * Build a synthetic change for contract-coverage projection that reflects
- * the caller-supplied contract_refs update. The projection is computed
- * after the change would be applied so callers see coverage as it would
- * land, not the stale pre-update snapshot.
+ * the persisted task's contract_refs. The projection is computed from the
+ * authoritative read-back task so coverage cannot be fabricated from a
+ * caller-only overlay.
  */
 function applyContractRefsToChangeProjection(
   change: Change,
@@ -183,6 +185,104 @@ function maybeClearBlockedDelegationRecovery(
     inline_diagnosis_evidence: true,
     last_updated_at: now,
   });
+}
+
+/**
+ * Build the accepted non-transition partial for status-transition signals.
+ * Only fields that are explicitly accepted on the live update route are
+ * included; status-owned fields and evidence-plan repair stay in the signal
+ * payload's transition-specific shape.
+ */
+function buildTaskAcceptedPartial(args: {
+  notes?: string;
+  implementation_summary?: string;
+  error_recovery?: ErrorRecovery;
+  contract_refs?: TaskContractRefs;
+  delegation_recovery?: DelegationRecovery;
+  wisdom_drafts?: WisdomDraft[];
+}): TaskAcceptedPartial | undefined {
+  const partial: TaskAcceptedPartial = {};
+  if (args.notes !== undefined) partial.notes = args.notes;
+  if (args.implementation_summary !== undefined) {
+    partial.implementation_summary = args.implementation_summary;
+  }
+  if (args.error_recovery !== undefined) {
+    partial.error_recovery = args.error_recovery;
+  }
+  if (args.contract_refs !== undefined) {
+    partial.contract_refs = args.contract_refs;
+  }
+  if (args.delegation_recovery !== undefined) {
+    partial.delegation_recovery = args.delegation_recovery;
+  }
+  if (args.wisdom_drafts !== undefined) {
+    partial.wisdom_drafts = args.wisdom_drafts;
+  }
+  return Object.keys(partial).length > 0 ? partial : undefined;
+}
+
+/**
+ * Verify that every rich field accepted by a status-transition update is
+ * present in the authoritative read-back task. A missing field means the
+ * success response would lie about what persisted (AC3).
+ */
+function detectTransitionPersistenceDisagreement(
+  args: {
+    status: "pending" | "in_progress" | "blocked" | "done" | "cancelled";
+    notes?: string;
+    implementation_summary?: string;
+    error_recovery?: ErrorRecovery;
+    contract_refs?: TaskContractRefs;
+    delegation_recovery?: DelegationRecovery;
+  },
+  task: Task | null,
+): { code: string; field: string; message: string } | undefined {
+  if (!task) {
+    return {
+      code: "TASK_PERSISTENCE_DISAGREEMENT",
+      field: "task",
+      message:
+        "Task update succeeded but the authoritative read-back returned no task.",
+    };
+  }
+  const checks: Array<{ field: string; present: () => boolean }> = [];
+  if (args.notes !== undefined) {
+    checks.push({ field: "notes", present: () => task.notes !== undefined });
+  }
+  if (args.implementation_summary !== undefined) {
+    checks.push({
+      field: "implementation_summary",
+      present: () => task.implementation_summary !== undefined,
+    });
+  }
+  if (args.error_recovery !== undefined) {
+    checks.push({
+      field: "error_recovery",
+      present: () => task.error_recovery !== undefined,
+    });
+  }
+  if (args.contract_refs !== undefined) {
+    checks.push({
+      field: "contract_refs",
+      present: () => task.contract_refs !== undefined,
+    });
+  }
+  if (args.delegation_recovery !== undefined) {
+    checks.push({
+      field: "delegation_recovery",
+      present: () => task.delegation_recovery !== undefined,
+    });
+  }
+  for (const { field, present } of checks) {
+    if (!present()) {
+      return {
+        code: "TASK_PERSISTENCE_DISAGREEMENT",
+        field,
+        message: `Task update accepted ${field} but the authoritative read-back did not return it persisted.`,
+      };
+    }
+  }
+  return undefined;
 }
 
 function makeTaskId(): string {
@@ -1101,6 +1201,13 @@ export const taskTools = {
                         : ("initial" as const),
                     }
                   : undefined;
+              const acceptedPartial = buildTaskAcceptedPartial({
+                notes: args.notes,
+                implementation_summary: args.implementation_summary,
+                error_recovery: args.error_recovery,
+                contract_refs: args.contract_refs,
+                delegation_recovery: clearedDelegationRecovery,
+              });
               await fireSignalAndRefresh(
                 handle,
                 activeStore,
@@ -1111,6 +1218,7 @@ export const taskTools = {
                   sessionId: "agent",
                   assignedAt: now,
                   ...(applyCycle && { applyCycle }),
+                  ...(acceptedPartial && { acceptedPartial }),
                 },
               );
             } else if (args.status === "blocked") {
@@ -1128,6 +1236,16 @@ export const taskTools = {
                     now,
                   )
                 : null;
+              const acceptedPartial = buildTaskAcceptedPartial({
+                notes: args.notes,
+                implementation_summary: args.implementation_summary,
+                error_recovery: args.error_recovery,
+                contract_refs: args.contract_refs,
+                delegation_recovery: clearedDelegationRecovery,
+                wisdom_drafts: blockedDraft
+                  ? appendDraft(currentTask?.wisdom_drafts, blockedDraft)
+                  : undefined,
+              });
               await fireSignalAndRefresh(
                 handle,
                 activeStore,
@@ -1144,6 +1262,7 @@ export const taskTools = {
                       blockedDraft,
                     ),
                   }),
+                  ...(acceptedPartial && { acceptedPartial }),
                 },
               );
             } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
@@ -1154,6 +1273,13 @@ export const taskTools = {
                 existingTaskReports.length > 0
                   ? null
                   : extractStructuredOutput(combinedText);
+              const acceptedPartial = buildTaskAcceptedPartial({
+                notes: args.notes,
+                implementation_summary: args.implementation_summary,
+                error_recovery: args.error_recovery,
+                contract_refs: args.contract_refs,
+                delegation_recovery: clearedDelegationRecovery,
+              });
               await fireSignalAndRefresh(
                 handle,
                 activeStore,
@@ -1174,6 +1300,7 @@ export const taskTools = {
                   ...(structuredOutput && {
                     structured_output: structuredOutput,
                   }),
+                  ...(acceptedPartial && { acceptedPartial }),
                 },
               );
             } else {
@@ -1270,6 +1397,24 @@ export const taskTools = {
           }
         }
 
+        const disagreement =
+          (args.status === "in_progress" ||
+            args.status === "blocked" ||
+            args.status === "done") &&
+          !recoveredViaPoisoned
+            ? detectTransitionPersistenceDisagreement(args, task)
+            : undefined;
+        if (disagreement) {
+          return formatToolOutput({
+            error: disagreement.message,
+            code: disagreement.code,
+            field: disagreement.field,
+            changeId,
+            taskId: args.taskId,
+            task,
+          });
+        }
+
         const output: Record<string, unknown> = {
           success: true,
           task,
@@ -1284,13 +1429,14 @@ export const taskTools = {
         // Surface cancellation-aware implements/verifies coverage for both
         // repair and routine updates; tests and downstream prompts can rely
         // on this shape being present whenever a successful task update is
-        // returned. Project against the post-update change so caller-supplied
-        // contract_refs are reflected in the projection.
-        if (changeForGuard) {
+        // returned. Derive coverage from the persisted task's contract_refs,
+        // never from a caller-only overlay, so success cannot hide a dropped
+        // contract reference.
+        if (changeForGuard && task) {
           const projectionChange = applyContractRefsToChangeProjection(
             changeForGuard,
             args.taskId,
-            args.contract_refs,
+            task.contract_refs,
           );
           output.contractCoverage = serializeContractCoverage(
             projectContractCoverage(projectionChange),

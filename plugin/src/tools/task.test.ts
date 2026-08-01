@@ -822,6 +822,7 @@ describe("task tools — signal/query adapters", () => {
       mocks.querySignal.mockResolvedValue({
         id: "tk-abc",
         status: "blocked",
+        notes: "Blocked reason",
       });
 
       const result = await taskTools.adv_task_update.execute(
@@ -837,6 +838,7 @@ describe("task tools — signal/query adapters", () => {
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-abc",
         reason: "Blocked reason",
+        acceptedPartial: { notes: "Blocked reason" },
       });
     });
 
@@ -847,7 +849,24 @@ describe("task tools — signal/query adapters", () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue({
         id: "tk-blocked",
-        status: "pending",
+        status: "blocked",
+        notes: "Hit a wall",
+        error_recovery: {
+          last_error: "TypeError",
+          retry_count: 1,
+          max_retries: 3,
+          error_class: "SEMANTIC",
+          attempts: [
+            {
+              attempt_number: 1,
+              error: "TypeError",
+              diagnosis: "missing null check",
+              fix_tried: "added guard",
+              outcome: "failed",
+              attempted_at: "2026-07-21T17:00:00.000Z",
+            },
+          ],
+        },
       });
 
       const result = await taskTools.adv_task_update.execute(
@@ -883,6 +902,13 @@ describe("task tools — signal/query adapters", () => {
       expect(signalCall[4]).toMatchObject({
         taskId: "tk-blocked",
         reason: "Hit a wall",
+        acceptedPartial: {
+          notes: "Hit a wall",
+          error_recovery: {
+            last_error: "TypeError",
+            error_class: "SEMANTIC",
+          },
+        },
         wisdom_drafts: [
           expect.objectContaining({
             suggested_type: "failure",
@@ -897,7 +923,24 @@ describe("task tools — signal/query adapters", () => {
       const store = createMockStore();
       mocks.querySignal.mockResolvedValue({
         id: "tk-blocked2",
-        status: "pending",
+        status: "blocked",
+        notes: "External dep missing",
+        error_recovery: {
+          last_error: "ServiceUnavailable",
+          retry_count: 1,
+          max_retries: 3,
+          error_class: "TRANSIENT",
+          attempts: [
+            {
+              attempt_number: 1,
+              error: "503",
+              diagnosis: "service down",
+              fix_tried: "retry",
+              outcome: "failed",
+              attempted_at: "2026-07-21T17:00:00.000Z",
+            },
+          ],
+        },
       });
 
       const result = await taskTools.adv_task_update.execute(
@@ -930,6 +973,11 @@ describe("task tools — signal/query adapters", () => {
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
       // No wisdom_drafts field — TRANSIENT does not trigger draft creation
       expect(signalCall[4].wisdom_drafts).toBeUndefined();
+      expect(signalCall[4].acceptedPartial).toMatchObject({
+        notes: "External dep missing",
+        error_recovery: { error_class: "TRANSIENT" },
+      });
+      expect(signalCall[4].acceptedPartial.wisdom_drafts).toBeUndefined();
     });
 
     test("routes other partials to taskUpdatedSignal", async () => {
@@ -952,6 +1000,240 @@ describe("task tools — signal/query adapters", () => {
         taskId: "tk-abc",
         partial: { status: "pending", notes: "Updated" },
       });
+    });
+
+    test("in_progress persists acceptedPartial fields and derives coverage from read-back (AC1/AC3)", async () => {
+      const errorRecovery = {
+        last_error: "TypeError",
+        retry_count: 1,
+        max_retries: 3,
+        error_class: "SEMANTIC",
+        attempts: [
+          {
+            attempt_number: 1,
+            error: "TypeError",
+            diagnosis: "missing null check",
+            fix_tried: "added guard",
+            outcome: "failed",
+            attempted_at: "2026-07-21T17:00:00.000Z",
+          },
+        ],
+      };
+      const contractRefs = { implements: ["AC1"] };
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            },
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+        notes: "Notes",
+        implementation_summary: "Summary",
+        error_recovery: errorRecovery,
+        contract_refs: contractRefs,
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+          notes: "Notes",
+          implementation_summary: "Summary",
+          error_recovery: errorRecovery,
+          contract_refs: contractRefs,
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toBeUndefined();
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.notes).toBe("Notes");
+      expect(parsed.task.implementation_summary).toBe("Summary");
+      expect(parsed.task.error_recovery).toEqual(errorRecovery);
+      expect(parsed.task.contract_refs).toEqual(contractRefs);
+      expect(parsed.contractCoverage.uncoveredAcceptanceCriteria).toHaveLength(
+        0,
+      );
+      expect(parsed.contractCoverage.taskCoverage).toContainEqual(
+        expect.objectContaining({ taskId: "tk-abc", implements: ["AC1"] }),
+      );
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4]).toMatchObject({
+        taskId: "tk-abc",
+        acceptedPartial: {
+          notes: "Notes",
+          implementation_summary: "Summary",
+          error_recovery: errorRecovery,
+          contract_refs: contractRefs,
+        },
+      });
+    });
+
+    test("blocked persists full error_recovery and contract_refs (AC2/AC3)", async () => {
+      const errorRecovery = {
+        last_error: "ServiceUnavailable",
+        retry_count: 1,
+        max_retries: 3,
+        error_class: "TRANSIENT",
+        attempts: [
+          {
+            attempt_number: 1,
+            error: "503",
+            diagnosis: "service down",
+            fix_tried: "retry",
+            outcome: "failed",
+            attempted_at: "2026-07-21T17:00:00.000Z",
+          },
+        ],
+      };
+      const contractRefs = { implements: ["AC1"] };
+      const store = createMockStore({
+        change: {
+          id: "test-change",
+          title: "Test Change",
+          status: "draft",
+          created_at: "2026-01-01T00:00:00Z",
+          tasks: [
+            {
+              id: "tk-abc",
+              title: "Task",
+              status: "pending",
+              priority: 0,
+              created_at: "2026-01-01T00:00:00Z",
+            },
+          ],
+          deltas: {},
+          wisdom: [],
+          gates: {
+            proposal: { status: "done" },
+            discovery: { status: "done" },
+            design: { status: "done" },
+            planning: { status: "pending" },
+            execution: { status: "pending" },
+            acceptance: { status: "pending" },
+            release: { status: "pending" },
+          },
+          contract: {
+            version: 1,
+            rigor: "standard",
+            source: {
+              artifact: "agreement",
+              approvedAt: "2026-01-01T00:00:00Z",
+            },
+            items: [
+              {
+                id: "AC1",
+                kind: "acceptance_criterion",
+                text: "Coverage is projected",
+                sourceArtifact: "agreement",
+                verificationRequired: true,
+                evidencePolicy: "test",
+                status: "approved",
+              },
+            ],
+            amendments: [],
+          },
+        } as import("../types").Change,
+      });
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "blocked",
+        notes: "Blocked",
+        error_recovery: errorRecovery,
+        contract_refs: contractRefs,
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "blocked",
+          notes: "Blocked",
+          error_recovery: errorRecovery,
+          contract_refs: contractRefs,
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.task.error_recovery).toEqual(errorRecovery);
+      expect(parsed.task.contract_refs).toEqual(contractRefs);
+      const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
+      expect(signalCall[4].acceptedPartial.error_recovery).toEqual(
+        errorRecovery,
+      );
+      expect(signalCall[4].acceptedPartial.contract_refs).toEqual(contractRefs);
+      expect(signalCall[4].attempts).toEqual(errorRecovery.attempts);
+    });
+
+    test("returns TASK_PERSISTENCE_DISAGREEMENT when accepted field is absent after refresh", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+          notes: "Should persist",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain(
+        "Task update accepted notes but the authoritative read-back did not return it persisted.",
+      );
+      expect(parsed.code).toBe("TASK_PERSISTENCE_DISAGREEMENT");
+      expect(parsed.field).toBe("notes");
+      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
     });
 
     test("AC5: SEMANTIC error_recovery on taskUpdatedSignal clears blocked delegation_recovery", async () => {
@@ -1720,6 +2002,7 @@ describe("task tools — signal/query adapters", () => {
         id: "tk-abc",
         status: "pending",
         type: "research",
+        contract_refs: { implements: ["AC1"] },
       });
 
       const result = await taskTools.adv_task_update.execute(
