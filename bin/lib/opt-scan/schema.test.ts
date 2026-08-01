@@ -66,10 +66,13 @@ describe("opt-scan schema", () => {
     expect(validateOptimizationEvidence(evidence).ok).toBe(true);
   });
 
-  test("validateOptimizationEvidence rejects invalid role or null line", () => {
+  test("validateOptimizationEvidence rejects invalid roles and source locations", () => {
     expect(validateOptimizationEvidence({ role: "bogus", file: "a", line: 1 }).ok).toBe(false);
     expect(validateOptimizationEvidence({ role: "trigger", file: "", line: 1 }).ok).toBe(false);
     expect(validateOptimizationEvidence({ role: "trigger", file: "a", line: "x" }).ok).toBe(false);
+    expect(validateOptimizationEvidence({ role: "trigger", file: "a", line: 0 }).ok).toBe(false);
+    expect(validateOptimizationEvidence({ role: "trigger", file: "a", line: 1.5 }).ok).toBe(false);
+    expect(validateOptimizationEvidence({ role: "trigger", file: "a", line: 1, column: 0 }).ok).toBe(false);
   });
 
   test("validateExpectedCostShape enforces family and pattern", () => {
@@ -121,6 +124,33 @@ describe("opt-scan schema", () => {
     const result = validateOptimizationCandidate(candidate);
     expect(result.ok).toBe(true);
     expect(result.value?.signal_class).toBe("static");
+  });
+
+  test("validateOptimizationCandidate rejects a candidate without source evidence", () => {
+    const candidate: OptimizationCandidate = {
+      id: "OPT-NO-EVIDENCE",
+      detector_id: "repeated_boundary_work",
+      category: "optimization-candidate",
+      signal_class: "static",
+      severity: "minor",
+      confidence: "medium",
+      detection_method: "regex",
+      description: "Potential repeated boundary work.",
+      evidence: [],
+      expected_cost_shape: {
+        family: "repeated_boundary_work",
+        pattern: "boundary",
+        description: "Repeated boundary calls.",
+      },
+      false_positive_caveat: "May be intentional.",
+      verification_needed: "Profile before changing.",
+    };
+
+    const result = validateOptimizationCandidate(candidate);
+    expect(result.ok).toBe(false);
+    expect(result.issues).toContain(
+      "candidate.evidence must contain at least one source record",
+    );
   });
 
   test("validateOptimizationCandidate rejects static candidate with measured evidence", () => {

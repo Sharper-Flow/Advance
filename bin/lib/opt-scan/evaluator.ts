@@ -432,7 +432,11 @@ function isWorkerStartupPressure(
 }
 
 const COMPUTE_NAMES_RE = /\b(hash|digest|compute|derive|calculate|build|serialize)\b/i;
-const CACHE_INVALIDATION_RE = /\b(lru|ttl|expires?|invalid|invalidate|refresh|version|evict|eviction|stale)\b/i;
+// Require a direct cache invalidation operation. Metadata such as `version`
+// or a standalone TTL declaration does not prove that a cache is ever
+// invalidated, so it is deliberately insufficient for an advisory candidate.
+const CACHE_INVALIDATION_RE =
+  /\b(?:cache|memo|lru)\s*(?:\?\.)?\.\s*(?:clear|delete|invalidate|evict|refresh)\s*\(/i;
 
 function findCacheIdentityEvidence(
   funcBody: string,
