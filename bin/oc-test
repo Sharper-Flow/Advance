@@ -8,12 +8,18 @@ reaper_bin="$repo_root/bin/lib/oc-test-reaper.bash"
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: bin/oc-test <targeted|smoke|full> [-- <test args...>]
+Usage: bin/oc-test <targeted|smoke|full|integration> [-- <test args...>]
 
 Tiers:
-  targeted  Run Vitest with optional file/test filters.
-  smoke     Run repo checks plus the ADV test-tool/subagent smoke slice.
-  full      Run the plugin's full Vitest suite.
+  targeted     Run Vitest with optional file/test filters.
+  smoke        Run repo checks plus the ADV test-tool/subagent smoke slice.
+  full         Run the unit Vitest project (fast, parallel). Excludes the
+               Temporal integration project by default -- add --integration
+               (or run the `integration` tier) to include it.
+  integration  Run only the Temporal integration project (*.itest.ts).
+
+Flags:
+  --integration   With `full`, also run the Temporal integration project.
 
 Environment:
   OC_TEST_REAPER_DISABLE=1   Skip the stale temporal-test-server sweep.
@@ -72,8 +78,24 @@ case "$tier" in
     run_with_optional_gate smoke bash -lc 'pnpm --dir "$1" run check && pnpm --dir "$1" exec vitest run src/tools/test.test.ts src/tools/subagent-report.test.ts' bash "$plugin_dir"
     ;;
   full)
+    # Default `full` runs the unit project only. The Temporal integration
+    # project spins real test servers and is an order of magnitude slower per
+    # test, so it is opt-in rather than a tax on every full run.
+    want_integration=0
+    if [[ "${1:-}" == "--integration" ]]; then
+      want_integration=1
+      shift
+    fi
     [[ $# -eq 0 ]] || usage
-    run_with_optional_gate full pnpm --dir "$plugin_dir" test
+    if ((want_integration)); then
+      run_with_optional_gate full pnpm --dir "$plugin_dir" test
+    else
+      run_with_optional_gate full pnpm --dir "$plugin_dir" exec vitest run --project unit
+    fi
+    ;;
+  integration)
+    [[ $# -eq 0 ]] || usage
+    run_with_optional_gate full pnpm --dir "$plugin_dir" exec vitest run --project temporal
     ;;
   *)
     usage

@@ -99,7 +99,9 @@ describe("tool-registry re-exports — parity preserved", () => {
     expect(reg.PUBLIC_TOOL_ENTRIES).toBeDefined();
     expect(Array.isArray(reg.PUBLIC_TOOL_ENTRIES)).toBe(true);
     expect(reg.PUBLIC_TOOL_ENTRIES.length).toBeGreaterThan(0);
-  });
+    // tool-registry pulls a heavy module graph (~1.5s cold import); the
+    // throttled full run can push the first import past the 5s default.
+  }, 20000);
 
   it("collectPublicToolEntries identity is the same function in both modules", async () => {
     const cat = await import("./tool-catalog-entries");

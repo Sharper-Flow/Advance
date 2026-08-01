@@ -98,7 +98,7 @@
       "grants": ["lgrep_get_file_outline=true", "lgrep_search_text=true"]
     },
     "adv-tron": {
-      "bytes": 11680,
+      "bytes": 13155,
       "mcpCapable": true,
       "grants": [
         "context7_*=false",
