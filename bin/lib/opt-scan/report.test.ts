@@ -13,7 +13,7 @@ const result: OptScanResult = {
       id: "repeated_boundary_work",
       label: "Repeated boundary work",
       state: "skipped",
-      reason: "structural foundation: detector implementation pending",
+      reason: "fixture-only sample: simulated skipped detector",
       important: true,
     },
   ],
@@ -35,7 +35,7 @@ describe("renderReport", () => {
     expect(output).toContain("Optimization Scan");
     expect(output).toContain("Candidates: 0");
     expect(output).toContain("repeated_boundary_work");
-    expect(output).toContain("structural foundation: detector implementation pending");
+    expect(output).toContain("fixture-only sample: simulated skipped detector");
   });
 
   test("renders candidate evidence, recommendation, and verification in text", () => {
