@@ -88,6 +88,34 @@ jobs:
         run: pnpm test
         working-directory: plugin
 
+      # The bin CLI suite contains live-Temporal assertions — for example
+      # "adv epic list --json" asserts source == "temporal", live == true and
+      # stale == false. Those need a real server on the ADV defaults
+      # (127.0.0.1:7233, namespace "default"; see plugin/src/temporal/contracts.ts).
+      #
+      # No step ever started one. The suite passed anyway because the vitest
+      # step above leaks temporal-test-server processes that the bin tests
+      # silently connected to — the same leak bin/lib/oc-test-reaper.bash
+      # exists to clean up. Once the vitest suite stopped erroring and shut
+      # down cleanly, the leak disappeared and these tests began failing.
+      #
+      # Start the server explicitly so the dependency is declared rather than
+      # inherited from another step's garbage. Deliberately placed AFTER the
+      # vitest step so it cannot contend with the SDK's own ephemeral test
+      # servers.
+      - name: Start Temporal dev server for bin CLI tests
+        run: |
+          temporal server start-dev --headless --ip 127.0.0.1 --port 7233 &
+          for i in $(seq 1 60); do
+            if temporal operator namespace describe default >/dev/null 2>&1; then
+              echo "Temporal dev server ready after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Temporal dev server did not become ready within 60s" >&2
+          exit 1
+
       - name: Test bin CLI (Bun)
         run: bun test bin/
         working-directory: .
