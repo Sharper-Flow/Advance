@@ -97,6 +97,12 @@ export interface MutationIntent<T> {
    */
   mutateLatestProjection: (latest: Change) => Change;
   /**
+   * Optional recovery-only projection mutation. When provided, executeRecoveryPath
+   * uses this instead of `mutateLatestProjection` so callers can stamp recovery
+   * audit markers that must never be written by the healthy Temporal signal path.
+   */
+  recoveryMutateLatestProjection?: (latest: Change) => Change;
+  /**
    * Verify the intended postcondition against the committed projection readback.
    */
   verifyProjection: (readback: Change) => ProjectionCommitVerifyResult;
@@ -560,7 +566,8 @@ async function executeRecoveryPath<T>({
       evidence: authority.evidence.evidence,
     },
     mutationKind: intent.mutationKind,
-    mutateLatest: intent.mutateLatestProjection,
+    mutateLatest:
+      intent.recoveryMutateLatestProjection ?? intent.mutateLatestProjection,
     verify: ({ readback }) => intent.verifyProjection(readback),
     ...(payload !== undefined ? { payload } : {}),
   });

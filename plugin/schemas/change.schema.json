@@ -439,6 +439,25 @@
         },
         "reviewMatrix": {
           "properties": {
+            "recovery_audit": {
+              "properties": {
+                "evidence": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "recovered_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "reason",
+                "evidence",
+                "recovered_at"
+              ],
+              "type": "object"
+            },
             "reviewedAt": {
               "type": "string"
             },

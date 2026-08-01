@@ -2,21 +2,22 @@
  * Acceptance remediation reconciliation.
  *
  * Before a normal acceptance gate completion signal is fired, any recovered
- * (disk-only) design-concern or verification-evidence dispositions must be
- * re-delivered to the reachable workflow so acceptance readiness is evaluated
- * from reconciled state. Confirmed re-deliveries clear their recovery markers;
- * failures return a single typed actionable reconciliation block instead of
- * allowing stale blockers to be replayed.
+ * (disk-only) design-concern dispositions, verification-evidence dispositions,
+ * or contract review matrices must be re-delivered to the reachable workflow so
+ * acceptance readiness is evaluated from reconciled state. Confirmed re-deliveries
+ * clear their recovery markers; failures return a single typed actionable
+ * reconciliation block instead of allowing stale blockers to be replayed.
  */
 
 import { loadChange } from "../storage/change-projection-reader";
 import { commitChangeProjection } from "../storage/change-projection-transaction";
-import type { Change } from "../types";
+import type { Change, ContractReviewMatrix } from "../types";
 import type { GateRecoveryAudit } from "../types/gates";
 import type { ProjectionCommitOutcome } from "../storage/change-projection-transaction";
 import type { Store } from "../storage/store-types";
 import {
   changeStateQuery,
+  contractReviewMatrixSetSignal,
   designConcernDispositionedSignal,
   verificationEvidenceDispositionedSignal,
 } from "../temporal/messages";
@@ -37,10 +38,13 @@ export interface AcceptanceReconciliationBlocker {
   message: string;
   remediation: string;
   failedItems: Array<{
-    family: "design_concern" | "verification_evidence";
-    taskId: string;
-    concernKey: string;
-    disposition: string;
+    family:
+      | "design_concern"
+      | "verification_evidence"
+      | "contract_review_matrix";
+    taskId?: string;
+    concernKey?: string;
+    disposition?: string;
     reason: string;
   }>;
 }
@@ -58,10 +62,18 @@ interface RecoveryAuditedDisposition {
   recovery_audit: GateRecoveryAudit;
 }
 
-interface PendingReconciliationItem {
-  family: "design_concern" | "verification_evidence";
-  disposition: RecoveryAuditedDisposition;
+interface RecoveryAuditedMatrix {
+  reviewedAt: string;
+  rows: ContractReviewMatrix["rows"];
+  recovery_audit: GateRecoveryAudit;
 }
+
+type PendingReconciliationItem =
+  | {
+      family: "design_concern" | "verification_evidence";
+      disposition: RecoveryAuditedDisposition;
+    }
+  | { family: "contract_review_matrix"; matrix: RecoveryAuditedMatrix };
 
 function collectPendingReconciliationItems(
   change: Change,
@@ -83,12 +95,22 @@ function collectPendingReconciliationItems(
       });
     }
   }
+  const reviewMatrix = change.contract?.reviewMatrix;
+  if (reviewMatrix?.recovery_audit) {
+    items.push({
+      family: "contract_review_matrix",
+      matrix: reviewMatrix as unknown as RecoveryAuditedMatrix,
+    });
+  }
   return items;
 }
 
 function dispositionPostcondition(
   state: ChangeWorkflowState,
-  item: PendingReconciliationItem,
+  item: Extract<
+    PendingReconciliationItem,
+    { family: "design_concern" | "verification_evidence" }
+  >,
 ): boolean {
   const list =
     item.family === "design_concern"
@@ -106,6 +128,41 @@ function dispositionPostcondition(
   );
 }
 
+function matrixPostcondition(
+  state: ChangeWorkflowState,
+  item: Extract<
+    PendingReconciliationItem,
+    { family: "contract_review_matrix" }
+  >,
+): boolean {
+  const actual = state.contract?.reviewMatrix;
+  const expected = item.matrix;
+  return reviewMatrixMatches(actual, expected);
+}
+
+function reviewMatrixMatches(
+  actual: ContractReviewMatrix | undefined,
+  expected: ContractReviewMatrix,
+): boolean {
+  if (!actual) return false;
+  if (actual.reviewedAt !== expected.reviewedAt) return false;
+  if (actual.rows.length !== expected.rows.length) return false;
+  const expectedById = new Map(
+    expected.rows.map((row) => [row.contractId, row]),
+  );
+  return actual.rows.every((row) => {
+    const exp = expectedById.get(row.contractId);
+    if (!exp) return false;
+    return (
+      row.kind === exp.kind &&
+      row.status === exp.status &&
+      row.evidencePolicy === exp.evidencePolicy &&
+      row.evidence === exp.evidence &&
+      row.notes === exp.notes
+    );
+  });
+}
+
 /**
  * A marker clear must target the exact recovered disposition that was
  * confirmed in Temporal. Matching only its logical latest-wins key could
@@ -114,7 +171,10 @@ function dispositionPostcondition(
  */
 function matchesPendingRecoveredDisposition(
   disposition: RecoveryAuditedDisposition,
-  item: PendingReconciliationItem,
+  item: Extract<
+    PendingReconciliationItem,
+    { family: "design_concern" | "verification_evidence" }
+  >,
   requireRecoveryAudit = true,
 ): boolean {
   const expected = item.disposition;
@@ -135,10 +195,31 @@ function matchesPendingRecoveredDisposition(
   );
 }
 
+function matchesPendingRecoveredMatrix(
+  matrix: RecoveryAuditedMatrix,
+  item: Extract<
+    PendingReconciliationItem,
+    { family: "contract_review_matrix" }
+  >,
+  requireRecoveryAudit = true,
+): boolean {
+  const expected = item.matrix;
+  if (!reviewMatrixMatches(matrix, expected)) return false;
+  if (!requireRecoveryAudit) return true;
+  return (
+    matrix.recovery_audit.reason === expected.recovery_audit.reason &&
+    matrix.recovery_audit.evidence === expected.recovery_audit.evidence &&
+    matrix.recovery_audit.recovered_at === expected.recovery_audit.recovered_at
+  );
+}
+
 async function redeliverDisposition(
   handle: WorkflowHandleLike,
   changeId: string,
-  item: PendingReconciliationItem,
+  item: Extract<
+    PendingReconciliationItem,
+    { family: "design_concern" | "verification_evidence" }
+  >,
 ): Promise<MutationOutcome<ChangeWorkflowState>> {
   const signal =
     item.family === "design_concern"
@@ -166,6 +247,40 @@ async function redeliverDisposition(
       refresh: async (h) =>
         h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
       verifyTemporal: (state) => dispositionPostcondition(state, item),
+      mutateLatestProjection: (latest) => latest,
+      verifyProjection: () => true,
+    },
+  });
+}
+
+async function redeliverMatrix(
+  handle: WorkflowHandleLike,
+  changeId: string,
+  item: Extract<
+    PendingReconciliationItem,
+    { family: "contract_review_matrix" }
+  >,
+): Promise<MutationOutcome<ChangeWorkflowState>> {
+  // Strip recovery_audit before signaling so the shared matrix signal schema
+  // never carries disk-only recovery metadata into workflow state.
+  const { recovery_audit: _, ...reviewMatrix } = item.matrix;
+
+  return coordinateChangeMutation<ChangeWorkflowState>({
+    authority: { kind: "temporal_live", handle, changeId },
+    intent: {
+      changeId,
+      mutationKind: "contract_review_matrix_reconciliation_redelivery",
+      payload: (mutationReceiptId) => ({
+        reviewMatrix,
+        updatedAt: new Date().toISOString(),
+        mutationReceiptId,
+      }),
+      sendSignal: async (h, payload) => {
+        await h.signal(contractReviewMatrixSetSignal, payload);
+      },
+      refresh: async (h) =>
+        h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
+      verifyTemporal: (state) => matrixPostcondition(state, item),
       mutateLatestProjection: (latest) => latest,
       verifyProjection: () => true,
     },
@@ -200,6 +315,16 @@ function stripRecoveryAuditMarkers(
     }) as typeof array;
   }
 
+  if (items.some((item) => item.family === "contract_review_matrix")) {
+    const matrix = next.contract?.reviewMatrix;
+    if (matrix) {
+      const { recovery_audit: _, ...rest } = matrix;
+      next.contract = next.contract
+        ? { ...next.contract, reviewMatrix: rest }
+        : undefined;
+    }
+  }
+
   return next;
 }
 
@@ -210,10 +335,15 @@ async function clearRecoveryAuditMarkers(
 ): Promise<ProjectionCommitOutcome> {
   const mutationReceiptId = `mrec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const operationId = `acceptance-reconciliation-clear:${changeId}:${items
-    .map(
-      (item) =>
-        `${item.family}:${item.disposition.taskId}:${item.disposition.concernKey}`,
-    )
+    .map((item) => {
+      if (
+        item.family === "design_concern" ||
+        item.family === "verification_evidence"
+      ) {
+        return `${item.family}:${item.disposition.taskId}:${item.disposition.concernKey}`;
+      }
+      return `${item.family}:reviewMatrix`;
+    })
     .join(",")}`;
 
   return commitChangeProjection({
@@ -225,26 +355,46 @@ async function clearRecoveryAuditMarkers(
     mutateLatest: (latest) => stripRecoveryAuditMarkers(latest, items),
     verify: ({ readback }) => {
       for (const item of items) {
-        const arrayKey =
-          item.family === "design_concern"
-            ? "design_concern_dispositions"
-            : "verification_evidence_dispositions";
-        const found = (readback[arrayKey] ?? []).find(
-          (d) =>
-            d.taskId === item.disposition.taskId &&
-            d.concernKey === item.disposition.concernKey,
-        );
-        if (!found) return false;
         if (
-          !matchesPendingRecoveredDisposition(
-            found as unknown as RecoveryAuditedDisposition,
-            item,
-            false,
-          )
+          item.family === "design_concern" ||
+          item.family === "verification_evidence"
         ) {
-          return false;
+          const arrayKey =
+            item.family === "design_concern"
+              ? "design_concern_dispositions"
+              : "verification_evidence_dispositions";
+          const found = (readback[arrayKey] ?? []).find(
+            (d) =>
+              d.taskId === item.disposition.taskId &&
+              d.concernKey === item.disposition.concernKey,
+          );
+          if (!found) return false;
+          if (
+            !matchesPendingRecoveredDisposition(
+              found as unknown as RecoveryAuditedDisposition,
+              item,
+              false,
+            )
+          ) {
+            return false;
+          }
+          if (found.recovery_audit !== undefined) return false;
+        } else {
+          const found = readback.contract?.reviewMatrix;
+          if (!found) return false;
+          if (
+            !matchesPendingRecoveredMatrix(
+              found as RecoveryAuditedMatrix,
+              item as Extract<
+                PendingReconciliationItem,
+                { family: "contract_review_matrix" }
+              >,
+              false,
+            )
+          )
+            return false;
+          if (found.recovery_audit !== undefined) return false;
         }
-        if (found.recovery_audit !== undefined) return false;
       }
       return true;
     },
@@ -264,13 +414,29 @@ function failureReason(outcome: MutationOutcome<ChangeWorkflowState>): string {
   }
 }
 
+function itemFailureDetail(
+  item: PendingReconciliationItem,
+): Pick<
+  AcceptanceReconciliationBlocker["failedItems"][number],
+  "taskId" | "concernKey" | "disposition"
+> {
+  if (item.family === "contract_review_matrix") {
+    return {};
+  }
+  return {
+    taskId: item.disposition.taskId,
+    concernKey: item.disposition.concernKey,
+    disposition: item.disposition.disposition,
+  };
+}
+
 /**
- * Reconcile recovered acceptance-affecting dispositions back into a reachable
- * workflow. Returns `reconciled` with an updated in-memory change when every
- * pending marker is confirmed in the workflow and cleared from disk. Returns a
- * single `blocked` result with failed item details if any redelivery or marker
- * clear fails, so callers can surface one actionable reconciliation block
- * instead of replaying stale acceptance blockers.
+ * Reconcile recovered acceptance-affecting dispositions and contract review
+ * matrices back into a reachable workflow. Returns `reconciled` with an updated
+ * in-memory change when every pending marker is confirmed in the workflow and
+ * cleared from disk. Returns a single `blocked` result with failed item details
+ * if any redelivery or marker clear fails, so callers can surface one actionable
+ * reconciliation block instead of replaying stale acceptance blockers.
  */
 export async function reconcileRecoveredAcceptanceRemediation(input: {
   store: Store;
@@ -303,14 +469,15 @@ export async function reconcileRecoveredAcceptanceRemediation(input: {
   const failedItems: AcceptanceReconciliationBlocker["failedItems"] = [];
 
   for (const item of pendingItems) {
-    const outcome = await redeliverDisposition(handle, changeId, item);
+    const outcome =
+      item.family === "contract_review_matrix"
+        ? await redeliverMatrix(handle, changeId, item)
+        : await redeliverDisposition(handle, changeId, item);
     if (outcome.kind !== "applied_temporal") {
       failedItems.push({
         family: item.family,
-        taskId: item.disposition.taskId,
-        concernKey: item.disposition.concernKey,
-        disposition: item.disposition.disposition,
         reason: failureReason(outcome),
+        ...itemFailureDetail(item),
       });
     }
   }
@@ -340,10 +507,8 @@ export async function reconcileRecoveredAcceptanceRemediation(input: {
         "Retry acceptance gate completion; if this persists, run adv_doctor to inspect the projection lock.",
       failedItems: pendingItems.map((item) => ({
         family: item.family,
-        taskId: item.disposition.taskId,
-        concernKey: item.disposition.concernKey,
-        disposition: item.disposition.disposition,
         reason: "marker clear not confirmed",
+        ...itemFailureDetail(item),
       })),
     };
   }

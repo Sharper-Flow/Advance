@@ -803,6 +803,7 @@ describe("contractTools", () => {
     const disk = await loadChange(tempDir, "contractRecovery");
     expect(disk.success).toBe(true);
     expect(disk.data?.contract?.reviewMatrix?.rows).toHaveLength(1);
+    expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeDefined();
     expect(disk.data?.projection_revision).toBe(1);
     expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
     expect(disk.data?.projection_commits?.[0].payload).toMatchObject({
@@ -810,6 +811,9 @@ describe("contractTools", () => {
       updatedAt: expect.any(String),
       mutationReceiptId: expect.stringMatching(/^mrec_/),
     });
+    expect(
+      disk.data?.projection_commits?.[0].payload.reviewMatrix.recovery_audit,
+    ).toBeUndefined();
   });
 
   test("D4: adv_contract_review_matrix_set recovers via commitChangeProjection when signal error indicates completed workflow", async () => {
@@ -851,6 +855,7 @@ describe("contractTools", () => {
     const disk = await loadChange(tempDir, "contractRecovery");
     expect(disk.success).toBe(true);
     expect(disk.data?.contract?.reviewMatrix?.rows).toHaveLength(1);
+    expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeDefined();
     expect(disk.data?.projection_revision).toBe(1);
     expect(disk.data?.projection_commits?.[0].authority_kind).toBe("recovery");
     expect(disk.data?.projection_commits?.[0].payload).toMatchObject({
@@ -858,5 +863,8 @@ describe("contractTools", () => {
       updatedAt: expect.any(String),
       mutationReceiptId: expect.stringMatching(/^mrec_/),
     });
+    expect(
+      disk.data?.projection_commits?.[0].payload.reviewMatrix.recovery_audit,
+    ).toBeUndefined();
   });
 });
