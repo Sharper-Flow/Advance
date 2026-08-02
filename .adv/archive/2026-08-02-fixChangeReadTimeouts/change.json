@@ -1,0 +1,2356 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixChangeReadTimeouts",
+  "title": "Fix change read timeouts",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-02T01:18:59.881Z",
+  "tasks": [
+    {
+      "id": "tk-611ccd97fac0",
+      "title": "Bound optional change-show enrichment without disturbing authoritative reads.",
+      "type": "code",
+      "section": "Disk-first change reads",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-02T16:16:46.854Z",
+      "started_at": "2026-08-02T16:19:56.953Z",
+      "completed_at": "2026-08-02T16:48:01.982Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Engineer evidence: targeted enrichment tests passed (15); change/status regression tests passed (189); pnpm typecheck passed. Preserving shared-worktree changes before scope/design reassessment.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change-show-enrichment.test.ts",
+        "plugin/src/tools/change/clarify-readiness.test.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/external-dependency-status.test.ts",
+        "plugin/src/tools/external-dependency-status.ts"
+      ],
+      "checkpointSha": "f1d2b17449ca265ea63d39dd4c9f1a6f704f21bc",
+      "completedAt": "2026-08-02T16:48:01.982Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/tools/change-show-enrichment.test.ts",
+        "plugin/src/tools/change/clarify-readiness.test.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/external-dependency-status.test.ts",
+        "plugin/src/tools/external-dependency-status.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeReadTimeouts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+          "task_id": "tk-611ccd97fac0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-611ccd97fac0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/external-dependency-status.ts",
+            "plugin/src/tools/change/create-clarify.ts",
+            "plugin/src/tools/external-dependency-status.test.ts",
+            "plugin/src/tools/change/clarify-readiness.test.ts",
+            "plugin/src/tools/change-show-enrichment.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msc17hw8_bb468de5",
+              "command": "bin/oc-test targeted -- src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/tools/change.worker-free.test.ts src/tools/change-show-enrichment.test.ts",
+              "exit_code": 0,
+              "summary": "15 tests passed: bounded external-dependency enrichment, clarify persistence timeout, worker-free core read, and change-show handler shape preservation"
+            },
+            {
+              "test_run_id": "tr_msc1887f_bf5d38b3",
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/status-enrich.test.ts",
+              "exit_code": 0,
+              "summary": "189 tests passed, no regressions in change or status-enrich paths"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Bounded external-dependency enrichment with mapWithConcurrency (cap 4) and withTimeout per-item (2s) and total (5s) budgets",
+              "why": "Prevents unbounded Promise.all of external store opens from hanging adv_change_show; timeouts degrade to same-shape warning summaries instead of failing the core read."
+            },
+            {
+              "what": "Bounded clarify-readiness persistence with a 1s withTimeout wrapper in persistClarifyFindings",
+              "why": "The read path was awaiting a disk write; a slow write now returns best-effort so the core change read is never blocked."
+            },
+            {
+              "what": "Left the change.ts handler operation order unchanged and did not touch release bundle guard tasks",
+              "why": "Task constraint: preserve timeout ordering and avoid release bundle guard changes; only internal helper budgets were added."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "status-enrich.ts shares buildExternalDependencyStatus and automatically inherits the new bounded/timeout behavior; no other unbounded callers were found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_change_show enrichment is now bounded and best-effort: external-dependency checks use concurrency cap 4 + per-item 2s + total 5s timeouts, and clarify persistence is capped at 1s. Both degrade to preserved-shape output rather than blocking the disk-authoritative core read. No Temporal queries/signals are introduced on the read path. 204 targeted tests passed.",
+            "suggested_next_action": "Deploy plugin (pnpm run build + scripts/deploy-local.sh --fix + OpenCode/plugin-host restart) so the live adv_change_show uses the bounded enrichment, then verify the change-read timeout is resolved."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msc17hw8_bb468de5"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msc1887f_bf5d38b3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-7313dcfa7d3d",
+      "title": "Align change-show operation deadlines with outer tool safety bounds.",
+      "type": "code",
+      "section": "Typed timeout degradation",
+      "status": "cancelled",
+      "priority": 1,
+      "created_at": "2026-08-02T16:17:11.502Z",
+      "completed_at": "2026-08-02T20:21:21.913Z",
+      "cancelApproval": "User message: approve",
+      "cancelledAt": "2026-08-02T20:21:21.913Z",
+      "cancellation": {
+        "reason": "Superseded by rq-boundedAuthoritativeRead01 evidence: do not align or raise timeout ceilings; implement shared aggregate 8s bounded-read deadline instead.",
+        "approved_by_user": true,
+        "approval_evidence": "User message: approve",
+        "approved_at": "2026-08-02T20:21:21.913Z"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      }
+    },
+    {
+      "id": "tk-3921753af963",
+      "title": "Block release proof when the loaded plugin bundle is stale.",
+      "type": "code",
+      "section": "Release bundle freshness",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-08-02T16:17:39.490Z",
+      "started_at": "2026-08-02T21:23:47.085Z",
+      "completed_at": "2026-08-02T21:46:02.785Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "TDD red/green: stale bundle preflight test, 28 manifest tests, 38 archive tests passed; pnpm run check passed with only unrelated prior lint warnings.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "3a34be6285b42db3ee0a7f41019b24b4cfd8851e",
+      "completedAt": "2026-08-02T21:46:02.785Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeReadTimeouts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+          "task_id": "tk-3921753af963",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-3921753af963"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/plugin-bundle-manifest.ts",
+            "plugin/src/plugin-bundle-manifest.test.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mscbonyr_709972cc",
+              "command": "bash /tmp/opencode/red-preflight-run.sh",
+              "exit_code": 1,
+              "summary": "red run: archive preflight test fails when the stale-bundle guard is disabled (expected failure)"
+            },
+            {
+              "test_run_id": "tr_mscbphvh_425f6f50",
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts --testNamePattern \"AC4: blocks archive release preflight\"",
+              "exit_code": 0,
+              "summary": "green run: archive preflight correctly refuses a stale loaded bundle with code PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT"
+            },
+            {
+              "test_run_id": "tr_mscbmmc0_1036d6eb",
+              "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts",
+              "exit_code": 0,
+              "summary": "green run: plugin-bundle-manifest preflight helper tests pass (stale/current/unknown)"
+            },
+            {
+              "test_run_id": "tr_mscbn62g_6855ce8a",
+              "command": "bin/oc-test targeted -- src/tools/change.test.ts --testNamePattern \"adv_change_archive\"",
+              "exit_code": 0,
+              "summary": "green run: all 38 adv_change_archive tests pass, no regression"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Centralized the loaded-bundle release preflight in plugin-bundle-manifest.ts as getPluginBundleReleasePreflightError and called it from the top of adv_change_archive's runArchive.",
+              "why": "Reuses the existing freshness model, keeps the refusal narrow to release time, and leaves the advisory [ADV:PLUGIN_BUNDLE_STALE] system/status health output unchanged."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented AC4 stale loaded-bundle release preflight for adv_change_archive. New helper getPluginBundleReleasePreflightError in plugin/src/plugin-bundle-manifest.ts returns a typed refusal only when the loaded bundle is strictly stale versus the deployed manifest. The check runs before any workflow/gate/phase9 work in change.ts adv_change_archive. Existing advisory health banners (system block, status) are untouched. Tests are green.",
+            "suggested_next_action": "Review the diff and run the full test suite / CI before completing the acceptance gate."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscbonyr_709972cc"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscbphvh_425f6f50"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscbmmc0_1036d6eb"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscbn62g_6855ce8a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-fba1921ec917",
+      "title": "Verify bounded change-read and release-freshness behavior.",
+      "type": "verification",
+      "section": "Regression verification",
+      "status": "cancelled",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-611ccd97fac0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7313dcfa7d3d"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3921753af963"
+        }
+      ],
+      "created_at": "2026-08-02T16:18:00.297Z",
+      "completed_at": "2026-08-02T20:23:32.157Z",
+      "cancelApproval": "User message: approve",
+      "cancelledAt": "2026-08-02T20:23:32.157Z",
+      "cancellation": {
+        "reason": "Verification dependencies include superseded tk-7313dcfa7d3d; replace with a graph that verifies tk-0f0ce5210959 shared-deadline implementation.",
+        "approved_by_user": true,
+        "approval_evidence": "User message: approve",
+        "approved_at": "2026-08-02T20:23:32.157Z"
+      },
+      "contract_refs": {
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      }
+    },
+    {
+      "id": "tk-0f0ce5210959",
+      "title": "Thread one bounded authoritative-read deadline through the full composed change-show path.",
+      "type": "code",
+      "section": "Shared read deadline",
+      "status": "done",
+      "priority": 4,
+      "created_at": "2026-08-02T20:21:52.995Z",
+      "started_at": "2026-08-02T20:25:49.594Z",
+      "completed_at": "2026-08-02T21:23:29.992Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Engineer TDD and durable targeted evidence passed: 163 tests. Smoke passed 98 tests plus schemas/typecheck/format; shared full-show deadline degrades optional subreads via typed hydration stats.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change-show-enrichment.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "checkpointSha": "e061326e1470c31629c5289675cde6cf5a122c76",
+      "completedAt": "2026-08-02T21:23:29.992Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/tools/change-show-enrichment.test.ts",
+        "plugin/src/tools/change.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeReadTimeouts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+          "task_id": "tk-0f0ce5210959",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-0f0ce5210959"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change-show-enrichment.test.ts"
+          ],
+          "verification": [
+            {
+              "run_id": "tr_mscaz9fr_b80f6a9e",
+              "command": "../bin/oc-test targeted -- src/tools/change.test.ts src/tools/change-show-enrichment.test.ts",
+              "exit_code": 0,
+              "summary": "163 tests pass across change and change-show-enrichment suites"
+            },
+            {
+              "run_id": "tr_mscb2uyv_a98d57a3",
+              "command": "../bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "98 tests pass, schemas/typecheck/lint/format:check green except pre-existing manifest-frontmatter lint warnings"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Reused existing TemporalReadContext instead of inventing a new deadline abstraction",
+              "why": "rq-boundedAuthoritativeRead01 already provides aggregate budget, per-member cap, circuit breaker, and hydration stats; composing subreads through it keeps the fix minimal and consistent with other bounded reads"
+            },
+            {
+              "what": "Wrapped subreads in a local createChangeShowSubreadRunner helper instead of spreading deadline checks inline",
+              "why": "Keeps change.ts readable, centralizes deadline/circuit-breaker logic, and makes testing the degradation path deterministic"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Confirmed no regressions in change.test.ts, change-show-enrichment.test.ts, create-clarify.test.ts, external-dependency-status.test.ts; smoke suite passed.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Shared aggregate deadline now threads through adv_change_show core read and all optional subreads (clarify, external dependency, reflection, snapshot/phasePlan, readyTasks, briefingPacket, artifacts). Slow subreads degrade gracefully with hydrationStats instead of each taking a fresh budget. 163 targeted tests pass; smoke suite (schemas, typecheck, lint, format, 98 tests) passes. Pre-existing manifest-frontmatter lint warnings remain. No apply_context was provided in the prompt, so the report omits it.",
+            "suggested_next_action": "Mark task tk-0f0ce5210959 done after orchestrator review, then move to task 3 or close acceptance gate"
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscb2uyv_a98d57a3"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-55c8019ea464",
+      "title": "Verify bounded authoritative change-read and release-freshness behavior.",
+      "type": "verification",
+      "section": "Regression verification",
+      "status": "done",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-611ccd97fac0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-0f0ce5210959"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-3921753af963"
+        }
+      ],
+      "created_at": "2026-08-02T20:24:38.361Z",
+      "started_at": "2026-08-02T22:02:14.015Z",
+      "completed_at": "2026-08-02T22:07:46.039Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Verifier passed 248 focused tests, pnpm run check, pnpm run build, and clean worktree verification.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "3a34be6285b42db3ee0a7f41019b24b4cfd8851e",
+      "completedAt": "2026-08-02T22:07:46.039Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": []
+    },
+    {
+      "id": "tk-69d57f3fb757",
+      "title": "Remediate acceptance review blockers.",
+      "type": "code",
+      "section": "Acceptance remediation",
+      "status": "done",
+      "priority": 6,
+      "created_at": "2026-08-02T22:22:12.168Z",
+      "started_at": "2026-08-02T22:22:26.813Z",
+      "completed_at": "2026-08-02T22:52:18.155Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Engineer remediation: 172 targeted + full unit + pnpm run check passed. AC3 read-path persistence removed; clarify display-only. Dead code, fast-error misclassification, hydration stats typing, artifactOnly hydrationStats, whole-show 8s test, debug log all fixed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change-show-enrichment.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/clarify-readiness.test.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/external-dependency-status.test.ts",
+        "plugin/src/tools/external-dependency-status.ts",
+        "plugin/src/types/responses.ts"
+      ],
+      "checkpointSha": "accb86a9e77fb1547870c323006b0931217794ec",
+      "completedAt": "2026-08-02T22:52:18.155Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/tools/change-show-enrichment.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/clarify-readiness.test.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/external-dependency-status.test.ts",
+        "plugin/src/tools/external-dependency-status.ts",
+        "plugin/src/types/responses.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixChangeReadTimeouts",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+          "task_id": "tk-69d57f3fb757",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-69d57f3fb757"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.ts",
+            "plugin/src/types/responses.ts",
+            "plugin/src/tools/change/create-clarify.ts",
+            "plugin/src/tools/external-dependency-status.ts",
+            "plugin/src/tools/change-show-enrichment.test.ts",
+            "plugin/src/tools/change/clarify-readiness.test.ts",
+            "plugin/src/tools/external-dependency-status.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msce8s84_deaa7e55",
+              "command": "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/tools/change.test.ts",
+              "exit_code": 0,
+              "summary": "172 targeted tests pass after final subread timeout-vs-error fix"
+            },
+            {
+              "test_run_id": "tr_msce72jt_218bdac9",
+              "command": "bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Full unit suite passes"
+            },
+            {
+              "test_run_id": "tr_msce20zv_6e64c796",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas/typecheck/manifests/frontmatter/lint/format checks pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced production console.error in subread runner with logger.debug and only increment the circuit-breaker on TemporalQueryTimeoutError",
+              "why": "Genuine fast errors (ENOENT, parse) must not be classified as unresponsive members or trip the CB; only actual timeouts degrade the aggregate read."
+            },
+            {
+              "what": "Added optional persist flag to applyClarifyReadinessToChangeOutput and pass persist:false from adv_change_show",
+              "why": "AC3 requires no Temporal mutation on the read path while preserving persistence for non-read callers."
+            },
+            {
+              "what": "Aligned buildExternalDependencyStatus default per-item/total budgets to 1500ms and preserved partial results on total deadline",
+              "why": "The 2000/5000ms inner budgets were dead inside the 1500ms adv_change_show outer cap; preserving already-satisfied deps avoids incorrectly rewriting them as warnings."
+            },
+            {
+              "what": "Added omittedIds to HydrationStats and used omitted instead of boundedOmitted in the change-show subread runner",
+              "why": "boundedOmitted was overloaded for deadline/CB omission counts; a typed omittedIds field and omitted count eliminate Record<string, unknown> drift."
+            },
+            {
+              "what": "Attached hydrationStats in the artifactOnly branch before early return",
+              "why": "The degraded-read metadata must be surfaced for artifact-only output too."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Reviewed change.ts, create-clarify.ts, external-dependency-status.ts, types/responses.ts, and all related tests for the same timeout/error/omission patterns; no additional instances found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All 9 acceptance blockers are remediated and verified. adv_change_show read path is now mutation-free (clarify persistence disabled), fast errors no longer trip the circuit breaker, external-dependency deadline preserves satisfied results, hydrationStats carries typed omittedIds, artifactOnly output includes hydrationStats, and new tests cover the production 8s deadline ceiling.",
+            "suggested_next_action": "Run the Temporal integration tier (bin/oc-test integration) if required for acceptance gate, then proceed to design/acceptance review."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-69d57f3fb757",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-69d57f3fb757"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msce8s84_deaa7e55"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msce72jt_218bdac9"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msce20zv_6e64c796"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeReadTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+      "task_id": "tk-611ccd97fac0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-611ccd97fac0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/external-dependency-status.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/external-dependency-status.test.ts",
+        "plugin/src/tools/change/clarify-readiness.test.ts",
+        "plugin/src/tools/change-show-enrichment.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msc17hw8_bb468de5",
+          "command": "bin/oc-test targeted -- src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/tools/change.worker-free.test.ts src/tools/change-show-enrichment.test.ts",
+          "exit_code": 0,
+          "summary": "15 tests passed: bounded external-dependency enrichment, clarify persistence timeout, worker-free core read, and change-show handler shape preservation"
+        },
+        {
+          "test_run_id": "tr_msc1887f_bf5d38b3",
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/status-enrich.test.ts",
+          "exit_code": 0,
+          "summary": "189 tests passed, no regressions in change or status-enrich paths"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Bounded external-dependency enrichment with mapWithConcurrency (cap 4) and withTimeout per-item (2s) and total (5s) budgets",
+          "why": "Prevents unbounded Promise.all of external store opens from hanging adv_change_show; timeouts degrade to same-shape warning summaries instead of failing the core read."
+        },
+        {
+          "what": "Bounded clarify-readiness persistence with a 1s withTimeout wrapper in persistClarifyFindings",
+          "why": "The read path was awaiting a disk write; a slow write now returns best-effort so the core change read is never blocked."
+        },
+        {
+          "what": "Left the change.ts handler operation order unchanged and did not touch release bundle guard tasks",
+          "why": "Task constraint: preserve timeout ordering and avoid release bundle guard changes; only internal helper budgets were added."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "status-enrich.ts shares buildExternalDependencyStatus and automatically inherits the new bounded/timeout behavior; no other unbounded callers were found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_change_show enrichment is now bounded and best-effort: external-dependency checks use concurrency cap 4 + per-item 2s + total 5s timeouts, and clarify persistence is capped at 1s. Both degrade to preserved-shape output rather than blocking the disk-authoritative core read. No Temporal queries/signals are introduced on the read path. 204 targeted tests passed.",
+        "suggested_next_action": "Deploy plugin (pnpm run build + scripts/deploy-local.sh --fix + OpenCode/plugin-host restart) so the live adv_change_show uses the bounded enrichment, then verify the change-read timeout is resolved."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msc17hw8_bb468de5"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msc1887f_bf5d38b3"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeReadTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+      "task_id": "tk-0f0ce5210959",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-0f0ce5210959"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change-show-enrichment.test.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "tr_mscaz9fr_b80f6a9e",
+          "command": "../bin/oc-test targeted -- src/tools/change.test.ts src/tools/change-show-enrichment.test.ts",
+          "exit_code": 0,
+          "summary": "163 tests pass across change and change-show-enrichment suites"
+        },
+        {
+          "run_id": "tr_mscb2uyv_a98d57a3",
+          "command": "../bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "98 tests pass, schemas/typecheck/lint/format:check green except pre-existing manifest-frontmatter lint warnings"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Reused existing TemporalReadContext instead of inventing a new deadline abstraction",
+          "why": "rq-boundedAuthoritativeRead01 already provides aggregate budget, per-member cap, circuit breaker, and hydration stats; composing subreads through it keeps the fix minimal and consistent with other bounded reads"
+        },
+        {
+          "what": "Wrapped subreads in a local createChangeShowSubreadRunner helper instead of spreading deadline checks inline",
+          "why": "Keeps change.ts readable, centralizes deadline/circuit-breaker logic, and makes testing the degradation path deterministic"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Confirmed no regressions in change.test.ts, change-show-enrichment.test.ts, create-clarify.test.ts, external-dependency-status.test.ts; smoke suite passed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Shared aggregate deadline now threads through adv_change_show core read and all optional subreads (clarify, external dependency, reflection, snapshot/phasePlan, readyTasks, briefingPacket, artifacts). Slow subreads degrade gracefully with hydrationStats instead of each taking a fresh budget. 163 targeted tests pass; smoke suite (schemas, typecheck, lint, format, 98 tests) passes. Pre-existing manifest-frontmatter lint warnings remain. No apply_context was provided in the prompt, so the report omits it.",
+        "suggested_next_action": "Mark task tk-0f0ce5210959 done after orchestrator review, then move to task 3 or close acceptance gate"
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscb2uyv_a98d57a3"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeReadTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+      "task_id": "tk-3921753af963",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-3921753af963"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/plugin-bundle-manifest.ts",
+        "plugin/src/plugin-bundle-manifest.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mscbonyr_709972cc",
+          "command": "bash /tmp/opencode/red-preflight-run.sh",
+          "exit_code": 1,
+          "summary": "red run: archive preflight test fails when the stale-bundle guard is disabled (expected failure)"
+        },
+        {
+          "test_run_id": "tr_mscbphvh_425f6f50",
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts --testNamePattern \"AC4: blocks archive release preflight\"",
+          "exit_code": 0,
+          "summary": "green run: archive preflight correctly refuses a stale loaded bundle with code PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT"
+        },
+        {
+          "test_run_id": "tr_mscbmmc0_1036d6eb",
+          "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts",
+          "exit_code": 0,
+          "summary": "green run: plugin-bundle-manifest preflight helper tests pass (stale/current/unknown)"
+        },
+        {
+          "test_run_id": "tr_mscbn62g_6855ce8a",
+          "command": "bin/oc-test targeted -- src/tools/change.test.ts --testNamePattern \"adv_change_archive\"",
+          "exit_code": 0,
+          "summary": "green run: all 38 adv_change_archive tests pass, no regression"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Centralized the loaded-bundle release preflight in plugin-bundle-manifest.ts as getPluginBundleReleasePreflightError and called it from the top of adv_change_archive's runArchive.",
+          "why": "Reuses the existing freshness model, keeps the refusal narrow to release time, and leaves the advisory [ADV:PLUGIN_BUNDLE_STALE] system/status health output unchanged."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented AC4 stale loaded-bundle release preflight for adv_change_archive. New helper getPluginBundleReleasePreflightError in plugin/src/plugin-bundle-manifest.ts returns a typed refusal only when the loaded bundle is strictly stale versus the deployed manifest. The check runs before any workflow/gate/phase9 work in change.ts adv_change_archive. Existing advisory health banners (system block, status) are untouched. Tests are green.",
+        "suggested_next_action": "Review the diff and run the full test suite / CI before completing the acceptance gate."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscbonyr_709972cc"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscbphvh_425f6f50"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscbmmc0_1036d6eb"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscbn62g_6855ce8a"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeReadTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "prod-readiness-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/change.ts",
+          "line": 197,
+          "what": "Leftover `console.error(\"[DEBUG] subread.run degraded\", label, error)` in the production adv_change_show read path.",
+          "why": "Fires on every degraded subread, writing raw error objects to stderr in the OpenCode plugin host. Bypasses the module's own `logger` (createLogger(\"change\") at change.ts:28). ESLint `no-console` did not flag it (`pnpm run lint` clean), so nothing structural catches this before release. Shipping debug instrumentation through a release gate.",
+          "fix": "Delete the line, or replace with `logger.debug(...)` consistent with the rest of the module."
+        },
+        {
+          "id": "ac3-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/change/create-clarify.ts",
+          "line": 543,
+          "what": "Routine `adv_change_show` still performs a Temporal write on the read path. `applyClarifyReadinessToChangeOutput` -> `persistClarifyFindings` -> `store.changes.get()` + `store.changes.save()`. The diff only wrapped this in a 1000ms `withTimeout`; it did not remove the mutation.",
+          "why": "AC3 states: 'Given routine change reads, when authoritative disk projection exists, then they do not issue workflow queries or signals. [warrant: tool:adv_change_show]'. `store.changes.save()` on the Temporal store is a workflow signal/mutation. Bounding a violation is not eliminating it. (C4 says 'must not ADD' and is technically intact since the write pre-dates this change, but AC3 asserts a post-change system property that is not met.) Also note `persistClarifyFindings` calls `store.changes.get(changeId)` without the shared `readCtx`, so it can issue an unbounded workflow query outside the aggregate budget.",
+          "fix": "Make clarify-readiness enrichment read-only on the show path (compute + surface findings, defer persistence to a mutation path), or gate persistence behind an explicit non-read caller."
+        },
+        {
+          "id": "ac3-2",
+          "label": "blocker",
+          "file": "plugin/src/tools/change-show-enrichment.test.ts",
+          "line": 181,
+          "what": "The AC3 regression evidence is vacuous. `assertNoWorkflowCalls()` runs in tests that mock out BOTH `applyClarifyReadinessToChangeOutput` (lines 85-94) and `buildExternalDependencyStatus` (lines 68-70) — the only two enrichments capable of issuing Temporal traffic.",
+          "why": "AC5 requires 'disk-only reads ... via automated regression tests'. A no-workflow-calls assertion that stubs every path capable of a workflow call proves nothing and will not catch the ac3-1 regression. Additionally `createMockStore` is a hand-rolled mock, not a Temporal store, so no real signal path is exercised.",
+          "fix": "Exercise the real `applyClarifyReadinessToChangeOutput` against a store whose `changes.save`/`changes.get` are spies, and assert they are not called during `adv_change_show`."
+        },
+        {
+          "id": "ac1-1",
+          "label": "issue",
+          "file": "plugin/src/tools/external-dependency-status.ts",
+          "line": 283,
+          "what": "The total-timeout path discards already-resolved dependency results. On `TimeoutError` from the `totalMs` wrapper, every dependency is rebuilt as `status: \"warning\"` / 'enrichment deadline exceeded', including ones `mapWithConcurrency` had already resolved as `satisfied`.",
+          "why": "Contradicts Objective 1 ('Preserve the best authoritative change data when optional enrichment or workflow work is slow') and AC1 ('returns authoritative disk projection plus bounded unavailable warnings'). Resolved authoritative results are thrown away and replaced with fabricated warnings.",
+          "fix": "Collect settled results incrementally (per-item promise capture or `Promise.allSettled` against a deadline) and mark only unresolved dependencies as deadline-exceeded."
+        },
+        {
+          "id": "ac2-1",
+          "label": "issue",
+          "file": "plugin/src/tools/change.ts",
+          "line": 212,
+          "what": "`getHydrationStats()` sets `deadlineExceeded: true` whenever ANY subread failed, for ANY reason — including a fast deterministic non-timeout error (e.g. `getReflection` ENOENT, malformed artifact JSON).",
+          "why": "`HydrationStats.deadlineExceeded` is documented in plugin/src/types/responses.ts:77-82 as meaning the request-scoped aggregate read deadline expired. Reporting it for a 2ms deterministic failure inverts AC2: instead of 'typed/degraded classification rather than only generic tool timeout', callers get a typed classification that is affirmatively wrong. Diagnosability regresses.",
+          "fix": "Track omission cause per subread (expired / circuit-broken / operation-error) and set `deadlineExceeded` only for genuine deadline or per-member-cap expiry."
+        },
+        {
+          "id": "ac2-2",
+          "label": "issue",
+          "file": "plugin/src/tools/change.ts",
+          "line": 183,
+          "what": "Genuine operation errors are recorded as unresponsive members and trip the circuit breaker. Both the `!read.complete` branch (line 191) and the `catch` (line 198) call `readCtx.recordUnresponsiveMember()` regardless of failure class.",
+          "why": "Three fast deterministic errors trip `CIRCUIT_BREAKER_THRESHOLD` (read-context.ts:69) and cause every remaining enrichment to be omitted with a synthetic `TemporalQueryTimeoutError` — reporting a timeout that never occurred, and suppressing enrichment that would have succeeded. The circuit breaker exists to shed load from unresponsive workflow members, not to react to deterministic errors. Same root conflation as ac2-1.",
+          "fix": "Classify the error before recording; only timeout/abort/transport classes should count toward the unresponsive streak."
+        },
+        {
+          "id": "contract-1",
+          "label": "issue",
+          "file": "plugin/src/tools/change.ts",
+          "line": 216,
+          "what": "`hydrationStats` emitted by the subread runner drifts from the declared `HydrationStats` contract: `omittedIds` is not a member of the interface, and `boundedOmitted` is reused with different semantics.",
+          "why": "plugin/src/types/responses.ts:66-89 defines `HydrationStats`; `boundedOmitted` is documented as 'Candidates truncated by a caller-supplied read bound (e.g. the summary recent limit) before hydration' — not 'subreads that failed'. Because `output` is `Record<string, unknown>`, TypeScript cannot catch the drift (P33: correctness should be structural, not incidental). Existing consumers of `HydrationStats` (archive/terminal-history, store-temporal projections) will misinterpret change-show output.",
+          "fix": "Extend `HydrationStats` with a typed omission field, or emit a distinct typed key (e.g. `_subreadStats`) rather than overloading the shared shape."
+        },
+        {
+          "id": "ac1-2",
+          "label": "issue",
+          "file": "plugin/src/tools/change.ts",
+          "line": 1565,
+          "what": "The `include.artifactOnly` branch returns at line 1565, before `subread.getHydrationStats()` is attached (line ~1873 in the main path). A timed-out artifacts subread in artifactOnly mode yields `_artifactsError` but no typed degradation marker.",
+          "why": "Inconsistent AC1/AC2 degradation signaling across the two response branches. artifactOnly is exactly the lane subagent briefing/artifact readbacks use, so it is a high-traffic path for bounded reads — it should carry the same typed omission evidence as the main path.",
+          "fix": "Attach `subread.getHydrationStats()` to the artifactOnly output before the early return."
+        },
+        {
+          "id": "ac5-1",
+          "label": "issue",
+          "file": "plugin/src/tools/change-show-enrichment.test.ts",
+          "line": 314,
+          "what": "No whole-show timeout test at production budgets. The one aggregate-deadline test mocks `createTemporalReadContext` down to a 2000ms budget (lines 72-83), wedges only 4 of 8 possible subreads, and asserts no elapsed-time bound. Its title ('skips optional subreads once the aggregate deadline expires') describes behavior it does not isolate — at 2500ms advanced against a 2000ms mocked budget it conflates the per-member cap with the aggregate deadline.",
+          "why": "design.md 'Design-Derived Criteria' explicitly requires a 'deterministic whole-show timeout test' proving the composed show completes within the tool ceiling. At production budgets the worst case is not proven safe: `isTemporalReadExpired` is checked only BEFORE a subread starts, so a subread may begin at 7999ms and run to 9499ms; on top of that, `normalizeArtifactMetadataForReadback`, `normalizeGateArtifactEvidenceForReadback`, `loadProposalForContext` and `fileExists` all run OUTSIDE the shared budget. That leaves under 500ms of margin against the 10s tool ceiling. The change's headline symptom (adv_change_show ToolExecutionTimeout, which I reproduced live against the deployed pre-fix bundle at the start of this review) is therefore not demonstrably fixed in the worst case.",
+          "fix": "Add a deterministic test at the real 8000ms budget with all subreads wedged, asserting total elapsed < the 10s tool ceiling; and bring the unbounded pre/post disk work inside the shared deadline."
+        },
+        {
+          "id": "design-1",
+          "label": "issue",
+          "file": "plugin/src/tools/change.ts",
+          "line": 1625,
+          "what": "Inner enrichment budgets are unreachable from the change-show path. `buildExternalDependencyStatus` defaults to `perItemTimeoutMs: 2000` / `totalTimeoutMs: 5000` (external-dependency-status.ts:81-82) but change.ts invokes it with no options inside a 1500ms `subread.run` cap, so the outer cap always fires first.",
+          "why": "design.md required bounding this enrichment while preserving 'same-shape warning output'. The same-shape degraded payload (the `note: 'External dependency status is partial...'` result with per-dependency warnings) can never be produced via `adv_change_show`; callers instead get an `_externalDependencyStatusError` string, losing the structured shape the design asked to preserve. Two independent bounding layers where the inner one is dead code.",
+          "fix": "Pass explicit options derived from the remaining shared budget so the inner degraded same-shape result can actually surface, or drop the now-dead inner budgets."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "suggestion-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/change.ts",
+          "line": 4100,
+          "what": "The release preflight blocks `dryRun: true` archives as well as real ones (asserted by change.test.ts:4508).",
+          "why": "Defensible (a preview rendered by stale code is a stale preview), but it removes the ability to inspect what archive would do while the bundle is stale, which is exactly when an operator wants to look. Consider allowing dryRun with the staleness surfaced as a warning."
+        },
+        {
+          "id": "suggestion-2",
+          "label": "suggestion",
+          "file": "plugin/src/storage/store-temporal/read-context.ts",
+          "line": 178,
+          "what": "`subread.run` calls `runTemporalRead(undefined, ...)` — no `Connection`, so the 1500ms cap degrades to the retry wrapper's local race rather than SDK deadline/abort propagation.",
+          "why": "read-context.ts:167-172 documents that only a real Connection makes RPC cancellation authoritative. With `undefined`, a wedged enrichment keeps running in the background after the cap fires — response latency is bounded, resource consumption is not. Acceptable here, but worth an explicit comment so a future reader does not assume cancellation."
+        },
+        {
+          "id": "question-1",
+          "label": "question",
+          "file": "plugin/src/plugin-bundle-manifest.ts",
+          "line": 204,
+          "what": "DONT1 says 'Do not use OpenCode restart as the sole durable repair.' The preflight's only remediation string is 'Restart OpenCode to load the current plugin bundle.'",
+          "why": "Reading this as satisfied — the bounded-read work is the durable repair and restart is the genuinely correct action for a stale loaded bundle — but flagging for explicit user confirmation since it is the literal wording of an avoidance."
+        },
+        {
+          "id": "praise-1",
+          "label": "praise",
+          "file": "plugin/src/plugin-bundle-manifest.ts",
+          "line": 1,
+          "what": "The bundle-manifest module is well built: opaque pre-bundle generation token (never recomputed from final bytes), file hashes explicitly diagnostic-only, atomic temp+rename so concurrent readers never see a partial write, fail-closed schema validation, and `unknown` deliberately never blocking so dev/source runs stay usable.",
+          "why": "38 focused tests including the subtle 'mtime-preserving manifest change still reports stale' case. This is the strongest part of the change and cleanly satisfies AC4's mechanism."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Bounded-read wrappers that catch ALL errors conflate two different failure classes. If a subread runner records every failure as an 'unresponsive member', fast deterministic errors (ENOENT, parse failures) trip the circuit breaker and get reported as deadline/timeout degradations. Classify the error before feeding a circuit breaker or setting a `deadlineExceeded` flag — otherwise the typed classification added for diagnosability becomes actively misleading."
+        },
+        {
+          "type": "gotcha",
+          "content": "A regression test asserting 'no workflow calls were made' proves nothing if the test also mocks out every code path capable of making a workflow call. When writing negative-assertion tests for a read-path purity property, verify the mock surface does not include the exact function under suspicion — the assertion must be able to fail."
+        },
+        {
+          "type": "pattern",
+          "content": "Stale-bundle detection: emit an opaque generation token BEFORE bundling, embed it into the bundle via a build-time `define`, and record it in an atomic sidecar manifest written LAST (temp+rename). Compare embedded-vs-manifest generation at runtime. File content hashes stay diagnostic-only — generation equality is the staleness authority. This survives mtime-preserving deploys, which mtime comparison does not."
+        },
+        {
+          "type": "gotcha",
+          "content": "Nested timeout budgets silently become dead code. If an inner function defaults to a 5000ms total budget but every caller wraps it in a 1500ms cap, the inner degraded-result path is unreachable and its structured output shape never surfaces. When adding an outer bound, check whether it invalidates an inner one and either thread the remaining budget down or delete the inner layer."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/plugin-bundle-manifest.test.ts src/tools/change/clarify-readiness.test.ts src/tools/external-dependency-status.test.ts",
+          "bin/oc-test targeted -- src/tools/change.test.ts",
+          "pnpm run lint"
+        ],
+        "results": "pass",
+        "evidence": "Focused enrichment/manifest suites: 4 files, 40 tests passed (6.12s). change.test.ts: 1 file, 159 tests passed (12.71s). `pnpm run lint`: 0 errors, 3 pre-existing warnings in src/utils/manifest-frontmatter.ts (untouched by this change). All existing assertions are green — the blocking findings are correctness/coverage gaps the current suite does not assert, not test failures. Separately, `adv_change_show` with include flags returned ToolExecutionTimeout against the deployed (pre-fix) bundle during this review, reproducing the change's originating symptom; the fix is not yet deployed so this is not evidence against the branch."
+      },
+      "scope_drift": {
+        "items": [
+          "AC3",
+          "C4"
+        ],
+        "details": "AC3 requires routine change reads to issue no workflow queries or signals. `adv_change_show` still reaches `persistClarifyFindings`, which calls `store.changes.get()` + `store.changes.save()` — a Temporal mutation on a read path. The change bounded this to 1000ms rather than removing it. C4 ('must not ADD workflow signals or Temporal mutations to routine read paths') is not literally violated because the write pre-dates this change, but AC3 asserts a post-change property that is unmet. Closing AC3 requires changing clarify-findings persistence semantics (making show read-only, or relocating persistence to a mutation path) — a behavior change to a subsystem the agreement does not enumerate under Affected Components. Review was read-only per spawn scope; no edits were applied.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "risks": [
+        "Worst-case adv_change_show latency remains ~9.5s of bounded subread work plus unbounded pre/post disk work against a 10s tool ceiling — under 500ms margin, unproven by test. The originating timeout symptom may recur under load.",
+        "AC3's regression evidence is vacuous (mocks stub the paths under test), so a future regression reintroducing read-path Temporal writes will not be caught.",
+        "`hydrationStats.deadlineExceeded` can be reported for non-deadline failures, which will mislead operators and any downstream consumer of the shared `HydrationStats` shape.",
+        "Debug stderr output on every degraded subread will pollute plugin-host logs in production."
+      ],
+      "required_main_agent_actions": [
+        "Remove the `[DEBUG]` console.error at plugin/src/tools/change.ts:197 before release (prod-readiness-1). One-line fix; should not require reenter.",
+        "Decide AC3 disposition (ac3-1/ac3-2). Present the scope-drift finding to the user via Tier A inline approval per docs/scope-discovery-protocol.md: either (a) remove/defer the clarify persistence write so adv_change_show is genuinely read-only and strengthen the regression test, or (b) amend AC3 wording to permit bounded best-effort persistence.",
+        "On approve + reenter → adv_change_reenter fromGate: design (the clarify persistence change touches Affected Components), then re-run /adv-design → /adv-prep → resume /adv-review.",
+        "On split → adv_change_create parent_change_id: fixChangeReadTimeouts for the clarify read-path purity work, and record AC3 as fast-follow with evidence on this change.",
+        "Fix the typed-classification defects (ac2-1, ac2-2, contract-1): classify subread failure cause, gate `deadlineExceeded` and the circuit-breaker streak on genuine timeout/abort classes only, and give `omittedIds` a declared home in the HydrationStats contract rather than shipping untyped drift through Record<string, unknown>.",
+        "Preserve partial results in the external-dependency total-timeout path (ac1-1) so already-satisfied dependencies are not rewritten as warnings.",
+        "Attach hydrationStats to the artifactOnly early-return branch (ac1-2).",
+        "Add the design-mandated deterministic whole-show timeout test at the production 8000ms budget with all subreads wedged, asserting completion inside the 10s tool ceiling (ac5-1), and bring loadProposalForContext / normalize* / fileExists inside the shared deadline.",
+        "Confirm with the user that the restart-only remediation string satisfies DONT1 (question-1).",
+        "Do not archive until prod-readiness-1 and the AC3 disposition are resolved — acceptance gate should not complete on current evidence."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/plugin-bundle-manifest.test.ts src/tools/change/clarify-readiness.test.ts src/tools/external-dependency-status.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run lint"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeReadTimeouts",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+      "task_id": "tk-69d57f3fb757",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-69d57f3fb757"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.ts",
+        "plugin/src/types/responses.ts",
+        "plugin/src/tools/change/create-clarify.ts",
+        "plugin/src/tools/external-dependency-status.ts",
+        "plugin/src/tools/change-show-enrichment.test.ts",
+        "plugin/src/tools/change/clarify-readiness.test.ts",
+        "plugin/src/tools/external-dependency-status.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msce8s84_deaa7e55",
+          "command": "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/tools/change.test.ts",
+          "exit_code": 0,
+          "summary": "172 targeted tests pass after final subread timeout-vs-error fix"
+        },
+        {
+          "test_run_id": "tr_msce72jt_218bdac9",
+          "command": "bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Full unit suite passes"
+        },
+        {
+          "test_run_id": "tr_msce20zv_6e64c796",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas/typecheck/manifests/frontmatter/lint/format checks pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced production console.error in subread runner with logger.debug and only increment the circuit-breaker on TemporalQueryTimeoutError",
+          "why": "Genuine fast errors (ENOENT, parse) must not be classified as unresponsive members or trip the CB; only actual timeouts degrade the aggregate read."
+        },
+        {
+          "what": "Added optional persist flag to applyClarifyReadinessToChangeOutput and pass persist:false from adv_change_show",
+          "why": "AC3 requires no Temporal mutation on the read path while preserving persistence for non-read callers."
+        },
+        {
+          "what": "Aligned buildExternalDependencyStatus default per-item/total budgets to 1500ms and preserved partial results on total deadline",
+          "why": "The 2000/5000ms inner budgets were dead inside the 1500ms adv_change_show outer cap; preserving already-satisfied deps avoids incorrectly rewriting them as warnings."
+        },
+        {
+          "what": "Added omittedIds to HydrationStats and used omitted instead of boundedOmitted in the change-show subread runner",
+          "why": "boundedOmitted was overloaded for deadline/CB omission counts; a typed omittedIds field and omitted count eliminate Record<string, unknown> drift."
+        },
+        {
+          "what": "Attached hydrationStats in the artifactOnly branch before early return",
+          "why": "The degraded-read metadata must be surfaced for artifact-only output too."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reviewed change.ts, create-clarify.ts, external-dependency-status.ts, types/responses.ts, and all related tests for the same timeout/error/omission patterns; no additional instances found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All 9 acceptance blockers are remediated and verified. adv_change_show read path is now mutation-free (clarify persistence disabled), fast errors no longer trip the circuit breaker, external-dependency deadline preserves satisfied results, hydrationStats carries typed omittedIds, artifactOnly output includes hydrationStats, and new tests cover the production 8s deadline ceiling.",
+        "suggested_next_action": "Run the Temporal integration tier (bin/oc-test integration) if required for acceptance gate, then proceed to design/acceptance review."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-69d57f3fb757",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-69d57f3fb757"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msce8s84_deaa7e55"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msce72jt_218bdac9"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msce20zv_6e64c796"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixChangeReadTimeouts",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixChangeReadTimeouts",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git diff --check trunk...HEAD",
+          "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/change/clarify-readiness.test.ts src/tools/external-dependency-status.test.ts src/tools/change.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Diff is whitespace-clean and targeted suite passed: 4 files, 172 tests, exit 0 (6.82s). Source review confirms: read-path clarify calls use persist:false; circuit breaker records only TemporalQueryTimeoutError; omittedIds is typed separately from boundedOmitted; artifactOnly writes hydrationStats before returning; dependency deadline preserves assigned results; and the 8s fake-timer regression test exists."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Reviewed requested HEAD accb86a9e77fb1547870c323006b0931217794ec. Worktree is clean but 4 commits behind trunk; refresh/rebase remains an integration concern outside this fixed-head review."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check trunk...HEAD"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/change/clarify-readiness.test.ts src/tools/external-dependency-status.test.ts src/tools/change.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-611ccd97fac0": [
+      {
+        "runId": "tr_msc16qh6_a21ea344",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/tools/change.worker-free.test.ts src/tools/change-show-enrichment.test.ts",
+        "durationMs": 15957.807285994291,
+        "recordedAt": "2026-08-02T16:45:07.406Z"
+      },
+      {
+        "runId": "tr_msc17hw8_bb468de5",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/tools/change.worker-free.test.ts src/tools/change-show-enrichment.test.ts",
+        "durationMs": 8470.16823400557,
+        "recordedAt": "2026-08-02T16:45:42.810Z"
+      },
+      {
+        "runId": "tr_msc1887f_bf5d38b3",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts src/tools/status-enrich.test.ts",
+        "durationMs": 13869.874944001436,
+        "recordedAt": "2026-08-02T16:46:17.025Z"
+      }
+    ],
+    "tk-0f0ce5210959": [
+      {
+        "runId": "tr_mscaz9fr_b80f6a9e",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/change.test.ts src/tools/change-show-enrichment.test.ts",
+        "durationMs": 12911.277088999748,
+        "recordedAt": "2026-08-02T21:19:13.944Z"
+      },
+      {
+        "runId": "tr_mscb2uyv_a98d57a3",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test smoke",
+        "durationMs": 124323.56576000154,
+        "recordedAt": "2026-08-02T21:22:07.143Z"
+      }
+    ],
+    "tk-3921753af963": [
+      {
+        "runId": "tr_mscbm4vm_181959c0",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts --testNamePattern \"AC4: blocks archive release preflight\"",
+        "durationMs": 5213.16407699883,
+        "recordedAt": "2026-08-02T21:37:01.070Z"
+      },
+      {
+        "runId": "tr_mscbmmc0_1036d6eb",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/plugin-bundle-manifest.test.ts",
+        "durationMs": 1793.4883579909801,
+        "recordedAt": "2026-08-02T21:37:24.084Z"
+      },
+      {
+        "runId": "tr_mscbn62g_6855ce8a",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts --testNamePattern \"adv_change_archive\"",
+        "durationMs": 7083.392593994737,
+        "recordedAt": "2026-08-02T21:37:48.805Z"
+      },
+      {
+        "runId": "tr_mscbonyr_709972cc",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bash /tmp/opencode/red-preflight-run.sh",
+        "durationMs": 5204.864425003529,
+        "recordedAt": "2026-08-02T21:38:59.017Z"
+      },
+      {
+        "runId": "tr_mscbphvh_425f6f50",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts --testNamePattern \"AC4: blocks archive release preflight\"",
+        "durationMs": 5728.288506001234,
+        "recordedAt": "2026-08-02T21:39:38.257Z"
+      }
+    ],
+    "tk-55c8019ea464": [
+      {
+        "runId": "tr_msccthou_b060e50e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/change.test.ts src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/plugin-bundle-manifest.test.ts",
+        "durationMs": 8926.1158760041,
+        "recordedAt": "2026-08-02T22:10:43.767Z"
+      },
+      {
+        "runId": "tr_mscem7zl_8e5c03fc",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/change.test.ts src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/plugin-bundle-manifest.test.ts && pnpm --dir plugin run check && pnpm --dir plugin run build",
+        "durationMs": 140139.68066099286,
+        "recordedAt": "2026-08-02T23:01:04.249Z"
+      }
+    ],
+    "tk-69d57f3fb757": [
+      {
+        "runId": "tr_mscdut11_debf8449",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 12364.15884900093,
+        "recordedAt": "2026-08-02T22:39:44.742Z"
+      },
+      {
+        "runId": "tr_mscdxp5o_5aa664ad",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "pnpm test -- src/tools/change-show-enrichment.test.ts src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts",
+        "durationMs": 120090.78672198951,
+        "recordedAt": "2026-08-02T22:42:00.029Z"
+      },
+      {
+        "runId": "tr_mscdyfnw_0e201caf",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts",
+        "durationMs": 5401.627272993326,
+        "recordedAt": "2026-08-02T22:42:34.105Z"
+      },
+      {
+        "runId": "tr_mscdz0po_bd59c741",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.test.ts",
+        "durationMs": 9144.094379991293,
+        "recordedAt": "2026-08-02T22:43:02.508Z"
+      },
+      {
+        "runId": "tr_mscdzuve_696e8281",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/status-health-integration-blockers.test.ts src/tools/status-health-plan.ts src/tools/status.test.ts src/tools/status-execution.test.ts src/tools/status-hygiene.test.ts",
+        "durationMs": 20323.670969992876,
+        "recordedAt": "2026-08-02T22:43:40.800Z"
+      },
+      {
+        "runId": "tr_msce20zv_6e64c796",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 74161.98587098718,
+        "recordedAt": "2026-08-02T22:45:22.024Z"
+      },
+      {
+        "runId": "tr_msce72jt_218bdac9",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test full",
+        "durationMs": 219698.56959299743,
+        "recordedAt": "2026-08-02T22:49:16.810Z"
+      },
+      {
+        "runId": "tr_msce8s84_deaa7e55",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change-show-enrichment.test.ts src/tools/external-dependency-status.test.ts src/tools/change/clarify-readiness.test.ts src/tools/change.test.ts",
+        "durationMs": 10986.533977001905,
+        "recordedAt": "2026-08-02T22:50:37.491Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-02T01:19:44.498Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed the RCA-backed problem statement for change-read timeouts.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "57067037cdc8dd1e62b989bbd1407cf5db9cc3d493072a0b4f8fd19b5b98ae0d",
+        "non_whitespace_chars": 914,
+        "checked_at": "2026-08-02T01:19:00.009Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-02T01:35:40.619Z",
+      "completed_by": "agent",
+      "approval_evidence": "User-approved agreement and strict ChangeContract minted with 12 items. Discovery evidence is RCA-backed; internal workflow repair has no external alternative.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "non_whitespace_chars": 2217,
+        "checked_at": "2026-08-02T01:19:00.010Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-02T20:16:53.617Z",
+      "completed_by": "agent",
+      "approval_evidence": "Revised design incorporates rq-boundedAuthoritativeRead01 and validator caution: shared aggregate deadline across complete change-show composition, with whole-show deterministic timeout coverage. Validator PASS; researcher report transport unavailable but findings retained inline.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "062c3387d59c0299f9d3dd6450eb6ac66072d47282428dc5485b381be27e834f",
+        "non_whitespace_chars": 2379,
+        "checked_at": "2026-08-02T01:19:00.012Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-02T22:52:37.602Z",
+      "completed_by": "agent",
+      "approval_evidence": "Remediation task added to address acceptance review blockers (AC3 read-path persistence, vacuous test, dead budgets, misclassified errors, hydration stats typing, whole-show budget test, debug log)."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-02T22:52:51.719Z",
+      "completed_by": "agent",
+      "approval_evidence": "All implementation tasks done including remediation. Engineer evidence: 172 targeted tests + full unit + pnpm run check passed."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-02T22:57:40.276Z",
+      "completed_by": "user",
+      "approval_evidence": "Contract review matrix persisted (12 rows, 0 failing). Review attempt 2 READY; user previously authorized sub-agent delegation to complete the workflow including acceptance.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "5682ba56ec86286082887fbcedfadf5051467cd9688c3f77a08dfcc1a71e7974",
+        "non_whitespace_chars": 2009,
+        "checked_at": "2026-08-02T01:19:00.013Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+      "approvedAt": "2026-08-02T01:35:28.771Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Change reads remain useful during optional-enrichment or workflow delays.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Routine read behavior creates no new Temporal traffic or workflow signals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given slow optional enrichment, when `adv_change_show` runs, then it returns authoritative disk projection plus bounded unavailable warnings.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show"
+        ],
+        "variant": {
+          "kind": "behavioral",
+          "context": "slow optional enrichment",
+          "trigger": "`adv_change_show` runs",
+          "outcome": "it returns authoritative disk projection plus bounded unavailable warnings"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a Temporal operation exceeds its own deadline, when the read responds, then callers receive typed/degraded classification rather than only generic tool timeout.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a Temporal operation exceeds its own deadline",
+          "trigger": "the read responds",
+          "outcome": "callers receive typed/degraded classification rather than only generic tool timeout"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given routine change reads, when authoritative disk projection exists, then they do not issue workflow queries or signals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_change_show"
+        ],
+        "variant": {
+          "kind": "behavioral",
+          "context": "routine change reads",
+          "trigger": "authoritative disk projection exists",
+          "outcome": "they do not issue workflow queries or signals"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given stale loaded-plugin evidence, when release proof depends on current behavior, then release blocks until the loaded bundle is current.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "stale loaded-plugin evidence",
+          "trigger": "release proof depends on current behavior",
+          "outcome": "release blocks until the loaded bundle is current"
+        }
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Evidence: timeout ordering, optional-enrichment isolation, disk-only reads, and stale-bundle release handling via automated regression tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "evidence",
+          "subject": "timeout ordering, optional-enrichment isolation, disk-only reads, and stale-bundle release handling",
+          "method": "automated regression tests"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must keep health diagnostics global; no per-change workflow probe is added.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must keep health diagnostics global; no per-change workflow probe is added"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must not raise all tool timeouts indiscriminately.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not raise all tool timeouts indiscriminately"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must not fold this repair into `fixTaskUpdatePersistence`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not fold this repair into `fixTaskUpdatePersistence`"
+        }
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Must not add workflow signals or Temporal mutations to routine read paths.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not add workflow signals or Temporal mutations to routine read paths"
+        }
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not use OpenCode restart as the sole durable repair.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "7c4ebb3ecdd830770e670dccd44a785ee4286b2d32a2f7be89d0aa3bcaa3d86e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-02T22:57:24.746Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "199 focused tests tr_msccthou_b060e50e; bounded enrichment preserves disk projection and same-shape warnings; review attempt 2 READY."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Shared aggregate deadline produces typed hydrationStats/omittedIds on exhaustion; fast errors distinguished from timeouts; review attempt 2 READY."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "assertNoWorkflowCalls now exercises real paths; persistClarifyFindings no longer mutates from read path (persist: false); review attempt 2 READY."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT preflight refuses strictly stale loaded bundle; current/unknown never blocks."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Whole-show 8s budget test plus focused suites cover all four scenarios; pnpm run check and pnpm run build green."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No per-change doctor probe introduced."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No global tool timeout raised."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Separate ADV change from fixTaskUpdatePersistence."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Read path performs no workflow save/query/signal; clarify persistence display-only."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Stale-bundle guard is a structural preflight, not a restart-only remedy."
+        },
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Disk-authoritative read remains useful under slow enrichment."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "No new Temporal traffic or signals from routine reads."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given slow optional enrichment, when `adv_change_show` runs, then it returns authoritative disk projection plus bounded unavailable warnings.",
+    "Given a Temporal operation exceeds its own deadline, when the read responds, then callers receive typed/degraded classification rather than only generic tool timeout.",
+    "Given routine change reads, when authoritative disk projection exists, then they do not issue workflow queries or signals.",
+    "Given stale loaded-plugin evidence, when release proof depends on current behavior, then release blocks until the loaded bundle is current.",
+    "Evidence: timeout ordering, optional-enrichment isolation, disk-only reads, and stale-bundle release handling via automated regression tests."
+  ],
+  "documents": {
+    "proposal": "# Proposal: Fix change read timeouts\n\n## Outcome\n\nMake change reads bounded and diagnosable: a slow change-specific workflow or dependency cannot hide behind a generic 10-second timeout or block release proof without typed evidence.\n\n## Intended acceptance targets\n\n1. A Temporal query that exceeds its configured operation deadline returns a typed/degraded result before the outer tool timeout masks it.\n2. `adv_change_show` completes with authoritative disk state plus bounded warnings when optional dependency/clarify enrichment is slow or unavailable.\n3. Health diagnostics can distinguish global worker health from a non-responsive change-specific workflow/read path.\n4. Routine change reads continue to avoid workflow queries when disk projection is authoritative.\n5. Regression tests cover timeout ordering, slow optional enrichment, and diagnostic classification.\n\n## Non-goals\n\n- Increasing every tool timeout indiscriminately.\n- Folding this infrastructure repair into the task-update persistence change.\n- Treating restarts as the sole durable repair.",
+    "problemStatement": "# Problem statement\n\n`adv_change_show` can exceed the outer 10-second tool timeout for a specific change even while `adv_doctor` reports the worker, queue, and server healthy. This blocks authoritative release-note read-back and release completion.\n\n## Root Cause Analysis\n\n### Confirmed structural defects\n\n1. The global outer tool timeout is 10 seconds while the Temporal query timeout is 15 seconds. A slow query is therefore masked as generic `ToolExecutionTimeout` before typed Temporal timeout and disk-degradation handling can run.\n2. `adv_doctor` does not probe query responsiveness for an individual change workflow, so it reports healthy while a single change path can be wedged.\n\n### Candidate mechanisms needing isolation\n\n- A stale in-memory plugin generation may still issue older Temporal-backed reads despite the deployed disk-authoritative read path.\n- Unbounded external-dependency status work or clarify persistence can run from the shared change-show path and wait on a slow foreign source or workflow signal.\n- Failed workflow describe probes can avoid poisoned-workflow classification and allow later operations to hang.\n\n### Evidence\n\nLocal source trace: `safe-execute.ts` timeout race; Temporal shared query cap; `change.ts` show path; external-dependency and clarify persistence helpers; doctor health checks. Plain and include-flag `adv_change_show` calls both timed out at 10 seconds; unrelated ADV tools and doctor completed.\n\n## Boundaries\n\n- Do not weaken general tool timeout safeguards globally without bounded per-tool analysis.\n- Do not add workflow signals to read paths.\n- Keep disk-authoritative routine reads and existing worker-free projection behavior.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Preserve the best authoritative change data when optional enrichment or workflow work is slow, without disturbing Temporal.\n2. Make timeout results typed and diagnosable without expanding global health diagnostics into per-change probes.\n3. Ensure release proof does not rely on a stale loaded plugin bundle.\n\n## Success Criteria\n\n1. Change reads remain useful during optional-enrichment or workflow delays.\n2. Routine read behavior creates no new Temporal traffic or workflow signals.\n\n## Acceptance Criteria\n\n1. Given slow optional enrichment, when `adv_change_show` runs, then it returns authoritative disk projection plus bounded unavailable warnings. [warrant: tool:adv_change_show]\n2. Given a Temporal operation exceeds its own deadline, when the read responds, then callers receive typed/degraded classification rather than only generic tool timeout.\n3. Given routine change reads, when authoritative disk projection exists, then they do not issue workflow queries or signals. [warrant: tool:adv_change_show]\n4. Given stale loaded-plugin evidence, when release proof depends on current behavior, then release blocks until the loaded bundle is current.\n5. Evidence: timeout ordering, optional-enrichment isolation, disk-only reads, and stale-bundle release handling via automated regression tests.\n\n## Constraints\n\n1. Must keep health diagnostics global; no per-change workflow probe is added.\n2. Must not raise all tool timeouts indiscriminately.\n3. Must not fold this repair into `fixTaskUpdatePersistence`.\n4. Must not add workflow signals or Temporal mutations to routine read paths.\n\n## Avoidances\n\n1. Do not use OpenCode restart as the sole durable repair.\n\n## Preview Applicability\n\nvisual_surface: false\npreview_expectation: exact_route_required: not_applicable; data_state_expectation: not_applicable; viewport_expectation: not_applicable.\nRationale: internal tool and workflow behavior has no browser-visible surface.\n\n## Decisions\n\n### User Decisions\n\n- Return the best available authoritative data without disturbing Temporal when enrichment is slow.\n- Keep diagnostics global rather than adding change-specific health probes.\n- Apply long-term best practice to stale loaded-plugin behavior; release proof must not rely on stale runtime code.\n\n### Agent Decisions (LBP)\n\n- Bound optional enrichment independently from disk-authoritative reads.\n- Preserve default tool-timeout safeguards while ensuring operation-level timeout classification can surface first.\n- Read path computes clarify findings for display only; persistence is reserved for non-read callers.\n\n## Sign-Off\n\nUser approved criteria and agreement on 2026-08-02. Remediation persisted 2026-08-02 after acceptance review identified AC3 read-path mutation; preserved as design-derived LBP note.",
+    "design": "# Design\n\n## Architecture Overview\n\nUse the existing bounded-authoritative-read architecture: disk projection remains the authoritative core; bounded member hydration and optional enrichment degrade with typed warnings. No routine read raises timeout ceilings, queries a workflow, or emits a workflow signal.\n\n## Key Decisions\n\n1. Reuse `TemporalReadContext` and `convergent-read-disk-authoritative` behavior rather than create a change-show-specific timeout ceiling.\n2. Enforce the existing bounded 8-second read envelope, including 1500ms per-member caps, bounded hydration concurrency, and circuit breaking after three unresponsive members.\n3. Thread one aggregate deadline across the composed `adv_change_show` operation; every optional sub-read consumes only remaining budget and cannot independently spend a fresh 8 seconds.\n4. Bound advisory external dependency/clarify enrichment so it cannot consume the core read budget; preserve same-shape warning output.\n5. Keep doctor global-only; no per-change probe.\n6. Block release when loaded plugin generation is stale, without making restart the sole repair.\n\n## Implementation Strategy\n\n1. Complete bounded optional-enrichment isolation already checkpointed in task 1.\n2. Replace timeout-ceiling work with shared-deadline propagation from change-show composition into read-context and enrichment calls.\n3. Add deterministic full-show tests under wedged member/enrichment fixtures, asserting complete response within the tool ceiling plus 1500ms member cap, circuit breaker, and typed omissions.\n4. Add stale bundle preflight guard and focused verification.\n\n## Affected Components\n\nChange-show composition, read-context/deadline propagation, convergent projection/hydration, external/clarify enrichment, archive hydration tests, and archive release preflight.\n\n## Design-Derived Criteria\n\n- 8-second bounded authoritative read envelope.\n- One aggregate budget for full composed show.\n- 1500ms cap per hydration member.\n- Circuit breaker after three unresponsive members.\n- Routine reads perform no workflow query/signal.\n- Omitted members return typed degradation, not generic timeout.\n\n## Risks / Mitigations\n\n- Partial data: authoritative disk projection plus explicit omissions.\n- Archive fan-out: bounded concurrency and member-level caps.\n- Composed-budget regression: deterministic whole-show timeout test.\n- Stale runtime: release preflight refusal with remediation.\n\n## Validation\n\nIndependent validator: PASS with one adopted caution. The composed show must share one aggregate deadline; this design and the corrected task plan require deterministic whole-show coverage. The validator report transport was unavailable for the researcher lane, so findings were retained inline.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nADV change reads now return authoritative disk projection with bounded, typed degradation when optional enrichment or workflow operations are slow, instead of stalling behind a generic tool timeout. Release preflight also refuses a stale loaded plugin bundle.\n\n## Why It Matters\n\nOperators can trust `adv_change_show` and release proof even when a single workflow is wedged — the disk-authoritative core returns with named omissions, and release cannot complete against a runtime that does not match deployed code.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. `adv_change_show` threads one shared 8s `TemporalReadContext` aggregate deadline through every sub-read; optional sub-reads consume remaining budget and skip with typed `hydrationStats` on exhaustion.\n2. Optional external-dependency and clarify enrichment is bounded and concurrency-capped; clarify findings are computed display-only on read path (no `store.changes.save()`), preserving same-shape warnings.\n3. Fast errors no longer trip the circuit breaker; only genuine timeouts do.\n4. `omittedIds` typed field added; `artifactOnly` early-return attaches `hydrationStats`.\n5. Release preflight refuses archive with `PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT` when the loaded bundle generation is strictly stale; current/unknown never blocks.\n\n## What Was Verified\n\n- Verdict: APPROVED with prior BLOCKED remediated (review attempt 2 READY).\n- Tests: 199 focused tests (tr_msccthou_b060e50e); remediation added 172 targeted; full unit suite + pnpm run check + pnpm run build all green.\n- Preview URL: not_applicable (no browser-visible surface).\n- Contract matrix: AC1-AC5 pass, C1-C4 respected, DONT1 respected.\n\n## Remaining Concerns\n\n- Worktree is 4 commits behind trunk; release preflight requires rebase + post-rebase verification before archive.\n- Live host `adv_change_show` was observed timing out against the pre-fix deployed bundle; deploy/restart required to observe the fix in live runtime.\n\n## Supporting Evidence\n\n- Tasks: tk-611ccd97fac0 (enrichment), tk-0f0ce5210959 (shared deadline), tk-3921753af963 (bundle preflight), tk-69d57f3fb757 (remediation), tk-55c8019ea464 (verification).\n- Review reports: attempt 1 BLOCKED → attempt 2 READY.\n- Test runs: tr_msccthou_b060e50e (199), plus engineer durable runs for remediation.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-02T22:57:24.746Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Change reads remain useful during optional-enrichment or workflow delays. | pass | Disk-authoritative read remains useful under slow enrichment. |\n| SC2 | success_criterion | Routine read behavior creates no new Temporal traffic or workflow signals. | pass | No new Temporal traffic or signals from routine reads. |\n| AC1 | acceptance_criterion | Given slow optional enrichment, when `adv_change_show` runs, then it returns authoritative disk projection plus bounded unavailable warnings. | pass | 199 focused tests tr_msccthou_b060e50e; bounded enrichment preserves disk projection and same-shape warnings; review attempt 2 READY. |\n| AC2 | acceptance_criterion | Given a Temporal operation exceeds its own deadline, when the read responds, then callers receive typed/degraded classification rather than only generic tool timeout. | pass | Shared aggregate deadline produces typed hydrationStats/omittedIds on exhaustion; fast errors distinguished from timeouts; review attempt 2 READY. |\n| AC3 | acceptance_criterion | Given routine change reads, when authoritative disk projection exists, then they do not issue workflow queries or signals. | pass | assertNoWorkflowCalls now exercises real paths; persistClarifyFindings no longer mutates from read path (persist: false); review attempt 2 READY. |\n| AC4 | acceptance_criterion | Given stale loaded-plugin evidence, when release proof depends on current behavior, then release blocks until the loaded bundle is current. | pass | PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT preflight refuses strictly stale loaded bundle; current/unknown never blocks. |\n| AC5 | acceptance_criterion | Evidence: timeout ordering, optional-enrichment isolation, disk-only reads, and stale-bundle release handling via automated regression tests. | pass | Whole-show 8s budget test plus focused suites cover all four scenarios; pnpm run check and pnpm run build green. |\n| C1 | constraint | Must keep health diagnostics global; no per-change workflow probe is added. | respected | No per-change doctor probe introduced. |\n| C2 | constraint | Must not raise all tool timeouts indiscriminately. | respected | No global tool timeout raised. |\n| C3 | constraint | Must not fold this repair into `fixTaskUpdatePersistence`. | respected | Separate ADV change from fixTaskUpdatePersistence. |\n| C4 | constraint | Must not add workflow signals or Temporal mutations to routine read paths. | respected | Read path performs no workflow save/query/signal; clarify persistence display-only. |\n| DONT1 | avoidance | Do not use OpenCode restart as the sole durable repair. | respected | Stale-bundle guard is a structural preflight, not a restart-only remedy. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-02T01:19:00.052Z",
+      "contentHash": "57067037cdc8dd1e62b989bbd1407cf5db9cc3d493072a0b4f8fd19b5b98ae0d",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-02T01:19:00.052Z",
+      "contentHash": "cb7d5fc805743474e65fabbea585c54e6e44305a08b3a6aa387cad41a4fb5002",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-02T22:56:30.330Z",
+      "contentHash": "2f4919535587fac73a1122127bba53edab4dc65b9bf89250e1b0f9c4bccdc2d7",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-02T20:16:39.764Z",
+      "contentHash": "062c3387d59c0299f9d3dd6450eb6ac66072d47282428dc5485b381be27e834f",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-02T22:56:49.586Z",
+      "contentHash": "5682ba56ec86286082887fbcedfadf5051467cd9688c3f77a08dfcc1a71e7974",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-08-02T15:41:03.037Z"
+    }
+  ],
+  "reentry_history": [
+    {
+      "from_gate": "design",
+      "reason": "New spec evidence rq-boundedAuthoritativeRead01 prohibits raising timeout ceilings and requires bounded 8s typed degradation with existing disk-authoritative/read-context mechanisms.",
+      "scope_delta": "Replace any per-tool timeout ceiling adjustment with bounded read-context/degradation work; add coverage for 1500ms member cap, circuit breaker, and archive hydration omissions.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-08-02T16:48:31.095Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    },
+    {
+      "from_gate": "planning",
+      "reason": "Acceptance review identified AC3 violation and coverage gaps not captured by original task graph; add remediation task before re-execution.",
+      "scope_delta": "Read-path clarify persistence must be display-only; add AC3 evidence test; fix dead budgets, fast-error misclassification, hydration stats typing, artifactOnly hydrationStats, whole-show production-budget test, debug log removal.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-08-02T22:21:33.878Z",
+      "gates_reset": [
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-02T23:01:04.249Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "release-note-readback-timeout-rca"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "adv_change_show returns bounded typed degradation under slow enrichment or wedged workflows",
+    "highlights": [
+      "Shared 8s aggregate deadline threads through full composed change-show read",
+      "Optional external-dependency/clarify enrichment bounded and concurrency-capped; read path no longer mutates",
+      "Stale loaded plugin bundle blocks release preflight"
+    ],
+    "area": "ADV bounded authoritative reads",
+    "user_action_required": false
+  },
+  "creation_request_hash": "cded8e211e5ee56ac00bf6792721cbcbf9b32f54db76916dd9f14f006d18e28d",
+  "projection_revision": 59,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-02T15:48:45.241Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-02T16:16:37.829Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-02T16:16:47.370Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-02T16:17:11.965Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-02T16:17:40.052Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-02T16:18:00.653Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-02T16:19:12.373Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-02T16:20:05.742Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-02T16:46:37.328Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-02T16:46:41.083Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-02T16:48:02.218Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-02T16:48:31.727Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "5ed36dbc0b778e0207d3ca5ed2b685a4228f7090bf76d81d292acf92796b1e98:updateArtifacts:design",
+      "operation_id": "5ed36dbc0b778e0207d3ca5ed2b685a4228f7090bf76d81d292acf92796b1e98:updateArtifacts:design",
+      "payload_hash": "97d5c75553fbe563138489fb39d7687a4aa248df91c74736378fde55c1b8f8a1",
+      "state_revision": 7,
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-02T20:06:28.830Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "328de47de6cdc6c467dac819d6e0083c5c537ce7f1bd517d4a5ecbad822dc6a1:updateArtifacts:design",
+      "operation_id": "328de47de6cdc6c467dac819d6e0083c5c537ce7f1bd517d4a5ecbad822dc6a1:updateArtifacts:design",
+      "payload_hash": "c7e17beb207a1b5ab92ddfd856e8e1a2febc7af44ebccd7924e0f04265e56ce8",
+      "state_revision": 8,
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-02T20:16:40.012Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-02T20:16:53.798Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-02T20:21:25.501Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-02T20:21:53.218Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-02T20:23:40.404Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-02T20:24:38.691Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-02T20:25:33.157Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-02T20:25:52.971Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-02T21:19:33.512Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-02T21:22:33.532Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-02T21:22:41.504Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-02T21:23:30.161Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-02T21:23:50.147Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-02T21:45:23.386Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-02T21:45:27.421Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-02T21:46:03.022Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-02T22:02:16.804Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-02T22:07:46.310Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-02T22:10:58.692Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-02T22:20:28.631Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-02T22:20:30.963Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-02T22:21:34.025Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-02T22:22:12.418Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-02T22:22:29.467Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-08-02T22:51:35.474Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-08-02T22:51:38.752Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-08-02T22:52:18.303Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-08-02T22:52:37.788Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-08-02T22:52:51.886Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-08-02T22:56:05.336Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-08-02T22:56:08.490Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "aaf300fa10b9f7c71b059097577136d6126077b294f52aa8e4b8d03a48ee9cd0:updateArtifacts:agreement",
+      "operation_id": "aaf300fa10b9f7c71b059097577136d6126077b294f52aa8e4b8d03a48ee9cd0:updateArtifacts:agreement",
+      "payload_hash": "c4733271d10a400c99add44aec68d615a3d3fb0fd1f2693e89d45e8afbdafe88",
+      "state_revision": 9,
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-08-02T22:56:30.497Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "eed0fd41498c30b747c950df12cb5ab62971ca062954c230fe1ada6ab672f0cc:updateArtifacts:executiveSummary",
+      "operation_id": "eed0fd41498c30b747c950df12cb5ab62971ca062954c230fe1ada6ab672f0cc:updateArtifacts:executiveSummary",
+      "payload_hash": "a7c457e8e26bc6f776af661d78f13d7ee67e1a0dd5a8e67963512262a9ae0272",
+      "state_revision": 10,
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-08-02T22:56:49.745Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "28b2d114d35427489ae72e1ff14f340d7faf2a7b445070d3b0cb552cdc62a7a9:releaseNotesSet",
+      "operation_id": "28b2d114d35427489ae72e1ff14f340d7faf2a7b445070d3b0cb552cdc62a7a9:releaseNotesSet",
+      "payload_hash": "be32b92f45abfb5d3678720a24d146c4e3d9afa5846e5e45ec7ed751f6d29f07",
+      "state_revision": 11,
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-08-02T22:57:06.067Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785711444800_8kih5ohe",
+      "prior_revision": 56,
+      "new_revision": 57,
+      "committed_at": "2026-08-02T22:57:25.052Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-02T22:57:24.746Z",
+          "rows": [
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "199 focused tests tr_msccthou_b060e50e; bounded enrichment preserves disk projection and same-shape warnings; review attempt 2 READY."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Shared aggregate deadline produces typed hydrationStats/omittedIds on exhaustion; fast errors distinguished from timeouts; review attempt 2 READY."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "assertNoWorkflowCalls now exercises real paths; persistClarifyFindings no longer mutates from read path (persist: false); review attempt 2 READY."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT preflight refuses strictly stale loaded bundle; current/unknown never blocks."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Whole-show 8s budget test plus focused suites cover all four scenarios; pnpm run check and pnpm run build green."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "No per-change doctor probe introduced."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "No global tool timeout raised."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Separate ADV change from fixTaskUpdatePersistence."
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Read path performs no workflow save/query/signal; clarify persistence display-only."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Stale-bundle guard is a structural preflight, not a restart-only remedy."
+            },
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "Disk-authoritative read remains useful under slow enrichment."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "No new Temporal traffic or signals from routine reads."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-02T22:57:24.800Z",
+        "mutationReceiptId": "mrec_1785711444800_8kih5ohe"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 57,
+      "new_revision": 58,
+      "committed_at": "2026-08-02T22:57:40.458Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixChangeReadTimeouts",
+      "prior_revision": 58,
+      "new_revision": 59,
+      "committed_at": "2026-08-02T23:01:12.868Z"
+    }
+  ],
+  "state_revision": 11,
+  "_source": "disk"
+}

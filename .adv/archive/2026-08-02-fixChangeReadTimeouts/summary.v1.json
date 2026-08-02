@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-02T23:01:33.750Z",
+  "capabilities": [],
+  "change_hash": "a7ec3cff0c073d721bb54cbbd23d4aaeaaced2e2725e813bab5be21dffffe4ab",
+  "change_id": "fixChangeReadTimeouts",
+  "completed_tasks": 5,
+  "created_at": "2026-08-02T01:18:59.881Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-02T22:57:40.276Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "f03681e414192995f5c2ae5cdbb93d9562e4dcda9ebb0d445bb1813e785c41a8",
+  "task_count": 7,
+  "title": "Fix change read timeouts",
+  "version": "1"
+}

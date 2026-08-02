@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixChangeReadTimeouts",
+  "title": "Fix change read timeouts",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "adv_change_show returns bounded typed degradation under slow enrichment or wedged workflows",
+    "highlights": [
+      "Shared 8s aggregate deadline threads through full composed change-show read",
+      "Optional external-dependency/clarify enrichment bounded and concurrency-capped; read path no longer mutates",
+      "Stale loaded plugin bundle blocks release preflight"
+    ],
+    "area": "ADV bounded authoritative reads",
+    "user_action_required": false
+  }
+}
