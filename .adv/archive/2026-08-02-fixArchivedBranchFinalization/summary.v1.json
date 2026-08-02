@@ -1,0 +1,25 @@
+{
+  "archived_at": "2026-08-02T22:47:20.505Z",
+  "capabilities": [],
+  "change_hash": "a08f89b1c1c8c0cc4b9e0d9e4c168ab14ad2851a441732d8ed48f7172f33ea51",
+  "change_id": "fixArchivedBranchFinalization",
+  "completed_tasks": 2,
+  "created_at": "2026-07-31T19:22:53.093Z",
+  "current_gate": "release",
+  "epic_membership": {
+    "entry_id": "change-1785533232224-vb76gq",
+    "epic_id": "advInfrastructureHealth",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "linked_at": "2026-07-31T21:27:12.224Z",
+    "order": 5,
+    "source": "link_existing",
+    "title": "Fix archived branch finalization"
+  },
+  "last_activity_at": "2026-08-02T22:45:41.743Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "1c7f50cae9cdddd8fe59d1adb71521b148a07ef051c0810234e6f1c95f58696c",
+  "task_count": 2,
+  "title": "Fix archived branch finalization",
+  "version": "1"
+}

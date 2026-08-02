@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixArchivedBranchFinalization",
+  "title": "Fix archived branch finalization",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive finalization survives change-branch cleanup via persisted change-tip proof.",
+    "highlights": [
+      "Change tip is captured before any merge/delete path and used for fail-closed reachability re-proof."
+    ],
+    "area": "archive workflow"
+  }
+}

@@ -1,0 +1,1584 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchivedBranchFinalization",
+  "title": "Fix archived branch finalization",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-31T19:22:53.093Z",
+  "tasks": [
+    {
+      "id": "tk-0166f71f4b44",
+      "title": "Persist and re-prove archived change tips",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-31T19:56:03.834Z",
+      "started_at": "2026-07-31T20:45:13.094Z",
+      "completed_at": "2026-08-02T22:45:41.743Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Harden remediation: change-tip capture moved after archive-artifact commit and threaded into PR paths. Durable run tr_msce1zu9_b6613ee1 passed 231 tests; plugin check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "3b3b9910bb9ee8f62347cfa7075cba2be75dfca8",
+      "completedAt": "2026-08-02T22:45:41.743Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivedBranchFinalization",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization",
+          "task_id": "tk-0166f71f4b44",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-0166f71f4b44"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts"
+          ],
+          "verification": [
+            {
+              "run_id": "oc-test-red-2026-07-31T17:12:19-git-finalize.test.ts",
+              "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization/bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 1,
+              "summary": "RED: new no_remote + deleted branch + changeTipSha test failed before fix (route lacked tree-SHA fallback)"
+            },
+            {
+              "run_id": "oc-test-green-2026-07-31T17:15:41-phase9-archive-gate",
+              "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization/bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 242 tests passed after fix (includes no_remote tree re-proof, changeTipSha capture/persistence)"
+            },
+            {
+              "run_id": "oc-test-green-2026-07-31T17:24:24-archive-related",
+              "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization/bin/oc-test targeted -- src/tools/change.test.ts src/tools/gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.archive-convergence.test.ts src/tools/change.workflow-terminate.test.ts src/tools/change.archive-phase9.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "520 related tests passed (archive finalization, release gate, convergence)"
+            },
+            {
+              "run_id": "oc-test-check-2026-07-31T17:25:00",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas, typecheck, manifests, frontmatter, test-isolation, lockfile, lint, format all pass (3 pre-existing eslint warnings in manifest-frontmatter.ts)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Captured changeTipSha from change/{id} in finalizeRelease before any merge/cleanup",
+              "why": "Provides a content-addressed tip that survives branch deletion and enables no_remote tree re-proof"
+            },
+            {
+              "what": "Added changeTipSha to GitFinalizeOutcome and threaded it through shipped/pending_merge returns",
+              "why": "So change.ts/archive-gate.ts can persist the tip through phase9_status"
+            },
+            {
+              "what": "Added tree-SHA fallback only in the no_remote branch of resolveReleaseReachability",
+              "why": "direct/PR routes already had a fallback; the task was to close the no_remote gap while remaining fail-closed"
+            },
+            {
+              "what": "Preserved changeTipSha in done/pending_merge phase9_status and recovered convergence",
+              "why": "Durable evidence must survive archive status transition and disk-projection recovery"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Branch-cleanup reachability repair implemented: changeTipSha is now captured from change/{id} in finalizeRelease, threaded through all shipped/pending_merge outcomes, persisted in phase9_status, and used as a fail-closed tree-SHA fallback in the no_remote route of resolveReleaseReachability. All focused tests (242) and related archive/gate tests (520) pass; pnpm run check passes (pre-existing eslint warnings only).",
+            "suggested_next_action": "Main orchestrator should run checkpoint and complete the task; no further engineering work is required."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: oc-test-red-2026-07-31T17:12:19-git-finalize.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: oc-test-green-2026-07-31T17:15:41-phase9-archive-gate"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: oc-test-green-2026-07-31T17:24:24-archive-related"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: oc-test-check-2026-07-31T17:25:00"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-019e2e054cf2",
+      "title": "Verify archived-branch finalization regression",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0166f71f4b44"
+        }
+      ],
+      "created_at": "2026-07-31T20:01:55.716Z",
+      "started_at": "2026-07-31T21:35:27.973Z",
+      "completed_at": "2026-07-31T21:36:26.332Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Durable verification tr_ms9gp6zx_cbb668d9 passed: focused archive finalization, phase-9 persistence, and archive-gate tests. Independent verifier also passed 205 focused + 270 related tests, TypeScript, and ESLint.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "0fae76b6db1c3c7f4e333afac4631adb6e7b7ee0",
+      "completedAt": "2026-07-31T21:36:26.332Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBranchFinalization",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:archived-branch-finalization-fallback"
+      },
+      "agent": "adv-researcher",
+      "topic": "Archive finalization reachability re-proof after change branch/worktree cleanup",
+      "sources": [
+        {
+          "label": "verifyChangeBranchReachable (branch-ref-dependent proof)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1018-1037",
+          "summary": "Reachability proof uses `git log ${defaultBranch}..change/${changeId}`. Returns reachable:false on any non-zero git exit. Requires the change/{id} branch ref to exist."
+        },
+        {
+          "label": "verifyChangeBranchReachableFromOrigin (branch-ref-dependent)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1039-1066",
+          "summary": "Uses `origin/${defaultBranch}..change/${changeId}`. Same branch-ref dependency."
+        },
+        {
+          "label": "resolveReleaseReachability no_remote route — NO structural fallback",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2605-2629",
+          "summary": "no_remote branch calls ONLY verifyChangeBranchReachable; on failure returns proof local_unmerged. Unlike direct (2697-2712) and PR routes (2779-2793), there is NO detectSquashMergeByTree fallback. A cleaned-up branch ref cannot be re-proven shipped."
+        },
+        {
+          "label": "resolveReleaseReachability direct route tree fallback (changeTipSha-gated)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2697-2712",
+          "summary": "Calls detectSquashMergeByTree with changeTipSha threaded. Survives branch deletion ONLY if input.changeTipSha is provided."
+        },
+        {
+          "label": "resolveReleaseReachability PR-route tree fallback (changeTipSha-gated)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2779-2793",
+          "summary": "Same changeTipSha-gated detectSquashMergeByTree, guarded by `if (input.changeTipSha)`."
+        },
+        {
+          "label": "detectSquashMergeByTree — content-addressed, 50-commit window",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1421-1467",
+          "summary": "tipRef = deps.changeTipSha ?? change/{id} (line 1436). Scans last 50 trunk commits comparing tree SHAs. Squash-merge-safe. Bounded to 50 commits (line 1450) — deep history may miss."
+        },
+        {
+          "label": "Phase9FinalizationStatusSchema declares changeTipSha, NOT mergeCommitSha",
+          "locator": "plugin/src/types/changes.ts:1095-1118",
+          "summary": "changeTipSha declared (line 1117) with SC1 comment 'captured at archive dispatch time... survive branch deletion'. mergeCommitSha is NOT in the schema. This is the intended branch-deletion-survival field."
+        },
+        {
+          "label": "changeTipSha is NEVER WRITTEN by production code (ROOT CAUSE)",
+          "locator": "plugin/src/tools/change.ts:619-634",
+          "summary": "phase9Done is built via preservePhase9Evidence(latest.phase9_status, {...}) and sets status/startedAt/completedAt/route/prNumber/prUrl/mergeCommitSha/autoMergeArmed but OMITS changeTipSha. preservePhase9Evidence only carries changeTipSha FORWARD from a previous value that is always undefined. No capture site exists anywhere. Confirmed by exhaustive grep: all other refs are reads/threading/preservations or test fixtures."
+        },
+        {
+          "label": "changeTipSha read/thread sites (consumers of the never-set value)",
+          "locator": "plugin/src/tools/gate.ts:482,511; plugin/src/tools/change/archive-gate.ts:387-388,794; plugin/src/archive/historical-repair.ts:116-123",
+          "summary": "All consumers read phase9_status?.changeTipSha (always undefined) and thread it into resolveReleaseReachability/detectSquashMergeByTree. The tree fallbacks are dead in production."
+        },
+        {
+          "label": "verifyReleaseEvidenceFromMain — existing-bundle re-proof entry point",
+          "locator": "plugin/src/tools/change/archive-gate.ts:763-800",
+          "summary": "Re-derives release proof from main checkout when worktree is gone. Calls resolveReleaseReachability with changeTipSha (always undefined). For a no_remote change with deleted branch → local_unmerged → blocked. The exact reported failure."
+        },
+        {
+          "label": "finalizeRelease no_remote fast path returns shipped directly",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:3392-3404",
+          "summary": "Primary archive path returns shipped from in-band mergeCommitSha WITHOUT calling resolveReleaseReachability. So first-time no_remote archive works; only re-proof/retry/doctor fails."
+        },
+        {
+          "label": "Archive retry + projection-proof re-derivation paths",
+          "locator": "plugin/src/tools/change.ts:4284-4293,4628-4635",
+          "summary": "When in-band finalization is unavailable, proofOutcome = verifyReleaseEvidenceFromMain(...). If status!==shipped || !releasedCommitSha → hard failure 'cannot prove accepted delta projection'. This is where the re-proof gap surfaces to users."
+        },
+        {
+          "label": "deleteChangeBranch — the cleanup that removes the ref",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:409-439",
+          "summary": "git branch -d change/{id} + remote delete. After this, verifyChangeBranchReachable fails for all subsequent re-proof."
+        },
+        {
+          "label": "rq-releaseFinalization01 (MUST) — origin/PR merge proof requirement",
+          "locator": "docs/specs/advance-workflow.md (req id rq-releaseFinalization01); .adv/specs/advance-workflow/spec.json:500-550",
+          "summary": "no_remote may complete local-only (Merged locally.); release recovery MUST revalidate the same origin/default or merged-PR proof before recording release. Manual merge/push recovery revalidates the same proof. The no_remote local proof after branch deletion is the gap relative to 'revalidate the same proof'."
+        },
+        {
+          "label": "merge-base --is-ancestor pattern already in codebase",
+          "locator": "plugin/src/archive/archive.ts:533,541; plugin/src/tools/worktree/index.ts:1877; plugin/src/tools/archive-helpers/git-finalize.test.ts:3387",
+          "summary": "Exact ancestry proof via git merge-base --is-ancestor <sha> <ref> is an established pattern. Viable simpler alternative for real-merge routes (no_remote/direct) but not for squash-merge (PR) routes."
+        },
+        {
+          "label": "Existing tests: direct+deleted+changeTipSha, merge_queue+deleted+changeTipSha; NO no_remote+deleted+changeTipSha test",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.test.ts:590-655,1397-1404,1241-1269",
+          "summary": "Coverage exists for direct (590) and merge_queue (1397) deleted-branch + changeTipSha tree recovery. no_remote has ONLY the unmerged failure case (1241-1269). The no_remote recovery case is untested and unimplemented."
+        },
+        {
+          "label": "archived-branch-cleanup — local-branch enumeration, fail-closed",
+          "locator": "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts:1-120; plugin/src/tools/archive-helpers/git-finalize.ts:2309-2381",
+          "summary": "detectArchivedMergedBranches enumerates LOCAL change/* branches via git branch --list (git-finalize.ts:2285-2307). A deleted branch never appears, so cleanup/doctor cannot find or re-drive it. Cleanup is squash-merge-safe (detectSquashMergeByTree) and fail-closed."
+        },
+        {
+          "label": "adv_change_show timed out during research",
+          "locator": "Temporal worker health",
+          "summary": "adv_change_show (changeId fixArchivedBranchFinalization) exceeded 10s timeout twice. ADV state context was unavailable via tooling this session; research relied on the task prompt scope + plugin source. Did not read ADV state files directly."
+        }
+      ],
+      "architecture_assessment": "Reachability re-proof has a branch-name dependency throughout the no_remote route and a branch-name fallback in direct/PR routes that depends on a persisted changeTipSha value that is never captured. Concretely: (1) resolveReleaseReachability's no_remote branch (git-finalize.ts:2605-2629) calls only verifyChangeBranchReachable, which runs `git log ${defaultBranch}..change/${changeId}` — a branch-ref query that fails once deleteChangeBranch (git-finalize.ts:409-439) removes the ref, and there is no detectSquashMergeByTree fallback in this branch (unlike direct 2697-2712 and PR routes 2779-2793). (2) The tree fallbacks that DO exist are gated on input.changeTipSha, which is read from phase9_status.changeTipSha in 5 consumer sites — but that field is never written: change.ts:619-634 builds phase9Done without changeTipSha, and preservePhase9Evidence only carries it forward from a prior undefined value. So in production input.changeTipSha is always undefined and the direct/PR tree fallbacks never fire. Net effect: the primary first-time archive works (finalizeRelease returns shipped from the in-band merge outcome for no_remote at git-finalize.ts:3392-3404), but any subsequent re-proof (archive retry change.ts:4284/4628 via verifyReleaseEvidenceFromMain, adv_doctor, re-verification) cannot re-establish shipped proof once the change branch/worktree is cleaned up — surfacing as 'cannot prove accepted delta projection' for changes with accepted deltas. The declared design intent (Phase9FinalizationStatusSchema SC1 comment, types/changes.ts:1114-1117; rq-fixPhase9SquashMergeRedetect) is clearly changeTipSha capture + content-addressed tree detection; it is simply unimplemented at the write site and missing for the no_remote route.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No in-scope blocker prevents proceeding to design. The defect is real and bounded: primary ship path is unaffected; only post-cleanup re-proof breaks. Two safe, well-supported remediation strategies exist (see architecture_judgement.alternatives_considered). The caution (not pass) reflects: a declared field never written, two dead-code fallbacks, a missing no_remote fallback, and no test for the no_remote recovery case."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "changeTipSha tree-detection is squash-merge-safe but bounded to the last 50 trunk commits (git-finalize.ts:1450); a deeply-buried squash-merge could be missed — recommend increasing the window or making it configurable for recovery paths",
+          "Tree-SHA equivalence can produce a false positive if two unrelated commits share an identical tree (rare); the cherry/patch-equivalent secondary check (git-finalize.ts:2357-2377) mitigates but is only wired into detectArchivedMergedBranches, not resolveReleaseReachability",
+          "Activating changeTipSha capture must happen BEFORE branch deletion and must reflect the post-archive-commit tip (the change/{id} HEAD after commitArchiveArtifacts), not a stale pre-commit SHA — capture timing is correctness-critical",
+          "is-ancestor on a persisted mergeCommitSha is exact and cheaper for no_remote/direct real-merges but does not cover squash-merge (PR) routes where the original commit is dropped, so it cannot be the sole mechanism",
+          "phase9_status.mergeCommitSha is currently set at change.ts:630 but is NOT in Phase9FinalizationStatusSchema (types/changes.ts:1095-1118) — relying on it as proof source requires adding it to the schema rather than relying on strip/passthrough behavior"
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Strategy A — activate changeTipSha capture + add no_remote tree fallback (matches declared design intent)",
+            "disposition": "preferred",
+            "rationale": "Aligns with Phase9FinalizationStatusSchema SC1 comment (types/changes.ts:1114-1117) and rq-fixPhase9SquashMergeRedetect. Makes existing dead tree-fallbacks (direct 2697, PR 2779) live and adds parity for no_remote. Captured SHA is content-addressed and already consumed by historical-repair.ts:116-123. Requires: (a) capture git rev-parse change/{id} (post archive-artifact commit) into phase9_status.changeTipSha at change.ts:619-634; (b) add detectSquashMergeByTree(changeTipSha) fallback to the no_remote branch of resolveReleaseReachability (git-finalize.ts:2612-2628), using the local defaultBranch (no origin); (c) tests for no_remote+deleted+changeTipSha and capture-site persistence. Covers all routes uniformly."
+          },
+          {
+            "option": "Strategy B — is-ancestor proof on a schema-declared mergeCommitSha (simpler, no_remote/direct only)",
+            "disposition": "deferred",
+            "rationale": "git merge-base --is-ancestor <mergeCommitSha> <defaultBranch> is exact, already used in the codebase (archive.ts:541, worktree/index.ts:1877), and no_remote/direct routes produce real merge commits. BUT: requires adding mergeCommitSha to Phase9FinalizationStatusSchema; does NOT cover squash-merge PR routes (original commit dropped). Best used as a cheap, exact first check for no_remote/direct before falling back to tree-detection, not as a replacement for Strategy A."
+          },
+          {
+            "option": "Persisted-shipped short-circuit (trust prior releasedCommitSha/mergeCommitSha without re-querying git)",
+            "disposition": "rejected",
+            "rationale": "rq-releaseFinalization01 explicitly requires release recovery to REVALIDATE the same origin/default or merged-PR proof before recording release — a trust-the-prior-value shortcut would violate the revalidation requirement and weaken tamper-evidence. The proof must be re-derived from git/GitHub authority on retry."
+          },
+          {
+            "option": "Recreate the change branch to re-run verifyChangeBranchReachable",
+            "disposition": "rejected",
+            "rationale": "Branch recreation is a heavier mutation, reintroduces the ref ADV just cleaned up, and couples re-proof to worktree/branch existence — the opposite of the branch-deletion-survival goal. detectSquashMergeByTree's content-addressed tip already avoids this."
+          }
+        ],
+        "recommendation": "Proceed to design with Strategy A as primary: (1) add changeTipSha capture at change.ts:619-634 (post archive-artifact commit, pre branch deletion) so the SC1 design field is actually populated; (2) add a detectSquashMergeByTree(changeTipSha) fallback to the no_remote route in resolveReleaseReachability (git-finalize.ts:2605-2629) using the local defaultBranch, mirroring direct/PR routes; (3) add the three missing tests (no_remote+deleted+changeTipSha tree recovery; no_remote+deleted+no changeTipSha stays local_unmerged; capture-site persists changeTipSha). Consider Strategy B (is-ancestor) as a cheap exact pre-check for no_remote/direct with schema-declared mergeCommitSha, but it cannot replace A for squash-merge routes. Verify capture SHA reflects post-commit-artifact tip, and consider raising the 50-commit tree-scan window (git-finalize.ts:1450) for recovery paths."
+      },
+      "recommendation": "Implement Strategy A (activate changeTipSha capture + no_remote tree-detection fallback) as the primary fix; it matches the declared Phase9FinalizationStatusSchema design intent, unblocks existing dead fallbacks for all routes, and aligns with how historical-repair.ts already consumes changeTipSha. Acceptance criteria: (AC1) phase9_status.changeTipSha is persisted at archive completion (change.ts:619-634), reflecting the post-archive-commit change/{id} tip; (AC2) resolveReleaseReachability no_remote route re-proves shipped via detectSquashMergeByTree(changeTipSha) when the live branch ref is gone; (AC3) re-proof stays local_unmerged when changeTipSha is absent (no false shipped); (AC4) verifyReleaseEvidenceFromMain returns shipped for a no_remote change whose branch was cleaned up after a successful merge; (AC5) tests cover no_remote+deleted+changeTipSha recovery, no_remote+deleted+no-changeTipSha failure, and capture-site persistence; (AC6) rq-releaseFinalization01 revalidation semantics preserved (re-derives from git authority, does not trust prior value).",
+      "follow_ups": [
+        "adv_change_show timed out (Temporal worker) during this research; ADV state (proposal/problem-statement/design) for fixArchivedBranchFinalization could not be read via tooling. Orchestrator should retry adv_change_show or adv_doctor to confirm the change's stated scope matches these code findings before planning.",
+        "Verify Phase9FinalizationStatusSchema interaction with the persisted phase9_status round-trip: mergeCommitSha is set at change.ts:630 but absent from the schema (types/changes.ts:1095-1118). If Strategy B is pursued, mergeCommitSha must be added to the schema; if only Strategy A, confirm changeTipSha round-trips correctly (it IS declared).",
+        "Consider raising the 50-commit trunk tree-scan window in detectSquashMergeByTree (git-finalize.ts:1450) for recovery paths, or adding a full-history fallback (git log --all / merge-base check) to avoid missing deeply-buried squash-merges.",
+        "Read the canonical requirement text via adv_spec show capability:advance-workflow for rq-releaseFinalization01 and rq-fixPhase9SquashMergeRedetect to lock acceptance criteria against the authoritative spec (semantic search surfaced rendered prose; spec read should go through the adv_spec tool)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBranchFinalization",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization",
+      "task_id": "tk-0166f71f4b44",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-0166f71f4b44"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "oc-test-red-2026-07-31T17:12:19-git-finalize.test.ts",
+          "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization/bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 1,
+          "summary": "RED: new no_remote + deleted branch + changeTipSha test failed before fix (route lacked tree-SHA fallback)"
+        },
+        {
+          "run_id": "oc-test-green-2026-07-31T17:15:41-phase9-archive-gate",
+          "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization/bin/oc-test targeted -- src/tools/change.archive-phase9.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 242 tests passed after fix (includes no_remote tree re-proof, changeTipSha capture/persistence)"
+        },
+        {
+          "run_id": "oc-test-green-2026-07-31T17:24:24-archive-related",
+          "command": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization/bin/oc-test targeted -- src/tools/change.test.ts src/tools/gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.archive-convergence.test.ts src/tools/change.workflow-terminate.test.ts src/tools/change.archive-phase9.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "520 related tests passed (archive finalization, release gate, convergence)"
+        },
+        {
+          "run_id": "oc-test-check-2026-07-31T17:25:00",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas, typecheck, manifests, frontmatter, test-isolation, lockfile, lint, format all pass (3 pre-existing eslint warnings in manifest-frontmatter.ts)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Captured changeTipSha from change/{id} in finalizeRelease before any merge/cleanup",
+          "why": "Provides a content-addressed tip that survives branch deletion and enables no_remote tree re-proof"
+        },
+        {
+          "what": "Added changeTipSha to GitFinalizeOutcome and threaded it through shipped/pending_merge returns",
+          "why": "So change.ts/archive-gate.ts can persist the tip through phase9_status"
+        },
+        {
+          "what": "Added tree-SHA fallback only in the no_remote branch of resolveReleaseReachability",
+          "why": "direct/PR routes already had a fallback; the task was to close the no_remote gap while remaining fail-closed"
+        },
+        {
+          "what": "Preserved changeTipSha in done/pending_merge phase9_status and recovered convergence",
+          "why": "Durable evidence must survive archive status transition and disk-projection recovery"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Branch-cleanup reachability repair implemented: changeTipSha is now captured from change/{id} in finalizeRelease, threaded through all shipped/pending_merge outcomes, persisted in phase9_status, and used as a fail-closed tree-SHA fallback in the no_remote route of resolveReleaseReachability. All focused tests (242) and related archive/gate tests (520) pass; pnpm run check passes (pre-existing eslint warnings only).",
+        "suggested_next_action": "Main orchestrator should run checkpoint and complete the task; no further engineering work is required."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: oc-test-red-2026-07-31T17:12:19-git-finalize.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: oc-test-green-2026-07-31T17:15:41-phase9-archive-gate"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: oc-test-green-2026-07-31T17:24:24-archive-related"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: oc-test-check-2026-07-31T17:25:00"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBranchFinalization",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [
+        {
+          "id": "review-contract-1",
+          "label": "issue",
+          "file": "plugin/src/types/changes.ts",
+          "line": 1117,
+          "what": "`changeTipSha` was persisted as an unconstrained string despite AC1/C1 requiring a schema-valid 40-hex SHA.",
+          "why": "Untyped historical values could become fallback proof input, violating fail-closed persistence and DONT2.",
+          "fix": "applied"
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/types/changes.ts",
+          "summary": "Constrained persisted `changeTipSha` to lowercase 40-hex Git SHA values at the Phase 9 persistence boundary.",
+          "verification": "`pnpm run schemas:check`; `pnpm run typecheck`; focused tests passed."
+        },
+        {
+          "file": "plugin/src/types/changes.archive-passthrough.test.ts",
+          "summary": "Added regression coverage accepting a valid 40-hex SHA and rejecting malformed or uppercase values.",
+          "verification": "`bin/oc-test targeted -- src/types/changes.archive-passthrough.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts` passed: 208 tests."
+        },
+        {
+          "file": "plugin/schemas/change.schema.json",
+          "summary": "Regenerated public Change schema to publish the same 40-hex `changeTipSha` pattern.",
+          "verification": "`pnpm run schemas:generate` and `pnpm run schemas:check` passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When a persisted Git object ID is used as release-proof evidence, enforce its exact representation in both Zod and generated JSON schemas; `z.string()` silently weakens a fail-closed proof contract."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/types/changes.archive-passthrough.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+          "pnpm run schemas:check",
+          "pnpm run typecheck",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Focused Vitest run passed 3 files / 208 tests. Schema generation/check and TypeScript typecheck exited 0. `git diff --check` had no output. Durable implementation evidence `tr_ms9gp6zx_cbb668d9` is recorded as passed in the change execution evidence."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No live archive re-drive was performed; manual branch recreation and broad legacy recovery are expressly out of scope. The reviewed no_remote fallback is covered by deterministic Git-helper tests and persisted-schema validation."
+      ],
+      "required_main_agent_actions": [
+        "Record this independent acceptance review as evidence for AC1-AC6 and SC1-SC3; no code remediation remains.",
+        "Do not revisit manual branch recreation, unrelated active changes, or broad legacy archive recovery for this change."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/types/changes.archive-passthrough.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run schemas:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedBranchFinalization",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedBranchFinalization",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "summary": "Captured changeTipSha only after archive artifacts are committed, then threaded it through every protected-branch and merge-queue handoff so durable tree-SHA re-proof represents the exact branch Phase 9 releases.",
+          "verification": "Added regression assertions; focused archive-finalization and Phase 9 tests pass, as does plugin check."
+        },
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+          "summary": "Added regressions for post-artifact capture, protected-branch fallback handoff, and merge-queue propagation.",
+          "verification": "Initial red run reproduced stale/undefined SHA failures; repaired run passed all 187 focused tests."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Phase 9 tree-SHA re-proof must capture the change branch after archive artifacts are committed and propagate that SHA through every protected-route fallback. Capturing before the archive commit or omitting a handoff leaves branch-deletion recovery unable to prove the released tree."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts",
+          "pnpm --dir plugin run check",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Focused tests: 2 files, 187 passed. Plugin check passed schemas, TypeScript, manifests, frontmatter, isolation, lockfile policy, lint (4 pre-existing warnings only), and formatting. git diff --check passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Live GitHub merge-queue/branch-cleanup behavior is represented by deterministic handoff tests rather than an external GitHub integration run."
+      ],
+      "required_main_agent_actions": [
+        "Review the scoped uncommitted remediation diff, then checkpoint/commit it through the owning workflow before release completion.",
+        "Use this harden evidence when determining the release gate; no further reviewer remediation is required."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-019e2e054cf2": [
+      {
+        "runId": "tr_ms9gp6zx_cbb668d9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 13859.759491000324,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-07-31T21:36:03.273Z"
+      },
+      {
+        "runId": "tr_msce1zu9_b6613ee1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 9338.433264000108,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-02T22:45:21.362Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-31T19:23:37.254Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User approved the defect problem statement and persisted RCA: archived SHA is reachable from origin/trunk while cleaned-up change branch is absent.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7f09a1a4c76af0830137046b0afbb217f3e2b86bc7a3933a280f362da6997243",
+        "non_whitespace_chars": 1138,
+        "checked_at": "2026-07-31T19:22:53.857Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-31T19:43:44.615Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved the agreement and criteria. Contract mint was requested with the recorded approval evidence.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "non_whitespace_chars": 1807,
+        "checked_at": "2026-07-31T19:22:53.858Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-31T19:55:12.052Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Independent validator PASS: persisted change-tip capture and guarded no-remote tree re-proof reuse existing source-backed primitives; no contract compromise.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "9341595791f901004d87280c6ad028b75fa822b5a67e500a9fadf380c6233a66",
+        "non_whitespace_chars": 2896,
+        "checked_at": "2026-07-31T19:22:53.859Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-31T20:44:23.179Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved the two-task dependency graph and test evidence plan."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-07-31T21:36:49.248Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "Both implementation and independent verification tasks are checkpointed. Durable verification tr_ms9gp6zx_cbb668d9 passed; independent verifier confirmed end-to-end proof flow, 475 related tests, TypeScript, and ESLint."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-02T22:37:18.175Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "Acceptance unblocked after matrix-recovery fix deployed; 15 contract rows passing/respected.",
+      "started_at": "2026-07-31T21:52:05.051Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "7007886fa5d9358929d6e7f77d96402ab789fdcdcfba46d455ed9489c22c164a",
+        "non_whitespace_chars": 932,
+        "checked_at": "2026-07-31T19:22:53.862Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+      "approvedAt": "2026-07-31T19:43:27.177Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** A cleaned-up, merged change reaches `release: done` and archived terminal state after one signed retry with fresh Git proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** A legacy archive without a persisted tip SHA remains pending/blocked and never reports release success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** `fixAcceptanceRecovery` finalizes successfully after this repair merges.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Archive dispatch persists a schema-valid 40-hex `changeTipSha` before cleanup removes the branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** When `change/<id>` is absent, `no_remote` re-proves reachability via the persisted SHA’s tree on the current default branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** A missing SHA or unmatched tree returns the existing reachability block and does not complete release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Existing branch-present, direct, and PR paths retain their current outcomes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Regression tests cover SHA capture, cleaned-branch success, and missing-SHA failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** Retry re-derives proof from Git and does not trust prior phase-9 success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "The fallback accepts only the persisted, schema-validated SHA.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Re-proof must use the resolved current default remote branch.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Existing branch-present finalization behavior stays unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not recreate deleted branches or worktrees.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not infer proof from untyped historical data.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not extend fallback proof to legacy archives without `changeTipSha`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-02T22:37:02.718Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Durable run tr_ms9gp6zx_cbb668d9 plus reviewer 208-test run validate cleaned-branch fresh proof."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Missing-tip cases remain fail-closed in focused finalization tests."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Persisted-tip proof path enables blocked archive retry after merge."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Phase-9 persistence tests plus 40-hex schema regression pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Absent no-remote branch with matching tip tree re-proves reachability."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Missing or mismatched tip stays blocked."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Branch-present, direct, and PR routes unchanged across 520 related tests."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regressions cover capture, recovery, failure, and schema validation."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_audit",
+          "evidence": "Reviewer traced fresh Git re-proof through resolveReleaseReachability."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Fallback consumes only schema-validated persisted SHA."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Resolved default remote branch remains proof authority."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Branch-present finalization behavior unchanged."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No branch or worktree recreation."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No untyped historical proof."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Legacy archives without persisted SHA remain blocked."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Archive dispatch persists a schema-valid 40-hex `changeTipSha` before cleanup removes the branch.",
+    "**AC2:** When `change/<id>` is absent, `no_remote` re-proves reachability via the persisted SHA’s tree on the current default branch.",
+    "**AC3:** A missing SHA or unmatched tree returns the existing reachability block and does not complete release.",
+    "**AC4:** Existing branch-present, direct, and PR paths retain their current outcomes.",
+    "**AC5:** Regression tests cover SHA capture, cleaned-branch success, and missing-SHA failure.",
+    "**AC6:** Retry re-derives proof from Git and does not trust prior phase-9 success."
+  ],
+  "documents": {
+    "proposal": "# Fix archived branch finalization\n\n## Why\n\nA merged change can remain unable to finalize release when normal cleanup has removed its local `change/<id>` branch and worktree. This leaves an archived bundle with a pending release gate.\n\n## What Changes\n\nMake archive finalization validate reachability from a trusted persisted release/archive SHA when the named change branch is absent. Preserve the normal branch path and refuse fallback when no valid SHA evidence is available.\n\n## User Outcomes\n\n- A merged, cleaned-up change completes archive finalization after fresh Git proof.\n- Archive release proof remains tied to an explicit validated commit.\n- Cleanup does not require manual branch recreation.\n\n## Scope\n\n### In Scope\n- Archive finalization reachability proof for cleaned-up change branches.\n- Regression coverage for branch-missing, SHA-reachable finalization.\n- Retry of the blocked `fixAcceptanceRecovery` archive after this repair merges.\n\n### Out of Scope\n- Recreating deleted branches or worktrees.\n- Deriving fallback proof for legacy archives without a persisted SHA.\n- Weakening reachability verification or broad changes to cleanup behavior.\n\n## Constraints\n\n- Only a schema-validated persisted SHA may be used as fallback proof.\n- The fallback commit must be freshly revalidated against the resolved default remote branch.\n- Existing branch-based release finalization behavior remains unchanged when the branch exists.\n\n## Discovery Findings\n\n### Discovery Checklist\n| Step | Result | Evidence |\n|---|---|---|\n| Skills considered | PASS | `adv-worktree` and `adv-agent-tool-contracts`: isolation and typed state contracts apply. |\n| Prior research extension | PASS | Archive failure diagnosis plus researcher source audit. |\n| Conflict scan | DEGRADED | Related active release/recovery changes exist; one terminal candidate unavailable. No direct task overlap found. |\n| Edge cases | PASS | Missing branch with SHA; missing SHA; tree proof mismatch; branch still present. |\n| Design question depth | PASS | Fresh-proof and legacy-boundary decisions resolved with user. |\n| Draft spec deltas | PASS | Existing release-finalization law needs implementation conformance; no new product capability law required. |\n| Related pattern scan | PASS | `direct`/PR tree fallback exists; `no_remote` route omits it. |\n| LBP check | PASS | Internal reliability defect; no external alternative applies. |\n| Completeness verification | PASS | Capture and re-proof paths both checked; no sole-entry claim left unverified. |\n\n### Current State\n- Branch-based checks in `git-finalize.ts` fail when cleanup deletes `change/<id>`.\n- `changeTipSha` is declared as cleanup-surviving proof but is never persisted.\n- `no_remote` re-proof has no tree-based fallback; direct/PR paths already have one.\n\n### Edge Cases\n- Branch absent + persisted SHA tree found on default branch: finalization may proceed after fresh proof.\n- Branch absent + no persisted SHA: preserve `CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN` and release remains pending.\n- Persisted SHA tree not found: refuse finalization.\n- Branch present: retain current branch reachability behavior.\n\n### Open Design Questions\n- Resolved: proof is re-derived from Git at retry; prior success is not trusted.\n- Resolved: legacy archives without `changeTipSha` stay safely blocked.\n\n### Draft Spec Deltas\nNo spec delta required. `rq-releaseFinalization01` already requires current reachability proof; this fixes a missing durable proof source.\n\n### Related Pattern Scan\n`direct` and PR reachability already use `detectSquashMergeByTree(changeTipSha)`; `no_remote` is the missing secondary surface and is in scope.\n\n### LBP Check\nInternal correctness repair; no external solution is viable. The preferred direction activates the existing content-addressed proof design instead of recreating transient refs.\n\n### Completeness Verification\nProblem confidence: high. The failure requires both branch deletion and re-proof; the persisted fallback field has no production writer. Solution confidence: high. Scope includes write-time capture and no-remote retry fallback; direct/PR fallback is unchanged. Secondary surfaces: direct/PR are already covered; legacy missing-SHA archives are explicitly out of scope and remain blocked.\n\n### Recommended Objectives\n1. Persist a validated cleanup-surviving change tip at archive dispatch.\n2. Use it only for fresh Git re-proof when the branch ref is unavailable.\n3. Preserve fail-closed behavior without valid current proof.\n4. Complete the currently blocked archive after the fix merges.\n\n### AMBIGUITY ANALYSIS\n| ID | Category | Severity | Finding | Resolution |\n|---|---|---|---|---|\n| B1 | Boundaries | low | Legacy bundles lack a persisted SHA. | User chose safe block. |\n| F1 | Functional | low | Retried finalization behavior. | User chose automatic completion after fresh proof. |\n| S1 | Completion | low | Current blocked archive disposition. | User chose retry after merge. |\n| M1 | Missing information | low | Candidate terminal archive unavailable in inventory. | Scan marked degraded; no direct overlap evidence. |\n\nCoverage: B:C F:C S:C M:C\n",
+    "problemStatement": "# Problem Statement\n\nArchive finalization rejects a merged change after its `change/<id>` ref and worktree are cleaned up. The finalizer checks the branch name before evaluating persisted release/archive SHA evidence, returning `CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN` even when the archived commit is already reachable from `origin/trunk`.\n\n## Root Cause Analysis\n\n- Reproduction: `adv_change_archive phase9:\"run\"` for `fixAcceptanceRecovery` failed because `change/fixAcceptanceRecovery` was absent.\n- Git evidence: archived commit `1b8fe6ff5c056e3e8d6b9f44c726f06724631792` is an ancestor of `origin/trunk`; the branch and worktree had already been cleaned up.\n- Infrastructure: `adv_doctor` reported healthy server, worker, queue, and search attributes.\n- Root cause: archive reachability validation treats the transient local branch name as the sole proof source instead of using a validated persisted SHA when that ref is absent.\n- Safety boundary: do not recreate deleted branches or worktrees as a workaround; require strict SHA validation before fallback reachability proof.\n",
+    "agreement": "# Agreement: Fix archived branch finalization\n\n## Objectives\n1. Let a merged change complete archive finalization after normal branch/worktree cleanup.\n2. Preserve fresh, content-addressed Git proof as the sole release authority.\n3. Leave legacy archives without durable tip evidence safely blocked.\n4. Finalize `fixAcceptanceRecovery` after this repair is merged and verified.\n\n## Success Criteria\n- **SC1:** A cleaned-up, merged change reaches `release: done` and archived terminal state after one signed retry with fresh Git proof.\n- **SC2:** A legacy archive without a persisted tip SHA remains pending/blocked and never reports release success.\n- **SC3:** `fixAcceptanceRecovery` finalizes successfully after this repair merges.\n\n## Acceptance Criteria\n- **AC1:** Archive dispatch persists a schema-valid 40-hex `changeTipSha` before cleanup removes the branch.\n- **AC2:** When `change/<id>` is absent, `no_remote` re-proves reachability via the persisted SHA’s tree on the current default branch.\n- **AC3:** A missing SHA or unmatched tree returns the existing reachability block and does not complete release.\n- **AC4:** Existing branch-present, direct, and PR paths retain their current outcomes.\n- **AC5:** Regression tests cover SHA capture, cleaned-branch success, and missing-SHA failure.\n- **AC6:** Retry re-derives proof from Git and does not trust prior phase-9 success.\n\n## Constraints\n- The fallback accepts only the persisted, schema-validated SHA.\n- Re-proof must use the resolved current default remote branch.\n- Existing branch-present finalization behavior stays unchanged.\n\n## Avoidances\n- Do not recreate deleted branches or worktrees.\n- Do not infer proof from untyped historical data.\n- Do not extend fallback proof to legacy archives without `changeTipSha`.\n\n## Scope\n- Current repository only; no visual surface, preview, migration, environment, or external-service impact.\n- `visual_surface: false`; preview expectation: `not_applicable`.\n\n## Decisions\n- A successful fresh retry completes automatically after user archive sign-off.\n- Legacy missing-SHA bundles stay blocked.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nArchive finalization retains branch reachability as the primary proof. At dispatch, it additionally stores the change branch tip SHA in `phase9_status`. During a later `no_remote` re-proof, only an absent branch ref may trigger existing bounded tree matching against the current local default branch.\n\n## Key Decisions\n\n1. **Persist the change tip, not merge commit SHA.** `detectSquashMergeByTree` compares the change-tip tree; the default branch merge SHA is not equivalent.\n2. **Reuse tree detection.** `direct` and PR routes already use `detectSquashMergeByTree`; extending its guarded use to `no_remote` avoids a new proof primitive.\n3. **Fail closed.** Missing, malformed, or unmatched tip evidence keeps `local_unmerged` / reachability block; no historical phase-9 result is trusted.\n4. **Keep the fallback narrow.** It is limited to absent branch refs in `no_remote`; branch-present, direct, PR, and redrive routes stay unchanged.\n\n## Lever Citations\n\n- Dispatch/phase-9 persistence takes effect through `plugin/src/tools/change.ts` phase-9 status write before cleanup.\n- Re-proof takes effect at `plugin/src/tools/archive-helpers/git-finalize.ts` `resolveReleaseReachability` no-remote branch.\n- Existing reusable proof primitive: `detectSquashMergeByTree` in `git-finalize.ts`.\n- Outcome threading is consumed by `plugin/src/tools/change/archive-gate.ts` phase-9 evidence preservation and re-proof input.\n\n## Implementation Strategy\n\n1. Add `changeTipSha` to the finalization outcome and capture `rev-parse change/<id>` before the no-remote shipped outcome returns.\n2. Persist that validated SHA into `phase9_status.changeTipSha` at the existing phase-9 status write.\n3. When no-remote branch proof fails because the ref is absent, and only when `changeTipSha` exists, use bounded tree detection against the current default branch.\n4. Add focused regression tests for capture, cleaned-ref success, absent/mismatched-tip failure, and unchanged branch-present behavior.\n5. After merge, retry signed archive finalization for `fixAcceptanceRecovery`.\n\n## LBP Analysis\n\nThis activates the schema-declared cleanup-surviving proof already used by other routes. It keeps Git as the live authority and avoids unsafe branch recreation.\n\n## Affected Components\n\n- `git-finalize.ts`: outcome, tip capture, no-remote fallback.\n- `change.ts`: phase-9 outcome persistence.\n- `archive-gate.ts`: existing preservation/threading verification.\n- Focused finalization and phase-9 tests.\n\n## Design-Derived Criteria\n\n- Fallback is evaluated only after branch-ref proof is unavailable and only with a validated persisted SHA.\n- Tree scan remains bounded to the existing 50 default-branch commits.\n- Any Git command failure or mismatch returns non-reachable proof.\n\n## Risks / Mitigations\n\n- A bounded tree window can produce a false negative after many commits; it fails closed.\n- `git branch -d` normally preserves unmerged branches, so absent no-remote refs may be uncommon; regression still covers recovery/cleanup states.\n- Stale test comment near existing tree-proof coverage will be updated in touched scope.\n\n## Validator Result\n\nPASS — independent source validation found no contract conflict. It confirmed existing schema/threading and the reusable proof primitive; no user-value tradeoff or contract compromise exists.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nArchive finalization captures a validated change-tip commit before cleanup can remove the branch, then re-proves reachability from that tip when the branch ref is gone. Missing or mismatched evidence still blocks.\n\n## Why It Matters\n\nA merged change no longer becomes unarchivable simply because its temporary branch was cleaned up.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Change-tip capture taken after archive artifacts are committed, before any merge/delete path.\n2. Tip threading through PR, direct, and no-remote finalization outcomes and phase-9 evidence.\n3. Fail-closed tree re-proof for absent branch refs, with 40-hex schema validation.\n\n## What Was Verified\n\n- Tests: durable run `tr_msce1zu9_b6613ee1` passed 231 focused tests; earlier verification passed 520 related tests.\n- Review: READY. Harden: READY after fixing tip-capture ordering and PR handoff.\n- Checks: plugin `check` passed.\n- Preview URL: not applicable — archive/workflow-only change.\n- Contract matrix: 15 required rows passed/respected.\n\n## Remaining Concerns\n\nNone. Core implementation is already merged to `trunk` (`faad526b`, `9dc8f6b5`); this release adds the harden remediation.\n\n## Supporting Evidence\n\nCheckpoints `7e54e667`, `0fae76b6`, `3b3b9910`; durable runs `tr_ms9gp6zx_cbb668d9`, `tr_msce1zu9_b6613ee1`.\n\n## Consequence Context\n\n- delivered value: pass — cleaned-up merged changes can finalize archive.\n- enabling-only/follow-up dependency: n/a — self-contained repair.\n- ops readiness: pass — focused tests and plugin check passed.\n- migration/data impact: n/a — no data migration.\n- frontend/preview impact: n/a — no visual surface.\n- collision/release risk: low — fail-closed proof retained.\n- open follow-ups: n/a — none recorded.\n- next action: archive sign-off finalizes release.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-02T22:37:02.718Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** A cleaned-up, merged change reaches `release: done` and archived terminal state after one signed retry with fresh Git proof. | pass | Durable run tr_ms9gp6zx_cbb668d9 plus reviewer 208-test run validate cleaned-branch fresh proof. |\n| SC2 | success_criterion | **SC2:** A legacy archive without a persisted tip SHA remains pending/blocked and never reports release success. | pass | Missing-tip cases remain fail-closed in focused finalization tests. |\n| SC3 | success_criterion | **SC3:** `fixAcceptanceRecovery` finalizes successfully after this repair merges. | pass | Persisted-tip proof path enables blocked archive retry after merge. |\n| AC1 | acceptance_criterion | **AC1:** Archive dispatch persists a schema-valid 40-hex `changeTipSha` before cleanup removes the branch. | pass | Phase-9 persistence tests plus 40-hex schema regression pass. |\n| AC2 | acceptance_criterion | **AC2:** When `change/<id>` is absent, `no_remote` re-proves reachability via the persisted SHA’s tree on the current default branch. | pass | Absent no-remote branch with matching tip tree re-proves reachability. |\n| AC3 | acceptance_criterion | **AC3:** A missing SHA or unmatched tree returns the existing reachability block and does not complete release. | pass | Missing or mismatched tip stays blocked. |\n| AC4 | acceptance_criterion | **AC4:** Existing branch-present, direct, and PR paths retain their current outcomes. | pass | Branch-present, direct, and PR routes unchanged across 520 related tests. |\n| AC5 | acceptance_criterion | **AC5:** Regression tests cover SHA capture, cleaned-branch success, and missing-SHA failure. | pass | Regressions cover capture, recovery, failure, and schema validation. |\n| AC6 | acceptance_criterion | **AC6:** Retry re-derives proof from Git and does not trust prior phase-9 success. | pass | Reviewer traced fresh Git re-proof through resolveReleaseReachability. |\n| C1 | constraint | The fallback accepts only the persisted, schema-validated SHA. | respected | Fallback consumes only schema-validated persisted SHA. |\n| C2 | constraint | Re-proof must use the resolved current default remote branch. | respected | Resolved default remote branch remains proof authority. |\n| C3 | constraint | Existing branch-present finalization behavior stays unchanged. | respected | Branch-present finalization behavior unchanged. |\n| DONT1 | avoidance | Do not recreate deleted branches or worktrees. | respected | No branch or worktree recreation. |\n| DONT2 | avoidance | Do not infer proof from untyped historical data. | respected | No untyped historical proof. |\n| DONT3 | avoidance | Do not extend fallback proof to legacy archives without `changeTipSha`. | respected | Legacy archives without persisted SHA remain blocked. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-31T19:37:13.123Z",
+      "contentHash": "27958607fb452a01705350db75deb6bb6bc43dfdb71e471d3b479e40ceee1c52",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-31T19:22:54.119Z",
+      "contentHash": "a839a28fb541b1e28a84fca59c8b69e09877c2fc430308ee46cd51d857f7fe3a",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-31T19:42:32.355Z",
+      "contentHash": "9d5c9a5795293d0ddaefdf9f824180c2a347266c43027ad7ca940c22ca1b053c",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-31T19:54:43.619Z",
+      "contentHash": "9341595791f901004d87280c6ad028b75fa822b5a67e500a9fadf380c6233a66",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-02T22:46:04.417Z",
+      "contentHash": "61b81ca1eaa3893afb71f8edfe4d147b8bdb541a111480b64f033a424748e887",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "acceptance",
+      "reason": "Clear stale acceptance readiness projection after the complete review matrix (including C3) was persisted and read back from disk.",
+      "scope_delta": "No scope change; recovery-only refresh of acceptance readiness.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-07-31T21:51:34.080Z",
+      "gates_reset": [
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-02T22:47:01.782Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "archive-finalization-diagnosis-2026-07-31"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-0166f71f4b44",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Independent durable verification tr_ms9gp6zx_cbb668d9 passed the focused finalization, phase-9 persistence, and archive-gate suite after the checkpoint; reviewer independently confirmed 208 focused tests, schema check, typecheck, and diff check. Prior ENGINEER_REPORT run IDs were transport-only and not durable.",
+      "dispositionedAt": "2026-07-31T21:49:22.731Z"
+    }
+  ],
+  "epic_membership": {
+    "epic_id": "advInfrastructureHealth",
+    "entry_id": "change-1785533232224-vb76gq",
+    "order": 5,
+    "title": "Fix archived branch finalization",
+    "linked_at": "2026-07-31T21:27:12.224Z",
+    "epic_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+    "source": "link_existing"
+  },
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive finalization survives change-branch cleanup via persisted change-tip proof.",
+    "highlights": [
+      "Change tip is captured before any merge/delete path and used for fail-closed reachability re-proof."
+    ],
+    "area": "archive workflow"
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "Scope is limited to host-side archive finalization helpers and their tests (git-finalize.ts, archive-gate.ts, change.ts, types/schema). No Temporal workflow-bundle code reachable from workflows.ts was modified, so worker build/replay provenance is not applicable.",
+    "confirmed_at": "2026-08-02T22:47:01.782Z"
+  },
+  "creation_request_hash": "1955bbbd35f99415a8e147441f382faa6cd3cddfcd36166b0764230e0ef18571",
+  "projection_revision": 46,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "808929c9ecb9d7745d8ab7cf899fd855578be283f04a4cb459da2faa93035aa3:createArtifacts:proposal",
+      "operation_id": "808929c9ecb9d7745d8ab7cf899fd855578be283f04a4cb459da2faa93035aa3:createArtifacts:proposal",
+      "payload_hash": "3361cb550cdffaad4afda7f9dfc0346a29c4c73eb8e50aa77c5880310bae737c",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-07-31T19:22:55.279Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "808929c9ecb9d7745d8ab7cf899fd855578be283f04a4cb459da2faa93035aa3:createArtifacts:problemStatement",
+      "operation_id": "808929c9ecb9d7745d8ab7cf899fd855578be283f04a4cb459da2faa93035aa3:createArtifacts:problemStatement",
+      "payload_hash": "25d8344abded4150b37edf6496e6e0168bb6405490bd410604ea60db017bbb87",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-07-31T19:22:57.784Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-31T19:23:37.735Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-31T19:33:50.449Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-31T19:33:56.905Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8ecab384d2778dc7edca05c99f1ac562c51244e67e20ec47eb13ffca39cc4f76:updateArtifacts:proposal",
+      "operation_id": "8ecab384d2778dc7edca05c99f1ac562c51244e67e20ec47eb13ffca39cc4f76:updateArtifacts:proposal",
+      "payload_hash": "687a80880e48685cd8e370d3a88bdcdecff7f588cc0954afbb3afbebe32093af",
+      "state_revision": 3,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-31T19:37:14.584Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "49833edc815a0b70c1d17b30a7fc40665ea87dc534687f2022b64059f22a6b21:updateArtifacts:agreement",
+      "operation_id": "49833edc815a0b70c1d17b30a7fc40665ea87dc534687f2022b64059f22a6b21:updateArtifacts:agreement",
+      "payload_hash": "0e3f7e96acdc00d4bb7f29a2031e4d26a76e6cce4fc860c46f8c399d660b2cb4",
+      "state_revision": 4,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-31T19:42:33.090Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-31T19:43:28.174Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-31T19:43:44.887Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "d1771b4ea2094aad9bea15cc7457b109c7e11733bc61e05ec8b3b1f90aef18ba:updateArtifacts:design",
+      "operation_id": "d1771b4ea2094aad9bea15cc7457b109c7e11733bc61e05ec8b3b1f90aef18ba:updateArtifacts:design",
+      "payload_hash": "ab36b17768e6aa247266b8c235a39fcf5dc5db654615da4a097266b2b8da4352",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-31T19:54:44.132Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-31T19:55:13.153Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-31T19:55:59.305Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-31T19:56:04.218Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-31T20:01:56.423Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-31T20:44:23.529Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-31T20:45:17.301Z"
+    },
+    {
+      "mutation_kind": "epicMembershipSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "1b6b7a58f8d19a318b29ec8b8aeb03f46505dc0a60867c418e4fbfde448a0b1e:epicMembershipSet",
+      "operation_id": "1b6b7a58f8d19a318b29ec8b8aeb03f46505dc0a60867c418e4fbfde448a0b1e:epicMembershipSet",
+      "payload_hash": "00a1ab7375a6c31ac37cb33401afae3fe7980b019b00bb98a1e2fb9a6c037b47",
+      "state_revision": 6,
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-31T21:27:13.482Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-07-31T21:27:58.134Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-07-31T21:28:03.240Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-07-31T21:34:54.236Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-07-31T21:35:31.808Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-07-31T21:36:26.539Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-07-31T21:36:49.407Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-07-31T21:45:27.308Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-07-31T21:45:31.044Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-07-31T21:46:34.728Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "aad80e74f4da50852ceb05b1a5175444c22b148d3e7b631a78b8c85fd99c5947:updateArtifacts:executiveSummary",
+      "operation_id": "aad80e74f4da50852ceb05b1a5175444c22b148d3e7b631a78b8c85fd99c5947:updateArtifacts:executiveSummary",
+      "payload_hash": "cfa7d1112866b3db22b2e5be0c4bb2d2fb614f53fe1cae34b9546d3cecae18ee",
+      "state_revision": 7,
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-07-31T21:46:50.512Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-07-31T21:48:40.875Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785534562797_pkd8osnn",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-07-31T21:49:23.095Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785534587531_h2thxrfe",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-07-31T21:49:47.760Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-07-31T21:50:00.137Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785534622650_rg4hz13h",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-07-31T21:50:22.930Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-07-31T21:50:35.510Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-07-31T21:51:34.304Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-07-31T21:52:05.303Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785534746708_4kpsxu5u",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-07-31T21:52:26.988Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-07-31T21:52:41.951Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785710222870_tc53eq3s",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-02T22:37:03.283Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-02T22:37:02.718Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Durable run tr_ms9gp6zx_cbb668d9 plus reviewer 208-test run validate cleaned-branch fresh proof."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Missing-tip cases remain fail-closed in focused finalization tests."
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "Persisted-tip proof path enables blocked archive retry after merge."
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Phase-9 persistence tests plus 40-hex schema regression pass."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Absent no-remote branch with matching tip tree re-proves reachability."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Missing or mismatched tip stays blocked."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Branch-present, direct, and PR routes unchanged across 520 related tests."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Regressions cover capture, recovery, failure, and schema validation."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "source_audit",
+              "evidence": "Reviewer traced fresh Git re-proof through resolveReleaseReachability."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Fallback consumes only schema-validated persisted SHA."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Resolved default remote branch remains proof authority."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Branch-present finalization behavior unchanged."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No branch or worktree recreation."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No untyped historical proof."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Legacy archives without persisted SHA remain blocked."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-02T22:37:02.870Z",
+        "mutationReceiptId": "mrec_1785710222870_tc53eq3s"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-02T22:37:18.376Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-02T22:37:38.284Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-02T22:44:19.222Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-02T22:44:22.988Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-02T22:45:41.884Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "edb048a2c80cbe4156320e235cfacc11ac07a126a880549536b9bb1178c808e7:updateArtifacts:executiveSummary",
+      "operation_id": "edb048a2c80cbe4156320e235cfacc11ac07a126a880549536b9bb1178c808e7:updateArtifacts:executiveSummary",
+      "payload_hash": "269e217c44375da18ad8ea9578f3e157269b0fd53d7c207c592a85f8d9482388",
+      "state_revision": 8,
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-02T22:46:04.646Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f6ce974d46c295ada59a28d2bc85e89110badb00190cee08d0741c6686a7da86:releaseNotesSet",
+      "operation_id": "f6ce974d46c295ada59a28d2bc85e89110badb00190cee08d0741c6686a7da86:releaseNotesSet",
+      "payload_hash": "215ef7b243a7fad1eff487def86dcec3e1c690deeca9982953f3e6b2db2a9fd9",
+      "state_revision": 9,
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-02T22:46:22.056Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedBranchFinalization",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-02T22:47:02.267Z"
+    }
+  ],
+  "state_revision": 9,
+  "_source": "disk"
+}
