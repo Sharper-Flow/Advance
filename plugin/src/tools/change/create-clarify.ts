@@ -43,7 +43,11 @@ import {
   TEMPORAL_READ_DEADLINE_BUDGET_MS,
 } from "../../temporal/retry-wrapper";
 import { isPoisonedWorkflowForChange } from "../../storage/store-temporal/poisoned-workflow-cache";
+import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 const logger = createLogger("change");
+
+/** Best-effort persistence budget for clarify-readiness enrichment on reads. */
+const CLARIFY_READINESS_PERSIST_TIMEOUT_MS = 1_000;
 /**
  * rq-dupActiveCreate01 — Shared pre-create guard. Returns an error payload
  * when an active change already shares the generated ID or exact summary
@@ -560,12 +564,22 @@ export async function persistClarifyFindings(
   errorLabel: string,
 ): Promise<void> {
   try {
-    const freshResult = await store.changes.get(changeId);
-    if (freshResult.success && freshResult.data) {
-      freshResult.data.clarify_findings = findings;
-      await store.changes.save(freshResult.data);
-    }
+    await withTimeout(
+      (async () => {
+        const freshResult = await store.changes.get(changeId);
+        if (freshResult.success && freshResult.data) {
+          freshResult.data.clarify_findings = findings;
+          await store.changes.save(freshResult.data);
+        }
+      })(),
+      CLARIFY_READINESS_PERSIST_TIMEOUT_MS,
+      `${errorLabel}: deadline exceeded`,
+    );
   } catch (err) {
+    if (err instanceof TimeoutError) {
+      logger.warn(`${errorLabel}: timed out after ${err.timeoutMs}ms`);
+      return;
+    }
     logger.warn(`${errorLabel}: ${(err as Error).message}`);
   }
 }
