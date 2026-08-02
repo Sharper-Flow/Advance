@@ -2946,11 +2946,29 @@ export async function finalizeRelease(
     };
   }
 
+  const fetchOrigin = ensureOriginDefaultFetched(state);
+  if (fetchOrigin.status !== 0) {
+    return {
+      status: "blocked",
+      repoRoot,
+      defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "DEFAULT_BRANCH_FETCH_FAILED",
+        remediation: `Failed to fetch origin/${defaultBranch} before selecting the canonical base for archive finalization (rq-releaseFinalization01).`,
+        details: splitLines(fetchOrigin.stderr || fetchOrigin.stdout),
+      },
+    };
+  }
+
+  const originDefaultRef = runGit(repoRoot, [
+    "rev-parse",
+    "--verify",
+    `origin/${defaultBranch}`,
+  ]);
   const baseRef =
-    runGit(repoRoot, ["rev-parse", "--verify", `origin/${defaultBranch}`])
-      .status === 0
-      ? `origin/${defaultBranch}`
-      : defaultBranch;
+    originDefaultRef.status === 0 ? `origin/${defaultBranch}` : defaultBranch;
 
   try {
     return await withEphemeralDefaultBranchWorktree(

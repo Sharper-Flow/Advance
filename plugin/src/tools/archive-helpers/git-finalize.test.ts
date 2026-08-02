@@ -2847,6 +2847,63 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("finalizeRelease direct path fetches origin before selecting base and ignores stale local origin/trunk", async () => {
+    const seed = join(tempRoot, "seed");
+    const remote = join(tempRoot, "remote.git");
+    const main = join(tempRoot, "main");
+    const advancer = join(tempRoot, "advancer");
+    const worktree = join(tempRoot, "wt");
+    await mkdir(seed);
+    await mkdir(remote);
+    await mkdir(main);
+    await mkdir(advancer);
+
+    await initRepo(seed, "trunk");
+    git(tempRoot, ["init", "--bare", "-q", "-b", "trunk", remote]);
+    git(seed, ["remote", "add", "origin", remote]);
+    git(seed, ["push", "origin", "trunk"]);
+
+    git(tempRoot, ["clone", "-q", remote, main]);
+    git(main, ["config", "user.email", "adv-test@example.invalid"]);
+    git(main, ["config", "user.name", "ADV Test"]);
+    git(tempRoot, ["clone", "-q", remote, advancer]);
+    git(advancer, ["config", "user.email", "adv-test@example.invalid"]);
+    git(advancer, ["config", "user.name", "ADV Test"]);
+
+    // Advance the remote default branch from a separate clone so main's
+    // local origin/trunk ref is stale.
+    await writeFile(join(advancer, "remote-advance.txt"), "advanced\n");
+    git(advancer, ["add", "remote-advance.txt"]);
+    git(advancer, ["commit", "-m", "remote advance"]);
+    git(advancer, ["push", "origin", "trunk"]);
+
+    const staleOriginTrunk = git(main, ["rev-parse", "origin/trunk"]);
+
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const result = await finalizeRelease({
+      changeId: "example",
+      workdir: worktree,
+      archiveMode: "direct",
+      autoPush: true,
+    });
+
+    expect(result.status).toBe("shipped");
+    expect(result.route).toBe("direct");
+    expect(result.releasedCommitSha).toBeTruthy();
+    expect(result.releasedCommitSha).not.toBe(staleOriginTrunk);
+
+    const remoteHead = git(remote, ["rev-parse", "refs/heads/trunk"]);
+    expect(result.releasedCommitSha).toBe(remoteHead);
+    expect(git(remote, ["show", `${remoteHead}:remote-advance.txt`])).toBe(
+      "advanced",
+    );
+    expect(git(remote, ["show", `${remoteHead}:feature.txt`])).toBe("feature");
+  });
+
   it("finalizeRelease in PR mode blocks when origin is missing", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
