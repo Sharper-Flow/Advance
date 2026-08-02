@@ -2835,19 +2835,6 @@ export async function finalizeRelease(
 
   const { branch: defaultBranch } = detectDefaultBranch(repoRoot, deps);
 
-  // Capture change-tip SHA before any mutation can delete or move the branch.
-  // Used by structural squash-merge redetection and recorded in the outcome.
-  let changeTipSha: string | undefined;
-  try {
-    changeTipSha = runGitOrThrow(
-      repoRoot,
-      ["rev-parse", `change/${ctx.changeId}`],
-      deps,
-    );
-  } catch {
-    changeTipSha = undefined;
-  }
-
   // Per-invocation accumulator: caches idempotent git queries and tracks
   // fetch dedup. Mutations call invalidate(state, kind) to drop stale entries.
   const state = createState(repoRoot, defaultBranch, deps);
@@ -2871,6 +2858,20 @@ export async function finalizeRelease(
         remediation: `${commitResult.error}. rq-releaseFinalization01 requires archive artifacts to be committed before merge.`,
       },
     };
+  }
+
+  // Capture the change-tip SHA after committing archive artifacts but before
+  // any finalization path can merge, delete, or move the branch. Tree-SHA
+  // re-proof must compare the exact branch content that Phase 9 releases.
+  let changeTipSha: string | undefined;
+  try {
+    changeTipSha = runGitOrThrow(
+      repoRoot,
+      ["rev-parse", `change/${ctx.changeId}`],
+      deps,
+    );
+  } catch {
+    changeTipSha = undefined;
   }
 
   if (ctx.archiveMode === "pr") {
@@ -2905,6 +2906,7 @@ export async function finalizeRelease(
           changeTitle: ctx.changeTitle,
           prTitleType: ctx.prTitleType,
           prTitlePolicy: ctx.prTitlePolicy,
+          changeTipSha,
         },
         deps,
       );
@@ -3071,6 +3073,7 @@ export async function finalizeRelease(
                 changeTitle: ctx.changeTitle,
                 prTitleType: ctx.prTitleType,
                 prTitlePolicy: ctx.prTitlePolicy,
+                changeTipSha,
               },
               deps,
             );
@@ -3087,6 +3090,7 @@ export async function finalizeRelease(
                 changeTitle: ctx.changeTitle,
                 prTitleType: ctx.prTitleType,
                 prTitlePolicy: ctx.prTitlePolicy,
+                changeTipSha,
               },
               deps,
             );

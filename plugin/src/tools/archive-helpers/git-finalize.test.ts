@@ -2432,6 +2432,11 @@ describe("git-finalize helpers", () => {
 
     expect(result.status).toBe("shipped");
     expect(result.mergeCommitSha).toBeDefined();
+    // The captured tip must include the archive-artifact commit that Phase 9
+    // actually merged, rather than the pre-artifact branch tip.
+    expect(result.changeTipSha).toBe(
+      git(worktree, ["rev-parse", "change/example"]),
+    );
     expect(result.releasedCommitSha).toBe(
       git(main, ["rev-parse", "origin/trunk"]),
     );
@@ -2716,6 +2721,9 @@ describe("git-finalize helpers", () => {
       "--squash",
       "--auto",
     ]);
+    expect(result.changeTipSha).toBe(
+      git(worktree, ["rev-parse", "change/example"]),
+    );
   });
 
   it("finalizeRelease collapses immediately merged auto-merge PR to shipped", async () => {
@@ -3565,6 +3573,7 @@ describe("git-finalize helpers", () => {
             repo: "Sharper-Flow/Advance",
             mergeQueueRequired: true,
           },
+          changeTipSha: "a".repeat(40),
         },
         {
           runGit: gitMock.runGit,
@@ -3580,6 +3589,7 @@ describe("git-finalize helpers", () => {
         prUrl: "https://github.com/Sharper-Flow/Advance/pull/42",
         autoMergeArmed: true,
         pushStatus: "pushed",
+        changeTipSha: "a".repeat(40),
       });
     });
 
