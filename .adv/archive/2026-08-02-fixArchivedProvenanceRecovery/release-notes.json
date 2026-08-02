@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixArchivedProvenanceRecovery",
+  "title": "Fix archived provenance recovery",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive recovery now enforces worker-bundle provenance before terminal release completion.",
+    "highlights": [
+      "Pre-terminal checks and every recovery/rescue route share one fail-closed provenance invariant."
+    ],
+    "area": "release workflow"
+  }
+}

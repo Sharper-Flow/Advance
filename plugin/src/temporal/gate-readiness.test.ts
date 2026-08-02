@@ -6,6 +6,7 @@ import {
   CRITERION_EVALUATORS,
   evaluateGateReadiness,
   evaluateWorkerBundleProvenance,
+  evaluateWorkerBundleProvenanceForChange,
   gateArtifactEvidenceSchema,
   stateBackedArtifactEvidence,
   stateBackedAcceptanceProof,
@@ -16,6 +17,7 @@ import {
 } from "./gate-readiness";
 import type { ChangeWorkflowState } from "./contracts";
 import type { OpsFollowupLink } from "../types";
+import { ChangeSchema } from "../types/changes";
 
 function makeState(
   overrides: Partial<ChangeWorkflowState> = {},
@@ -2530,6 +2532,39 @@ describe("evaluateWorkerBundleProvenance — worker-bundle release provenance (K
     const result = evaluateWorkerBundleProvenance(state);
     expect(result.ok).toBe(true);
     expect(result.blockers).toEqual([]);
+  });
+
+  it("preserves typed evidence_kind through the durable Change projection for recovery", () => {
+    const change = ChangeSchema.parse({
+      id: "change-1",
+      title: "Test change",
+      status: "draft",
+      created_at: "2026-05-20T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      worker_bundle_impact: {
+        kind: "required",
+        rationale: "touches worker bundle",
+      },
+      workerBundleProvenance: {
+        source_sha: "abc123",
+        build_run_id: "run-build-1",
+        replay_run_id: "run-replay-1",
+        recorded_at: "2026-05-20T00:00:00.000Z",
+      },
+      test_runs: {
+        tk: [
+          passingRun("run-build-1", "build_worker"),
+          passingRun("run-replay-1", "replay_determinism"),
+        ],
+      },
+    });
+
+    expect(change.test_runs?.tk[0]?.evidence_kind).toBe("build_worker");
+    expect(evaluateWorkerBundleProvenanceForChange(change)).toEqual({
+      ok: true,
+      blockers: [],
+    });
   });
 
   it("AC1: blank provenance source_sha blocks release", () => {

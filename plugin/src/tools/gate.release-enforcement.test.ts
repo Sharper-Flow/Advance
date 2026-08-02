@@ -129,6 +129,7 @@ function createMockStore(overrides?: {
     wisdom: [],
     gates,
     ops_followup_links: overrides?.ops_followup_links,
+    worker_bundle_impact: { kind: "not_applicable", rationale: "test harness" },
   };
 
   return {
@@ -359,6 +360,10 @@ describe("release gate trunk-merge enforcement", () => {
           deltas: {},
           wisdom: [],
           gates: releaseReadyGates(),
+          worker_bundle_impact: {
+            kind: "not_applicable",
+            rationale: "test harness",
+          },
         }),
       );
 
@@ -377,6 +382,61 @@ describe("release gate trunk-merge enforcement", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("RELEASE_REQUIRES_TRUNK_MERGE");
       expect(parsed.unmergedCommits).toContain("abc123 task commit");
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test("blocks release gate recovery when worker-bundle provenance is undeclared", async () => {
+    mocks.resolveReleaseReachability
+      .mockReturnValueOnce({ reachable: true, proof: "origin_default" })
+      .mockReturnValueOnce({ reachable: true, proof: "origin_default" });
+    mocks.fireSignalAndRefresh.mockRejectedValueOnce(
+      new Error("workflow execution already completed"),
+    );
+
+    const tmp = await mkdtemp(join(tmpdir(), "adv-release-recovery-"));
+    const changesDir = join(tmp, "changes");
+    const changeDir = join(changesDir, "example");
+    const store = createMockStore();
+    store.paths.changes = changesDir;
+    try {
+      await mkdir(changeDir, { recursive: true });
+      await writeFile(
+        join(changeDir, "change.json"),
+        JSON.stringify({
+          id: "example",
+          title: "Example",
+          status: "active",
+          created_at: "2026-01-01T00:00:00Z",
+          created_by: "test",
+          tasks: [],
+          deltas: {},
+          wisdom: [],
+          gates: releaseReadyGates(),
+        }),
+      );
+
+      const result = await gateTools.adv_gate_complete.execute(
+        {
+          changeId: "example",
+          gateId: "release",
+          completedBy: "user:signoff",
+          compatibilityReason: "legacy completed workflow",
+          recoveryReason: "release gate recovery after completed workflow",
+          recoveryEvidence: "workflow execution already completed",
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.error).toContain("workflow readiness blocked");
+      expect(parsed.readinessBlockers).toContainEqual(
+        expect.objectContaining({
+          code: "WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED",
+          gateId: "release",
+        }),
+      );
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }

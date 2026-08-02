@@ -9417,6 +9417,15 @@
             "durationMs": {
               "type": "number"
             },
+            "evidence_kind": {
+              "enum": [
+                "build_worker",
+                "replay_determinism",
+                "unit",
+                "other"
+              ],
+              "type": "string"
+            },
             "exitCode": {
               "anyOf": [
                 {

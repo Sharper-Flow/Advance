@@ -1173,6 +1173,10 @@ export const TestRunRecordSchema = z.object({
     .array(z.object({ pattern: z.string(), count: z.number() }))
     .optional(),
   behaviorSurface: z.enum(["small", "medium", "large"]).optional(),
+  /** Typed release-provenance evidence classification. */
+  evidence_kind: z
+    .enum(["build_worker", "replay_determinism", "unit", "other"])
+    .optional(),
   recordedAt: z.string(),
 });
 

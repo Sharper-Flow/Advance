@@ -10,11 +10,14 @@ import {
   buildPendingMergePhase9Status,
   buildReleaseCompletionEvidence,
   completeReleaseGateAfterFinalization,
+  getArchiveGatePreflightError,
+  recoverReleaseGateViaDiskProjection,
   verifyReleaseEvidenceFromMain,
   preservePhase9Evidence,
   runReacquiringChangeQuery,
   verifyReleaseGateDurableForArchive,
   waitForArchiveReleaseGateCompletion,
+  type ArchiveGateState,
 } from "./archive-gate";
 import * as gitFinalize from "../archive-helpers/git-finalize";
 import { getService, reinitStsl } from "../../temporal/service";
@@ -78,6 +81,7 @@ beforeEach(() => {
 
 function createChange(options: {
   phase9_status?: Change["phase9_status"];
+  worker_bundle_impact?: Change["worker_bundle_impact"];
 }): Change {
   return {
     id: "fixPhase9PrDetection",
@@ -88,6 +92,12 @@ function createChange(options: {
     tasks: [],
     deltas: {},
     wisdom: [],
+    worker_bundle_impact: Object.prototype.hasOwnProperty.call(
+      options,
+      "worker_bundle_impact",
+    )
+      ? options.worker_bundle_impact
+      : { kind: "not_applicable", rationale: "test harness" },
     phase9_status: options.phase9_status,
   } as Change;
 }
@@ -1123,7 +1133,13 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
   it("AC1: shipped + store pending + disk pending → accepts and reconciles a done gate", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
-      data: { gates: { release: { status: "pending" } } },
+      data: {
+        gates: { release: { status: "pending" } },
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "test harness",
+        },
+      },
     });
     const store = makeBothPendingStore();
 
@@ -1153,7 +1169,13 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
   it("AC2: non-shipped (pending_merge) + store pending + disk pending → rejects, guard preserved", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
-      data: { gates: { release: { status: "pending" } } },
+      data: {
+        gates: { release: { status: "pending" } },
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "test harness",
+        },
+      },
     });
     const store = makeBothPendingStore();
 
@@ -1182,7 +1204,13 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
   it("AC3: shipped proof missing releasedCommitSha → does not short-circuit", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
-      data: { gates: { release: { status: "pending" } } },
+      data: {
+        gates: { release: { status: "pending" } },
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "test harness",
+        },
+      },
     });
     const store = makeBothPendingStore();
 
@@ -1211,7 +1239,13 @@ describe("verifyReleaseGateDurableForArchive — shipped authoritative proof (fi
   it("AC3: shipped no_remote route with skipped push is no longer accepted", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
-      data: { gates: { release: { status: "pending" } } },
+      data: {
+        gates: { release: { status: "pending" } },
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "test harness",
+        },
+      },
     });
     const store = makeBothPendingStore();
 
@@ -1396,7 +1430,13 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
   it("KD5 guard: shipped + valid route/push but missing releasedCommitSha + store-pending + disk-pending rejects", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
-      data: { gates: { release: { status: "pending" } } },
+      data: {
+        gates: { release: { status: "pending" } },
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "test harness",
+        },
+      },
     });
 
     const proof = await verifyReleaseGateDurableForArchive({
@@ -1442,7 +1482,13 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
     async ({ route, pushStatus }) => {
       diskLoadMocks.loadChange.mockResolvedValue({
         success: true,
-        data: { gates: { release: { status: "pending" } } },
+        data: {
+          gates: { release: { status: "pending" } },
+          worker_bundle_impact: {
+            kind: "not_applicable",
+            rationale: "test harness",
+          },
+        },
       });
       const finalization: GitFinalizeOutcome = {
         ...shippedBase,
@@ -1477,7 +1523,13 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
   it("route matrix: no_remote shipped + skipped is rejected", async () => {
     diskLoadMocks.loadChange.mockResolvedValue({
       success: true,
-      data: { gates: { release: { status: "pending" } } },
+      data: {
+        gates: { release: { status: "pending" } },
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "test harness",
+        },
+      },
     });
     const finalization: GitFinalizeOutcome = {
       ...shippedBase,
@@ -1505,7 +1557,13 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
     async (status) => {
       diskLoadMocks.loadChange.mockResolvedValue({
         success: true,
-        data: { gates: { release: { status: "pending" } } },
+        data: {
+          gates: { release: { status: "pending" } },
+          worker_bundle_impact: {
+            kind: "not_applicable",
+            rationale: "test harness",
+          },
+        },
       });
 
       const proof = await verifyReleaseGateDurableForArchive({
@@ -1528,4 +1586,197 @@ describe("verifyReleaseGateDurableForArchive — cross-cutting shipped proof mat
       );
     },
   );
+});
+
+describe("worker-bundle provenance chokepoint (fixArchivedProvenanceRecovery)", () => {
+  const allDoneGates: Gates = {
+    proposal: { status: "done" },
+    discovery: { status: "done" },
+    design: { status: "done" },
+    planning: { status: "done" },
+    execution: { status: "done" },
+    acceptance: { status: "done" },
+    release: { status: "done" },
+  } as Gates;
+
+  function makeReleasePendingGateState(): ArchiveGateState {
+    return {
+      effectiveGates: {
+        ...allDoneGates,
+        release: { status: "pending" },
+      } as Gates,
+      storeGates: allDoneGates,
+      source: "store",
+    };
+  }
+
+  it("getArchiveGatePreflightError blocks release-pending archive entry when worker_bundle_impact is undeclared", () => {
+    const error = getArchiveGatePreflightError(
+      "fixPhase9PrDetection",
+      makeReleasePendingGateState(),
+      true,
+      null,
+      createChange({ worker_bundle_impact: undefined }),
+    );
+    expect(error).toContain(
+      "worker-bundle release provenance is undeclared or invalid",
+    );
+    expect(error).toContain("WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED");
+  });
+
+  it("getArchiveGatePreflightError blocks release-pending archive entry when required impact lacks provenance", () => {
+    const error = getArchiveGatePreflightError(
+      "fixPhase9PrDetection",
+      makeReleasePendingGateState(),
+      true,
+      null,
+      createChange({
+        worker_bundle_impact: {
+          kind: "required",
+          rationale: "touches worker bundle",
+        },
+      }),
+    );
+    expect(error).toContain(
+      "worker-bundle release provenance is undeclared or invalid",
+    );
+    expect(error).toContain("WORKER_BUNDLE_PROVENANCE_MISSING");
+  });
+
+  it("getArchiveGatePreflightError blocks release-pending archive entry when not_applicable lacks rationale", () => {
+    const error = getArchiveGatePreflightError(
+      "fixPhase9PrDetection",
+      makeReleasePendingGateState(),
+      true,
+      null,
+      createChange({
+        worker_bundle_impact: { kind: "not_applicable" },
+      } as unknown as Parameters<typeof createChange>[0]),
+    );
+    expect(error).toContain(
+      "worker-bundle release provenance is undeclared or invalid",
+    );
+    expect(error).toContain(
+      "WORKER_BUNDLE_PROVENANCE_NOT_APPLICABLE_RATIONALE_REQUIRED",
+    );
+  });
+
+  it("getArchiveGatePreflightError allows release-pending archive entry with not_applicable rationale", () => {
+    const error = getArchiveGatePreflightError(
+      "fixPhase9PrDetection",
+      makeReleasePendingGateState(),
+      true,
+      null,
+      createChange({}),
+    );
+    expect(error).toBeNull();
+  });
+
+  it("completeReleaseGateAfterFinalization blocks shipped release without provenance", async () => {
+    vi.mocked(getProjectId).mockResolvedValue("project-test");
+    const handle = {
+      describe: vi.fn(async () => ({ status: { name: "RUNNING" } })),
+      query: vi.fn(async () => ({ status: "pending" })),
+      signal: vi.fn(async () => {}),
+    };
+    const owner = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(owner as never);
+
+    const result = await completeReleaseGateAfterFinalization({
+      store: createStore("/repo"),
+      changeId: "fixPhase9PrDetection",
+      change: createChange({ worker_bundle_impact: undefined }),
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "direct",
+        pushStatus: "pushed",
+        releasedCommitSha: "abc123",
+        mergeCommitSha: "abc123",
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain(
+      "worker-bundle provenance is undeclared or invalid",
+    );
+    expect(
+      result.readinessBlockers?.some((b) =>
+        b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+      ),
+    ).toBe(true);
+  });
+
+  it("recoverReleaseGateViaDiskProjection blocks completed-workflow recovery without provenance", async () => {
+    recoveryWriterMocks.saveRecoveredGateCompletion.mockResolvedValue({
+      gates: { release: { status: "done" } },
+    });
+
+    const result = await recoverReleaseGateViaDiskProjection({
+      store: createStore("/repo"),
+      change: createChange({ worker_bundle_impact: undefined }),
+      evidence: "Phase 9 finalization shipped",
+      recoveryEvidence: "workflow execution already completed",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error).toContain(
+      "worker-bundle provenance is undeclared or invalid",
+    );
+    expect(
+      result.readinessBlockers?.some((b) =>
+        b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+      ),
+    ).toBe(true);
+  });
+
+  it("verifyReleaseGateDurableForArchive shipped rescue blocks missing provenance", async () => {
+    diskLoadMocks.loadChange.mockResolvedValue({
+      success: true,
+      data: { gates: { release: { status: "pending" } } },
+    });
+    const store = {
+      ...createStore("/repo"),
+      gates: {
+        get: vi.fn(async () => ({
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "done" },
+          release: { status: "pending" },
+        })),
+      },
+    } as unknown as Store;
+
+    const proof = await verifyReleaseGateDurableForArchive({
+      store,
+      changeId: "shippedNoProvenance",
+      evidence: "irrelevant",
+      finalization: {
+        status: "shipped",
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        route: "direct",
+        pushStatus: "pushed",
+        releasedCommitSha: "abc123",
+        mergeCommitSha: "abc123",
+      },
+    });
+
+    expect(proof.ok).toBe(false);
+    if (proof.ok) return;
+    expect(proof.error).toContain(
+      "worker-bundle provenance is undeclared or invalid",
+    );
+    expect(
+      proof.readinessBlockers?.some((b) =>
+        b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
+      ),
+    ).toBe(true);
+  });
 });

@@ -9,6 +9,7 @@ import {
   type GateCompletion,
   type Gates,
   type Change,
+  type GateReadinessBlocker,
   type Phase9FinalizationStatus,
 } from "../../types";
 import { basename, dirname } from "node:path";
@@ -41,6 +42,7 @@ import {
   changeStateQuery,
 } from "../../temporal/messages";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
+import { evaluateWorkerBundleProvenanceForChange } from "../../temporal/gate-readiness";
 import {
   detectDefaultBranch,
   classifyFinalizationRoute,
@@ -55,6 +57,27 @@ import {
   type ReleaseGateProof,
   type DurableReleaseGateProofResult,
 } from "./release-proof";
+
+function buildWorkerBundleProvenanceError(
+  blockers: GateReadinessBlocker[],
+): string | null {
+  if (blockers.length === 0) return null;
+  const codes = blockers.map((b) => b.code).join(", ");
+  return formatToolOutput({
+    error: `Cannot archive: worker-bundle release provenance is undeclared or invalid. Blockers: ${codes}.`,
+    requirement: "rq-workerBundleReleaseProvenance01",
+    readinessBlockers: blockers,
+    remediation:
+      "Declare worker_bundle_impact and, when kind is 'required', record passing build_worker + replay_determinism provenance before release/archive.",
+  });
+}
+
+function getWorkerBundleProvenanceBlockers(
+  change: Change,
+): GateReadinessBlocker[] {
+  return evaluateWorkerBundleProvenanceForChange(change).blockers;
+}
+
 const logger = createLogger("change");
 export function getArchiveTaskPreflightError(change: {
   tasks: {
@@ -130,8 +153,19 @@ export function getArchiveGatePreflightError(
   gateState: ArchiveGateState,
   allowReleasePending: boolean,
   divergenceHint?: string | null,
+  change?: Change,
 ): string | null {
   const gates = gateState.effectiveGates;
+  // rq-workerBundleReleaseProvenance01: release-pending archive entry must
+  // declare worker-bundle impact and, when required, valid provenance before
+  // any terminal projection can proceed. Checked before the generic incomplete
+  // gate list so the failure reason is specific.
+  if (allowReleasePending && gates.release?.status !== "done" && change) {
+    const provenanceBlockers = getWorkerBundleProvenanceBlockers(change);
+    const provenanceError =
+      buildWorkerBundleProvenanceError(provenanceBlockers);
+    if (provenanceError) return provenanceError;
+  }
   // rq-releaseFinalization01: archive may run with release gate pending.
   // Finalization creates the reachability/push evidence required to complete
   // the release gate, which is then done after archive succeeds.
@@ -452,6 +486,7 @@ export async function reconcileArchivedBundleRetry(input: {
     evidence: releaseEvidence,
     finalization,
     requireExistingGate: true,
+    change: input.change,
   });
   let releaseResult: Extract<
     ArchiveReleaseGateResult,
@@ -516,6 +551,7 @@ export async function reconcileArchivedBundleRetry(input: {
       finalization,
       bundlePath: input.existingBundlePath,
       requireExistingGate: true,
+      change: input.change,
     });
     if (!durableProof.ok) {
       return formatToolOutput({
@@ -847,6 +883,7 @@ export type ArchiveReleaseGateResult =
       workflowGateStatus?: GateCompletion["status"];
       readinessBlockers?: GateCompletion["readiness_blockers"];
       stuckReason?: GateCompletion["stuck_reason"];
+      requirement?: string;
     };
 /**
  * Repair only the release-gate disk projection after structural Phase 9
@@ -859,14 +896,17 @@ export async function recoverReleaseGateViaDiskProjection(input: {
   change: Change;
   evidence: string;
   recoveryEvidence: string;
-}): Promise<
-  Extract<
-    ArchiveReleaseGateResult,
-    {
-      ok: true;
-    }
-  >
-> {
+}): Promise<ArchiveReleaseGateResult> {
+  const provenanceBlockers = getWorkerBundleProvenanceBlockers(input.change);
+  if (provenanceBlockers.length > 0) {
+    return {
+      ok: false,
+      error:
+        "Cannot recover release gate: worker-bundle provenance is undeclared or invalid",
+      requirement: "rq-workerBundleReleaseProvenance01",
+      readinessBlockers: provenanceBlockers,
+    };
+  }
   const { RECOVERY_RECONCILIATION_WARNING } =
     await import("../../temporal/recovery-classification");
   const { saveRecoveredGateCompletion } = await import("../_recovery-writers");
@@ -908,14 +948,7 @@ export async function recoverReleaseGateIfWorkflowCompleted(
     evidence: string;
   },
   options: { recoverOnUnresponsive?: boolean } = {},
-): Promise<
-  Extract<
-    ArchiveReleaseGateResult,
-    {
-      ok: true;
-    }
-  >
-> {
+): Promise<ArchiveReleaseGateResult> {
   if (isWorkflowCompletedError(error)) {
     return recoverReleaseGateViaDiskProjection({
       store: ctx.store,
@@ -1108,6 +1141,12 @@ export async function verifyReleaseGateDurableForArchive(input: {
    * terminated workflow that should be recovered via disk projection.
    */
   requireExistingGate?: boolean;
+  /**
+   * Change projection used to validate worker-bundle provenance before
+   * synthesizing a shipped-rescue gate. Optional: when omitted, the verifier
+   * loads the change from the store.
+   */
+  change?: Change;
 }): Promise<DurableReleaseGateProofResult> {
   // Structural authority (fixDurableProofFallback design-validation hardening):
   // `shipped` is derived INSIDE the verifier from the finalization outcome
@@ -1178,6 +1217,23 @@ export async function verifyReleaseGateDurableForArchive(input: {
   // proof remains structural. The idempotent re-run path disables this shortcut
   // so a terminated workflow cannot be papered over with a synthetic gate.
   if (!input.requireExistingGate && shipped && input.finalization) {
+    const changeResult = input.change
+      ? { success: true as const, data: input.change }
+      : await loadChange(input.store.paths.changes, input.changeId);
+    if (changeResult.success && changeResult.data) {
+      const provenanceBlockers = getWorkerBundleProvenanceBlockers(
+        changeResult.data,
+      );
+      if (provenanceBlockers.length > 0) {
+        return {
+          accepted: false,
+          ok: false,
+          error:
+            "Cannot synthesize shipped rescue release gate: worker-bundle provenance is undeclared or invalid",
+          readinessBlockers: provenanceBlockers,
+        };
+      }
+    }
     const { route, pushStatus, releasedCommitSha } = input.finalization;
     const prRoute =
       route === "pr_auto_merge" ||
@@ -1333,6 +1389,16 @@ export async function completeReleaseGateAfterFinalization(input: {
     };
   }
   const evidence = buildReleaseCompletionEvidence(input.finalization);
+  const provenanceBlockers = getWorkerBundleProvenanceBlockers(input.change);
+  if (provenanceBlockers.length > 0) {
+    return {
+      ok: false,
+      error:
+        "Cannot complete release gate: worker-bundle provenance is undeclared or invalid",
+      requirement: "rq-workerBundleReleaseProvenance01",
+      readinessBlockers: provenanceBlockers,
+    };
+  }
   let currentGate: GateCompletion | undefined;
   try {
     const description = await getChangeHandle(

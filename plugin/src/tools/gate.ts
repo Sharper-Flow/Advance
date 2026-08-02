@@ -882,6 +882,7 @@ async function completeGateViaRecovery(input: {
   });
   const readiness = evaluateGateReadiness(recoveryState, input.gateId, {
     compatibilityReason: input.compatibilityReason,
+    enforceWorkerBundleProvenance: input.gateId === "release",
   });
   if (!readiness.ready) {
     return workflowReadinessBlockedResponse({

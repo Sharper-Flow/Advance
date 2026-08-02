@@ -251,7 +251,6 @@ export function runtimeFrontmatterCheck(
         const result = parseFrontmatter(fullPath);
         if (!result.ok) {
           failures++;
-
           console.warn(`[ADV] frontmatter: ${fullPath} — ${result.error}`);
         }
       }
