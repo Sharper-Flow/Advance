@@ -272,6 +272,47 @@ export async function getPluginBundleFreshness(
 }
 
 /**
+ * Narrow release preflight check for the loaded plugin bundle identity.
+ *
+ * Refuses release only when the loaded bundle generation is strictly older than
+ * the deployed manifest generation. The advisory [ADV:PLUGIN_BUNDLE_STALE]
+ * banner in system-block/status health is preserved elsewhere; this is a
+ * release-time guard, not a replacement for that advisory.
+ *
+ * Returns `null` for `current` or `unknown` freshness so dev/source runs and
+ * unreadable manifests do not block release.
+ */
+export interface PluginBundleReleasePreflightError {
+  error: string;
+  code: string;
+  remediation: string;
+  reason: string;
+  loadedGeneration: string | null;
+  deployedGeneration: string | null;
+}
+
+export async function getPluginBundleReleasePreflightError(
+  distDir: string,
+  loadedGenerationOverride?: string,
+): Promise<PluginBundleReleasePreflightError | null> {
+  const freshness = await getPluginBundleFreshness(
+    distDir,
+    loadedGenerationOverride,
+  );
+  if (freshness.state !== "stale") return null;
+
+  return {
+    error:
+      "Release preflight failed: loaded plugin bundle is stale versus the deployed bundle.",
+    code: "PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT",
+    remediation: freshness.recovery ?? RESTART_RECOVERY,
+    reason: freshness.reason ?? "generation_mismatch",
+    loadedGeneration: freshness.loadedGeneration,
+    deployedGeneration: freshness.deployedGeneration,
+  };
+}
+
+/**
  * Resolve the Advance plugin root directory from the location of this module.
  *
  * This module lives at `plugin/src/plugin-bundle-manifest.ts` in source and is

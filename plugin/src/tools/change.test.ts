@@ -33,6 +33,7 @@ import * as gitFinalize from "./archive-helpers/git-finalize";
 import * as worktree from "./worktree";
 import { gateTools } from "./gate";
 import { overlayOpsResolutionsForRead } from "./ops-followup-reconciliation";
+import * as pluginBundleManifest from "../plugin-bundle-manifest";
 
 const PROJECT_ID = "0".repeat(40);
 const TARGET_PROJECT_ID = "0".repeat(39) + "1";
@@ -260,6 +261,17 @@ vi.mock("../utils/git.js", async () => {
   return {
     ...actual,
     execGit: mocks.execGit,
+  };
+});
+
+vi.mock("../plugin-bundle-manifest", async () => {
+  const actual = await vi.importActual<
+    typeof import("../plugin-bundle-manifest")
+  >("../plugin-bundle-manifest");
+  return {
+    ...actual,
+    getPluginBundleDistDir: vi.fn(() => "/test/plugin/dist"),
+    getPluginBundleReleasePreflightError: vi.fn(async () => null),
   };
 });
 
@@ -4494,6 +4506,36 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.queryMock).toHaveBeenCalledTimes(1);
       expect(parsed.error ?? "").not.toContain("incomplete gates");
       expect(parsed.incompleteGates).toBeUndefined();
+    });
+
+    test("AC4: blocks archive release preflight when loaded plugin bundle is stale", async () => {
+      vi.mocked(
+        pluginBundleManifest.getPluginBundleReleasePreflightError,
+      ).mockResolvedValueOnce({
+        error:
+          "Release preflight failed: loaded plugin bundle is stale versus the deployed bundle.",
+        code: "PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT",
+        remediation: "Restart OpenCode to load the current plugin bundle.",
+        reason: "generation_mismatch",
+        loadedGeneration: "loaded-gen",
+        deployedGeneration: "deployed-gen",
+      });
+
+      const store = createMockStore({ gates: allDoneGates });
+      const result = await changeTools.adv_change_archive.execute(
+        { changeId: "test-change", dryRun: true },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed.success).toBe(false);
+      expect(parsed.code).toBe("PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT");
+      expect(parsed.error).toMatch(/loaded plugin bundle is stale/i);
+      expect(parsed.remediation).toMatch(/restart/i);
+      expect(parsed.loadedGeneration).toBe("loaded-gen");
+      expect(parsed.deployedGeneration).toBe("deployed-gen");
+      // Preflight must short-circuit before any gate/phase9 work.
+      expect(mocks.queryMock).not.toHaveBeenCalled();
     });
 
     // Fix 5 / AC7: archive validation loads peer changes for conflict

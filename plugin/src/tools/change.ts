@@ -118,6 +118,10 @@ import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 import { reconcileRecoveredGates } from "./gate";
 import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
+  getPluginBundleDistDir,
+  getPluginBundleReleasePreflightError,
+} from "../plugin-bundle-manifest";
+import {
   buildD3ContextFromStore,
   enforceD3ForChangeCreate,
   type D3EnforcementError,
@@ -4093,6 +4097,21 @@ export const changeTools = {
     ) => {
       const runArchive = async (activeStore: Store): Promise<string> => {
         const store = activeStore;
+
+        // AC4: narrow loaded-bundle release preflight. Block release only when
+        // the loaded plugin bundle is strictly stale versus the deployed bundle.
+        // Advisory health output is preserved elsewhere; this is a release guard.
+        const bundlePreflight = await getPluginBundleReleasePreflightError(
+          getPluginBundleDistDir(),
+        );
+        if (bundlePreflight) {
+          return formatToolOutput({
+            success: false,
+            changeId,
+            ...bundlePreflight,
+          });
+        }
+
         // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
         // probe describe() to auto-detect poisoned/completed workflows and read
         // the durable disk projection directly, avoiding "Failed to query Workflow"

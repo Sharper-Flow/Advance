@@ -12,6 +12,7 @@ import {
   getLoadedPluginBundleGeneration,
   getPluginBundleDistDir,
   getPluginBundleFreshness,
+  getPluginBundleReleasePreflightError,
   getPluginRoot,
   readPluginBundleManifest,
   writePluginBundleManifest,
@@ -341,6 +342,43 @@ describe("getPluginBundleFreshness", () => {
     expect(result.state).toBe("unknown");
     expect(result.reason).toBe("missing_manifest");
     expect(result.deployedGeneration).toBeNull();
+  });
+});
+
+describe("getPluginBundleReleasePreflightError", () => {
+  test("returns a typed release preflight error when the loaded bundle is stale", async () => {
+    const dir = await tempDistDir();
+    const loaded = generatePluginBundleGeneration();
+    const deployed = generatePluginBundleGeneration();
+    await writePluginBundleManifest(dir, deployed, { now: () => NOW });
+
+    const result = await getPluginBundleReleasePreflightError(dir, loaded);
+    expect(result).not.toBeNull();
+    expect(result?.code).toBe("PLUGIN_BUNDLE_STALE_RELEASE_PREFLIGHT");
+    expect(result?.error).toMatch(/loaded plugin bundle is stale/i);
+    expect(result?.remediation).toMatch(/restart/i);
+    expect(result?.reason).toBe("generation_mismatch");
+    expect(result?.loadedGeneration).toBe(loaded);
+    expect(result?.deployedGeneration).toBe(deployed);
+  });
+
+  test("returns null when the loaded bundle is current", async () => {
+    const dir = await tempDistDir();
+    const generation = generatePluginBundleGeneration();
+    await writePluginBundleManifest(dir, generation, { now: () => NOW });
+
+    const result = await getPluginBundleReleasePreflightError(dir, generation);
+    expect(result).toBeNull();
+  });
+
+  test("returns null when freshness is unknown", async () => {
+    const dir = await tempDistDir();
+    const deployed = generatePluginBundleGeneration();
+    await writePluginBundleManifest(dir, deployed, { now: () => NOW });
+
+    // No loaded generation override → null loaded generation → unknown.
+    const result = await getPluginBundleReleasePreflightError(dir);
+    expect(result).toBeNull();
   });
 });
 
