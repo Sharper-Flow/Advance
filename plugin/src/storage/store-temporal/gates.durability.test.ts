@@ -4,6 +4,7 @@ import { createGateOps } from "./gates";
 import { DiskProjectionPersistError } from "./disk-persist";
 import { commitChangeProjectionWithSummary } from "../change-summary-shard";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../temporal/contracts";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 
 // AC6 (gates are durability-critical): gate completion + re-entry must gate
 // success on a durable disk write via the changeCommand primitive and
@@ -60,6 +61,7 @@ function makeHandle() {
     return STATE;
   });
   return {
+    workflowId: `adv/change/pid-gate/${CHANGE_ID}`,
     signal: signalMock,
     query: queryMock,
   };
@@ -69,19 +71,17 @@ function makeDeps() {
   const handle = makeHandle();
   return {
     input: {
-      projectId: "pid-gate",
+      projectId: "00d0a0e000000000000000000000000000000000",
       legacy: {
         changes: {
           get: vi.fn().mockResolvedValue({ success: true, data: null }),
         },
       },
-      temporal: {
-        client: {
-          workflow: {
-            getHandle: vi.fn().mockReturnValue(handle),
-          },
+      temporal: createMockOwnerFromClient({
+        workflow: {
+          getHandle: vi.fn().mockReturnValue(handle),
         },
-      },
+      }),
     },
     legacy: {
       gates: {},

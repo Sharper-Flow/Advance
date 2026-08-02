@@ -69,7 +69,7 @@ describe("temporal observability helpers", () => {
 
   it("builds a minimal search attribute map for change workflows", () => {
     const attrs = buildTemporalSearchAttributes({
-      projectId: "proj1",
+      projectId: "0000100000000000000000000000000000000000",
       changeId: "chg1",
       changeStatus: "active",
       activeGate: "execution",
@@ -78,14 +78,14 @@ describe("temporal observability helpers", () => {
     expect(attrs).toEqual({
       AdvChangeId: ["chg1"],
       AdvChangeStatus: ["active"],
-      AdvAffectedProjects: ["proj1"],
+      AdvAffectedProjects: ["0000100000000000000000000000000000000000"],
       AdvCurrentGate: ["execution"],
     });
   });
 
   it("includes AdvEpicId when epicId is provided", () => {
     const attrs = buildTemporalSearchAttributes({
-      projectId: "proj1",
+      projectId: "0000100000000000000000000000000000000000",
       changeId: "chg1",
       changeStatus: "active",
       activeGate: "execution",
@@ -97,7 +97,7 @@ describe("temporal observability helpers", () => {
 
   it("omits AdvEpicId when epicId is not provided", () => {
     const attrs = buildTemporalSearchAttributes({
-      projectId: "proj1",
+      projectId: "0000100000000000000000000000000000000000",
       changeId: "chg1",
       changeStatus: "active",
       activeGate: "execution",

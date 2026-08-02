@@ -19,6 +19,7 @@ import { getService } from "./service";
 export interface QueueProbeTarget {
   queueName: string;
   queueType: "session" | "project";
+  projectId: string;
 }
 
 export interface QueueProbeResult {
@@ -114,10 +115,8 @@ async function probeQueues(
     } else {
       try {
         probe = await probeTaskQueuePollers({
-          connection: bundle.connection as unknown as Parameters<
-            typeof probeTaskQueuePollers
-          >[0]["connection"],
-          namespace: bundle.namespace,
+          owner: bundle,
+          projectId: target.projectId ?? "",
           taskQueue: target.queueName,
         });
         pollerProbeCache.set(target.queueName, {
@@ -163,6 +162,7 @@ export async function getTemporalHealth(
           {
             queueName: buildProjectTaskQueue(_projectIdOrTargets),
             queueType: "project",
+            projectId: _projectIdOrTargets,
           },
         ]
       : [];

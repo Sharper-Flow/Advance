@@ -932,7 +932,7 @@ export const reflectionTools = {
             store.productContext?.productProjectId ??
             (await getProjectId(store.paths.root));
           if (projectId) {
-            const handle = getChangeHandle(bundle.client, projectId, change.id);
+            const handle = getChangeHandle(bundle, projectId, change.id);
             await fireSignalAndRefresh(
               handle,
               store,

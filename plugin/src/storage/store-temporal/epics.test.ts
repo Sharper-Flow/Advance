@@ -10,6 +10,11 @@ import { describe, expect, test, vi } from "vitest";
 import { mkdirSync, mkdtempSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import {
+  createMockOwnerFromClient,
+  createMockOwner,
+} from "../../temporal/__tests__/mock-owner";
+import { StartWorkflowOutcomeError } from "../../temporal/workflow-start";
 import { createEpicOps } from "./epics";
 import type { StoreDeps } from "./shared";
 import { createDiskStore } from "../store-disk";
@@ -55,7 +60,7 @@ function makeEpic(overrides?: Partial<Epic>): Epic {
 
 function makeState(epic: Epic): EpicWorkflowState {
   return {
-    projectId: "project-id",
+    projectId: "0000ec00d0000000000000000000000000000000",
     epicId: epic.id,
     title: epic.title,
     narrative: epic.narrative,
@@ -87,8 +92,8 @@ function setup() {
   const deps = {
     input: {
       legacy: {},
-      temporal: client,
-      projectId: "project-id",
+      temporal: createMockOwnerFromClient(client),
+      projectId: "0000ec00d0000000000000000000000000000000",
     },
     getTemporalWorkflowClient: () =>
       client as ReturnType<StoreDeps["getTemporalWorkflowClient"]>,
@@ -112,6 +117,7 @@ function setup() {
     describeMock,
     startMock,
     getHandleMock,
+    list: client.workflow.list,
   };
 }
 
@@ -136,6 +142,69 @@ describe("createEpicOps", () => {
     );
   });
 
+  test("create propagates confirmed_failure from startEpicWorkflow", async () => {
+    const owner = createMockOwner({
+      startEpicWorkflow: vi.fn(async () => ({
+        kind: "confirmed_failure",
+        error: new Error("epic start failed"),
+        diagnostic: { class: "reachable", reachable: true },
+      })),
+    });
+    const deps = {
+      input: {
+        legacy: {},
+        temporal: owner,
+        projectId: "0000ec00d0000000000000000000000000000000",
+      },
+    } as unknown as StoreDeps;
+
+    await expect(
+      createEpicOps(deps).create("addAuthEpic", "Add Auth", "Narr"),
+    ).rejects.toBeInstanceOf(StartWorkflowOutcomeError);
+  });
+
+  test("create wraps timeout_unavailable from startEpicWorkflow in StartWorkflowOutcomeError", async () => {
+    const owner = createMockOwner({
+      startEpicWorkflow: vi.fn(async () => ({
+        kind: "timeout_unavailable",
+        error: new Error("epic start deadline"),
+        diagnostic: { class: "deadline", reachable: true },
+      })),
+    });
+    const deps = {
+      input: {
+        legacy: {},
+        temporal: owner,
+        projectId: "0000ec00d0000000000000000000000000000000",
+      },
+    } as unknown as StoreDeps;
+
+    await expect(
+      createEpicOps(deps).create("addAuthEpic", "Add Auth", "Narr"),
+    ).rejects.toBeInstanceOf(StartWorkflowOutcomeError);
+  });
+
+  test("create wraps outcome_unknown from startEpicWorkflow in StartWorkflowOutcomeError", async () => {
+    const owner = createMockOwner({
+      startEpicWorkflow: vi.fn(async () => ({
+        kind: "outcome_unknown",
+        error: new Error("epic start ambiguous"),
+        diagnostic: { class: "unknown", reachable: true },
+      })),
+    });
+    const deps = {
+      input: {
+        legacy: {},
+        temporal: owner,
+        projectId: "0000ec00d0000000000000000000000000000000",
+      },
+    } as unknown as StoreDeps;
+
+    await expect(
+      createEpicOps(deps).create("addAuthEpic", "Add Auth", "Narr"),
+    ).rejects.toBeInstanceOf(StartWorkflowOutcomeError);
+  });
+
   test("get returns the active projection without workflow query", async () => {
     const { deps, queryMock } = setup();
     const epic = makeEpic();
@@ -157,7 +226,8 @@ describe("createEpicOps", () => {
       retired_at: new Date().toISOString(),
       retired_by: "agent",
       evidence: "projection read contract",
-      source_workflow_id: "adv/epic/project-id/projectedEpic",
+      source_workflow_id:
+        "adv/epic/0000ec00d0000000000000000000000000000000/projectedEpic",
       source_version: 0,
       projection_status: "retired",
     });
@@ -551,7 +621,9 @@ describe("createEpicOps", () => {
     function setupMissing(epicId = "missingEpic") {
       const { deps, handle, queryMock, signalMock, getHandleMock } = setup();
       queryMock.mockImplementation(async () => {
-        throw new Error(`Workflow not found: adv/epic/project-id/${epicId}`);
+        throw new Error(
+          `Workflow not found: adv/epic/0000ec00d0000000000000000000000000000000/${epicId}`,
+        );
       });
       return { deps, handle, queryMock, signalMock, getHandleMock };
     }
@@ -632,11 +704,8 @@ describe("createEpicOps", () => {
     });
 
     test("list ignores a poisoned Temporal client", async () => {
-      const { deps, queryMock } = setup();
-      const client = deps.input.temporal as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      client.workflow.list.mockImplementation(() => {
+      const { deps, queryMock, list } = setup();
+      list.mockImplementation(() => {
         throw new Error("Visibility must not be called by routine reads");
       });
 
@@ -650,7 +719,9 @@ describe("createEpicOps", () => {
     test("get falls back to retired projection when workflow is not found", async () => {
       const { deps, queryMock, tempDir } = await setupWithRetiredEpicsDir();
       queryMock.mockImplementation(async () => {
-        throw new Error("Workflow not found: adv/epic/project-id/retiredEpic");
+        throw new Error(
+          "Workflow not found: adv/epic/0000ec00d0000000000000000000000000000000/retiredEpic",
+        );
       });
 
       const projection = {
@@ -669,7 +740,8 @@ describe("createEpicOps", () => {
         retired_at: "2026-07-08T00:00:00.000Z",
         retired_by: "agent",
         evidence: "User approved retirement.",
-        source_workflow_id: "adv/epic/project-id/retiredEpic",
+        source_workflow_id:
+          "adv/epic/0000ec00d0000000000000000000000000000000/retiredEpic",
         source_version: 3,
         projection_status: "retired" as const,
       };
@@ -690,7 +762,9 @@ describe("createEpicOps", () => {
     test("get returns null when neither workflow nor retired projection exists", async () => {
       const { deps, queryMock, tempDir } = await setupWithRetiredEpicsDir();
       queryMock.mockImplementation(async () => {
-        throw new Error("Workflow not found: adv/epic/project-id/missingEpic");
+        throw new Error(
+          "Workflow not found: adv/epic/0000ec00d0000000000000000000000000000000/missingEpic",
+        );
       });
 
       const ops = createEpicOps(deps);
@@ -709,7 +783,8 @@ describe("createEpicOps", () => {
         retired_at: "2026-07-08T00:00:00.000Z",
         retired_by: "agent",
         evidence: "Evidence",
-        source_workflow_id: "adv/epic/project-id/persistedEpic",
+        source_workflow_id:
+          "adv/epic/0000ec00d0000000000000000000000000000000/persistedEpic",
         source_version: 1,
         projection_status: "retired" as const,
       };
@@ -778,7 +853,9 @@ describe("createEpicOps", () => {
       expect(result.source_version).toBe(1);
       expect(result.evidence).toBe("User approved retirement.");
       expect(result.retired_by).toBe("agent");
-      expect(result.source_workflow_id).toBe("adv/epic/project-id/addAuthEpic");
+      expect(result.source_workflow_id).toBe(
+        "adv/epic/0000ec00d0000000000000000000000000000000/addAuthEpic",
+      );
 
       expect(signalMock).toHaveBeenCalledWith(
         epicArchivedSignal,
@@ -923,20 +1000,18 @@ describe("createEpicOps", () => {
     }
 
     test("active mode reads only active disk projections", async () => {
-      const { deps, queryMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      temporal.workflow.list.mockImplementation(
-        ({ query }: { query: string }) => {
-          expect(query).toBe(
-            `WorkflowType = "epicWorkflow" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"`,
-          );
-          return (async function* iter() {
-            yield { workflowId: "adv/epic/project-id/completedEpic" };
-          })();
-        },
-      );
+      const { deps, queryMock, list } = setup();
+      list.mockImplementation(({ query }: { query: string }) => {
+        expect(query).toBe(
+          `WorkflowType = "epicWorkflow" AND AdvEpicStatus = "active" AND ExecutionStatus = "Running"`,
+        );
+        return (async function* iter() {
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/completedEpic",
+          };
+        })();
+      });
       queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
 
       const ops = createEpicOps(deps);
@@ -947,18 +1022,16 @@ describe("createEpicOps", () => {
     });
 
     test("all mode reads active projections without workflow queries", async () => {
-      const { deps, queryMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      temporal.workflow.list.mockImplementation(
-        ({ query }: { query: string }) => {
-          expect(query).toBe(`WorkflowType = "epicWorkflow"`);
-          return (async function* iter() {
-            yield { workflowId: "adv/epic/project-id/completedEpic" };
-          })();
-        },
-      );
+      const { deps, queryMock, list } = setup();
+      list.mockImplementation(({ query }: { query: string }) => {
+        expect(query).toBe(`WorkflowType = "epicWorkflow"`);
+        return (async function* iter() {
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/completedEpic",
+          };
+        })();
+      });
       queryMock.mockResolvedValue(makeState(makeCompletedEpic()));
 
       const ops = createEpicOps(deps);
@@ -969,13 +1042,13 @@ describe("createEpicOps", () => {
     });
 
     test("active mode includes seeded active Epic projections", async () => {
-      const { deps, queryMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      temporal.workflow.list.mockImplementation(() => {
+      const { deps, queryMock, list } = setup();
+      list.mockImplementation(() => {
         return (async function* iter() {
-          yield { workflowId: "adv/epic/project-id/activeEpic" };
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/activeEpic",
+          };
         })();
       });
       queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
@@ -988,15 +1061,14 @@ describe("createEpicOps", () => {
     });
 
     test("list does not query unresponsive Epic workflows", async () => {
-      const { deps, queryMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
+      const { deps, queryMock, list } = setup();
       // Five epic workflows, all unresponsive.
-      temporal.workflow.list.mockImplementation(() => {
+      list.mockImplementation(() => {
         return (async function* iter() {
           for (let i = 0; i < 5; i++) {
-            yield { workflowId: `adv/epic/project-id/wedgedEpic${i}` };
+            yield {
+              workflowId: `adv/epic/0000ec00d0000000000000000000000000000000/wedgedEpic${i}`,
+            };
           }
         })();
       });
@@ -1034,7 +1106,8 @@ describe("createEpicOps", () => {
         retired_at: "2026-07-24T11:00:00.000Z",
         retired_by: "agent",
         evidence: "terminal projection",
-        source_workflow_id: "adv/epic/project-id/shared",
+        source_workflow_id:
+          "adv/epic/0000ec00d0000000000000000000000000000000/shared",
         source_version: retired.version,
         projection_status: "retired",
       });
@@ -1066,14 +1139,17 @@ describe("createEpicOps", () => {
 
   describe("repairIndex", () => {
     test("dry-run reports running Epics with current progress status and no mutations", async () => {
-      const { deps, queryMock, signalMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      temporal.workflow.list.mockImplementation(() => {
+      const { deps, queryMock, signalMock, list } = setup();
+      list.mockImplementation(() => {
         return (async function* iter() {
-          yield { workflowId: "adv/epic/project-id/activeEpic" };
-          yield { workflowId: "adv/epic/project-id/otherEpic" };
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/activeEpic",
+          };
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/otherEpic",
+          };
         })();
       });
       queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
@@ -1096,13 +1172,13 @@ describe("createEpicOps", () => {
     });
 
     test("non-dry-run confirms refreshed only after describe proof shows the current Epic status", async () => {
-      const { deps, queryMock, signalMock, describeMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      temporal.workflow.list.mockImplementation(() => {
+      const { deps, queryMock, signalMock, describeMock, list } = setup();
+      list.mockImplementation(() => {
         return (async function* iter() {
-          yield { workflowId: "adv/epic/project-id/activeEpic" };
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/activeEpic",
+          };
         })();
       });
       queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
@@ -1130,13 +1206,13 @@ describe("createEpicOps", () => {
     });
 
     test("non-dry-run reports unverified when signal is delivered but describe proof is missing", async () => {
-      const { deps, queryMock, describeMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      temporal.workflow.list.mockImplementation(() => {
+      const { deps, queryMock, describeMock, list } = setup();
+      list.mockImplementation(() => {
         return (async function* iter() {
-          yield { workflowId: "adv/epic/project-id/activeEpic" };
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/activeEpic",
+          };
         })();
       });
       queryMock.mockResolvedValue(makeState(makeEpic({ id: "activeEpic" })));
@@ -1164,13 +1240,13 @@ describe("createEpicOps", () => {
     });
 
     test("reports unreachable when workflow state cannot be queried", async () => {
-      const { deps, queryMock } = setup();
-      const temporal = deps.input.temporal as unknown as {
-        workflow: { list: ReturnType<typeof vi.fn> };
-      };
-      temporal.workflow.list.mockImplementation(() => {
+      const { deps, queryMock, list } = setup();
+      list.mockImplementation(() => {
         return (async function* iter() {
-          yield { workflowId: "adv/epic/project-id/missingEpic" };
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/missingEpic",
+          };
         })();
       });
       queryMock.mockRejectedValue(new Error("Workflow not found"));

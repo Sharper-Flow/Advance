@@ -1,6 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { changeCommand, type StoreDeps } from "./shared";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../temporal/contracts";
+
+const PROJECT_ID = "0".repeat(40);
 
 const signalMock = vi.fn();
 const queryMock = vi.fn();
@@ -9,8 +12,8 @@ const commitProjectionMock = vi.fn();
 function makeDeps() {
   return {
     input: {
-      projectId: "pid-cmd",
-      temporal: {
+      projectId: PROJECT_ID,
+      temporal: createMockOwnerFromClient({
         client: {
           workflow: {
             getHandle: vi.fn(() => ({
@@ -19,7 +22,7 @@ function makeDeps() {
             })),
           },
         },
-      },
+      }),
     },
     legacy: {
       paths: {

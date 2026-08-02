@@ -174,7 +174,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
         fn({
           context: {
             root: "/target",
-            projectId: "target-project",
+            projectId: "0a00e00000ec0000000000000000000000000000",
             externalRoot: "/external/target-project",
             trusted: false,
             trustSource: "explicit",
@@ -685,7 +685,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     expect(parsed.mode).toBe("archived_branches");
     expect(parsed._projectContext).toMatchObject({
       root: "/target",
-      projectId: "target-project",
+      projectId: "0a00e00000ec0000000000000000000000000000",
     });
     expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith(
       {

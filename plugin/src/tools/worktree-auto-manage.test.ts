@@ -389,7 +389,7 @@ describe("ensureWorktreeForMutation — existing-worktree ALLOW (marker-independ
     worktreeExistsForChangeSpy.mockResolvedValue(true);
     const targetAccess = {
       projectDir: "/target/repo",
-      projectId: "target-pid",
+      projectId: "0a00e000d0000000000000000000000000000000",
     };
     const result = await ensureWorktreeForMutation({
       change: legacyChange({ worktree_auto_managed: false }),

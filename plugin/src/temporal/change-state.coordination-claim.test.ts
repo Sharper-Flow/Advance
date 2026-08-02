@@ -27,7 +27,7 @@ function baseState() {
     title: "Coordination claim change",
     createdAt: at,
   });
-  state.projectId = "proj-1";
+  state.projectId = "0000100000000000000000000000000000000000";
   state.lifecycleState = "open";
   state.state_revision = 5;
   return state;

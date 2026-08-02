@@ -1,4 +1,3 @@
-import type { Connection } from "@temporalio/client";
 import {
   normalizePersistedSubagentReportState,
   type Change,
@@ -24,11 +23,16 @@ import {
   markPoisonedWorkflowForChange,
   isPoisonedWorkflowForChange,
 } from "./poisoned-workflow-cache";
+import {
+  TemporalMutationOutcomeError,
+  TemporalReadOutcomeError,
+} from "../../temporal/outcome-errors";
 import { reinitStsl } from "../../temporal/service";
 import { createLogger } from "../../utils/debug-log";
 import type { ChangeSummaryMemo, ChangeSummary } from "../store-temporal-memo";
 import type { Store } from "../store-types";
-import type { TemporalClientBundle } from "../../temporal/client";
+import type { TemporalOperations } from "../../temporal/operations";
+import { makeTemporalOperationContext } from "../../temporal/operations";
 import {
   classifyMutationOutcome,
   requireMutationEligible,
@@ -69,29 +73,17 @@ function getOwnerGuardCache(
   return cache;
 }
 
-export interface WorkflowHandleLike {
-  query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
-  describe?: () => Promise<unknown>;
-  executeUpdate: (
-    definition: unknown,
-    options: { args?: unknown[] },
-  ) => Promise<unknown>;
-  signal: (definition: unknown, ...args: unknown[]) => Promise<void>;
-}
-
-export interface TemporalHandleClient {
-  workflow: {
-    getHandle: (workflowId: string) => WorkflowHandleLike;
-    start?: (...args: unknown[]) => Promise<WorkflowHandleLike>;
-  };
-}
-
 export interface TemporalStoreBackendInput {
   legacy: Store;
-  temporal: { client: TemporalHandleClient } | TemporalClientBundle;
+  temporal: TemporalOperations;
   projectId: string;
 }
 
+export function getTemporalOwner(
+  input: TemporalStoreBackendInput,
+): TemporalOperations {
+  return input.temporal;
+}
 export function mapTemporalChangeStateToChange(
   state: ChangeWorkflowState,
 ): Change {
@@ -131,6 +123,9 @@ export function mapTemporalChangeStateToChange(
     release_notes: safeState.release_notes,
   };
 }
+
+export type TemporalWorkflowHandle =
+  import("../../temporal/operations").TemporalWorkflowHandle;
 
 /**
  * Fields whose values are owned by a healthy ChangeWorkflow. Disk-only
@@ -191,10 +186,17 @@ export function projectTemporalStateOntoLatest(
 export function getChangeHandle(
   input: TemporalStoreBackendInput,
   changeId: string,
-): WorkflowHandleLike {
+): TemporalWorkflowHandle {
   const workflowId = buildChangeWorkflowId(input.projectId, changeId);
-  const bundle = input.temporal as { client: TemporalHandleClient };
-  return bundle.client.workflow.getHandle(workflowId);
+  return getTemporalOwner(input).getHandle(
+    makeTemporalOperationContext(
+      input.projectId,
+      workflowId,
+      "describe",
+      "getChangeHandle",
+      5_000,
+    ),
+  );
 }
 
 /**
@@ -208,16 +210,29 @@ export function getChangeHandle(
 export async function signalChangeWorkflowGuarded(
   input: TemporalStoreBackendInput,
   changeId: string,
-  signal: unknown,
+  signalDef: import("@temporalio/workflow").SignalDefinition<unknown[]>,
   args: unknown[],
   eligibility?: import("../../temporal/mutation-safety").TemporalWorkflowDiagnostic,
 ): Promise<void> {
   if (eligibility) {
     requireMutationEligible(eligibility);
   }
-  await runTemporal(async () =>
-    (await getGuardedChangeHandle(input, changeId)).signal(signal, ...args),
+  const owner = getTemporalOwner(input);
+  const handle = await getGuardedChangeHandle(input, changeId);
+  const workflowId = buildChangeWorkflowId(input.projectId, changeId);
+  const ctx = makeTemporalOperationContext(
+    input.projectId,
+    workflowId,
+    "signal",
+    "signalChangeWorkflowGuarded",
+    10_000,
   );
+  const outcome = await runTemporal(async () =>
+    owner.signal(ctx, handle, signalDef, args),
+  );
+  if (outcome.kind !== "confirmed") {
+    throw new TemporalMutationOutcomeError(outcome);
+  }
 }
 
 /**
@@ -258,18 +273,6 @@ export async function queryChangeWorkflowReadback<T>(
 }
 
 /**
- * Extract the underlying Temporal Connection from the store input when one
- * is present. Production bundles expose it; test fixtures and target-path
- * snapshots may omit it and fall back to the Promise.race-based wrapper.
- */
-export function getTemporalConnection(
-  input: TemporalStoreBackendInput,
-): Connection | undefined {
-  const bundle = input.temporal as { connection?: Connection };
-  return bundle.connection;
-}
-
-/**
  * Typed error thrown when a change-scoped operation targets a change
  * owned by a different project than the current store binding.
  */
@@ -294,7 +297,7 @@ export class AdvProjectContextMismatchError extends Error {
 export async function getGuardedChangeHandle(
   input: TemporalStoreBackendInput,
   changeId: string,
-): Promise<WorkflowHandleLike> {
+): Promise<TemporalWorkflowHandle> {
   const cachedOwner = ownerGuardCache.get(input)?.get(changeId);
   if (cachedOwner === input.projectId) {
     return getChangeHandle(input, changeId);
@@ -553,7 +556,10 @@ export interface ChangeCommandOptions {
    * (e.g., artifact metadata) that must be processed before the command's
    * projection commit.
    */
-  postSignal?: (handle: WorkflowHandleLike) => Promise<void>;
+  postSignal?: (
+    owner: TemporalOperations,
+    handle: TemporalWorkflowHandle,
+  ) => Promise<void>;
   /**
    * Optional SC4 eligibility diagnostic. When supplied, the command is
    * refused against a mutation-ineligible workflow before any signal fires.
@@ -611,6 +617,8 @@ export async function changeCommand(
     postSignal,
     eligibility,
   } = options;
+  const owner = getTemporalOwner(deps.input);
+  const workflowId = buildChangeWorkflowId(deps.input.projectId, changeId);
   const handle = await getGuardedChangeHandle(deps.input, changeId);
   if (isPoisonedWorkflowForChange(deps.input.projectId, changeId)) {
     return {
@@ -618,14 +626,29 @@ export async function changeCommand(
       reason: `${commandKind} signal skipped for ${changeId}: workflow is known poisoned`,
     };
   }
+  const signalCtx = makeTemporalOperationContext(
+    deps.input.projectId,
+    workflowId,
+    "signal",
+    commandKind,
+    30_000,
+  );
   try {
     if (eligibility) {
       requireMutationEligible(eligibility);
     }
     await runTemporal(async () => {
-      await handle.signal(signal, ...signalArgs);
+      const signalResult = await owner.signal(
+        signalCtx,
+        handle,
+        signal as import("@temporalio/workflow").SignalDefinition<unknown[]>,
+        signalArgs,
+      );
+      if (signalResult.kind !== "confirmed") {
+        throw new TemporalMutationOutcomeError(signalResult);
+      }
       if (postSignal) {
-        await postSignal(handle);
+        await postSignal(owner, handle);
       }
     });
   } catch (err) {
@@ -645,13 +668,28 @@ export async function changeCommand(
     };
   }
 
+  const queryCtx = makeTemporalOperationContext(
+    deps.input.projectId,
+    workflowId,
+    "query",
+    `${commandKind}:ledger`,
+    30_000,
+  );
   let ledger: OperationLedgerEntry | undefined;
   try {
     ledger = await waitForQueryPredicate(
-      () =>
-        handle.query(getOperationLedgerOutcomeQuery, operationId) as Promise<
-          OperationLedgerEntry | undefined
-        >,
+      async () => {
+        const outcome = await owner.query(
+          queryCtx,
+          handle,
+          getOperationLedgerOutcomeQuery,
+          operationId,
+        );
+        if (outcome.kind !== "complete") {
+          throw new TemporalReadOutcomeError(outcome);
+        }
+        return outcome.value;
+      },
       (entry) =>
         entry?.outcome === "accepted" ||
         entry?.outcome === "idempotent_replay" ||
@@ -691,9 +729,13 @@ export async function changeCommand(
 
   let state: ChangeWorkflowState;
   try {
-    state = (await runTemporal(async () =>
-      handle.query(changeStateQuery),
-    )) as ChangeWorkflowState;
+    const stateOutcome = await runTemporal(async () =>
+      owner.query(queryCtx, handle, changeStateQuery),
+    );
+    if (stateOutcome.kind !== "complete") {
+      throw new TemporalReadOutcomeError(stateOutcome);
+    }
+    state = stateOutcome.value as ChangeWorkflowState;
   } catch (err) {
     return {
       kind: "outcome_unknown_readback_unavailable",
@@ -809,13 +851,22 @@ async function hasPoisonedWorkflowDescription(
   changeId: string,
   deadline?: TemporalReadDeadline,
 ): Promise<boolean> {
+  const owner = getTemporalOwner(input);
   const handle = getChangeHandle(input, changeId);
-  if (typeof handle.describe !== "function") return false;
+  const ctx = makeTemporalOperationContext(
+    input.projectId,
+    buildChangeWorkflowId(input.projectId, changeId),
+    "describe",
+    "poisonedProbe",
+    1_000,
+  );
   try {
-    const description = await runTemporal(async () => handle.describe?.(), {
-      timeoutMs: 1_000,
-      deadline,
-    });
+    const descriptionOutcome = await runTemporal(
+      async () => owner.describe(ctx, handle),
+      { timeoutMs: 1_000, deadline },
+    );
+    if (descriptionOutcome.kind !== "complete") return false;
+    const description = descriptionOutcome.value;
     const evidence = stringifyEvidence(description);
     // Also treat terminal workflows as poisoned-from-read-perspective:
     // queries to terminated/closed workflows on abandoned session queues
@@ -835,9 +886,9 @@ export interface TemporalReadFailureClassification {
   /**
    * Typed reason for the read failure. `query_failed` means the workflow
    * state is unknown — it NEVER authorizes mutation. Recovery paths that
-   * mutate (re-seed) or project must require BOTH `errorClass ===
+   * mutate or project must require BOTH `errorClass ===
    * "fallback"` AND a `ProjectionRecoveryReason` (i.e. recoveryReason !==
-   * "query_failed").
+   * "query_failed`).
    */
   recoveryReason?: RecoveryReason;
   /**
@@ -912,6 +963,26 @@ export async function classifyTemporalReadFailure(
   };
 }
 
+export type ProjectionSource = "disk" | "archive";
+
+export function withProjectionRecovery(
+  change: Change,
+  source: ProjectionSource,
+  reason: ProjectionRecoveryReason,
+): Change & {
+  _source: ProjectionSource;
+  _recovery: {
+    mode: "temporal_query_fallback";
+    reason: ProjectionRecoveryReason;
+  };
+} {
+  return {
+    ...change,
+    _source: source,
+    _recovery: { mode: "temporal_query_fallback", reason },
+  };
+}
+
 export interface StoreDeps {
   input: TemporalStoreBackendInput;
   legacy: Store;
@@ -955,24 +1026,9 @@ export interface StoreDeps {
     state: ChangeWorkflowState,
   ) => Promise<void>;
   dualWriteAfterMutation: (changeId: string) => Promise<void>;
-  getTemporalWorkflowClient: () => {
-    workflow: {
-      start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
-      getHandle: (workflowId: string) => WorkflowHandleLike;
-      /**
-       * Optional Visibility enumeration. Forwarded from the underlying
-       * Temporal Client when available; absent in test fixtures that only
-       * stub start/getHandle.
-       */
-      list?: (opts: { query: string }) => AsyncIterable<{
-        workflowId: string;
-        taskQueue: string;
-        status: { name: string };
-      }>;
-    };
-  };
+  getTemporalOwner: () => TemporalOperations;
   resolveStateOrQuery: (
-    getHandle: () => WorkflowHandleLike | Promise<WorkflowHandleLike>,
+    getHandle: () => TemporalWorkflowHandle | Promise<TemporalWorkflowHandle>,
     result: unknown,
   ) => Promise<ChangeWorkflowState>;
   indexTasksFromState: (state: ChangeWorkflowState) => void;
@@ -996,8 +1052,4 @@ export interface StoreDeps {
     deadline?: TemporalReadDeadline,
     options?: { candidateLimit?: number; hydrationConcurrency?: number },
   ) => Promise<import("../store-types").ResolvedChangeList>;
-  reseedChangeFromDisk: (
-    changeId: string,
-    reason?: ProjectionRecoveryReason,
-  ) => Promise<Change | null>;
 }

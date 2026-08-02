@@ -48,7 +48,7 @@ const fixtureContract: ChangeContract = {
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
-    projectId: "concurrent-signaling-test-project",
+    projectId: "c00c000e000000a00000e000000ec00000000000",
     changeId,
     title: `Concurrent signaling test: ${changeId}`,
     initializedAt: "2026-05-05T00:00:00.000Z",

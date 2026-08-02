@@ -11,13 +11,16 @@
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
+
 const queryFn = vi.hoisted(() => vi.fn());
 const getHandleFn = vi.hoisted(() => vi.fn(() => ({ query: queryFn })));
 const getServiceFn = vi.hoisted(() =>
-  vi.fn(() => ({
-    connection: { close: vi.fn() },
-    client: { workflow: { getHandle: getHandleFn } },
-  })),
+  vi.fn(() =>
+    createMockOwnerFromClient({
+      client: { workflow: { getHandle: getHandleFn } },
+    }),
+  ),
 );
 
 vi.mock("../../temporal/service", () => ({
@@ -32,7 +35,7 @@ import {
 
 const access: WorktreeStateAccess = {
   projectDir: "/repo",
-  projectId: "proj-123",
+  projectId: "0000123000000000000000000000000000000000",
 };
 
 function stateWithWorktree(
@@ -76,7 +79,10 @@ describe("getWorktreeRecord", () => {
     expect(record?.setupReady).toBe(true);
     expect(record?.materialized).toBe(true);
     expect(record?.changeId).toBe("myChange");
-    expect(getHandleFn).toHaveBeenCalledWith("adv/change/proj-123/myChange");
+    expect(getHandleFn).toHaveBeenCalledWith(
+      "adv/change/0000123000000000000000000000000000000000/myChange",
+      undefined,
+    );
   });
 
   it("calls getHandle bound to client.workflow (regression: unbound `this` throws in the real SDK)", async () => {
@@ -109,10 +115,9 @@ describe("getWorktreeRecord", () => {
         };
       },
     };
-    getServiceFn.mockReturnValueOnce({
-      connection: { close: vi.fn() },
-      client: { workflow },
-    } as never);
+    getServiceFn.mockReturnValueOnce(
+      createMockOwnerFromClient({ client: { workflow } } as never),
+    );
 
     const record = await getWorktreeRecord(access, "change/myChange");
     expect(record).not.toBeNull();

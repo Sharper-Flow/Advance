@@ -8,12 +8,13 @@
  * idempotency via worker.queues.
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { OrphanListClient } from "./list-orphan-session-queues";
 import {
   evaluateTargetReadiness,
   resetReadinessState,
   type QueryProbe,
 } from "./session-readiness";
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
+const PROJECT_ID = "0000000000000000000000000000000000000000";
 
 // Late-import so the RED run fails on the missing module before GREEN creates it.
 async function loadAdopter() {
@@ -40,28 +41,27 @@ function mockWorker(initialQueues: string[] = []) {
   };
 }
 
-/** Build a mock Visibility client returning the given orphan queue set. */
-function mockClient(
-  orphans: Array<{ queue: string; oldestStartTime: Date }>,
-): OrphanListClient {
+/** Build a mock Visibility owner returning the given orphan queue set. */
+function mockOwner(orphans: Array<{ queue: string; oldestStartTime: Date }>) {
   const items = orphans.flatMap((o) => [
     {
-      workflowId: `adv/change/P/${o.queue}/wf1`,
+      workflowId: `adv/change/${PROJECT_ID}/${o.queue}/wf1`,
       taskQueue: o.queue,
       startTime: o.oldestStartTime,
       status: { name: "RUNNING" },
     },
   ]);
-  return {
+  const client = {
     workflow: {
       list: async function* () {
         for (const item of items) yield item;
       },
     },
   };
+  return createMockOwnerFromClient(client);
 }
 
-const Q = (n: number, t: string) => `advance-P-sess_${n}${t}`;
+const Q = (n: number, t: string) => `advance-${PROJECT_ID}-sess_${n}${t}`;
 const T0 = new Date("2026-07-22T00:00:00Z");
 
 beforeEach(() => {
@@ -71,14 +71,14 @@ beforeEach(() => {
 describe("OrphanQueueAdopter", () => {
   it("adopts orphans oldest-first via registerQueue", async () => {
     const worker = mockWorker();
-    const client = mockClient([
+    const owner = mockOwner([
       { queue: Q(2, ""), oldestStartTime: new Date(T0.getTime() + 2000) },
       { queue: Q(1, ""), oldestStartTime: T0 }, // oldest → FIFO first
     ]);
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -95,14 +95,14 @@ describe("OrphanQueueAdopter", () => {
 
   it("skips a queue already in worker.queues (idempotent)", async () => {
     const worker = mockWorker([Q(1, "")]);
-    const client = mockClient([
+    const owner = mockOwner([
       { queue: Q(1, ""), oldestStartTime: T0 }, // already polled
       { queue: Q(2, ""), oldestStartTime: new Date(T0.getTime() + 1000) },
     ]);
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -115,11 +115,11 @@ describe("OrphanQueueAdopter", () => {
 
   it("does nothing when there are no orphans", async () => {
     const worker = mockWorker();
-    const client = mockClient([]);
+    const owner = mockOwner([]);
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -131,15 +131,15 @@ describe("OrphanQueueAdopter", () => {
 
   it("enforces single-flight: concurrent ticks do not overlap", async () => {
     const worker = mockWorker();
-    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
     let resolveRegister!: () => void;
     worker.setRegisterImpl(
       () => new Promise<void>((resolve) => (resolveRegister = resolve)),
     );
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -158,13 +158,13 @@ describe("OrphanQueueAdopter", () => {
 
   it("releases single-flight in finally even when registerQueue times out", async () => {
     const worker = mockWorker();
-    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
     // registerQueue never resolves → tick timeout must fire + release.
     worker.setRegisterImpl(() => new Promise<void>(() => {}));
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -182,15 +182,15 @@ describe("OrphanQueueAdopter", () => {
 
   it("applies cooldown after 3 failed attempts and re-attempts after cooldown expires", async () => {
     const worker = mockWorker();
-    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
     worker.setRegisterImpl(async () => {
       throw new Error("run-error: worker failed");
     });
     let now = 10_000;
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -218,11 +218,11 @@ describe("OrphanQueueAdopter", () => {
 
   it("resets attempt state on a successful adoption", async () => {
     const worker = mockWorker();
-    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -251,14 +251,14 @@ describe("OrphanQueueAdopter", () => {
 
   it("suppresses shutdown-class errors without bumping attempts", async () => {
     const worker = mockWorker();
-    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
     worker.setRegisterImpl(async () => {
       throw new Error("worker is shutting down");
     });
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -274,14 +274,14 @@ describe("OrphanQueueAdopter", () => {
 
   it("marks the target queue stale when the worker dies during adoption (AC4)", async () => {
     const worker = mockWorker();
-    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
     worker.setRegisterImpl(async () => {
       throw new Error("worker is shutting down");
     });
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -321,13 +321,13 @@ describe("OrphanQueueAdopter", () => {
 
   it("marks the target queue stale when registerQueue times out (worker unresponsive)", async () => {
     const worker = mockWorker();
-    const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+    const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
     // Never resolves → tick timeout wins.
     worker.setRegisterImpl(() => new Promise<void>(() => {}));
     const { OrphanQueueAdopter } = await loadAdopter();
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -434,10 +434,10 @@ describe("review remediation — failure accounting + late-settlement safety", (
   ) {
     // Late-import to exercise the real module.
     return loadAdopter().then(({ OrphanQueueAdopter }) => {
-      const client = mockClient([{ queue: Q(1, ""), oldestStartTime: T0 }]);
+      const owner = mockOwner([{ queue: Q(1, ""), oldestStartTime: T0 }]);
       return new OrphanQueueAdopter({
-        client,
-        projectId: "P",
+        owner,
+        projectId: PROJECT_ID,
         worker: {
           registerQueue: worker.registerQueue,
           queues: worker.polledQueues,

@@ -1,6 +1,5 @@
 import type { Store } from "../store-types";
 import type { Epic, RetiredEpicProjection } from "../../types";
-import { ensureEpicWorkflowStarted } from "../../temporal/workflow-start";
 import {
   epicArchivedSignal,
   epicCreatedSignal,
@@ -22,12 +21,22 @@ import {
   runTemporal,
   runTemporalQuery,
   createTemporalReadContext,
-  runTemporalRead,
-  getTemporalConnection,
   TemporalQueryTimeoutError,
   type StoreDeps,
   type TemporalReadContext,
+  type TemporalWorkflowHandle,
+  getTemporalOwner,
 } from "./shared";
+import {
+  makeTemporalOperationContext,
+  type TemporalOperations,
+} from "../../temporal/operations";
+import { StartWorkflowOutcomeError } from "../../temporal/workflow-start";
+import {
+  TemporalMutationOutcomeError,
+  TemporalReadOutcomeError,
+} from "../../temporal/outcome-errors";
+import type { EpicWorkflowInput } from "../../temporal/contracts";
 import {
   listActiveEpicProjections,
   listRetiredEpicProjections,
@@ -40,16 +49,6 @@ import {
   saveRetiredEpicProjection,
 } from "../epic-projection";
 import { ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES } from "../../temporal/contracts";
-
-interface EpicHandleLike {
-  query: (definition: unknown, ...args: unknown[]) => Promise<unknown>;
-  signal: (definition: unknown, ...args: unknown[]) => Promise<void>;
-  describe?: () => Promise<unknown>;
-}
-
-function asEpicHandle(handle: unknown): EpicHandleLike {
-  return handle as EpicHandleLike;
-}
 
 import { listEpicWorkflowIds } from "../../temporal/list-epic-workflows";
 import { buildEpicWorkflowId } from "../../temporal/client";
@@ -89,9 +88,28 @@ function extractMutationRejection(
 }
 
 async function queryEpicState(
-  handle: EpicHandleLike,
+  owner: TemporalOperations,
+  projectId: string,
+  handle: TemporalWorkflowHandle,
 ): Promise<import("../../temporal/contracts").EpicWorkflowState> {
-  const state = await runTemporalQuery(() => handle.query(getEpicStateQuery));
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    handle.workflowId,
+    "query",
+    "epicStateQuery",
+    5_000,
+  );
+  const outcome = await runTemporalQuery(() =>
+    owner.query<import("../../temporal/contracts").EpicWorkflowState>(
+      ctx,
+      handle,
+      getEpicStateQuery,
+    ),
+  );
+  if (outcome.kind !== "complete") {
+    throw new TemporalReadOutcomeError(outcome);
+  }
+  const state = outcome.value;
   if (!isEpicWorkflowState(state)) {
     throw new Error("Epic workflow state query returned malformed state");
   }
@@ -118,10 +136,12 @@ function isWorkflowNotFoundError(error: unknown): boolean {
 }
 
 async function tryQueryEpicState(
-  handle: EpicHandleLike,
+  owner: TemporalOperations,
+  projectId: string,
+  handle: TemporalWorkflowHandle,
 ): Promise<import("../../temporal/contracts").EpicWorkflowState | null> {
   try {
-    return await queryEpicState(handle);
+    return await queryEpicState(owner, projectId, handle);
   } catch (error) {
     if (isWorkflowNotFoundError(error)) return null;
     throw error;
@@ -174,25 +194,30 @@ function describedSearchAttributesContainStatus(
   return false;
 }
 
-async function verifyEpicStatusSearchAttribute(
-  handle: EpicHandleLike,
+async function verifyEpicStatusSearchAttributeImpl(
+  owner: TemporalOperations,
+  projectId: string,
+  handle: TemporalWorkflowHandle,
   status: string,
 ): Promise<{ verified: true } | { verified: false; error: string }> {
   // rq-epicSearchAttributeRepair01: repair reports distinguish confirmed
   // search-attribute proof from skipped, unreachable, or unverified delivery.
-  if (!handle.describe) {
-    return {
-      verified: false,
-      error:
-        "Search-attribute refresh signal delivered, but workflow describe is unavailable for AdvEpicStatus verification.",
-    };
-  }
   try {
-    const description = await runTemporal(() => handle.describe!(), {
+    const ctx = makeTemporalOperationContext(
+      projectId,
+      handle.workflowId,
+      "describe",
+      "describe-epic-search-attributes",
+      5_000,
+    );
+    const outcome = await runTemporal(() => owner.describe(ctx, handle), {
       opType: "describe-epic-search-attributes",
       timeoutMs: 5_000,
     });
-    if (describedSearchAttributesContainStatus(description, status)) {
+    if (outcome.kind !== "complete") {
+      throw new TemporalReadOutcomeError(outcome);
+    }
+    if (describedSearchAttributesContainStatus(outcome.value, status)) {
       return { verified: true };
     }
     return {
@@ -250,15 +275,29 @@ function codeFromRejectionMessage(message: string): EpicMutationError["code"] {
   return "signal_rejected";
 }
 
-async function fireEpicSignal(
-  handle: EpicHandleLike,
+async function fireEpicSignalImpl(
+  owner: TemporalOperations,
+  projectId: string,
+  handle: TemporalWorkflowHandle,
   signalName: string,
   rejectionSince: string,
-  signal: unknown,
+  signal: import("@temporalio/workflow").SignalDefinition<unknown[]>,
   ...args: unknown[]
 ): Promise<void> {
-  await runTemporal(() => handle.signal(signal, ...args));
-  const state = await queryEpicState(handle);
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    handle.workflowId,
+    "signal",
+    signalName,
+    5_000,
+  );
+  const outcome = await runTemporal(() =>
+    owner.signal(ctx, handle, signal, args),
+  );
+  if (outcome.kind !== "confirmed") {
+    throw new TemporalMutationOutcomeError(outcome);
+  }
+  const state = await queryEpicState(owner, projectId, handle);
   const rejection = lastRejectionFor(state, signalName, rejectionSince);
   if (rejection) {
     const error: EpicMutationError = {
@@ -279,8 +318,10 @@ async function fireEpicSignal(
  * not found" query failure as an error: a completed Epic workflow is no longer
  * queryable, which is the expected outcome of a successful archive.
  */
-async function fireEpicArchiveSignal(
-  handle: EpicHandleLike,
+async function fireEpicArchiveSignalImpl(
+  owner: TemporalOperations,
+  projectId: string,
+  handle: TemporalWorkflowHandle,
   payload: {
     archivedAt: string;
     archivedBy: string;
@@ -288,9 +329,21 @@ async function fireEpicArchiveSignal(
     idempotencyKey: string;
   },
 ): Promise<void> {
-  await runTemporal(() => handle.signal(epicArchivedSignal, payload));
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    handle.workflowId,
+    "signal",
+    "epicArchived",
+    5_000,
+  );
+  const outcome = await runTemporal(() =>
+    owner.signal(ctx, handle, epicArchivedSignal, [payload]),
+  );
+  if (outcome.kind !== "confirmed") {
+    throw new TemporalMutationOutcomeError(outcome);
+  }
   try {
-    const state = await queryEpicState(handle);
+    const state = await queryEpicState(owner, projectId, handle);
     const rejection = lastRejectionFor(
       state,
       "epicArchived",
@@ -314,55 +367,85 @@ async function fireEpicArchiveSignal(
 }
 
 export function createEpicOps(deps: StoreDeps): Store["epics"] {
-  const { input, getTemporalWorkflowClient } = deps;
+  const { input } = deps;
+  const owner = getTemporalOwner(input);
 
-  function getTemporalClient(): ReturnType<typeof getTemporalWorkflowClient> {
-    return getTemporalWorkflowClient();
-  }
-
-  function getEpicHandle(epicId: string): EpicHandleLike {
-    const client = getTemporalClient();
-    const handle = client.workflow.getHandle(
-      buildEpicWorkflowId(input.projectId, epicId),
+  function makeEpicCtx(
+    workflowId: string,
+    opKind: import("../../temporal/operations").TemporalOperationKind,
+    opType: string,
+    budgetMs = 5_000,
+  ) {
+    return makeTemporalOperationContext(
+      input.projectId,
+      workflowId,
+      opKind,
+      opType,
+      budgetMs,
     );
-    return asEpicHandle(handle);
   }
 
-  async function ensureEpicHandle(epicId: string): Promise<EpicHandleLike> {
-    const client = getTemporalClient();
-    const handle = await ensureEpicWorkflowStarted(client, {
+  function getEpicHandle(epicId: string): TemporalWorkflowHandle {
+    const workflowId = buildEpicWorkflowId(input.projectId, epicId);
+    return owner.getHandle(
+      makeEpicCtx(workflowId, "describe", "getEpicHandle"),
+    );
+  }
+
+  async function ensureEpicHandle(
+    epicId: string,
+  ): Promise<TemporalWorkflowHandle> {
+    const workflowId = buildEpicWorkflowId(input.projectId, epicId);
+    const ctx = makeEpicCtx(workflowId, "start", "ensureEpicHandle", 10_000);
+    const startInput: EpicWorkflowInput = {
       projectId: input.projectId,
       epicId,
       title: epicId,
       narrative: "",
       initializedAt: new Date().toISOString(),
-    });
-    return asEpicHandle(handle);
+    };
+    const outcome = await owner.startEpicWorkflow(ctx, startInput);
+    if (outcome.kind !== "confirmed") {
+      throw new StartWorkflowOutcomeError(
+        outcome.kind,
+        outcome.error,
+        outcome.diagnostic,
+        `startEpicWorkflow ${outcome.kind}`,
+      );
+    }
+    return outcome.value;
   }
 
   async function queryEpicStateRead(
-    handle: EpicHandleLike,
-    ctx: TemporalReadContext,
+    handle: TemporalWorkflowHandle,
+    _ctx: TemporalReadContext,
   ): Promise<import("../../temporal/contracts").EpicWorkflowState> {
-    const connection = getTemporalConnection(input);
-    const read = await runTemporalRead(
-      connection,
-      async () => handle.query(getEpicStateQuery),
-      ctx,
-      { opType: "epicStateQuery", timeoutMs: 1_500 },
+    const opCtx = makeEpicCtx(
+      handle.workflowId,
+      "query",
+      "epicStateQuery",
+      1_500,
     );
-    if (!read.complete) {
-      throw read.error ?? new TemporalQueryTimeoutError(ctx.deadline.budgetMs);
+    try {
+      const outcome = await runTemporalQuery(() =>
+        owner.query(opCtx, handle, getEpicStateQuery),
+      );
+      if (outcome.kind !== "complete") {
+        throw new TemporalReadOutcomeError(outcome);
+      }
+      const state = outcome.value;
+      if (!isEpicWorkflowState(state)) {
+        throw new Error("Epic workflow state query returned malformed state");
+      }
+      return state;
+    } catch (error) {
+      if (error instanceof TemporalQueryTimeoutError) throw error;
+      throw error;
     }
-    const state = read.data;
-    if (!isEpicWorkflowState(state)) {
-      throw new Error("Epic workflow state query returned malformed state");
-    }
-    return state;
   }
 
   async function tryQueryEpicStateRead(
-    handle: EpicHandleLike,
+    handle: TemporalWorkflowHandle,
     ctx: TemporalReadContext,
   ): Promise<
     | {
@@ -434,6 +517,48 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
     }
     await saveActiveEpicProjection(activeEpicsDir, epic);
     return epic;
+  }
+
+  async function fireEpicSignal(
+    handle: TemporalWorkflowHandle,
+    signalName: string,
+    rejectionSince: string,
+    signal: import("@temporalio/workflow").SignalDefinition<unknown[]>,
+    ...args: unknown[]
+  ): Promise<void> {
+    return fireEpicSignalImpl(
+      owner,
+      input.projectId,
+      handle,
+      signalName,
+      rejectionSince,
+      signal,
+      ...args,
+    );
+  }
+
+  async function fireEpicArchiveSignal(
+    handle: TemporalWorkflowHandle,
+    payload: {
+      archivedAt: string;
+      archivedBy: string;
+      expectedVersion: number;
+      idempotencyKey: string;
+    },
+  ): Promise<void> {
+    return fireEpicArchiveSignalImpl(owner, input.projectId, handle, payload);
+  }
+
+  async function verifyEpicStatusSearchAttribute(
+    handle: TemporalWorkflowHandle,
+    status: string,
+  ): Promise<{ verified: true } | { verified: false; error: string }> {
+    return verifyEpicStatusSearchAttributeImpl(
+      owner,
+      input.projectId,
+      handle,
+      status,
+    );
   }
 
   return {
@@ -509,7 +634,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       { expectedVersion, evidence, retiredBy, dryRun },
     ) => {
       const handle = getEpicHandle(epicId);
-      const state = await tryQueryEpicState(handle);
+      const state = await tryQueryEpicState(owner, input.projectId, handle);
       if (!state) {
         throw Object.assign(new Error(`Epic not found: ${epicId}`), {
           code: "epic_not_found" as const,
@@ -1010,12 +1135,14 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
     },
 
     repairIndex: async ({ evidence, dryRun }) => {
-      const client =
-        getTemporalClient() as unknown as import("../../temporal/list-epic-workflows").ListEpicClient;
-      const ids = await listEpicWorkflowIds(client, {
+      const idsOutcome = await listEpicWorkflowIds(owner, {
         projectId: input.projectId,
         status: "running",
       });
+      if (idsOutcome.kind !== "complete") {
+        throw idsOutcome.error;
+      }
+      const ids = idsOutcome.value;
 
       const refreshedAt = new Date().toISOString();
       const report: Awaited<
@@ -1030,7 +1157,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
         const handle = getEpicHandle(epicId);
         let state: import("../../temporal/contracts").EpicWorkflowState | null;
         try {
-          state = await tryQueryEpicState(handle);
+          state = await tryQueryEpicState(owner, input.projectId, handle);
         } catch {
           state = null;
         }

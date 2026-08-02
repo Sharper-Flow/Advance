@@ -40,7 +40,10 @@ describe("P1.9 — E2E tool calls (real Temporal stack)", () => {
         // shared connections. Worker uses workflowsPath; client uses
         // the env's namespaceless default.
         const namespace = "default";
-        const projectId = "e2e-proj";
+        const projectId = "e2e0000000000000000000000000000000000000".padEnd(
+          40,
+          "0",
+        );
         const taskQueue = `advance-${projectId}`;
 
         const worker = await createInProcessWorker({
@@ -64,7 +67,7 @@ describe("P1.9 — E2E tool calls (real Temporal stack)", () => {
           // workflow.start fails with "search attribute is not
           // defined" on the test server (no shared state with prod).
           resetStsl(); // clear any prior test's cached bundle
-          const bundle = await initStsl({
+          const bundle = await initStsl(projectId, {
             ADV_TEMPORAL_ADDRESS: env.address ?? "127.0.0.1:7233",
             ADV_TEMPORAL_NAMESPACE: namespace,
             ADV_TEMPORAL_ALLOW_REMOTE: "true",
@@ -76,12 +79,7 @@ describe("P1.9 — E2E tool calls (real Temporal stack)", () => {
           const legacy = await createLegacyStore(tempDir);
           const store = createTemporalStoreBackend({
             legacy,
-            // bundle.client is the real @temporalio/client Client, which
-            // satisfies TemporalHandleClient at runtime but the structural
-            // signatures don't unify (Client.workflow.start has stricter
-            // overloads). Cast through unknown — the e2e test exercises
-            // the real wire shape.
-            temporal: { client: bundle.client as unknown as never },
+            temporal: bundle,
             projectId,
           });
           await store.init();

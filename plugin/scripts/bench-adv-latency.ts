@@ -154,7 +154,7 @@ async function ensureBenchmarkFixture(
 
 function temporalModeFailure(): Error {
   return new Error(
-    "[bench] --mode temporal requires a running Temporal worker and a real TemporalClientBundle. " +
+    "[bench] --mode temporal requires a running Temporal worker and a real Temporal client bundle. " +
       "Remediation: start `temporal server start-dev`, start the ADV worker, " +
       "then run an operator-owned wrapper that constructs createStore() with the live bundle. " +
       "No disk substitute was used.",

@@ -16,7 +16,7 @@ function makeChangeInput(
   projectionChangesDir: string,
 ): ChangeWorkflowInput {
   return {
-    projectId: "projection-workflow-project",
+    projectId: "0000ec00000000f0000000ec0000000000000000",
     changeId,
     title: `Projection workflow: ${changeId}`,
     initializedAt: "2026-05-05T00:00:00.000Z",

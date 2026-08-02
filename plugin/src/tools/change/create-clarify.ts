@@ -20,7 +20,9 @@ import type { ConflictInventory } from "../../validator/types";
 import { generateChangeId } from "../../utils/change-id";
 import { isSyntheticValidationDraftPattern } from "../../utils/synthetic-fixture-detector";
 import { createLogger } from "../../utils/debug-log";
-import { queryClaimsByIssueNumber } from "../../temporal/visibility-claim-queries";
+import { buildClaimVisibilityQuery } from "../../temporal/visibility-claim-queries";
+import { CHANGE_WORKFLOW_PREFIX } from "../../temporal/contracts";
+import { makeTemporalOperationContext } from "../../temporal/operations";
 import { runClarifyReadinessChecks } from "../../validator/clarify-readiness";
 import { formatToolOutput } from "../../utils/tool-output";
 import {
@@ -29,6 +31,7 @@ import {
   withTargetPathStore,
 } from "../target-project";
 import { getService } from "../../temporal/service";
+import { buildChangeWorkflowId } from "../../temporal/client";
 import { loadProposalForContext } from "../change/artifacts";
 import {
   loadValidationInventory,
@@ -138,18 +141,36 @@ export async function defaultClaimChecker(
     status: string;
   }>
 > {
-  const bundle = getService();
-  if (!bundle) return [];
-  const client = bundle.client as unknown as Parameters<
-    typeof queryClaimsByIssueNumber
-  >[0];
-  if (!client.workflow?.list) return [];
-  const results = await queryClaimsByIssueNumber(
-    client,
-    projectId,
-    issueNumber,
-  );
-  return results.map((r) => ({ changeId: r.changeId, status: "active" }));
+  const owner = getService();
+  if (!owner) return [];
+  const query = buildClaimVisibilityQuery({ projectId, issueNumber });
+  const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
+  const results: { changeId: string; status: string }[] = [];
+  try {
+    const outcome = await owner.list<{ workflowId: string }>(
+      makeTemporalOperationContext(
+        projectId,
+        buildChangeWorkflowId(projectId, "issue-claim-check"),
+        "list",
+        "queryClaimsByIssueNumber",
+        5_000,
+      ),
+      query,
+    );
+    if (outcome.kind !== "complete") {
+      return [];
+    }
+    for (const wf of outcome.value) {
+      const wfid = wf.workflowId;
+      if (!wfid.startsWith(projectPrefix)) continue;
+      const changeId = wfid.slice(projectPrefix.length);
+      if (changeId.length === 0) continue;
+      results.push({ changeId, status: "active" });
+    }
+  } catch {
+    return [];
+  }
+  return results;
 }
 /**
  * Extract structured context-mismatch fields from an error, if it's an

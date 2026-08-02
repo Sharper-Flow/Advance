@@ -24,19 +24,19 @@ import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
 import { getService } from "../temporal/service";
 import { getChangeHandle, fireSignalAndRefresh } from "./_adapters";
-import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
+import type { TemporalWorkflowHandleProxy } from "./change-mutation-coordinator";
 import { lightweightProfileEvaluatedSignal } from "../temporal/messages";
 
 export interface EvaluateLightweightProfileDeps {
   getProjectId: (root: string) => Promise<string | null>;
   getService: () => ReturnType<typeof getService>;
   getChangeHandle: (
-    client: NonNullable<ReturnType<typeof getService>>["client"],
+    owner: NonNullable<ReturnType<typeof getService>>,
     projectId: string,
     changeId: string,
-  ) => WorkflowHandleLike;
+  ) => TemporalWorkflowHandleProxy;
   fireSignalAndRefresh: (
-    handle: WorkflowHandleLike,
+    handle: TemporalWorkflowHandleProxy,
     store: Store,
     changeId: string,
     signal: typeof lightweightProfileEvaluatedSignal,
@@ -143,7 +143,7 @@ export async function evaluateLightweightProfileAndSignal(input: {
     evaluationKey,
   });
 
-  const handle = deps.getChangeHandle(bundle.client, projectId, input.changeId);
+  const handle = deps.getChangeHandle(bundle, projectId, input.changeId);
   await deps.fireSignalAndRefresh(
     handle,
     input.store,

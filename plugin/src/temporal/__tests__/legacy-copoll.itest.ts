@@ -17,7 +17,6 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { Worker, bundleWorkflowCode } from "@temporalio/worker";
-import type { WorkflowHandle } from "@temporalio/client";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 import { ensureChangeWorkflowStarted } from "../workflow-start";
 import { createDefaultGates } from "../../types";
@@ -25,12 +24,24 @@ import type { ChangeWorkflowInput } from "../contracts";
 import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
 import { changeStateQuery, proposalUpdatedSignal } from "../messages";
 import { requiredAdvSearchAttributes } from "../observability";
+import { TemporalOperationsOwner } from "../operations";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
+
+function ownerFromEnv(env: TestWorkflowEnvironment): TemporalOperationsOwner {
+  return new TemporalOperationsOwner(
+    {
+      client: env.client,
+      connection: env.connection,
+      namespace: env.namespace ?? "default",
+    },
+    "c".repeat(40),
+  );
+}
 
 const workflowsPath = fileURLToPath(
   new URL("../workflows.ts", import.meta.url),
 );
-const PROJECT_ID = "proj-legacy-copoll-001";
+const PROJECT_ID = "c".repeat(40);
 const SESSION_ID = "sess_LegacyCopoll1";
 
 async function registerAdvSearchAttributes(
@@ -144,21 +155,23 @@ describe("AC3: legacy queue co-polling (isolateAdvWorkerTaskQueues)", () => {
           try {
             // Legacy workflow: started WITHOUT sessionId → routes to project queue.
             const legacyHandle = await ensureChangeWorkflowStarted(
-              env.client,
+              ownerFromEnv(env),
               makeChangeInput("legacy-copoll-change"),
             );
 
+            const legacyRawHandle = env.client.workflow.getHandle(
+              legacyHandle.workflowId,
+            );
+
             // Confirm routing: legacy is on the project queue, not session.
-            const legacyDesc = await legacyHandle.describe();
+            const legacyDesc = await legacyRawHandle.describe();
             expect(legacyDesc.taskQueue).toBe(projectQueue);
 
             // Bounded poller-readiness seam: prove the legacy workflow has
             // been started and is reachable on the project queue before the
             // first signal/query. This closes the "signal sent before the
             // first workflow task" race that can hang in time-skipping envs.
-            await waitForWorkflowReachable(
-              legacyHandle as WorkflowHandle<unknown>,
-            );
+            await waitForWorkflowReachable(legacyRawHandle);
 
             // AC3: signal the legacy workflow and prove it's processed.
             // The signal call resolves once the workflow's signal handler
@@ -167,7 +180,7 @@ describe("AC3: legacy queue co-polling (isolateAdvWorkerTaskQueues)", () => {
             // The query answering at all proves the project-queue worker is
             // actively polling (otherwise the workflow would be unreachable
             // with a "workflow execution not found" or query-timeout error).
-            await legacyHandle.signal(proposalUpdatedSignal, {
+            await legacyRawHandle.signal(proposalUpdatedSignal, {
               contentHash: "ac3-legacy-copoll-proof",
               source: "test",
               updatedAt: new Date().toISOString(),
@@ -177,7 +190,7 @@ describe("AC3: legacy queue co-polling (isolateAdvWorkerTaskQueues)", () => {
             // (a) the workflow on the project queue is reachable, and (b)
             // the worker polling that queue is processing both workflow
             // tasks AND queries. Both are required for legacy co-polling.
-            const stateAfter = await legacyHandle.query(changeStateQuery);
+            const stateAfter = await legacyRawHandle.query(changeStateQuery);
             expect(stateAfter).toBeDefined();
             expect((stateAfter as { status?: string }).status).toBe("draft");
           } finally {

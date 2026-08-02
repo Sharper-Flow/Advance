@@ -15,7 +15,6 @@
  * These tests pin the bound, the cancellation, and the observability.
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import type { OrphanListClient } from "./list-orphan-session-queues";
 import { listOrphanSessionQueues } from "./list-orphan-session-queues";
 import {
   ORPHAN_MAX_CONSECUTIVE_SCAN_FAILURES,
@@ -25,10 +24,15 @@ import {
   type OrphanQueueAdoptionDiagnostics,
 } from "./orphan-queue-adopter";
 import { resetReadinessState } from "./session-readiness";
+import {
+  createMockOwner,
+  createMockOwnerFromClient,
+} from "./__tests__/mock-owner";
+import type { TemporalOperations } from "./operations";
 
-const PROJECT = "P";
-const Q1 = "advance-P-sess_aaa";
-const Q2 = "advance-P-sess_bbb";
+const PROJECT_ID = "0000000000000000000000000000000000000000";
+const Q1 = `advance-${PROJECT_ID}-sess_aaa`;
+const Q2 = `advance-${PROJECT_ID}-sess_bbb`;
 const T0 = new Date("2026-07-22T00:00:00Z");
 
 /** Per-tick bound used across these tests; small enough to keep them fast. */
@@ -43,7 +47,7 @@ type VisRecord = {
 
 function record(queue: string, startTime = T0): VisRecord {
   return {
-    workflowId: `adv/change/${PROJECT}/${queue}/wf1`,
+    workflowId: `adv/change/${PROJECT_ID}/${queue}/wf1`,
     taskQueue: queue,
     startTime,
     status: { name: "RUNNING" },
@@ -79,18 +83,25 @@ function mockWorker(initialQueues: string[] = []) {
 }
 
 function adopterFor(
-  client: OrphanListClient,
+  owner: TemporalOperations,
   worker: ReturnType<typeof mockWorker>,
 ) {
   return new OrphanQueueAdopter({
-    client,
-    projectId: PROJECT,
+    owner,
+    projectId: PROJECT_ID,
     worker: {
       registerQueue: worker.registerQueue,
       queues: worker.polledQueues,
     },
     tickTimeoutMs: TICK_MS,
   });
+}
+
+function adopterForClient(
+  client: unknown,
+  worker: ReturnType<typeof mockWorker>,
+) {
+  return adopterFor(createMockOwnerFromClient(client), worker);
 }
 
 beforeEach(() => {
@@ -100,7 +111,10 @@ beforeEach(() => {
 describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
   it("releases single-flight when the Visibility stream never yields", async () => {
     const worker = mockWorker();
-    const adopter = adopterFor({ workflow: { list: hangingIterable } }, worker);
+    const adopter = adopterForClient(
+      { workflow: { list: hangingIterable } },
+      worker,
+    );
 
     await adopter.adoptNextOrphan();
 
@@ -111,7 +125,10 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
 
   it("counts the stall instead of failing silently", async () => {
     const worker = mockWorker();
-    const adopter = adopterFor({ workflow: { list: hangingIterable } }, worker);
+    const adopter = adopterForClient(
+      { workflow: { list: hangingIterable } },
+      worker,
+    );
 
     await adopter.adoptNextOrphan();
 
@@ -123,7 +140,10 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
 
   it("keeps advancing the failure counter across repeated hung ticks", async () => {
     const worker = mockWorker();
-    const adopter = adopterFor({ workflow: { list: hangingIterable } }, worker);
+    const adopter = adopterForClient(
+      { workflow: { list: hangingIterable } },
+      worker,
+    );
 
     await adopter.adoptNextOrphan();
     await adopter.adoptNextOrphan();
@@ -134,30 +154,25 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
     expect(adopter.getState().scanInFlight).toBe(false);
   });
 
-  it("aborts the in-flight Visibility RPC so streams are not leaked per tick", async () => {
+  it("times out hung enumeration without leaking the scan latch", async () => {
     const worker = mockWorker();
-    let captured: AbortSignal | undefined;
-    const client: OrphanListClient = {
-      workflow: { list: hangingIterable },
-      connection: {
-        withAbortSignal: async (signal, fn) => {
-          captured = signal;
-          return await fn();
-        },
-      },
-    };
+    const owner = createMockOwner({
+      list: vi.fn(async function* () {
+        // Never yield; the tick timeout must release the latch.
+        await new Promise<void>(() => {});
+        yield record(Q1);
+      }),
+    });
 
-    await adopterFor(client, worker).adoptNextOrphan();
+    await adopterFor(owner, worker).adoptNextOrphan();
 
-    expect(captured).toBeDefined();
-    // ListOptions carries no abortSignal/deadline (SDK v1.16), so the
-    // connection scope is the only teardown path available.
-    expect(captured?.aborted).toBe(true);
+    expect(owner.list).toHaveBeenCalledTimes(1);
+    expect(worker.registerQueue).not.toHaveBeenCalled();
   });
 
   it("records a scan failure when Visibility rejects with context canceled", async () => {
     const worker = mockWorker();
-    const client: OrphanListClient = {
+    const client = {
       workflow: {
         list: () =>
           ({
@@ -171,7 +186,7 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
       },
     };
 
-    const adopter = adopterFor(client, worker);
+    const adopter = adopterForClient(client, worker);
     await adopter.adoptNextOrphan();
 
     expect(adopter.getState().scanInFlight).toBe(false);
@@ -182,7 +197,7 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
   it("recovers and adopts once enumeration succeeds again", async () => {
     const worker = mockWorker();
     let healthy = false;
-    const client: OrphanListClient = {
+    const client = {
       workflow: {
         list: () =>
           healthy
@@ -193,7 +208,7 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
       },
     };
 
-    const adopter = adopterFor(client, worker);
+    const adopter = adopterForClient(client, worker);
     await adopter.adoptNextOrphan();
     expect(adopter.getDiagnostics().consecutiveScanFailures).toBe(1);
 
@@ -213,7 +228,7 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
     worker.setRegisterImpl(async () => {
       throw new Error('Cannot register queue "x" — worker is shutting down');
     });
-    const client: OrphanListClient = {
+    const client = {
       workflow: {
         list: () =>
           (async function* () {
@@ -222,7 +237,7 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
       },
     };
 
-    const adopter = adopterFor(client, worker);
+    const adopter = adopterForClient(client, worker);
     await adopter.adoptNextOrphan();
 
     const diag = adopter.getDiagnostics();
@@ -234,48 +249,33 @@ describe("OrphanQueueAdopter — Visibility scan resilience (#327)", () => {
 });
 
 describe("listOrphanSessionQueues — bounded enumeration", () => {
-  it("stops at the deadline and releases the stream via iterator return()", async () => {
-    let now = 1_000;
-    const onReturn = vi.fn();
-    const items = [record(Q1), record(Q2, new Date(T0.getTime() + 5_000))];
-    let index = 0;
+  it("stops at the deadline and returns partial results", async () => {
+    let calls = 0;
+    const owner = createMockOwner({
+      list: async () => ({
+        kind: "complete",
+        value: [record(Q1), record(Q2, new Date(T0.getTime() + 5_000))],
+        truncated: false,
+      }),
+    });
 
-    const client: OrphanListClient = {
-      workflow: {
-        list: () =>
-          ({
-            [Symbol.asyncIterator]() {
-              return {
-                next: async () => {
-                  if (index >= items.length) {
-                    return { value: undefined, done: true };
-                  }
-                  const value = items[index++];
-                  // Blow the deadline only from the SECOND record onward, so
-                  // the first is processed and the bound is observed between
-                  // records (not before the first one is ever seen).
-                  if (index > 1) now += 500;
-                  return { value, done: false };
-                },
-                return: async () => {
-                  onReturn();
-                  return { value: undefined, done: true };
-                },
-              };
-            },
-          }) as AsyncIterable<VisRecord>,
-      },
-    };
-
-    const result = await listOrphanSessionQueues(client, PROJECT, [], {
+    const outcome = await listOrphanSessionQueues(owner, PROJECT_ID, [], {
       deadlineMs: 100,
-      now: () => now,
+      now: () => {
+        // startedAt and the first loop check are at 1000ms; the second check
+        // advances past the 100ms deadline so only the first record is kept.
+        calls++;
+        return calls <= 2 ? 1_000 : 1_500;
+      },
     });
 
     // Partial results are still adoptable; the caller re-enumerates next tick.
-    expect(result.map((r) => r.queue)).toEqual([Q1]);
-    // `break` (not `return`) is what triggers this — it is the stream teardown.
-    expect(onReturn).toHaveBeenCalledTimes(1);
+    expect(outcome.kind).toBe("complete");
+    expect(
+      (outcome as { kind: "complete"; value: { queue: string }[] }).value.map(
+        (r) => r.queue,
+      ),
+    ).toEqual([Q1]);
   });
 
   it("stops immediately when the signal is already aborted", async () => {
@@ -283,7 +283,7 @@ describe("listOrphanSessionQueues — bounded enumeration", () => {
     controller.abort();
 
     const result = await listOrphanSessionQueues(
-      {
+      createMockOwnerFromClient({
         workflow: {
           list: () =>
             (async function* () {
@@ -291,55 +291,65 @@ describe("listOrphanSessionQueues — bounded enumeration", () => {
               yield record(Q2);
             })(),
         },
-      },
-      PROJECT,
+      }),
+      PROJECT_ID,
       [],
       { signal: controller.signal },
     );
 
-    expect(result).toEqual([]);
+    expect(result.kind).toBe("complete");
+    expect(
+      (result as { kind: "complete"; value: { queue: string }[] }).value,
+    ).toEqual([]);
   });
 
-  it("routes enumeration through connection.withAbortSignal when available", async () => {
-    const withAbortSignal = vi.fn(
-      async <T>(_s: AbortSignal, fn: () => Promise<T>) => await fn(),
-    );
-    const client: OrphanListClient = {
-      workflow: {
-        list: () =>
-          (async function* () {
-            yield record(Q1);
-          })(),
-      },
-      connection: { withAbortSignal },
-    };
+  it("routes enumeration through the TemporalOperations owner list API", async () => {
+    const list = vi.fn(async () => ({
+      kind: "complete",
+      value: [record(Q1)],
+      truncated: false,
+    }));
+    const owner = createMockOwner({
+      list,
+    });
 
-    const result = await listOrphanSessionQueues(client, PROJECT, [], {
+    const outcome = await listOrphanSessionQueues(owner, PROJECT_ID, [], {
       signal: new AbortController().signal,
     });
 
-    expect(withAbortSignal).toHaveBeenCalledTimes(1);
-    expect(result.map((r) => r.queue)).toEqual([Q1]);
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(outcome.kind).toBe("complete");
+    expect(
+      (outcome as { kind: "complete"; value: { queue: string }[] }).value.map(
+        (r) => r.queue,
+      ),
+    ).toEqual([Q1]);
   });
 
-  it("skips the connection scope when no signal is supplied (back-compat)", async () => {
-    const withAbortSignal = vi.fn(
-      async <T>(_s: AbortSignal, fn: () => Promise<T>) => await fn(),
-    );
-    const client: OrphanListClient = {
-      workflow: {
-        list: () =>
-          (async function* () {
-            yield record(Q1);
-          })(),
-      },
-      connection: { withAbortSignal },
-    };
+  it("breaks iteration when the signal is aborted mid-enumeration", async () => {
+    const controller = new AbortController();
+    function* recordsWithAbort() {
+      yield record(Q1);
+      controller.abort();
+      yield record(Q2);
+    }
+    const list = vi.fn(async () => ({
+      kind: "complete",
+      value: { [Symbol.iterator]: recordsWithAbort } as unknown as VisRecord[],
+      truncated: false,
+    }));
+    const owner = createMockOwner({ list });
 
-    const result = await listOrphanSessionQueues(client, PROJECT, []);
+    const outcome = await listOrphanSessionQueues(owner, PROJECT_ID, [], {
+      signal: controller.signal,
+    });
 
-    expect(withAbortSignal).not.toHaveBeenCalled();
-    expect(result.map((r) => r.queue)).toEqual([Q1]);
+    expect(outcome.kind).toBe("complete");
+    expect(
+      (outcome as { kind: "complete"; value: { queue: string }[] }).value.map(
+        (r) => r.queue,
+      ),
+    ).toEqual([Q1]);
   });
 });
 
@@ -443,10 +453,13 @@ describe("evaluateOrphanAdoptionHealth", () => {
 });
 
 describe("OrphanQueueAdopter — batched adoption", () => {
-  const many = Array.from({ length: 12 }, (_, i) => `advance-P-sess_q${i}`);
+  const many = Array.from(
+    { length: 12 },
+    (_, i) => `advance-${PROJECT_ID}-sess_q${i}`,
+  );
 
-  function clientWith(queues: string[]): OrphanListClient {
-    return {
+  function ownerWith(queues: string[]) {
+    return createMockOwnerFromClient({
       workflow: {
         list: () =>
           (async function* () {
@@ -455,14 +468,14 @@ describe("OrphanQueueAdopter — batched adoption", () => {
             }
           })(),
       },
-    };
+    });
   }
 
   it("adopts up to maxAdoptionsPerTick in a single tick", async () => {
     const worker = mockWorker();
     const adopter = new OrphanQueueAdopter({
-      client: clientWith(many),
-      projectId: PROJECT,
+      owner: ownerWith(many),
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -479,8 +492,8 @@ describe("OrphanQueueAdopter — batched adoption", () => {
   it("preserves FIFO order across the batch", async () => {
     const worker = mockWorker();
     const adopter = new OrphanQueueAdopter({
-      client: clientWith(many),
-      projectId: PROJECT,
+      owner: ownerWith(many),
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -502,8 +515,8 @@ describe("OrphanQueueAdopter — batched adoption", () => {
       throw new Error("worker is shutting down");
     });
     const adopter = new OrphanQueueAdopter({
-      client: clientWith(many),
-      projectId: PROJECT,
+      owner: ownerWith(many),
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -527,8 +540,8 @@ describe("OrphanQueueAdopter — batched adoption", () => {
       clock += 1000;
     });
     const adopter = new OrphanQueueAdopter({
-      client: clientWith(many),
-      projectId: PROJECT,
+      owner: ownerWith(many),
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,
@@ -552,8 +565,8 @@ describe("OrphanQueueAdopter — batched adoption", () => {
       if (failing && queue === many[0]) throw new Error("boom");
     });
     const adopter = new OrphanQueueAdopter({
-      client: clientWith(many.slice(0, 3)),
-      projectId: PROJECT,
+      owner: ownerWith(many.slice(0, 3)),
+      projectId: PROJECT_ID,
       worker: {
         registerQueue: worker.registerQueue,
         queues: worker.polledQueues,

@@ -48,7 +48,7 @@ async function getChangeHandleForChangeId(
     store.productContext?.productProjectId ??
     (await getProjectId(store.paths.root));
   if (!projectId) return null;
-  return getChangeHandle(bundle.client, projectId, changeId);
+  return getChangeHandle(bundle, projectId, changeId);
 }
 
 function getProductOriginTags(store: Store): ProductOriginTags | undefined {

@@ -80,7 +80,7 @@ async function makePassingSetup(prefix: string) {
   const migrationRoot = join(deployRoot, "migration");
   registerLoadedBuildSession({
     migrationRoot,
-    projectId: "a".repeat(40),
+    projectId: "a000000000000000000000000000000000000000".repeat(40),
     buildDigest: digest,
     pluginRoot,
     pid: PID_A,
@@ -305,7 +305,7 @@ describe("validateMigrationReadiness", () => {
     const setup = await makePassingSetup("adv-inv-sess-mismatch-");
     registerLoadedBuildSession({
       migrationRoot: setup.migrationRoot,
-      projectId: "a".repeat(40),
+      projectId: "a000000000000000000000000000000000000000".repeat(40),
       buildDigest: "sha256:" + "f".repeat(64),
       pluginRoot: setup.pluginRoot,
       pid: PID_B,

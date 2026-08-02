@@ -5,6 +5,11 @@ import {
   queryChangeIdsByEpicId,
 } from "./visibility-epic-queries";
 
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
+
+const PROJECT_ID = "0".repeat(40);
+const PROJECT_PREFIX = `adv/change/${PROJECT_ID}/`;
+
 // Minimal client mock matching the shape used by visibility-epic-queries.
 function makeClient(results: Array<{ workflowId: string }>): {
   workflow: {
@@ -22,12 +27,12 @@ function makeClient(results: Array<{ workflowId: string }>): {
 describe("visibility-epic-queries: query construction (rq-epicTemporalConstraints01)", () => {
   it("builds Epic-members query scoped by AdvAffectedProjects + AdvEpicId + open lifecycle", () => {
     const query = buildEpicMembersVisibilityQuery({
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       epicId: "addAuthEpic",
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
+      `AdvAffectedProjects = "${PROJECT_ID}" AND AdvEpicId = "addAuthEpic" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"`,
     );
   });
 
@@ -43,53 +48,52 @@ describe("visibility-epic-queries: query construction (rq-epicTemporalConstraint
 
   it("maps open draft status to open lifecycle filtering", () => {
     const query = buildEpicMembersVisibilityQuery({
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       epicId: "addAuthEpic",
       statuses: ["draft"],
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
+      `AdvAffectedProjects = "${PROJECT_ID}" AND AdvEpicId = "addAuthEpic" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"`,
     );
   });
 
   it("preserves explicit terminal status filtering for archive sweeps", () => {
     const query = buildEpicMembersVisibilityQuery({
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       epicId: "addAuthEpic",
       statuses: ["archived"],
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic" AND AdvChangeStatus IN ("archived")',
+      `AdvAffectedProjects = "${PROJECT_ID}" AND AdvEpicId = "addAuthEpic" AND AdvChangeStatus IN ("archived")`,
     );
   });
 
   it("supports null statuses to disable status filter", () => {
     const query = buildEpicMembersVisibilityQuery({
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       epicId: "addAuthEpic",
       statuses: null,
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvEpicId = "addAuthEpic"',
+      `AdvAffectedProjects = "${PROJECT_ID}" AND AdvEpicId = "addAuthEpic"`,
     );
   });
 });
 
 describe("visibility-epic-queries: queryChangeIdsByEpicId", () => {
-  const PROJECT_PREFIX = "adv/change/pid-abc/";
-
   it("returns matching change IDs scoped by project prefix", async () => {
     const client = makeClient([
       { workflowId: `${PROJECT_PREFIX}childOne` },
       { workflowId: `${PROJECT_PREFIX}childTwo` },
     ]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const ids = await queryChangeIdsByEpicId(client, "pid-abc", "addAuthEpic");
+    const ids = await queryChangeIdsByEpicId(owner, PROJECT_ID, "addAuthEpic");
 
-    expect(ids).toEqual(["childOne", "childTwo"]);
+    expect(ids.value).toEqual(["childOne", "childTwo"]);
     expect(client.workflow.list).toHaveBeenCalledWith({
       query: expect.stringContaining('AdvEpicId = "addAuthEpic"'),
     });
@@ -101,18 +105,20 @@ describe("visibility-epic-queries: queryChangeIdsByEpicId", () => {
       { workflowId: "adv/change/other-pid/leaked" },
       { workflowId: "adv/project/pid-abc" },
     ]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const ids = await queryChangeIdsByEpicId(client, "pid-abc", "addAuthEpic");
+    const ids = await queryChangeIdsByEpicId(owner, PROJECT_ID, "addAuthEpic");
 
-    expect(ids).toEqual(["myChange"]);
+    expect(ids.value).toEqual(["myChange"]);
   });
 
   it("returns empty array when no matching workflows exist", async () => {
     const client = makeClient([]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const ids = await queryChangeIdsByEpicId(client, "pid-abc", "missingEpic");
+    const ids = await queryChangeIdsByEpicId(owner, PROJECT_ID, "missingEpic");
 
-    expect(ids).toEqual([]);
+    expect(ids.value).toEqual([]);
   });
 
   it("respects the limit option", async () => {
@@ -121,11 +127,12 @@ describe("visibility-epic-queries: queryChangeIdsByEpicId", () => {
       { workflowId: `${PROJECT_PREFIX}childTwo` },
       { workflowId: `${PROJECT_PREFIX}childThree` },
     ]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const ids = await queryChangeIdsByEpicId(client, "pid-abc", "addAuthEpic", {
+    const ids = await queryChangeIdsByEpicId(owner, PROJECT_ID, "addAuthEpic", {
       limit: 2,
     });
 
-    expect(ids).toEqual(["childOne", "childTwo"]);
+    expect(ids.value).toEqual(["childOne", "childTwo"]);
   });
 });

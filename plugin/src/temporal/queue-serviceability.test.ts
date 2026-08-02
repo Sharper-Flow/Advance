@@ -5,11 +5,12 @@ import {
   evaluateQueueReadiness,
   probeTaskQueuePollers,
 } from "./queue-serviceability";
+import { createMockOwner } from "./__tests__/mock-owner";
 
 describe("classifyQueueServiceability", () => {
   it("treats a locally owned ready worker as serviceable without server poller evidence", () => {
     const result = classifyQueueServiceability({
-      projectId: "proj-a",
+      projectId: "0000a00000000000000000000000000000000000",
       expectedQueue: "advance-proj-a",
       localRegistered: true,
       localWorkerAlive: true,
@@ -26,7 +27,7 @@ describe("classifyQueueServiceability", () => {
 
   it("treats a fresh server poller as serviceable for peer-owned queues", () => {
     const result = classifyQueueServiceability({
-      projectId: "proj-a",
+      projectId: "0000a00000000000000000000000000000000000",
       expectedQueue: "advance-proj-a",
       localRegistered: false,
       localWorkerAlive: false,
@@ -42,7 +43,7 @@ describe("classifyQueueServiceability", () => {
 
   it("does not claim peer-owned PID-only evidence is serviceable when poller evidence is unavailable", () => {
     const result = classifyQueueServiceability({
-      projectId: "proj-a",
+      projectId: "0000a00000000000000000000000000000000000",
       expectedQueue: "advance-proj-a",
       localRegistered: false,
       localWorkerAlive: false,
@@ -58,7 +59,7 @@ describe("classifyQueueServiceability", () => {
 
   it("marks stale or missing evidence with stale running workflows as not serviceable", () => {
     const result = classifyQueueServiceability({
-      projectId: "proj-a",
+      projectId: "0000a00000000000000000000000000000000000",
       expectedQueue: "advance-proj-a",
       localRegistered: false,
       localWorkerAlive: false,
@@ -151,13 +152,18 @@ describe("evaluateQueueReadiness", () => {
 
 describe("probeTaskQueuePollers", () => {
   it("reports fresh when describeTaskQueue returns a recent poller", async () => {
-    const describeTaskQueue = vi.fn(async () => ({
-      pollers: [{ identity: "worker-1", lastAccessTime: new Date(90_000) }],
-    }));
+    const owner = createMockOwner({
+      describeTaskQueue: vi.fn(async (_ctx, _taskQueue: string) => ({
+        kind: "complete" as const,
+        value: {
+          pollers: [{ identity: "worker-1", lastAccessTime: new Date(90_000) }],
+        },
+      })),
+    });
 
     const result = await probeTaskQueuePollers({
-      connection: { workflowService: { describeTaskQueue } },
-      namespace: "default",
+      owner,
+      projectId: "0000a00000000000000000000000000000000000",
       taskQueue: "advance-proj-a",
       nowMs: () => 100_000,
       freshPollerMs: 60_000,
@@ -169,23 +175,21 @@ describe("probeTaskQueuePollers", () => {
       pollerCount: 1,
       lastPollerAt: "1970-01-01T00:01:30.000Z",
     });
-    expect(describeTaskQueue).toHaveBeenCalledWith({
-      namespace: "default",
-      taskQueue: { name: "advance-proj-a" },
-      taskQueueType: 1,
-    });
   });
 
   it("reports stale when all pollers are older than the freshness budget", async () => {
-    const result = await probeTaskQueuePollers({
-      connection: {
-        workflowService: {
-          describeTaskQueue: vi.fn(async () => ({
-            pollers: [{ lastAccessTime: "1970-01-01T00:00:10.000Z" }],
-          })),
+    const owner = createMockOwner({
+      describeTaskQueue: vi.fn(async () => ({
+        kind: "complete" as const,
+        value: {
+          pollers: [{ lastAccessTime: "1970-01-01T00:00:10.000Z" }],
         },
-      },
-      namespace: "default",
+      })),
+    });
+
+    const result = await probeTaskQueuePollers({
+      owner,
+      projectId: "0000a00000000000000000000000000000000000",
       taskQueue: "advance-proj-a",
       nowMs: () => 100_000,
       freshPollerMs: 60_000,
@@ -202,8 +206,12 @@ describe("probeTaskQueuePollers", () => {
   it("reports unavailable when describeTaskQueue is missing or throws", async () => {
     await expect(
       probeTaskQueuePollers({
-        connection: {},
-        namespace: "default",
+        owner: createMockOwner({
+          describeTaskQueue: vi.fn(async () => {
+            throw new Error("unsupported");
+          }),
+        }),
+        projectId: "0000a00000000000000000000000000000000000",
         taskQueue: "advance-proj-a",
       }),
     ).resolves.toMatchObject({
@@ -215,14 +223,8 @@ describe("probeTaskQueuePollers", () => {
 
     await expect(
       probeTaskQueuePollers({
-        connection: {
-          workflowService: {
-            describeTaskQueue: vi.fn(async () => {
-              throw new Error("unsupported");
-            }),
-          },
-        },
-        namespace: "default",
+        owner: createMockOwner(),
+        projectId: "0000a00000000000000000000000000000000000",
         taskQueue: "advance-proj-a",
       }),
     ).resolves.toMatchObject({

@@ -66,7 +66,7 @@ describe.skipIf(!canRun)("createOutOfProcessWorker integration", () => {
             namespace: "default",
             queues: ["advance-oop-itest"],
             workerScript: script!.path,
-            projectId: "oop-itest",
+            projectId: "00000e0000000000000000000000000000000000",
           });
           await waitForWorkerAlive(w, 5_000, 100);
           return w;

@@ -118,14 +118,6 @@ export const CHANGE_WORKFLOW_COMMAND_ADAPTERS: readonly ChangeWorkflowAdapterRow
       migrated: true,
       core: true,
     },
-    {
-      module: "index.ts",
-      exportedFn: "createTemporalStoreBackend",
-      methods: ["fireWorktreeAutoManagedMigrationIfNeeded"],
-      signals: ["worktreeAutoManagedSignal"],
-      migrated: false,
-      core: false,
-    },
   ];
 
 /**
@@ -144,6 +136,7 @@ const CHANGE_WORKFLOW_NON_ADAPTER_ALLOWLIST = new Set([
   "hydrate-documents.ts",
   "read-context.ts",
   "creation-hash.ts",
+  "index.ts",
 ]);
 
 const EXPECTED_CHANGE_COMMAND_TOKENS = [
@@ -212,12 +205,7 @@ describe("ChangeWorkflow command adapter inventory", () => {
     async (row) => {
       const source = await readAdapterSource(row.module);
       for (const method of row.methods) {
-        // The worktree marker is a local function, not an aggregate method.
-        if (row.module === "index.ts") {
-          expect(source).toContain(method);
-        } else {
-          expect(source).toContain(`${method}: async`);
-        }
+        expect(source).toContain(`${method}: async`);
       }
     },
   );

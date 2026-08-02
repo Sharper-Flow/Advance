@@ -35,8 +35,9 @@ import type { OrphanListClient } from "../list-orphan-session-queues";
 import { OrphanQueueAdopter } from "../orphan-queue-adopter";
 import { attachWorkerWithAdoption } from "../../plugin-init";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
+import { createMockOwnerFromClient } from "./mock-owner";
 
-const PROJECT_ID = "orphan-adopt-001";
+const PROJECT_ID = "0000000000000000000000000000000000000000";
 const SESSION_ID = "sess_AdoptE2E1";
 const CHANGE_ID = "orphan-adopt-change-1";
 
@@ -110,7 +111,7 @@ describe("rq-isolSessionTaskQueue05: orphan session queue adoption (real worker 
         await new Promise((resolve) => setTimeout(resolve, POLLER_SETTLE_MS));
       });
       const adopter = new OrphanQueueAdopter({
-        client: stubClient,
+        owner: createMockOwnerFromClient(stubClient),
         projectId: PROJECT_ID,
         worker: {
           registerQueue,
@@ -224,7 +225,7 @@ describe("rq-isolSessionTaskQueue05: orphan session queue adoption (real worker 
         // 4. Attach via the restart-path seam.
         const { stopDriver } = attachWorkerWithAdoption(worker, {
           projectId: PROJECT_ID,
-          client: stubClient as unknown as import("@temporalio/client").Client,
+          owner: createMockOwnerFromClient(stubClient),
         });
 
         // 5. Wait for the 10s driver tick to fire and adoption to complete.

@@ -28,22 +28,33 @@ import {
   ConsolidationLedgerRowSchema,
   type ConsolidationLedgerRow,
 } from "./store-consolidate";
-import {
-  createTemporalClientBundle,
-  buildEpicWorkflowId,
-} from "../temporal/client";
+import { buildEpicWorkflowId } from "../temporal/client";
 import {
   ensureChangeWorkflowStarted,
   ensureEpicWorkflowStarted,
 } from "../temporal/workflow-start";
 import type { EpicWorkflowState } from "../temporal/contracts";
 
-vi.mock("../temporal/client", async () => {
-  const actual =
-    await vi.importActual<typeof import("../temporal/client")>(
-      "../temporal/client",
-    );
-  return { ...actual, createTemporalClientBundle: vi.fn() };
+const createBundleMock = vi.hoisted(() => vi.fn());
+
+vi.mock("../temporal/operations", async () => {
+  const actual = await vi.importActual<typeof import("../temporal/operations")>(
+    "../temporal/operations",
+  );
+  return {
+    ...actual,
+    TemporalOperationsOwner: class extends actual.TemporalOperationsOwner {
+      static async fromEnv(
+        projectId: string,
+        _env?: NodeJS.ProcessEnv,
+      ): Promise<actual.TemporalOperationsOwner> {
+        return new actual.TemporalOperationsOwner(
+          await createBundleMock(),
+          projectId,
+        );
+      }
+    },
+  };
 });
 
 vi.mock("../temporal/workflow-start", () => ({
@@ -51,7 +62,6 @@ vi.mock("../temporal/workflow-start", () => ({
   ensureEpicWorkflowStarted: vi.fn(async () => undefined),
 }));
 
-const createBundleMock = vi.mocked(createTemporalClientBundle);
 const ensureChangeStartedMock = vi.mocked(ensureChangeWorkflowStarted);
 const ensureEpicStartedMock = vi.mocked(ensureEpicWorkflowStarted);
 
@@ -172,7 +182,15 @@ function makeBundle(opts: {
   return {
     address: "mock:7233",
     namespace: "mock",
-    connection: { close: vi.fn(opts.close) },
+    connection: {
+      withDeadline: vi.fn(
+        async (_deadline: number, fn: () => Promise<unknown>) => fn(),
+      ),
+      withAbortSignal: vi.fn(
+        async (_signal: AbortSignal, fn: () => Promise<unknown>) => fn(),
+      ),
+      close: vi.fn(opts.close),
+    },
     client: { workflow: { getHandle, start: vi.fn() } },
   };
 }
@@ -216,9 +234,11 @@ describe("executeConsolidation — Temporal bundle lifecycle (default path)", ()
         listLiveEpicIds: listSourceLiveEpics,
       });
 
-      // The finally block must close the bundle exactly once.
+      // The finally block must close both owners. In this test both owners
+      // receive the same mocked bundle, so the shared connection close is
+      // awaited twice.
       await vi.waitFor(() =>
-        expect(bundle.connection.close).toHaveBeenCalledTimes(1),
+        expect(bundle.connection.close).toHaveBeenCalledTimes(2),
       );
 
       // While the close is still pending the report promise must NOT have
@@ -234,9 +254,12 @@ describe("executeConsolidation — Temporal bundle lifecycle (default path)", ()
       const report = await execPromise;
       expect(closeSettled).toBe(true);
 
-      // One bundle shared by the live-change recreate AND the Epic query.
-      expect(createBundleMock).toHaveBeenCalledTimes(1);
-      expect(bundle.connection.close).toHaveBeenCalledTimes(1);
+      // Two bundles are created: one bound to the source project for the live
+      // Epic query, and one bound to the target project for live recreation.
+      // Because the test uses a single mocked bundle object, the shared close
+      // is awaited twice.
+      expect(createBundleMock).toHaveBeenCalledTimes(2);
+      expect(bundle.connection.close).toHaveBeenCalledTimes(2);
       expect(ensureChangeStartedMock).toHaveBeenCalledTimes(1);
       expect(ensureEpicStartedMock).toHaveBeenCalledTimes(1);
       expect(bundle.client.workflow.getHandle).toHaveBeenCalledWith(

@@ -1,3 +1,6 @@
+import type { TemporalOperations } from "./operations";
+import { makeTemporalOperationContext } from "./operations";
+
 export type QueueServiceabilityStatus =
   | "serviceable"
   | "not_serviceable"
@@ -177,48 +180,43 @@ export function classifyQueueServiceability(
   };
 }
 
-export interface DescribeTaskQueueConnectionLike {
-  workflowService?: {
-    describeTaskQueue?: (req: {
-      namespace: string;
-      taskQueue: { name: string };
-      taskQueueType: number;
-    }) => Promise<unknown>;
-  };
-}
-
 export interface ProbeTaskQueuePollersInput {
-  connection: DescribeTaskQueueConnectionLike;
-  namespace: string;
+  owner: TemporalOperations;
+  projectId: string;
   taskQueue: string;
   nowMs?: () => number;
   freshPollerMs?: number;
 }
 
 const DEFAULT_FRESH_POLLER_MS = 60_000;
-const TASK_QUEUE_TYPE_WORKFLOW = 1;
 
 export async function probeTaskQueuePollers(
   input: ProbeTaskQueuePollersInput,
 ): Promise<ServerPollerProbe> {
-  const describeTaskQueue = input.connection.workflowService?.describeTaskQueue;
-  if (!describeTaskQueue) {
-    return {
-      status: "unavailable",
-      lastAccessMs: null,
-      pollerCount: 0,
-      lastPollerAt: null,
-      error: "WorkflowService.describeTaskQueue unavailable",
-    };
-  }
-
   try {
-    const response = await describeTaskQueue({
-      namespace: input.namespace,
-      taskQueue: { name: input.taskQueue },
-      taskQueueType: TASK_QUEUE_TYPE_WORKFLOW,
-    });
-    const pollers = extractPollers(response);
+    const outcome = await input.owner.describeTaskQueue(
+      makeTemporalOperationContext(
+        input.projectId,
+        input.taskQueue,
+        "describe",
+        "describeTaskQueue",
+        5_000,
+      ),
+      input.taskQueue,
+    );
+    if (outcome.kind !== "complete") {
+      return {
+        status: "unavailable",
+        lastAccessMs: null,
+        pollerCount: 0,
+        lastPollerAt: null,
+        error:
+          outcome.error instanceof Error
+            ? outcome.error.message
+            : String(outcome.error),
+      };
+    }
+    const pollers = extractPollers(outcome.value);
     if (pollers.length === 0)
       return {
         status: "none",

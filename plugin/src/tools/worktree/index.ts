@@ -182,7 +182,7 @@ async function fireWorktreeSignal(
       appendDebugLog("worktree", warning);
       return { ok: false, warning };
     }
-    const handle = getChangeHandle(bundle.client, projectId, changeId);
+    const handle = getChangeHandle(bundle, projectId, changeId);
     if (store) {
       // rq-cacheRefresh01: invalidate the cache after firing the signal
       // so subsequent reads see the worktree-create/delete state change.

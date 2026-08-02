@@ -47,11 +47,17 @@ import {
 } from "../../temporal/messages";
 import { getMutationReceiptQuery } from "../../temporal/messages";
 import type { MutationReceipt } from "../../temporal/contracts";
+import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import { makeTemporalOperationContext } from "../../temporal/operations";
 import {
   MutationApplicationUnconfirmedError,
   waitForQueryPredicate,
 } from "../../utils/query-predicate";
-import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
+import {
+  TemporalListOutcomeError,
+  TemporalMutationOutcomeError,
+  TemporalReadOutcomeError,
+} from "../../temporal/outcome-errors";
 import { getCurrentSessionId } from "../../utils/session-id";
 import { removeChangeDir, loadProjectConfig } from "../json";
 import { resolveProjectFeaturePolicy } from "../../types";
@@ -70,6 +76,7 @@ import {
   runTemporalQuery,
   getChangeHandle,
   getGuardedChangeHandle,
+  getTemporalOwner,
   createTemporalReadDeadline,
   createTemporalReadContext,
   type TemporalReadContext,
@@ -94,7 +101,9 @@ import {
 import { createLogger } from "../../utils/debug-log";
 import { enforceMutationEligibilityForError } from "../../temporal/mutation-safety";
 import { fireSignalWithMutationGuard } from "./gates";
-import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
+import { buildVisibilityQuery } from "../../temporal/list-change-workflows";
+import { CHANGE_WORKFLOW_PREFIX } from "../../temporal/contracts";
+import { buildChangeWorkflowId } from "../../temporal/client";
 import { atomicWriteFile, acquireFileLock } from "../../utils/fs";
 import { mapWithConcurrency } from "../../utils/concurrency";
 import {
@@ -182,14 +191,28 @@ const ARTIFACT_SIGNAL_ORDER: ReadonlyArray<{
 async function fireGuardedSignal<Args extends unknown[]>(
   input: import("./shared").TemporalStoreBackendInput,
   changeId: string,
-  signalName: unknown,
+  signalName: import("@temporalio/workflow").SignalDefinition<unknown[]>,
   ...args: Args
 ): Promise<void> {
   try {
-    await runTemporal(async () => {
+    const outcome = await runTemporal(async () => {
+      const owner = getTemporalOwner(input);
       const handle = await getGuardedChangeHandle(input, changeId);
-      await handle.signal(signalName, ...(args as unknown[]));
+      const workflowId = buildChangeWorkflowId(input.projectId, changeId);
+      const ctx = makeTemporalOperationContext(
+        input.projectId,
+        workflowId,
+        "signal",
+        "fireGuardedSignal",
+        5_000,
+      );
+      return await owner.signal(ctx, handle, signalName, [
+        ...(args as unknown[]),
+      ]);
     });
+    if (outcome.kind !== "confirmed") {
+      throw new TemporalMutationOutcomeError(outcome);
+    }
   } catch (err) {
     // SC4 guard at signal-dispatch boundary.
     enforceMutationEligibilityForError(err);
@@ -250,16 +273,33 @@ async function fireContentArtifactCommands(
           payload_hash: payloadHash,
         },
       ],
-      postSignal: async (handle) => {
-        await handle.signal(updateArtifactMetadataSignal, {
-          kind,
-          metadata: {
-            updatedAt,
-            contentHash: computeContentHash(content),
-            source: "temporal",
-            readable: false,
-          },
-        });
+      postSignal: async (owner, handle) => {
+        const ctx = makeTemporalOperationContext(
+          input.projectId,
+          buildChangeWorkflowId(input.projectId, changeId),
+          "signal",
+          "updateArtifactMetadata",
+          5_000,
+        );
+        const outcome = await owner.signal(
+          ctx,
+          handle,
+          updateArtifactMetadataSignal,
+          [
+            {
+              kind,
+              metadata: {
+                updatedAt,
+                contentHash: computeContentHash(content),
+                source: "temporal",
+                readable: false,
+              },
+            },
+          ],
+        );
+        if (outcome.kind !== "confirmed") {
+          throw new TemporalMutationOutcomeError(outcome);
+        }
       },
       commitProjection: buildSummaryCommitProjection(
         legacy,
@@ -277,12 +317,30 @@ async function fireContentArtifactCommands(
     lastState = outcome.state;
 
     if (mutationReceiptId) {
+      const owner = getTemporalOwner(input);
       const handle = await getGuardedChangeHandle(input, changeId);
+      const ctx = makeTemporalOperationContext(
+        input.projectId,
+        buildChangeWorkflowId(input.projectId, changeId),
+        "query",
+        "getMutationReceipt",
+        5_000,
+      );
       const receipt = await waitForQueryPredicate(
-        () =>
-          handle.query(getMutationReceiptQuery, mutationReceiptId) as Promise<
-            MutationReceipt | undefined
-          >,
+        async () => {
+          const outcome = await owner.query(
+            ctx,
+            handle,
+            getMutationReceiptQuery,
+            mutationReceiptId,
+          );
+          if (outcome.kind !== "complete") {
+            throw (
+              outcome.error ?? new Error("mutation receipt query incomplete")
+            );
+          }
+          return outcome.value as MutationReceipt | undefined;
+        },
         (candidate) => candidate?.id === mutationReceiptId,
       );
       if (!receipt) {
@@ -406,10 +464,25 @@ function createBatchCloseCoordinationDeps(
         throw new Error(`Unknown batch close signal: ${signal}`);
       }
     },
-    queryState: async (changeId) =>
-      runTemporal(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      ) as Promise<ChangeWorkflowState>,
+    queryState: async (changeId) => {
+      const owner = getTemporalOwner(input);
+      const handle = await getGuardedChangeHandle(input, changeId);
+      const workflowId = buildChangeWorkflowId(input.projectId, changeId);
+      const ctx = makeTemporalOperationContext(
+        input.projectId,
+        workflowId,
+        "query",
+        "batchCloseQueryState",
+        5_000,
+      );
+      const outcome = await runTemporal(async () =>
+        owner.query(ctx, handle, changeStateQuery),
+      );
+      if (outcome.kind !== "complete") {
+        throw new TemporalReadOutcomeError(outcome);
+      }
+      return outcome.value as ChangeWorkflowState;
+    },
     now: () => new Date().toISOString(),
   };
 }
@@ -730,7 +803,7 @@ async function readProjectionChangeList(
 ): Promise<
   ChangeListResponse & { sourceRankedIds?: string[]; totalIds?: number }
 > {
-  const { input, legacy, memo, getTemporalChange } = deps;
+  const { input: _input, legacy, memo, getTemporalChange } = deps;
 
   const deadline = createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS);
   const ctx = createTemporalReadContext(deadline.budgetMs);
@@ -936,24 +1009,22 @@ async function readProjectionChangeList(
     }
 
     // Tier 3: capped workflow fallback only when durable evidence is missing.
-    if (typeof input.temporal.client?.workflow?.getHandle === "function") {
-      try {
-        const result = await getTemporalChange(id, { context: ctx });
-        if (result.success && result.data) {
-          rows.set(result.data.id, changeToListRow(result.data));
-          fromHydration++;
-          if (wantsTerminalStatuses) {
-            terminalFromWorkflow++;
-          }
-          return;
+    try {
+      const result = await getTemporalChange(id, { context: ctx });
+      if (result.success && result.data) {
+        rows.set(result.data.id, changeToListRow(result.data));
+        fromHydration++;
+        if (wantsTerminalStatuses) {
+          terminalFromWorkflow++;
         }
-      } catch (err) {
-        if (err instanceof TemporalQueryTimeoutError || expired()) {
-          deadlineOmissions.push(id);
-          return;
-        }
-        // Other workflow failures are recorded as load failures.
+        return;
       }
+    } catch (err) {
+      if (err instanceof TemporalQueryTimeoutError || expired()) {
+        deadlineOmissions.push(id);
+        return;
+      }
+      // Other workflow failures are recorded as load failures.
     }
 
     loadFailedOmissions.push(id);
@@ -1063,7 +1134,6 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     indexTasksFromState,
     setCachedChange,
     getTemporalChange,
-    getTemporalWorkflowClient,
     dualWriteAfterMutation,
     persistStateToDiskDurable,
     readChangeSnapshot,
@@ -1153,9 +1223,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       //
       // See design.md § KD-7.
       try {
-        const client = getTemporalWorkflowClient();
-        await ensureChangeWorkflowStarted(
-          client,
+        const owner = getTemporalOwner(input);
+        const startInput: import("../../temporal/contracts").ChangeWorkflowInput =
           {
             projectId: input.projectId,
             changeId: created.data.id,
@@ -1164,7 +1233,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             projectionChangesDir: legacy.paths.changes,
             archiveProjects: [{ projectPath: legacy.paths.root }],
             // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
-            // ensureChangeWorkflowStarted can route to advance-{projectId}-{sess}.
+            // the start can route to advance-{projectId}-{sess}.
             // Undefined falls back to project queue (legacy / pre-init / tests).
             sessionId: getCurrentSessionId(),
             // rq-creationRequestHash01: enables the "already started" hash
@@ -1196,9 +1265,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
               creation_request_hash: creationRequestHash,
               ...(epicMembership ? { epic_membership: epicMembership } : {}),
             },
-          },
-          { workflowQueueMode: featurePolicy.workflowQueueMode },
-        );
+          };
+        await ensureChangeWorkflowStarted(owner, startInput, {
+          workflowQueueMode: featurePolicy.workflowQueueMode,
+          budgetMs: 30_000,
+        });
       } catch (err) {
         // rq-creationRequestHash01: a hash conflict is a deterministic,
         // caller-induced refusal — the just-written disk scaffold must be
@@ -1383,11 +1454,25 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             `changes.save(${change.id}, archived): signal acknowledged but post-signal readback unavailable — outcome classified as outcome_unknown_readback_unavailable.`,
           );
         }
-        const result = (await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, change.id)).query(
-            changeStateQuery,
-          ),
-        )) as import("../../temporal/contracts").ChangeWorkflowState;
+        const owner = getTemporalOwner(input);
+        const handle = await getGuardedChangeHandle(input, change.id);
+        const ctx = makeTemporalOperationContext(
+          input.projectId,
+          buildChangeWorkflowId(input.projectId, change.id),
+          "query",
+          "archiveReadback",
+          5_000,
+        );
+        const queryOutcome = await runTemporal(async () =>
+          owner.query(ctx, handle, changeStateQuery),
+        );
+        if (queryOutcome.kind !== "complete") {
+          throw (
+            queryOutcome.error ?? new Error("archive readback query incomplete")
+          );
+        }
+        const result =
+          queryOutcome.value as import("../../temporal/contracts").ChangeWorkflowState;
         indexTasksFromState(result);
         updateOverlay(change.id, { status: "archived" });
         setCachedChange(result);
@@ -1763,12 +1848,24 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           for (const changeId of canonicalIds) {
             const record = outcome.operation.per_target[changeId];
             if (record?.phase !== "committed") continue;
-            const result = await runTemporal(async () =>
-              (await getGuardedChangeHandle(input, changeId)).query(
-                changeStateQuery,
-              ),
+            const owner = getTemporalOwner(input);
+            const handle = await getGuardedChangeHandle(input, changeId);
+            const ctx = makeTemporalOperationContext(
+              input.projectId,
+              buildChangeWorkflowId(input.projectId, changeId),
+              "query",
+              "batchCloseReadback",
+              5_000,
             );
-            const state = result as ChangeWorkflowState;
+            const result = await runTemporal(async () =>
+              owner.query(ctx, handle, changeStateQuery),
+            );
+            if (result.kind !== "complete") {
+              throw (
+                result.error ?? new Error("batch close readback incomplete")
+              );
+            }
+            const state = result.value as ChangeWorkflowState;
             indexTasksFromState(state);
             updateOverlay(changeId, {
               status: "closed",
@@ -1935,30 +2032,45 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
       const startMs = Date.now();
       let visibilitySucceeded = false;
 
-      const bundle = input.temporal as {
-        client?: { workflow?: { list?: unknown } };
-      };
       let visibilityIds: string[] = [];
-      if (typeof bundle.client?.workflow?.list === "function") {
-        try {
-          visibilityIds = await raceWithTemporalDeadline(
-            listChangeWorkflowIds(
-              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-              { projectId: input.projectId },
-            ),
-            deadline,
-          );
-          visibilitySucceeded = true;
-        } catch (err) {
-          const hitDeadline =
-            err instanceof TemporalQueryTimeoutError || expired();
-          warnings.push(
-            `Visibility active enumeration ${hitDeadline ? "exceeded the aggregate read deadline" : "failed"}: ${err instanceof Error ? err.message : String(err)}`,
-          );
-        }
-      } else {
+      try {
+        const owner = getTemporalOwner(input);
+        const listCtx = makeTemporalOperationContext(
+          input.projectId,
+          "conflict-authority-list",
+          "list",
+          "listConflictAuthority",
+          5_000,
+        );
+        const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
+        const query = buildVisibilityQuery({ projectId: input.projectId });
+        visibilityIds = await raceWithTemporalDeadline(
+          (async () => {
+            const ids: string[] = [];
+            const outcome = await owner.list<{ workflowId: string }>(
+              listCtx,
+              query,
+            );
+            if (outcome.kind !== "complete") {
+              throw new TemporalListOutcomeError(outcome);
+            }
+            for (const wf of outcome.value) {
+              const wfid = wf.workflowId;
+              if (!wfid.startsWith(projectPrefix)) continue;
+              const changeId = wfid.slice(projectPrefix.length);
+              if (changeId.length === 0) continue;
+              ids.push(changeId);
+            }
+            return ids;
+          })(),
+          deadline,
+        );
+        visibilitySucceeded = true;
+      } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
         warnings.push(
-          "Temporal client does not expose workflow.list; active conflict authority cannot enumerate Visibility.",
+          `Visibility active enumeration ${hitDeadline ? "exceeded the aggregate read deadline" : "failed"}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
 
@@ -2065,11 +2177,26 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             budgetMs: fallbackBudget,
             deadlineAt: Date.now() + fallbackBudget,
           };
-          const state = (await runTemporalQuery(
-            async () =>
-              getChangeHandle(input, changeId).query(changeStateQuery),
+          const owner = getTemporalOwner(input);
+          const handle = getChangeHandle(input, changeId);
+          const ctx = makeTemporalOperationContext(
+            input.projectId,
+            buildChangeWorkflowId(input.projectId, changeId),
+            "query",
+            "conflictAuthorityFallback",
+            fallbackBudget,
+          );
+          const outcome = await runTemporalQuery(
+            async () => owner.query(ctx, handle, changeStateQuery),
             { deadline: fallbackDeadline },
-          )) as ChangeWorkflowState;
+          );
+          if (outcome.kind !== "complete") {
+            throw (
+              outcome.error ??
+              new Error("conflict authority fallback query incomplete")
+            );
+          }
+          const state = outcome.value as ChangeWorkflowState;
 
           if (state.changeId !== changeId) {
             return {

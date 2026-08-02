@@ -19,7 +19,7 @@ import type { ReleaseNotesSetSignalPayload } from "../../types";
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
-    projectId: "proj-release-notes-001",
+    projectId: "00000e0ea0e000e0001000000000000000000000",
     changeId,
     title: `Release notes test: ${changeId}`,
     initializedAt: new Date().toISOString(),

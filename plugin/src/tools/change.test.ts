@@ -34,6 +34,9 @@ import * as worktree from "./worktree";
 import { gateTools } from "./gate";
 import { overlayOpsResolutionsForRead } from "./ops-followup-reconciliation";
 
+const PROJECT_ID = "0".repeat(40);
+const TARGET_PROJECT_ID = "0".repeat(39) + "1";
+
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
   const queryMock = vi.fn();
@@ -83,7 +86,7 @@ const mocks = vi.hoisted(() => {
     return callback({
       context: {
         root: "/tmp/target",
-        projectId: "target-project-id",
+        projectId: TARGET_PROJECT_ID,
         externalRoot: "/tmp/target-external",
         trusted: false,
         trustSource: "explicit",
@@ -107,7 +110,7 @@ const mocks = vi.hoisted(() => {
     getHandleMock,
     temporalBundle,
     getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
+    getProjectId: vi.fn(async () => PROJECT_ID),
     fireSignal: vi.fn(async () => {}),
     fireSignalAndRefresh: vi.fn(async () => {}),
     querySignal: vi.fn(),
@@ -2132,7 +2135,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed._phasePlan).toEqual(
         derivePhasePlanSafe(
           changeToDirectiveState({
-            projectId: "test-project-id",
+            projectId: PROJECT_ID,
             change,
             gates: row.state.gates,
           }),
@@ -2236,7 +2239,7 @@ describe("change tools — signal-driven lifecycle", () => {
         // resolved target project, not the source project.
         expect(parsed._projectContext).toMatchObject({
           root: "/tmp/target",
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
           stateMode: "temporal",
         });
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
@@ -2525,8 +2528,8 @@ describe("change tools — signal-driven lifecycle", () => {
         const parsed = JSON.parse(result);
         expect(parsed._recoveryMutation).toBe(true);
         expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-          mocks.temporalBundle.client,
-          "test-project-id",
+          mocks.temporalBundle,
+          PROJECT_ID,
           "test-change",
         );
         // Probe-first recovery should skip the signal path entirely.
@@ -3015,8 +3018,8 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.success).toBe(true);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle.client,
-        "test-project-id",
+        mocks.temporalBundle,
+        PROJECT_ID,
         "test-change",
       );
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -3261,7 +3264,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.handleMock.describe).toBeUndefined();
       expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
       expect(mocks.markPoisonedWorkflowForChange).toHaveBeenCalledWith(
-        "test-project-id",
+        PROJECT_ID,
         "test-change",
       );
       expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
@@ -3309,7 +3312,7 @@ describe("change tools — signal-driven lifecycle", () => {
         // target project, not the source project.
         expect(parsed._projectContext).toMatchObject({
           root: "/tmp/target",
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
           stateMode: "temporal",
         });
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
@@ -3325,15 +3328,15 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
         // Workflow identity: the close signal addresses the resolved target
         // project's workflow, never the source project identity
-        // (mocks.getProjectId returns "test-project-id").
+        // (mocks.getProjectId returns PROJECT_ID).
         expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-          mocks.temporalBundle.client,
-          "target-project-id",
+          mocks.temporalBundle,
+          TARGET_PROJECT_ID,
           "test-change",
         );
         expect(mocks.getChangeHandle).not.toHaveBeenCalledWith(
-          mocks.temporalBundle.client,
-          "test-project-id",
+          mocks.temporalBundle,
+          PROJECT_ID,
           "test-change",
         );
         const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -3380,7 +3383,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
         expect(mocks.removeChangeDir).not.toHaveBeenCalled();
         expect(parsed._projectContext).toMatchObject({
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
           stateMode: "temporal",
         });
       });
@@ -3449,7 +3452,7 @@ describe("change tools — signal-driven lifecycle", () => {
         );
         expect(mocks.removeChangeDir).not.toHaveBeenCalled();
         expect(parsed._projectContext).toMatchObject({
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
         });
       });
 
@@ -3457,7 +3460,7 @@ describe("change tools — signal-driven lifecycle", () => {
         const store = createMockStore();
         mocks.withTargetPathStore.mockRejectedValueOnce(
           new Error(
-            "Target project Temporal queue is not serviceable for target_path mutation: advance-target-project-id; status=unavailable; blockers=server_poller_probe_unavailable; action=open or restart the target project ADV worker, then retry the target_path mutation",
+            `Target project Temporal queue is not serviceable for target_path mutation: advance-${TARGET_PROJECT_ID}; status=unavailable; blockers=server_poller_probe_unavailable; action=open or restart the target project ADV worker, then retry the target_path mutation`,
           ),
         );
 
@@ -3535,13 +3538,13 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.closed).toBe(2);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle.client,
-        "test-project-id",
+        mocks.temporalBundle,
+        PROJECT_ID,
         "chg-1",
       );
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle.client,
-        "test-project-id",
+        mocks.temporalBundle,
+        PROJECT_ID,
         "chg-2",
       );
     });
@@ -3862,7 +3865,7 @@ describe("change tools — signal-driven lifecycle", () => {
         // resolved target project, not the source project.
         expect(parsed._projectContext).toMatchObject({
           root: "/tmp/target",
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
           stateMode: "temporal",
         });
         expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
@@ -3880,20 +3883,20 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
         // Workflow identity: every close signal addresses the resolved target
         // project's workflow, never the source project identity
-        // (mocks.getProjectId returns "test-project-id").
+        // (mocks.getProjectId returns PROJECT_ID).
         expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-          mocks.temporalBundle.client,
-          "target-project-id",
+          mocks.temporalBundle,
+          TARGET_PROJECT_ID,
           "chg-t1",
         );
         expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-          mocks.temporalBundle.client,
-          "target-project-id",
+          mocks.temporalBundle,
+          TARGET_PROJECT_ID,
           "chg-t2",
         );
         expect(mocks.getChangeHandle).not.toHaveBeenCalledWith(
-          mocks.temporalBundle.client,
-          "test-project-id",
+          mocks.temporalBundle,
+          PROJECT_ID,
           expect.anything(),
         );
         const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -3965,7 +3968,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
         expect(mocks.sweepClosedChangesFromDisk).not.toHaveBeenCalled();
         expect(parsed._projectContext).toMatchObject({
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
           stateMode: "temporal",
         });
       });
@@ -4019,7 +4022,7 @@ describe("change tools — signal-driven lifecycle", () => {
           mocks.targetStore.paths.changes,
         );
         expect(parsed._projectContext).toMatchObject({
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
         });
       });
 
@@ -4027,7 +4030,7 @@ describe("change tools — signal-driven lifecycle", () => {
         const store = createMockStore();
         mocks.withTargetPathStore.mockRejectedValueOnce(
           new Error(
-            "Target project Temporal queue is not serviceable for target_path mutation: advance-target-project-id; status=unavailable; blockers=server_poller_probe_unavailable; action=open or restart the target project ADV worker, then retry the target_path mutation",
+            `Target project Temporal queue is not serviceable for target_path mutation: advance-${TARGET_PROJECT_ID}; status=unavailable; blockers=server_poller_probe_unavailable; action=open or restart the target project ADV worker, then retry the target_path mutation`,
           ),
         );
 
@@ -4726,7 +4729,7 @@ describe("change tools — signal-driven lifecycle", () => {
       );
       expect(parsed._projectContext).toEqual({
         root: "/tmp/target",
-        projectId: "target-project-id",
+        projectId: TARGET_PROJECT_ID,
         trusted: false,
         trustSource: "explicit",
         stateMode: "temporal",
@@ -5322,7 +5325,7 @@ describe("change tools — signal-driven lifecycle", () => {
         id: "ofl-target",
         changeId: "child-target",
         target_path: "/tmp/target",
-        target_project_id: "target-project-id",
+        target_project_id: TARGET_PROJECT_ID,
       });
       const store = createMockStore(parent);
       const getMock = store.changes.get as ReturnType<typeof vi.fn>;
@@ -5356,7 +5359,7 @@ describe("change tools — signal-driven lifecycle", () => {
         id: "ofl-target",
         changeId: "child-target",
         target_path: "/tmp/target",
-        target_project_id: "target-project-id",
+        target_project_id: TARGET_PROJECT_ID,
       });
       const store = createMockStore(parent);
       const getMock = store.changes.get as ReturnType<typeof vi.fn>;
@@ -5795,8 +5798,8 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.success).toBe(true);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle.client,
-        "test-project-id",
+        mocks.temporalBundle,
+        PROJECT_ID,
         "test-change",
       );
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -5812,7 +5815,7 @@ describe("change tools — signal-driven lifecycle", () => {
       const store = createMockStore();
       mocks.getProjectId.mockImplementationOnce(async (root: string) => {
         expect(root).toBe("/tmp/target");
-        return "target-project-id";
+        return TARGET_PROJECT_ID;
       });
 
       const result = await changeTools.adv_change_reenter.execute(
@@ -5832,7 +5835,7 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed.success).toBe(true);
       expect(parsed._projectContext).toMatchObject({
         root: "/tmp/target",
-        projectId: "target-project-id",
+        projectId: TARGET_PROJECT_ID,
         stateMode: "temporal",
       });
       expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
@@ -5846,8 +5849,8 @@ describe("change tools — signal-driven lifecycle", () => {
         expect.any(Function),
       );
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle.client,
-        "target-project-id",
+        mocks.temporalBundle,
+        TARGET_PROJECT_ID,
         "test-change",
       );
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledWith(

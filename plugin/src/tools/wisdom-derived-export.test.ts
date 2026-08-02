@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
+import { buildProjectTaskQueue } from "../temporal/client";
+
+const PROJECT_ID = "0".repeat(40);
+const PROJECT_QUEUE = buildProjectTaskQueue(PROJECT_ID);
+
 const mocks = vi.hoisted(() => {
   const signal = vi.fn(async () => {});
   const executeUpdate = vi.fn(async () => ({
@@ -38,19 +44,20 @@ const mocks = vi.hoisted(() => {
     close,
     canReachTemporalAddress: vi.fn(async () => true),
     getTemporalWorkerAliveness: vi.fn(() => true),
-    getRegisteredTemporalWorkerQueues: vi.fn(() => ["advance-proj123"]),
+    getRegisteredTemporalWorkerQueues: vi.fn(() => [PROJECT_QUEUE]),
     addProjectWisdom,
     compactProjectWisdom,
     listProjectWisdom,
-    getService: vi.fn(() => ({
-      connection: { close },
-      client: {
-        workflow: {
-          getHandle: vi.fn(() => ({ executeUpdate, query, signal })),
-          start: vi.fn(async () => ({ executeUpdate, query, signal })),
+    getService: vi.fn(() =>
+      createMockOwnerFromClient({
+        client: {
+          workflow: {
+            getHandle: vi.fn(() => ({ executeUpdate, query, signal })),
+            start: vi.fn(async () => ({ executeUpdate, query, signal })),
+          },
         },
-      },
-    })),
+      }),
+    ),
     writeJsonlAtomic: vi.fn(async () => {}),
   };
 });
@@ -101,7 +108,7 @@ vi.mock("../utils/project-id", async () => {
   );
   return {
     ...actual,
-    getProjectId: vi.fn(async () => "proj123"),
+    getProjectId: vi.fn(async () => PROJECT_ID),
   };
 });
 
@@ -113,9 +120,7 @@ describe("adv_wisdom_add signal-driven path", () => {
     mocks.listProjectWisdom.mockResolvedValue([]);
     mocks.canReachTemporalAddress.mockResolvedValue(true);
     mocks.getTemporalWorkerAliveness.mockReturnValue(true);
-    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([
-      "advance-proj123",
-    ]);
+    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([PROJECT_QUEUE]);
   });
 
   afterEach(() => {

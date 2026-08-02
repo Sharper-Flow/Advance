@@ -37,12 +37,14 @@ import {
   parseToolOutput,
 } from "../__tests__/setup";
 import { createDiskStore } from "../storage/store-disk";
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 import { createTemporalStoreBackend } from "../storage/store-temporal";
 import type { Store } from "../storage/store";
 import { statusTools } from "./status";
 import { _statusProbeCaches } from "./status-health";
 import { _healthRequestProbeCaches } from "./status-health-plan";
 import { createDefaultGates, type Change } from "../types";
+const PROJECT_ID = "0000000000000000000000000000000000000000";
 import * as worktree from "./worktree";
 
 const sleep = (ms: number): Promise<void> =>
@@ -242,7 +244,7 @@ function buildWorkflowState(id: string, createdAt: string): any {
     lifecycleState: "open",
     createdAt,
     initializedAt: createdAt,
-    projectId: "project-1",
+    projectId: PROJECT_ID,
     tasks: [],
     deltas: {},
     wisdom: [],
@@ -286,7 +288,7 @@ function makeTemporalClient(options: {
         list: async function* () {
           mockListConfig.listCalls++;
           if (mockListConfig.delayMs > 0) await sleep(mockListConfig.delayMs);
-          const prefix = `adv/change/project-1/`;
+          const prefix = `adv/change/${PROJECT_ID}/`;
           for (const r of options.listRecords ?? []) {
             const searchAttributes: Record<string, unknown> = {};
             if (r.lastSignalAt !== undefined) {
@@ -325,8 +327,10 @@ async function setupStores(options: {
   }
   const store = createTemporalStoreBackend({
     legacy,
-    temporal: makeTemporalClient({ listRecords: options.visibilityRecords }),
-    projectId: "project-1",
+    temporal: createMockOwnerFromClient(
+      makeTemporalClient({ listRecords: options.visibilityRecords }),
+    ),
+    projectId: PROJECT_ID,
   });
   return { legacy, store };
 }

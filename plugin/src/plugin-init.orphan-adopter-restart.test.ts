@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { PathLike } from "node:fs";
 
 import { cleanupTempDir, createTempDir } from "./__tests__/setup";
+import { createMockOwnerFromClient } from "./temporal/__tests__/mock-owner";
 
 const mocks = vi.hoisted(() => ({
   existsSync: vi.fn(),
@@ -151,7 +152,7 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
 
     mocks.getExternalRoot.mockImplementation(() => externalDir ?? "/tmp");
 
-    mocks.getService.mockReturnValue({ client: {} });
+    mocks.getService.mockReturnValue(createMockOwnerFromClient({ client: {} }));
   });
 
   afterEach(async () => {
@@ -326,12 +327,12 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
     };
 
     attachWorkerWithAdoption(workerOne, {
-      projectId: "proj-one",
-      client: {} as any,
+      projectId: "000000e000000000000000000000000000000000",
+      owner: createMockOwnerFromClient({ client: {} }),
     });
     attachWorkerWithAdoption(workerTwo, {
-      projectId: "proj-two",
-      client: {} as any,
+      projectId: "0000000000000000000000000000000000000000",
+      owner: createMockOwnerFromClient({ client: {} }),
     });
 
     // Only one active adopter exists despite two attachments.
@@ -352,8 +353,8 @@ describe("restartCurrentProjectTemporalWorker orphan-queue adopter (RED)", () =>
     };
 
     attachWorkerWithAdoption(worker, {
-      projectId: "proj-kill",
-      client: {} as any,
+      projectId: "0000000000000000000000000000000000000000",
+      owner: createMockOwnerFromClient({ client: {} }),
     });
 
     const status = getOrphanQueueAdoptionStatus();

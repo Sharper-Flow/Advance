@@ -91,7 +91,7 @@ function schemaValidChangeJson(id: string): string {
  * Mock Temporal client whose workflow query always throws a generic
  * "Failed to query Workflow" error (the masked error classifyTemporalReadFailure
  * cannot attribute to poisoned/missing). Used to force the fallback path
- * through reseedChangeFromDisk / loadDiskTerminalProjection.
+ * through loadDiskTerminalProjection.
  */
 function createGenericFailureTemporal() {
   const handle = {
@@ -143,7 +143,7 @@ describe("schema-error propagation (issue #258 Defect 1)", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: createGenericFailureTemporal(),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     await expect(store.changes.get("schemaInvalidChange")).rejects.toThrow(
@@ -160,7 +160,7 @@ describe("schema-error propagation (issue #258 Defect 1)", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: createGenericFailureTemporal(),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     await expect(store.changes.get("schemaInvalidChange")).rejects.not.toThrow(
@@ -174,7 +174,7 @@ describe("schema-error propagation (issue #258 Defect 1)", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: createGenericFailureTemporal(),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     await expect(store.gates.get("schemaInvalidGates")).rejects.toThrow(
@@ -190,7 +190,7 @@ describe("schema-error propagation (issue #258 Defect 1)", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: createGenericFailureTemporal(),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Pre-fix: schema_error propagates.
@@ -207,7 +207,7 @@ describe("schema-error propagation (issue #258 Defect 1)", () => {
     // Post-fix: should succeed (no schema_error, no Temporal query failure).
     // The Temporal mock still throws "Failed to query Workflow", but the
     // generic-failure-without-poisoned-evidence path returns the disk
-    // projection via reseedChangeFromDisk.
+    // projection directly as a fallback, without reseeding.
     const result = await store.changes.get("schemaRoundtrip");
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("schemaRoundtrip");

@@ -32,6 +32,11 @@ function abortError(): Error {
 }
 
 function createMockConnection(onAbort?: () => void): {
+  runWithDeadline: <R>(
+    deadlineAt: number,
+    signal: AbortSignal,
+    fn: () => Promise<R>,
+  ) => Promise<R>;
   connection: Connection;
   deadlineCalls: DeadlineCall[];
   abortCalls: AbortCall[];
@@ -85,7 +90,15 @@ function createMockConnection(onAbort?: () => void): {
       return fn();
     },
   } as unknown as Connection;
-  return { connection, deadlineCalls, abortCalls };
+  const runWithDeadline = async <R>(
+    deadlineAt: number,
+    signal: AbortSignal,
+    fn: () => Promise<R>,
+  ): Promise<R> =>
+    connection.withDeadline(deadlineAt, () =>
+      connection.withAbortSignal(signal, fn),
+    );
+  return { runWithDeadline, connection, deadlineCalls, abortCalls };
 }
 
 function activeChange(id: string): Change {
@@ -134,20 +147,21 @@ describe("Temporal read context", () => {
   });
 
   it("uses the same absolute deadline and abort signal across multiple read calls", async () => {
-    const { connection, deadlineCalls, abortCalls } = createMockConnection();
+    const { runWithDeadline, deadlineCalls, abortCalls } =
+      createMockConnection();
     const ctx = createTemporalReadContext(5_000);
 
     const op1 = vi.fn(async () => "first");
     const op2 = vi.fn(async () => "second");
     const op3 = vi.fn(async () => "third");
 
-    const r1 = await runTemporalRead(connection, op1, ctx, {
+    const r1 = await runTemporalRead(runWithDeadline, op1, ctx, {
       timeoutMs: 2_000,
     });
-    const r2 = await runTemporalRead(connection, op2, ctx, {
+    const r2 = await runTemporalRead(runWithDeadline, op2, ctx, {
       timeoutMs: 2_000,
     });
-    const r3 = await runTemporalRead(connection, op3, ctx, {
+    const r3 = await runTemporalRead(runWithDeadline, op3, ctx, {
       timeoutMs: 2_000,
     });
 
@@ -172,12 +186,12 @@ describe("Temporal read context", () => {
   });
 
   it("returns degraded and does not execute the op when aborted before the call", async () => {
-    const { connection, abortCalls } = createMockConnection();
+    const { runWithDeadline, abortCalls } = createMockConnection();
     const ctx = createTemporalReadContext(5_000);
     abortTemporalRead(ctx);
 
     const op = vi.fn(async () => "should not run");
-    const result = await runTemporalRead(connection, op, ctx, {
+    const result = await runTemporalRead(runWithDeadline, op, ctx, {
       timeoutMs: 2_000,
     });
 
@@ -190,11 +204,11 @@ describe("Temporal read context", () => {
   });
 
   it("returns degraded and does not retry after the aggregate deadline expires", async () => {
-    const { connection, deadlineCalls } = createMockConnection();
+    const { runWithDeadline, deadlineCalls } = createMockConnection();
     const ctx = createTemporalReadContext(1_000);
     const op = vi.fn(() => new Promise<never>(() => {}));
 
-    const promise = runTemporalRead(connection, op, ctx, {
+    const promise = runTemporalRead(runWithDeadline, op, ctx, {
       timeoutMs: 5_000,
       maxAttempts: 5,
     });
@@ -213,7 +227,7 @@ describe("Temporal read context", () => {
   it("cancels the in-flight RPC via the SDK abort signal and emits no retry", async () => {
     const ctx = createTemporalReadContext(5_000);
     let abortFired = false;
-    const { connection, abortCalls } = createMockConnection(() => {
+    const { runWithDeadline, abortCalls } = createMockConnection(() => {
       if (!abortFired) {
         abortFired = true;
         abortTemporalRead(ctx);
@@ -221,7 +235,7 @@ describe("Temporal read context", () => {
     });
 
     const op = vi.fn(async () => "should not finish");
-    const result = await runTemporalRead(connection, op, ctx, {
+    const result = await runTemporalRead(runWithDeadline, op, ctx, {
       timeoutMs: 2_000,
       maxAttempts: 5,
     });
@@ -234,11 +248,11 @@ describe("Temporal read context", () => {
   });
 
   it("returns complete metadata on a healthy RPC", async () => {
-    const { connection } = createMockConnection();
+    const { runWithDeadline } = createMockConnection();
     const ctx = createTemporalReadContext(5_000);
     const op = vi.fn(async () => ({ ok: true }));
 
-    const result = await runTemporalRead(connection, op, ctx, {
+    const result = await runTemporalRead(runWithDeadline, op, ctx, {
       timeoutMs: 2_000,
     });
 
@@ -340,7 +354,7 @@ describe("Temporal read context — routine reads avoid Temporal enrichment", ()
     const store = createTemporalStoreBackend({
       legacy,
       temporal: temporal as unknown as { client: typeof temporal.client },
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
     return { store, connection, deadlineCalls, abortCalls };
   }

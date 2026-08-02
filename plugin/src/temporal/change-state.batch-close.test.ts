@@ -31,7 +31,7 @@ function baseState(changeId = "chg-batch-1") {
     title: "Batch close test",
     createdAt: at,
   });
-  state.projectId = "proj-1";
+  state.projectId = "0000100000000000000000000000000000000000";
   return state;
 }
 

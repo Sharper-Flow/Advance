@@ -251,7 +251,7 @@ export function runtimeFrontmatterCheck(
         const result = parseFrontmatter(fullPath);
         if (!result.ok) {
           failures++;
-          // eslint-disable-next-line no-console
+
           console.warn(`[ADV] frontmatter: ${fullPath} — ${result.error}`);
         }
       }
@@ -266,13 +266,11 @@ export function runtimeFrontmatterCheck(
   const budgetExceeded = elapsedMs > budgetMs;
 
   if (failures > 0) {
-    // eslint-disable-next-line no-console
     console.warn(
       `[ADV] frontmatter: ${failures} unparseable manifest(s) in ${checked} checked (${elapsedMs.toFixed(0)}ms)`,
     );
   }
   if (budgetExceeded) {
-    // eslint-disable-next-line no-console
     console.warn(
       `[ADV] frontmatter: scan budget exceeded (${elapsedMs.toFixed(0)}ms > ${budgetMs}ms), some files not checked`,
     );

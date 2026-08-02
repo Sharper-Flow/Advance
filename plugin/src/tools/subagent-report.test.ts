@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => {
     fn({
       context: {
         root: "/target",
-        projectId: "target-project",
+        projectId: "0a00e00000ec0000000000000000000000000000",
         externalRoot: "/target-state",
         trusted: true,
         trustSource: "explicit",
@@ -2505,7 +2505,7 @@ describe("subagentReportTools", () => {
       fn({
         context: {
           root: "/target",
-          projectId: "target-project",
+          projectId: "0a00e00000ec0000000000000000000000000000",
           externalRoot: "/target-state",
           trusted: true,
           trustSource: "explicit",

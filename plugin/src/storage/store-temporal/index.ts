@@ -2,8 +2,7 @@ import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
-import { hasArchiveBundle, loadProjectConfig } from "../json";
-import { resolveProjectFeaturePolicy } from "../../types";
+import { hasArchiveBundle } from "../json";
 import {
   isSchemaError,
   listChangeDirs,
@@ -23,7 +22,8 @@ import type {
 import { SpecSchema } from "../../types";
 import { listSpecsFilesystem, readSpecFilesystem } from "../spec-filesystem";
 import type { LoadResult } from "../change-projection-reader";
-import { listChangeWorkflowIds } from "../../temporal/list-change-workflows";
+import { buildVisibilityQuery } from "../../temporal/list-change-workflows";
+import { CHANGE_WORKFLOW_PREFIX } from "../../temporal/contracts";
 import {
   listSourceRankedCandidates,
   type SourceRankedCandidate,
@@ -36,39 +36,38 @@ import {
 } from "../store-temporal-memo";
 import {
   type TemporalStoreBackendInput,
-  type WorkflowHandleLike,
+  type TemporalWorkflowHandle,
   type StoreDeps,
   mapTemporalChangeStateToChange,
   projectTemporalStateOntoLatest,
   getGuardedChangeHandle,
+  getTemporalOwner,
   classifyTemporalReadFailure,
   raceWithTemporalDeadline,
   remainingDeadlineMs,
   TemporalQueryTimeoutError,
   type TemporalReadDeadline,
   createTemporalReadContext,
-  runTemporalRead,
-  getTemporalConnection,
   type TemporalReadContext,
   isTemporalReadExpired,
   runTemporal,
   runTemporalQuery,
-  makeReconnectingHook,
+  QUERY_TIMEOUT_MS,
+  withProjectionRecovery,
 } from "./shared";
 import {
-  changeStateQuery,
-  worktreeAutoManagedSignal,
-} from "../../temporal/messages";
+  type TemporalOperations,
+  makeTemporalOperationContext,
+} from "../../temporal/operations";
+import { changeStateQuery } from "../../temporal/messages";
 import { isPoisonedWorkflowForChange } from "./poisoned-workflow-cache";
-import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
-import { getCurrentSessionId } from "../../utils/session-id";
-import { changeSeedStateFromChange } from "../../temporal/change-state";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 import type { ProjectionRecoveryReason } from "../../temporal/recovery-classification";
+import { composeTypedMutationResult } from "../../temporal/mutation-safety";
 import {
-  enforceMutationEligibilityForError,
-  composeTypedMutationResult,
-} from "../../temporal/mutation-safety";
+  TemporalListOutcomeError,
+  TemporalReadOutcomeError,
+} from "../../temporal/outcome-errors";
 import { assertDurablePersist, type DiskPersistOutcome } from "./disk-persist";
 import { commitChangeProjection } from "../change-projection-transaction";
 
@@ -85,26 +84,6 @@ import { createSpecDeltaOps } from "./spec-deltas";
 import { createEpicOps } from "./epics";
 
 const logger = createLogger("store-temporal");
-
-type ProjectionSource = "disk" | "archive";
-
-function withProjectionRecovery(
-  change: Change,
-  source: ProjectionSource,
-  reason: ProjectionRecoveryReason,
-): Change & {
-  _source: ProjectionSource;
-  _recovery: {
-    mode: "temporal_query_fallback";
-    reason: ProjectionRecoveryReason;
-  };
-} {
-  return {
-    ...change,
-    _source: source,
-    _recovery: { mode: "temporal_query_fallback", reason },
-  };
-}
 
 export function createTemporalStoreBackend(
   input: TemporalStoreBackendInput,
@@ -255,21 +234,11 @@ export function createTemporalStoreBackend(
         status: "archived" as const,
       };
       setCachedProjection(archived);
-      fireWorktreeAutoManagedMigrationIfNeeded(
-        changeId,
-        undefined,
-        archived.worktree_auto_managed,
-      );
       return { ...archiveSnapshot, snapshot: archived };
     }
 
     if (diskSnapshot.found) {
       setCachedProjection(diskSnapshot.snapshot);
-      fireWorktreeAutoManagedMigrationIfNeeded(
-        changeId,
-        undefined,
-        diskSnapshot.snapshot.worktree_auto_managed,
-      );
       return diskSnapshot;
     }
 
@@ -281,11 +250,10 @@ export function createTemporalStoreBackend(
    * (`change.json`). Best-effort, fire-and-forget.
    *
    * Why this exists: Temporal signals mutate workflow state but never
-   * touch the disk file. If the workflow is terminated/evicted between
-   * sessions, `reseedChangeFromDisk` rebuilds workflow state from the
-   * disk snapshot — and any tasks/gates/wisdom updates persisted only
-   * in Temporal are silently lost. Dual-writing keeps disk current so
-   * reseeds preserve work.
+   * touch the disk file. The disk snapshot is the authoritative read model
+   * for routine reads; workflow re-creation is an explicit command, not a
+   * side effect of a read. Dual-writing keeps disk current so reads and
+   * explicit recovery commands see the latest state.
    *
    * Returns a typed {@link DiskPersistOutcome} (persisted | skipped:archived |
    * failed) and never throws itself. Durability-critical callers route through
@@ -389,9 +357,22 @@ export function createTemporalStoreBackend(
     let readbackError: unknown;
     let readbackValue: ChangeWorkflowState | undefined;
     try {
-      readbackValue = (await runTemporalQuery(async () =>
-        (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-      )) as ChangeWorkflowState;
+      const owner = getOwner();
+      const handle = await getGuardedChangeHandle(input, changeId);
+      const ctx = makeTemporalOperationContext(
+        input.projectId,
+        handle.workflowId,
+        "query",
+        "dualWriteAfterMutation",
+        QUERY_TIMEOUT_MS,
+      );
+      const outcome = await runTemporalQuery(async () =>
+        owner.query(ctx, handle, changeStateQuery),
+      );
+      if (outcome.kind !== "complete") {
+        throw new TemporalReadOutcomeError(outcome);
+      }
+      readbackValue = outcome.value as ChangeWorkflowState;
     } catch (err) {
       readbackError = err;
     }
@@ -444,70 +425,6 @@ export function createTemporalStoreBackend(
     memo.invalidate(changeId);
   };
 
-  /**
-   * rq-autoManageAdvWorktrees AC3 — lazy migration of legacy changes.
-   *
-   * On first read of a change whose workflow state lacks
-   * `worktree_auto_managed`, fire `worktreeAutoManagedSignal` best-effort
-   * with `value: false, source: "migrate"`. The signal handler is sticky
-   * (`applyWorktreeAutoManagedToState`) so concurrent migrations from
-   * peer sessions are idempotent. Failures log at `debug` and do NOT
-   * block the read — the next read retries automatically.
-   *
-   * Lazy by design (DONT3): never fires at plugin load. Only triggers
-   * when a tool actually requests a change.
-   *
-   * Pre-A3 detection: any change with the marker undefined is necessarily
-   * legacy (new changes get the marker stamped at create per A3, across
-   * workflow seedState + disk + Memo overlay simultaneously).
-   */
-  const fireWorktreeAutoManagedMigrationIfNeeded = (
-    changeId: string,
-    workflowMarker: boolean | undefined,
-    diskMarker: boolean | undefined,
-  ): void => {
-    if (
-      typeof workflowMarker === "boolean" ||
-      typeof diskMarker === "boolean"
-    ) {
-      return;
-    }
-    void (async () => {
-      if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
-        logger.debug(
-          `Lazy worktree_auto_managed migration skipped for change ${changeId}: workflow is known poisoned.`,
-        );
-        return;
-      }
-      try {
-        // SC4 guard at signal-dispatch boundary: refuse the lazy migration
-        // signal when the workflow is mutation-ineligible (no-poller,
-        // unregistered-query, deadline, unknown, etc.). Migration is
-        // best-effort — an ineligible class skips silently via the catch
-        // below, identical to the existing skip-on-error semantics.
-        await runTemporal(async () =>
-          (await getGuardedChangeHandle(input, changeId)).signal(
-            worktreeAutoManagedSignal,
-            {
-              value: false,
-              source: "migrate",
-              recordedAt: new Date().toISOString(),
-            },
-          ),
-        ).catch((err) => {
-          enforceMutationEligibilityForError(err);
-          throw err;
-        });
-      } catch (err) {
-        logger.debug(
-          `Lazy worktree_auto_managed migration skipped for change ${changeId}: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
-      }
-    })();
-  };
-
   const updateOverlay = (changeId: string, patch: Partial<Change>): void => {
     const next = { ...(changeOverlayCache.get(changeId) ?? {}), ...patch };
     changeOverlayCache.set(changeId, next);
@@ -531,53 +448,7 @@ export function createTemporalStoreBackend(
     // No-op: projectWorkflow retired; change summaries live in workflow state.
   };
 
-  const getTemporalWorkflowClient = (): {
-    workflow: {
-      start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
-      getHandle: (workflowId: string) => WorkflowHandleLike;
-      list?: (opts: { query: string }) => AsyncIterable<{
-        workflowId: string;
-        taskQueue: string;
-        status: { name: string };
-      }>;
-    };
-  } => {
-    const bundle = input.temporal as {
-      client: {
-        workflow: {
-          start?: (...args: unknown[]) => Promise<WorkflowHandleLike>;
-          getHandle: (workflowId: string) => WorkflowHandleLike;
-          list?: (opts: { query: string }) => AsyncIterable<{
-            workflowId: string;
-            taskQueue: string;
-            status: { name: string };
-          }>;
-        };
-      };
-    };
-    if (typeof bundle.client.workflow.start !== "function") {
-      throw new Error(
-        "Temporal client bundle does not expose workflow.start; cannot create change workflows in Temporal-only mode",
-      );
-    }
-    // Pass the full workflow object, NOT destructured methods.
-    // @temporalio/client's WorkflowClient methods (start, getHandle, etc.)
-    // rely on `this.getOrMakeInterceptors(...)` at call time. Destructuring
-    // loses the prototype receiver and crashes with
-    // "this.getOrMakeInterceptors is not a function". Forwarding the object
-    // keeps `this` bound on method-invocation.
-    return {
-      workflow: bundle.client.workflow as {
-        start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
-        getHandle: (workflowId: string) => WorkflowHandleLike;
-        list?: (opts: { query: string }) => AsyncIterable<{
-          workflowId: string;
-          taskQueue: string;
-          status: { name: string };
-        }>;
-      },
-    };
-  };
+  const getOwner = (): TemporalOperations => getTemporalOwner(input);
 
   /**
    * Extract projection from update result, falling back to a direct query
@@ -588,15 +459,28 @@ export function createTemporalStoreBackend(
    * gets a fresh handle bound to the (possibly post-reconnect) client.
    */
   const resolveStateOrQuery = async (
-    getHandle: () => WorkflowHandleLike | Promise<WorkflowHandleLike>,
+    getHandle: () => TemporalWorkflowHandle | Promise<TemporalWorkflowHandle>,
     result: unknown,
   ): Promise<ChangeWorkflowState> => {
     if (result && typeof result === "object" && "changeId" in result) {
       return result as ChangeWorkflowState;
     }
-    return (await runTemporalQuery(async () =>
-      (await getHandle()).query(changeStateQuery),
-    )) as ChangeWorkflowState;
+    const owner = getOwner();
+    const handle = await getHandle();
+    const ctx = makeTemporalOperationContext(
+      input.projectId,
+      handle.workflowId,
+      "query",
+      "resolveStateOrQuery",
+      QUERY_TIMEOUT_MS,
+    );
+    const outcome = await runTemporalQuery(async () =>
+      owner.query(ctx, handle, changeStateQuery),
+    );
+    if (outcome.kind !== "complete") {
+      throw new TemporalReadOutcomeError(outcome);
+    }
+    return outcome.value as ChangeWorkflowState;
   };
 
   const indexTasksFromState = (state: ChangeWorkflowState): void => {
@@ -629,14 +513,12 @@ export function createTemporalStoreBackend(
   };
 
   /**
-   * Attempt to re-seed a missing change workflow from the disk snapshot.
-   * Used by `getTemporalChange` / `changes.get` when the Temporal query
-   * returns `WorkflowNotFoundError` (workflow terminated / evicted / never
-   * started) but a `change.json` snapshot still exists on disk.
+   * Load a missing change's archived projection when the active disk snapshot
+   * is absent. Used by the terminal-projection fallback so a `change.json`
+   * snapshot (archive bundle) still surfaces without a live workflow round-trip.
    *
-   * On success, the fresh ChangeWorkflow state is returned and cached so
-   * callers see the change instead of a hard error.
-   * On failure (no snapshot, re-seed itself throws), returns `null`.
+   * On success the archived projection is returned with a recovery marker.
+   * On failure (no snapshot, read itself throws), returns `null`.
    */
   const loadArchiveProjection = async (
     changeId: string,
@@ -742,158 +624,6 @@ export function createTemporalStoreBackend(
     const diskClosed = await loadDiskTerminalProjection(changeId);
     if (diskClosed) return setCachedProjection(diskClosed);
 
-    return null;
-  };
-
-  const reseedChangeFromDisk = async (
-    changeId: string,
-    reason: ProjectionRecoveryReason = "missing_workflow",
-    deadline?: TemporalReadDeadline,
-  ): Promise<Change | null> => {
-    // rq-replayFallback01: poisoned or missing workflow reads fall back to
-    // durable disk/archive projections instead of forcing manual bundle work.
-    const legacyRead = await legacy.changes.get(changeId);
-    if (isSchemaError(legacyRead)) {
-      throw new Error(legacyRead.error);
-    }
-    if (!legacyRead.success || !legacyRead.data) {
-      return loadArchiveProjection(changeId, reason, deadline);
-    }
-    const change = legacyRead.data;
-
-    // (A5 / rq-archivePurge01.1, M2b/terminatechangeworkflowonarchi)
-    // Archived AND closed changes are terminal — return the on-disk
-    // projection directly WITHOUT re-creating the workflow.
-    //   - For archived: re-seeding would re-emit a ChangeSummary signal
-    //     and undo adv_archive_purge on the very next read.
-    //   - For closed: change workflows now Complete on close (terminal-
-    //     state branch in workflows.ts). Re-seeding would create a new
-    //     run that immediately Completes — pointless churn.
-    // Mark the result so callers (and tests) can identify disk-sourced
-    // returns.
-    if (change.status === "archived" || change.status === "closed") {
-      return withProjectionRecovery(change, "disk", reason);
-    }
-    const projectConfig = await loadProjectConfig(legacy.paths.root).catch(
-      () => null,
-    );
-    const featurePolicy = resolveProjectFeaturePolicy(projectConfig?.features);
-
-    try {
-      const client = {
-        workflow: input.temporal.client.workflow as {
-          start: (...args: unknown[]) => Promise<WorkflowHandleLike>;
-          getHandle: (workflowId: string) => WorkflowHandleLike;
-          list?: (opts: { query: string }) => AsyncIterable<{
-            workflowId: string;
-            taskQueue: string;
-            status: { name: string };
-          }>;
-        },
-      };
-      // Defensively fill in fields that the workflow seed schema requires
-      // but an older / partial change.json may have omitted. Change
-      // snapshots on disk can be minimal (draft state, no gates/tasks
-      // yet); the workflow state machine still expects well-formed
-      // collections, so supply empty defaults rather than undefined.
-      await ensureChangeWorkflowStarted(
-        client,
-        {
-          projectId: input.projectId,
-          changeId: change.id,
-          title: change.title,
-          initializedAt: change.created_at,
-          projectionChangesDir: legacy.paths.changes,
-          archiveProjects: [{ projectPath: legacy.paths.root }],
-          // KD-10 / rq-isolSessionTaskQueue01: thread current session ID so
-          // the orphan-rescue re-seed lands on the same session queue the
-          // current process is polling. Undefined falls back to project queue.
-          sessionId: getCurrentSessionId(),
-          seedState: changeSeedStateFromChange(change),
-        },
-        { workflowQueueMode: featurePolicy.workflowQueueMode },
-      );
-    } catch (err) {
-      // Re-seed itself failed — surface the original not-found to callers
-      // rather than masking it with a seed error. Log so operators can
-      // distinguish "orphan could not be recovered" from "orphan does
-      // not exist on disk" without having to instrument locally.
-      logger.warn(
-        `Temporal re-seed failed for change ${changeId}: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-      // rq-replayFallback01.3: when re-seed of a non-terminal change fails
-      // AND the original trigger error was a known poisoned-history class
-      // (TMPRL1100 / nondeterminism / no-command-replay), fall back to the
-      // durable disk projection. Mirrors the post-reseed-query fallback in
-      // the next try/catch. Missing-workflow re-seed failures still return
-      // null so callers see the real WorkflowNotFoundError instead of a
-      // synthetically-recovered stale projection.
-      if (reason === "poisoned_history") {
-        return withProjectionRecovery(change, "disk", reason);
-      }
-      return null;
-    }
-    let postReseedError: unknown;
-    let postReseedValue: ChangeWorkflowState | undefined;
-    try {
-      postReseedValue = (await runTemporalQuery(
-        async () =>
-          (await getGuardedChangeHandle(input, changeId)).query(
-            changeStateQuery,
-          ),
-        { deadline },
-      )) as ChangeWorkflowState;
-    } catch (err) {
-      postReseedError = err;
-    }
-    // SC6 wiring: classify the post-reseed readback outcome. An
-    // `outcome_unknown_readback_unavailable` is reported at warn level
-    // — the workflow was just reseeded but the post-reseed state could
-    // not be confirmed. Fall through to the recovery-reason path below
-    // which still decides whether to fall back to the disk projection.
-    const typed = composeTypedMutationResult({
-      ...(postReseedError !== undefined
-        ? { readbackError: postReseedError }
-        : {}),
-      ...(postReseedValue !== undefined
-        ? { readbackValue: postReseedValue }
-        : {}),
-    });
-    if (typed.outcome !== "confirmed" || !postReseedValue) {
-      logger.warn(
-        `reseedChangeFromDisk(${changeId}): post-reseed readback classified as ${typed.outcome}; surfacing original read failure for recovery classification.`,
-      );
-    }
-    if (typed.outcome === "confirmed" && postReseedValue) {
-      indexTasksFromState(postReseedValue);
-      return setCachedChange(postReseedValue);
-    }
-    const err =
-      postReseedError ??
-      new Error(
-        `Post-reseed readback returned ${typed.outcome} for change ${changeId}.`,
-      );
-    const failure = await classifyTemporalReadFailure(
-      input,
-      changeId,
-      err,
-      deadline,
-    );
-    // query_failed never authorizes projection recovery: the post-reseed
-    // workflow state is unknown, so surface the original failure instead
-    // of masking it with a stale disk projection.
-    if (
-      failure.errorClass === "fallback" &&
-      failure.recoveryReason !== "query_failed"
-    ) {
-      return withProjectionRecovery(
-        change,
-        "disk",
-        failure.recoveryReason ?? "missing_workflow",
-      );
-    }
     return null;
   };
 
@@ -1023,50 +753,34 @@ export function createTemporalStoreBackend(
     // budget. A timeout/unresponsive outcome degrades to the disk projection
     // with a typed advisory rather than throwing/hanging.
     try {
-      const read = await runTemporalRead(
-        getTemporalConnection(input),
-        async () => {
-          const state = (await (
-            await getGuardedChangeHandle(input, changeId)
-          ).query(changeStateQuery)) as ChangeWorkflowState;
-          return state;
-        },
-        ctx,
-        {
-          opType: "changeStateQuery",
-          timeoutMs: 1_500,
-          onTransientFailure: makeReconnectingHook(),
-        },
+      const owner = getOwner();
+      const handle = await getGuardedChangeHandle(input, changeId);
+      const queryCtx = makeTemporalOperationContext(
+        input.projectId,
+        handle.workflowId,
+        "query",
+        "changeStateQuery",
+        1_500,
       );
-      if (!read.complete) {
-        throw read.error;
+      const outcome = await runTemporalQuery(
+        async () => owner.query(queryCtx, handle, changeStateQuery),
+        { deadline: ctx.deadline, timeoutMs: 1_500 },
+      );
+      if (outcome.kind !== "complete") {
+        throw new TemporalReadOutcomeError(outcome);
       }
       ctx.recordResponsiveMember();
-      const state = read.data as ChangeWorkflowState;
+      const state = outcome.value as ChangeWorkflowState;
       indexTasksFromState(state);
-      // rq-autoManageAdvWorktrees AC3 — lazy migration trigger.
-      // Fires once on legacy reads; sticky handler dedupes concurrent races.
-      fireWorktreeAutoManagedMigrationIfNeeded(
-        changeId,
-        state.worktree_auto_managed,
-        undefined,
-      );
       return {
         success: true,
         data: setCachedChange(state),
         source: "workflow",
       };
     } catch (error) {
-      // P1.5 — orphan-tolerant changes.get with re-seed. When the
-      // workflow is missing but a disk snapshot exists, seed a fresh
-      // ChangeWorkflow from disk and return the hydrated state. This
-      // prevents a single orphan from blocking adv_status /
-      // adv_change_list / adv_change_show.
-      //
-      // (A5 / rq-archivePurge01.1) For archived changes specifically,
-      // reseedChangeFromDisk short-circuits and returns the on-disk
-      // projection without re-creating the workflow — re-seeding would
-      // re-emit a summary signal and undo adv_archive_purge.
+      // Routine reads are projection-only. Never start, signal, reseed, or
+      // write recovery state from the read path. Degrade to the durable disk
+      // projection when available; otherwise return a typed LoadResult.
       const failure = await classifyTemporalReadFailure(
         input,
         changeId,
@@ -1074,58 +788,38 @@ export function createTemporalStoreBackend(
         ctx.deadline,
       );
 
-      // workflow_unresponsive: record the unresponsive member for the CB and,
-      // when a disk projection exists, return it as authoritative with a typed
-      // advisory. Never re-seed — the workflow may still be running but is not
-      // queryable within budget.
       if (failure.recoveryReason === "workflow_unresponsive") {
         ctx.recordUnresponsiveMember();
-        if (diskChange) {
-          indexTasksFromChange(diskChange);
-          return {
-            success: true,
-            data: withProjectionRecovery(
-              diskChange,
-              "disk",
-              "workflow_unresponsive",
-            ),
-            source: "disk",
-          };
-        }
       }
 
-      // query_failed never authorizes mutation: re-seed may start a new
-      // workflow run, which is only safe when the workflow is known missing
-      // or its history is known poisoned.
-      if (
-        failure.errorClass === "fallback" &&
-        failure.recoveryReason !== "query_failed"
-      ) {
-        const reseeded = await reseedChangeFromDisk(
-          changeId,
-          failure.recoveryReason ?? "missing_workflow",
-          ctx.deadline,
-        );
-        if (reseeded) {
-          // rq-autoManageAdvWorktrees AC3 — lazy migration after reseed.
-          // The disk projection may lack the marker for legacy changes
-          // that pre-date this field; signal the workflow once so the
-          // marker becomes sticky in the freshly-seeded state.
-          fireWorktreeAutoManagedMigrationIfNeeded(
-            changeId,
-            undefined,
-            reseeded.worktree_auto_managed,
-          );
-          return {
-            success: true,
-            data: reseeded,
-            source:
-              (reseeded as Change & { _source?: "disk" | "archive" })._source ??
-              "disk",
-          };
-        }
+      const recoveryReason: ProjectionRecoveryReason =
+        failure.recoveryReason === "workflow_unresponsive" ||
+        failure.recoveryReason === "poisoned_history" ||
+        failure.recoveryReason === "missing_workflow"
+          ? failure.recoveryReason
+          : "missing_workflow";
+      if (diskChange) {
+        indexTasksFromChange(diskChange);
+        return {
+          success: true,
+          data: withProjectionRecovery(diskChange, "disk", recoveryReason),
+          source: "disk",
+        };
       }
-      throw error;
+
+      // No durable projection to serve. Preserve hard deadline / transient
+      // errors by rethrowing our own typed error; for fallback-classified
+      // missing/poisoned workflows, surface as not_found instead of mutating.
+      if (failure.errorClass !== "fallback") {
+        throw error;
+      }
+
+      return {
+        success: false,
+        error: `No durable projection and workflow is ${failure.recoveryReason ?? "unreachable"} for change ${changeId}`,
+        type: "not_found",
+        degraded: failure,
+      };
     }
   };
 
@@ -1157,19 +851,18 @@ export function createTemporalStoreBackend(
     // archive bundle is missing/raced, an archived change fell through to the
     // live query and could hit a poisoned/terminated workflow (TMPRL1100),
     // paying a wasteful query + describe() probe per candidate before the
-    // catch→reseedChangeFromDisk path finally returned the same disk data.
-    // Short-circuiting both terminal statuses here mirrors reseedChangeFromDisk
-    // and keeps enumeration/status reads fast even against poisoned terminal
-    // workflows.
+    // fallback finally returned the same disk data. Short-circuiting both
+    // terminal statuses here mirrors that fallback and keeps enumeration/status
+    // reads fast even against poisoned terminal workflows.
     if (
       result.success &&
       result.data &&
       (result.data.status === "closed" || result.data.status === "archived")
     ) {
       // Mark the disk source so callers report source "disk" (matching the
-      // prior catch→reseedChangeFromDisk path). This is terminal-projection
-      // dominance, NOT a temporal_query_fallback recovery, so it does not
-      // carry the _recovery reconciliation marker.
+      // prior catch→fallback path). This is terminal-projection dominance,
+      // NOT a temporal_query_fallback recovery, so it does not carry the
+      // _recovery reconciliation marker.
       return { ...result.data, _source: "disk" } as Change;
     }
     return null;
@@ -1194,8 +887,9 @@ export function createTemporalStoreBackend(
    *    truncation, manual termination) while its `change.json` snapshot
    *    survives on disk. We always union with a disk scan so orphaned-
    *    but-on-disk changes still surface. The per-change loader
-   *    (`getTemporalChange`) already re-seeds missing workflows from
-   *    disk, so listing them triggers self-healing.
+   *    (`getTemporalChange`) now returns the durable disk projection for
+   *    missing workflows instead of re-seeding them; self-healing is only
+   *    initiated by explicit mutation commands.
    *
    * The Memo cache supplies the fast path for active changes that the
    * adapter has already touched. We seed result IDs from Memo too so
@@ -1284,34 +978,43 @@ export function createTemporalStoreBackend(
     const memoAll = memo.getAll();
     const memoIds = memoAll.map((s) => s.id);
 
-    const bundle = input.temporal as {
-      client?: { workflow?: { list?: unknown } };
-    };
     let visibilityIds: string[] = [];
-    if (
-      !options?.sourceRanked &&
-      typeof bundle.client?.workflow?.list === "function"
-    ) {
+    if (!options?.sourceRanked) {
       try {
-        const visibilityRead = await runTemporalRead(
-          getTemporalConnection(input),
-          () =>
-            listChangeWorkflowIds(
-              bundle.client as Parameters<typeof listChangeWorkflowIds>[0],
-              {
-                projectId: input.projectId,
-                // Drop the status filter when caller wants archived/closed
-                // so the visibility query doesn't pre-narrow the result set.
-                statuses: wantsTerminalStatuses ? null : undefined,
-              },
-            ),
-          ctx,
-          { opType: "visibilityList", timeoutMs: 5_000 },
+        const owner = getOwner();
+        const listCtx = makeTemporalOperationContext(
+          input.projectId,
+          "visibility-list",
+          "list",
+          "visibilityList",
+          5_000,
         );
-        if (!visibilityRead.complete) {
-          throw visibilityRead.error;
-        }
-        visibilityIds = visibilityRead.data as string[];
+        const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
+        const query = buildVisibilityQuery({
+          projectId: input.projectId,
+          statuses: wantsTerminalStatuses ? null : undefined,
+        });
+        visibilityIds = await runTemporal(
+          async () => {
+            const ids: string[] = [];
+            const outcome = await owner.list<{ workflowId: string }>(
+              listCtx,
+              query,
+            );
+            if (outcome.kind !== "complete") {
+              throw new TemporalListOutcomeError(outcome);
+            }
+            for (const wf of outcome.value) {
+              const wfid = wf.workflowId;
+              if (!wfid.startsWith(projectPrefix)) continue;
+              const changeId = wfid.slice(projectPrefix.length);
+              if (changeId.length === 0) continue;
+              ids.push(changeId);
+            }
+            return ids;
+          },
+          { deadline: ctx.deadline, timeoutMs: 5_000 },
+        );
       } catch (err) {
         const hitDeadline =
           err instanceof TemporalQueryTimeoutError || expired();
@@ -1390,7 +1093,6 @@ export function createTemporalStoreBackend(
     if (
       options?.sourceRanked &&
       candidateLimit !== undefined &&
-      typeof bundle.client?.workflow?.list === "function" &&
       !wantsTerminalStatuses
     ) {
       const diskCandidates = await mapWithConcurrency(
@@ -1431,15 +1133,12 @@ export function createTemporalStoreBackend(
       );
       try {
         const ranked = await raceWithTemporalDeadline(
-          listSourceRankedCandidates(
-            bundle.client as Parameters<typeof listSourceRankedCandidates>[0],
-            {
-              projectId: input.projectId,
-              statuses: undefined,
-              limit: candidateLimit,
-              diskCandidates,
-            },
-          ),
+          listSourceRankedCandidates(getOwner(), {
+            projectId: input.projectId,
+            statuses: undefined,
+            limit: candidateLimit,
+            diskCandidates,
+          }),
           deadline,
         );
         hydrationIds = ranked.admitted.map((candidate) => candidate.id);
@@ -2265,14 +1964,13 @@ export function createTemporalStoreBackend(
     persistStateToDiskDurable,
     persistAndRefreshDurable,
     dualWriteAfterMutation,
-    getTemporalWorkflowClient,
+    getTemporalOwner: getOwner,
     resolveStateOrQuery,
     indexTasksFromState,
     resolveChangeId,
     readChangeSnapshot: readProjectionSnapshot,
     getTemporalChange,
     listResolvedChanges,
-    reseedChangeFromDisk,
   };
   const changeOps = createChangeOps(deps);
 

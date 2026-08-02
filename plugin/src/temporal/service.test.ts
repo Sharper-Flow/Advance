@@ -29,6 +29,12 @@ const mocks = vi.hoisted(() => {
   const connection = {
     close: connectionClose,
     operatorService: { addSearchAttributes, listSearchAttributes },
+    withDeadline: vi.fn((_deadline: unknown, fn: () => Promise<unknown>) =>
+      fn(),
+    ),
+    withAbortSignal: vi.fn((_signal: unknown, fn: () => Promise<unknown>) =>
+      fn(),
+    ),
   };
   const client = {};
   const connect = vi.fn().mockResolvedValue(connection);
@@ -64,6 +70,8 @@ import {
   verifyAdvSearchAttributes,
 } from "./service";
 
+const TEST_PROJECT_ID = "a".repeat(40);
+
 describe("STSL (Shared Temporal Service Layer)", () => {
   beforeEach(() => {
     resetStsl();
@@ -80,14 +88,17 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       ADV_TEMPORAL_NAMESPACE: "test-ns",
     };
 
-    const bundle = await initStsl(env);
+    const bundle = await initStsl(TEST_PROJECT_ID, env);
 
     expect(bundle).toBeDefined();
     expect(bundle.address).toBe("127.0.0.1:7233");
     expect(bundle.namespace).toBe("test-ns");
     expect(bundle.connection).toBe(mocks.connection);
     expect(bundle.client).toBe(mocks.client);
-    expect(mocks.connect).toHaveBeenCalledWith({ address: "127.0.0.1:7233" });
+    expect(mocks.connect).toHaveBeenCalledWith({
+      address: "127.0.0.1:7233",
+      connectTimeout: 10_000,
+    });
     expect(mocks.ClientCtor).toHaveBeenCalledWith({
       connection: mocks.connection,
       namespace: "test-ns",
@@ -104,7 +115,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
         customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
       });
 
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -137,7 +148,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
 
   it("initStsl skips registration when SAs already present", async () => {
     // Default mock has all SAs present → registration should be skipped
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -153,7 +164,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
 
     // Must not throw
     await expect(
-      initStsl({
+      initStsl(TEST_PROJECT_ID, {
         ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
         ADV_TEMPORAL_NAMESPACE: "default",
       }),
@@ -167,7 +178,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
 
     // Must not throw even on non-AlreadyExists failure
     await expect(
-      initStsl({
+      initStsl(TEST_PROJECT_ID, {
         ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
         ADV_TEMPORAL_NAMESPACE: "default",
       }),
@@ -208,7 +219,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       .mockImplementation(() => undefined);
 
     try {
-      await initStsl({
+      await initStsl(TEST_PROJECT_ID, {
         ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
         ADV_TEMPORAL_NAMESPACE: "default",
       });
@@ -263,7 +274,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       .mockImplementation(() => undefined);
 
     try {
-      await initStsl({
+      await initStsl(TEST_PROJECT_ID, {
         ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
         ADV_TEMPORAL_NAMESPACE: "default",
       });
@@ -283,7 +294,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
   });
 
   it("getService returns the initialized bundle", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -301,7 +312,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
   it("isStslInitialized reports state correctly", async () => {
     expect(isStslInitialized()).toBe(false);
 
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -315,21 +326,21 @@ describe("STSL (Shared Temporal Service Layer)", () => {
       ADV_TEMPORAL_NAMESPACE: "default",
     };
 
-    const first = await initStsl(env);
-    const second = await initStsl(env);
+    const first = await initStsl(TEST_PROJECT_ID, env);
+    const second = await initStsl(TEST_PROJECT_ID, env);
 
     expect(first).toBe(second);
     expect(mocks.connect).toHaveBeenCalledTimes(1);
   });
 
   it("double-init with different env throws (prevent accidental re-init)", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "ns-a",
     });
 
     await expect(
-      initStsl({
+      initStsl(TEST_PROJECT_ID, {
         ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
         ADV_TEMPORAL_NAMESPACE: "ns-b",
       }),
@@ -337,7 +348,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
   });
 
   it("closeStsl closes the connection and clears the service", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -352,7 +363,7 @@ describe("STSL (Shared Temporal Service Layer)", () => {
   });
 
   it("closeStsl is idempotent (no error on double close)", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -391,7 +402,7 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
     };
     newClient: object;
   }> => {
-    const bundleBefore = await initStsl({
+    const bundleBefore = await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -405,6 +416,12 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
           customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
+      withDeadline: vi.fn((_deadline: unknown, fn: () => Promise<unknown>) =>
+        fn(),
+      ),
+      withAbortSignal: vi.fn((_signal: unknown, fn: () => Promise<unknown>) =>
+        fn(),
+      ),
     };
     const newClient = {};
     mocks.connect.mockResolvedValueOnce(newConnection);
@@ -466,7 +483,7 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
   });
 
   it("propagates Connection.connect failure to caller; increments reconnectFailureCount", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -516,7 +533,7 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
   });
 
   it("resetStsl clears reconnect counters and inflight state", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -530,7 +547,7 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
     expect(getStslStats().reconnectFailureCount).toBe(0);
     // After reset, a fresh init must work again (proves inFlightReconnect cleared).
     await expect(
-      initStsl({
+      initStsl(TEST_PROJECT_ID, {
         ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
         ADV_TEMPORAL_NAMESPACE: "default",
       }),
@@ -543,7 +560,7 @@ describe("reinitStsl (Task 2 — comprehensive coverage)", () => {
   });
 
   it("concurrent reinitStsl calls — both observers see the rejection from the first", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -574,6 +591,7 @@ describe("verifyAdvSearchAttributes", () => {
     const result = await verifyAdvSearchAttributes(
       mocks.connection,
       "test-ns",
+      TEST_PROJECT_ID,
       3,
       10,
     );
@@ -591,6 +609,7 @@ describe("verifyAdvSearchAttributes", () => {
     const result = await verifyAdvSearchAttributes(
       mocks.connection,
       "test-ns",
+      TEST_PROJECT_ID,
       5,
       10,
     );
@@ -608,6 +627,7 @@ describe("verifyAdvSearchAttributes", () => {
     const result = await verifyAdvSearchAttributes(
       mocks.connection,
       "test-ns",
+      TEST_PROJECT_ID,
       3,
       1, // minimal delay for tests
     );
@@ -634,6 +654,7 @@ describe("verifyAdvSearchAttributes", () => {
     const result = await verifyAdvSearchAttributes(
       mocks.connection,
       "test-ns",
+      TEST_PROJECT_ID,
       2,
       1, // minimal delay for tests
     );
@@ -673,7 +694,7 @@ describe("initStsl verification integration", () => {
       ADV_TEMPORAL_NAMESPACE: "test-ns",
     };
 
-    await initStsl(env);
+    await initStsl(TEST_PROJECT_ID, env);
 
     const stats = getStslStats();
     expect(stats.saVerification).toBeDefined();
@@ -690,7 +711,7 @@ describe("initStsl verification integration", () => {
       ADV_TEMPORAL_NAMESPACE: "test-ns",
     };
 
-    const initPromise = initStsl(env);
+    const initPromise = initStsl(TEST_PROJECT_ID, env);
     // Advance through all setTimeout calls in the poll loop
     await vi.advanceTimersByTimeAsync(10_000);
     await initPromise;
@@ -702,7 +723,7 @@ describe("initStsl verification integration", () => {
   });
 
   it("reinitStsl updates saVerification after reconnect", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -715,6 +736,12 @@ describe("initStsl verification integration", () => {
           customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
         }),
       },
+      withDeadline: vi.fn((_deadline: unknown, fn: () => Promise<unknown>) =>
+        fn(),
+      ),
+      withAbortSignal: vi.fn((_signal: unknown, fn: () => Promise<unknown>) =>
+        fn(),
+      ),
     };
     mocks.connect.mockResolvedValueOnce(newConnection);
 
@@ -726,7 +753,7 @@ describe("initStsl verification integration", () => {
   });
 
   it("resetStsl clears saVerification", async () => {
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });

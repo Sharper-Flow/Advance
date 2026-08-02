@@ -158,7 +158,7 @@ async function healthySignalHandle(store: Store, changeId: string) {
   if (!bundle) throw new Error("Temporal service not available");
   const projectId = await getProjectId(store.paths.root);
   if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle.client, projectId, changeId);
+  return getChangeHandle(bundle, projectId, changeId);
 }
 
 async function saveRecoveredContract(input: {

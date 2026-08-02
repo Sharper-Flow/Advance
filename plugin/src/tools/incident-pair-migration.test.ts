@@ -9,6 +9,9 @@ import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import { evaluateGateReadiness } from "../temporal/gate-readiness";
 import { changeToWorkflowState } from "../temporal/change-state";
 import { loadChange } from "../storage/json";
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
+
+const PROJECT_ID = "0".repeat(40);
 
 const workflowHandle = vi.hoisted(() => ({
   signal: vi.fn(),
@@ -17,13 +20,14 @@ const workflowHandle = vi.hoisted(() => ({
 }));
 
 vi.mock("../temporal/service", () => ({
-  getService: () => ({
-    client: { workflow: { getHandle: () => workflowHandle } },
-  }),
+  getService: () =>
+    createMockOwnerFromClient({
+      client: { workflow: { getHandle: () => workflowHandle } },
+    }),
 }));
 
 vi.mock("../utils/project-id", () => ({
-  getProjectId: async () => "project-1",
+  getProjectId: async () => PROJECT_ID,
 }));
 
 import { contractTools } from "./contract";
@@ -168,7 +172,7 @@ async function seedProjection(
 
 function makeGetState(change: Change): ChangeWorkflowState {
   return changeToWorkflowState({
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
     change,
   });
 }

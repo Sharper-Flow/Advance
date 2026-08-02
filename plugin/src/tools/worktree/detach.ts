@@ -239,19 +239,12 @@ async function getChangeWorkflowState(
   access: WorktreeStateAccess,
   changeId: string,
 ): Promise<ChangeWorkflowState | null> {
-  const bundle = getService();
-  if (!bundle) return null;
-  const workflowApi = bundle.client.workflow as {
-    getHandle?: (workflowId: string) => {
-      query: (def: unknown) => Promise<unknown>;
-    };
-  };
-  if (!workflowApi?.getHandle) return null;
+  const owner = getService();
+  if (!owner) return null;
 
-  const workflowId = `adv/change/${access.projectId}/${changeId}`;
   try {
-    const handle = workflowApi.getHandle(workflowId);
-    const state = (await handle.query(getStateQuery)) as ChangeWorkflowState;
+    const proxy = getChangeHandle(owner, access.projectId, changeId);
+    const state = await proxy.query<ChangeWorkflowState>(getStateQuery);
     if (!state || typeof state !== "object") return null;
     return state;
   } catch {
@@ -292,7 +285,7 @@ async function fireDetachSignal(
     };
   }
 
-  const handle = getChangeHandle(bundle.client, projectId, changeId);
+  const handle = getChangeHandle(bundle, projectId, changeId);
 
   try {
     if (store) {
@@ -557,11 +550,8 @@ export async function advWorktreeDetachBatch(
   try {
     // Fail closed when the mutation path cannot record durable receipts.
     if (args.mode === "apply") {
-      const bundle = getService();
-      const workflowApi = bundle?.client.workflow as {
-        getHandle?: (workflowId: string) => unknown;
-      };
-      if (!bundle || !workflowApi?.getHandle) {
+      const owner = getService();
+      if (!owner) {
         return {
           ok: false,
           reason:

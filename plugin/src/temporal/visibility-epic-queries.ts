@@ -11,6 +11,8 @@
  */
 
 import type { ChangeStatus } from "../types";
+import type { TemporalListOutcome, TemporalOperations } from "./operations";
+import { makeTemporalOperationContext } from "./operations";
 import {
   escapeVisibilityValue,
   isLegacyOpenStatusSet,
@@ -34,14 +36,6 @@ export interface EpicMembersQueryOptions {
    * to lifecycle filtering. Pass `null` to skip the filter entirely.
    */
   statuses?: ChangeStatus[] | null;
-}
-
-export interface EpicMembersVisibilityClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{
-      workflowId: string;
-    }>;
-  };
 }
 
 /**
@@ -92,11 +86,11 @@ export interface QueryChangeIdsByEpicIdOptions {
  * the underlying change workflows. Use `limit` to bound the result set.
  */
 export async function queryChangeIdsByEpicId(
-  client: EpicMembersVisibilityClient,
+  owner: TemporalOperations,
   projectId: string,
   epicId: string,
   options: QueryChangeIdsByEpicIdOptions = {},
-): Promise<string[]> {
+): Promise<TemporalListOutcome<string[]>> {
   const query = buildEpicMembersVisibilityQuery({
     projectId,
     epicId,
@@ -104,9 +98,24 @@ export async function queryChangeIdsByEpicId(
   });
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
   const limit = options.limit;
+  const effectiveLimit = limit ?? 1000;
+  const placeholderWorkflowId = `${projectPrefix}epic-${epicId}-members`;
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    placeholderWorkflowId,
+    "list",
+    "queryChangeIdsByEpicId",
+    10_000,
+  );
+  const result = await owner.list<{ workflowId: string }>(ctx, query, {
+    limit: effectiveLimit,
+  });
+  if (result.kind !== "complete") {
+    return result;
+  }
   const ids: string[] = [];
 
-  for await (const wf of client.workflow.list({ query })) {
+  for (const wf of result.value) {
     const wfid = wf.workflowId;
     if (!wfid.startsWith(projectPrefix)) continue;
     const changeId = wfid.slice(projectPrefix.length);
@@ -115,5 +124,5 @@ export async function queryChangeIdsByEpicId(
     if (limit !== undefined && ids.length >= limit) break;
   }
 
-  return ids;
+  return { kind: "complete", value: ids, truncated: result.truncated };
 }

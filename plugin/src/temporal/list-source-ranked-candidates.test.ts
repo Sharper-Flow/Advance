@@ -10,24 +10,28 @@ import { describe, expect, it } from "vitest";
 import {
   listSourceRankedCandidates,
   type SourceRankedCandidate,
-  type SourceRankedListClient,
 } from "./list-source-ranked-candidates";
+import type { TemporalListOutcome, TemporalOperations } from "./operations";
+
+/** Canonical 40-character lowercase hex project ID used across these tests. */
+const PROJECT_ID = "0".repeat(40);
+const CHANGE_PREFIX = `adv/change/${PROJECT_ID}/`;
 
 interface VisibilityRecord {
   workflowId: string;
   searchAttributes?: Record<string, unknown>;
 }
 
-function makeClient(records: VisibilityRecord[]): SourceRankedListClient {
+function makeOwner(records: VisibilityRecord[]): TemporalOperations {
   return {
-    workflow: {
-      list: () => ({
-        async *[Symbol.asyncIterator]() {
-          for (const record of records) yield record;
-        },
-      }),
+    list: async function <T extends { workflowId: string }>(
+      _ctx: unknown,
+      _query: string,
+      _options?: { limit?: number },
+    ): Promise<TemporalListOutcome<T[]>> {
+      return { kind: "complete", value: records as T[], truncated: false };
     },
-  };
+  } as unknown as TemporalOperations;
 }
 
 function visibilityRecord(
@@ -36,7 +40,7 @@ function visibilityRecord(
   createdAt: string,
 ): VisibilityRecord {
   return {
-    workflowId: `adv/change/proj/${changeId}`,
+    workflowId: `${CHANGE_PREFIX}${changeId}`,
     searchAttributes: {
       AdvLastSignalAt: [lastSignalAt],
       AdvCreatedAt: [createdAt],
@@ -65,7 +69,7 @@ function shuffleWithSeed<T>(input: T[], seed: number): T[] {
 
 describe("listSourceRankedCandidates", () => {
   it("ranks by Visibility AdvLastSignalAt descending, then AdvCreatedAt", async () => {
-    const client = makeClient([
+    const client = makeOwner([
       // Older by lastSignalAt but appears first in enumeration.
       visibilityRecord(
         "alpha",
@@ -87,7 +91,7 @@ describe("listSourceRankedCandidates", () => {
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 3,
     });
 
@@ -100,15 +104,15 @@ describe("listSourceRankedCandidates", () => {
   });
 
   it("falls back to AdvCreatedAt when AdvLastSignalAt is absent", async () => {
-    const client = makeClient([
+    const client = makeOwner([
       {
-        workflowId: "adv/change/proj/newer",
+        workflowId: `${CHANGE_PREFIX}newer`,
         searchAttributes: {
           AdvCreatedAt: ["2026-07-18T12:00:00.000Z"],
         },
       },
       {
-        workflowId: "adv/change/proj/older",
+        workflowId: `${CHANGE_PREFIX}older`,
         searchAttributes: {
           AdvCreatedAt: ["2026-07-18T10:00:00.000Z"],
         },
@@ -116,7 +120,7 @@ describe("listSourceRankedCandidates", () => {
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 2,
     });
 
@@ -124,7 +128,7 @@ describe("listSourceRankedCandidates", () => {
   });
 
   it("includes durable disk-only projection candidates", async () => {
-    const client = makeClient([
+    const client = makeOwner([
       visibilityRecord(
         "visible",
         "2026-07-18T10:00:00.000Z",
@@ -133,7 +137,7 @@ describe("listSourceRankedCandidates", () => {
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 2,
       diskCandidates: [
         diskCandidate(
@@ -152,7 +156,7 @@ describe("listSourceRankedCandidates", () => {
   it("does not let memo warmth or input order outrank source timestamps", async () => {
     // Input order (which could represent memo-warm iteration) is intentionally
     // oldest-first. Source-backed timestamps must still win.
-    const client = makeClient([
+    const client = makeOwner([
       visibilityRecord(
         "old-but-warm",
         "2026-07-18T08:00:00.000Z",
@@ -166,7 +170,7 @@ describe("listSourceRankedCandidates", () => {
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 2,
     });
 
@@ -177,7 +181,7 @@ describe("listSourceRankedCandidates", () => {
   });
 
   it("tie-breaks equal timestamps by canonical ID ascending", async () => {
-    const client = makeClient([
+    const client = makeOwner([
       visibilityRecord(
         "zebra",
         "2026-07-18T10:00:00.000Z",
@@ -191,7 +195,7 @@ describe("listSourceRankedCandidates", () => {
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 2,
     });
 
@@ -212,10 +216,10 @@ describe("listSourceRankedCandidates", () => {
       ),
     );
     const shuffledRecords = shuffleWithSeed(records, 12345);
-    const client = makeClient(shuffledRecords);
+    const client = makeOwner(shuffledRecords);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 10,
     });
 
@@ -225,7 +229,7 @@ describe("listSourceRankedCandidates", () => {
   });
 
   it("hydrates only the admitted IDs", async () => {
-    const client = makeClient([
+    const client = makeOwner([
       visibilityRecord(
         "a",
         "2026-07-18T12:00:00.000Z",
@@ -244,7 +248,7 @@ describe("listSourceRankedCandidates", () => {
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 2,
     });
 
@@ -261,10 +265,10 @@ describe("listSourceRankedCandidates", () => {
         `2026-07-${String(18 - index).padStart(2, "0")}T08:00:00.000Z`,
       ),
     );
-    const client = makeClient(shuffleWithSeed(records, 42));
+    const client = makeOwner(shuffleWithSeed(records, 42));
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 10,
     });
 
@@ -273,17 +277,17 @@ describe("listSourceRankedCandidates", () => {
     expect(result.omittedIds.length).toBeLessThanOrEqual(20);
     // Deterministic for the same inputs.
     const result2 = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 10,
     });
     expect(result2.omittedIds).toEqual(result.omittedIds);
   });
 
   it("degrades for invalid/missing timestamps instead of using enumeration order", async () => {
-    const client = makeClient([
+    const client = makeOwner([
       // Missing lastSignalAt, invalid createdAt.
       {
-        workflowId: "adv/change/proj/bad",
+        workflowId: `${CHANGE_PREFIX}bad`,
         searchAttributes: {
           AdvCreatedAt: ["not-a-date"],
         },
@@ -296,13 +300,13 @@ describe("listSourceRankedCandidates", () => {
       ),
       // Missing both.
       {
-        workflowId: "adv/change/proj/missing",
+        workflowId: `${CHANGE_PREFIX}missing`,
         searchAttributes: {},
       },
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 3,
     });
 
@@ -315,14 +319,15 @@ describe("listSourceRankedCandidates", () => {
   });
 
   it("omits candidates whose workflow IDs do not match the project prefix", async () => {
-    const client = makeClient([
+    const otherProjectId = "1".repeat(40);
+    const client = makeOwner([
       visibilityRecord(
         "valid",
         "2026-07-18T10:00:00.000Z",
         "2026-07-18T08:00:00.000Z",
       ),
       {
-        workflowId: "adv/change/other-project/stranger",
+        workflowId: `adv/change/${otherProjectId}/stranger`,
         searchAttributes: {
           AdvLastSignalAt: ["2026-07-18T12:00:00.000Z"],
           AdvCreatedAt: ["2026-07-18T10:00:00.000Z"],
@@ -331,7 +336,7 @@ describe("listSourceRankedCandidates", () => {
     ]);
 
     const result = await listSourceRankedCandidates(client, {
-      projectId: "proj",
+      projectId: PROJECT_ID,
       limit: 2,
     });
 

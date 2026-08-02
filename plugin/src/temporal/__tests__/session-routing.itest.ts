@@ -27,10 +27,22 @@ import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput, EpicWorkflowInput } from "../contracts";
 import { buildProjectTaskQueue, buildSessionTaskQueue } from "../client";
 import { requiredAdvSearchAttributes } from "../observability";
+import { TemporalOperationsOwner } from "../operations";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
-const PROJECT_ID = "proj-session-route-001";
+const PROJECT_ID = "b".repeat(40);
 const SESSION_ID = "sess_RouteItest1";
+
+function ownerFromEnv(env: TestWorkflowEnvironment): TemporalOperationsOwner {
+  return new TemporalOperationsOwner(
+    {
+      client: env.client,
+      connection: env.connection,
+      namespace: env.namespace ?? "default",
+    },
+    PROJECT_ID,
+  );
+}
 
 async function registerAdvSearchAttributes(
   env: TestWorkflowEnvironment,
@@ -98,12 +110,14 @@ describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", 
 
       await worker.runUntil(async () => {
         const handle = await ensureChangeWorkflowStarted(
-          env.client,
+          ownerFromEnv(env),
           makeChangeInput("routing-ac1-change", SESSION_ID),
         );
 
         // AC1 verification: the workflow's task queue is the session queue.
-        const description = await handle.describe();
+        const description = await env.client.workflow
+          .getHandle(handle.workflowId)
+          .describe();
         expect(description.taskQueue).toBe(sessionQueue);
         expect(description.taskQueue).toBe(
           `advance-${PROJECT_ID}-${SESSION_ID}`,
@@ -125,12 +139,14 @@ describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", 
 
       await worker.runUntil(async () => {
         const handle = await ensureChangeWorkflowStarted(
-          env.client,
+          ownerFromEnv(env),
           // sessionId intentionally omitted — legacy / pre-init / tests
           makeChangeInput("routing-legacy-change"),
         );
 
-        const description = await handle.describe();
+        const description = await env.client.workflow
+          .getHandle(handle.workflowId)
+          .describe();
         expect(description.taskQueue).toBe(projectQueue);
         expect(description.taskQueue).toBe(`advance-${PROJECT_ID}`);
       });
@@ -150,13 +166,15 @@ describe("AC1 + AC5: workflow task-queue routing (isolateAdvWorkerTaskQueues)", 
 
       await worker.runUntil(async () => {
         const handle = await ensureEpicWorkflowStarted(
-          env.client,
+          ownerFromEnv(env),
           makeEpicInput("routing-ac5-epic"),
         );
 
         // AC5 verification: epic workflow is on the permanent project queue,
         // NOT on a session-scoped queue. Epic lifecycle spans sessions (UD2).
-        const description = await handle.describe();
+        const description = await env.client.workflow
+          .getHandle(handle.workflowId)
+          .describe();
         expect(description.taskQueue).toBe(projectQueue);
         expect(description.taskQueue).toBe(`advance-${PROJECT_ID}`);
         expect(description.taskQueue).not.toContain(SESSION_ID);

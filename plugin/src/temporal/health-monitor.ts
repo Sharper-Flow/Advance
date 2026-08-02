@@ -26,8 +26,16 @@
  */
 
 import { createLogger } from "../utils/debug-log";
+import { TemporalReadOutcomeError } from "./outcome-errors";
+import {
+  makeTemporalLifecycleContext,
+  makeTemporalOperationContext,
+  type TemporalOperations,
+} from "./operations";
 
 const logger = createLogger("health-monitor");
+
+const HEALTH_PROBE_PROJECT_ID = "0000000000000000000000000000000000000000";
 
 const DEFAULT_INTERVAL_MS = 30_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 3_000;
@@ -98,61 +106,58 @@ export interface HealthMonitor {
  * the underlying RPC error (caller catches via `probeWithTimeout`).
  */
 export function composeWorkerHealthProbe(input: {
-  getBundle: () => {
-    namespace: string;
-    connection: unknown;
-  } | null;
+  getOwner: () => TemporalOperations | null;
   /** Sentinel workflow ID for the round-trip leg. Default: `adv-healthcheck-sentinel`. */
   sentinelWorkflowId?: string;
 }): () => Promise<boolean> {
   const sentinelId = input.sentinelWorkflowId ?? "adv-healthcheck-sentinel";
   return async () => {
-    const bundle = input.getBundle();
-    if (!bundle) return false;
-    const svc = (
-      bundle.connection as unknown as {
-        workflowService?: {
-          describeNamespace?: (req: { namespace: string }) => Promise<unknown>;
-          describeWorkflowExecution?: (req: {
-            namespace: string;
-            execution: { workflowId: string };
-          }) => Promise<unknown>;
-        };
-      }
-    ).workflowService;
+    const owner = input.getOwner();
+    if (!owner) return false;
     if (
-      !svc ||
-      typeof svc.describeNamespace !== "function" ||
-      typeof svc.describeWorkflowExecution !== "function"
+      typeof owner.describeNamespace !== "function" ||
+      typeof owner.describeWorkflowExecution !== "function"
     ) {
       return false;
     }
 
     // Leg 1: connection liveness
-    await svc.describeNamespace({ namespace: bundle.namespace });
+    const nsOutcome = await owner.describeNamespace(
+      makeTemporalLifecycleContext(
+        HEALTH_PROBE_PROJECT_ID,
+        "healthProbe.describeNamespace",
+        5_000,
+      ),
+    );
+    if (nsOutcome.kind !== "complete") {
+      throw nsOutcome.error;
+    }
 
     // Leg 2: server↔worker round-trip via sentinel describe.
-    // A `NotFound` rejection is the healthy outcome — server processed
-    // the request promptly. We catch and treat as success.
-    try {
-      await svc.describeWorkflowExecution({
-        namespace: bundle.namespace,
-        execution: { workflowId: sentinelId },
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (
-        /NotFound|not[\s_]?found|NOT_FOUND|WorkflowExecutionNotFound/i.test(msg)
-      ) {
-        // Expected — server processed our request, sentinel just doesn't exist.
-        return true;
-      }
-      // Other errors (Unavailable, ResourceExhausted, etc.) propagate
-      // so the monitor can route through restart.
-      throw err;
+    // A `NotFound` outcome is the healthy outcome — server processed
+    // the request promptly. We treat it as success.
+    const sentinelCtx = makeTemporalOperationContext(
+      HEALTH_PROBE_PROJECT_ID,
+      sentinelId,
+      "describe",
+      "healthProbe.describeWorkflowExecution",
+      5_000,
+    );
+    const outcome = await owner.describeWorkflowExecution(sentinelCtx);
+    if (outcome.kind === "complete") return true;
+    const msg =
+      outcome.error instanceof Error
+        ? outcome.error.message
+        : String(outcome.error);
+    if (
+      /NotFound|not[\s_]?found|NOT_FOUND|WorkflowExecutionNotFound/i.test(msg)
+    ) {
+      // Expected — server processed our request, sentinel just doesn't exist.
+      return true;
     }
-    // Sentinel actually existed (rare but harmless) — still healthy.
-    return true;
+    // Other errors (Unavailable, ResourceExhausted, etc.) propagate
+    // so the monitor can route through restart.
+    throw new TemporalReadOutcomeError(outcome);
   };
 }
 

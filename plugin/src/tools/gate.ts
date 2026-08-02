@@ -72,7 +72,7 @@ import {
   resolveReleaseReachability,
   verifyChangeBranchPushed,
 } from "./archive-helpers/git-finalize";
-import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
+import type { TemporalWorkflowHandleProxy } from "./change-mutation-coordinator";
 import {
   evaluateGateReadiness,
   renderAcceptanceProjection,
@@ -283,7 +283,7 @@ async function recordLightweightProfileBoundaryFailure(
       : undefined,
   };
 
-  const handle = getChangeHandle(bundle.client, projectId, changeId);
+  const handle = getChangeHandle(bundle, projectId, changeId);
   try {
     await fireSignalAndRefresh(
       handle,
@@ -378,7 +378,7 @@ export async function reconcileRecoveredGates(input: {
 }
 
 async function waitForGateCompletionResult(
-  handle: WorkflowHandleLike,
+  handle: TemporalWorkflowHandleProxy,
   gateId: GateId,
 ): Promise<GateCompletion | undefined> {
   return waitForGateCompletion(handle, gateId);
@@ -1226,7 +1226,7 @@ async function handlePlanningGateCompletion({
       gateId,
     });
   }
-  const handle = getChangeHandle(bundle.client, projectId, changeId);
+  const handle = getChangeHandle(bundle, projectId, changeId);
   // rq-cacheRefresh01: helper fires signal AND refreshes cache so the
   // subsequent completeGateAndBuildResponse builds its response from
   // fresh state (no parallel inline refresh in the helper anymore).
@@ -1617,7 +1617,7 @@ export const gateTools = {
             gateId,
           });
         }
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        const handle = getChangeHandle(bundle, projectId, changeId);
 
         // D4 internal classification (rq-internalMonotonicRecovery01):
         // acceptance/release gate recovery is classified from machine

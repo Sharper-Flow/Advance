@@ -36,7 +36,7 @@ function makeProfileRequest(): Omit<LightweightChangeProfile, "evaluations"> {
 function makeEvaluation() {
   return evaluateLightweightProfile({
     snapshot: {
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
       baselineRevision: "base-abc",
       observedRevision: "head-abc",
       fingerprint: "fp-1",

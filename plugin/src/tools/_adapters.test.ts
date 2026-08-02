@@ -18,6 +18,8 @@ import {
   waitForAppliedReceipt,
   waitForQueryPredicate,
   MutationApplicationUnconfirmedError,
+  TemporalMutationOutcomeError,
+  TemporalReadOutcomeError,
   type ReachabilityDeps,
 } from "./_adapters";
 import { isAdvSessionNotReady } from "../temporal/readiness-types";
@@ -26,6 +28,15 @@ import {
   resetReadinessState,
 } from "../temporal/session-readiness";
 import { changeStateQuery } from "../temporal/messages";
+import { TemporalMutationIneligibleError } from "../temporal/mutation-safety";
+import { classifyTemporalWorkflowFailure } from "../temporal/diagnostics";
+import type {
+  TemporalMutationServerOutcome,
+  TemporalOperations,
+  TemporalReadOutcome,
+  TemporalWorkflowHandle,
+} from "../temporal/operations";
+import { createMockOwner as createMockOwnerBase } from "../temporal/__tests__/mock-owner";
 
 vi.mock("../temporal/session-readiness", async (importOriginal) => {
   const original =
@@ -66,7 +77,7 @@ describe("readiness mutation receipts", () => {
       recordedAt: "2026-07-19T20:00:00.000Z",
     });
     await expect(
-      waitForAppliedReceipt(handle as never, "mrec_exact", {
+      waitForAppliedReceipt(createMockProxy(handle), "mrec_exact", {
         attempts: 1,
         delayMs: 0,
       }),
@@ -80,7 +91,7 @@ describe("readiness mutation receipts", () => {
     const refresh = vi.fn();
     const store = { changes: { refresh } } as never;
     const pending = fireSignalAndRefresh(
-      handle as never,
+      createMockProxy(handle),
       store,
       "chg",
       {},
@@ -104,6 +115,7 @@ vi.mock("../temporal/workflow-start", () => ({
 }));
 
 import { ensureChangeWorkflowStarted } from "../temporal/workflow-start";
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 
 function createMockHandle(): {
   query: ReturnType<typeof vi.fn>;
@@ -135,27 +147,6 @@ function createMockClient(handle: ReturnType<typeof createMockHandle>): {
   };
 }
 
-function createMockStoreInput(handle: ReturnType<typeof createMockHandle>) {
-  return {
-    projectId: "proj-123",
-    legacy: {
-      changes: {
-        get: vi.fn(async () => ({
-          success: true,
-          data: { adv_project_id: "proj-123" },
-        })),
-      },
-    },
-    temporal: {
-      client: {
-        workflow: {
-          getHandle: vi.fn(() => handle),
-        },
-      },
-    },
-  };
-}
-
 function createMockStore(): {
   changes: { refresh: ReturnType<typeof vi.fn> };
 } {
@@ -164,6 +155,46 @@ function createMockStore(): {
       refresh: vi.fn(async () => undefined),
     },
   };
+}
+
+function createMockOwner(handle: ReturnType<typeof createMockHandle>) {
+  return createMockOwnerFromClient({
+    workflow: { getHandle: vi.fn(() => handle) },
+  });
+}
+
+function createMockProxy(
+  handle: ReturnType<typeof createMockHandle>,
+  projectId = "0000000000000000000000000000000000000000",
+  changeId = "chg-456",
+) {
+  return getChangeHandle(createMockOwner(handle), projectId, changeId);
+}
+
+function createMockWorkflowHandle(): TemporalWorkflowHandle {
+  return {
+    workflowId: "adv/change/0000000000000000000000000000000000000000/chg-456",
+  } as TemporalWorkflowHandle;
+}
+
+function createMockOwnerWithSignalOutcome(
+  outcome: TemporalMutationServerOutcome<unknown>,
+): TemporalOperations {
+  const handle = createMockWorkflowHandle();
+  return createMockOwnerBase({
+    getHandle: vi.fn(() => handle),
+    signal: vi.fn(async () => outcome),
+  });
+}
+
+function createMockOwnerWithQueryOutcome(
+  outcome: TemporalReadOutcome<unknown>,
+): TemporalOperations {
+  const handle = createMockWorkflowHandle();
+  return createMockOwnerBase({
+    getHandle: vi.fn(() => handle),
+    query: vi.fn(async () => outcome),
+  });
 }
 
 describe("_adapters", () => {
@@ -176,8 +207,9 @@ describe("_adapters", () => {
       const handle = createMockHandle();
       const signalDef = { name: "testSignal" };
       const payload = { foo: "bar" };
+      const proxy = createMockProxy(handle);
 
-      await fireSignal(handle, signalDef, payload);
+      await fireSignal(proxy, signalDef, payload);
 
       expect(handle.signal).toHaveBeenCalledTimes(1);
       expect(handle.signal).toHaveBeenCalledWith(signalDef, payload);
@@ -186,8 +218,9 @@ describe("_adapters", () => {
     test("fires signal with multiple args", async () => {
       const handle = createMockHandle();
       const signalDef = { name: "multiArgSignal" };
+      const proxy = createMockProxy(handle);
 
-      await fireSignal(handle, signalDef, "arg1", 42, { nested: true });
+      await fireSignal(proxy, signalDef, "arg1", 42, { nested: true });
 
       expect(handle.signal).toHaveBeenCalledWith(signalDef, "arg1", 42, {
         nested: true,
@@ -196,6 +229,7 @@ describe("_adapters", () => {
 
     test("rejects when handle.signal throws", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       // 'signal failed' does not match any SC4 mutation-ineligible regex
       // (no poller/unregistered-query/deadline/query-rejected/permission/
       // resource-exhaustion/TMPRL1100), so it falls through to the
@@ -207,61 +241,50 @@ describe("_adapters", () => {
       const { TemporalMutationIneligibleError } =
         await import("../temporal/mutation-safety");
       await expect(
-        fireSignal(handle, { name: "bad" }, {}),
+        fireSignal(proxy, { name: "bad" }, {}),
       ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
-    });
-
-    test("resolves a guarded workflow handle from store input", async () => {
-      const handle = createMockHandle();
-      const input = createMockStoreInput(handle);
-      const signalDef = { name: "taskAdded" };
-      const payload = { taskId: "tk-1" };
-
-      await fireSignal(input, "chg-456", signalDef, payload);
-
-      expect(input.legacy.changes.get).toHaveBeenCalledWith("chg-456");
-      expect(input.temporal.client.workflow.getHandle).toHaveBeenCalledWith(
-        "adv/change/proj-123/chg-456",
-      );
-      expect(handle.signal).toHaveBeenCalledWith(signalDef, payload);
     });
 
     test("SC4: no_poller signal error → throws TemporalMutationIneligibleError", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       handle.signal.mockRejectedValue(
         new Error("no poller is currently polling this task queue"),
       );
       const { TemporalMutationIneligibleError } =
         await import("../temporal/mutation-safety");
       await expect(
-        fireSignal(handle, { name: "sc4-no-poller" }, {}),
+        fireSignal(proxy, { name: "sc4-no-poller" }, {}),
       ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
     });
 
     test("SC4: deadline signal error → throws TemporalMutationIneligibleError", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       handle.signal.mockRejectedValue(new Error("deadline exceeded"));
       const { TemporalMutationIneligibleError } =
         await import("../temporal/mutation-safety");
       await expect(
-        fireSignal(handle, { name: "sc4-deadline" }, {}),
+        fireSignal(proxy, { name: "sc4-deadline" }, {}),
       ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
     });
 
     test("SC4: 'Failed to query Workflow' signal error → throws TemporalMutationIneligibleError (unknown class)", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       handle.signal.mockRejectedValue(
         new Error("Failed to query Workflow: changeStateQuery"),
       );
       const { TemporalMutationIneligibleError } =
         await import("../temporal/mutation-safety");
       await expect(
-        fireSignal(handle, { name: "sc4-unknown-query" }, {}),
+        fireSignal(proxy, { name: "sc4-unknown-query" }, {}),
       ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
     });
 
     test("SC4: 'workflow execution already completed' signal error passes through (not_found is SC4-pass)", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       handle.signal.mockRejectedValue(
         new Error("workflow execution already completed"),
       );
@@ -271,18 +294,83 @@ describe("_adapters", () => {
       // not blocked by SC4 — the caller is responsible for surgical
       // recovery (e.g. internal status-repair writers).
       await expect(
-        fireSignal(handle, { name: "sc4-pass-not-found" }, {}),
+        fireSignal(proxy, { name: "sc4-pass-not-found" }, {}),
       ).rejects.not.toBeInstanceOf(TemporalMutationIneligibleError);
+    });
+  });
+
+  describe("fireSignal outcome discrimination", () => {
+    test("timeout_unavailable outcome is converted to TemporalMutationIneligibleError", async () => {
+      const error = new Error("deadline exceeded");
+      const diagnostic = classifyTemporalWorkflowFailure(error);
+      const owner = createMockOwnerWithSignalOutcome({
+        kind: "timeout_unavailable",
+        error,
+        diagnostic,
+      });
+      const proxy = getChangeHandle(
+        owner,
+        "0000000000000000000000000000000000000000",
+        "chg-456",
+      );
+      await expect(
+        fireSignal(proxy, { name: "timeout" }, {}),
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
+    });
+
+    test("outcome_unknown outcome is converted to TemporalMutationIneligibleError", async () => {
+      const error = new Error("no poller is currently polling this task queue");
+      const diagnostic = classifyTemporalWorkflowFailure(error);
+      const owner = createMockOwnerWithSignalOutcome({
+        kind: "outcome_unknown",
+        error,
+        diagnostic,
+      });
+      const proxy = getChangeHandle(
+        owner,
+        "0000000000000000000000000000000000000000",
+        "chg-456",
+      );
+      await expect(
+        fireSignal(proxy, { name: "unknown" }, {}),
+      ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
+    });
+
+    test("confirmed_failure with not_found diagnostic is preserved as TemporalMutationOutcomeError", async () => {
+      const error = new Error("workflow execution already completed");
+      const diagnostic = classifyTemporalWorkflowFailure(error);
+      const owner = createMockOwnerWithSignalOutcome({
+        kind: "confirmed_failure",
+        error,
+        diagnostic,
+      });
+      const proxy = getChangeHandle(
+        owner,
+        "0000000000000000000000000000000000000000",
+        "chg-456",
+      );
+      let caught: unknown;
+      try {
+        await fireSignal(proxy, { name: "completed" }, {});
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(TemporalMutationOutcomeError);
+      expect(caught).not.toBeInstanceOf(TemporalMutationIneligibleError);
+      expect((caught as TemporalMutationOutcomeError).outcome.kind).toBe(
+        "confirmed_failure",
+      );
     });
   });
 
   describe("querySignal", () => {
     test("returns query result", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       const expected = { state: "active", tasks: [] };
       handle.query.mockResolvedValue(expected);
 
-      const result = await querySignal(handle, { name: "getState" });
+      const result = await querySignal(proxy, { name: "getState" });
 
       expect(handle.query).toHaveBeenCalledTimes(1);
       expect(handle.query).toHaveBeenCalledWith({ name: "getState" });
@@ -291,9 +379,10 @@ describe("_adapters", () => {
 
     test("passes query args through", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       handle.query.mockResolvedValue("result");
 
-      await querySignal(handle, { name: "getTask" }, "task-123");
+      await querySignal(proxy, { name: "getTask" }, "task-123");
 
       expect(handle.query).toHaveBeenCalledWith(
         { name: "getTask" },
@@ -303,37 +392,49 @@ describe("_adapters", () => {
 
     test("rejects when handle.query throws", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       handle.query.mockRejectedValue(new Error("query failed"));
 
-      await expect(querySignal(handle, { name: "bad" })).rejects.toThrow(
+      await expect(querySignal(proxy, { name: "bad" })).rejects.toThrow(
         "query failed",
       );
     });
 
-    test("queries via a guarded workflow handle from store input", async () => {
-      const handle = createMockHandle();
-      const input = createMockStoreInput(handle);
-      handle.query.mockResolvedValue({ tasks: [] });
-
-      await expect(
-        querySignal(input, "chg-456", { name: "getTasks" }, "done"),
-      ).resolves.toEqual({ tasks: [] });
-
-      expect(input.temporal.client.workflow.getHandle).toHaveBeenCalledWith(
-        "adv/change/proj-123/chg-456",
+    test("preserves degraded read outcome as TemporalReadOutcomeError", async () => {
+      const error = new Error("query failed");
+      const diagnostic = classifyTemporalWorkflowFailure(error);
+      const owner = createMockOwnerWithQueryOutcome({
+        kind: "degraded",
+        error,
+        diagnostic,
+      });
+      const proxy = getChangeHandle(
+        owner,
+        "0000000000000000000000000000000000000000",
+        "chg-456",
       );
-      expect(handle.query).toHaveBeenCalledWith({ name: "getTasks" }, "done");
+      let caught: unknown;
+      try {
+        await querySignal(proxy, { name: "bad" });
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(TemporalReadOutcomeError);
+      expect((caught as TemporalReadOutcomeError).outcome.kind).toBe(
+        "degraded",
+      );
     });
   });
 
   describe("fireSignalAndQuery", () => {
     test("fires signal then queries for fresh state", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       const freshState = { status: "active", gates: {} };
       handle.query.mockResolvedValue(freshState);
 
       const result = await fireSignalAndQuery(
-        handle,
+        proxy,
         { name: "gateCompleted" },
         [{ gateId: "proposal" }],
         { name: "getState" },
@@ -352,10 +453,11 @@ describe("_adapters", () => {
 
     test("passes query args after signal args", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       handle.query.mockResolvedValue("task-result");
 
       await fireSignalAndQuery(
-        handle,
+        proxy,
         { name: "taskAdded" },
         [{ taskId: "tk-1" }],
         { name: "getTask" },
@@ -371,6 +473,7 @@ describe("_adapters", () => {
 
     test("rejects if signal fails without querying", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       // 'network reset' falls through to the SC4 `unknown` class — the
       // guard fires, so the call surfaces a typed
       // `TemporalMutationIneligibleError`.
@@ -379,44 +482,23 @@ describe("_adapters", () => {
         await import("../temporal/mutation-safety");
 
       await expect(
-        fireSignalAndQuery(handle, { name: "bad" }, [{}], { name: "getState" }),
+        fireSignalAndQuery(proxy, { name: "bad" }, [{}], { name: "getState" }),
       ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
 
       expect(handle.query).not.toHaveBeenCalled();
     });
-
-    test("fires then queries through store input", async () => {
-      const handle = createMockHandle();
-      const input = createMockStoreInput(handle);
-      handle.query.mockResolvedValue({ fresh: true });
-
-      const result = await fireSignalAndQuery(
-        input,
-        "chg-456",
-        { name: "taskCompleted" },
-        [{ taskId: "tk-1" }],
-        { name: "getState" },
-      );
-
-      expect(handle.signal).toHaveBeenCalledWith(
-        { name: "taskCompleted" },
-        { taskId: "tk-1" },
-      );
-      expect(handle.query).toHaveBeenCalledWith({ name: "getState" });
-      expect(result).toEqual({ fresh: true });
-    });
   });
 
   describe("fireSignalAndRefresh", () => {
-    test("fires signal then refreshes cache (handle form)", async () => {
+    test("fires signal then refreshes cache", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       const store = createMockStore();
       const signalDef = { name: "taskAdded" };
       const payload = { taskId: "tk-1" };
 
       await fireSignalAndRefresh(
-        handle,
-
+        proxy,
         store as any,
         "chg-456",
         signalDef,
@@ -434,29 +516,9 @@ describe("_adapters", () => {
       expect(signalOrder).toBeLessThan(refreshOrder);
     });
 
-    test("fires signal then refreshes cache (input form)", async () => {
-      const handle = createMockHandle();
-      const input = createMockStoreInput(handle);
-      const store = createMockStore();
-      const signalDef = { name: "wisdomAdded" };
-      const payload = { content: "lesson" };
-
-      await fireSignalAndRefresh(
-        input,
-
-        store as any,
-        "chg-789",
-        signalDef,
-        payload,
-      );
-
-      expect(input.legacy.changes.get).toHaveBeenCalledWith("chg-789");
-      expect(handle.signal).toHaveBeenCalledWith(signalDef, payload);
-      expect(store.changes.refresh).toHaveBeenCalledWith("chg-789");
-    });
-
     test("does NOT refresh when signal fails", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       const store = createMockStore();
       // 'network reset' falls through to SC4 `unknown` → guard fires.
       handle.signal.mockRejectedValue(new Error("network reset"));
@@ -464,14 +526,7 @@ describe("_adapters", () => {
         await import("../temporal/mutation-safety");
 
       await expect(
-        fireSignalAndRefresh(
-          handle,
-
-          store as any,
-          "chg-1",
-          { name: "bad" },
-          {},
-        ),
+        fireSignalAndRefresh(proxy, store as any, "chg-1", { name: "bad" }, {}),
       ).rejects.toBeInstanceOf(TemporalMutationIneligibleError);
 
       expect(store.changes.refresh).not.toHaveBeenCalled();
@@ -482,20 +537,14 @@ describe("_adapters", () => {
       // throw in production. If it ever does (contract violation), the
       // helper propagates so callers can see the bug rather than swallowing.
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       const store = createMockStore();
       store.changes.refresh.mockRejectedValue(
         new Error("contract violation: refresh threw"),
       );
 
       await expect(
-        fireSignalAndRefresh(
-          handle,
-
-          store as any,
-          "chg-1",
-          { name: "ok" },
-          {},
-        ),
+        fireSignalAndRefresh(proxy, store as any, "chg-1", { name: "ok" }, {}),
       ).rejects.toThrow("contract violation: refresh threw");
 
       // Signal still fired before the refresh attempt
@@ -505,11 +554,11 @@ describe("_adapters", () => {
 
     test("passes through multiple signal args", async () => {
       const handle = createMockHandle();
+      const proxy = createMockProxy(handle);
       const store = createMockStore();
 
       await fireSignalAndRefresh(
-        handle,
-
+        proxy,
         store as any,
         "chg-2",
         { name: "multiArg" },
@@ -555,7 +604,11 @@ describe("_adapters", () => {
       let caught: unknown;
       try {
         await fireSignalAndRefresh(
-          handle as never,
+          createMockProxy(
+            handle,
+            "0000000000000000000000000000000000000000",
+            "chg-orphan",
+          ),
           store as any,
           "chg-orphan",
           { name: "taskAdded" },
@@ -581,7 +634,11 @@ describe("_adapters", () => {
       const ownStore = createMockStore();
 
       await fireSignalAndRefresh(
-        ownHandle as never,
+        createMockProxy(
+          ownHandle,
+          "0000000000000000000000000000000000000000",
+          "chg-own",
+        ),
         ownStore as any,
         "chg-own",
         { name: "taskAdded" },
@@ -609,7 +666,11 @@ describe("_adapters", () => {
       let caught: unknown;
       try {
         await fireSignalAndRefresh(
-          orphanHandle as never,
+          createMockProxy(
+            orphanHandle,
+            "0000000000000000000000000000000000000000",
+            "chg-orphan",
+          ),
           orphanStore as any,
           "chg-orphan",
           { name: "taskAdded" },
@@ -642,7 +703,11 @@ describe("_adapters", () => {
 
       try {
         await fireSignalAndRefresh(
-          handle as never,
+          createMockProxy(
+            handle,
+            "0000000000000000000000000000000000000000",
+            "chg-bypass",
+          ),
           store as any,
           "chg-bypass",
           { name: "taskAdded" },
@@ -684,7 +749,11 @@ describe("_adapters", () => {
       let caught: unknown;
       try {
         await fireSignalAndRefresh(
-          handle as never,
+          createMockProxy(
+            handle,
+            "0000000000000000000000000000000000000000",
+            "chg-bypass-true",
+          ),
           store as any,
           "chg-bypass-true",
           { name: "taskAdded" },
@@ -711,47 +780,65 @@ describe("_adapters", () => {
     test("builds correct workflowId and returns handle", () => {
       const handle = createMockHandle();
       const client = createMockClient(handle);
+      const owner = createMockOwnerFromClient(client);
 
-      const result = getChangeHandle(client, "proj-123", "chg-456");
+      const result = getChangeHandle(
+        owner,
+        "0000000000000000000000000000000000000000",
+        "chg-456",
+      );
 
       expect(client.workflow.getHandle).toHaveBeenCalledTimes(1);
       expect(client.workflow.getHandle).toHaveBeenCalledWith(
-        "adv/change/proj-123/chg-456",
+        "adv/change/0000000000000000000000000000000000000000/chg-456",
+        undefined,
       );
-      expect(result).toBe(handle);
+      expect(result.workflowId).toBe(
+        "adv/change/0000000000000000000000000000000000000000/chg-456",
+      );
     });
   });
 
   describe("startChangeWorkflow", () => {
     test("delegates to ensureChangeWorkflowStarted", async () => {
-      const handle = createMockHandle();
+      const handle = {
+        ...createMockHandle(),
+        workflowId:
+          "adv/change/0000000000000000000000000000000000000000/chg-def",
+      };
       const client = createMockClient(handle);
+      const owner = createMockOwnerFromClient(client);
       vi.mocked(ensureChangeWorkflowStarted).mockResolvedValue(handle);
 
       const input = {
-        projectId: "proj-abc",
+        projectId: "0000000000000000000000000000000000000000",
         changeId: "chg-def",
         title: "Test Change",
         initializedAt: new Date().toISOString(),
       };
 
-      const result = await startChangeWorkflow(client, input);
+      const result = await startChangeWorkflow(owner, input);
 
       expect(ensureChangeWorkflowStarted).toHaveBeenCalledTimes(1);
-      expect(result).toBe(handle);
+      expect(result.workflowId).toBe(
+        "adv/change/0000000000000000000000000000000000000000/chg-def",
+      );
     });
 
-    test("throws when client lacks workflow.start", async () => {
-      const client = {
+    test("throws when owner does not expose workflow.start", async () => {
+      const owner = createMockOwnerFromClient({
         workflow: {
           getHandle: vi.fn(),
           // start is intentionally missing
         },
-      } as unknown as Parameters<typeof startChangeWorkflow>[0];
+      });
+      vi.mocked(ensureChangeWorkflowStarted).mockRejectedValue(
+        new Error("does not expose workflow.start"),
+      );
 
       await expect(
-        startChangeWorkflow(client, {
-          projectId: "p",
+        startChangeWorkflow(owner, {
+          projectId: "0000000000000000000000000000000000000000",
           changeId: "c",
           title: "t",
           initializedAt: "now",
@@ -763,10 +850,11 @@ describe("_adapters", () => {
       vi.mocked(evaluateTargetReadiness).mockClear();
       const handle = createMockHandle();
       const client = createMockClient(handle);
+      const owner = createMockOwnerFromClient(client);
       vi.mocked(ensureChangeWorkflowStarted).mockResolvedValue(handle);
 
-      await startChangeWorkflow(client, {
-        projectId: "proj-abc",
+      await startChangeWorkflow(owner, {
+        projectId: "0000000000000000000000000000000000000000",
         changeId: "chg-def",
         title: "Test Change",
         initializedAt: new Date().toISOString(),
@@ -801,7 +889,7 @@ describe("isChangeReachable", () => {
     });
 
     const result = await isChangeReachable(
-      "proj-123",
+      "0000000000000000000000000000000000000000",
       "chg-456",
       deps,
       changesDir,
@@ -809,7 +897,7 @@ describe("isChangeReachable", () => {
 
     expect(result).toBe(true);
     expect(deps.visibilityLister).toHaveBeenCalledExactlyOnceWith(
-      "proj-123",
+      "0000000000000000000000000000000000000000",
       "chg-456",
     );
     expect(deps.diskChecker).not.toHaveBeenCalled();
@@ -823,7 +911,7 @@ describe("isChangeReachable", () => {
     });
 
     const result = await isChangeReachable(
-      "proj-123",
+      "0000000000000000000000000000000000000000",
       "chg-456",
       deps,
       changesDir,
@@ -846,7 +934,7 @@ describe("isChangeReachable", () => {
     });
 
     const result = await isChangeReachable(
-      "proj-123",
+      "0000000000000000000000000000000000000000",
       "chg-456",
       deps,
       changesDir,
@@ -862,7 +950,7 @@ describe("isChangeReachable", () => {
     const deps = createDeps();
 
     const result = await isChangeReachable(
-      "proj-123",
+      "0000000000000000000000000000000000000000",
       "chg-456",
       deps,
       changesDir,
@@ -881,7 +969,7 @@ describe("isChangeReachable", () => {
     });
 
     const result = await isChangeReachable(
-      "proj-123",
+      "0000000000000000000000000000000000000000",
       "chg-new",
       deps,
       changesDir,
@@ -905,7 +993,7 @@ describe("isChangeReachable", () => {
     });
 
     const result = await isChangeReachable(
-      "proj-123",
+      "0000000000000000000000000000000000000000",
       "chg-456",
       deps,
       changesDir,
@@ -930,7 +1018,12 @@ describe("isChangeReachable", () => {
     });
 
     await expect(
-      isChangeReachable("proj-123", "chg-456", deps, changesDir),
+      isChangeReachable(
+        "0000000000000000000000000000000000000000",
+        "chg-456",
+        deps,
+        changesDir,
+      ),
     ).resolves.toBe(false);
   });
 });
@@ -953,7 +1046,7 @@ describe("probeChangePhantomStatus (tri-state)", () => {
   test("all tiers report absent → confirmed_absent", async () => {
     const deps = createDeps();
     const result = await probeChangePhantomStatus(
-      "proj-1",
+      "0000000000000000000000000000000000000000",
       "chg-1",
       deps,
       changesDir,
@@ -967,7 +1060,7 @@ describe("probeChangePhantomStatus (tri-state)", () => {
       visibilityLister: vi.fn(async () => true),
     });
     const result = await probeChangePhantomStatus(
-      "proj-1",
+      "0000000000000000000000000000000000000000",
       "chg-1",
       deps,
       changesDir,
@@ -983,7 +1076,7 @@ describe("probeChangePhantomStatus (tri-state)", () => {
       diskChecker: vi.fn(async () => true),
     });
     const result = await probeChangePhantomStatus(
-      "proj-1",
+      "0000000000000000000000000000000000000000",
       "chg-1",
       deps,
       changesDir,
@@ -999,7 +1092,7 @@ describe("probeChangePhantomStatus (tri-state)", () => {
       }),
     });
     const result = await probeChangePhantomStatus(
-      "proj-1",
+      "0000000000000000000000000000000000000000",
       "chg-1",
       deps,
       changesDir,
@@ -1019,7 +1112,7 @@ describe("probeChangePhantomStatus (tri-state)", () => {
       }),
     });
     const result = await probeChangePhantomStatus(
-      "proj-1",
+      "0000000000000000000000000000000000000000",
       "chg-1",
       deps,
       changesDir,
@@ -1035,7 +1128,7 @@ describe("probeChangePhantomStatus (tri-state)", () => {
       }),
     });
     const result = await probeChangePhantomStatus(
-      "proj-1",
+      "0000000000000000000000000000000000000000",
       "chg-1",
       deps,
       changesDir,
@@ -1052,9 +1145,13 @@ describe("waitForGateCompletion (STRUCT-003 shared poll helper)", () => {
       .mockResolvedValueOnce({ status: "pending" })
       .mockResolvedValueOnce({ status: "done" });
 
-    const result = await waitForGateCompletion(handle as never, "release", {
-      delayMs: 0,
-    });
+    const result = await waitForGateCompletion(
+      createMockProxy(handle),
+      "release",
+      {
+        delayMs: 0,
+      },
+    );
 
     expect(result).toEqual({ status: "done" });
     expect(handle.query).toHaveBeenCalledTimes(2);
@@ -1064,9 +1161,13 @@ describe("waitForGateCompletion (STRUCT-003 shared poll helper)", () => {
     const handle = createMockHandle();
     handle.query.mockResolvedValueOnce({ status: "stuck" });
 
-    const result = await waitForGateCompletion(handle as never, "release", {
-      delayMs: 0,
-    });
+    const result = await waitForGateCompletion(
+      createMockProxy(handle),
+      "release",
+      {
+        delayMs: 0,
+      },
+    );
 
     expect(result).toEqual({ status: "stuck" });
     expect(handle.query).toHaveBeenCalledTimes(1);
@@ -1076,10 +1177,14 @@ describe("waitForGateCompletion (STRUCT-003 shared poll helper)", () => {
     const handle = createMockHandle();
     handle.query.mockResolvedValue({ status: "pending" });
 
-    const result = await waitForGateCompletion(handle as never, "release", {
-      attempts: 3,
-      delayMs: 0,
-    });
+    const result = await waitForGateCompletion(
+      createMockProxy(handle),
+      "release",
+      {
+        attempts: 3,
+        delayMs: 0,
+      },
+    );
 
     expect(result).toEqual({ status: "pending" });
     expect(handle.query).toHaveBeenCalledTimes(3);

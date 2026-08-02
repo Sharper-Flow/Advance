@@ -1,7 +1,7 @@
 /**
  * Tool Adapter Helpers — Signal/Query Surface
  *
- * Thin wrappers around Temporal workflow handle operations.
+ * Thin wrappers around the closed TemporalOperations owner API.
  * Used by tool-layer code to fire signals and run queries against
  * change workflows, replacing the old executeUpdate-based mutation path.
  *
@@ -11,13 +11,20 @@
 import { buildChangeWorkflowId } from "../temporal/client";
 import type { ChangeWorkflowInput } from "../temporal/contracts";
 import { ensureChangeWorkflowStarted } from "../temporal/workflow-start";
+import type { QueryDefinition, SignalDefinition } from "@temporalio/workflow";
 import {
-  getGuardedChangeHandle,
-  type TemporalStoreBackendInput,
-  type WorkflowHandleLike,
   runTemporal,
   runTemporalQuery,
 } from "../storage/store-temporal/shared";
+import {
+  makeTemporalOperationContext,
+  type TemporalOperations,
+  type TemporalWorkflowHandle,
+} from "../temporal/operations";
+import type {
+  TemporalWorkflowHandleProxy,
+  TemporalWorkflowHandleQueryProxy,
+} from "./change-mutation-coordinator";
 import type { Store } from "../storage/store";
 import {
   changeStateQuery,
@@ -46,21 +53,125 @@ import {
   type TemporalWorkflowDiagnostic,
 } from "../temporal/mutation-safety";
 import { createAdvSessionNotReadyEnvelope } from "../temporal/readiness-types";
+import {
+  TemporalMutationOutcomeError,
+  TemporalReadOutcomeError,
+  isTemporalMutationOutcomeError,
+  isTemporalReadOutcomeError,
+} from "../temporal/outcome-errors";
+
+export {
+  TemporalMutationOutcomeError,
+  TemporalReadOutcomeError,
+  isTemporalMutationOutcomeError,
+  isTemporalReadOutcomeError,
+};
 
 // Temporal signal processing + projection can take several seconds under load.
 // 60 attempts × 500ms = 30s total gives adequate headroom for CI and local dev.
 export const GATE_COMPLETION_POLL_ATTEMPTS = 60;
 export const GATE_COMPLETION_POLL_DELAY_MS = 500;
 
+/**
+ * Owner-bound workflow handle proxy. The only production-safe way to perform
+ * query/signal/describe on a workflow: the owner stays the single RPC authority,
+ * and the handle is the opaque workflow reference.
+ */
+function buildProxy(
+  owner: TemporalOperations,
+  handle: TemporalWorkflowHandle,
+  projectId: string,
+): TemporalWorkflowHandleProxy {
+  return {
+    owner,
+    handle,
+    workflowId: handle.workflowId,
+    projectId,
+    signal: async (signal: unknown, ...args: unknown[]) => {
+      const ctx = makeTemporalOperationContext(
+        projectId,
+        handle.workflowId,
+        "signal",
+        typeof signal === "object" && signal !== null && "name" in signal
+          ? String((signal as { name: string }).name)
+          : "signal",
+        10_000,
+      );
+      const outcome = await owner.signal(
+        ctx,
+        handle,
+        signal as SignalDefinition<unknown[], string>,
+        args,
+      );
+      if (outcome.kind === "confirmed") return;
+      throw new TemporalMutationOutcomeError(outcome);
+    },
+    query: async <T>(query: unknown, ...args: unknown[]): Promise<T> => {
+      const ctx = makeTemporalOperationContext(
+        projectId,
+        handle.workflowId,
+        "query",
+        typeof query === "object" && query !== null && "name" in query
+          ? String((query as { name: string }).name)
+          : "query",
+        5_000,
+      );
+      const outcome = await owner.query(
+        ctx,
+        handle,
+        query as QueryDefinition<T, unknown[], string>,
+        ...args,
+      );
+      if (outcome.kind === "complete") return outcome.value as T;
+      throw new TemporalReadOutcomeError(outcome);
+    },
+    describe: async () => {
+      const ctx = makeTemporalOperationContext(
+        projectId,
+        handle.workflowId,
+        "describe",
+        "describe",
+        5_000,
+      );
+      const outcome = await owner.describe(ctx, handle);
+      if (outcome.kind === "complete") return outcome.value;
+      throw new TemporalReadOutcomeError(outcome);
+    },
+    terminate: async (reason?: string) => {
+      const ctx = makeTemporalOperationContext(
+        projectId,
+        handle.workflowId,
+        "terminate",
+        "terminate",
+        10_000,
+      );
+      const outcome = await owner.terminate(ctx, handle, reason ?? "");
+      if (outcome.kind === "confirmed") return outcome.value;
+      throw new TemporalMutationOutcomeError(outcome);
+    },
+    cancel: async () => {
+      const ctx = makeTemporalOperationContext(
+        projectId,
+        handle.workflowId,
+        "cancel",
+        "cancel",
+        10_000,
+      );
+      const outcome = await owner.cancel(ctx, handle);
+      if (outcome.kind === "confirmed") return outcome.value;
+      throw new TemporalMutationOutcomeError(outcome);
+    },
+  };
+}
+
 export async function waitForAppliedReceipt(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
   receiptId: string,
   opts: { attempts?: number; delayMs?: number } = {},
 ): Promise<MutationReceipt | undefined> {
   return waitForQueryPredicate(
     () =>
-      querySignal<MutationReceipt | undefined>(
-        handle,
+      proxy.query<MutationReceipt | undefined>(
         getMutationReceiptQuery,
         receiptId,
       ),
@@ -76,41 +187,19 @@ export async function waitForAppliedReceipt(
  * release-gate-completion paths (STRUCT-003).
  */
 export async function waitForGateCompletion(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleQueryProxy,
   gateId: GateId,
   opts: { attempts?: number; delayMs?: number } = {},
 ): Promise<GateCompletion | undefined> {
   return waitForQueryPredicate(
-    () => querySignal<GateCompletion>(handle, getGateStatusQuery, gateId),
+    () => proxy.query<GateCompletion>(getGateStatusQuery, gateId),
     (gate) => gate?.status === "done" || gate?.status === "stuck",
     opts,
   );
 }
 
-type SignalTarget = WorkflowHandleLike | TemporalStoreBackendInput;
-
-function isWorkflowHandleLike(
-  target: SignalTarget,
-): target is WorkflowHandleLike {
-  return (
-    typeof (target as WorkflowHandleLike).signal === "function" &&
-    typeof (target as WorkflowHandleLike).query === "function"
-  );
-}
-
-async function resolveChangeHandle(
-  target: SignalTarget,
-  changeId?: string,
-): Promise<WorkflowHandleLike> {
-  if (isWorkflowHandleLike(target)) return target;
-  if (!changeId) {
-    throw new Error("changeId is required when resolving a workflow handle");
-  }
-  return getGuardedChangeHandle(target, changeId);
-}
-
 /**
- * Fire-and-forget signal to a change workflow handle.
+ * Fire-and-forget signal to a change workflow.
  * Wrapped with Temporal retry (transient failures are retried).
  *
  * SC4 mutation-eligibility guard (rq-temporalMutationSafety01): if the
@@ -125,43 +214,26 @@ async function resolveChangeHandle(
  * by `evaluateDestructiveWorkflowRecoveryPreconditions`.
  */
 export async function fireSignal<Args extends unknown[]>(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
   signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignal<Args extends unknown[]>(
-  input: TemporalStoreBackendInput,
-  changeId: string,
-  signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignal<Args extends unknown[]>(
-  target: SignalTarget,
-  signalOrChangeId: unknown,
   ...args: Args
 ): Promise<void> {
-  const handle = await resolveChangeHandle(
-    target,
-    isWorkflowHandleLike(target) ? undefined : String(signalOrChangeId),
-  );
-  const signal = isWorkflowHandleLike(target) ? signalOrChangeId : args[0];
-  const signalArgs = isWorkflowHandleLike(target) ? args : args.slice(1);
   let error: unknown;
   try {
-    await runTemporal(() => handle.signal(signal, ...signalArgs));
+    await runTemporal(() => proxy.signal(signal, ...args));
     return;
   } catch (err) {
     error = err;
   }
-  // SC4: classify-and-rethrow. classifyTemporalWorkflowFailure maps known
-  // Temporal gRPC and JS errors to a `TemporalWorkflowDiagnostic`; the SC4
-  // guard then ensures mutation-ineligible classes never reach the caller.
+  if (isTemporalMutationOutcomeError(error)) {
+    // The owner has already classified the outcome. Enforce SC4 mutation
+    // eligibility on the diagnostic; if it is ineligible, surface the typed
+    // TemporalMutationIneligibleError. Otherwise preserve the outcome error.
+    requireMutationEligible(error.outcome.diagnostic);
+    throw error;
+  }
   const diagnostic: TemporalWorkflowDiagnostic =
     enforceMutationEligibilityForError(error);
-  // diagnostic.class is `reachable` only when the error is null/undefined,
-  // which we already handled above by short-circuiting on success. Any
-  // remaining path here means the diagnostic was SC4-pass (not_found /
-  // poisoned_history) — surface the original error so the caller can decide.
   if (diagnostic.class === "reachable") {
     throw new Error(
       `fireSignal: unexpected reachable diagnostic after error: ${
@@ -173,34 +245,15 @@ export async function fireSignal<Args extends unknown[]>(
 }
 
 /**
- * Synchronous query against a change workflow handle.
+ * Synchronous query against a change workflow.
  * Wrapped with a 5-second per-attempt timeout to avoid hanging on dead workers.
  */
 export async function querySignal<T>(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
   query: unknown,
-  ...args: unknown[]
-): Promise<T>;
-export async function querySignal<T>(
-  input: TemporalStoreBackendInput,
-  changeId: string,
-  query: unknown,
-  ...args: unknown[]
-): Promise<T>;
-export async function querySignal<T>(
-  target: SignalTarget,
-  queryOrChangeId: unknown,
   ...args: unknown[]
 ): Promise<T> {
-  const handle = await resolveChangeHandle(
-    target,
-    isWorkflowHandleLike(target) ? undefined : String(queryOrChangeId),
-  );
-  const query = isWorkflowHandleLike(target) ? queryOrChangeId : args[0];
-  const queryArgs = isWorkflowHandleLike(target) ? args : args.slice(1);
-  return runTemporalQuery(() =>
-    handle.query(query, ...queryArgs),
-  ) as Promise<T>;
+  return runTemporalQuery(() => proxy.query<T>(query, ...args));
 }
 
 /**
@@ -210,41 +263,14 @@ export async function querySignal<T>(
  * (including any signal handlers that have completed).
  */
 export async function fireSignalAndQuery<T, SArgs extends unknown[]>(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
   signal: unknown,
   signalArgs: SArgs,
   query: unknown,
   ...queryArgs: unknown[]
-): Promise<T>;
-export async function fireSignalAndQuery<T, SArgs extends unknown[]>(
-  input: TemporalStoreBackendInput,
-  changeId: string,
-  signal: unknown,
-  signalArgs: SArgs,
-  query: unknown,
-  ...queryArgs: unknown[]
-): Promise<T>;
-export async function fireSignalAndQuery<T, SArgs extends unknown[]>(
-  target: SignalTarget,
-  signalOrChangeId: unknown,
-  signalArgsOrSignal: unknown,
-  queryOrSignalArgs: SArgs | unknown,
-  ...queryAndArgs: unknown[]
 ): Promise<T> {
-  if (isWorkflowHandleLike(target)) {
-    const signal = signalOrChangeId;
-    const signalArgs = signalArgsOrSignal as SArgs;
-    const query = queryOrSignalArgs;
-    await fireSignal(target, signal, ...signalArgs);
-    return querySignal<T>(target, query, ...queryAndArgs);
-  }
-
-  const changeId = String(signalOrChangeId);
-  const signal = signalArgsOrSignal;
-  const signalArgs = queryOrSignalArgs as SArgs;
-  const [query, ...queryArgs] = queryAndArgs;
-  await fireSignal(target, changeId, signal, ...signalArgs);
-  return querySignal<T>(target, changeId, query, ...queryArgs);
+  await fireSignal(proxy, signal, ...signalArgs);
+  return querySignal<T>(proxy, query, ...queryArgs);
 }
 
 /**
@@ -266,19 +292,15 @@ interface WorkflowHandleDescription {
 }
 
 async function resolveTargetQueue(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
 ): Promise<string | undefined> {
-  const workflowId = (handle as { workflowId?: string }).workflowId;
+  const workflowId = proxy.workflowId;
   if (workflowId && workflowTaskQueueCache.has(workflowId)) {
     return workflowTaskQueueCache.get(workflowId);
   }
 
-  if (typeof handle.describe !== "function") {
-    return undefined;
-  }
-
   try {
-    const description = (await handle.describe()) as WorkflowHandleDescription;
+    const description = (await proxy.describe()) as WorkflowHandleDescription;
     if (typeof description.taskQueue === "string" && description.taskQueue) {
       if (workflowId) {
         workflowTaskQueueCache.set(workflowId, description.taskQueue);
@@ -292,11 +314,11 @@ async function resolveTargetQueue(
 }
 
 function makeHandleQueryProbe(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
 ): (targetQueue: string) => Promise<QueryProbeResult> {
   return async () => {
     try {
-      await handle.query(changeStateQuery);
+      await proxy.query(changeStateQuery);
       return { ok: true };
     } catch (error) {
       return {
@@ -339,35 +361,19 @@ function makeHandleQueryProbe(
  *      not advanced).
  */
 export async function fireSignalAndRefresh<Args extends unknown[]>(
-  handle: WorkflowHandleLike,
-  store: Store,
-  changeId: string,
-  signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignalAndRefresh<Args extends unknown[]>(
-  input: TemporalStoreBackendInput,
-  store: Store,
-  changeId: string,
-  signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignalAndRefresh<Args extends unknown[]>(
-  target: SignalTarget,
+  proxy: TemporalWorkflowHandleProxy,
   store: Store,
   changeId: string,
   signal: unknown,
   ...args: Args
 ): Promise<void> {
-  const handle = await resolveChangeHandle(target, changeId);
-
   if (!isSessionReadinessBypassActive()) {
-    const targetQueue = await resolveTargetQueue(handle);
+    const targetQueue = await resolveTargetQueue(proxy);
     if (targetQueue) {
       const readiness = await evaluateTargetReadiness({
         targetQueue,
         hasWorkflow: true,
-        queryProbe: makeHandleQueryProbe(handle),
+        queryProbe: makeHandleQueryProbe(proxy),
         cacheTtlMs: 10_000,
         probeBudgetMs: 2_000,
       });
@@ -375,19 +381,15 @@ export async function fireSignalAndRefresh<Args extends unknown[]>(
         throw createAdvSessionNotReadyEnvelope(readiness.blockers);
       }
     }
-    // If the target queue cannot be resolved, the handle is too degraded to
-    // even identify the queue; proceed only in bypass mode so tests with
-    // minimal mocks can still exercise the signal/refresh path. Production
-    // handles always expose describe() and therefore always enforce the gate.
   }
 
-  await fireSignal(handle, signal, ...args);
+  await fireSignal(proxy, signal, ...args);
   const receiptId =
     args[0] && typeof args[0] === "object"
       ? (args[0] as { mutationReceiptId?: unknown }).mutationReceiptId
       : undefined;
   if (typeof receiptId === "string" && receiptId) {
-    const receipt = await waitForAppliedReceipt(handle, receiptId);
+    const receipt = await waitForAppliedReceipt(proxy, receiptId);
     if (!receipt) throw new MutationApplicationUnconfirmedError(receiptId);
   }
   await store.changes.refresh(changeId);
@@ -409,34 +411,13 @@ export async function fireSignalAndRefresh<Args extends unknown[]>(
  * `mutation-safety`) when the diagnostic is mutation-ineligible.
  */
 export async function fireSignalGuarded<Args extends unknown[]>(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
   eligibility: TemporalWorkflowDiagnostic,
   signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignalGuarded<Args extends unknown[]>(
-  input: TemporalStoreBackendInput,
-  changeId: string,
-  eligibility: TemporalWorkflowDiagnostic,
-  signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignalGuarded<Args extends unknown[]>(
-  target: SignalTarget,
-  eligibilityOrChangeId: TemporalWorkflowDiagnostic | string,
-  signalOrEligibility: unknown,
   ...args: Args
 ): Promise<void> {
-  if (isWorkflowHandleLike(target)) {
-    const eligibility = eligibilityOrChangeId as TemporalWorkflowDiagnostic;
-    requireMutationEligible(eligibility);
-    await fireSignal(target, signalOrEligibility, ...args);
-    return;
-  }
-  const changeId = String(eligibilityOrChangeId);
-  const eligibility = signalOrEligibility as TemporalWorkflowDiagnostic;
   requireMutationEligible(eligibility);
-  await fireSignal(target, changeId, args[0], ...args.slice(1));
+  await fireSignal(proxy, signal, ...args);
 }
 
 /**
@@ -446,49 +427,15 @@ export async function fireSignalGuarded<Args extends unknown[]>(
  * gate the whole sequence.
  */
 export async function fireSignalAndRefreshGuarded<Args extends unknown[]>(
-  handle: WorkflowHandleLike,
+  proxy: TemporalWorkflowHandleProxy,
   store: Store,
   changeId: string,
   eligibility: TemporalWorkflowDiagnostic,
   signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignalAndRefreshGuarded<Args extends unknown[]>(
-  input: TemporalStoreBackendInput,
-  store: Store,
-  changeId: string,
-  eligibility: TemporalWorkflowDiagnostic,
-  signal: unknown,
-  ...args: Args
-): Promise<void>;
-export async function fireSignalAndRefreshGuarded<Args extends unknown[]>(
-  target: SignalTarget,
-  store: Store,
-  changeId: string,
-  eligibilityOrSignal: TemporalWorkflowDiagnostic | unknown,
   ...args: Args
 ): Promise<void> {
-  if (isWorkflowHandleLike(target)) {
-    const eligibility = eligibilityOrSignal as TemporalWorkflowDiagnostic;
-    requireMutationEligible(eligibility);
-    await fireSignalAndRefresh(
-      target,
-      store,
-      changeId,
-      args[0],
-      ...args.slice(1),
-    );
-    return;
-  }
-  const eligibility = eligibilityOrSignal as TemporalWorkflowDiagnostic;
   requireMutationEligible(eligibility);
-  await fireSignalAndRefresh(
-    target,
-    store,
-    changeId,
-    args[0],
-    ...args.slice(1),
-  );
+  await fireSignalAndRefresh(proxy, store, changeId, signal, ...args);
 }
 
 /**
@@ -540,60 +487,44 @@ export async function runPostSignalReadback<T>(
  * assessed via describe — never on a different run of the same workflowId.
  */
 export function getChangeHandle(
-  client: {
-    workflow: { getHandle: (workflowId: string, runId?: string) => unknown };
-  },
+  owner: TemporalOperations,
   projectId: string,
   changeId: string,
   runId?: string,
-): WorkflowHandleLike {
+): TemporalWorkflowHandleProxy {
   const workflowId = buildChangeWorkflowId(projectId, changeId);
-  // Unpinned callers keep the exact legacy single-arg call shape; the runId
-  // argument is only passed when a run is explicitly pinned.
-  return (
-    runId
-      ? client.workflow.getHandle(workflowId, runId)
-      : client.workflow.getHandle(workflowId)
-  ) as WorkflowHandleLike;
+  const handle = owner.getHandle(
+    makeTemporalOperationContext(
+      projectId,
+      workflowId,
+      runId ? "describe" : "query",
+      "getChangeHandle",
+      5_000,
+    ),
+    runId,
+  );
+  return buildProxy(owner, handle, projectId);
 }
 
 /**
  * Start a change workflow (idempotent — returns existing handle if already running).
- * Requires the client to expose `workflow.start`.
  */
 export async function startChangeWorkflow(
-  client: {
-    workflow: {
-      start?: (...args: unknown[]) => Promise<unknown>;
-      getHandle: (workflowId: string) => unknown;
-    };
-  },
+  owner: TemporalOperations,
   input: ChangeWorkflowInput,
-): Promise<WorkflowHandleLike> {
-  if (typeof client.workflow.start !== "function") {
-    throw new Error(
-      "Temporal client does not expose workflow.start; cannot start change workflows",
-    );
-  }
-
-  const handle = await ensureChangeWorkflowStarted(
-    {
-      workflow: client.workflow as unknown as {
-        start: (
-          workflow: unknown,
-          options: {
-            workflowId: string;
-            taskQueue: string;
-            args: [unknown];
-            searchAttributes?: Record<string, unknown[]>;
-          },
-        ) => Promise<WorkflowHandleLike>;
-        getHandle: (workflowId: string) => WorkflowHandleLike;
-      },
-    },
-    input,
+): Promise<TemporalWorkflowHandleProxy> {
+  const workflowId = buildChangeWorkflowId(input.projectId, input.changeId);
+  makeTemporalOperationContext(
+    input.projectId,
+    workflowId,
+    "start",
+    "startChangeWorkflow",
+    30_000,
   );
-  return handle as WorkflowHandleLike;
+  const handle = await ensureChangeWorkflowStarted(owner, input, {
+    workflowQueueMode: input.sessionId ? "session" : "project",
+  });
+  return buildProxy(owner, handle, input.projectId);
 }
 
 /**
@@ -655,7 +586,7 @@ export async function isChangeReachable(
 // rq-activeChangePointer01 / rq-doctorConsolidation01 (option B):
 /**
  * Tri-state phantom probe result. Unlike {@link isChangeReachable} which
- * collapses "confirmed absent" and "probe failed" into `false`, this type
+ * collapses "confirmed absent" and "probe failed" into `false`, this
  * preserves the distinction so the doctor can clear a phantom pointer ONLY
  * on confirmed-absent evidence and refuse on indeterminate.
  */
@@ -675,7 +606,8 @@ export type PhantomProbeResult =
  * Short-circuits to `confirmed_present` on the first tier that finds the
  * change.
  *
- * Pure: all I/O is injected via `deps`.
+ * Pure: all I/O is performed by the caller-supplied functions so the helper
+ * stays pure and fully testable.
  */
 export async function probeChangePhantomStatus(
   projectId: string,

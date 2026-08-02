@@ -21,6 +21,9 @@ import {
 import { changeToDirectiveState } from "../temporal/change-state";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
 
+const PROJECT_ID = "0".repeat(40);
+const TARGET_PROJECT_ID = "0".repeat(39) + "1";
+
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
   const queryMock = vi.fn();
@@ -38,7 +41,7 @@ const mocks = vi.hoisted(() => {
     getHandleMock,
     temporalBundle,
     getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
+    getProjectId: vi.fn(async () => PROJECT_ID),
     fireSignal: vi.fn(async () => {}),
     fireSignalAndRefresh: vi.fn(async () => {}),
     querySignal: vi.fn(),
@@ -48,7 +51,7 @@ const mocks = vi.hoisted(() => {
       fn({
         context: {
           root: input.target_path,
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
           externalRoot: "/tmp/target-external",
           trusted: false,
           trustSource: "explicit",
@@ -273,8 +276,8 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(parsed.success).toBe(true);
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle.client,
-        "test-project-id",
+        mocks.temporalBundle,
+        PROJECT_ID,
         "test-change",
       );
       const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
@@ -2451,7 +2454,7 @@ describe("gate tools — signal-driven lifecycle", () => {
       expect(parsed._directive).toEqual(
         deriveWorkflowDirective(
           changeToDirectiveState({
-            projectId: "test-project-id",
+            projectId: PROJECT_ID,
             change,
             gates: row.state.gates,
           }),

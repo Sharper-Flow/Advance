@@ -10,9 +10,10 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { listChangeDirs } from "../storage/change-projection-reader";
-import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
 import { archiveChangeSignal } from "./messages";
+import type { TemporalOperations } from "./operations";
 import type { TerminalReconcileDeps } from "./reconcile-terminal-workflows";
+import { getChangeHandle } from "../tools/_adapters";
 
 /** Change statuses that mean the workflow SHOULD have completed. */
 const TERMINAL_STATUSES = new Set(["archived", "closed"]);
@@ -132,21 +133,6 @@ export function terminalChangeIdsFromStatuses(
   return terminal;
 }
 
-export interface TerminalSignalClient {
-  workflow: {
-    getHandle: (workflowId: string) => {
-      signal: (sig: unknown) => Promise<void>;
-    };
-  };
-}
-
-export function buildChangeWorkflowId(
-  projectId: string,
-  changeId: string,
-): string {
-  return `${CHANGE_WORKFLOW_PREFIX}${projectId}/${changeId}`;
-}
-
 /**
  * Build the deps for a real sweep.
  *
@@ -160,7 +146,7 @@ export function buildTerminalReconcileDeps(input: {
   projectId: string;
   archiveDir: string | undefined;
   changesDir: string | undefined;
-  client: TerminalSignalClient;
+  owner: TemporalOperations;
 }): TerminalReconcileDeps {
   // One projection read per sweep, shared by both lookups.
   let statusesPromise: Promise<Map<string, string>> | null = null;
@@ -185,9 +171,7 @@ export function buildTerminalReconcileDeps(input: {
     listActiveChangeIds: async () =>
       activeChangeIdsFromStatuses(await statuses()),
     fireTerminal: async (changeId: string) => {
-      const handle = input.client.workflow.getHandle(
-        buildChangeWorkflowId(input.projectId, changeId),
-      );
+      const handle = getChangeHandle(input.owner, input.projectId, changeId);
       await handle.signal(archiveChangeSignal);
     },
   };

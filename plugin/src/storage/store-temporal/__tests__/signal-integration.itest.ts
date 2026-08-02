@@ -31,7 +31,7 @@ import type {
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
-    projectId: "proj-sig-001",
+    projectId: "0000000001000000000000000000000000000000",
     changeId,
     title: `Signal test: ${changeId}`,
     initializedAt: new Date().toISOString(),

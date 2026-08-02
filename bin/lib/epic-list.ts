@@ -6,10 +6,11 @@
  */
 
 import {
-  createTemporalClientBundle,
   listEpicWorkflows,
   type EpicWorkflowListEntry as TemporalEpicWorkflowListEntry,
-  type ListEpicClient,
+  withTemporalOperations,
+  type TemporalOperations,
+  TemporalListOutcomeError,
 } from "../../plugin/src/cli/temporal-boundary";
 import { QUERY_TIMEOUT_MS } from "./live-status";
 
@@ -33,23 +34,6 @@ export interface EpicListPayload {
   resume_projection_state?: unknown;
   error?: string;
   remediation?: string;
-}
-
-function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  label: string,
-): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => {
-      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-  });
-
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    if (timeout) clearTimeout(timeout);
-  });
 }
 
 export function buildLiveEpicListPayload(
@@ -92,35 +76,34 @@ export function buildLiveEpicListFailure(
 }
 
 export async function listEpicsFromVisibility(
-  client: ListEpicClient,
+  owner: TemporalOperations,
   options: { projectId: string; timeoutMs?: number; status?: "active" | "all" },
 ): Promise<TemporalEpicWorkflowListEntry[]> {
   const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
-  return await withTimeout(
-    listEpicWorkflows(client, {
-      projectId: options.projectId,
-      status: options.status ?? "active",
-    }),
-    timeoutMs,
-    "Temporal Epic Visibility list",
-  );
+  const outcome = await listEpicWorkflows(owner, {
+    projectId: options.projectId,
+    status: options.status ?? "active",
+    limit: 1000,
+  });
+  if (outcome.kind !== "complete") {
+    throw new TemporalListOutcomeError(outcome);
+  }
+  return outcome.value;
 }
 
 export async function loadLiveEpics(
   projectId: string,
   timeoutMs = QUERY_TIMEOUT_MS,
 ): Promise<TemporalEpicWorkflowListEntry[]> {
-  const bundle = await withTimeout(
-    createTemporalClientBundle(),
-    timeoutMs,
-    "Temporal connection",
+  return withTemporalOperations(
+    projectId,
+    (owner) =>
+      listEpicsFromVisibility(owner, {
+        projectId,
+        timeoutMs,
+        status: "active",
+      }),
+    undefined,
+    { connectTimeoutMs: timeoutMs },
   );
-  try {
-    return await listEpicsFromVisibility(
-      bundle.client as unknown as ListEpicClient,
-      { projectId, timeoutMs, status: "active" },
-    );
-  } finally {
-    await bundle.connection.close();
-  }
 }

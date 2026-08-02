@@ -39,6 +39,13 @@ import { appendDebugLog } from "../../utils/debug-log";
 import { getProjectId as getProjectIdRaw } from "../../utils/project-id";
 import { getStateQuery, worktreeDeletedSignal } from "../../temporal/messages";
 import { getService } from "../../temporal/service";
+import type { TemporalOperations } from "../../temporal/operations";
+import { makeTemporalOperationContext } from "../../temporal/operations";
+import {
+  getChangeHandle,
+  fireSignal,
+  fireSignalAndRefresh,
+} from "../_adapters";
 import type { Store } from "../../storage/store";
 import { acquireFileLock, atomicWriteFile } from "../../utils/fs";
 import { collectErrorText } from "../../temporal/error-text";
@@ -369,12 +376,6 @@ async function withPendingDeleteLock<T>(
   }
 }
 
-interface WorkflowListClient {
-  workflow: {
-    list?: (opts: { query: string }) => AsyncIterable<{ workflowId: string }>;
-  };
-}
-
 // =============================================================================
 // ACCESS RESOLUTION (retired — returns local-only)
 // =============================================================================
@@ -602,34 +603,33 @@ export async function removeWorktree(
     return { ok: false, reason: "not_a_change_branch" };
   }
 
-  const bundle = getService();
-  if (!bundle) {
-    return { ok: false, reason: "temporal_unavailable" };
-  }
-  const workflowApi = bundle.client.workflow as {
-    getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
-  };
-  if (!workflowApi?.getHandle) {
+  const owner = getService();
+  if (!owner) {
     return { ok: false, reason: "temporal_unavailable" };
   }
 
-  const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
-  let handle: ChangeWorkflowWorktreeHandle;
-  try {
-    handle = workflowApi.getHandle(workflowId);
-  } catch (error) {
-    return {
-      ok: false,
-      reason: `workflow_unreachable: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
+  const proxy = getChangeHandle(owner, access.projectId, changeId);
 
   try {
-    await handle.signal?.(worktreeDeletedSignal, {
-      branch,
-      reason: "missing_from_disk_cleanup",
-      deletedAt: new Date().toISOString(),
-    });
+    if (store) {
+      await fireSignalAndRefresh(
+        proxy,
+        store,
+        changeId,
+        worktreeDeletedSignal,
+        {
+          branch,
+          reason: "missing_from_disk_cleanup",
+          deletedAt: new Date().toISOString(),
+        },
+      );
+    } else {
+      await fireSignal(proxy, worktreeDeletedSignal, {
+        branch,
+        reason: "missing_from_disk_cleanup",
+        deletedAt: new Date().toISOString(),
+      });
+    }
   } catch (error) {
     return {
       ok: false,
@@ -691,21 +691,36 @@ export function buildWorktreeBranchVisibilityQuery(
 }
 
 export async function listChangeIdsByWorktreeBranch(
-  client: WorkflowListClient,
+  owner: TemporalOperations,
   projectId: string,
   branch: string,
 ): Promise<string[]> {
   const query = buildWorktreeBranchVisibilityQuery(projectId, branch);
-  const list = client.workflow.list;
-  if (!list) return [];
-
   const ids: string[] = [];
   const prefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
-  for await (const wf of list.call(client.workflow, { query })) {
-    if (!wf.workflowId.startsWith(prefix)) continue;
-    const changeId = wf.workflowId.slice(prefix.length);
-    if (!changeId) continue;
-    ids.push(changeId);
+  const placeholderWorkflowId = `${prefix}worktree-branch-owners`;
+  try {
+    const outcome = await owner.list<{ workflowId: string }>(
+      makeTemporalOperationContext(
+        projectId,
+        placeholderWorkflowId,
+        "list",
+        "listChangeIdsByWorktreeBranch",
+        10_000,
+      ),
+      query,
+    );
+    if (outcome.kind !== "complete") {
+      return [];
+    }
+    for (const wf of outcome.value) {
+      if (!wf.workflowId.startsWith(prefix)) continue;
+      const changeId = wf.workflowId.slice(prefix.length);
+      if (!changeId) continue;
+      ids.push(changeId);
+    }
+  } catch {
+    return [];
   }
   return ids;
 }
@@ -715,10 +730,10 @@ export async function findBranchOwnersAcrossChanges(
   branch: string,
   excludeChangeId?: string,
 ): Promise<string[]> {
-  const bundle = getService();
-  if (!bundle) return [];
+  const owner = getService();
+  if (!owner) return [];
   const owners = await listChangeIdsByWorktreeBranch(
-    bundle.client as WorkflowListClient,
+    owner,
     access.projectId,
     branch,
   );
@@ -736,18 +751,34 @@ export function buildActiveWorktreeChangesVisibilityQuery(
 }
 
 async function listChangeIdsWithActiveWorktrees(
-  client: WorkflowListClient,
+  owner: TemporalOperations,
   projectId: string,
 ): Promise<string[]> {
-  const list = client.workflow.list;
-  if (!list) return [];
   const query = buildActiveWorktreeChangesVisibilityQuery(projectId);
   const prefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
+  const placeholderWorkflowId = `${prefix}active-worktrees`;
   const ids: string[] = [];
-  for await (const wf of list.call(client.workflow, { query })) {
-    if (!wf.workflowId.startsWith(prefix)) continue;
-    const changeId = wf.workflowId.slice(prefix.length);
-    if (changeId) ids.push(changeId);
+  try {
+    const outcome = await owner.list<{ workflowId: string }>(
+      makeTemporalOperationContext(
+        projectId,
+        placeholderWorkflowId,
+        "list",
+        "listChangeIdsWithActiveWorktrees",
+        10_000,
+      ),
+      query,
+    );
+    if (outcome.kind !== "complete") {
+      return [];
+    }
+    for (const wf of outcome.value) {
+      if (!wf.workflowId.startsWith(prefix)) continue;
+      const changeId = wf.workflowId.slice(prefix.length);
+      if (changeId) ids.push(changeId);
+    }
+  } catch {
+    return [];
   }
   return ids;
 }
@@ -921,19 +952,12 @@ export async function getWorktreeRegistrySnapshot(
 
   const bundle = getService();
   if (!bundle) return unavailable("Temporal service unavailable");
-  const client = bundle.client as WorkflowListClient & {
-    workflow: WorkflowListClient["workflow"] & {
-      getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
-    };
-  };
+  const owner = bundle;
 
   if (!admit("client_check")) {
     return unavailable(
       "Inventory budget exhausted before Temporal client check",
     );
-  }
-  if (!client.workflow.list || !client.workflow.getHandle) {
-    return unavailable("Temporal workflow list/getHandle unavailable");
   }
 
   if (!admit("list_active_worktrees")) {
@@ -944,10 +968,7 @@ export async function getWorktreeRegistrySnapshot(
 
   let changeIds: string[];
   try {
-    changeIds = await listChangeIdsWithActiveWorktrees(
-      client,
-      access.projectId,
-    );
+    changeIds = await listChangeIdsWithActiveWorktrees(owner, access.projectId);
   } catch (error) {
     return unavailable("Unable to list active worktree workflows", error);
   }
@@ -982,13 +1003,13 @@ export async function getWorktreeRegistrySnapshot(
 
     inspectedCount += 1;
     const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
-    const handle = client.workflow.getHandle!(workflowId);
+    const handle = getChangeHandle(owner, access.projectId, changeId);
     let state: ChangeWorkflowState;
     try {
-      state = (await awaitInventoryQuery(
-        handle.query(getStateQuery),
+      state = await awaitInventoryQuery(
+        handle.query<ChangeWorkflowState>(getStateQuery),
         budget,
-      )) as ChangeWorkflowState;
+      );
     } catch (error) {
       if (error instanceof InventoryInspectionStoppedError) {
         omitted.push({
@@ -1130,27 +1151,11 @@ export async function getWorktreeRecord(
 
   const bundle = getService();
   if (!bundle) return null;
-  const client = bundle.client as {
-    workflow?: {
-      getHandle?: (workflowId: string) => ChangeWorkflowWorktreeHandle;
-    };
-  };
-  // Call getHandle BOUND to client.workflow. The Temporal SDK's
-  // WorkflowClient.getHandle relies on `this` (it calls
-  // this.getOrMakeInterceptors()); extracting it into a bare variable and
-  // invoking it unbound throws `Cannot read properties of undefined (reading
-  // 'getOrMakeInterceptors')`, which the catch below would swallow to null —
-  // making worktreeExistsForChange always false and blocking every
-  // main-checkout mutation. Match the bound call pattern used elsewhere
-  // (e.g. getChangeSummaries/getWorktreeRegistrySnapshot in this file).
-  const workflowApi = client.workflow;
-  if (!workflowApi?.getHandle) return null;
 
-  const workflowId = `${CHANGE_WORKFLOW_PREFIX}${access.projectId}/${changeId}`;
+  const handle = getChangeHandle(bundle, access.projectId, changeId);
   let state: ChangeWorkflowState | undefined;
   try {
-    const handle = workflowApi.getHandle(workflowId);
-    state = (await handle.query(getStateQuery)) as ChangeWorkflowState;
+    state = await handle.query<ChangeWorkflowState>(getStateQuery);
   } catch {
     // Unknown existence (poisoned/unreachable workflow): do not assert a worktree.
     return null;

@@ -27,12 +27,24 @@ import type { ChangeWorkflowInput } from "../contracts";
 import { buildSessionTaskQueue } from "../client";
 import { changeStateQuery, proposalUpdatedSignal } from "../messages";
 import { requiredAdvSearchAttributes } from "../observability";
+import { TemporalOperationsOwner } from "../operations";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
-const PROJECT_ID = "proj-wedge-isolation-001";
+const PROJECT_ID = "a".repeat(40);
 const SESSION_S2 = "sess_WedgeS2Active";
 // SESSION_S1 has NO worker in this test — simulates wedge / not-yet-spawned.
 const SESSION_S1_ABSENT = "sess_WedgeS1Absent";
+
+function ownerFromEnv(env: TestWorkflowEnvironment): TemporalOperationsOwner {
+  return new TemporalOperationsOwner(
+    {
+      client: env.client,
+      connection: env.connection,
+      namespace: env.namespace ?? "default",
+    },
+    PROJECT_ID,
+  );
+}
 
 async function registerAdvSearchAttributes(
   env: TestWorkflowEnvironment,
@@ -92,15 +104,17 @@ describe("AC2: peer-session wedge isolation (isolateAdvWorkerTaskQueues)", () =>
       await s2Worker.runUntil(async () => {
         // S2 workflow — should be processed by S2's worker.
         const s2Handle = await ensureChangeWorkflowStarted(
-          env.client,
+          ownerFromEnv(env),
           makeChangeInput("wedge-s2-active", SESSION_S2),
         );
 
-        const s2Desc = await s2Handle.describe();
+        const s2RawHandle = env.client.workflow.getHandle(s2Handle.workflowId);
+
+        const s2Desc = await s2RawHandle.describe();
         expect(s2Desc.taskQueue).toBe(s2Queue);
 
         // Send a signal to S2's workflow.
-        await s2Handle.signal(proposalUpdatedSignal, {
+        await s2RawHandle.signal(proposalUpdatedSignal, {
           contentHash: "ac2-s2-isolation-proof",
           source: "test",
           updatedAt: new Date().toISOString(),
@@ -110,7 +124,7 @@ describe("AC2: peer-session wedge isolation (isolateAdvWorkerTaskQueues)", () =>
         // workflow on S2's queue. Under the legacy shared-queue model, the
         // absence of S1's worker would block S2's workflow too. Under
         // per-session routing, S2's worker polls S2's queue independently.
-        const s2State = await s2Handle.query(changeStateQuery);
+        const s2State = await s2RawHandle.query(changeStateQuery);
         expect(s2State).toBeDefined();
         expect((s2State as { status?: string }).status).toBe("draft");
 

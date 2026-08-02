@@ -12,7 +12,7 @@ import {
 function makeState(): ChangeWorkflowState {
   return {
     id: "chg1",
-    projectId: "proj1",
+    projectId: "0000100000000000000000000000000000000000",
     changeId: "chg1",
     title: "Exact title",
     status: "active",

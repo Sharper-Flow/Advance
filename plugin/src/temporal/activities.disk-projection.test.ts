@@ -10,7 +10,7 @@ import { LauncherProjectionSchema } from "../storage/launcher-projection";
 
 function makeState(changeId = "projection-change"): ChangeWorkflowState {
   return {
-    projectId: "projection-project",
+    projectId: "0000ec00000000ec000000000000000000000000",
     changeId,
     id: changeId,
     title: "Projection test",

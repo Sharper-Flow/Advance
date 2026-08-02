@@ -144,7 +144,7 @@ async function getChangeHandleForProjectDir(
   if (!bundle) return null;
   const projectId = await getProjectId(projectDir);
   if (!projectId) return null;
-  return getChangeHandle(bundle.client, projectId, changeId);
+  return getChangeHandle(bundle, projectId, changeId);
 }
 
 async function fireConformanceSignal(

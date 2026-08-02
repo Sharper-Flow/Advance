@@ -18,6 +18,7 @@ import {
 } from "./archive-gate";
 import * as gitFinalize from "../archive-helpers/git-finalize";
 import { getService, reinitStsl } from "../../temporal/service";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { TemporalQueryTimeoutError } from "../../temporal/retry-wrapper";
 import { getGateStatusQuery } from "../../temporal/messages";
 import { getProjectId } from "../../utils/project-id";
@@ -382,7 +383,7 @@ describe("preservePhase9Evidence", () => {
   });
 });
 
-function fakeClientWithHandle(handle: {
+function fakeOwnerWithHandle(handle: {
   query: ReturnType<typeof vi.fn>;
   describe?: ReturnType<typeof vi.fn>;
   signal?: ReturnType<typeof vi.fn>;
@@ -393,33 +394,35 @@ function fakeClientWithHandle(handle: {
     query: handle.query,
     signal: handle.signal ?? vi.fn(),
   };
-  return { workflow: { getHandle: vi.fn(() => fullHandle) } };
+  return createMockOwnerFromClient({
+    workflow: { getHandle: vi.fn(() => fullHandle) },
+  });
 }
 
 describe("runReacquiringChangeQuery", () => {
   // rq-reapOrphanAdvWorkers T2: a handle captured before a mid-op reconnect
   // keeps the closed client. The reacquiring query must rebuild the handle
   // from getService() inside every retry attempt.
-  it("reacquires the client via getService() on retry after a reconnectable transport failure", async () => {
+  it("reacquires the owner via getService() on retry after a reconnectable transport failure", async () => {
     const doneGate = { status: "done" };
     const secondHandle = { query: vi.fn(async () => doneGate) };
-    const secondClient = fakeClientWithHandle(secondHandle);
-    const bundle: { client: unknown } = { client: undefined };
+    const secondOwner = fakeOwnerWithHandle(secondHandle);
+    let owner = secondOwner;
     const firstHandle = {
       query: vi.fn(async () => {
-        // Simulate reinitStsl mutating the cached bundle in place.
-        bundle.client = secondClient;
+        // Simulate reinitStsl replacing the cached owner.
+        owner = secondOwner;
         throw new Error("Channel has been shut down");
       }),
     };
-    const firstClient = fakeClientWithHandle(firstHandle);
-    bundle.client = firstClient;
+    const firstOwner = fakeOwnerWithHandle(firstHandle);
+    owner = firstOwner;
     vi.mocked(getService).mockImplementation(
-      () => bundle as unknown as ReturnType<typeof getService>,
+      () => owner as unknown as ReturnType<typeof getService>,
     );
 
     const result = await runReacquiringChangeQuery(
-      "project-a",
+      "0000000000000000000000000000000000000000",
       "change-a",
       getGateStatusQuery,
       "release",
@@ -428,9 +431,9 @@ describe("runReacquiringChangeQuery", () => {
     expect(result).toEqual(doneGate);
     expect(firstHandle.query).toHaveBeenCalledTimes(1);
     expect(secondHandle.query).toHaveBeenCalledTimes(1);
-    // The retried attempt rebuilt its handle from the swapped-in client,
+    // The retried attempt rebuilt its handle from the swapped-in owner,
     // not the closed one.
-    expect(secondClient.workflow.getHandle).toHaveBeenCalledTimes(1);
+    expect(secondOwner.getHandle).toHaveBeenCalledTimes(1);
     expect(vi.mocked(getService).mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -450,12 +453,12 @@ describe("runReacquiringChangeQuery", () => {
         .mockRejectedValueOnce(saturationError)
         .mockResolvedValueOnce(doneGate),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
     vi.mocked(reinitStsl).mockClear();
 
     const result = await runReacquiringChangeQuery(
-      "project-a",
+      "0000000000000000000000000000000000000000",
       "change-a",
       getGateStatusQuery,
       "release",
@@ -479,11 +482,11 @@ describe("waitForArchiveReleaseGateCompletion", () => {
         .mockResolvedValueOnce(pendingGate)
         .mockResolvedValueOnce(doneGate),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const result = await waitForArchiveReleaseGateCompletion(
-      "project-a",
+      "0000000000000000000000000000000000000000",
       "change-a",
       { delayMs: 1 },
     );
@@ -491,7 +494,7 @@ describe("waitForArchiveReleaseGateCompletion", () => {
     expect(result).toEqual(doneGate);
     expect(handle.query).toHaveBeenCalledTimes(2);
     expect(vi.mocked(getService).mock.calls.length).toBeGreaterThanOrEqual(2);
-    expect(client.workflow.getHandle).toHaveBeenCalledTimes(2);
+    expect(client.getHandle).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -523,7 +526,9 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
   }
 
   beforeEach(() => {
-    vi.mocked(getProjectId).mockResolvedValue("project-test");
+    vi.mocked(getProjectId).mockResolvedValue(
+      "0000000000000000000000000000000000000000",
+    );
     recoveryWriterMocks.saveRecoveredGateCompletion.mockReset();
     recoveryWriterMocks.saveRecoveredGateCompletion.mockImplementation(
       async (input: {
@@ -548,8 +553,8 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
         .mockResolvedValueOnce(doneGate), // the single bounded reconcile read
       signal: vi.fn().mockRejectedValue(saturationError()),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const result = await completeReleaseGateAfterFinalization({
       store: createStore("/repo"),
@@ -571,8 +576,8 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
       query: vi.fn().mockResolvedValue(pendingGate),
       signal: vi.fn().mockRejectedValue(saturationError()),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const result = await completeReleaseGateAfterFinalization({
       store: createStore("/repo"),
@@ -598,8 +603,8 @@ describe("completeReleaseGateAfterFinalization — T3 ambiguous signal reconcile
         .fn()
         .mockRejectedValue(new Error("Cannot signal a completed workflow")),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const result = await completeReleaseGateAfterFinalization({
       store: createStore("/repo"),
@@ -636,7 +641,9 @@ describe("completeReleaseGateAfterFinalization — bounded release-gate query (A
   };
 
   beforeEach(() => {
-    vi.mocked(getProjectId).mockResolvedValue("project-test");
+    vi.mocked(getProjectId).mockResolvedValue(
+      "0000000000000000000000000000000000000000",
+    );
     recoveryWriterMocks.saveRecoveredGateCompletion.mockReset();
     recoveryWriterMocks.saveRecoveredGateCompletion.mockImplementation(
       async (input: {
@@ -659,8 +666,8 @@ describe("completeReleaseGateAfterFinalization — bounded release-gate query (A
       describe: vi.fn(async () => ({ status: { name: "TERMINATED" } })),
       signal: vi.fn(),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const result = await completeReleaseGateAfterFinalization({
       store: createStore("/repo"),
@@ -686,8 +693,8 @@ describe("completeReleaseGateAfterFinalization — bounded release-gate query (A
       describe: vi.fn(async () => ({ status: { name: "RUNNING" } })),
       signal: vi.fn(),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const result = await completeReleaseGateAfterFinalization({
       store: createStore("/repo"),
@@ -729,7 +736,9 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
   };
 
   beforeEach(() => {
-    vi.mocked(getProjectId).mockResolvedValue("project-test");
+    vi.mocked(getProjectId).mockResolvedValue(
+      "0000000000000000000000000000000000000000",
+    );
   });
 
   it("calls store.changes.invalidate AFTER waitForArchiveReleaseGateCompletion observes done, not refresh", async () => {
@@ -765,8 +774,8 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
         // Signal accepted by the server; workflow will process asynchronously.
       }),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const refreshMock = vi.fn(async () => {
       // Refresh should NOT be called on the confirmed-done branch after #305.
@@ -823,8 +832,8 @@ describe("completeReleaseGateAfterFinalization — refresh-after-poll race fix (
       query: vi.fn(async () => doneGate),
       signal: vi.fn(async () => {}),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const store = {
       ...createStore("/repo"),
@@ -873,7 +882,9 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
   };
 
   beforeEach(() => {
-    vi.mocked(getProjectId).mockResolvedValue("project-test");
+    vi.mocked(getProjectId).mockResolvedValue(
+      "0000000000000000000000000000000000000000",
+    );
   });
 
   it("invalidate (not refresh) lets verifyReleaseGateDurableForArchive observe release done from the store", async () => {
@@ -908,8 +919,8 @@ describe("completeReleaseGateAfterFinalization — #305 residual cache-poisoning
         // Signal accepted by the server; workflow will process asynchronously.
       }),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const client = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(client);
 
     const refreshMock = vi.fn(async () => {
       // Model refresh's state readback re-caching stale pre-signal state.

@@ -15,6 +15,9 @@ import { describe, test, expect, vi } from "vitest";
 import { createChangeOps } from "./changes";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import { ChangeSummaryMemo } from "../store-temporal-memo";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
+
+const PROJECT_ID = "0".repeat(40);
 
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
 const getCurrentSessionIdMock = vi.hoisted(() => vi.fn());
@@ -160,11 +163,12 @@ describe("createChangeOps", () => {
       },
     };
     const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-abc",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),
@@ -191,11 +195,11 @@ describe("createChangeOps", () => {
     });
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
-      workflowClient,
+      owner,
       expect.objectContaining({
         seedState: expect.objectContaining({ origin }),
       }),
-      { workflowQueueMode: "session" },
+      { workflowQueueMode: "session", budgetMs: 30_000 },
     );
   });
 
@@ -224,11 +228,12 @@ describe("createChangeOps", () => {
       },
     };
     const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-abc",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),
@@ -245,11 +250,11 @@ describe("createChangeOps", () => {
     await ops.create("Session routing test", {});
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
-      workflowClient,
+      owner,
       expect.objectContaining({
         sessionId: "sess_test_routing_id",
       }),
-      { workflowQueueMode: "session" },
+      { workflowQueueMode: "session", budgetMs: 30_000 },
     );
 
     getCurrentSessionIdMock.mockReset();
@@ -301,11 +306,12 @@ describe("createChangeOps", () => {
       },
     };
     const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-target",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),
@@ -325,13 +331,13 @@ describe("createChangeOps", () => {
     });
 
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
-      workflowClient,
+      owner,
       expect.objectContaining({
         seedState: expect.objectContaining({
           cross_project_origin: crossProjectOrigin,
         }),
       }),
-      { workflowQueueMode: "session" },
+      { workflowQueueMode: "session", budgetMs: 30_000 },
     );
   });
 
@@ -369,11 +375,12 @@ describe("createChangeOps", () => {
       },
     };
     const workflowClient = { workflow: { start: vi.fn(), getHandle: vi.fn() } };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-am",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),
@@ -391,18 +398,18 @@ describe("createChangeOps", () => {
 
     // 1. Workflow seedState carries the marker so the workflow starts with it set.
     expect(ensureChangeWorkflowStarted).toHaveBeenCalledWith(
-      workflowClient,
+      owner,
       expect.objectContaining({
         seedState: expect.objectContaining({ worktree_auto_managed: true }),
       }),
-      { workflowQueueMode: "session" },
+      { workflowQueueMode: "session", budgetMs: 30_000 },
     );
 
     // 2. Disk projection save includes the marker (changeWithOwner).
     expect(saveMock).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "newAutoManagedChange",
-        adv_project_id: "pid-am",
+        adv_project_id: PROJECT_ID,
         worktree_auto_managed: true,
       }),
     );
@@ -459,11 +466,12 @@ describe("createChangeOps", () => {
       const workflowClient = {
         workflow: { start: vi.fn(), getHandle: vi.fn() },
       };
+      const owner = createMockOwnerFromClient({ client: workflowClient });
       const ops = createChangeOps({
         input: {
           legacy,
-          temporal: { client: workflowClient },
-          projectId: "pid-cr",
+          temporal: owner,
+          projectId: PROJECT_ID,
         },
         legacy,
         invalidateChange: vi.fn(),
@@ -585,11 +593,12 @@ describe("createChangeOps", () => {
       const workflowClient = {
         workflow: { start: vi.fn(), getHandle: vi.fn() },
       };
+      const owner = createMockOwnerFromClient({ client: workflowClient });
       const ops = createChangeOps({
         input: {
           legacy,
-          temporal: { client: workflowClient },
-          projectId: "pid-conflict",
+          temporal: owner,
+          projectId: PROJECT_ID,
         },
         legacy,
         invalidateChange: vi.fn(),
@@ -633,11 +642,12 @@ describe("createChangeOps", () => {
         getHandle: vi.fn(() => ({ signal: signalMock })),
       },
     };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-source",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),
@@ -713,11 +723,12 @@ describe("createChangeOps", () => {
         getHandle: vi.fn(() => ({ signal: signalMock })),
       },
     };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-proof",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),
@@ -789,13 +800,14 @@ describe("createChangeOps", () => {
       root: string;
     }) {
       const workflowClient = { workflow: { getHandle: vi.fn() } };
+      const owner = createMockOwnerFromClient({ client: workflowClient });
       const getTemporalChange = vi.fn();
       return {
         ops: createChangeOps({
           input: {
             legacy: { paths, changes: { get: vi.fn() } },
-            temporal: { client: workflowClient },
-            projectId: "pid-summary",
+            temporal: owner,
+            projectId: PROJECT_ID,
           },
           legacy: { paths, changes: { get: vi.fn() } },
           invalidateChange: vi.fn(),
@@ -1015,7 +1027,7 @@ describe("createChangeOps", () => {
       changes: {
         get: vi.fn().mockResolvedValue({
           success: true,
-          data: { id: "summaryChange", adv_project_id: "pid-summary" },
+          data: { id: "summaryChange", adv_project_id: PROJECT_ID },
         }),
         updateArtifacts: vi.fn().mockResolvedValue({
           success: true,
@@ -1065,11 +1077,12 @@ describe("createChangeOps", () => {
         })),
       },
     };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-summary",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),
@@ -1134,7 +1147,7 @@ describe("createChangeOps", () => {
       changes: {
         get: vi.fn().mockResolvedValue({
           success: true,
-          data: { id: "cacheChange", adv_project_id: "pid-cache" },
+          data: { id: "cacheChange", adv_project_id: PROJECT_ID },
         }),
         updateArtifacts: vi.fn().mockResolvedValue({
           success: true,
@@ -1180,11 +1193,12 @@ describe("createChangeOps", () => {
         })),
       },
     };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-cache",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: invalidateChangeMock,
@@ -1226,7 +1240,7 @@ describe("createChangeOps", () => {
       changes: {
         get: vi.fn().mockResolvedValue({
           success: true,
-          data: { id: "capChange", adv_project_id: "pid-cap" },
+          data: { id: "capChange", adv_project_id: PROJECT_ID },
         }),
         updateArtifacts: vi.fn().mockResolvedValue({ success: true }),
       },
@@ -1234,11 +1248,12 @@ describe("createChangeOps", () => {
     const workflowClient = {
       workflow: { getHandle: vi.fn(() => ({ signal: signalMock })) },
     };
+    const owner = createMockOwnerFromClient({ client: workflowClient });
     const ops = createChangeOps({
       input: {
         legacy,
-        temporal: { client: workflowClient },
-        projectId: "pid-cap",
+        temporal: owner,
+        projectId: PROJECT_ID,
       },
       legacy,
       invalidateChange: vi.fn(),

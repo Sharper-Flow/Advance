@@ -39,7 +39,10 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { Connection, Client } from "@temporalio/client";
+import {
+  createTemporalScriptFacade,
+  TemporalScriptOutcomeError,
+} from "./temporal-script-facade";
 import { NativeConnection, Worker } from "@temporalio/worker";
 
 import {
@@ -56,7 +59,7 @@ import {
 
 const ADDRESS = process.env.REPLAY_FIXTURE_ADDRESS ?? "127.0.0.1:7233";
 const NAMESPACE = "default";
-const PROJECT_ID = "replay-fixture-project";
+const PROJECT_ID = "b".repeat(40);
 const PROJECTION_ROOT = "/tmp/adv-replay-fixture";
 
 const workflowsPath = fileURLToPath(
@@ -352,15 +355,19 @@ async function main(): Promise<void> {
     activeWorkflowsPath = variantPath;
   }
 
-  const connection = await Connection.connect({ address: ADDRESS });
-  const client = new Client({ connection, namespace: NAMESPACE });
+  const owner = await createTemporalScriptFacade({
+    projectId: PROJECT_ID,
+    address: ADDRESS,
+    namespace: NAMESPACE,
+  });
   const nativeConnection = await NativeConnection.connect({ address: ADDRESS });
 
   // Terminate any in-flight execution of the same workflowId for repeatability.
   try {
-    await client.workflow
-      .getHandle(workflowId)
-      .terminate("replay-fixture regeneration");
+    await owner.terminateWorkflow(
+      workflowId,
+      "replay-fixture regeneration",
+    );
   } catch {
     // No prior execution; ignore.
   }
@@ -381,13 +388,14 @@ async function main(): Promise<void> {
   let gateEvidence: unknown = null;
   try {
     await worker.runUntil(async () => {
-      const handle = await client.workflow.start("changeWorkflow", {
+      await owner.startWorkflow({
+        workflowType: "changeWorkflow",
         workflowId,
         taskQueue,
         args: [input],
       });
 
-      await handle.signal(gateCompletedSignal, {
+      await owner.signalWorkflow(workflowId, gateCompletedSignal, {
         gateId: config.gateId,
         completedBy: "replay-fixture-generator",
         completedAt: "2026-07-13T00:00:01.000Z",
@@ -395,7 +403,10 @@ async function main(): Promise<void> {
 
       const deadline = Date.now() + 30_000;
       while (Date.now() < deadline) {
-        const state = (await handle.query(getChangeStateQuery)) as {
+        const state = (await owner.queryWorkflow(
+          workflowId,
+          getChangeStateQuery,
+        )) as {
           gates: Record<string, { status: string; artifactEvidence?: unknown }>;
         };
         const gate = state.gates[config.gateId];
@@ -411,6 +422,7 @@ async function main(): Promise<void> {
     });
   } finally {
     if (variantPath) await rm(variantPath, { force: true });
+    await owner.close();
   }
 
   const exportCmd =
@@ -444,6 +456,21 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  console.error(err);
+  if (err instanceof TemporalScriptOutcomeError) {
+    console.error(
+      JSON.stringify(
+        {
+          error: "Temporal script outcome",
+          kind: err.kind,
+          message: err.message,
+          cause: err.causeError instanceof Error ? err.causeError.message : String(err.causeError),
+        },
+        null,
+        2,
+      ),
+    );
+  } else {
+    console.error(err);
+  }
   process.exit(1);
 });

@@ -3,6 +3,7 @@ import {
   composeWorkerHealthProbe,
   createHealthMonitor,
 } from "./health-monitor";
+import { createMockOwner } from "./__tests__/mock-owner";
 
 // P1.6 — Health-probed worker restart.
 //
@@ -258,21 +259,24 @@ describe("createHealthMonitor (P1.6)", () => {
 // the monitor's outer probeTimeoutMs and routed through the existing
 // restart budget.
 describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
-  function makeBundle(svc: unknown) {
-    return {
-      namespace: "default",
-      connection: { workflowService: svc },
-    };
+  function makeOwner(svc: {
+    describeNamespace?: () => Promise<unknown>;
+    describeWorkflowExecution?: (workflowId: string) => Promise<unknown>;
+  }) {
+    return createMockOwner({
+      describeNamespace: svc.describeNamespace,
+      describeWorkflowExecution: svc.describeWorkflowExecution,
+    });
   }
 
-  it("returns false when bundle is null (STSL not initialized)", async () => {
-    const probe = composeWorkerHealthProbe({ getBundle: () => null });
+  it("returns false when owner is null (STSL not initialized)", async () => {
+    const probe = composeWorkerHealthProbe({ getOwner: () => null });
     expect(await probe()).toBe(false);
   });
 
   it("returns false when workflowService methods are missing", async () => {
     const probe = composeWorkerHealthProbe({
-      getBundle: () => makeBundle({ describeNamespace: undefined }),
+      getOwner: () => makeOwner({ describeNamespace: undefined }),
     });
     expect(await probe()).toBe(false);
   });
@@ -286,8 +290,8 @@ describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
       throw err;
     });
     const probe = composeWorkerHealthProbe({
-      getBundle: () =>
-        makeBundle({ describeNamespace, describeWorkflowExecution }),
+      getOwner: () =>
+        makeOwner({ describeNamespace, describeWorkflowExecution }),
     });
     expect(await probe()).toBe(true);
     expect(describeNamespace).toHaveBeenCalledTimes(1);
@@ -296,8 +300,8 @@ describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
 
   it("returns true when sentinel actually exists (still healthy)", async () => {
     const probe = composeWorkerHealthProbe({
-      getBundle: () =>
-        makeBundle({
+      getOwner: () =>
+        makeOwner({
           describeNamespace: vi.fn(async () => ({})),
           describeWorkflowExecution: vi.fn(async () => ({
             workflowExecutionInfo: { execution: { workflowId: "sentinel" } },
@@ -309,8 +313,8 @@ describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
 
   it("propagates non-NotFound errors from sentinel describe (caught by monitor)", async () => {
     const probe = composeWorkerHealthProbe({
-      getBundle: () =>
-        makeBundle({
+      getOwner: () =>
+        makeOwner({
           describeNamespace: vi.fn(async () => ({})),
           describeWorkflowExecution: vi.fn(async () => {
             throw new Error("Unavailable: server overloaded");
@@ -323,8 +327,8 @@ describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
   it("propagates describeNamespace failures (leg 1 short-circuits)", async () => {
     const describeWorkflowExecution = vi.fn(async () => ({}));
     const probe = composeWorkerHealthProbe({
-      getBundle: () =>
-        makeBundle({
+      getOwner: () =>
+        makeOwner({
           describeNamespace: vi.fn(async () => {
             throw new Error("ECONNREFUSED");
           }),
@@ -340,17 +344,16 @@ describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
       throw new Error("NotFound");
     });
     const probe = composeWorkerHealthProbe({
-      getBundle: () =>
-        makeBundle({
+      getOwner: () =>
+        makeOwner({
           describeNamespace: vi.fn(async () => ({})),
           describeWorkflowExecution,
         }),
     });
     await probe();
-    expect(describeWorkflowExecution).toHaveBeenCalledWith({
-      namespace: "default",
-      execution: { workflowId: "adv-healthcheck-sentinel" },
-    });
+    expect(describeWorkflowExecution).toHaveBeenCalledWith(
+      "adv-healthcheck-sentinel",
+    );
   });
 
   it("respects custom sentinelWorkflowId override", async () => {
@@ -358,26 +361,25 @@ describe("composeWorkerHealthProbe (P1.10 zombie detection)", () => {
       throw new Error("NotFound");
     });
     const probe = composeWorkerHealthProbe({
-      getBundle: () =>
-        makeBundle({
+      getOwner: () =>
+        makeOwner({
           describeNamespace: vi.fn(async () => ({})),
           describeWorkflowExecution,
         }),
       sentinelWorkflowId: "custom-sentinel-id",
     });
     await probe();
-    expect(describeWorkflowExecution).toHaveBeenCalledWith({
-      namespace: "default",
-      execution: { workflowId: "custom-sentinel-id" },
-    });
+    expect(describeWorkflowExecution).toHaveBeenCalledWith(
+      "custom-sentinel-id",
+    );
   });
 
   it("hanging sentinel describe is caught by the monitor's probeTimeoutMs (zombie scenario)", async () => {
     vi.useFakeTimers();
     try {
       const probe = composeWorkerHealthProbe({
-        getBundle: () =>
-          makeBundle({
+        getOwner: () =>
+          makeOwner({
             describeNamespace: vi.fn(async () => ({})),
             describeWorkflowExecution: vi.fn(
               () => new Promise<unknown>(() => {}), // hangs forever

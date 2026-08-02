@@ -4,6 +4,7 @@ import { createWisdomOps } from "./wisdom";
 import { DiskProjectionPersistError } from "./disk-persist";
 import { commitChangeProjectionWithSummary } from "../change-summary-shard";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../temporal/contracts";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import {
   createToolOperationContext,
   withToolOperationContext,
@@ -65,6 +66,7 @@ function makeHandle() {
     return STATE;
   });
   return {
+    workflowId: `adv/change/pid-wisdom/${CHANGE_ID}`,
     signal: signalMock,
     query: queryMock,
   };
@@ -74,19 +76,17 @@ function makeDeps() {
   const handle = makeHandle();
   return {
     input: {
-      projectId: "pid-wisdom",
+      projectId: "00d000d000000000000000000000000000000000",
       legacy: {
         changes: {
           get: vi.fn().mockResolvedValue({ success: true, data: null }),
         },
       },
-      temporal: {
-        client: {
-          workflow: {
-            getHandle: vi.fn().mockReturnValue(handle),
-          },
+      temporal: createMockOwnerFromClient({
+        workflow: {
+          getHandle: vi.fn().mockReturnValue(handle),
         },
-      },
+      }),
     },
     legacy: {
       wisdom: {},

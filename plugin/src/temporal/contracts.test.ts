@@ -122,7 +122,7 @@ describe("continue-as-new seed durability", () => {
       createdAt: "2026-07-25T00:00:00.000Z",
     });
 
-    state.projectId = "proj-durability";
+    state.projectId = "0000d00ab0000000000000000000000000000000";
     state.initializedAt = "2026-07-25T00:00:00.000Z";
     state.title = "Durability test";
     state.worker_bundle_impact = {
@@ -167,7 +167,7 @@ describe("continue-as-new seed durability", () => {
   }
 
   const input: ChangeWorkflowInput = {
-    projectId: "proj-durability",
+    projectId: "0000d00ab0000000000000000000000000000000",
     changeId: "c-durability",
     title: "Durability test",
     initializedAt: "2026-07-25T00:00:00.000Z",
@@ -345,7 +345,7 @@ describe("continue-as-new seed durability", () => {
 
     const seed = changeSeedStateFromChange(change);
     const reseededInput: ChangeWorkflowInput = {
-      projectId: "proj-durability",
+      projectId: "0000d00ab0000000000000000000000000000000",
       changeId: "c-durability",
       title: "Durability test",
       initializedAt: "2026-07-25T00:00:00.000Z",

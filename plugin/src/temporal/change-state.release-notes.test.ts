@@ -25,7 +25,7 @@ function baseState() {
     title: "Release notes change",
     createdAt: at,
   });
-  state.projectId = "proj-1";
+  state.projectId = "0000100000000000000000000000000000000000";
   state.state_revision = 5;
   return state;
 }

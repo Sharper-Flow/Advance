@@ -462,7 +462,7 @@ describe("commitChangeProjection", () => {
     const base = makeChange(changeId);
     await seedChange(changesDir, base);
     const temporalState = changeToWorkflowState({
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
       change: { ...base, title: "Temporal authoritative title" },
     });
 

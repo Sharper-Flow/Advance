@@ -32,25 +32,14 @@
 
 import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
 import { escapeVisibilityValue } from "./lifecycle-visibility";
+import type { TemporalOperations } from "./operations";
+import { makeTemporalOperationContext } from "./operations";
 
 /** Hard cap on inspected workflows per sweep (safety bound). */
 const INSPECTION_LIMIT = 500;
 
 /** Default cap on terminal signals fired per sweep. */
 const DEFAULT_MAX_RECONCILE_PER_SWEEP = 25;
-
-/**
- * Minimal Visibility client shape. `@temporalio/client` Client satisfies this
- * structurally.
- */
-export interface TerminalReconcileClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{
-      workflowId: string;
-      status: { name: string };
-    }>;
-  };
-}
 
 export interface TerminalReconcileDeps {
   /**
@@ -109,7 +98,7 @@ function summarize(err: unknown): string {
  * re-signalling an already-archived workflow is a no-op.
  */
 export async function reconcileTerminalWorkflows(
-  client: TerminalReconcileClient,
+  owner: TemporalOperations,
   projectId: string,
   deps: TerminalReconcileDeps,
   options: TerminalReconcileOptions = {},
@@ -142,7 +131,21 @@ export async function reconcileTerminalWorkflows(
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
 
   const candidates: string[] = [];
-  for await (const wf of client.workflow.list({ query })) {
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    `${projectPrefix}terminal-reconcile`,
+    "list",
+    "reconcileTerminalWorkflows",
+    10_000,
+  );
+  const listResult = await owner.list<{
+    workflowId: string;
+    status: { name: string };
+  }>(ctx, query, { limit: INSPECTION_LIMIT });
+  if (listResult.kind !== "complete") {
+    throw listResult.error;
+  }
+  for (const wf of listResult.value) {
     if (result.inspected >= INSPECTION_LIMIT) break;
 
     // Change workflows only (exclude epics and anything else).

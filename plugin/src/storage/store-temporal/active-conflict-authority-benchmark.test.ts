@@ -22,6 +22,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { createDefaultGates, type Change } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
@@ -108,7 +109,7 @@ function workflowStateFor(change: Change) {
     status: change.status,
     createdAt: change.created_at,
     initializedAt: change.created_at,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
     tasks: [],
     deltas: change.deltas,
     wisdom: [],
@@ -133,7 +134,7 @@ async function writeArchiveBundle(tempDir: string, change: Change) {
 }
 
 function mockTemporalClient(ids: string[]) {
-  return {
+  return createMockOwnerFromClient({
     client: {
       workflow: {
         list: async function* () {
@@ -158,7 +159,7 @@ function mockTemporalClient(ids: string[]) {
         },
       },
     },
-  };
+  });
 }
 
 interface RunResult {
@@ -255,7 +256,7 @@ describe("active conflict authority benchmark gate", () => {
       const store = createTemporalStoreBackend({
         legacy,
         temporal,
-        projectId: "project-1",
+        projectId: "0000ec0100000000000000000000000000000000",
       });
 
       const durations: number[] = [];
@@ -264,7 +265,7 @@ describe("active conflict authority benchmark gate", () => {
         const coldStore = createTemporalStoreBackend({
           legacy,
           temporal,
-          projectId: "project-1",
+          projectId: "0000ec0100000000000000000000000000000000",
         });
         const run = await runBenchmarkAuthority(coldStore, concurrency);
         expect(run.completeness).toBe("complete");

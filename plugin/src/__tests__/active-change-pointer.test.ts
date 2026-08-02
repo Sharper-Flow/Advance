@@ -54,7 +54,7 @@ vi.mock("../plugin-context", async (importOriginal) => {
     ...actual,
     resolveProjectContext: vi.fn(async (directory: string) => ({
       effectiveDir: directory,
-      projectId: "test-project-id",
+      projectId: "0e000000ec00d000000000000000000000000000",
       externalRoot: undefined,
       identityError: undefined,
     })),
@@ -87,7 +87,7 @@ vi.mock("../tools/target-project", async (importOriginal) => {
         }
         return {
           root: input.target_path,
-          projectId: "target-project-id",
+          projectId: "0a00e00000ec00d0000000000000000000000000",
           externalRoot: join(input.target_path, ".adv"),
           trusted: true,
           trustSource: "test",
@@ -611,7 +611,9 @@ describe("active-change pointer hooks (T4/T5/T7)", () => {
     beforeEach(() => {
       vi.clearAllMocks();
       process.env.ADV_WORKTREE_HOME = join(tempDir, "worktrees");
-      worktreeBase = getWorktreeBase("test-project-id");
+      worktreeBase = getWorktreeBase(
+        "0e000000ec00d000000000000000000000000000",
+      );
     });
 
     afterEach(() => {

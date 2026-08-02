@@ -9,6 +9,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 
 // Note: do NOT mock ./state here — the test needs the real implementation.
 // Mocking it with importOriginal causes module-resolution ordering issues
@@ -31,14 +32,16 @@ const workflowGetHandle = vi.hoisted(() =>
 );
 
 vi.mock("../../temporal/service", () => ({
-  getService: vi.fn(() => ({
-    client: {
-      workflow: {
-        list: workflowList,
-        getHandle: workflowGetHandle,
+  getService: vi.fn(() =>
+    createMockOwnerFromClient({
+      client: {
+        workflow: {
+          list: workflowList,
+          getHandle: workflowGetHandle,
+        },
       },
-    },
-  })),
+    }),
+  ),
 }));
 
 import {
@@ -69,7 +72,7 @@ import { synthesizeTestProjectId } from "../../utils/project-id";
 
 const access: WorktreeStateAccess = {
   projectDir: "/test/project",
-  projectId: "test-id",
+  projectId: "0e000d0000000000000000000000000000000000",
 };
 
 describe("session lifecycle helpers (T21)", () => {
@@ -181,8 +184,14 @@ describe("cross-change worktree visibility helpers (T22)", () => {
   it("lists active owner change ids for a worktree branch and excludes current change", async () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {
-        yield { workflowId: "adv/change/test-id/current" };
-        yield { workflowId: "adv/change/test-id/other" };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/current",
+        };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/other",
+        };
         yield { workflowId: "adv/project/test-id" };
       })(),
     );
@@ -201,7 +210,10 @@ describe("cross-change worktree visibility helpers (T22)", () => {
   it("uses the active worktree owner query so non-owner workflows are not queried", async () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {
-        yield { workflowId: "adv/change/test-id/owner" };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/owner",
+        };
       })(),
     );
     changeWorkflowQuery.mockResolvedValueOnce({
@@ -224,16 +236,22 @@ describe("cross-change worktree visibility helpers (T22)", () => {
 
     expect(workflowList).toHaveBeenCalledWith({
       query:
-        'AdvAffectedProjects = "test-id" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running" AND AdvWorktreeBranches IS NOT NULL',
+        'AdvAffectedProjects = "0e000d0000000000000000000000000000000000" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running" AND AdvWorktreeBranches IS NOT NULL',
     });
     expect(workflowGetHandle).toHaveBeenCalledTimes(1);
-    expect(workflowGetHandle).toHaveBeenCalledWith("adv/change/test-id/owner");
+    expect(workflowGetHandle).toHaveBeenCalledWith(
+      "adv/change/0e000d0000000000000000000000000000000000/owner",
+      undefined,
+    );
   });
 
   it("aggregates materialized worktrees from active change workflow search results", async () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {
-        yield { workflowId: "adv/change/test-id/change-a" };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/change-a",
+        };
       })(),
     );
     changeWorkflowQuery.mockResolvedValueOnce({
@@ -274,7 +292,10 @@ describe("cross-change worktree visibility helpers (T22)", () => {
   it("exposes an authoritative registry snapshot and compatibility views", async () => {
     workflowList.mockImplementation(() =>
       (async function* () {
-        yield { workflowId: "adv/change/test-id/change-a" };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/change-a",
+        };
       })(),
     );
     changeWorkflowQuery.mockResolvedValue({
@@ -339,8 +360,14 @@ describe("cross-change worktree visibility helpers (T22)", () => {
   it("isolates a poisoned workflow query and keeps healthy worktrees", async () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {
-        yield { workflowId: "adv/change/test-id/healthy" };
-        yield { workflowId: "adv/change/test-id/poisoned" };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/healthy",
+        };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/poisoned",
+        };
       })(),
     );
     changeWorkflowQuery
@@ -390,7 +417,8 @@ describe("cross-change worktree visibility helpers (T22)", () => {
       expect.objectContaining({
         source: "worktree_workflow",
         changeId: "poisoned",
-        workflowId: "adv/change/test-id/poisoned",
+        workflowId:
+          "adv/change/0e000d0000000000000000000000000000000000/poisoned",
         recoveryReason: "poisoned_history",
         evidenceSummary: expect.stringContaining("TMPRL1100"),
       }),
@@ -398,7 +426,8 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     expect(result.poisonedWorkflows).toEqual([
       expect.objectContaining({
         changeId: "poisoned",
-        workflowId: "adv/change/test-id/poisoned",
+        workflowId:
+          "adv/change/0e000d0000000000000000000000000000000000/poisoned",
         recoveryReason: "poisoned_history",
         evidenceSummary: expect.stringContaining("TMPRL1100"),
       }),
@@ -412,7 +441,10 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     // poisoned markers — error class is the sole authority.
     workflowList.mockImplementationOnce(() =>
       (async function* () {
-        yield { workflowId: "adv/change/test-id/generic-error" };
+        yield {
+          workflowId:
+            "adv/change/0e000d0000000000000000000000000000000000/generic-error",
+        };
       })(),
     );
     changeWorkflowQuery.mockRejectedValueOnce(
@@ -449,7 +481,9 @@ describe("cross-change worktree visibility helpers (T22)", () => {
     workflowList.mockImplementationOnce(() =>
       (async function* () {
         for (const id of [...healthyIds, "poisoned-scale"]) {
-          yield { workflowId: `adv/change/test-id/${id}` };
+          yield {
+            workflowId: `adv/change/0e000d0000000000000000000000000000000000/${id}`,
+          };
         }
       })(),
     );

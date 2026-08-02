@@ -37,7 +37,7 @@ async function registerSearchAttributes(
 
 function makeInput(): ChangeWorkflowInput {
   return {
-    projectId: "search-attrs-proj",
+    projectId: "0ea0c0a000000000000000000000000000000000",
     changeId: "search-attrs-change",
     title: "Search Attr Title",
     initializedAt: "2026-05-05T00:00:00.000Z",
@@ -58,7 +58,7 @@ function makeEpicInput(
   overrides: Partial<EpicWorkflowInput> = {},
 ): EpicWorkflowInput {
   return {
-    projectId: "search-attrs-proj",
+    projectId: "0ea0c0a000000000000000000000000000000000",
     epicId: `search-attrs-epic-${Date.now()}`,
     title: "Search Attr Epic",
     narrative: "Search attribute Epic test.",

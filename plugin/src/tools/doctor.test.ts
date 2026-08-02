@@ -13,6 +13,7 @@
  */
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { doctorTools, setDoctorPointerRepairProvider } from "./doctor";
+import { createMockOwner } from "../temporal/__tests__/mock-owner";
 import type { Store } from "../storage/store";
 
 // ── Primitive mocks ──────────────────────────────────────────────────────
@@ -71,27 +72,35 @@ vi.mock("./_adapters", () => ({
   ReachabilityDeps: {},
 }));
 
+const PROJECT_ID = "0000000000000000000000000000000000000000";
+
 function makeStore(): Store {
   return {
     paths: {
       root: "/tmp/project",
       changes: "/tmp/changes",
-      external: "/tmp/x",
+      external: `/tmp/${PROJECT_ID}`,
     },
   } as unknown as Store;
 }
 
 function setHealthy() {
-  getServiceMock.mockReturnValue({
-    client: { workflow: { getHandle: vi.fn() } },
-    connection: {},
-    namespace: "default",
-  });
+  getServiceMock.mockReturnValue(
+    createMockOwner({
+      checkSearchAttributes: vi.fn().mockResolvedValue({
+        ok: true,
+        present: [{ name: "AdvChangeId" }, { name: "AdvChangeStatus" }],
+        missing: [],
+        wrongType: [],
+      }),
+      registerSearchAttributes: vi.fn().mockResolvedValue(undefined),
+    }),
+  );
   getTemporalHealthMock.mockResolvedValue({
     server_alive: true,
     worker_alive: true,
     worker_process_alive: true,
-    registered_queues: ["advance-pid"],
+    registered_queues: ["advance-" + PROJECT_ID],
     last_op_at: "2026-07-22T00:00:00.000Z",
     last_error: null,
     fallback_counts: {},
@@ -108,7 +117,7 @@ function setHealthy() {
     },
     queues: [
       {
-        queueName: "advance-pid",
+        queueName: "advance-" + PROJECT_ID,
         queueType: "project",
         serviceable: true,
         pollerCount: 2,
@@ -119,12 +128,12 @@ function setHealthy() {
   getTemporalWorkerDiagnosticsMock.mockReturnValue([
     {
       kind: "out_of_process",
-      queues: ["advance-pid"],
+      queues: ["advance-" + PROJECT_ID],
       failedQueues: [],
       alive: true,
       diagnostics: [
         {
-          queue: "advance-pid",
+          queue: "advance-" + PROJECT_ID,
           dead: false,
           restartCount: 0,
           childExitCode: null,
@@ -140,17 +149,11 @@ function setHealthy() {
     reason: "no_worker_attached",
   });
   getTemporalWorkerAlivenessMock.mockReturnValue(false);
-  checkAdvSearchAttributesMock.mockResolvedValue({
-    ok: true,
-    present: [{ name: "AdvChangeId" }, { name: "AdvChangeStatus" }],
-    missing: [],
-    wrongType: [],
-  });
   getStslStatsMock.mockReturnValue({
     reconnectCount: 0,
     reconnectFailureCount: 0,
   });
-  getProjectIdMock.mockReturnValue("pid");
+  getProjectIdMock.mockReturnValue(PROJECT_ID);
   probeTaskQueuePollersMock.mockResolvedValue({
     status: "fresh",
     pollerCount: 2,
@@ -451,23 +454,42 @@ describe("adv_doctor", () => {
   });
 
   test("missing search attributes: registered via the safe subset (missing-only, no wrong-type mutation)", async () => {
-    checkAdvSearchAttributesMock.mockResolvedValueOnce({
-      ok: false,
-      present: [{ name: "AdvChangeId" }],
-      missing: [{ name: "AdvChangeStatus" }],
-      wrongType: [],
+    let checkCalls = 0;
+    const checkSearchAttributes = vi.fn(async () => {
+      checkCalls++;
+      if (checkCalls === 1) {
+        return {
+          ok: false,
+          present: [{ name: "AdvChangeId" }],
+          missing: [{ name: "AdvChangeStatus" }],
+          wrongType: [],
+        };
+      }
+      return {
+        ok: true,
+        present: [{ name: "AdvChangeId" }, { name: "AdvChangeStatus" }],
+        missing: [],
+        wrongType: [],
+      };
     });
-    registerMissingAdvSearchAttributesMock.mockResolvedValueOnce({
-      ok: true,
-      created: [{ name: "AdvChangeStatus" }],
-      error: null,
-      verificationStatus: "verified",
-    });
+    const registerSearchAttributes = vi.fn().mockResolvedValue(undefined);
+    getServiceMock.mockReturnValue(
+      createMockOwner({
+        checkSearchAttributes,
+        registerSearchAttributes,
+      }),
+    );
 
     const result = await doctorTools.adv_doctor.execute({}, makeStore());
     const parsed = JSON.parse(result);
 
-    expect(registerMissingAdvSearchAttributesMock).toHaveBeenCalledTimes(1);
+    expect(registerSearchAttributes).toHaveBeenCalledTimes(1);
+    expect(registerSearchAttributes).toHaveBeenCalledWith(
+      expect.objectContaining({
+        opType: "adv_doctor.registerSearchAttributes",
+      }),
+    );
+    expect(checkSearchAttributes).toHaveBeenCalledTimes(3);
     expect(parsed.fixes_applied).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -504,20 +526,20 @@ describe("adv_doctor", () => {
       queues: [],
     });
     restartCurrentProjectTemporalWorkerMock.mockResolvedValue({
-      projectId: "pid",
-      expectedQueue: "advance-pid",
-      queues: ["advance-pid"],
+      projectId: PROJECT_ID,
+      expectedQueue: "advance-" + PROJECT_ID,
+      queues: ["advance-" + PROJECT_ID],
     });
     // Post-restart verification: worker is now alive.
     getTemporalWorkerDiagnosticsMock.mockReturnValue([
       {
         kind: "out_of_process",
-        queues: ["advance-pid"],
+        queues: ["advance-" + PROJECT_ID],
         failedQueues: [],
         alive: true,
         diagnostics: [
           {
-            queue: "advance-pid",
+            queue: "advance-" + PROJECT_ID,
             dead: false,
             restartCount: 0,
             childExitCode: null,
@@ -547,19 +569,29 @@ describe("adv_doctor", () => {
   });
 
   test("wrong-type search attributes: REFUSED with typed approval-required proposal (never auto-mutates)", async () => {
-    checkAdvSearchAttributesMock.mockResolvedValue({
-      ok: false,
-      present: [{ name: "AdvChangeId" }],
-      missing: [],
-      wrongType: [
-        { name: "AdvChangeStatus", expectedType: "Keyword", actualType: "Int" },
-      ],
-    });
+    const registerMissing = vi.fn();
+    getServiceMock.mockReturnValue(
+      createMockOwner({
+        checkSearchAttributes: vi.fn().mockResolvedValue({
+          ok: false,
+          present: [{ name: "AdvChangeId" }],
+          missing: [],
+          wrongType: [
+            {
+              name: "AdvChangeStatus",
+              expectedType: "Keyword",
+              actualType: "Int",
+            },
+          ],
+        }),
+        registerMissingSearchAttributes: registerMissing,
+      }),
+    );
 
     const result = await doctorTools.adv_doctor.execute({}, makeStore());
     const parsed = JSON.parse(result);
 
-    expect(registerMissingAdvSearchAttributesMock).not.toHaveBeenCalled();
+    expect(registerMissing).not.toHaveBeenCalled();
     expect(parsed.fixes_refused).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -624,14 +656,22 @@ describe("adv_doctor", () => {
   });
 
   test("refusal carries a typed proposal pointing to the specific operator action", async () => {
-    checkAdvSearchAttributesMock.mockResolvedValue({
-      ok: false,
-      present: [],
-      missing: [],
-      wrongType: [
-        { name: "AdvChangeId", expectedType: "Keyword", actualType: "Text" },
-      ],
-    });
+    getServiceMock.mockReturnValue(
+      createMockOwner({
+        checkSearchAttributes: vi.fn().mockResolvedValue({
+          ok: false,
+          present: [],
+          missing: [],
+          wrongType: [
+            {
+              name: "AdvChangeId",
+              expectedType: "Keyword",
+              actualType: "Text",
+            },
+          ],
+        }),
+      }),
+    );
 
     const result = await doctorTools.adv_doctor.execute({}, makeStore());
     const parsed = JSON.parse(result);

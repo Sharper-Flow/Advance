@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { getWorktreeRegistrySnapshot, type WorktreeStateAccess } from "./state";
 import {
   createInventoryBudget,
@@ -13,15 +14,11 @@ const queryFn = vi.fn();
 const getHandleFn = vi.hoisted(() => vi.fn(() => ({ query: queryFn })));
 const listFn = vi.hoisted(() => vi.fn());
 const getServiceFn = vi.hoisted(() =>
-  vi.fn(() => ({
-    connection: { close: vi.fn() },
-    client: {
-      workflow: {
-        list: listFn,
-        getHandle: getHandleFn,
-      },
-    },
-  })),
+  vi.fn(() =>
+    createMockOwnerFromClient({
+      client: { workflow: { list: listFn, getHandle: getHandleFn } },
+    }),
+  ),
 );
 
 vi.mock("../../temporal/service", () => ({
@@ -30,7 +27,7 @@ vi.mock("../../temporal/service", () => ({
 
 const access: WorktreeStateAccess = {
   projectDir: "/repo",
-  projectId: "proj-123",
+  projectId: "0000123000000000000000000000000000000000",
 };
 
 function stateWithWorktree(
@@ -67,7 +64,9 @@ beforeEach(() => {
 function mockListChangeIds(ids: string[]) {
   listFn.mockImplementation(async function* () {
     for (const id of ids) {
-      yield { workflowId: `adv/change/proj-123/${id}` };
+      yield {
+        workflowId: `adv/change/0000123000000000000000000000000000000000/${id}`,
+      };
     }
   });
 }

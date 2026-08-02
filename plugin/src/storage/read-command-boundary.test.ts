@@ -289,7 +289,13 @@ const queryContextAllowlist = new Map<string, Set<string>>([
   ],
   [
     "storage/store-temporal/epics.ts",
-    new Set(["queryEpicState", "queryEpicStateRead", "getEpicHandle"]),
+    new Set([
+      "queryEpicState",
+      "queryEpicStateRead",
+      "getEpicHandle",
+      "verifyEpicStatusSearchAttribute",
+      "verifyEpicStatusSearchAttributeImpl",
+    ]),
   ],
   ["storage/store-temporal/gates.ts", new Set(["fireSignalWithMutationGuard"])],
   [

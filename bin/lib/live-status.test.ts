@@ -9,7 +9,9 @@ import {
   summariesFromVisibility,
 } from "./live-status";
 
-function fakeVisibilityClient(
+const PROJECT_ID = "0".repeat(40);
+
+function fakeVisibilityOwner(
   executions: Array<{
     id: string;
     attrs: Record<string, unknown[]>;
@@ -20,30 +22,30 @@ function fakeVisibilityClient(
   const queries: string[] = [];
   return {
     queries,
-    workflow: {
-      list: (opts: { query: string }) => {
-        if (listError) throw listError;
-        queries.push(opts.query);
-        async function* iter() {
-          const requiresRunning = /ExecutionStatus\s*=\s*"Running"/.test(
-            opts.query,
-          );
-          for (const exec of executions) {
-            if (
-              requiresRunning &&
-              exec.executionStatus !== undefined &&
-              exec.executionStatus !== "Running"
-            ) {
-              continue;
-            }
-            yield {
-              workflowId: `adv/change/project123/${exec.id}`,
-              searchAttributes: exec.attrs,
-            };
+    list: async <T extends { workflowId: string }>(
+      _ctx: unknown,
+      query: string,
+      _options?: { limit?: number; nextPageToken?: string },
+    ): Promise<{ kind: "complete"; value: T[]; truncated: boolean }> => {
+      if (listError) throw listError;
+      queries.push(query);
+      const requiresRunning = /ExecutionStatus\s*=\s*"Running"/.test(query);
+      const items = executions
+        .filter((exec) => {
+          if (
+            requiresRunning &&
+            exec.executionStatus !== undefined &&
+            exec.executionStatus !== "Running"
+          ) {
+            return false;
           }
-        }
-        return iter();
-      },
+          return true;
+        })
+        .map((exec) => ({
+          workflowId: `adv/change/${PROJECT_ID}/${exec.id}`,
+          searchAttributes: exec.attrs,
+        })) as T[];
+      return { kind: "complete", value: items, truncated: false };
     },
   };
 }
@@ -99,7 +101,7 @@ describe("live status reader", () => {
         },
       ],
       {
-        projectId: "project123",
+        projectId: PROJECT_ID,
         archivedCount: 2,
         closedCount: 1,
         now: new Date("2026-06-05T10:05:00.000Z"),
@@ -247,7 +249,7 @@ describe("visibility search-attribute status reader", () => {
 
   test("summariesFromVisibility maps executions, drops terminal-complete, sorts by activity desc", async () => {
     const summaries = await summariesFromVisibility(
-      fakeVisibilityClient([
+      fakeVisibilityOwner([
         {
           id: "older",
           attrs: {
@@ -276,14 +278,14 @@ describe("visibility search-attribute status reader", () => {
           },
         },
       ]),
-      { projectId: "project123", now },
+      { projectId: PROJECT_ID, now },
     );
 
     expect(summaries.map((s) => s.id)).toEqual(["newer", "older"]);
   });
 
   test("filters active rows to running executions so stale completed workflows are excluded", async () => {
-    const client = fakeVisibilityClient([
+    const client = fakeVisibilityOwner([
       {
         id: "archivedButStaleActive",
         executionStatus: "Completed",
@@ -307,12 +309,14 @@ describe("visibility search-attribute status reader", () => {
     ]);
 
     const summaries = await summariesFromVisibility(client, {
-      projectId: "project123",
+      projectId: PROJECT_ID,
       now,
     });
 
     expect(client.queries).toHaveLength(1);
-    expect(client.queries[0]).toContain('AdvAffectedProjects = "project123"');
+    expect(client.queries[0]).toContain(
+      `AdvAffectedProjects = "${PROJECT_ID}"`,
+    );
     expect(client.queries[0]).not.toContain("AdvChangeStatus");
     expect(client.queries[0]).toContain('ExecutionStatus = "Running"');
     expect(summaries.map((s) => s.id)).toEqual(["runningActive"]);
@@ -321,8 +325,8 @@ describe("visibility search-attribute status reader", () => {
   test("summariesFromVisibility fails closed when visibility listing fails", async () => {
     await expect(
       summariesFromVisibility(
-        fakeVisibilityClient([], new Error("visibility unavailable")),
-        { projectId: "project123", now },
+        fakeVisibilityOwner([], new Error("visibility unavailable")),
+        { projectId: PROJECT_ID, now },
       ),
     ).rejects.toThrow("visibility unavailable");
   });
@@ -341,7 +345,7 @@ describe("visibility search-attribute status reader", () => {
           now,
         )!,
       ],
-      { projectId: "project123", archivedCount: 3, closedCount: 0, now },
+      { projectId: PROJECT_ID, archivedCount: 3, closedCount: 0, now },
     );
 
     expect(payload.source).toBe("temporal");

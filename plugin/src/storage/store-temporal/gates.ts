@@ -1,30 +1,27 @@
 import type { Store } from "../store-types";
 import type { GateId } from "../../types";
+import type { SignalDefinition } from "@temporalio/workflow";
+import { makeTemporalOperationContext } from "../../temporal/operations";
+import { buildChangeWorkflowId } from "../../temporal/client";
+import type { ChangeWorkflowState } from "../../temporal/contracts";
 import {
   gateCompletedSignal,
   gateReenteredSignal,
   changeStateQuery,
 } from "../../temporal/messages";
 import {
-  runTemporal,
   getGuardedChangeHandle,
+  getTemporalOwner,
   changeCommand,
   fallbackOperationId,
   buildSummaryCommitProjection,
   type ChangeCommandOutcome,
   type StoreDeps,
 } from "./shared";
-import {
-  composeTypedMutationResult,
-  enforceMutationEligibilityForError,
-  type TemporalMutationOutcome,
-} from "../../temporal/mutation-safety";
-import { createLogger } from "../../utils/debug-log";
+import { type TemporalMutationOutcome } from "../../temporal/mutation-safety";
 import { computeHostCommandPayloadHash } from "../../utils/command-payload-hash";
 
 export { fireSignalWithMutationGuard };
-
-const logger = createLogger("store-temporal-gates");
 
 function buildGateCommandIdentity(
   commandKind: string,
@@ -66,43 +63,52 @@ function unwrapCommandOutcome(
 async function fireSignalWithMutationGuard(
   input: import("./shared").TemporalStoreBackendInput,
   changeId: string,
-  signalName: unknown,
+  signalName: SignalDefinition<unknown[]>,
   args: readonly unknown[],
 ): Promise<TemporalMutationOutcome> {
-  let signalError: unknown;
-  try {
-    await runTemporal(async () => {
-      const handle = await getGuardedChangeHandle(input, changeId);
-      await handle.signal(signalName, ...(args as unknown[]));
-    });
-  } catch (err) {
-    signalError = err;
+  const owner = getTemporalOwner(input);
+  const workflowId = buildChangeWorkflowId(input.projectId, changeId);
+  const handle = await getGuardedChangeHandle(input, changeId);
+  const signalCtx = makeTemporalOperationContext(
+    input.projectId,
+    workflowId,
+    "signal",
+    signalName.name,
+    5_000,
+  );
+  const queryCtx = makeTemporalOperationContext(
+    input.projectId,
+    workflowId,
+    "query",
+    "changeStateQuery",
+    5_000,
+  );
+  const outcome = await owner.signal<ChangeWorkflowState>(
+    signalCtx,
+    handle,
+    signalName,
+    [...args],
+    {
+      readback: async () => {
+        const result = await owner.query(queryCtx, handle, changeStateQuery);
+        if (result.kind !== "complete") {
+          throw result.error ?? new Error("change state query incomplete");
+        }
+        return result.value;
+      },
+    },
+  );
+  switch (outcome.kind) {
+    case "confirmed":
+      return "confirmed";
+    case "confirmed_failure":
+      return "failed_before_ack";
+    case "outcome_unknown":
+    case "timeout_unavailable":
+      return "outcome_unknown_readback_unavailable";
+    default:
+      throw new Error("Unexpected signal outcome kind");
   }
-  // SC4 guard at signal-dispatch boundary.
-  if (signalError !== undefined) {
-    enforceMutationEligibilityForError(signalError);
-    // Surviving path: SC4-pass (not_found / poisoned_history).
-  }
-  // SC6: post-signal readback. Ambiguous result is reported as
-  // `outcome_unknown_readback_unavailable`; callers MUST surface this.
-  let readbackError: unknown;
-  try {
-    await runTemporal(async () =>
-      (await getGuardedChangeHandle(input, changeId)).query(changeStateQuery),
-    );
-  } catch (err) {
-    readbackError = err;
-    logger.debug(
-      `SC6 post-signal readback failed for ${String(signalName)} on ${changeId}: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    );
-  }
-  const composed = composeTypedMutationResult({
-    ...(signalError !== undefined ? { signalError } : {}),
-    ...(readbackError !== undefined ? { readbackError } : {}),
-  });
-  return composed.outcome;
 }
 
 export function createGateOps(deps: StoreDeps): Store["gates"] {

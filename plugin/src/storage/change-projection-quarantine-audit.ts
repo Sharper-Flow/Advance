@@ -48,6 +48,8 @@ export type ChangeProjectionQuarantineOutcome = z.infer<
 export interface ChangeProjectionQuarantineAuditEntry {
   /** Unique audit entry id (cqpq-{nanoid(8)}). */
   id: string;
+  /** ADV project ID that owns the quarantined change projection. */
+  project_id: string;
   /** Change ID whose active projection was quarantined. */
   change_id: string;
   /** Diagnostic reason the projection was rejected by the bounded reader. */
@@ -79,6 +81,7 @@ export type ChangeProjectionQuarantineAuditInput = Omit<
 
 export const ChangeProjectionQuarantineAuditEntrySchema = z.object({
   id: z.string().startsWith("cqpq-").min(5),
+  project_id: z.string().min(1),
   change_id: z.string().min(1),
   reason: ChangeProjectionQuarantineReasonSchema,
   action: z.literal("quarantine"),

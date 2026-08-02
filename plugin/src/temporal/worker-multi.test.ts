@@ -184,7 +184,7 @@ const baseInput = {
   namespace: "default",
   queues: ["adv-change-proj1", "adv-project-proj1"] as const,
   workerScript: "/fake/worker.ts",
-  projectId: "proj1",
+  projectId: "0000100000000000000000000000000000000000",
 };
 
 describe("Multi-queue worker host", () => {

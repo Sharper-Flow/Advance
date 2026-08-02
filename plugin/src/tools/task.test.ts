@@ -12,6 +12,9 @@ import type { Store } from "../storage/store";
 import { ContractEvidencePolicySchema, TaskTypeSchema } from "../types";
 import { taskUpdatedSignal } from "../temporal/messages";
 
+const PROJECT_ID = "0".repeat(40);
+const TARGET_PROJECT_ID = "0".repeat(39) + "1";
+
 async function seedProjection(
   change: import("../types").Change,
 ): Promise<void> {
@@ -48,7 +51,7 @@ const mocks = vi.hoisted(() => {
     getHandleMock,
     temporalBundle,
     getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
+    getProjectId: vi.fn(async () => PROJECT_ID),
     fireSignal: vi.fn(async () => {}),
     fireSignalAndRefresh: vi.fn(async () => {}),
     querySignal: vi.fn(),
@@ -77,7 +80,7 @@ const mocks = vi.hoisted(() => {
       fn({
         context: {
           root: "/tmp/target",
-          projectId: "target-project-id",
+          projectId: TARGET_PROJECT_ID,
           externalRoot: "/tmp/target-external",
           trusted: false,
           trustSource: "explicit",
@@ -323,8 +326,8 @@ describe("task tools — signal/query adapters", () => {
       expect(parsed.changeId).toBe("test-change");
       expect(mocks.querySignal).toHaveBeenCalledTimes(1);
       expect(mocks.getChangeHandle).toHaveBeenCalledWith(
-        mocks.temporalBundle.client,
-        "test-project-id",
+        mocks.temporalBundle,
+        PROJECT_ID,
         "test-change",
       );
     });

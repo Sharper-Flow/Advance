@@ -19,6 +19,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { createDefaultGates, type Change } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
@@ -51,7 +52,7 @@ function workflowStateFor(change: Change) {
     status: change.status,
     createdAt: change.created_at,
     initializedAt: change.created_at,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
     tasks: [],
     deltas: {},
     wisdom: [],
@@ -110,7 +111,7 @@ function createHangingTemporal(_changeIds: string[]) {
   const connection = createHangingConnection();
   const queryCalls: { workflowId: string }[] = [];
   return {
-    temporal: {
+    temporal: createMockOwnerFromClient({
       connection,
       client: {
         workflow: {
@@ -125,7 +126,7 @@ function createHangingTemporal(_changeIds: string[]) {
           },
         },
       },
-    },
+    }),
     queryCalls,
   };
 }
@@ -149,7 +150,7 @@ describe("disk-authoritative change read convergence", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const start = Date.now();
@@ -172,7 +173,7 @@ describe("disk-authoritative change read convergence", () => {
     const change = activeChange("fastQueryChange");
     await legacy.changes.save(change);
 
-    const temporal = {
+    const temporal = createMockOwnerFromClient({
       client: {
         workflow: {
           getHandle: () => ({
@@ -183,12 +184,12 @@ describe("disk-authoritative change read convergence", () => {
           },
         },
       },
-    };
+    });
 
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.get("fastQueryChange");
@@ -216,7 +217,7 @@ describe("disk-authoritative change read convergence", () => {
     }
 
     let queryCalls = 0;
-    const temporal = {
+    const temporal = createMockOwnerFromClient({
       client: {
         workflow: {
           getHandle: () => ({
@@ -230,12 +231,12 @@ describe("disk-authoritative change read convergence", () => {
           },
         },
       },
-    };
+    });
 
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.list({ validationConcurrency: 1 });

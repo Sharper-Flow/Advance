@@ -401,10 +401,8 @@ export async function computeStatusQueueServiceability(input: {
   const bundle = getService();
   const serverPollerProbe = bundle
     ? await probeTaskQueuePollers({
-        connection: bundle.connection as unknown as Parameters<
-          typeof probeTaskQueuePollers
-        >[0]["connection"],
-        namespace: bundle.namespace,
+        owner: bundle,
+        projectId: input.projectId,
         taskQueue: expectedQueue,
       })
     : {
@@ -436,10 +434,8 @@ export async function computeStatusQueueServiceability(input: {
   let sessionQueueServiceability: QueueServiceability | undefined;
   if (bundle && sessionQueue) {
     const sessionPollerProbe = await probeTaskQueuePollers({
-      connection: bundle.connection as unknown as Parameters<
-        typeof probeTaskQueuePollers
-      >[0]["connection"],
-      namespace: bundle.namespace,
+      owner: bundle,
+      projectId: input.projectId,
       taskQueue: sessionQueue,
     });
     const sessionStaleCount = input.health.stale_queues

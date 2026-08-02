@@ -49,10 +49,11 @@ import { getDataHome, resolveProjectIdentity } from "../utils/project-id";
 import { execFileGitAsync } from "../utils/git-binary";
 import { isProcessAlive } from "../utils/process-liveness";
 import { WORKER_LOCK_FILENAME } from "../temporal/worker-lock";
+import { buildEpicWorkflowId } from "../temporal/client";
 import {
-  buildEpicWorkflowId,
-  createTemporalClientBundle,
-} from "../temporal/client";
+  TemporalOperationsOwner,
+  makeTemporalOperationContext,
+} from "../temporal/operations";
 import { listEpicWorkflows } from "../temporal/list-epic-workflows";
 import { loadChange } from "../storage/json";
 import { changeSeedStateFromChange } from "../temporal/change-state";
@@ -62,6 +63,7 @@ import {
   ensureEpicWorkflowStarted,
 } from "../temporal/workflow-start";
 import { getEpicStateQuery } from "../temporal/messages";
+import { TemporalReadOutcomeError } from "../temporal/outcome-errors";
 import type {
   ChangeWorkflowInput,
   EpicWorkflowInput,
@@ -778,15 +780,19 @@ export interface BuildPlanOptions {
 }
 
 async function defaultListLiveEpicIds(projectId: string): Promise<string[]> {
-  const bundle = await createTemporalClientBundle();
+  let owner: TemporalOperationsOwner | undefined;
   try {
-    const entries = await listEpicWorkflows(bundle.client, {
+    owner = await TemporalOperationsOwner.fromEnv(projectId);
+    const entries = await listEpicWorkflows(owner, {
       projectId,
       status: "active",
     });
-    return entries.map((e) => e.id);
+    if (entries.kind !== "complete") {
+      throw entries.error;
+    }
+    return entries.value.map((e) => e.id);
   } finally {
-    await bundle.connection.close();
+    await owner?.close();
   }
 }
 
@@ -1435,11 +1441,27 @@ export async function executeConsolidation(
   }
 
   // --- Phase 2: live recreation under the true identity --------------------
-  type TemporalBundle = Awaited<ReturnType<typeof createTemporalClientBundle>>;
-  let bundle: TemporalBundle | null = null;
-  const getClient = async (): Promise<TemporalBundle["client"]> => {
-    if (!bundle) bundle = await createTemporalClientBundle();
-    return bundle.client;
+  const ownerRef: { current: TemporalOperationsOwner | null } = {
+    current: null,
+  };
+  const sourceOwnerRef: { current: TemporalOperationsOwner | null } = {
+    current: null,
+  };
+  const getOwner = async (): Promise<TemporalOperationsOwner> => {
+    if (!ownerRef.current) {
+      ownerRef.current = await TemporalOperationsOwner.fromEnv(
+        options.targetProjectId,
+      );
+    }
+    return ownerRef.current;
+  };
+  const getSourceOwner = async (): Promise<TemporalOperationsOwner> => {
+    if (!sourceOwnerRef.current) {
+      sourceOwnerRef.current = await TemporalOperationsOwner.fromEnv(
+        options.sourceProjectId,
+      );
+    }
+    return sourceOwnerRef.current;
   };
 
   const deps = options.deps ?? {};
@@ -1448,13 +1470,7 @@ export async function executeConsolidation(
   const recreateLiveChange =
     deps.recreateLiveChange ??
     (async (input: ChangeWorkflowInput): Promise<void> => {
-      const client = {
-        workflow: (await getClient()).workflow as unknown as {
-          start: (...args: unknown[]) => Promise<unknown>;
-          getHandle: (workflowId: string) => unknown;
-        },
-      };
-      await ensureChangeWorkflowStarted(client as never, input);
+      await ensureChangeWorkflowStarted(await getOwner(), input);
     });
   const queryLiveEpicState =
     deps.queryLiveEpicState ??
@@ -1462,27 +1478,26 @@ export async function executeConsolidation(
       projectId: string,
       epicId: string,
     ): Promise<EpicWorkflowState | null> => {
-      const client = await getClient();
-      const handle = client.workflow.getHandle(
-        buildEpicWorkflowId(projectId, epicId),
+      const o = await getSourceOwner();
+      const workflowId = buildEpicWorkflowId(projectId, epicId);
+      const ctx = makeTemporalOperationContext(
+        projectId,
+        workflowId,
+        "query",
+        "storeConsolidate.queryLiveEpicState",
+        epicQueryTimeoutMs,
       );
-      try {
-        return (await handle.query(getEpicStateQuery)) as EpicWorkflowState;
-      } catch (error) {
-        if (/not found/i.test(errorMessage(error))) return null;
-        throw error;
-      }
+      const handle = o.getHandle(ctx);
+      const outcome = await o.query(ctx, handle, getEpicStateQuery);
+      if (outcome.kind === "complete")
+        return outcome.value as EpicWorkflowState;
+      if (outcome.kind === "not_found") return null;
+      throw new TemporalReadOutcomeError(outcome);
     });
   const recreateLiveEpic =
     deps.recreateLiveEpic ??
     (async (input: EpicWorkflowInput): Promise<void> => {
-      const client = {
-        workflow: (await getClient()).workflow as unknown as {
-          start: (...args: unknown[]) => Promise<unknown>;
-          getHandle: (workflowId: string) => unknown;
-        },
-      };
-      await ensureEpicWorkflowStarted(client as never, input);
+      await ensureEpicWorkflowStarted(await getOwner(), input);
     });
 
   try {
@@ -1604,10 +1619,10 @@ export async function executeConsolidation(
       }
     }
   } finally {
-    // Cast defeats TS closure-narrowing (`bundle` is assigned inside the
-    // getClient closure, which the control-flow analysis cannot see).
-    const opened = bundle as TemporalBundle | null;
-    await opened?.connection.close();
+    await Promise.all([
+      sourceOwnerRef.current?.close(),
+      ownerRef.current?.close(),
+    ]);
   }
 
   // --- Phase 3: jsonl appends with content-hash dedupe ---------------------

@@ -11,6 +11,7 @@
  * sequential-await ordering (C5) and the metadata signal pairing.
  */
 
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createChangeOps } from "./store-temporal/changes";
@@ -155,8 +156,8 @@ function buildRecordingDeps(): {
   const deps = {
     input: {
       legacy,
-      temporal: { client: workflowClient },
-      projectId: "test-project",
+      temporal: createMockOwnerFromClient({ client: workflowClient }),
+      projectId: "0e000000ec000000000000000000000000000000",
     },
     legacy,
     invalidateChange: vi.fn(),

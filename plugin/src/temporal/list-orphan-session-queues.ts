@@ -15,6 +15,13 @@ import {
   CHANGE_WORKFLOW_PREFIX,
 } from "./contracts";
 import { escapeVisibilityValue } from "./lifecycle-visibility";
+import type {
+  TemporalListOutcome,
+  TemporalOperations,
+  TemporalReadOutcome,
+  TemporalLifecycleContext,
+} from "./operations";
+import { makeTemporalOperationContext } from "./operations";
 
 /**
  * Hard cap on inspected workflows (safety bound). FIFO selection is
@@ -23,39 +30,6 @@ import { escapeVisibilityValue } from "./lifecycle-visibility";
  * later heartbeat. Bounded by realistic project sizes (tens to low hundreds).
  */
 const INSPECTION_LIMIT = 500;
-
-/**
- * Minimal client shape for Visibility enumeration.
- * `@temporalio/client` Client satisfies this structurally.
- */
-export interface OrphanListClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{
-      workflowId: string;
-      taskQueue: string;
-      startTime: Date;
-      status: { name: string };
-    }>;
-  };
-  /**
-   * Optional gRPC connection handle. `@temporalio/client` Client satisfies this
-   * structurally.
-   *
-   * This is the ONLY cancellation surface available for Visibility enumeration:
-   * `ListOptions` is `{ pageSize?, query? }` — it carries no `abortSignal` and
-   * no deadline (SDK v1.16). Cancellation is scoped at the connection via
-   * `withAbortSignal`, which cancels ongoing gRPC requests inside `fn`.
-   *
-   * Without this, a Visibility stream that stalls before yielding its first
-   * page cannot be torn down, and each driver tick leaks another stream (#327).
-   */
-  connection?: {
-    withAbortSignal?: <T>(
-      signal: AbortSignal,
-      fn: () => Promise<T>,
-    ) => Promise<T>;
-  };
-}
 
 export interface OrphanSessionQueue {
   /** Session-scoped task queue name (advance-{P}-sess_{id}). */
@@ -71,27 +45,49 @@ export interface OrphanSessionQueue {
  * existing session-pinned workflows would be stranded without a poller.
  */
 export async function hasActiveSessionPinnedWorkflows(
-  client: OrphanListClient,
+  owner: TemporalOperations,
   projectId: string,
-): Promise<boolean> {
+  preflightCtx?: TemporalLifecycleContext,
+): Promise<TemporalReadOutcome<boolean>> {
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
   const sessionPrefix = buildSessionQueuePrefix(projectId);
   const safeProjectId = escapeVisibilityValue(projectId);
   const query = `AdvAffectedProjects = "${safeProjectId}"`;
+  const placeholderWorkflowId = `${projectPrefix}session-pin-check`;
 
-  for await (const wf of client.workflow.list({ query })) {
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    placeholderWorkflowId,
+    "list",
+    "hasActiveSessionPinnedWorkflows",
+    preflightCtx?.budgetMs ?? 10_000,
+    preflightCtx?.abortSignal,
+  );
+  const outcome = await owner.list<{
+    workflowId: string;
+    taskQueue: string;
+    status: { name: string };
+  }>(ctx, query);
+  if (outcome.kind !== "complete") {
+    return {
+      kind: "degraded",
+      error: outcome.error,
+      diagnostic: outcome.diagnostic,
+    };
+  }
+  for (const wf of outcome.value) {
     if (wf.status.name !== "RUNNING") continue;
     if (!wf.workflowId.startsWith(projectPrefix)) continue;
     if (!wf.taskQueue.startsWith(sessionPrefix)) continue;
-    return true;
+    return { kind: "complete", value: true };
   }
-  return false;
+  return { kind: "complete", value: false };
 }
 
 export interface ListOrphanSessionQueuesOptions {
   /**
    * Cancels the underlying Visibility gRPC calls when aborted (routed through
-   * `client.connection.withAbortSignal`). Also breaks the collection loop.
+   * the TemporalOperations owner). Also breaks the collection loop.
    */
   signal?: AbortSignal;
   /**
@@ -120,11 +116,11 @@ function buildSessionQueuePrefix(projectId: string): string {
  * orphans found.
  */
 export async function listOrphanSessionQueues(
-  client: OrphanListClient,
+  owner: TemporalOperations,
   projectId: string,
   polledQueues: readonly string[],
   options: ListOrphanSessionQueuesOptions = {},
-): Promise<OrphanSessionQueue[]> {
+): Promise<TemporalListOutcome<OrphanSessionQueue[]>> {
   const { signal, deadlineMs, now = () => Date.now() } = options;
   const startedAt = now();
 
@@ -134,58 +130,64 @@ export async function listOrphanSessionQueues(
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
   const sessionPrefix = buildSessionQueuePrefix(projectId);
   const polled = new Set(polledQueues);
+  const placeholderWorkflowId = `${projectPrefix}orphan-session-queues`;
 
-  const collect = async (): Promise<OrphanSessionQueue[]> => {
-    // Collect per-queue oldest startTime
-    const queueOldestStart = new Map<string, Date>();
-    let inspected = 0;
+  // Collect per-queue oldest startTime
+  const queueOldestStart = new Map<string, Date>();
+  let inspected = 0;
 
-    // `break` (not `return`) so the async iterator's `return()` runs and the
-    // underlying Visibility stream is released rather than left dangling.
-    for await (const wf of client.workflow.list({ query })) {
-      if (signal?.aborted) break;
-      if (deadlineMs !== undefined && now() - startedAt >= deadlineMs) break;
-      if (inspected >= INSPECTION_LIMIT) break;
-      inspected++;
-
-      // Only change workflows (exclude epics)
-      if (!wf.workflowId.startsWith(projectPrefix)) continue;
-
-      // Only RUNNING workflows need a poller
-      if (wf.status.name !== "RUNNING") continue;
-
-      // Only session-scoped queues can be orphaned
-      if (!wf.taskQueue.startsWith(sessionPrefix)) continue;
-
-      // Skip queues already being polled
-      if (polled.has(wf.taskQueue)) continue;
-
-      // Keep the oldest startTime per queue (for deterministic FIFO sort)
-      const existing = queueOldestStart.get(wf.taskQueue);
-      if (!existing || wf.startTime < existing) {
-        queueOldestStart.set(wf.taskQueue, wf.startTime);
-      }
-    }
-
-    // Sort by oldest startTime ascending (FIFO — oldest orphans first)
-    const result = [...queueOldestStart.entries()].map(
-      ([queue, oldestStartTime]) => ({
-        queue,
-        oldestStartTime,
-      }),
-    );
-    result.sort(
-      (a, b) => a.oldestStartTime.getTime() - b.oldestStartTime.getTime(),
-    );
-
-    return result;
-  };
-
-  // Scope the enumeration to the caller's abort signal when the client exposes
-  // a real connection, so aborting actually cancels the in-flight gRPC call.
-  const connection = client.connection;
-  if (signal && typeof connection?.withAbortSignal === "function") {
-    return await connection.withAbortSignal(signal, collect);
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    placeholderWorkflowId,
+    "list",
+    "listOrphanSessionQueues",
+    10_000,
+    signal,
+  );
+  const outcome = await owner.list<{
+    workflowId: string;
+    taskQueue: string;
+    startTime: Date;
+    status: { name: string };
+  }>(ctx, query, { limit: INSPECTION_LIMIT });
+  if (outcome.kind !== "complete") {
+    return outcome;
   }
-  return await collect();
+  for (const wf of outcome.value) {
+    if (signal?.aborted) break;
+    if (deadlineMs !== undefined && now() - startedAt >= deadlineMs) break;
+    if (inspected >= INSPECTION_LIMIT) break;
+    inspected++;
+
+    // Only change workflows (exclude epics)
+    if (!wf.workflowId.startsWith(projectPrefix)) continue;
+
+    // Only RUNNING workflows need a poller
+    if (wf.status.name !== "RUNNING") continue;
+
+    // Only session-scoped queues can be orphaned
+    if (!wf.taskQueue.startsWith(sessionPrefix)) continue;
+
+    // Skip queues already being polled
+    if (polled.has(wf.taskQueue)) continue;
+
+    // Keep the oldest startTime per queue (for deterministic FIFO sort)
+    const existing = queueOldestStart.get(wf.taskQueue);
+    if (!existing || wf.startTime < existing) {
+      queueOldestStart.set(wf.taskQueue, wf.startTime);
+    }
+  }
+
+  // Sort by oldest startTime ascending (FIFO — oldest orphans first)
+  const orphans = [...queueOldestStart.entries()].map(
+    ([queue, oldestStartTime]) => ({
+      queue,
+      oldestStartTime,
+    }),
+  );
+  orphans.sort(
+    (a, b) => a.oldestStartTime.getTime() - b.oldestStartTime.getTime(),
+  );
+
+  return { kind: "complete", value: orphans, truncated: outcome.truncated };
 }

@@ -1,14 +1,32 @@
 import { describe, expect, test, vi } from "vitest";
 import {
   ensureChangeWorkflowStarted,
+  ensureEpicWorkflowStarted,
   reImportChangeState,
   IncompatibleActiveSessionQueuesError,
+  StartWorkflowOutcomeError,
 } from "./workflow-start";
+import {
+  createMockOwnerFromClient,
+  createMockOwner,
+} from "./__tests__/mock-owner";
+import {
+  buildProjectTaskQueue,
+  buildSessionTaskQueue,
+  buildChangeWorkflowId,
+} from "./client";
 import {
   ChangeCreationHashConflictError,
   CREATION_HASH_CONFLICT_CODE,
 } from "../storage/store-temporal/creation-hash";
 import type { Change } from "../types";
+
+const PROJECT_ID = "0".repeat(40);
+const PROJ_Q = buildProjectTaskQueue(PROJECT_ID);
+
+function ownerFrom(client: unknown) {
+  return createMockOwnerFromClient(client);
+}
 
 const contract: NonNullable<Change["contract"]> = {
   version: 1,
@@ -46,8 +64,8 @@ describe("ensureChangeWorkflowStarted", () => {
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
 
-    await ensureChangeWorkflowStarted(client, {
-      projectId: "pid-abc",
+    await ensureChangeWorkflowStarted(ownerFrom(client), {
+      projectId: PROJECT_ID,
       changeId: "backlogFeature51",
       title: "Backlog feature 51",
       initializedAt: "2026-05-11T00:00:00.000Z",
@@ -71,8 +89,8 @@ describe("ensureChangeWorkflowStarted", () => {
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
 
-    await ensureChangeWorkflowStarted(client, {
-      projectId: "pid-abc",
+    await ensureChangeWorkflowStarted(ownerFrom(client), {
+      projectId: PROJECT_ID,
       changeId: "epicChild",
       title: "Epic child",
       initializedAt: "2026-05-11T00:00:00.000Z",
@@ -102,8 +120,8 @@ describe("ensureChangeWorkflowStarted", () => {
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
 
-    await ensureChangeWorkflowStarted(client, {
-      projectId: "pid-abc",
+    await ensureChangeWorkflowStarted(ownerFrom(client), {
+      projectId: PROJECT_ID,
       changeId: "sessionRouted",
       title: "Session routed",
       initializedAt: "2026-07-21T00:00:00.000Z",
@@ -113,7 +131,7 @@ describe("ensureChangeWorkflowStarted", () => {
     expect(start).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        taskQueue: "advance-pid-abc-sess_RouteTest",
+        taskQueue: buildSessionTaskQueue(PROJECT_ID, "sess_RouteTest"),
       }),
     );
   });
@@ -123,8 +141,8 @@ describe("ensureChangeWorkflowStarted", () => {
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
 
-    await ensureChangeWorkflowStarted(client, {
-      projectId: "pid-abc",
+    await ensureChangeWorkflowStarted(ownerFrom(client), {
+      projectId: PROJECT_ID,
       changeId: "legacyRoute",
       title: "Legacy route",
       initializedAt: "2026-07-21T00:00:00Z",
@@ -134,7 +152,7 @@ describe("ensureChangeWorkflowStarted", () => {
     expect(start).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        taskQueue: "advance-pid-abc",
+        taskQueue: PROJ_Q,
       }),
     );
   });
@@ -146,9 +164,9 @@ describe("ensureChangeWorkflowStarted", () => {
     const client = { workflow: { start, getHandle: vi.fn(), list } };
 
     await ensureChangeWorkflowStarted(
-      client,
+      ownerFrom(client),
       {
-        projectId: "pid-abc",
+        projectId: PROJECT_ID,
         changeId: "singletonRoute",
         title: "Singleton route",
         initializedAt: "2026-07-21T00:00:00Z",
@@ -160,7 +178,7 @@ describe("ensureChangeWorkflowStarted", () => {
     expect(start).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        taskQueue: "advance-pid-abc",
+        taskQueue: PROJ_Q,
       }),
     );
     expect(list).toHaveBeenCalledWith(
@@ -176,9 +194,9 @@ describe("ensureChangeWorkflowStarted", () => {
     const client = { workflow: { start, getHandle: vi.fn() } };
 
     await ensureChangeWorkflowStarted(
-      client,
+      ownerFrom(client),
       {
-        projectId: "pid-abc",
+        projectId: PROJECT_ID,
         changeId: "sessionMode",
         title: "Session mode",
         initializedAt: "2026-07-21T00:00:00Z",
@@ -190,7 +208,7 @@ describe("ensureChangeWorkflowStarted", () => {
     expect(start).toHaveBeenCalledWith(
       expect.any(Function),
       expect.objectContaining({
-        taskQueue: "advance-pid-abc-sess_DefaultSession",
+        taskQueue: buildSessionTaskQueue(PROJECT_ID, "sess_DefaultSession"),
       }),
     );
   });
@@ -199,8 +217,8 @@ describe("ensureChangeWorkflowStarted", () => {
     const start = vi.fn().mockResolvedValue({ query: vi.fn() });
     const list = vi.fn().mockReturnValue([
       {
-        workflowId: "adv/change/pid-abc/existingSessionPinned",
-        taskQueue: "advance-pid-abc-sess_existing",
+        workflowId: buildChangeWorkflowId(PROJECT_ID, "existingSessionPinned"),
+        taskQueue: buildSessionTaskQueue(PROJECT_ID, "sess_existing"),
         status: { name: "RUNNING" },
       },
     ]);
@@ -208,9 +226,9 @@ describe("ensureChangeWorkflowStarted", () => {
 
     await expect(
       ensureChangeWorkflowStarted(
-        client,
+        ownerFrom(client),
         {
-          projectId: "pid-abc",
+          projectId: PROJECT_ID,
           changeId: "singletonBlocked",
           title: "Singleton blocked",
           initializedAt: "2026-07-21T00:00:00Z",
@@ -229,9 +247,9 @@ describe("ensureChangeWorkflowStarted", () => {
     const client = { workflow: { start, getHandle: vi.fn() } };
 
     await ensureChangeWorkflowStarted(
-      client,
+      ownerFrom(client),
       {
-        projectId: "pid-abc",
+        projectId: PROJECT_ID,
         changeId: "singletonNoList",
         title: "Singleton no list",
         initializedAt: "2026-07-21T00:00:00Z",
@@ -241,6 +259,66 @@ describe("ensureChangeWorkflowStarted", () => {
     );
 
     expect(start).toHaveBeenCalled();
+  });
+
+  describe("typed start outcome errors", () => {
+    test("timeout_unavailable outcome throws StartWorkflowOutcomeError with kind timeout_unavailable", async () => {
+      const owner = createMockOwner({
+        startChangeWorkflow: vi.fn(async () => ({
+          kind: "timeout_unavailable",
+          error: new Error("deadline exceeded"),
+          diagnostic: { class: "deadline", reachable: true },
+        })),
+      });
+
+      await expect(
+        ensureChangeWorkflowStarted(owner, {
+          projectId: PROJECT_ID,
+          changeId: "timeoutChange",
+          title: "Timeout change",
+          initializedAt: "2026-07-21T00:00:00Z",
+        }),
+      ).rejects.toBeInstanceOf(StartWorkflowOutcomeError);
+    });
+
+    test("outcome_unknown outcome throws StartWorkflowOutcomeError with kind outcome_unknown", async () => {
+      const owner = createMockOwner({
+        startChangeWorkflow: vi.fn(async () => ({
+          kind: "outcome_unknown",
+          error: new Error("readback ambiguous"),
+          diagnostic: { class: "unknown", reachable: true },
+        })),
+      });
+
+      await expect(
+        ensureChangeWorkflowStarted(owner, {
+          projectId: PROJECT_ID,
+          changeId: "unknownChange",
+          title: "Unknown change",
+          initializedAt: "2026-07-21T00:00:00Z",
+        }),
+      ).rejects.toBeInstanceOf(StartWorkflowOutcomeError);
+    });
+
+    test("ensureEpicWorkflowStarted throws StartWorkflowOutcomeError on timeout_unavailable", async () => {
+      const owner = createMockOwner({
+        startEpicWorkflow: vi.fn(async () => ({
+          kind: "timeout_unavailable",
+          error: new Error("epic start deadline"),
+          diagnostic: { class: "deadline", reachable: true },
+        })),
+      });
+
+      await expect(
+        ensureEpicWorkflowStarted(owner, {
+          projectId: PROJECT_ID,
+          epicId: "timeoutEpic",
+          title: "Timeout epic",
+          narrative: "",
+          initializedAt: "2026-07-21T00:00:00Z",
+        }),
+      ).rejects.toBeInstanceOf(StartWorkflowOutcomeError);
+    });
   });
 
   describe("creation_request_hash idempotency on already-started path (rq-creationRequestHash01, tk-74c358188ffb)", () => {
@@ -273,8 +351,8 @@ describe("ensureChangeWorkflowStarted", () => {
         creation_request_hash: hash,
       });
 
-      const returned = await ensureChangeWorkflowStarted(client, {
-        projectId: "pid-abc",
+      const returned = await ensureChangeWorkflowStarted(ownerFrom(client), {
+        projectId: PROJECT_ID,
         changeId: "retryAfterTimeout",
         title: "Retry after timeout",
         initializedAt: "2026-07-22T00:00:00.000Z",
@@ -283,7 +361,7 @@ describe("ensureChangeWorkflowStarted", () => {
 
       expect(getHandle).toHaveBeenCalledTimes(1);
       expect(existingHandle.query).toHaveBeenCalledTimes(1);
-      expect(returned).toBe(existingHandle);
+      expect(returned).toMatchObject(existingHandle);
       // The original start attempt threw already-started; no second start.
       expect(start).toHaveBeenCalledTimes(1);
     });
@@ -298,8 +376,8 @@ describe("ensureChangeWorkflowStarted", () => {
       });
 
       await expect(
-        ensureChangeWorkflowStarted(client, {
-          projectId: "pid-abc",
+        ensureChangeWorkflowStarted(ownerFrom(client), {
+          projectId: PROJECT_ID,
           changeId: "sameSummaryDiffCapability",
           title: "Same summary diff capability",
           initializedAt: "2026-07-22T00:00:00.000Z",
@@ -314,8 +392,8 @@ describe("ensureChangeWorkflowStarted", () => {
 
       // Also satisfies instanceof for callers that key off the typed Error.
       await expect(
-        ensureChangeWorkflowStarted(client, {
-          projectId: "pid-abc",
+        ensureChangeWorkflowStarted(ownerFrom(client), {
+          projectId: PROJECT_ID,
           changeId: "sameSummaryDiffCapability",
           title: "Same summary diff capability",
           initializedAt: "2026-07-22T00:00:00.000Z",
@@ -333,15 +411,15 @@ describe("ensureChangeWorkflowStarted", () => {
         // creation_request_hash omitted
       });
 
-      const returned = await ensureChangeWorkflowStarted(client, {
-        projectId: "pid-abc",
+      const returned = await ensureChangeWorkflowStarted(ownerFrom(client), {
+        projectId: PROJECT_ID,
         changeId: "legacyWorkflowRetry",
         title: "Legacy workflow retry",
         initializedAt: "2026-07-22T00:00:00.000Z",
         creationRequestHash: computedHash,
       });
 
-      expect(returned).toBe(existingHandle);
+      expect(returned).toMatchObject(existingHandle);
     });
 
     test("omits hash check when caller does not supply creationRequestHash (backward compat)", async () => {
@@ -349,8 +427,8 @@ describe("ensureChangeWorkflowStarted", () => {
         creation_request_hash: "some-legacy-hash",
       });
 
-      const returned = await ensureChangeWorkflowStarted(client, {
-        projectId: "pid-abc",
+      const returned = await ensureChangeWorkflowStarted(ownerFrom(client), {
+        projectId: PROJECT_ID,
         changeId: "callerDidNotCompute",
         title: "Caller did not compute",
         initializedAt: "2026-07-22T00:00:00.000Z",
@@ -358,7 +436,7 @@ describe("ensureChangeWorkflowStarted", () => {
       });
 
       // Pre-existing behavior preserved: silent reuse, no state query.
-      expect(returned).toBe(existingHandle);
+      expect(returned).toMatchObject(existingHandle);
       expect(existingHandle.query).not.toHaveBeenCalled();
     });
 
@@ -379,8 +457,8 @@ describe("ensureChangeWorkflowStarted", () => {
       // A query failure must not be swallowed as "idempotent match".
       // Surface so the caller / P1.4 rollback can react.
       await expect(
-        ensureChangeWorkflowStarted(client, {
-          projectId: "pid-abc",
+        ensureChangeWorkflowStarted(ownerFrom(client), {
+          projectId: PROJECT_ID,
           changeId: "queryFailureSurfaces",
           title: "Query failure surfaces",
           initializedAt: "2026-07-22T00:00:00.000Z",
@@ -397,8 +475,8 @@ describe("reImportChangeState", () => {
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
 
-    await reImportChangeState(client, {
-      projectId: "pid-abc",
+    await reImportChangeState(ownerFrom(client), {
+      projectId: PROJECT_ID,
       change: {
         id: "backlogFeature51",
         title: "Backlog feature 51",
@@ -439,8 +517,8 @@ describe("reImportChangeState", () => {
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
 
-    await reImportChangeState(client, {
-      projectId: "pid-abc",
+    await reImportChangeState(ownerFrom(client), {
+      projectId: PROJECT_ID,
       change: {
         id: "epicChild",
         title: "Epic child",
@@ -474,8 +552,8 @@ describe("reImportChangeState", () => {
     const start = vi.fn().mockResolvedValue(handle);
     const client = { workflow: { start, getHandle: vi.fn() } };
 
-    await reImportChangeState(client, {
-      projectId: "pid-abc",
+    await reImportChangeState(ownerFrom(client), {
+      projectId: PROJECT_ID,
       change: {
         id: "contractRecovery",
         title: "Contract recovery",

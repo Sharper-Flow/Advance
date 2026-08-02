@@ -37,6 +37,7 @@ export interface WrongTypeAdvSearchAttribute {
 }
 
 export interface AdvSearchAttributeCheckResult {
+  projectId: string;
   ok: boolean;
   verificationStatus: "verified" | "unverified";
   present: RequiredAdvSearchAttribute[];
@@ -46,6 +47,7 @@ export interface AdvSearchAttributeCheckResult {
 }
 
 export interface AdvSearchAttributeRegistrationResult {
+  projectId: string;
   ok: boolean;
   method: "operatorService.addSearchAttributes" | "unavailable";
   verificationStatus: "verified" | "unverified";
@@ -104,11 +106,13 @@ function extractIndexedValueType(value: unknown): number | null {
 export async function checkAdvSearchAttributes(
   connection: SearchAttributeConnectionLike,
   namespace: string,
+  projectId: string,
 ): Promise<AdvSearchAttributeCheckResult> {
   const required = requiredAdvSearchAttributes();
   const operatorService = connection.operatorService;
   if (!operatorService?.listSearchAttributes) {
     return {
+      projectId,
       ok: false,
       verificationStatus: "unverified",
       present: [],
@@ -146,6 +150,7 @@ export async function checkAdvSearchAttributes(
     }
 
     return {
+      projectId,
       ok: missing.length === 0 && wrongType.length === 0,
       verificationStatus: "verified",
       present,
@@ -154,6 +159,7 @@ export async function checkAdvSearchAttributes(
     };
   } catch (err) {
     return {
+      projectId,
       ok: false,
       verificationStatus: "unverified",
       present: [],
@@ -167,12 +173,18 @@ export async function checkAdvSearchAttributes(
 export async function registerMissingAdvSearchAttributes(
   connection: SearchAttributeConnectionLike,
   namespace: string,
+  projectId: string,
 ): Promise<AdvSearchAttributeRegistrationResult> {
-  const check = await checkAdvSearchAttributes(connection, namespace);
+  const check = await checkAdvSearchAttributes(
+    connection,
+    namespace,
+    projectId,
+  );
   const operatorService = connection.operatorService;
 
   if (check.wrongType.length > 0) {
     return {
+      projectId,
       ok: false,
       method: "operatorService.addSearchAttributes",
       verificationStatus: check.verificationStatus,
@@ -185,6 +197,7 @@ export async function registerMissingAdvSearchAttributes(
 
   if (check.missing.length === 0) {
     return {
+      projectId,
       ok: check.ok,
       method: operatorService?.addSearchAttributes
         ? "operatorService.addSearchAttributes"
@@ -199,6 +212,7 @@ export async function registerMissingAdvSearchAttributes(
 
   if (!operatorService?.addSearchAttributes) {
     return {
+      projectId,
       ok: false,
       method: "unavailable",
       verificationStatus: check.verificationStatus,
@@ -218,6 +232,7 @@ export async function registerMissingAdvSearchAttributes(
     // Call through the service object instead of destructuring the method.
     await operatorService.addSearchAttributes({ namespace, searchAttributes });
     return {
+      projectId,
       ok: true,
       method: "operatorService.addSearchAttributes",
       verificationStatus: check.verificationStatus,
@@ -227,6 +242,7 @@ export async function registerMissingAdvSearchAttributes(
     };
   } catch (err) {
     return {
+      projectId,
       ok: false,
       method: "operatorService.addSearchAttributes",
       verificationStatus: check.verificationStatus,
