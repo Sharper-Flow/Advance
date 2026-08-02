@@ -4094,6 +4094,7 @@ export const changeTools = {
           gateState,
           phase9 !== "skip",
           divergenceHint,
+          change,
         );
         if (gatePreflightError) {
           return gatePreflightError;
@@ -4558,6 +4559,7 @@ export const changeTools = {
             changeId,
             evidence: releaseEvidence,
             finalization,
+            change,
           });
           if (!durableProof.ok) {
             return formatToolOutput({

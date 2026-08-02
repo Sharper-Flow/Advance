@@ -259,6 +259,7 @@ function createMockStore(
     phase9_status: options.phase9_status,
     ops_followup_links: options.ops_followup_links,
     epic_membership: options.epicMembership,
+    worker_bundle_impact: { kind: "not_applicable", rationale: "test harness" },
   };
 
   mocks.workflow.gates = gates;
@@ -458,6 +459,55 @@ describe("adv_change_archive Phase 9 behavior", () => {
       completed_by: "adv-archive",
     });
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
+  });
+
+  test("blocks archive when worker-bundle provenance is undeclared for a release-pending change", async () => {
+    const store = createMockStore();
+    const changeWithoutProvenance: Change = {
+      id: "example",
+      title: "Example",
+      status: "active",
+      created_at: "2026-01-01T00:00:00Z",
+      created_by: "test",
+      tasks: [
+        {
+          id: "tk-1",
+          title: "Task 1",
+          status: "done",
+          created_at: "2026-01-01T00:00:00Z",
+        },
+      ],
+      deltas: {},
+      wisdom: [],
+      gates: {
+        proposal: { status: "done" },
+        discovery: { status: "done" },
+        design: { status: "done" },
+        planning: { status: "done" },
+        execution: { status: "done" },
+        acceptance: { status: "done" },
+        release: { status: "pending" },
+      },
+    } as Change;
+    vi.mocked(store.changes.get).mockImplementation(async (id: string) =>
+      id === "example"
+        ? { success: true, data: changeWithoutProvenance }
+        : { success: true, data: null },
+    );
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).toContain(
+      "worker-bundle release provenance is undeclared or invalid",
+    );
+    expect(parsed.error).toContain(
+      "WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED",
+    );
+    expect(mocks.finalizeRelease).not.toHaveBeenCalled();
   });
 
   test("complete authority reaches Phase 9 finalization; incomplete authority blocks archive", async () => {

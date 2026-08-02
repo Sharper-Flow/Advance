@@ -188,6 +188,10 @@ function createMockStore(
     tasks: [],
     deltas: {},
     wisdom: [],
+    worker_bundle_impact: {
+      kind: "not_applicable",
+      rationale: "test harness",
+    },
     gates: overrides.gates ?? defaultGates,
     ...overrides.change,
   };
@@ -528,6 +532,10 @@ describe("gate tools — signal-driven lifecycle", () => {
             tasks: [],
             deltas: {},
             wisdom: [],
+            worker_bundle_impact: {
+              kind: "not_applicable",
+              rationale: "test harness",
+            },
             gates: recoveredGates,
           }),
         );
@@ -743,6 +751,10 @@ describe("gate tools — signal-driven lifecycle", () => {
             tasks: [],
             deltas: {},
             wisdom: [],
+            worker_bundle_impact: {
+              kind: "not_applicable",
+              rationale: "test harness",
+            },
             gates,
           }),
         );
@@ -770,7 +782,7 @@ describe("gate tools — signal-driven lifecycle", () => {
           },
           store,
         );
-
+        // console.log removed
         const parsed = JSON.parse(result);
         expect(parsed.success).toBe(true);
         expect(parsed.recovered).toBe(true);
@@ -871,6 +883,10 @@ describe("gate tools — signal-driven lifecycle", () => {
         subagent_reports: [verificationReport],
         deltas: {},
         wisdom: [],
+        worker_bundle_impact: {
+          kind: "not_applicable",
+          rationale: "test harness",
+        },
         gates,
       };
 

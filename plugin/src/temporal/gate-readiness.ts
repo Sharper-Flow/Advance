@@ -12,9 +12,10 @@ import {
   type OpsFollowupStatus,
   type ScopedSubagentReport,
   type VerificationEvidenceDisposition,
-  isProofBearingEvidencePolicy,
   type AcceptanceCriteriaFreshness,
   type AcceptanceCriteriaProjection,
+  type Change,
+  isProofBearingEvidencePolicy,
 } from "../types";
 import {
   resolveTaskEvidence,
@@ -1128,6 +1129,43 @@ export function evaluateWorkerBundleProvenance(state: ChangeWorkflowState): {
   }
 
   return { ok: true, blockers: [] };
+}
+
+/**
+ * Reusable chokepoint: evaluates worker-bundle provenance for a persisted
+ * Change projection. This lets every release-completion writer (workflow
+ * signal handler, disk recovery, shipped rescue, archive preflight) share the
+ * same proof validation without rebuilding a full workflow state.
+ *
+ * Accepts either a `Change` loaded from disk or the workflow reducer's
+ * `ChangeWorkflowState`; only the worker-bundle fields are inspected.
+ */
+export function evaluateWorkerBundleProvenanceForChange(
+  change:
+    | Change
+    | Pick<
+        ChangeWorkflowState,
+        "worker_bundle_impact" | "workerBundleProvenance" | "testRuns"
+      >,
+): { ok: boolean; blockers: GateReadinessBlocker[] } {
+  const stateLike = {
+    worker_bundle_impact: (change as Partial<Change>).worker_bundle_impact,
+    workerBundleProvenance:
+      (change as Partial<ChangeWorkflowState>).workerBundleProvenance ??
+      (
+        change as unknown as {
+          workerBundleProvenance?: ChangeWorkflowState["workerBundleProvenance"];
+        }
+      ).workerBundleProvenance,
+    testRuns:
+      (change as Partial<ChangeWorkflowState>).testRuns ??
+      (change as unknown as { test_runs?: ChangeWorkflowState["testRuns"] })
+        .test_runs,
+  } as Pick<
+    ChangeWorkflowState,
+    "worker_bundle_impact" | "workerBundleProvenance" | "testRuns"
+  >;
+  return evaluateWorkerBundleProvenance(stateLike as ChangeWorkflowState);
 }
 
 export function evaluateGateReadiness(
