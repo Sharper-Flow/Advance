@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-02T22:03:02.108Z",
+  "capabilities": [],
+  "change_hash": "6eba91fb881e3776ffe15ba86d887a5a2758cc50ccb63c28aea65acc9a3bf5e9",
+  "change_id": "fixArchivedProvenanceRecovery",
+  "completed_tasks": 2,
+  "created_at": "2026-08-02T16:24:04.244Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-02T21:39:05.219Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "afc78c1fba564880353f25d201625ce6ae50e5e978cdaa56ff45aef73df7cbb1",
+  "task_count": 2,
+  "title": "Fix archived provenance recovery",
+  "version": "1"
+}

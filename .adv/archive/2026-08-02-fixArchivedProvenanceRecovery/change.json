@@ -1,0 +1,1381 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArchivedProvenanceRecovery",
+  "title": "Fix archived provenance recovery",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-02T16:24:04.244Z",
+  "tasks": [
+    {
+      "id": "tk-80c5f2f0e86f",
+      "title": "Enforce worker provenance across archive release writers",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-02T20:16:07.383Z",
+      "completed_at": "2026-08-02T21:37:37.074Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Acceptance review remediation: durable projection preserves test evidence_kind; 232 targeted tests and pnpm --dir plugin run check pass.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "checkpointSha": "ef447a86c6753406e4c630f1d21cd22782094d1c",
+      "completedAt": "2026-08-02T21:37:37.074Z",
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/schemas/change.schema.json",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/types/changes.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArchivedProvenanceRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedProvenanceRecovery",
+          "task_id": "tk-80c5f2f0e86f",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-80c5f2f0e86f"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/gate-readiness.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/gate.ts",
+            "plugin/src/tools/change.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/gate.release-enforcement.test.ts",
+            "plugin/src/tools/change.archive-phase9.test.ts",
+            "plugin/src/tools/gate.test.ts",
+            "plugin/src/utils/manifest-frontmatter.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mscaof13_e4bbe354",
+              "command": "bin/oc-test targeted -- src/tools/gate.test.ts",
+              "exit_code": 0,
+              "summary": "62/62 gate tests pass after fixing disk fixture provenance and removing debug log"
+            },
+            {
+              "test_run_id": "tr_mscb9m18_6c7a7402",
+              "command": "bin/oc-test smoke",
+              "exit_code": 0,
+              "summary": "Smoke passes: schemas, typecheck, manifests, frontmatter, test isolation, lockfile, lint, format:check, and 98 smoke tests"
+            },
+            {
+              "test_run_id": "tr_mscb4v9p_7ee4b925",
+              "command": "OC_TEST_REAPER_DISABLE=1 pnpm vitest run --project=unit --reporter=dot",
+              "exit_code": 0,
+              "summary": "Full unit project passes (8185+ tests, expected failures/skips/todos as baseline)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added one shared helper evaluateWorkerBundleProvenanceForChange and called it from every release-completion writer",
+              "why": "Design required a single chokepoint so no route could bypass provenance; avoids duplication and drift."
+            },
+            {
+              "what": "Used not_applicable provenance in test fixtures rather than required-with-fake-proof",
+              "why": "Test harnesses have no real worker bundle; not_applicable with rationale is the valid declaration path and keeps tests self-contained."
+            },
+            {
+              "what": "Removed three unused eslint-disable-next-line no-console directives from plugin/src/utils/manifest-frontmatter.ts",
+              "why": "They were the only remaining lint warnings and blocked bin/oc-test smoke; removing them is safe and restores smoke."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed same missing worker_bundle_impact pattern in all three gate.test.ts disk-snapshot write sites; archive-gate and release-enforcement tests already carried the fixture.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Task tk-80c5f2f0e86f implementation is complete and green: targeted gate tests, smoke, and the full unit Vitest project all pass. Provenance enforcement is wired across archive-gate preflight/finalization/recovery/shipped-rescue and gate release recovery. A small lint-cleanup in manifest-frontmatter.ts was included because it blocked smoke; it is unrelated to the feature logic.",
+            "suggested_next_action": "Run the verification task tk-f890ae188980 (or its test plan) and advance the execution gate when both tasks are accepted."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "adv-engineer"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscaof13_e4bbe354"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscb9m18_6c7a7402"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mscb4v9p_7ee4b925"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-f890ae188980",
+      "title": "Verify provenance recovery route coverage",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-80c5f2f0e86f"
+        }
+      ],
+      "created_at": "2026-08-02T20:16:27.561Z",
+      "completed_at": "2026-08-02T21:29:30.794Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Durable verification tr_mscbbzzn_cf5f2d22 passed 4 release recovery/provenance files, 179 tests.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/utils/manifest-frontmatter.ts"
+      ],
+      "checkpointSha": "32ac21e976397ceb1a320c92d86e4c9bebe2e48b",
+      "completedAt": "2026-08-02T21:29:30.794Z",
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/utils/manifest-frontmatter.ts"
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedProvenanceRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate design reusing worker-bundle provenance readiness at every release writer, gating pre-terminal archive entry, and typed archived release-pending recovery with immutable proof",
+      "sources": [
+        {
+          "label": "Spec law rq-workerBundleReleaseProvenance01 (MUST, scenarios .1-.6)",
+          "locator": "docs/specs/advance-workflow.md:866-951",
+          "summary": "Governing requirement: worker_bundle_impact:required MUST enforce provenance receipt (source_sha+build_run_id+replay_run_id, both runs passing) before release; absent declaration MUST NOT be bypassed by path heuristics (.4); runtime freshness out of scope at archive time (.5); check is a HARD BLOCKING release-readiness gate living in evaluateGateReadiness emitting GateReadinessBlocker, NOT advisory (.6)."
+        },
+        {
+          "label": "Reusable pure readiness check",
+          "locator": "plugin/src/temporal/gate-readiness.ts:1019-1131 (evaluateWorkerBundleProvenance)",
+          "summary": "Pure, deterministic, reads only ChangeWorkflowState. Handles all 4 cases: absent impact (declaration-required blocker), not_applicable +/- rationale, required missing provenance, missing source_sha, missing/failing runs. Single source of truth the design proposes to reuse at every release writer."
+        },
+        {
+          "label": "Provenance enforcement is opt-in per caller",
+          "locator": "plugin/src/temporal/gate-readiness.ts:49,1133,1176-1177 (enforceWorkerBundleProvenance option)",
+          "summary": "evaluateGateReadiness only runs evaluateWorkerBundleProvenance().blockers when options.enforceWorkerBundleProvenance is true. A release writer omitting the flag silently skips provenance. Rescue/disk paths bypass evaluateGateReadiness entirely."
+        },
+        {
+          "label": "Confirmed defect: archive release writers bypass provenance",
+          "locator": "plugin/src/tools/change/archive-gate.ts:1132-1272 (verifyReleaseGateDurableForArchive); grep negative for provenance in archive-gate.ts",
+          "summary": "Three accept paths (store-done, disk-fallback loadAuditedDiskReleaseGate, shipped-rescue synthesizing a done gate from git-finalization alone at 1236-1262) NONE invoke evaluateWorkerBundleProvenance. recoverReleaseGateViaDiskProjection (913) and completeReleaseGateAfterFinalization (1365) likewise. Violates rq-workerBundleReleaseProvenance01.1/.6 for worker_bundle_impact:required."
+        },
+        {
+          "label": "Pre-terminal archive gate allows release-pending (rq-releaseFinalization01)",
+          "locator": "plugin/src/tools/change/archive-gate.ts:131-173 (getArchiveGatePreflightError, allowReleasePending)",
+          "summary": "Pre-terminal preflight filters the release gate out of incomplete-gates when allowReleasePending is set, because finalization creates reachability evidence to complete release AFTER archive. Design must gate on provenance READINESS, not release-done."
+        },
+        {
+          "label": "Feasibility: durable disk projection carries all readiness-check inputs",
+          "locator": "plugin/src/temporal/change-state.ts:206,261-264 + plugin/src/types/changes.ts:1230 (test_runs schema) + plugin/src/storage/store-temporal/shared.ts:109,149",
+          "summary": "worker_bundle_impact, workerBundleProvenance, AND test_runs are all in the durable change.json projection and seeded into ChangeWorkflowState via changeSeedStateFromChange. Recovery paths can reconstruct full state from disk and run evaluateWorkerBundleProvenance. Immutable proof = durable change.json + git-verified releasedCommitSha."
+        },
+        {
+          "label": "ADV tool catalog: typed impact declaration is the applicability authority",
+          "locator": "adv_tool_catalog -> adv_change_set_worker_bundle_impact",
+          "summary": "Catalog confirms worker_bundle_impact is 'typed, not a path heuristic, and is the authority for the release gate', matching spec .4. The design's typed approach is consistent with this existing authority."
+        }
+      ],
+      "architecture_assessment": "The design concept is architecturally sound and directly targets a confirmed spec violation. DEFECT VERIFIED: grep for evaluateWorkerBundleProvenance|evaluateGateReadiness|workerBundleProvenance|worker_bundle_impact in archive-gate.ts returns ZERO matches; the archive release writers and all recovery paths (verifyReleaseGateDurableForArchive store-done/disk-fallback/shipped-rescue, recoverReleaseGateViaDiskProjection, completeReleaseGateAfterFinalization) mark the release gate done without ever invoking the provenance readiness check. The shipped-rescue path synthesizes a done gate purely from git-finalization shipped + releasedCommitSha + route/push, which for a worker_bundle_impact:required change can report shipped success without provenance - violating rq-workerBundleReleaseProvenance01.1 (must block) and .6 (hard blocking gate in evaluateGateReadiness). DESIGN CONCEPT VALIDATED: (1) Reusing evaluateWorkerBundleProvenance (already pure, deterministic, reads only workflow state) at every release writer is the correct single-source-of-truth fix and matches spec .6's placement; feasibility confirmed because the durable disk projection carries worker_bundle_impact + workerBundleProvenance + test_runs, so recovery paths can reconstruct ChangeWorkflowState and run the check. (2) Gating pre-terminal archive entry is correctly framed as provenance-readiness gating, not release-done gating, preserving rq-releaseFinalization01's allowReleasePending contract. (3) Typed archived release-pending recovery with immutable proof aligns with the existing recoverReleaseGateViaDiskProjection pattern; immutable proof = durable change.json + git-verified releasedCommitSha. REFERENCE PATTERN (by-the-book): a release-readiness invariant should have exactly one evaluator consulted at every state-writing boundary that can mint a done gate; the current code violates this by having archive writers mint done gates independently of the readiness evaluator; the design restores it.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "CAUTION (not PASS) for two reasons. (A) Confidence bound: adv_change_show timed out 6x (bare + design/agreement/proposal includes) at the 10s tool deadline even though adv_doctor reports system healthy / worker_alive / queue_serviceable - appears to be a slow projection rebuild specific to this change. Per policy I did NOT read design.md or agreement.md (the 13-item contract) from disk. I validated the design CONCEPT as described in the task scope against the codebase and spec law, not the full design text. (B) Real but addressable implementation subtleties: enforceWorkerBundleProvenance flag consistency across all writers; allowReleasePending vs provenance-readiness distinction at pre-terminal entry; archive-gate.ts is already 1513 lines / 9+ release+recovery functions so the design must centralize via one chokepoint helper rather than inline N checks. No architectural blocker - concept is sound, defect is real, feasibility confirmed."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "medium",
+        "risk": "medium",
+        "tradeoffs": [
+          "Single readiness evaluator consulted at every release writer maximizes spec-conformance (.6) and DRY but adds a call to each of the 9+ archive-gate release/recovery sites, raising coupling surface in an already 1513-line file.",
+          "Reusing evaluateWorkerBundleProvenance requires reconstructing ChangeWorkflowState from disk on recovery paths - feasible (projection carries test_runs + workerBundleProvenance) but adds a disk-state load to paths that today trust a done gate directly.",
+          "Gating pre-terminal archive entry on provenance readiness tightens release safety but must be carefully scoped to readiness (not release-done) to avoid regressing rq-releaseFinalization01's allowReleasePending contract."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Inline provenance re-validation independently in each release writer",
+            "disposition": "rejected",
+            "rationale": "Duplicates the readiness logic across 9+ sites; violates single-source-of-truth and P33/P19; drift risk recreates the exact defect class."
+          },
+          {
+            "option": "Rely solely on enforceWorkerBundleProvenance flag in evaluateGateReadiness",
+            "disposition": "rejected",
+            "rationale": "Flag is opt-in per caller; archive writers that mint done gates via shipped-rescue/disk-fallback do not route through evaluateGateReadiness at all, so the flag alone cannot cover them. A direct evaluateWorkerBundleProvenance call (or a chokepoint helper) at each writer is required."
+          },
+          {
+            "option": "Block archive entry on release-done (strengthen allowReleasePending)",
+            "disposition": "rejected",
+            "rationale": "Out of scope (TASK_SCOPE forbids weakening release requirement AND it would conflict with rq-releaseFinalization01 which intentionally allows release-pending because finalization produces the reachability evidence completing release after archive). Must gate on provenance readiness instead."
+          },
+          {
+            "option": "Enrich shipped-rescue immutable proof to carry a provenance-receipt snapshot",
+            "disposition": "deferred",
+            "rationale": "Plausible: the synthesized done gate could embed the provenance receipt + run verdicts so the proof is self-contained. But simpler to reuse the existing durable change.json projection (which already carries the inputs) and just run the check. Recommend the chokepoint-reuse approach; treat proof-embedding as fallback if disk load is ever unavailable."
+          }
+        ],
+        "recommendation": "Proceed to planning with three explicit design constraints pinned: (1) Introduce ONE chokepoint helper (e.g. assertWorkerBundleProvenanceReady(state) returning blockers) and call it from every release writer in archive-gate.ts that can mint/accept a done release gate - verifyReleaseGateDurableForArchive (all three accept branches), recoverReleaseGateViaDiskProjection, completeReleaseGateAfterFinalization, and the ambiguous-signal reconcile path; do NOT rely on the enforceWorkerBundleProvenance flag alone since rescue/disk paths bypass evaluateGateReadiness. (2) At pre-terminal archive entry (getArchiveGatePreflightError), gate on provenance READINESS not release-done, preserving allowReleasePending. (3) For typed archived release-pending recovery, reconstruct ChangeWorkflowState from the durable change.json (carries worker_bundle_impact + workerBundleProvenance + test_runs) and run the chokepoint; record immutable proof = disk projection readback + git-verified releasedCommitSha. Add tests covering each rescue/recovery writer for worker_bundle_impact:required + missing/failing provenance (must block) per spec .1/.6."
+      },
+      "recommendation": "CAUTION -> proceed to planning. Concept is sound and spec-aligned; defect is confirmed and correctly targeted; feasibility (disk projection carries all readiness-check inputs) is verified. Pin the three constraints above in the plan and add per-writer provenance-blocking tests. Separately file/triage the persistent adv_change_show projection timeout for this change (healthy worker, but 6/6 reads exceeded the 10s tool deadline) since it blocks artifact readback for design/research agents.",
+      "follow_ups": [
+        "adv_change_show projection read for fixArchivedProvenanceRecovery exceeds the 10s tool deadline on every attempt (bare + artifact includes) despite adv_doctor reporting worker_alive/queue_serviceable; I could not read design.md or the 13-item agreement contract. Triage as a reliability defect - likely a slow/expensive projection rebuild specific to this change. Until fixed, research/design agents cannot read this change's artifacts via tools.",
+        "Verify in planning that EVERY release writer (including reconcileReleaseGateAfterAmbiguousSignal and any Phase-9 status paths) routes through the new provenance chokepoint; add a test invariant asserting no code path can set release gate status:'done' in archive-gate.ts without passing evaluateWorkerBundleProvenance (related-scan P25)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedProvenanceRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedProvenanceRecovery",
+      "task_id": "tk-80c5f2f0e86f",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-80c5f2f0e86f"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/gate-readiness.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/gate.release-enforcement.test.ts",
+        "plugin/src/tools/change.archive-phase9.test.ts",
+        "plugin/src/tools/gate.test.ts",
+        "plugin/src/utils/manifest-frontmatter.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mscaof13_e4bbe354",
+          "command": "bin/oc-test targeted -- src/tools/gate.test.ts",
+          "exit_code": 0,
+          "summary": "62/62 gate tests pass after fixing disk fixture provenance and removing debug log"
+        },
+        {
+          "test_run_id": "tr_mscb9m18_6c7a7402",
+          "command": "bin/oc-test smoke",
+          "exit_code": 0,
+          "summary": "Smoke passes: schemas, typecheck, manifests, frontmatter, test isolation, lockfile, lint, format:check, and 98 smoke tests"
+        },
+        {
+          "test_run_id": "tr_mscb4v9p_7ee4b925",
+          "command": "OC_TEST_REAPER_DISABLE=1 pnpm vitest run --project=unit --reporter=dot",
+          "exit_code": 0,
+          "summary": "Full unit project passes (8185+ tests, expected failures/skips/todos as baseline)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added one shared helper evaluateWorkerBundleProvenanceForChange and called it from every release-completion writer",
+          "why": "Design required a single chokepoint so no route could bypass provenance; avoids duplication and drift."
+        },
+        {
+          "what": "Used not_applicable provenance in test fixtures rather than required-with-fake-proof",
+          "why": "Test harnesses have no real worker bundle; not_applicable with rationale is the valid declaration path and keeps tests self-contained."
+        },
+        {
+          "what": "Removed three unused eslint-disable-next-line no-console directives from plugin/src/utils/manifest-frontmatter.ts",
+          "why": "They were the only remaining lint warnings and blocked bin/oc-test smoke; removing them is safe and restores smoke."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed same missing worker_bundle_impact pattern in all three gate.test.ts disk-snapshot write sites; archive-gate and release-enforcement tests already carried the fixture.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Task tk-80c5f2f0e86f implementation is complete and green: targeted gate tests, smoke, and the full unit Vitest project all pass. Provenance enforcement is wired across archive-gate preflight/finalization/recovery/shipped-rescue and gate release recovery. A small lint-cleanup in manifest-frontmatter.ts was included because it blocked smoke; it is unrelated to the feature logic.",
+        "suggested_next_action": "Run the verification task tk-f890ae188980 (or its test plan) and advance the execution gate when both tasks are accepted."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "adv-engineer"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscaof13_e4bbe354"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscb9m18_6c7a7402"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mscb4v9p_7ee4b925"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedProvenanceRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedProvenanceRecovery",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [
+        {
+          "id": "recovery-provenance-1",
+          "label": "issue",
+          "file": "plugin/src/types/changes.ts",
+          "line": 1176,
+          "what": "Durable Change parsing discarded test-run evidence_kind, so a valid persisted build/replay receipt could not pass provenance evaluation during recovery.",
+          "why": "The recovery chokepoint evaluates parsed Change.test_runs by typed evidence_kind; stripped fields made AC2/AC4/AC5 recovery fail closed despite valid provenance.",
+          "fix": "applied"
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/types/changes.ts",
+          "summary": "Preserved typed test-run evidence_kind in the durable Change projection schema used by archived recovery.",
+          "verification": "pnpm --dir plugin run check passed; targeted provenance/archive suite passed."
+        },
+        {
+          "file": "plugin/src/temporal/gate-readiness.test.ts",
+          "summary": "Added regression proof that a parsed durable Change retains build_worker/replay_determinism evidence and satisfies the shared recovery chokepoint.",
+          "verification": "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.archive-phase9.test.ts passed (232 tests)."
+        },
+        {
+          "file": "plugin/schemas/change.schema.json",
+          "summary": "Regenerated public JSON schema after the ChangeSchema addition.",
+          "verification": "pnpm --dir plugin run check passed schemas:check."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When a release gate evaluates typed test-run evidence from a persisted Change projection, ChangeSchema must preserve evidence_kind. Zod's object parsing otherwise strips it, causing valid build_worker/replay_determinism receipts to fail recovery validation."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.archive-phase9.test.ts",
+          "pnpm --dir plugin run check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 4 files, 232 tests passed. Full check passed schemas:check, typecheck, generated manifests check, frontmatter/test-isolation/lockfile checks, ESLint, and Prettier. Initial targeted command using plugin-prefixed paths found no tests; corrected to the wrapper's plugin-relative paths."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is one commit behind origin/trunk per oc-fresh status; reviewer did not rebase because worktree mutation is orchestrator-owned."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint the three scoped review-remediation files through the normal ADV task workflow before acceptance completion.",
+        "Reconcile/rebase the behind worktree only through the orchestrator-owned worktree flow before final release decisions."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/gate-readiness.test.ts src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/change.archive-phase9.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArchivedProvenanceRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArchivedProvenanceRecovery",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "success",
+          "content": "Release-provenance enforcement is centralized in evaluateWorkerBundleProvenanceForChange and exercised at archive preflight, completed-workflow disk recovery, shipped rescue, and direct gate recovery."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/temporal/gate-readiness.test.ts",
+          "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts src/temporal/gate-readiness.test.ts",
+          "pnpm run check",
+          "pnpm run build",
+          "bin/oc-test full"
+        ],
+        "results": "pass",
+        "evidence": "Targeted provenance test: 115 passed. Scoped recovery/release suite: 294 passed. pnpm run check passed schemas, typecheck, generated manifests, frontmatter, isolation, lockfile, lint, and formatting. pnpm run build passed plugin, worker, and build-identity builds. Full suite passed: 531 files passed, 1 skipped; 8186 passed, 1 expected fail, 1 skipped, 12 todo. git diff --check passed; worktree clean after verification."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Freshness check observed this change branch one commit behind origin/trunk; release finalization must re-evaluate merge/reachability against the current default branch."
+      ],
+      "required_main_agent_actions": [
+        "No scoped code remediation required. Before archive/release, re-evaluate current origin/trunk reachability and follow normal Phase 9 finalization."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/temporal/gate-readiness.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/change.archive-phase9.test.ts src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts src/temporal/gate-readiness.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run build"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test full"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-80c5f2f0e86f": [
+      {
+        "runId": "tr_mscaof13_e4bbe354",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/gate.test.ts",
+        "durationMs": 7892.479663997889,
+        "recordedAt": "2026-08-02T21:10:47.932Z"
+      },
+      {
+        "runId": "tr_mscauovb_a0b11487",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "bin/oc-test full",
+        "durationMs": 300138.47508500144,
+        "recordedAt": "2026-08-02T21:15:45.145Z"
+      },
+      {
+        "runId": "tr_mscayw8a_424215cd",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 177603.7404010035,
+        "recordedAt": "2026-08-02T21:18:57.100Z"
+      },
+      {
+        "runId": "tr_mscb1q4s_8de8da92",
+        "phase": "verify",
+        "exitCode": 64,
+        "classification": "failed",
+        "command": "bin/oc-test full -- --reporter=dot",
+        "durationMs": 19.971744999289513,
+        "recordedAt": "2026-08-02T21:21:08.661Z"
+      },
+      {
+        "runId": "tr_mscb4v9p_7ee4b925",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "OC_TEST_REAPER_DISABLE=1 pnpm vitest run --project=unit --reporter=dot",
+        "durationMs": 130714.47466100007,
+        "recordedAt": "2026-08-02T21:23:35.843Z"
+      },
+      {
+        "runId": "tr_mscb9m18_6c7a7402",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test smoke",
+        "durationMs": 99569.77342099696,
+        "recordedAt": "2026-08-02T21:27:17.341Z"
+      }
+    ],
+    "tk-f890ae188980": [
+      {
+        "runId": "tr_mscbbzzn_cf5f2d22",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change/archive-gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/gate.test.ts src/tools/change.archive-phase9.test.ts",
+        "durationMs": 6284.644584000111,
+        "recordedAt": "2026-08-02T21:29:08.626Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-02T16:25:11.258Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User explicitly requested direct remediation of the archived worker-provenance terminal-projection defect.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "5728bee218771ea65b5c4895f79ae7ec444819003598c09b52c40c0c19cccf49",
+        "non_whitespace_chars": 283,
+        "checked_at": "2026-08-02T16:24:05.192Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-02T20:04:55.827Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved unified worker-provenance recovery agreement; strict 13-item contract minted.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "non_whitespace_chars": 1321,
+        "checked_at": "2026-08-02T16:24:05.193Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-02T20:15:41.085Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Independent validator CAUTION adopted: one chokepoint at every release writer; pre-terminal provenance gating preserves release-pending semantics; durable recovery proof and per-writer negative tests required.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "f0b6507f5267cec0d72eb152f650789fd744ad8f6c5c8df74260ca7c53f5f576",
+        "non_whitespace_chars": 2138,
+        "checked_at": "2026-08-02T16:24:05.194Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-02T20:17:07.823Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved provenance chokepoint and route-verification task graph."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-02T21:30:03.319Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "Both tasks complete; durable verification tr_mscbbzzn_cf5f2d22 passed 179 recovery/provenance tests. Implementation task also passed targeted gates, smoke, and full unit suite."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-02T21:39:05.219Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted provenance recovery. Contract matrix 13/13 passed/respected; executive summary and internal release note persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ee6a31e9ddee6ff967b7351a8d98fb87f467c117b9dbfddb8f6999628b72edc9",
+        "non_whitespace_chars": 1434,
+        "checked_at": "2026-08-02T16:24:05.195Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+      "approvedAt": "2026-08-02T20:04:40.385Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Required worker provenance blocks every release-completion route until valid.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Valid provenance permits normal and recovery release completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Existing archived pending-release records receive an audited typed recovery path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Release-pending archive entry rejects undeclared or invalid required worker provenance before terminal projection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Recovery/projection/shipped-rescue cannot write `release:done` without the same valid provenance required by normal completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Git proof never substitutes for required worker-bundle provenance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** `not_applicable` with rationale and `required` with valid replay/build proof complete successfully.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Typed archived release-pending recovery validates immutable proof and provenance without reopening scope.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** Specs and regressions cover all release-completion routes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve replay-safe workflow gate behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Use durable projection state only for recovery evaluation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not bypass or weaken release readiness.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not manually edit archive bundles or workflow history.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-02T21:37:56.717Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All required-provenance routes block when missing."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Valid and not-applicable provenance routes pass."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Terminal recovery is proof-bound and idempotent."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Release-pending preflight blocks missing provenance."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Recovery/rescue writers share provenance enforcement."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Shipped rescue requires provenance plus Git proof."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Required-valid and not-applicable cases pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Archived pending recovery validates immutable proof."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "232 targeted and 179 verification route tests pass; specs/schema updated."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Replay-safe normal workflow enforcement preserved."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Recovery evaluates durable projection state only."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No release-readiness bypass."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No archive bundle or workflow-history edits."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Release-pending archive entry rejects undeclared or invalid required worker provenance before terminal projection.",
+    "**AC2:** Recovery/projection/shipped-rescue cannot write `release:done` without the same valid provenance required by normal completion.",
+    "**AC3:** Git proof never substitutes for required worker-bundle provenance.",
+    "**AC4:** `not_applicable` with rationale and `required` with valid replay/build proof complete successfully.",
+    "**AC5:** Typed archived release-pending recovery validates immutable proof and provenance without reopening scope.",
+    "**AC6:** Specs and regressions cover all release-completion routes."
+  ],
+  "documents": {
+    "proposal": "# Fix archived provenance recovery\n\nPrevent terminal archive projection before worker-bundle provenance readiness is satisfied. Add a typed recovery route for already-archived, release-pending records that validates provenance and existing immutable release proof without reopening implementation scope or weakening gates.\n",
+    "problemStatement": "# Problem Statement\n\nAn archive can write terminal bundle/status evidence before release-gate completion discovers a required worker-bundle provenance declaration. The change is then archived, its workflow is completed, and no supported mutation can attach the declaration or complete release.\n\n## Root Cause Analysis\n\n- Reproduction: `decoupleArchiveSharedCheckout` reached merged remote proof (`cfb0835f`, PR #361) and archive bundle creation, but release readiness required `worker_bundle_impact`.\n- `adv_change_set_worker_bundle_impact` failed with `WorkflowNotFoundError: workflow execution already completed`.\n- `adv_change_reenter fromGate: release` refused because the change projection was already archived.\n- Root cause: archive finalization can transition disk/archive state before validating all release prerequisites, and worker-impact declaration lacks a terminal/archived recovery path.\n- Required fix: validate worker-bundle impact before terminal archive projection; provide typed, audited terminal recovery for already-archived pending-release records only when release proof and declaration are valid.\n",
+    "agreement": "# Agreement\n\n## Objectives\n- Prevent terminal archive projection when required worker-bundle provenance is missing.\n- Enforce the same release provenance invariant across normal completion, recovery, projection writeback, and shipped rescue.\n- Recover already-archived release-pending records only from valid durable proof; never reopen implementation scope.\n\n## Success Criteria\n- Required worker provenance blocks every release-completion route until valid.\n- Valid provenance permits normal and recovery release completion.\n- Existing archived pending-release records receive an audited typed recovery path.\n\n## Acceptance Criteria\n- **AC1:** Release-pending archive entry rejects undeclared or invalid required worker provenance before terminal projection.\n- **AC2:** Recovery/projection/shipped-rescue cannot write `release:done` without the same valid provenance required by normal completion.\n- **AC3:** Git proof never substitutes for required worker-bundle provenance.\n- **AC4:** `not_applicable` with rationale and `required` with valid replay/build proof complete successfully.\n- **AC5:** Typed archived release-pending recovery validates immutable proof and provenance without reopening scope.\n- **AC6:** Specs and regressions cover all release-completion routes.\n\n## Constraints\n- Preserve replay-safe workflow gate behavior.\n- Use durable projection state only for recovery evaluation.\n\n## Avoidances\n- Do not bypass or weaken release readiness.\n- Do not manually edit archive bundles or workflow history.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nWorker-bundle provenance becomes a pre-terminal release invariant. The existing pure readiness evaluator is reused at every release-completion writer: normal workflow signal, disk recovery, projection writeback, and shipped rescue. Archive release-pending entry checks the same durable projection before any terminal archive projection.\n\n## Key Decisions\n\n1. One chokepoint helper evaluates provenance at every release writer; no flag-only reliance.\n2. `allowReleasePending` remains, but is gated on provenance readiness rather than release-done.\n3. Shipped rescue requires both immutable Git proof and worker provenance.\n4. Archived pending-release repair validates durable change projection, exact bundle identity, released SHA, and provenance before only completing terminal projection.\n\n## Lever Citations\n\n- Normal reference: `workflows.ts` `completeGateWithReadiness`.\n- Recovery: `gate.ts` `completeGateViaRecovery`.\n- Archive preflight/recovery/rescue/finalization: `change/archive-gate.ts`.\n- Durable recovery input: `change-state.ts` seed mapping.\n\n## Implementation Strategy\n\n1. Add shared provenance chokepoint based on `evaluateWorkerBundleProvenance`.\n2. Call it from pre-terminal archive entry and every archive release writer.\n3. Thread release provenance into generic recovery readiness.\n4. Implement typed terminal archived-pending recovery with immutable proof checks.\n5. Add per-writer required-missing/invalid blocks and valid/not-applicable pass tests; update specs.\n\n## LBP Analysis\n\nOne invariant at all done-writers prevents recovery drift and terminal dead ends.\n\n## Design-Derived Criteria\n\n- No release writer transitions done without common provenance evaluation.\n- Entry preserves release-pending semantics while blocking missing provenance.\n- Recovery remains idempotent and bundle/SHA/provenance-bound.\n\n## Risks / Mitigations\n\n- Valid historical archives lacking evidence block with exact remediation; never false success.\n- Validator caution: archive file complexity and disk-state paths; contained by one helper and per-writer tests.\n\n## Design Leverage Scout\nSkipped — narrow invariant-threading repair.\n\n## Validator\nCaution — source/spec validation supports the design; adopted chokepoint, pre-terminal scoping, durable reconstruction, and per-writer negative tests. Validator artifact read timed out, so contract-text readback was unavailable; code/spec evidence was complete.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nArchive finalization now checks worker-bundle provenance before terminal projection and at every release recovery/rescue path. A completed archive can no longer become release-pending because required provenance is discovered too late.\n\n## Why It Matters\n\nRelease proof remains strict and recoverable: Git evidence alone never masks missing build/replay provenance.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Shared worker-provenance chokepoint for every release completion writer.\n2. Pre-terminal archive-entry block for undeclared/invalid required provenance.\n3. Proof-bound archived pending-release recovery.\n4. Durable preservation of test `evidence_kind`.\n\n## What Was Verified\n\n- Tests: 179 route-verification tests; 232 acceptance-review tests; harden full suite 8,186 passed.\n- Checks: `pnpm run check` and build passed.\n- Preview URL: not applicable — workflow/backend-only change.\n- Contract matrix: 13 required rows passed/respected.\n\n## Remaining Concerns\n\nNo blockers. Branch requires freshness/reachability re-evaluation at archive finalization.\n\n## Supporting Evidence\n\nCheckpoints `32ac21e9`, `ef447a86`; durable run `tr_mscbbzzn_cf5f2d22`; reviewer/harden reports READY.\n\n## Consequence Context\n\n- delivered value: pass — terminal archives cannot bypass worker provenance.\n- enabling-only/follow-up dependency: n/a — self-contained repair.\n- ops readiness: pass — harden full suite, check, and build passed.\n- migration/data impact: n/a — no data migration.\n- frontend/preview impact: n/a — no visual surface.\n- collision/release risk: low — archive will refresh branch before phase 9.\n- open follow-ups: n/a — none recorded.\n- next action: archive sign-off finalizes release.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-02T21:37:56.717Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Required worker provenance blocks every release-completion route until valid. | pass | All required-provenance routes block when missing. |\n| SC2 | success_criterion | Valid provenance permits normal and recovery release completion. | pass | Valid and not-applicable provenance routes pass. |\n| SC3 | success_criterion | Existing archived pending-release records receive an audited typed recovery path. | pass | Terminal recovery is proof-bound and idempotent. |\n| AC1 | acceptance_criterion | **AC1:** Release-pending archive entry rejects undeclared or invalid required worker provenance before terminal projection. | pass | Release-pending preflight blocks missing provenance. |\n| AC2 | acceptance_criterion | **AC2:** Recovery/projection/shipped-rescue cannot write `release:done` without the same valid provenance required by normal completion. | pass | Recovery/rescue writers share provenance enforcement. |\n| AC3 | acceptance_criterion | **AC3:** Git proof never substitutes for required worker-bundle provenance. | pass | Shipped rescue requires provenance plus Git proof. |\n| AC4 | acceptance_criterion | **AC4:** `not_applicable` with rationale and `required` with valid replay/build proof complete successfully. | pass | Required-valid and not-applicable cases pass. |\n| AC5 | acceptance_criterion | **AC5:** Typed archived release-pending recovery validates immutable proof and provenance without reopening scope. | pass | Archived pending recovery validates immutable proof. |\n| AC6 | acceptance_criterion | **AC6:** Specs and regressions cover all release-completion routes. | pass | 232 targeted and 179 verification route tests pass; specs/schema updated. |\n| C1 | constraint | Preserve replay-safe workflow gate behavior. | respected | Replay-safe normal workflow enforcement preserved. |\n| C2 | constraint | Use durable projection state only for recovery evaluation. | respected | Recovery evaluates durable projection state only. |\n| DONT1 | avoidance | Do not bypass or weaken release readiness. | respected | No release-readiness bypass. |\n| DONT2 | avoidance | Do not manually edit archive bundles or workflow history. | respected | No archive bundle or workflow-history edits. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-02T16:24:06.121Z",
+      "contentHash": "5728bee218771ea65b5c4895f79ae7ec444819003598c09b52c40c0c19cccf49",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-02T16:24:06.121Z",
+      "contentHash": "de2dae0cce306dffa5c8c67f7fe30b12c44dcf8b457f67e59d1fc9c228fa05be",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-02T20:04:19.724Z",
+      "contentHash": "73ce52cc9f9edf39fdc378c78d90cd65be806a20a55485ef2b83af89f86ec6cd",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-02T20:15:26.031Z",
+      "contentHash": "f0b6507f5267cec0d72eb152f650789fd744ad8f6c5c8df74260ca7c53f5f576",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-02T21:52:32.130Z",
+      "contentHash": "69fcb3f95e1a9f2cfd96b31b11c4af8a79418252ae66c8bed3a5902fc028d6ed",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-08-02T16:26:19.721Z"
+    }
+  ],
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-02T22:01:49.160Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "archived-worker-impact-rca-2026-08-02"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive recovery now enforces worker-bundle provenance before terminal release completion.",
+    "highlights": [
+      "Pre-terminal checks and every recovery/rescue route share one fail-closed provenance invariant."
+    ],
+    "area": "release workflow"
+  },
+  "worker_bundle_impact": {
+    "kind": "required",
+    "rationale": "This change modifies release provenance evaluation, archive recovery, and terminal projection behavior; worker bundle build/replay provenance is required for release.",
+    "confirmed_at": "2026-08-02T22:01:49.160Z"
+  },
+  "creation_request_hash": "554323fe093421efd265a19f0eb813e4602801361e2fb26fbaa8bdc660a84d32",
+  "projection_revision": 31,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8dfedb92f503cd496b55325558bd063a83add87661a2f88639097ae7abf60446:createArtifacts:proposal",
+      "operation_id": "8dfedb92f503cd496b55325558bd063a83add87661a2f88639097ae7abf60446:createArtifacts:proposal",
+      "payload_hash": "a583a50cf5f6507fbfcd61186a3e6be7f38672e897cc5d0978ef92eb0769424e",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-02T16:24:07.259Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8dfedb92f503cd496b55325558bd063a83add87661a2f88639097ae7abf60446:createArtifacts:problemStatement",
+      "operation_id": "8dfedb92f503cd496b55325558bd063a83add87661a2f88639097ae7abf60446:createArtifacts:problemStatement",
+      "payload_hash": "565c944c3bbc13fc88c0d9de15e33fe5c629184d4370acfda2c0e4e14c59d7fd",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-02T16:24:10.560Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-02T16:25:11.689Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "cfa7ca6c9bfceb658771083ccbd610e885bfe19b30b47d6a2a9c5262e7e68f36:updateArtifacts:agreement",
+      "operation_id": "cfa7ca6c9bfceb658771083ccbd610e885bfe19b30b47d6a2a9c5262e7e68f36:updateArtifacts:agreement",
+      "payload_hash": "6ac269e5572022dfbbd14b9038b0cf41a97165b1ddadf0c5023d5d2f55516939",
+      "state_revision": 3,
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-02T20:04:19.964Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-02T20:04:40.989Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-02T20:04:56.097Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "1500befaaf2a78718d30626f5bbae9aaf791b8b2476514fbce11e17e357b7117:updateArtifacts:design",
+      "operation_id": "1500befaaf2a78718d30626f5bbae9aaf791b8b2476514fbce11e17e357b7117:updateArtifacts:design",
+      "payload_hash": "c926a418adccc190f1d66ac9ff71e7467769b2a1d6929880b6c4fe2466084a78",
+      "state_revision": 4,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-02T20:05:25.819Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-02T20:14:40.552Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-02T20:14:44.183Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0da5e487fc4cae7e64a664b79a7f72bd374ee0aa7ab1d9956c68fdcb59e193a6:updateArtifacts:design",
+      "operation_id": "0da5e487fc4cae7e64a664b79a7f72bd374ee0aa7ab1d9956c68fdcb59e193a6:updateArtifacts:design",
+      "payload_hash": "183123d3590441df8230f629066fa84b4159bf56dd5aec0d607530273c5e54e5",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-02T20:15:26.406Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-02T20:15:41.285Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-02T20:16:04.712Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-02T20:16:07.622Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-02T20:16:27.955Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-02T20:17:08.010Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-02T21:27:43.603Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-02T21:27:46.806Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-02T21:28:45.210Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-02T21:29:31.164Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-02T21:30:03.478Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-02T21:36:57.039Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-02T21:36:59.975Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-02T21:37:37.345Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785706676808_591y84v4",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-02T21:37:56.960Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-02T21:37:56.717Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "All required-provenance routes block when missing."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Valid and not-applicable provenance routes pass."
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Terminal recovery is proof-bound and idempotent."
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Release-pending preflight blocks missing provenance."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Recovery/rescue writers share provenance enforcement."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Shipped rescue requires provenance plus Git proof."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Required-valid and not-applicable cases pass."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Archived pending recovery validates immutable proof."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "232 targeted and 179 verification route tests pass; specs/schema updated."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Replay-safe normal workflow enforcement preserved."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Recovery evaluates durable projection state only."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No release-readiness bypass."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No archive bundle or workflow-history edits."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-02T21:37:56.807Z",
+        "mutationReceiptId": "mrec_1785706676808_591y84v4"
+      }
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "92f1ac34476fe68ebf51e0718747891fe8cb7d0760aa1e05489d5d172882d38d:updateArtifacts:executiveSummary",
+      "operation_id": "92f1ac34476fe68ebf51e0718747891fe8cb7d0760aa1e05489d5d172882d38d:updateArtifacts:executiveSummary",
+      "payload_hash": "2c802befe18e61988a9826db6602382f6e4384c52959d27907abef14ae28e4e5",
+      "state_revision": 6,
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-02T21:38:17.945Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "817b50d52a81c8da4ecca513ebef4adb9bff6dcbb645e97228c44704bee99391:releaseNotesSet",
+      "operation_id": "817b50d52a81c8da4ecca513ebef4adb9bff6dcbb645e97228c44704bee99391:releaseNotesSet",
+      "payload_hash": "128c62c8cfd2c187615de751fca826e3758f16734ba5e4eb3f146f4802d3fa8b",
+      "state_revision": 7,
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-02T21:38:33.785Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-02T21:39:05.375Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-02T21:51:57.678Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-02T21:52:00.901Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "b5b42c14fadcc72e0913e1a766b6cb015b7ade02c2b451ab8febed7b244bb89b:updateArtifacts:executiveSummary",
+      "operation_id": "b5b42c14fadcc72e0913e1a766b6cb015b7ade02c2b451ab8febed7b244bb89b:updateArtifacts:executiveSummary",
+      "payload_hash": "405c80755cc6e66794e88b47463184cb684b0ee0b104644dde3c086bcf72c3ba",
+      "state_revision": 8,
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-02T21:52:32.360Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArchivedProvenanceRecovery",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-02T22:01:49.338Z"
+    }
+  ],
+  "state_revision": 8,
+  "_source": "disk"
+}
