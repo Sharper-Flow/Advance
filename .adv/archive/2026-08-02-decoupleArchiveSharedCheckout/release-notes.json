@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "change_id": "decoupleArchiveSharedCheckout",
+  "title": "Decouple archive shared checkout",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive finalization now isolates integration from shared trunk state.",
+    "highlights": [
+      "Uses detached ephemeral integration worktrees and remote-first reachability proof.",
+      "Unconfigured local-only archives now block safely instead of mutating shared refs."
+    ],
+    "area": "archive workflow"
+  }
+}

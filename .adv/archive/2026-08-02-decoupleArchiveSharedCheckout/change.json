@@ -1,0 +1,2154 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "decoupleArchiveSharedCheckout",
+  "title": "Decouple archive shared checkout",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-01T18:20:16.535Z",
+  "tasks": [
+    {
+      "id": "tk-efafa70f12a9",
+      "title": "Replace shared-trunk archive integration with remote-first isolated integration",
+      "type": "code",
+      "section": "Core implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-01T18:57:40.910Z",
+      "started_at": "2026-08-01T19:43:11.900Z",
+      "completed_at": "2026-08-02T01:06:28.857Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Harden blocker remediation: canonical origin is fetched before direct base selection; 126 git-finalize tests and pnpm run check pass.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "da9c63967bd86f088d82c4823e5b39919ddbec5b",
+      "completedAt": "2026-08-02T01:06:28.857Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "decoupleArchiveSharedCheckout",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+          "task_id": "tk-efafa70f12a9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-efafa70f12a9"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+            "plugin/src/tools/change/archive-gate.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/tools/change.test.ts",
+            "plugin/src/archive-release-finalization-assets.test.ts",
+            "plugin/src/handoff-footer-drift.test.ts",
+            "plugin/src/adv-autonomy-quality-assets.test.ts",
+            ".adv/specs/advance-workflow/spec.json",
+            "docs/specs/advance-workflow.md",
+            "docs/command-voice-standard.md",
+            ".opencode/command/adv-archive.md"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_tk-efafa70f12a9_20260801_1915_targeted",
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts src/archive-release-finalization-assets.test.ts src/handoff-footer-drift.test.ts src/adv-autonomy-quality-assets.test.ts",
+              "exit_code": 0,
+              "summary": "395 targeted tests passed across git-finalize, archive-gate, change, and archive asset tests."
+            },
+            {
+              "test_run_id": "tr_tk-efafa70f12a9_20260801_1915_check",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, manifest:check, frontmatter, test isolation, lockfile policy, lint, and format:check all passed (only pre-existing manifest-frontmatter warnings)."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Blocked `no_remote` archive route with `NO_REMOTE_RELEASE_AUTHORITY` and removed shared-trunk merge/update-ref fallback",
+              "why": "Reviewer confirmed the shared default-branch mutation was a release-authority bug; without a remote origin, archive cannot prove release and must not touch the shared trunk."
+            },
+            {
+              "what": "Treated a local bare `origin` as a valid `direct` remote route",
+              "why": "A bare origin reachable via the `origin` remote still satisfies the remote-first proof requirement; only a missing `origin` remote blocks."
+            },
+            {
+              "what": "Rewrote `prepareNoRemoteReleaseProof` into `prepareLocalReleaseProof` creating a local bare origin, merging the change branch, and pushing `main`",
+              "why": "The recovery/no-op tests need a valid `direct` release proof; the old no-remote `shipped` proof is no longer allowed."
+            },
+            {
+              "what": "Updated command/spec docs and autonomy test expectations to remove the local `Merged locally.` terminal and add `NO_REMOTE_RELEASE_AUTHORITY` semantics",
+              "why": "Keeps generated assets, specs, and documentation consistent with the new remote-first isolation boundary."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Fixed same no_remote/shared-trunk pattern across git-finalize, archive-gate, change tests, and archive asset tests; no additional occurrences found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Residual archive test/doc failures from the remote-first refactor are resolved. All targeted tests pass and `pnpm run check` is green. The worktree contains uncommitted changes; the ADV task is already marked `done` with checkpoint e9c2e176, so the latest edits should be reviewed and committed before acceptance/release gates advance.",
+            "suggested_next_action": "Review the diff, commit the current worktree changes, and proceed to the acceptance gate / full CI if needed."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_tk-efafa70f12a9_20260801_1915_targeted"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_tk-efafa70f12a9_20260801_1915_check"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "decoupleArchiveSharedCheckout",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+          "task_id": "tk-efafa70f12a9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-efafa70f12a9"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts src/archive-release-finalization-assets.test.ts src/handoff-footer-drift.test.ts src/adv-autonomy-quality-assets.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Checkpoint a7415b85 is current HEAD and records the blocker remediation. Current scoped verification passed: 6 test files, 395 tests. Source review confirms no_remote returns blocked with NO_REMOTE_RELEASE_AUTHORITY before ephemeral worktree/merge logic (git-finalize.ts:2925-2937); reachability propagates that blocker (git-finalize.ts:2291-2296; archive-gate.ts:871-885); no shared update-ref occurrence exists in the scoped production subsystem; integration test preserves trunk ref (git-finalize.test.ts:2390-2413). Local bare origin is classified as direct (git-finalize.ts:486-509,552-573) and has coverage (git-finalize.test.ts:341-368). Spec/docs scenarios match behavior (docs/specs/advance-workflow.md:450-473)."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Freshness check reports this change worktree is 56 commits behind origin/trunk; no rebase was performed because this scoped re-review made no edits."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts src/archive-release-finalization-assets.test.ts src/handoff-footer-drift.test.ts src/adv-autonomy-quality-assets.test.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "decoupleArchiveSharedCheckout",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+          "task_id": "tk-efafa70f12a9",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-efafa70f12a9"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "run_id": "bin-oc-test-targeted-git-finalize-20260801",
+              "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "126/126 git-finalize tests pass, including the new stale-origin regression"
+            },
+            {
+              "run_id": "pnpm-run-check-20260801",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "schemas:check, typecheck, manifest:check, frontmatter, test isolation, lockfile policy, lint, and format:check all pass (only pre-existing manifest-frontmatter warnings)"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Fetched origin/default before selecting the ephemeral archive worktree base OID in finalizeRelease direct path",
+              "why": "The old code rev-parsed local refs/remotes/origin/<default> without refreshing it, so a stale local origin ref could become the merge base and miss concurrent remote commits. ensureOriginDefaultFetched(state) now runs first, and the origin ref is used only after it is current."
+            },
+            {
+              "what": "Preserved a fallback to the local default branch when the origin ref is missing after a successful fetch",
+              "why": "Keeps existing unit tests that mock a remote origin but do not materialize origin/<default> from being blocked, while still fixing the real stale-origin bug."
+            },
+            {
+              "what": "Added a focused stale-origin regression test using a bare seed remote, a main clone, and a separate advancer clone",
+              "why": "It proves the ephemeral worktree base is the current remote HEAD, not the stale local origin/trunk ref, and that the shipped merge commit contains both the remote-advance and feature changes."
+            },
+            {
+              "what": "Left changes uncommitted per task instruction",
+              "why": "The task explicitly said \"Do not commit\"; the release gate orchestrator owns the next commit/push."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned finalizeRelease direct path and existing git-finalize tests for the same stale-origin/base-ref pattern; fixed in the single canonical location and covered with regression.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "The release blocker around stale origin/trunk in direct Phase 9 archive finalization is fixed. The direct path now fetches origin/<default> before selecting the ephemeral worktree base, and a regression test verifies the current remote base is used. All git-finalize tests (126) and pnpm run check pass. Changes are uncommitted in the worktree as instructed.",
+            "suggested_next_action": "Review the diff in plugin/src/tools/archive-helpers/git-finalize.ts and git-finalize.test.ts, commit when ready, and advance the release gate / run the full CI suite."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: bin-oc-test-targeted-git-finalize-20260801"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: pnpm-run-check-20260801"
+            }
+          ]
+        }
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-08-01T23:16:36.672Z"
+    },
+    {
+      "id": "tk-1885d3319f8c",
+      "title": "Replace shared-trunk archive integration with remote-first isolated integration",
+      "type": "code",
+      "section": "Core implementation",
+      "status": "cancelled",
+      "priority": 1,
+      "created_at": "2026-08-01T18:58:14.153Z",
+      "completed_at": "2026-08-01T19:29:16.967Z",
+      "cancelApproval": "Question response: Cancel duplicates (Recommended).",
+      "cancelledAt": "2026-08-01T19:29:16.967Z",
+      "cancellation": {
+        "reason": "Duplicate of tk-efafa70f12a9 created by timed-out mutation response.",
+        "approved_by_user": true,
+        "approval_evidence": "Question response: Cancel duplicates (Recommended).",
+        "approved_at": "2026-08-01T19:29:16.967Z"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      }
+    },
+    {
+      "id": "tk-e46660db9cd6",
+      "title": "Implement remote-first isolated archive integration",
+      "type": "code",
+      "section": "Core implementation",
+      "status": "cancelled",
+      "priority": 2,
+      "created_at": "2026-08-01T19:01:14.828Z",
+      "completed_at": "2026-08-01T19:29:16.967Z",
+      "cancelApproval": "Question response: Cancel duplicates (Recommended).",
+      "cancelledAt": "2026-08-01T19:29:16.967Z",
+      "cancellation": {
+        "reason": "Duplicate core implementation task created by repeated timeout recovery.",
+        "approved_by_user": true,
+        "approval_evidence": "Question response: Cancel duplicates (Recommended).",
+        "approved_at": "2026-08-01T19:29:16.967Z"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      }
+    },
+    {
+      "id": "tk-9add2a9dff6e",
+      "title": "Implement remote-first isolated archive integration",
+      "type": "code",
+      "section": "Core implementation",
+      "status": "cancelled",
+      "priority": 3,
+      "created_at": "2026-08-01T19:23:21.816Z",
+      "completed_at": "2026-08-01T19:29:16.967Z",
+      "cancelApproval": "Question response: Cancel duplicates (Recommended).",
+      "cancelledAt": "2026-08-01T19:29:16.967Z",
+      "cancellation": {
+        "reason": "Duplicate core implementation task created after worker restart; tk-efafa70f12a9 remains canonical.",
+        "approved_by_user": true,
+        "approval_evidence": "Question response: Cancel duplicates (Recommended).",
+        "approved_at": "2026-08-01T19:29:16.967Z"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      }
+    },
+    {
+      "id": "tk-b0c3586709ec",
+      "title": "Verify remote-first archive isolation end-to-end",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-efafa70f12a9"
+        }
+      ],
+      "created_at": "2026-08-01T19:33:54.834Z",
+      "completed_at": "2026-08-01T21:58:19.698Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Durable verification tr_msawwrq3_c154e6fe passed: 12 archive/gate/status/change files, 600 tests.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "e9c2e1766a2ead2f3cb28a5e5c6219b0b93b8a19",
+      "completedAt": "2026-08-01T21:58:19.698Z",
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:archive-shared-checkout-discovery"
+      },
+      "agent": "adv-researcher",
+      "topic": "Archive finalization shared-checkout decoupling — architecture audit",
+      "sources": [
+        {
+          "label": "git-finalize.ts — finalizeRelease orchestrator",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:3182-3609",
+          "summary": "Single production entry; validates worktree, derives mainCheckout via --git-common-dir, then mutates shared trunk: checkpoint (3368), merge (3417), push (3454)."
+        },
+        {
+          "label": "git-finalize.ts — resolveMainCheckout (shared-trunk derivation)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:794-804",
+          "summary": "dirname(git rev-parse --git-common-dir) — the structural root of shared-trunk coupling; every linked worktree resolves to the same main checkout."
+        },
+        {
+          "label": "git-finalize.ts — commitDirtyMainCheckpoint",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:977-1019",
+          "summary": "git add -A + git commit on main; the dirty-shared-work capture flagged in the RCA. Mandated by spec rq-releaseFinalization01.7."
+        },
+        {
+          "label": "git-finalize.ts — verifyRemoteNotAhead (RCA block)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2930-2960",
+          "summary": "Fetch + rev-list left-right count; returns DEFAULT_BRANCH_REMOTE_DIVERGED, the exact block in PR #356 RCA. Advisory-only in a remote-first model."
+        },
+        {
+          "label": "git-finalize.ts — resetMainToOriginDefault (destructive, 2 callers)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1760-1787",
+          "summary": "git fetch + git reset --hard origin/{default} on shared trunk. Called by completeMergeQueueHandoff (1983) and completeProtectedBranchViaPullRequest (2057). Destructive shared-trunk mutation."
+        },
+        {
+          "label": "git-finalize.ts — resolveReleaseReachability (proof engine)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2599-2832",
+          "summary": "Read-only proof across no_remote/direct/PR routes. Already supports immutable ls-remote ref, PR merge state, and tree-SHA content-addressed fallback with changeTipSha."
+        },
+        {
+          "label": "git-finalize.ts — verifyDefaultBranchPushed (immutable remote ref)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1289-1330",
+          "summary": "git ls-remote origin refs/heads/{default} + local HEAD compare. Remote-first proof primitive requiring no local mutation."
+        },
+        {
+          "label": "git-finalize.ts — detectSquashMergeByTree (content-addressed proof)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:1424-1470",
+          "summary": "Compares change branch %T tree SHA against last-50 trunk commits; survives branch deletion via persisted changeTipSha. Canonical squash-merge detection."
+        },
+        {
+          "label": "archive-gate.ts — verifyReleaseEvidenceFromMain (proof-only path)",
+          "locator": "plugin/src/tools/change/archive-gate.ts:782-859",
+          "summary": "Read-only finalization used by existing-bundle retries. Calls only resolveReleaseReachability; never mutates. The remote-first target model already in production."
+        },
+        {
+          "label": "archive-gate.ts — recordPhase9Status (durable persistence)",
+          "locator": "plugin/src/tools/change/archive-gate.ts:706-730",
+          "summary": "Temporal signal fireSignalAndRefresh; persists phase9_status (changeTipSha, prNumber, repo, route) durably. The persistence layer the remote-first design reuses."
+        },
+        {
+          "label": "change.ts — archive handler (single finalizeRelease caller)",
+          "locator": "plugin/src/tools/change.ts:4406-4468",
+          "summary": "Branches: worktreePath -> finalizeRelease (mutating); else -> verifyReleaseEvidenceFromMain (proof-only). try/catch records phase9_status=failed durably."
+        },
+        {
+          "label": "change.ts — worktreePath guardrails",
+          "locator": "plugin/src/tools/change.ts:4186-4262",
+          "summary": "inRepoBase = worktreePath ?? store.paths.root; blocks delta projection / finalization without worktreePath; validates worktree belongs to store.paths.root."
+        },
+        {
+          "label": "Spec: rq-releaseFinalization01 (governing)",
+          "locator": ".adv/specs/advance-workflow/spec.json:498-692",
+          "summary": "12 scenarios. .4 origin proof (preserve), .7 dirty-main checkpoint (REMOVE — mandates RCA behavior), .8 unsafe-main blocks (transform), .9 phase9-skip, .10 recovery, .12 durable terminal (preserve)."
+        },
+        {
+          "label": "Spec: rq-releaseProjectionDurability01",
+          "locator": ".adv/specs/advance-workflow/spec.json:877-951",
+          "summary": "Archive success gated by durable gate projection. .3 re-verify from main checkout OR PR branch state — needs amendment to permit remote-ref proof."
+        },
+        {
+          "label": "Spec: rq-crossProjectTrunkFirewall01",
+          "locator": ".adv/specs/advance-meta/spec.json:2948-3011",
+          "summary": "Trunk-write firewall blocks main-checkout writes. Archive's own git mutations (commit/reset) bypass it — the change aligns archive with the firewall's protective intent."
+        },
+        {
+          "label": "Spec: rq-worktreeMutationGuard01",
+          "locator": ".adv/specs/worktree-lifecycle/spec.json:445-531",
+          "summary": "ADV already structurally blocks gate/task mutations from main checkout. Archive shared-trunk mutation is an inconsistency with this established architectural direction."
+        },
+        {
+          "label": "Temporal split-brain integration test",
+          "locator": "plugin/src/temporal/__tests__/archive-phase9-splitbrain.itest.ts:1-100",
+          "summary": "Proves phase9_status durable recording via live Temporal; uses no_remote route + verifyReleaseEvidenceFromMain shipped path. Concurrency/persistence model reference."
+        },
+        {
+          "label": "git-ls-remote documentation (canonical primitive)",
+          "locator": "https://git-scm.com/docs/git-ls-remote",
+          "summary": "Lists remote refs as oid TAB ref via upload-pack; reads immutable remote state with no local checkout mutation. Foundation of remote-first proof."
+        },
+        {
+          "label": "git-finalize.test.ts — commitDirtyMainCheckpoint + finalizeRelease coverage",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.test.ts:3070-3169, 2431-2869, 5023",
+          "summary": "Existing tests assert the to-be-removed checkpoint behavior and integrated direct/PR routes. Must be rewritten for remote-first model."
+        }
+      ],
+      "architecture_assessment": "ARCHITECTURE ASSESSMENT:\n\n1. FINALIZATION ROUTE MAP (all roads lead through shared trunk today)\n- Single production caller: change.ts:4416 finalizeRelease({workdir: worktreePath, expectedMainCheckout: store.paths.root}). Retry/recovery path (no worktree) uses read-only verifyReleaseEvidenceFromMain.\n- DIRECT route (archiveMode direct): checkpoint main -> verifyRemoteNotAhead -> mergeToTrunk(main) -> pushToOrigin(main) -> verifyDefaultBranchPushed.\n- PR routes (archiveMode pr OR push-failed): completeMergeQueueHandoff / completeProtectedBranchViaPullRequest -> resetMainToOriginDefault (reset --hard) -> reconcileChangeBranchWithDefault(workdir) -> pushChangeBranch(workdir) -> ensureArchivePullRequest -> armPullRequestAutoMerge -> resolveReleaseReachability.\n\n2. SHARED-CHECKOUT MUTATION INVENTORY (5 points, all on mainCheckout derived via --git-common-dir)\n- commitDirtyMainCheckpoint (git-finalize.ts:3368) — git add -A + commit. Captures UNRELATED dirty work into main. RCA surface #1.\n- mergeToTrunk/mergeChangeBranch (git-finalize.ts:3417) — git merge --ff-only/--no-ff change/{id} on main.\n- pushToOrigin (git-finalize.ts:3454) — git push origin {default} from main.\n- resetMainToOriginDefault (git-finalize.ts:1983, 2057) — git reset --hard origin/{default}. DESTRUCTIVE — discards any uncommitted/unpushed local main state. RCA surface #2 (safety risk).\n- verifyRemoteNotAhead (git-finalize.ts:3397) — read-only fetch+rev-list but BLOCKS on remote-ahead, the exact DEFAULT_BRANCH_REMOTE_DIVERGED block in PR #356 RCA.\n\n3. REMOTE-FIRST PROOF MACHINERY ALREADY EXISTS AND IS PROVEN\n- resolveReleaseReachability (git-finalize.ts:2599) is a complete read-only proof engine covering no_remote/direct/PR routes.\n- verifyDefaultBranchPushed uses git ls-remote origin refs/heads/{default} (immutable remote OID, no local mutation) — git-scm docs confirm ls-remote reads remote refs via upload-pack without a checkout.\n- detectSquashMergeByTree uses content-addressed %T tree-SHA equivalence against last-50 trunk commits; survives branch deletion via persisted changeTipSha. Canonical squash-merge detection.\n- changeTipSha is captured (git-finalize.ts:3222) and persisted durably in phase9_status via recordPhase9Status (Temporal signal). Threaded back through verifyReleaseEvidenceFromMain for retries.\n- verifyReleaseEvidenceFromMain (archive-gate.ts:782) is the PROOF-ONLY finalization already running in production for existing-bundle retries — never mutates. THIS IS THE TARGET MODEL.\n\n4. PHASE9 / ARCHIVE PERSISTENCE MODEL\n- recordPhase9Status (archive-gate.ts:706) -> Temporal fireSignalAndRefresh -> durable phase9_status {status, changeTipSha, prNumber, repo, route, startedAt, completedAt, error}.\n- Ordering (change.ts:4388, rq-archiveOrdering01): Phase9 evidence -> release gate signal -> durable proof verification -> change.status=archived -> source cleanup. Release proof MUST precede status transition.\n- Split-brain recovery (archive-phase9-splitbrain.itest.ts): bundle-on-disk + unset phase9_status recovered via idempotent reconcileArchivedBundleRetry through live Temporal. Re-runs safe and durable.\n\n5. WORKTREE ASSUMPTIONS\n- resolveMainCheckout = dirname(--git-common-dir) couples EVERY worktree to the shared trunk. Structural, not incidental.\n- change.ts:4251 asserts worktreeValidation.mainCheckout === store.paths.root (trust boundary).\n- Delta projection + in-repo bundle write REQUIRE worktreePath (rq-archiveDeltaReconciliation01) — never written through main. This isolation already exists for SPECS; the change extends the same isolation to GIT FINALIZATION.\n- reconcileChangeBranchWithDefault and pushChangeBranch already operate on the WORKDIR, not main — PR-route merge/push machinery is already worktree-correct except for resetMainToOriginDefault.\n\n6. DEVIATION FROM BY-THE-BOOK\n- Reference pattern: ADV's OWN architectural direction (rq-worktreeMutationGuard01) structurally blocks ADV mutations from the main checkout. rq-crossProjectTrunkFirewall01 blocks main-checkout file writes. trunk-worktree-isolation instruction mandates trunk-stays-on-default + deploy-from-merged-trunk. Archive finalization mutating the shared trunk is an INCONSISTENCY with all three.\n- Deviation: MAJOR. Archive is the last ADV subsystem that mutates the shared trunk as part of its core flow. Every other ADV mutation path has moved to worktree-isolated or remote-driven models.\n\n7. CONCURRENCY IMPACTS\n- Today: two concurrent archives on changes sharing one trunk serialize on the shared checkout (git index lock contention, checkpoint races, reset --hard destroying one archive's in-flight merge). High-risk under 10+ concurrent agents.\n- Remote-first: archives become embarrassingly parallel — each proves against immutable remote refs independently; no shared-checkout lock. Only shared resource is the remote (rate-limited via gh/git protocol), already the case for PR routes.\n\n8. SPEC-LAW IMPACT (MANDATORY spec delta)\n- rq-releaseFinalization01.7 (dirty-main checkpoint) — REMOVE/REWRITE: currently MANDATES the RCA behavior.\n- rq-releaseFinalization01.8 (unsafe-main blocks) — TRANSFORM: MAIN_BRANCH_MISMATCH/MISSING_GIT_IDENTITY/MAIN_IN_PROGRESS_STATE/MAIN_CHECKPOINT_FAILED checks vanish with the checkpoint; remaining checks (merge conflict, push failure) reframe around remote/worktree.\n- rq-releaseFinalization01.4/.12 (origin proof, durable terminal) — PRESERVE, sourced from remote refs.\n- rq-releaseProjectionDurability01.3 (re-verify from main checkout OR PR branch) — AMEND to permit remote-ref + persisted-tree-SHA proof.\n- rq-releaseFinalization01 body: 'must refresh the current default-branch basis before deciding' — reframe to 'must verify post-fetch origin/default reachability or merged-PR proof'.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Remote-first proof machinery (resolveReleaseReachability, verifyDefaultBranchPushed via ls-remote, detectSquashMergeByTree via persisted changeTipSha, verifyReleaseEvidenceFromMain proof-only path) is already built, proven in production retries, and uses canonical git primitives (git-scm ls-remote docs). No novel/unproven technology. The change is feasible. Two non-blocking risks to manage in design: (1) direct-route local-merge relocation (cannot merge into main from the change worktree; needs ephemeral isolated worktree-on-default OR PR-only shift), and (2) mandatory spec-law rewrite of rq-releaseFinalization01.7/.8 — both are design-scope, not discovery blockers."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Remote-first proof removes shared-trunk mutation (safety win, concurrency win) but relocates direct-route local merge to an ephemeral isolated worktree-on-default or shifts direct route to PR-only — adds a worktree lifecycle to manage.",
+          "Removing commitDirtyMainCheckpoint eliminates the dirty-shared-work capture risk but means a dirty trunk can no longer be auto-checkpointed; operators must manage trunk cleanliness themselves (aligns with trunk-stays-on-default policy).",
+          "Removing resetMainToOriginDefault (--hard) eliminates destructive shared-trunk discard but means PR-route handoff can no longer auto-reconcile a diverged local main; relies on remote ref authority instead (correct, but changes operator-facing failure modes).",
+          "Mandatory spec-law rewrite of rq-releaseFinalization01.7/.8 is non-trivial and must preserve the .4/.9/.10/.12 proof guarantees — spec delta is first-class deliverable, not an afterthought.",
+          "Tree-SHA squash proof inspects only last-50 trunk commits (detectSquashMergeByTree) — sufficient for normal cadence but a squash landing >50 commits after branch tip would miss; remote-ref proof (ls-remote + PR mergeCommitOid) is primary, tree-SHA is fallback."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Proof-only finalization for already-merged PRs (primary); ephemeral isolated worktree-on-default for direct-route local merge",
+            "disposition": "preferred",
+            "rationale": "Reuses proven verifyReleaseEvidenceFromMain/resolveReleaseReachability machinery for the common post-merge case; relocates the only true main mutation (local merge+push) to a throwaway worktree ADV creates and deletes, leaving shared trunk untouched. Aligns with rq-worktreeMutationGuard01 and trunk-firewall direction."
+          },
+          {
+            "option": "Shift direct route entirely to PR workflow (merge on remote via gh pr merge)",
+            "disposition": "preferred",
+            "rationale": "Eliminates local merge entirely; every release proven by merged-PR state. Simpler model, no ephemeral worktree. Tradeoff: removes the no-PR local fast-path for direct-mode repos; behavior change for direct-mode users. Could be phased: PR-only for remote-backed, keep local fast-path only for no_remote."
+          },
+          {
+            "option": "Keep local merge on the shared trunk behind a global git index lock",
+            "disposition": "rejected",
+            "rationale": "Preserves the RCA failure mode (dirty/diverged trunk blocks unrelated archives) and the concurrency hazard (index-lock contention). Does not satisfy the proposal's 'never mutate shared trunk' boundary."
+          },
+          {
+            "option": "Status quo + relax verifyRemoteNotAhead to advisory only",
+            "disposition": "rejected",
+            "rationale": "Treats one symptom (DEFAULT_BRANCH_REMOTE_DIVERGED block) but leaves commitDirtyMainCheckpoint and resetMainToOriginDefault mutating the shared trunk. Fails the stated safety boundary; dirty-work capture risk remains."
+          }
+        ],
+        "recommendation": "Proceed to design with the proof-first model. Design priorities: (1) Generalize verifyReleaseEvidenceFromMain as the PRIMARY finalization for any change whose PR is merged or whose origin/default reachability is provable from remote refs + persisted changeTipSha — zero shared-trunk mutation. (2) For direct-route local merge, create an EPHEMERAL worktree on the default branch (ADV-owned, created+removed per finalization), merge change/{id} there, push from there, then prove via ls-remote; OR phase direct-mode repos to PR-only. Decide between these two in design via a focused user question. (3) DELETE commitDirtyMainCheckpoint, verifyRemoteNotAhead (as a blocker), and resetMainToOriginDefault. (4) Carry a mandatory advance-workflow spec delta rewriting rq-releaseFinalization01.7/.8 and amending rq-releaseProjectionDurability01.3. (5) Preserve all .4/.9/.10/.12 proof guarantees and the phase9_status durable-recording ordering."
+      },
+      "recommendation": "RECOMMENDATION FOR ADV ORCHESTRATOR:\n\nDesign is unblocked and the target architecture is sound. Carry these into /adv-design:\n\nA. STRUCTURAL REMOTE-FIRST DESIGN\n1. Make proof-only finalization the primary path. Reuse resolveReleaseReachability + verifyReleaseEvidenceFromMain. Inputs: fetched origin/default ref (ls-remote), persisted changeTipSha (phase9_status), PR mergeCommitOid (gh). Zero shared-trunk reads-beyond-fetch, zero shared-trunk writes.\n2. Relocate the direct-route local merge to an EPHEMERAL ADV worktree on the default branch (created via existing worktree machinery, removed after proof), OR shift direct-mode to PR-only. This is the one design decision needing user input.\n3. Delete the three shared-trunk mutation primitives: commitDirtyMainCheckpoint, resetMainToOriginDefault, and the verifyRemoteNotAhead blocker (downgrade to advisory in the terminal report).\n4. Preserve pushToOrigin/verifyDefaultBranchPushed but relocate the push to the ephemeral worktree (direct) or to remote-merge (PR).\n\nB. MIGRATION / COMPATIBILITY\n1. phase9_status already persists changeTipSha/prNumber/repo/route — remote-first proof is backward-compatible with in-flight changes on retry. No data migration needed.\n2. Existing-bundle retries already use verifyReleaseEvidenceFromMain (proof-only) — unchanged.\n3. Keep the worktreePath guardrails (rq-archiveDeltaReconciliation01) — specs/bundle already isolated to the worktree; the change extends the same isolation to git finalization.\n4. no_remote route is already local-fast-path and proof-only-friendly — preserve as the sole local-only success path.\n\nC. ACCEPTANCE CRITERIA (exhaustive — feed into agreement/ACs)\n1. Archive finalization completes for a MERGED PR even when shared trunk is dirty AND behind origin/trunk (the exact RCA scenario). No DEFAULT_BRANCH_REMOTE_DIVERGED block.\n2. No ADV archive path performs git add/commit/reset --hard/stash/sync/checkout on the shared trunk checkout. Structural: grep the finalization call graph for mainCheckout-mutating git subcommands returns empty.\n3. commitDirtyMainCheckpoint and resetMainToOriginDefault are removed; no caller references them.\n4. Direct-route release still proven by post-fetch origin/{default} reachability (rq-releaseFinalization01.4) — shipped only after ls-remote OID matches the released commit.\n5. phase9 skip / recovery revalidate the same remote proof (rq-releaseFinalization01.9/.10).\n6. Durable terminal evidence preserved (rq-releaseFinalization01.12) — phase9_status recorded shipped-or-failed, no fire-and-forget, interruption-resumable.\n7. Spec delta lands: rq-releaseFinalization01.7 removed/rewritten, .8 transformed, rq-releaseProjectionDurability01.3 amended to permit remote-ref proof. schemas:check + spec conformance green.\n8. Concurrency: two simultaneous archives on changes sharing one trunk both complete without git index-lock contention or cross-archive state corruption (integration test).\n9. Squash-merged + branch-deleted recovery still proves via persisted changeTipSha tree-SHA match (rq-fixPhase9SquashMergeRedetect preserved).\n10. PR-route (merge_queue / pr_auto_merge / pr_manual) handoff works without resetMainToOriginDefault — reconcile+push happen in the change worktree, proof from remote.\n11. Regression: existing git-finalize.test.ts + change.archive-phase9.test.ts + archive-phase9-splitbrain.itest.ts updated and green; new tests cover dirty-trunk-completes, behind-trunk-completes, no-shared-trunk-mutation (structural), concurrent-archives.\n12. adv_doctor archived-but-unmerged re-drive (rq-releaseFinalization01.11) unchanged — already remote/PR-driven.\n\nD. OPEN QUESTION FOR USER (design-phase)\nDirect-route local merge: ephemeral isolated worktree-on-default (preserves local fast-path) vs shift direct-mode to PR-only (simpler, removes local merge). Determines scope of the worktree-lifecycle addition and the direct-mode user-facing behavior change. Recommend surfacing in /adv-design via a focused question.",
+      "follow_ups": [
+        "Direct-route merge relocation strategy (ephemeral worktree-on-default vs shift direct-mode to PR-only): the one genuine design fork. Needs user input on whether to preserve the local fast-path for direct-mode repos or shift all remote-backed archives to PR-merge. Affects worktree-lifecycle scope and direct-mode UX.",
+        "Tree-SHA fallback window (last-50 commits in detectSquashMergeByTree): sufficient at normal cadence; verify in design whether to widen the window or add a merge-base-aware scan for high-throughput repos. Non-blocking — remote-ref/PR proof is primary.",
+        "Spec delta authoring for advance-workflow rq-releaseFinalization01: mandatory. .7 removal and .8 transformation must preserve .4/.9/.10/.12 guarantees. Should be drafted in /adv-design and conformance-checked."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — remote-first archive finalization decoupled from shared checkout",
+      "sources": [
+        {
+          "label": "git-finalize.ts — current shared-trunk mutation path (lever cited)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:3366-3388,2930-2960,977-1050,75-139,192-304",
+          "summary": "Verified the bad current behavior the design removes: commitDirtyMainCheckpoint(mainCheckout) at :3368 commits shared dirty trunk; verifyRemoteNotAhead at :2930/:3397 blocks on DEFAULT_BRANCH_REMOTE_DIVERGED before reachability fallback; reconcileChangeBranchWithDefault(:75) is the workdir-scoped merge precedent reused; syncDefaultBranchAfterMerge(:192) runs `git merge --ff-only` on mainCheckout (shared-trunk mutation seam)."
+        },
+        {
+          "label": "git-finalize.ts — remote-first proof (lever cited, to be unified)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2599-2829,1289,1424",
+          "summary": "resolveReleaseReachability(:2599) is pure remote-ref/PR/tree proof — no mainCheckout mutation. verifyDefaultBranchPushed(:1289) and detectSquashMergeByTree(:1424) thread changeTipSha; all unreachable routes return reachable:false (fail-closed) at :2642-2646, :2743-2747, :2827-2829. Confirms design reuse claim and AC2/AC4 fail-closed behavior."
+        },
+        {
+          "label": "change.ts — archive handler shared-trunk seam",
+          "locator": "plugin/src/tools/change.ts:4530-4541",
+          "summary": "syncDefaultBranchAfterMerge({mainCheckout}) at :4537 is advisory-only post-proof trunk sync that STILL mutates shared trunk. AC1 ('never ... syncs shared trunk') requires removing/replacing this call — the in-scope seam the design targets."
+        },
+        {
+          "label": "git-worktree-flock.ts — existing per-project worktree creation lock (reused, NOT an archive lock)",
+          "locator": "plugin/src/utils/git-worktree-flock.ts:1-68",
+          "summary": "Only client-side coordination point; serializes `git worktree add/remove` (~50ms hold), explicitly NOT an archive/state lock (Temporal serializes ADV state). Reused by the design's ephemeral worktree lifecycle; satisfies DONT3 structurally — no new global archive lock needed."
+        },
+        {
+          "label": "trunk-write-firewall.ts — structural defense-in-depth",
+          "locator": "plugin/src/tools/trunk-write-firewall.ts:151 (rq-crossProjectTrunkFirewall01)",
+          "summary": "Existing target-relative trunk-write firewall guards agent bash writes; design's shared-sync removal is the actual AC1 mechanism, firewall is defense-in-depth."
+        },
+        {
+          "label": "archived-branch-cleanup.ts — related-scan finding (other resolveMainCheckout consumer)",
+          "locator": "plugin/src/tools/archive-helpers/archived-branch-cleanup.ts:306",
+          "summary": "Cleanup path ALSO calls resolveMainCheckout(store.paths.root) — a second shared-checkout touchpoint. Related-scan (P25) flag: removing syncDefaultBranchAfterMerge alone may not fully satisfy AC1 if cleanup mutates shared trunk via this path."
+        },
+        {
+          "label": "git-worktree(1) official docs — detached worktree semantics",
+          "locator": "https://git-scm.com/docs/git-worktree",
+          "summary": "Confirms `git worktree add --detach` creates a HEAD-detached linked worktree sharing the object store with independent HEAD/index/working tree. Validates the design's 'detached ephemeral worktree so concurrent integrations do not contend for a checked-out branch or shared index.'"
+        },
+        {
+          "label": "git-push(1) official docs — fast-forward rejection = concurrency arbiter",
+          "locator": "https://git-scm.com/docs/git-push (NOTE ABOUT FAST-FORWARDS; OUTPUT rejected)",
+          "summary": "Authoritative confirmation of the design's core concurrency claim: two pushes from the same base — the loser's update 'does not fast-forward' and 'The command by default does not allow an update that is not a fast-forward'; without --force the ref is 'rejected'. Canonical sole-arbiter the design relies on; 'never force-push' preserves safe rejection."
+        },
+        {
+          "label": "ADV spec catalog + agreement contract",
+          "locator": "adv_spec list (advance-workflow v1.43.0; worktree-lifecycle v1.8.0); change contract SC1-SC3, AC1-AC7, C1-C3, DONT1-DONT3",
+          "summary": "advance-workflow (135 reqs) and worktree-lifecycle specs are AC7 amendment targets. DONT3 (no global archive lock) aligns with the existing worktree flock design."
+        }
+      ],
+      "architecture_assessment": "The design is sound and reuses verified existing seams rather than inventing mechanisms. Remote-first finalization maps directly onto the already-pure resolveReleaseReachability/verifyDefaultBranchPushed/detectSquashMergeByTree proofs (no shared-trunk mutation). The detached ephemeral worktree + fast-forward-push-rejection concurrency model is canonical git (verified against git-worktree(1) and git-push(1)), and the existing per-project git-worktree flock serializes worktree creation so no NEW archive lock is required (DONT3 satisfied structurally). The trunk-write firewall (rq-crossProjectTrunkFirewall01) remains defense-in-depth. Every cited lever exists at the cited line numbers. Existing pattern: archive mutates shared trunk (checkpoint at git-finalize.ts:3368, remote-ahead block at :3397, advisory sync at change.ts:4537). Reference pattern: integrate in isolated worktree, prove release from remote refs, let git's non-fast-forward rejection arbitrate concurrency. Deviation: MINOR-to-zero — the design moves toward the by-the-book reference and removes the deviations; no new non-standard mechanism introduced.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "No design blockers. All constraints (C1 shared trunk never a release target; C2 remote reachability failures block release; C3 no destructive workaround on unrelated work) and avoidances (DONT1 no disk-only proof weakening; DONT2 no manual worktree recreation; DONT3 no global archive lock) are respected by the design. Fail-closed behavior preserved (all unreachable routes return reachable:false). Three non-blocking planning refinements identified (see follow_ups and architecture_judgement.alternatives_considered)."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Remote-authoritative finalization adds a new operational surface — detached ephemeral worktree lifecycle + cleanup reaper — the highest-risk new component (leak/diagnosis tradeoff) even though the git mechanism itself is standard.",
+          "Fast-forward-rejection-as-arbiter trades a bounded retry loop (fetch→recompute→push) for simplicity and correctness under concurrency; acceptable since retry is bounded and never force-pushes, but adds latency under contention.",
+          "Removing the advisory syncDefaultBranchAfterMerge seam removes a post-merge local-trunk convenience; the developer's local trunk will lag origin until a manual sync — explicit trade for AC1 isolation.",
+          "Local bare remote as canonical authority for local-only projects introduces an authority-ambiguity surface that must be validated explicitly (design lists this as a risk/mitigation but not as an explicit test in design-derived criteria)."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Hosted-PR-only: drop the direct/local integration route entirely, require a hosted remote for all archives",
+            "disposition": "rejected",
+            "rationale": "AC3 explicitly requires direct-route integration to remain supported (in isolated ephemeral worktree), and local-only multi-agent projects need a canonical bare remote. Dropping direct route would violate an approved acceptance criterion."
+          },
+          {
+            "option": "Global archive lock (serialize all archive integrations)",
+            "disposition": "rejected",
+            "rationale": "Explicitly prohibited by approved avoidance DONT3. Git's fast-forward rejection already arbitrates concurrency correctly without a lock, and the existing git-worktree flock only serializes worktree filesystem ops."
+          },
+          {
+            "option": "Thread a mainCheckout type through the proof layer instead of removing shared-checkout dependence",
+            "disposition": "rejected",
+            "rationale": "Adds coupling/type-threading surface without removing the shared-trunk dependence; the chosen reuse of workdir-scoped merge (reconcileChangeBranchWithDefault) and pure remote proofs is simpler and removes the dependence outright."
+          },
+          {
+            "option": "Keep advisory syncDefaultBranchAfterMerge but never block on it (current partial state)",
+            "disposition": "rejected",
+            "rationale": "Advisory sync still mutates shared trunk, violating AC1's 'never ... syncs shared trunk'. Design correctly removes it; release proof already derives from remote refs so removal does not weaken release authority (C2 preserved)."
+          }
+        ],
+        "recommendation": "Proceed to planning. Validation status: PASS. The remote-first / detached-worktree / fast-forward-arbiter design is architecturally sound, reuses verified pure-proof seams, and respects all approved constraints and avoidances. Carry four planning items forward (see follow_ups): related-scan all resolveMainCheckout consumers (especially archived-branch-cleanup.ts:306) for full AC1 coverage; add an explicit local-bare-remote-validation test; enumerate AC7 spec/command amendments; bound and make testable the ephemeral-worktree cleanup reaper + failure receipt."
+      },
+      "recommendation": "Proceed to planning with PASS. Design is sound: canonical git mechanisms (detached worktree, non-fast-forward push rejection) verified against official docs; all cited code levers verified in-source at cited line numbers; no global archive lock needed (existing per-project worktree flock reused, satisfying DONT3); fail-closed behavior preserved on all routes. Four non-blocking planning refinements to carry forward (related-scan other resolveMainCheckout consumers for full AC1 coverage; explicit local-bare-remote-validation test; AC7 spec/command amendment enumeration; bounded/testable ephemeral-worktree reaper).",
+      "follow_ups": [
+        "F1 (high): Related-scan (P25) all resolveMainCheckout consumers in archive/cleanup paths — archived-branch-cleanup.ts:306 is a confirmed second shared-checkout touchpoint. Ensure AC1 ('never commits/resets/stashes/merges/pushes/syncs shared trunk') has NO remaining mutation path after syncDefaultBranchAfterMerge removal; extend touched scope or surface as separate work.",
+        "F2 (medium): Planning — add an explicit acceptance/test that canonical-local-bare-remote validation BLOCKS unsafe direct integration when no valid bare remote is configured (design lists this as a risk/mitigation but it is not in design-derived criteria).",
+        "F3 (medium): Planning — enumerate AC7 spec/command amendment targets (advance-workflow v1.43.0, worktree-lifecycle v1.8.0, adv-archive.md:517 syncDefaultBranchAfterMerge seam, rq-releaseFinalization03 compatibility); cross-check archived backlog bl--1Jm4pMx (admin/squash-merge phase-9 evidence) for compatibility.",
+        "F4 (medium): Planning — the detached ephemeral worktree lifecycle + cleanup reaper is the highest-risk NEW operational surface; specify deterministic naming, a retained/inspectable failure receipt, and a bounded reaper with tests so leaks and diagnosis are covered.",
+        "F5 (low): Tooling — adv_spec search for 'archive finalization reachability' returned empty despite advance-workflow v1.43.0 existing; likely a search-index/match gap, not a spec gap. Not a validation blocker."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "contract-no-remote-fail-closed-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 2943,
+          "what": "The `no_remote` route updates `refs/heads/<default>` and returns `status: \"shipped\"` with `pushStatus: \"skipped\"`.",
+          "why": "Agreement AC4 requires the no-remote route to remain fail-closed; C2 requires remote-reachability failures to block release; C1 prohibits using shared trunk as a release mutation target. The approved design instead names a validated local bare remote as the local-only authority. The added spec also explicitly permits this unsafe success path.",
+          "fix": "Do not ship no-remote finalization. Return a typed blocked outcome requiring a validated canonical remote/local-bare authority; remove the local-default `update-ref` release path and align the archive specs/docs/tests."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A detached worktree protects the shared working tree and index, but updating refs/heads/<default> is still an authority mutation of the branch checked out by shared trunk. Treat an absent canonical remote as a fail-closed release condition when the agreement requires remote proof."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts",
+          "durable tr_msawwrq3_c154e6fe (reported execution evidence: 600 tests)",
+          "git diff --check e9c2e176^ e9c2e176"
+        ],
+        "results": "pass",
+        "evidence": "Focused suite: 3 files, 218 tests passed (8.15s). `git diff --check` produced no diagnostics. Source review found the focused suite encodes the conflicting no-remote success path at git-finalize.test.ts:2930; therefore passing tests do not satisfy AC4/C1/C2."
+      },
+      "scope_drift": null,
+      "risks": [
+        "A repository without origin can currently retire/archive a change after mutating the local default ref, despite no remote proof.",
+        "This worktree is 54 commits behind origin/trunk; review is bounded to committed diff e9c2e176 as requested."
+      ],
+      "required_main_agent_actions": [
+        "Keep acceptance and release gates pending; do not archive until blocker is remediated and independently re-verified.",
+        "Resume scoped implementation: make no-remote archive finalization fail closed, remove the local default-branch update-ref shipping path, and update rq-releaseFinalization01/rq-releaseFinalization03 plus docs/tests to require a validated canonical remote (including local bare).",
+        "Rerun focused archive finalization and phase-9 tests, then request a new acceptance review."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: durable tr_msawwrq3_c154e6fe (reported execution evidence: 600 tests)"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check e9c2e176^ e9c2e176"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:no-remote-remediation"
+      },
+      "agent": "adv-researcher",
+      "topic": "No-remote archive route shared-trunk mutation blocker (AC4/C1/C2)",
+      "sources": [
+        {
+          "label": "git-finalize.ts no_remote update-ref+shipped block",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2943-3046",
+          "summary": "no_remote route runs `git update-ref refs/heads/${defaultBranch} HEAD oldSha` (ff compare-and-set) then returns status:'shipped', pushStatus:'skipped'. Comment admits it uses update-ref because native push is rejected for a checked-out branch."
+        },
+        {
+          "label": "withEphemeralDefaultBranchWorktree (linked worktree)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:112-165",
+          "summary": "Creates ephemeral worktree via `git worktree add --detach` (line 139) = LINKED worktree sharing $GIT_COMMON_DIR/refs. Doc-comment (109-110) falsely claims mutations are isolated from shared main checkout; only working tree/index/HEAD are isolated, NOT refs."
+        },
+        {
+          "label": "release-gate accepts no_remote+skipped as shipped",
+          "locator": "plugin/src/tools/change/archive-gate.ts:1228-1255",
+          "summary": "validRoutePushCombo includes (route==='no_remote' && pushStatus==='skipped'); shipped-rescue synthesizes a done release gate from it."
+        },
+        {
+          "label": "no bare-remote machinery exists",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:20,2945",
+          "summary": "Only cosmetic 'bare' mentions; no validateCanonicalBare/isBare/bareRemote/push-to-bare path. Design's 'canonical local bare remote' was never implemented."
+        },
+        {
+          "label": "spec rq-releaseFinalization01 + .1/.8/.10/.12",
+          "locator": ".adv/specs/advance-workflow/spec.json:498-688",
+          "summary": "Spec permits no_remote to 'complete as local-only and report Merged locally.' (.1); treats 'no-remote local proof' as valid proof class. Terminal for no_remote is 'Merged locally.' not 'Shipped.'"
+        },
+        {
+          "label": "command doc no-remote mechanism",
+          "locator": ".opencode/command/adv-archive.md:200,233,306,404,447",
+          "summary": "Defines Shipped vs Merged locally terminals; .306 says no_remote = `git -C \"$MAIN\" merge --ff-only` (merge IN main checkout) which itself violates AC1."
+        },
+        {
+          "label": "git-worktree: refs/heads/* shared across linked worktrees",
+          "locator": "https://git-scm.com/docs/git-worktree",
+          "summary": "'all refs starting with refs/ are shared... refs/heads/master uses $GIT_COMMON_DIR... since refs are shared across all worktrees.' Confirms update-ref from ephemeral worktree mutates shared default-branch ref."
+        },
+        {
+          "label": "receive.denyCurrentBranch refuses checked-out-branch push",
+          "locator": "https://git-scm.com/docs/git-config#Documentation/git-config.txt-receivedenyCurrentBranch",
+          "summary": "Git refuses push to checked-out branch because it 'will make the index and work tree inconsistent'; update-ref bypasses this, leaving shared checkout inconsistent."
+        },
+        {
+          "label": "tests asserting violating behavior (blast radius)",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.test.ts:986,2371,2930,4357-4391",
+          "summary": "Currently assert no_remote -> shipped/skipped success; must be inverted to assert blocked. Also change.test.ts:5705; archive-gate.test.ts:1200,1420; archive-phase9-splitbrain.itest.ts:87-191."
+        }
+      ],
+      "architecture_assessment": "BLOCKER CONFIRMED. The no_remote route (git-finalize.ts:2943-3046) merges in a linked ephemeral worktree then runs `git update-ref refs/heads/${defaultBranch} HEAD oldSha` and returns status:'shipped'. Because linked worktrees share $GIT_COMMON_DIR/refs (git docs), this mutates the SHARED default-branch ref visible to the main checkout and all peer worktrees. The code uses update-ref precisely to bypass receive.denyCurrentBranch (which refuses push to a checked-out branch to avoid index/worktree inconsistency), so it advances the shared ref while leaving the shared checkout's index/worktree inconsistent - a correctness hazard git refuses by default, and a direct violation of C1 ('Shared trunk is never a release mutation target') and AC1 ('never ... merges ... shared trunk'). It then reports shipped without any remote-authoritative reachability proof (AC4/C2). The spec rq-releaseFinalization01.1 envisions local-only completion, but its documented mechanism (`git -C $MAIN merge --ff-only`) ALSO violates AC1, and the implemented mechanism (ephemeral + update-ref) violates C1/AC1 plus the inconsistency hazard. The design's stated resolution (canonical bare remote for local-only multi-agent repos) was NOT implemented. Therefore a pure-no-remote repo has NO C1-conforming release path; the route is unsound under this change's contract and must fail-closed. Note: terminal rendering itself correctly says 'Merged locally.' for no_remote (command-prompt-decided, not the status field), so the 'reports shipped' harm concerns the internal status/proof authority, not the visible label.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "no_remote route mutates the shared default-branch ref via `git update-ref refs/heads/${defaultBranch}` (git-finalize.ts:2993-2998) from a linked ephemeral worktree (git-finalize.ts:112-165, `git worktree add --detach`), bypassing receive.denyCurrentBranch and leaving the shared checkout index/worktree inconsistent; it then returns status:'shipped' (git-finalize.ts:3036-3046) and is accepted as shipped proof (archive-gate.ts:1235). Violates AC1/C1 (shared-trunk merge/mutation) and AC4/C2 (release success without remote-authoritative proof).",
+            "contract_ids": [
+              "AC1",
+              "C1",
+              "AC4",
+              "C2"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "R-FAIL-CLOSED (conforms to AC1/C1/AC4/C2 WITHOUT altering agreement): (1) git-finalize.ts:2943-3046 - block the no_remote success path (return status:'blocked', pushStatus:'not_attempted', blocked.reason e.g. NO_REMOTE_RELEASE_AUTHORITY, remediation citing rq-releaseFinalization01 + 'configure an origin or canonical bare remote; ADV will not mutate the shared default-branch ref'); do not run update-ref. (2) archive-gate.ts:1235 - remove the (route==='no_remote' && pushStatus==='skipped') shipped-combo so no_remote can never synthesize a release gate. (3) AC7: amend spec rq-releaseFinalization01 + .1/.8/.9/.10/.12 and adv-archive.md:200,233,306,404,447 so pure-no-remote blocks. Route classification (classifyFinalizationRoute) and enum (types/changes.ts:1114) stay valid; only the SUCCESS outcome is removed. No bare-remote machinery exists today, so local-only release restoration is a separate follow-up.",
+            "source": {
+              "label": "git-finalize.ts no_remote update-ref+shipped block",
+              "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:2943-3046",
+              "summary": "no_remote runs git update-ref refs/heads/${defaultBranch} then returns status:'shipped'; linked worktree shares refs (git docs); update-ref bypasses receive.denyCurrentBranch."
+            }
+          }
+        ],
+        "notes": "Defect is unambiguous on AC1/C1 (shared-ref mutation, confirmed by official git docs). AC4/C2 satisfied by the fail-closed remediation. Removing local-only SUCCESS violates no SC/AC (none guarantee no-remote completion); AC4 only requires the route 'remain fail-closed', which a blocking route satisfies. Spec .1 is subordinate to the agreement; AC7 governs its amendment."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "R-FAIL-CLOSED is the smallest unambiguously-safe conformance fix but removes local-only release for pure-no-remote repos and carries a medium test/spec/doc blast radius (~8 tests inverted + asset-test alignment).",
+          "There is NO smaller C1-conforming fix: any local-only success requires advancing the shared default ref, which C1 forbids - so fail-closed is the minimal conformance outcome.",
+          "Preserving local-only release needs either detection heuristics (R-CONDITIONAL) or new bare-remote machinery (R-BARE); neither is minimal for this blocker."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "R-CONDITIONAL: gate update-ref on default-branch not checked out in any non-ephemeral worktree; fail-closed otherwise",
+            "disposition": "deferred",
+            "rationale": "Smaller test blast radius and preserves local-only for the rare free-ref case, but adds git-worktree-list detection heuristics/edge cases and still fails-closed for the common main-on-default case - same effective outcome with more complexity and residual heuristic risk."
+          },
+          {
+            "option": "R-BARE: implement canonical-bare-remote validation + ff push for local-only multi-agent repos (design Decision)",
+            "disposition": "deferred",
+            "rationale": "Correct long-term fix to restore local-only release per the design, but requires new machinery (validateCanonicalBare, push-to-bare, reachability) absent today; not minimal for unblocking acceptance."
+          },
+          {
+            "option": "Keep-as-is + amend spec .1 to explicitly permit shared-ref mutation",
+            "disposition": "rejected",
+            "rationale": "Would weaken/alter C1/AC1, which is out of scope ('must not alter agreement/constraints'), and would encode the index/worktree-inconsistency hazard git refuses by default."
+          }
+        ],
+        "recommendation": "Apply R-FAIL-CLOSED now to unblock the acceptance gate (conforms to AC1/C1/AC4/C2 with no agreement change; amend spec+command docs per AC7). Add two regression guards: (a) no_remote returns status:'blocked' not 'shipped'; (b) shared refs/heads/${defaultBranch} unchanged after no_remote finalization (C1 guard). If local-only release must be preserved, open a follow-up change for canonical-bare-remote support (design's stated intent), since pure-no-remote has no C1-conforming release path."
+      },
+      "recommendation": "Apply R-FAIL-CLOSED: block git-finalize.ts:2943-3046 no_remote success; drop the no_remote+skipped shipped-combo in archive-gate.ts:1235; amend rq-releaseFinalization01.1 + adv-archive.md per AC7. Add regression tests: (1) no_remote -> status:'blocked' with origin/bare-remote remediation; (2) shared default-branch ref unchanged (snapshot `git rev-parse refs/heads/${defaultBranch}` before/after); (3) verifyReleaseGateDurableForArchive rejects no_remote+skipped. Invert the ~8 existing no_remote-success tests (git-finalize.test.ts:986,2371,2930,4357-4391; change.test.ts:5705; archive-gate.test.ts:1200,1420; archive-phase9-splitbrain.itest.ts:87-191) and align asset tests (archive-release-finalization-assets.test.ts:39,65,68,71; adv-autonomy-quality-assets.test.ts:289,292,409,413; handoff-footer-drift.test.ts:303,370,376). Confirm with user whether pure-no-remote local-only release must be preserved (if yes -> canonical-bare-remote follow-up).",
+      "follow_ups": [
+        "User decision: must pure-no-remote local-only release be preserved? If yes, open canonical-bare-remote follow-up change (design intent).",
+        "git-blame the update-ref block to confirm authorship by THIS change (could not run git blame - execute has no shell). Circumstantial evidence (doc-comment vocabulary, test 'ships no-remote archive without mutating dirty main checkout' at git-finalize.test.ts:2930, problem-statement RCA at git-finalize.ts:3320-3365) strongly indicates it is new to this change.",
+        "Related-scan (P25): audit archived-branch-cleanup.ts and phase9 persistence for any other shared-ref mutations introduced by this change.",
+        "AC7: ensure generated schema/contracts (types/changes.ts route enum) still type-check after no_remote success removal; classification+enum remain valid."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+      "task_id": "tk-efafa70f12a9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-efafa70f12a9"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/change/archive-gate.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/archive-release-finalization-assets.test.ts",
+        "plugin/src/handoff-footer-drift.test.ts",
+        "plugin/src/adv-autonomy-quality-assets.test.ts",
+        ".adv/specs/advance-workflow/spec.json",
+        "docs/specs/advance-workflow.md",
+        "docs/command-voice-standard.md",
+        ".opencode/command/adv-archive.md"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_tk-efafa70f12a9_20260801_1915_targeted",
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts src/archive-release-finalization-assets.test.ts src/handoff-footer-drift.test.ts src/adv-autonomy-quality-assets.test.ts",
+          "exit_code": 0,
+          "summary": "395 targeted tests passed across git-finalize, archive-gate, change, and archive asset tests."
+        },
+        {
+          "test_run_id": "tr_tk-efafa70f12a9_20260801_1915_check",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, manifest:check, frontmatter, test isolation, lockfile policy, lint, and format:check all passed (only pre-existing manifest-frontmatter warnings)."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Blocked `no_remote` archive route with `NO_REMOTE_RELEASE_AUTHORITY` and removed shared-trunk merge/update-ref fallback",
+          "why": "Reviewer confirmed the shared default-branch mutation was a release-authority bug; without a remote origin, archive cannot prove release and must not touch the shared trunk."
+        },
+        {
+          "what": "Treated a local bare `origin` as a valid `direct` remote route",
+          "why": "A bare origin reachable via the `origin` remote still satisfies the remote-first proof requirement; only a missing `origin` remote blocks."
+        },
+        {
+          "what": "Rewrote `prepareNoRemoteReleaseProof` into `prepareLocalReleaseProof` creating a local bare origin, merging the change branch, and pushing `main`",
+          "why": "The recovery/no-op tests need a valid `direct` release proof; the old no-remote `shipped` proof is no longer allowed."
+        },
+        {
+          "what": "Updated command/spec docs and autonomy test expectations to remove the local `Merged locally.` terminal and add `NO_REMOTE_RELEASE_AUTHORITY` semantics",
+          "why": "Keeps generated assets, specs, and documentation consistent with the new remote-first isolation boundary."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Fixed same no_remote/shared-trunk pattern across git-finalize, archive-gate, change tests, and archive asset tests; no additional occurrences found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Residual archive test/doc failures from the remote-first refactor are resolved. All targeted tests pass and `pnpm run check` is green. The worktree contains uncommitted changes; the ADV task is already marked `done` with checkpoint e9c2e176, so the latest edits should be reviewed and committed before acceptance/release gates advance.",
+        "suggested_next_action": "Review the diff, commit the current worktree changes, and proceed to the acceptance gate / full CI if needed."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_tk-efafa70f12a9_20260801_1915_targeted"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_tk-efafa70f12a9_20260801_1915_check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+      "task_id": "tk-efafa70f12a9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-efafa70f12a9"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts src/archive-release-finalization-assets.test.ts src/handoff-footer-drift.test.ts src/adv-autonomy-quality-assets.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Checkpoint a7415b85 is current HEAD and records the blocker remediation. Current scoped verification passed: 6 test files, 395 tests. Source review confirms no_remote returns blocked with NO_REMOTE_RELEASE_AUTHORITY before ephemeral worktree/merge logic (git-finalize.ts:2925-2937); reachability propagates that blocker (git-finalize.ts:2291-2296; archive-gate.ts:871-885); no shared update-ref occurrence exists in the scoped production subsystem; integration test preserves trunk ref (git-finalize.test.ts:2390-2413). Local bare origin is classified as direct (git-finalize.ts:486-509,552-573) and has coverage (git-finalize.test.ts:341-368). Spec/docs scenarios match behavior (docs/specs/advance-workflow.md:450-473)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Freshness check reports this change worktree is 56 commits behind origin/trunk; no rebase was performed because this scoped re-review made no edits."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change/archive-gate.test.ts src/tools/change.test.ts src/archive-release-finalization-assets.test.ts src/handoff-footer-drift.test.ts src/adv-autonomy-quality-assets.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "release-concurrency-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/archive-helpers/git-finalize.ts",
+          "line": 2940,
+          "what": "Direct remote finalization chooses cached `origin/<default>` (or local default) without first fetching the remote default branch.",
+          "why": "The release contract requires a refreshed current default-branch basis. `ensureOriginDefaultFetched` is defined but has no production caller; a stale tracking ref causes avoidable push rejection and violates the remote-first concurrency/freshness invariant.",
+          "fix": "Fetch `origin/<defaultBranch>` before deriving `baseRef`; on fetch failure return a typed blocked outcome without creating an ephemeral worktree. Add an integration test where the remote default advances after local tracking state, asserting the fresh remote tip is the ephemeral base."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A cached-fetch helper is not release protection unless the direct finalization path invokes it before selecting its merge base; unit tests that only exercise the helper cannot prove the archive path is fresh."
+        }
+      ],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "Inspected commit a7415b855bb15f6e7a227e9e13518811aa5f859a and the finalization/release-proof paths. `resolveReleaseReachability` and no-remote handling are structurally guarded. Gate evidence records tr_msawwrq3_c154e6fe as passing 12 files/600 tests. Direct detailed durable-run lookup is unavailable on this tool surface; adv_change_show and adv_status both timed out with structured ToolExecutionTimeout."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Working tree is clean, but the change branch is 56 commits behind origin/trunk; finalization must fetch a current remote basis before release.",
+        "The required stale-origin regression is absent, so existing passing helper tests do not establish concurrent release freshness."
+      ],
+      "required_main_agent_actions": [
+        "Treat release-concurrency-1 as a release blocker; keep the change active and do not archive or complete release.",
+        "Remediate the direct finalization freshness path in plugin/src/tools/archive-helpers/git-finalize.ts, then run the targeted archive-finalization tests and re-establish durable verification evidence for tr_msawwrq3_c154e6fe and tr_msb2wn0v_8bab6405.",
+        "Do not revisit unrelated storage-suite failures; they are outside this review scope."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decoupleArchiveSharedCheckout",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decoupleArchiveSharedCheckout",
+      "task_id": "tk-efafa70f12a9",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-efafa70f12a9"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "run_id": "bin-oc-test-targeted-git-finalize-20260801",
+          "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "126/126 git-finalize tests pass, including the new stale-origin regression"
+        },
+        {
+          "run_id": "pnpm-run-check-20260801",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "schemas:check, typecheck, manifest:check, frontmatter, test isolation, lockfile policy, lint, and format:check all pass (only pre-existing manifest-frontmatter warnings)"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Fetched origin/default before selecting the ephemeral archive worktree base OID in finalizeRelease direct path",
+          "why": "The old code rev-parsed local refs/remotes/origin/<default> without refreshing it, so a stale local origin ref could become the merge base and miss concurrent remote commits. ensureOriginDefaultFetched(state) now runs first, and the origin ref is used only after it is current."
+        },
+        {
+          "what": "Preserved a fallback to the local default branch when the origin ref is missing after a successful fetch",
+          "why": "Keeps existing unit tests that mock a remote origin but do not materialize origin/<default> from being blocked, while still fixing the real stale-origin bug."
+        },
+        {
+          "what": "Added a focused stale-origin regression test using a bare seed remote, a main clone, and a separate advancer clone",
+          "why": "It proves the ephemeral worktree base is the current remote HEAD, not the stale local origin/trunk ref, and that the shipped merge commit contains both the remote-advance and feature changes."
+        },
+        {
+          "what": "Left changes uncommitted per task instruction",
+          "why": "The task explicitly said \"Do not commit\"; the release gate orchestrator owns the next commit/push."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned finalizeRelease direct path and existing git-finalize tests for the same stale-origin/base-ref pattern; fixed in the single canonical location and covered with regression.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "The release blocker around stale origin/trunk in direct Phase 9 archive finalization is fixed. The direct path now fetches origin/<default> before selecting the ephemeral worktree base, and a regression test verifies the current remote base is used. All git-finalize tests (126) and pnpm run check pass. Changes are uncommitted in the worktree as instructed.",
+        "suggested_next_action": "Review the diff in plugin/src/tools/archive-helpers/git-finalize.ts and git-finalize.test.ts, commit when ready, and advance the release gate / run the full CI suite."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: bin-oc-test-targeted-git-finalize-20260801"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: pnpm-run-check-20260801"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-b0c3586709ec": [
+      {
+        "runId": "tr_msawwrq3_c154e6fe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/adv-worktree.archived-branches.test.ts src/tools/gate.test.ts src/tools/gate.release-enforcement.test.ts src/tools/status.test.ts src/tools/status-health-pressure.test.ts src/tools/status-health-integration-blockers.test.ts src/tools/change.test.ts src/tools/change.workflow-terminate.test.ts src/tools/change.archive-convergence.test.ts",
+        "durationMs": 23160.485030999407,
+        "recordedAt": "2026-08-01T21:57:37.503Z"
+      }
+    ],
+    "tk-efafa70f12a9": [
+      {
+        "runId": "tr_msb2wn0v_8bab6405",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts src/tools/change.archive-phase9.test.ts src/tools/change/archive-gate.test.ts src/tools/adv-worktree.archived-branches.test.ts",
+        "durationMs": 11144.107942000031,
+        "recordedAt": "2026-08-02T00:45:29.216Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-01T18:21:12.831Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User confirmed full shared-checkout decoupling RCA and remote-first safety boundary.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "7cb670e25810d931c2e73ade0cf761a4bc6c2b5c2e9e124db850ded4d852363e",
+        "non_whitespace_chars": 751,
+        "checked_at": "2026-08-01T18:20:16.656Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-01T18:35:38.844Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved full agreement; strict contract mint requested with approval evidence.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "non_whitespace_chars": 1425,
+        "checked_at": "2026-08-01T18:20:16.657Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-01T18:56:37.251Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Independent validator PASS. Design includes remote-first detached integration, native fast-forward concurrency, local bare canonical validation, related cleanup scan, and bounded reaper.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "12fc06ca16930d473dd684b6d301b58cb68d5d52ab8be961d0971831ad326c2b",
+        "non_whitespace_chars": 3238,
+        "checked_at": "2026-08-01T18:20:16.658Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-01T19:35:49.849Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved remote-first two-task implementation and verification graph; duplicate timeout-created tasks are cancelled."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-01T22:00:02.553Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "Both canonical tasks are complete; duplicate tasks were approved/cancelled. Durable verification tr_msawwrq3_c154e6fe passed 12 files/600 tests; independent verification confirmed agreement, specs, docs, and safety boundaries."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-02T00:45:44.260Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "Direct durable core-task run tr_msb2wn0v_8bab6405 passed 240 tests; retry acceptance.",
+      "started_at": "2026-08-02T00:44:14.437Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "866f01ced77da04e89e5cb7850e3d40ded6aa54d830c7d1923b654cdbd6d5f59",
+        "non_whitespace_chars": 1729,
+        "checked_at": "2026-08-01T18:20:16.660Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+      "approvedAt": "2026-08-01T18:35:26.544Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "**SC1:** A merged PR archives successfully with shared trunk dirty or behind.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "**SC2:** Concurrent archives cannot capture, reset, or destroy unrelated work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "**SC3:** All archive routes preserve deterministic reachability outcomes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Archive finalization never commits, resets, stashes, merges, pushes, or syncs shared trunk.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Release proof is based on fresh remote default-branch evidence plus validated immutable change/tree evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Direct-route integration occurs only in a tool-owned ephemeral worktree.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** Branch-present, squash/deleted, no-remote, retry, and poisoned/completed recovery routes remain fail-closed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Concurrent archive integration is isolated and tested.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "**AC6:** Existing bundles/retries migrate compatibly without false release success.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "**AC7:** Archive specs and generated schema/contracts reflect the new authority and isolation rules.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Shared trunk is never a release mutation target.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Remote reachability failures block release.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No destructive workaround may touch unrelated work.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not weaken proof to disk-only historical claims.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not require manual branch/worktree recreation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not introduce a global archive lock as a substitute for isolation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "16466c12cc9a25ba66d399129b8cc5f12305f38b2083a7617323144db1f5390e",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-01T23:20:20.992Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Dirty/stale trunk tests pass."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Race/isolation suite passes."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All route regressions pass."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No shared-main mutation tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Fresh canonical remote proof verified."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Detached integration route verified."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No-remote now fails closed; recovery routes covered."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Non-FF contention behavior covered."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Legacy/retry compatibility tests pass."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Specs/docs/assets reviewed aligned."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Shared trunk never release mutation target."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Remote failures block release."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No unrelated destructive workaround."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No disk-only proof."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No manual reconstruction."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No global lock."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Archive finalization never commits, resets, stashes, merges, pushes, or syncs shared trunk.",
+    "**AC2:** Release proof is based on fresh remote default-branch evidence plus validated immutable change/tree evidence.",
+    "**AC3:** Direct-route integration occurs only in a tool-owned ephemeral worktree.",
+    "**AC4:** Branch-present, squash/deleted, no-remote, retry, and poisoned/completed recovery routes remain fail-closed.",
+    "**AC5:** Concurrent archive integration is isolated and tested.",
+    "**AC6:** Existing bundles/retries migrate compatibly without false release success.",
+    "**AC7:** Archive specs and generated schema/contracts reflect the new authority and isolation rules."
+  ],
+  "documents": {
+    "proposal": "# Decouple archive finalization from shared checkout\n\n## Why\n\nA merged change must finish its ADV archive without depending on unrelated dirty or stale work in shared trunk.\n\n## Scope\n\n### In Scope\n- Replace shared-trunk archive Git mutation/dependency with remote-first proof.\n- Use an ephemeral tool-owned integration worktree for direct-route integration.\n- Remove dirty-main checkpoint and destructive default-checkout reset behavior.\n- Cover branch-present, squash/deleted, no-remote, retry, concurrency, and failure paths.\n- Amend affected archive workflow specs.\n\n### Out of Scope\n- Weakening reachability proof.\n- Modifying unrelated local work.\n- Manual branch/worktree reconstruction.\n\n## Discovery Findings\n\n- `resolveMainCheckout` makes linked worktrees share one trunk checkout.\n- Archive currently checkpoints, merges, pushes, resets, and blocks on that checkout.\n- Existing remote-first retry proof already uses remote refs, persisted `changeTipSha`, and tree fallback without mutation.\n- User selected ephemeral tool-owned worktree for direct-route integration.\n\n## Recommended Objectives\n\n1. Archive completion never mutates shared trunk.\n2. Release proof uses current remote/default-branch evidence.\n3. Direct integration remains supported in an isolated ephemeral worktree.\n4. Recovery retries remain fail-closed and idempotent.\n5. Concurrency cannot destroy or capture unrelated work.\n\n## Completeness\n\nAll Git finalization routes, persistence/retry proof, cleanup, specs, and concurrency tests require coverage. The 50-commit tree fallback remains bounded and fail-closed.\n",
+    "problemStatement": "# Problem Statement\n\nArchive finalization is coupled to the shared local default checkout. A merged PR can remain unarchivable when unrelated work leaves that checkout dirty or behind `origin/trunk`.\n\n## Root Cause Analysis\n\n- Reproduction: `fixAcceptanceMatrixRecovery` PR #356 merged, but archive finalization blocked first on `DEFAULT_BRANCH_REMOTE_DIVERGED`; local trunk could not fast-forward because it had unrelated unstaged files.\n- Source evidence: `plugin/src/tools/archive-helpers/git-finalize.ts:3320-3326` calls `commitDirtyMainCheckpoint(mainCheckout, changeId, deps)` before release reachability handling.\n- Source evidence: `git-finalize.ts:3351-3365` rejects finalization when `verifyRemoteNotAhead(mainCheckout, defaultBranch, deps)` reports remote divergence, before merge/reachability fallback.\n- Consequence: archive/release state is blocked by unrelated shared-checkout state despite immutable PR merge proof on `origin/trunk`.\n- Safety risk: a finalizer path that checkpoints dirty shared main can capture unrelated work into release-adjacent state.\n- Required direction: preserve strict remote/default-branch reachability, but derive proof from fetched remote refs and persisted immutable commit/tree evidence. Never commit, reset, stash, sync, or otherwise mutate shared trunk during archive finalization.\n",
+    "agreement": "# Agreement\n\n## Objectives\n1. Remove every shared-default-checkout mutation from archive finalization.\n2. Make current remote/default-branch evidence the release authority.\n3. Preserve direct-route integration in a tool-owned ephemeral worktree.\n4. Keep all recovery routes fail-closed, deterministic, and concurrency-safe.\n\n## Success Criteria\n- **SC1:** A merged PR archives successfully with shared trunk dirty or behind.\n- **SC2:** Concurrent archives cannot capture, reset, or destroy unrelated work.\n- **SC3:** All archive routes preserve deterministic reachability outcomes.\n\n## Acceptance Criteria\n- **AC1:** Archive finalization never commits, resets, stashes, merges, pushes, or syncs shared trunk.\n- **AC2:** Release proof is based on fresh canonical default-branch evidence plus validated immutable change/tree evidence.\n- **AC3:** Direct-route integration occurs only in a tool-owned detached ephemeral worktree.\n- **AC4:** Branch-present, squash/deleted, no-remote, retry, and poisoned/completed recovery routes remain fail-closed.\n- **AC5:** Concurrent archive integration is isolated and tested.\n- **AC6:** Existing bundles/retries migrate compatibly without false release success.\n- **AC7:** Archive specs and generated schema/contracts reflect the new authority and isolation rules.\n\n## Constraints\n- Shared trunk is never a release mutation target.\n- The canonical integration remote may be hosted or local bare; Git fast-forward rejection is the concurrency authority.\n- Remote reachability failures block release.\n- No destructive workaround may touch unrelated work.\n\n## Avoidances\n- Do not weaken proof to disk-only historical claims.\n- Do not require manual branch/worktree recreation.\n- Do not introduce a global archive lock as a substitute for isolation.\n\n## Decision\nHosted repositories prefer PR integration. Local-only multi-agent repositories use a canonical bare remote and detached ephemeral integration worktrees; both use native optimistic fast-forward rejection rather than shared-checkout mutation or ADV locking.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nArchive finalization is remote-first. Hosted repositories prefer PR merge. Direct/local integration creates a detached ephemeral worktree at the canonical default ref, integrates there, and attempts a normal fast-forward push of its candidate to the canonical default ref. A rejected push means another integration won; discard, refresh, recompute, retry boundedly. Shared trunk is never read as authority or mutated.\n\n## Key Decisions\n\n1. Canonical remote is hosted `origin` or an explicitly validated local bare remote.\n2. Detached ephemeral worktrees isolate index/branch state; normal non-fast-forward rejection is sole concurrency authority.\n3. PR merge is preferred when available; direct/local uses same remote reachability proof after candidate push.\n4. `changeTipSha` tree proof remains deleted/squash fallback and fails closed.\n5. Remove every finalization and archived-branch-cleanup shared-main consumer; no advisory trunk sync remains.\n\n## Lever Citations\n\n- Mutation order: `git-finalize.ts` finalization checkpoint/preflight/merge/push/reset calls.\n- Existing remote proof: `resolveReleaseReachability`, `verifyDefaultBranchPushed`, `detectSquashMergeByTree`.\n- Retry proof: `archive-gate.ts` `verifyReleaseEvidenceFromMain`.\n- Workdir merge precedent: `reconcileChangeBranchWithDefault`.\n- Related shared consumer: `archived-branch-cleanup.ts` `resolveMainCheckout` call.\n\n## Implementation Strategy\n\n1. Define remote proof/canonical bare-remote validation without main-checkout input.\n2. Add detached ephemeral integration-worktree create/integrate/push/verify/receipt/reap lifecycle using existing short worktree flock only for create/remove.\n3. Replace shared-main direct flows and remove advisory trunk sync plus cleanup coupling.\n4. Unify PR/no-remote/squash/retry/recovery outcome proof; retain legacy fail-closed behavior.\n5. Amend archive/worktree specs, command docs, schema/contracts; add exhaustive route, dirty/stale, destructive-safety, race, local-bare and reaper tests.\n\n## LBP Analysis\n\nNative Git detached worktrees and default non-fast-forward rejection are standard conflict control. Existing remote proof is reused; no custom lock or shared-checkout mutation remains.\n\n## Affected Components\n\nGit finalization, archived branch cleanup, archive gate, worktree lifecycle/reaper, phase9 persistence, archive/worktree specs, schemas, commands/docs, unit/Temporal integration tests.\n\n## Design-Derived Criteria\n\n- No archive or cleanup path invokes shared-main mutation or sync operations.\n- Worktree flock serializes only add/remove, never integration state.\n- Push race rejects safely; retry is bounded and starts from fresh canonical OID.\n- Failed worktrees retain diagnostic receipt; verified successes clean deterministically.\n- Canonical local bare remote must be validated before direct integration.\n\n## Risks / Mitigations\n\n- Lifecycle leak: receipt/reaper with test coverage.\n- Push race: no force-push, reject/recompute boundedly.\n- Local authority ambiguity: explicit validation and fail-closed test.\n- Legacy evidence gap: exact block/remediation.\n\n## ADR Draft\nRemote-authoritative archive finalization warrants an ADR: hard-to-reverse, surprising without context, and selected after real safety/concurrency tradeoffs.\n\n## Design Leverage Scout\n5 candidates considered; adopted removal of advisory trunk sync and formalized proof-only retry. Designed around no-main type threading, workdir merge, lifecycle reuse.\n\n## Validator\nValidator: clean pass. Adopted related-scan expansion for archived-branch cleanup, canonical-bare validation, exact spec/command amendment inventory, and bounded reaper/receipt coverage.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nArchive finalization now isolates integration from shared `trunk`, proves release from the current canonical remote, and blocks safely when no remote authority exists.\n\n## Why It Matters\n\nConcurrent local agents cannot capture unrelated work, reset shared state, or finalize from stale remote evidence.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Detached ephemeral integration worktrees with normal fast-forward contention rejection.\n2. Remote-first proof and fail-closed local-only authority handling.\n3. Removal of shared-main checkpoint/reset/merge/push/sync flows.\n4. Fresh origin fetch before direct-route base selection.\n\n## What Was Verified\n\n- Tests: durable 600-test route suite; 395 no-remote remediation tests; 240 core task tests; 126 stale-origin regression tests.\n- Review and harden: READY after both in-scope blockers were fixed.\n- Preview URL: not applicable — archive/workflow-only change.\n- Contract matrix: 16 required rows passed/respected.\n\n## Remaining Concerns\n\nNon-blocking: future telemetry may justify wiring the optional per-project worktree lifecycle flock; non-bare project-root assumption could be documented more explicitly.\n\n## Supporting Evidence\n\nCheckpoints `e9c2e176`, `a7415b85`, `da9c6396`; durable run `tr_msawwrq3_c154e6fe`; review/harden reports READY.\n\n## Consequence Context\n\n- delivered value: pass — shared-trunk archive races and stale-base release risk removed.\n- enabling-only/follow-up dependency: local-only projects configure a bare canonical remote.\n- ops readiness: pass — no deployment/migration; release path hardening verified.\n- migration/data impact: n/a — no data migration.\n- frontend/preview impact: n/a — no visual surface.\n- collision/release risk: low — detached integration and Git fast-forward rejection.\n- open follow-ups: non-blocking optional telemetry/documentation only.\n- next action: archive sign-off finalizes the merged release.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-01T23:20:20.992Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | **SC1:** A merged PR archives successfully with shared trunk dirty or behind. | pass | Dirty/stale trunk tests pass. |\n| SC2 | success_criterion | **SC2:** Concurrent archives cannot capture, reset, or destroy unrelated work. | pass | Race/isolation suite passes. |\n| SC3 | success_criterion | **SC3:** All archive routes preserve deterministic reachability outcomes. | pass | All route regressions pass. |\n| AC1 | acceptance_criterion | **AC1:** Archive finalization never commits, resets, stashes, merges, pushes, or syncs shared trunk. | pass | No shared-main mutation tests pass. |\n| AC2 | acceptance_criterion | **AC2:** Release proof is based on fresh remote default-branch evidence plus validated immutable change/tree evidence. | pass | Fresh canonical remote proof verified. |\n| AC3 | acceptance_criterion | **AC3:** Direct-route integration occurs only in a tool-owned ephemeral worktree. | pass | Detached integration route verified. |\n| AC4 | acceptance_criterion | **AC4:** Branch-present, squash/deleted, no-remote, retry, and poisoned/completed recovery routes remain fail-closed. | pass | No-remote now fails closed; recovery routes covered. |\n| AC5 | acceptance_criterion | **AC5:** Concurrent archive integration is isolated and tested. | pass | Non-FF contention behavior covered. |\n| AC6 | acceptance_criterion | **AC6:** Existing bundles/retries migrate compatibly without false release success. | pass | Legacy/retry compatibility tests pass. |\n| AC7 | acceptance_criterion | **AC7:** Archive specs and generated schema/contracts reflect the new authority and isolation rules. | pass | Specs/docs/assets reviewed aligned. |\n| C1 | constraint | Shared trunk is never a release mutation target. | respected | Shared trunk never release mutation target. |\n| C2 | constraint | Remote reachability failures block release. | respected | Remote failures block release. |\n| C3 | constraint | No destructive workaround may touch unrelated work. | respected | No unrelated destructive workaround. |\n| DONT1 | avoidance | Do not weaken proof to disk-only historical claims. | respected | No disk-only proof. |\n| DONT2 | avoidance | Do not require manual branch/worktree recreation. | respected | No manual reconstruction. |\n| DONT3 | avoidance | Do not introduce a global archive lock as a substitute for isolation. | respected | No global lock. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-01T18:34:02.953Z",
+      "contentHash": "72b1d92fb4aa986ccded73a755ae4f56d7f012800534af2280f89bfd8cb9739b",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-01T18:20:16.750Z",
+      "contentHash": "23f44d495255162585845c69229b9f1074c7d57ef776827a6cdf106aa2239a87",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-01T18:47:24.837Z",
+      "contentHash": "3a0934835d7e8851844a68cc07cbf4e1d794e85588941e8b295d6f82ba26a971",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-01T18:56:11.463Z",
+      "contentHash": "12fc06ca16930d473dd684b6d301b58cb68d5d52ab8be961d0971831ad326c2b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-02T01:08:55.312Z",
+      "contentHash": "ca8ae04901a995bafd96a020bbcacc01246ee2c3916fec14110b6c3f98c8b1b3",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-02T01:08:55.312Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "archive-shared-checkout-rca-2026-08-01"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-efafa70f12a9",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Durable run tr_msawwrq3_c154e6fe passed 12 archive/gate/status/change test files (600 tests) against implementation checkpoint e9c2e176; reviewer remediation then passed 395 scoped tests on checkpoint a7415b85. Both validate the core implementation task's test evidence.",
+      "dispositionedAt": "2026-08-02T00:44:35.550Z"
+    }
+  ],
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Archive finalization now isolates integration from shared trunk state.",
+    "highlights": [
+      "Uses detached ephemeral integration worktrees and remote-first reachability proof.",
+      "Unconfigured local-only archives now block safely instead of mutating shared refs."
+    ],
+    "area": "archive workflow"
+  },
+  "creation_request_hash": "4ecfd4da2935205051d0b7269147aa0b57e3d66f30c5271f0199f350a6508d25",
+  "projection_revision": 56,
+  "projection_commits": [
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f8d41d01a116124165e94b3c809baf7fdcb5da0b2fa9818f3358e74c8703c7f5:updateArtifacts:agreement",
+      "operation_id": "f8d41d01a116124165e94b3c809baf7fdcb5da0b2fa9818f3358e74c8703c7f5:updateArtifacts:agreement",
+      "payload_hash": "2cc7a3e466dafdb6f26185b8952380165d8665f62d4e7b30ed28699c99585dfb",
+      "state_revision": 4,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-01T18:34:58.533Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-01T18:35:27.064Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-01T18:35:39.212Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "3e48ad3c606b58f45e82d490a333b05644abb97e1fe4b52b77f4a4f1bf0b3bf5:updateArtifacts:design",
+      "operation_id": "3e48ad3c606b58f45e82d490a333b05644abb97e1fe4b52b77f4a4f1bf0b3bf5:updateArtifacts:design",
+      "payload_hash": "5b27177f65d47bb1b52b4c877c2fb45546b68f83f0e54790bb7b22183be3abfa",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-01T18:37:03.850Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "44fb0b93a98f28cf78efd2126e2197c4d6d41b49e5cce34bacd01907ec8d399a:updateArtifacts:agreement",
+      "operation_id": "44fb0b93a98f28cf78efd2126e2197c4d6d41b49e5cce34bacd01907ec8d399a:updateArtifacts:agreement",
+      "payload_hash": "a30e2c7f9b58f1af8dd4dcbb601033ea659bc05b85dd2c39d3ed57864c395023",
+      "state_revision": 6,
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-01T18:47:25.248Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "44fb0b93a98f28cf78efd2126e2197c4d6d41b49e5cce34bacd01907ec8d399a:updateArtifacts:design",
+      "operation_id": "44fb0b93a98f28cf78efd2126e2197c4d6d41b49e5cce34bacd01907ec8d399a:updateArtifacts:design",
+      "payload_hash": "3e0b1d48d5f85696a6d336df993c910a82f8abf288aa44831776c3e13e9c72c8",
+      "state_revision": 7,
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-01T18:47:26.015Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-01T18:54:19.314Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-01T18:54:28.437Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-01T18:55:05.560Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c269b04e146f521d15b4c6623ac17b796c8111920a01c0bd083d0773e8422c52:updateArtifacts:design",
+      "operation_id": "c269b04e146f521d15b4c6623ac17b796c8111920a01c0bd083d0773e8422c52:updateArtifacts:design",
+      "payload_hash": "dff5c3af0b6eebeada0d5a37656e10b9dadb203ba32ed3b78e44be1d3912b13d",
+      "state_revision": 8,
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-01T18:56:11.824Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-01T18:56:37.749Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-01T18:57:32.775Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-01T18:57:41.311Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-01T18:58:14.618Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-01T19:01:15.537Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-01T19:23:23.721Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-01T19:29:29.669Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-01T19:29:40.985Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-01T19:29:49.007Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-01T19:33:55.916Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-01T19:35:50.711Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-01T19:43:20.010Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "41026aa1c728493a7059d33282419c12ba2a33b0f0c42e130792cab2b20fdac2:taskUpdated",
+      "operation_id": "41026aa1c728493a7059d33282419c12ba2a33b0f0c42e130792cab2b20fdac2:taskUpdated",
+      "payload_hash": "afa4adc9018d4b72181459ed741d81a7d963eccd80392fd793a0a5ef2e6b9e71",
+      "state_revision": 9,
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-01T21:56:38.077Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-01T21:58:19.858Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-01T21:59:39.040Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-01T22:00:02.779Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-01T22:04:25.980Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-01T22:04:29.548Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-01T22:17:33.269Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-01T22:17:37.723Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-01T23:15:16.928Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-01T23:15:20.778Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "45ceabca3ae793025fc39fe0efa89b197171bd378687b9e41be5bbabb76769f6:taskUpdated",
+      "operation_id": "45ceabca3ae793025fc39fe0efa89b197171bd378687b9e41be5bbabb76769f6:taskUpdated",
+      "payload_hash": "a920b35762725f6a20c17b80f299d2dbb0f356f85b0f7142852bf4bc5749ee6d",
+      "state_revision": 10,
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-01T23:16:36.922Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-01T23:19:46.767Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-01T23:19:50.308Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785626421078_lilicihb",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-01T23:20:21.420Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-01T23:20:20.992Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Dirty/stale trunk tests pass."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Race/isolation suite passes."
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "All route regressions pass."
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "No shared-main mutation tests pass."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Fresh canonical remote proof verified."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Detached integration route verified."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "No-remote now fails closed; recovery routes covered."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Non-FF contention behavior covered."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Legacy/retry compatibility tests pass."
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "Specs/docs/assets reviewed aligned."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Shared trunk never release mutation target."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Remote failures block release."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No unrelated destructive workaround."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No disk-only proof."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No manual reconstruction."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No global lock."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-01T23:20:21.077Z",
+        "mutationReceiptId": "mrec_1785626421078_lilicihb"
+      }
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8e4a77b9e9ebeb96d7f5a187e80461d265584c7cae68e9ecac470dc9326d3a7b:updateArtifacts:executiveSummary",
+      "operation_id": "8e4a77b9e9ebeb96d7f5a187e80461d265584c7cae68e9ecac470dc9326d3a7b:updateArtifacts:executiveSummary",
+      "payload_hash": "ec99c1d2983586a2ce4ca0d1efc7a943e204f26071902b024c0d17c58b9e2e79",
+      "state_revision": 11,
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-01T23:20:43.234Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a4b0d73e058a0db35f7fc913425025225242c1c653f533392e3b2242c66263d8:releaseNotesSet",
+      "operation_id": "a4b0d73e058a0db35f7fc913425025225242c1c653f533392e3b2242c66263d8:releaseNotesSet",
+      "payload_hash": "d73fe66fe3d36548c683a15bb926854d3e26e3d57006e8e9a9895ef235c6f9c3",
+      "state_revision": 12,
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-01T23:20:58.544Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-02T00:44:14.651Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785631475561_00hiqet7",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-02T00:44:35.784Z",
+      "payload": {
+        "taskId": "tk-efafa70f12a9",
+        "concernKey": "verification",
+        "disposition": "fixed",
+        "evidence": "Durable run tr_msawwrq3_c154e6fe passed 12 archive/gate/status/change test files (600 tests) against implementation checkpoint e9c2e176; reviewer remediation then passed 395 scoped tests on checkpoint a7415b85. Both validate the core implementation task's test evidence.",
+        "dispositionedAt": "2026-08-02T00:44:35.550Z",
+        "mutationReceiptId": "mrec_1785631475561_00hiqet7"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-08-02T00:44:55.424Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-08-02T00:45:44.612Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-08-02T00:50:16.562Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-08-02T00:50:27.708Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-08-02T00:51:07.087Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-08-02T01:05:40.722Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-08-02T01:05:44.379Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-08-02T01:06:29.222Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decoupleArchiveSharedCheckout",
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-08-02T01:08:21.419Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "216a764ddf1a53c58faa27d071d02b8215d42b6ac9771ceaa6dbc615bbf6f84a:updateArtifacts:executiveSummary",
+      "operation_id": "216a764ddf1a53c58faa27d071d02b8215d42b6ac9771ceaa6dbc615bbf6f84a:updateArtifacts:executiveSummary",
+      "payload_hash": "7c1da560024b5d27245661c831fd48640acc1afd956236e9d865cd2065e5fc85",
+      "state_revision": 13,
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-08-02T01:08:55.641Z"
+    }
+  ],
+  "state_revision": 13,
+  "_source": "disk"
+}
