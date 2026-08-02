@@ -144,6 +144,34 @@ function createMockStore(change: Change | null): Store {
   } as unknown as Store;
 }
 
+async function createDiskBackedMockStore(
+  change: Change,
+  tempRoot: string,
+): Promise<Store> {
+  const changesDir = join(tempRoot, "changes");
+  const archiveDir = join(tempRoot, "archive");
+  await mkdir(changesDir, { recursive: true });
+  await mkdir(archiveDir, { recursive: true });
+  const dir = join(changesDir, change.id);
+  await mkdir(dir, { recursive: true });
+  await writeFile(join(dir, "change.json"), JSON.stringify(change, null, 2));
+  return {
+    paths: {
+      root: tempRoot,
+      changes: changesDir,
+      archive: archiveDir,
+    } as Store["paths"],
+    config: { name: "test", features: {} } as Store["config"],
+    changes: {
+      get: vi.fn(async (changeId: string) => ({
+        success: true,
+        data: change && change.id === changeId ? change : null,
+      })),
+      refresh: vi.fn(async () => undefined),
+    } as unknown as Store["changes"],
+  } as unknown as Store;
+}
+
 /** describe() payload for a RUNNING run carrying poisoned-history evidence. */
 function poisonedRunningDescription(runId = "run-123") {
   return {
@@ -283,6 +311,87 @@ describe("adv_change_workflow_terminate", () => {
     expect(parsed.incompleteGates).toContain("release");
     expect(mocks.describe).not.toHaveBeenCalled();
     expect(mocks.terminate).not.toHaveBeenCalled();
+  });
+
+  test("operator-supplied poisoned_history recovery bypasses shipped-gate proof for unshipped changes", async () => {
+    // Unfinished poisoned changes (acceptance/release pending) cannot satisfy
+    // the shipped-terminal proof requirement, so the explicit recovery branch
+    // must be reachable before that gate check. The branch reads only the disk
+    // projection and must not touch the Temporal-backed store.changes.get query.
+    const gates = shippedGates();
+    (gates.acceptance as { status: string }).status = "pending";
+    (gates.release as { status: string }).status = "pending";
+    const change = wedgedChange({ gates, status: "active" });
+
+    const tempRoot = await mkdtemp(
+      join(tmpdir(), "adv-wf-terminate-poisoned-wet-"),
+    );
+    const store = await createDiskBackedMockStore(change, tempRoot);
+
+    const result = await tool().execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: TERMINATE_EVIDENCE,
+        recoveryMode: "poisoned_history",
+        recoveryEvidence:
+          "WorkflowTaskFailedCauseNonDeterministicError: TMPRL1100 No command scheduled for event",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.workflowTerminated).toBe(true);
+    expect(parsed.eligibilityClass).toBe("poisoned_history");
+    expect(store.changes.get).not.toHaveBeenCalled();
+    expect(mocks.describe).not.toHaveBeenCalled();
+    expect(mocks.terminate).toHaveBeenCalledTimes(1);
+    expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+
+    await rm(tempRoot, { recursive: true, force: true });
+  });
+
+  test("dryRun poisoned_history recovery bypasses the Temporal store query and returns immediately", async () => {
+    const gates = shippedGates();
+    (gates.acceptance as { status: string }).status = "pending";
+    (gates.release as { status: string }).status = "pending";
+    const change = wedgedChange({ gates, status: "active" });
+
+    const tempRoot = await mkdtemp(
+      join(tmpdir(), "adv-wf-terminate-poisoned-dryrun-"),
+    );
+    const store = await createDiskBackedMockStore(change, tempRoot);
+    (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(() => {
+      throw new Error(
+        "store.changes.get must not be invoked for poisoned_history dryRun",
+      );
+    });
+
+    const result = await tool().execute(
+      {
+        changeId: "wedgedChange",
+        approvedByUser: true,
+        approvalEvidence: TERMINATE_EVIDENCE,
+        dryRun: true,
+        recoveryMode: "poisoned_history",
+        recoveryEvidence:
+          "WorkflowTaskFailedCauseNonDeterministicError: TMPRL1100 No command scheduled for event",
+      },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.dryRun).toBe(true);
+    expect(parsed.wouldTerminate).toBe(true);
+    expect(parsed.eligibilityClass).toBe("poisoned_history");
+    expect(store.changes.get).not.toHaveBeenCalled();
+    expect(mocks.describe).not.toHaveBeenCalled();
+    expect(mocks.terminate).not.toHaveBeenCalled();
+    expect(store.changes.refresh).not.toHaveBeenCalled();
+
+    await rm(tempRoot, { recursive: true, force: true });
   });
 
   test("returns structured error when Temporal service is unavailable", async () => {
@@ -626,7 +735,11 @@ describe("adv_change_workflow_terminate", () => {
   });
 
   test("poisoned_history recovery branch skips describe and succeeds when workflow is gone", async () => {
-    const store = createMockStore(wedgedChange());
+    const change = wedgedChange();
+    const tempRoot = await mkdtemp(
+      join(tmpdir(), "adv-wf-terminate-poisoned-gone-"),
+    );
+    const store = await createDiskBackedMockStore(change, tempRoot);
     mocks.describe.mockRejectedValue(
       new Error("Failed to query Workflow ServiceError"),
     );
@@ -653,9 +766,12 @@ describe("adv_change_workflow_terminate", () => {
     expect(parsed.workflowTerminated).toBe(true);
     expect(parsed.alreadyTerminated).toBe(true);
     expect(parsed.eligibilityClass).toBe("poisoned_history");
+    expect(store.changes.get).not.toHaveBeenCalled();
     expect(mocks.describe).not.toHaveBeenCalled();
     expect(mocks.terminate).toHaveBeenCalledTimes(1);
     expect(store.changes.refresh).toHaveBeenCalledWith("wedgedChange");
+
+    await rm(tempRoot, { recursive: true, force: true });
   });
 });
 
@@ -696,7 +812,7 @@ function shippedTerminalChange(overrides: Partial<Change> = {}): Change {
       startedAt: "2026-01-01T00:00:00Z",
       completedAt: "2026-01-02T00:00:00Z",
       route: "direct",
-      changeTipSha: "abc123",
+      changeTipSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     },
     ...overrides,
   } as Change;

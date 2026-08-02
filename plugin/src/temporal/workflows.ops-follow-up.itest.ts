@@ -1,7 +1,7 @@
 /**
  * Workflow signal-handler tests for ops follow-up signals.
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
@@ -18,8 +18,6 @@ import {
   opsRunUpsertedSignal,
 } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
-
-const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
@@ -54,7 +52,7 @@ async function withOpsSignalWorker(
     const taskQueue = `ops-signal-${name}`;
     const worker = await Worker.create({
       connection: env.nativeConnection,
-      workflowsPath,
+      workflowBundle: await getSharedWorkflowBundle(),
       taskQueue,
     });
 

@@ -439,6 +439,25 @@
         },
         "reviewMatrix": {
           "properties": {
+            "recovery_audit": {
+              "properties": {
+                "evidence": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "recovered_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "reason",
+                "evidence",
+                "recovered_at"
+              ],
+              "type": "object"
+            },
             "reviewedAt": {
               "type": "string"
             },
@@ -3459,6 +3478,7 @@
           "type": "boolean"
         },
         "changeTipSha": {
+          "pattern": "^[0-9a-f]{40}$",
           "type": "string"
         },
         "completedAt": {
@@ -6120,6 +6140,139 @@
                     },
                     "type": "array"
                   },
+                  "optimization_candidates": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "description": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "detector_id": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "evidence": {
+                          "items": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "column": {
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991,
+                                "type": "integer"
+                              },
+                              "file": {
+                                "minLength": 1,
+                                "type": "string"
+                              },
+                              "line": {
+                                "anyOf": [
+                                  {
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991,
+                                    "type": "integer"
+                                  },
+                                  {
+                                    "type": "null"
+                                  }
+                                ]
+                              },
+                              "matchedSignal": {
+                                "type": "string"
+                              },
+                              "role": {
+                                "enum": [
+                                  "trigger",
+                                  "scope",
+                                  "measurement",
+                                  "rejected_scope",
+                                  "invalidation",
+                                  "ownership"
+                                ],
+                                "type": "string"
+                              },
+                              "snippet": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "role",
+                              "file",
+                              "line"
+                            ],
+                            "type": "object"
+                          },
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "expected_cost_shape": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "description": {
+                              "minLength": 1,
+                              "type": "string"
+                            },
+                            "family": {
+                              "enum": [
+                                "repeated_boundary_work",
+                                "avoidable_collection_work",
+                                "worker_startup_pressure",
+                                "cache_opportunity"
+                              ],
+                              "type": "string"
+                            },
+                            "pattern": {
+                              "enum": [
+                                "cpu",
+                                "memory",
+                                "io",
+                                "latency",
+                                "boundary",
+                                "collection",
+                                "startup",
+                                "cache_miss"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "family",
+                            "pattern",
+                            "description"
+                          ],
+                          "type": "object"
+                        },
+                        "false_positive_caveat": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "id": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "recommendation": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "verification_needed": {
+                          "minLength": 1,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "detector_id",
+                        "description",
+                        "evidence",
+                        "expected_cost_shape",
+                        "false_positive_caveat",
+                        "verification_needed",
+                        "recommendation"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
                   "recovery_audit": {
                     "properties": {
                       "evidence": {
@@ -7111,7 +7264,6 @@
       ]
     },
     "tasks": {
-      "default": [],
       "items": {
         "additionalProperties": {},
         "properties": {

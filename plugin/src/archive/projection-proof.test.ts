@@ -12,6 +12,7 @@ import {
   type SpecProjectionManifest,
 } from "./projection";
 import {
+  readGitPathBounded,
   verifyProjectionAtGitCommit,
   verifyProjectionAtPaths,
 } from "./projection-proof";
@@ -211,5 +212,45 @@ describe("archive projection proof", () => {
       expectedDeltaIdsByCapability: { example: ["dl-example"] },
     });
     expect(result).toMatchObject({ ok: false, code: "MANIFEST_MISMATCH" });
+  });
+
+  it("streams git show and rejects output exceeding the byte limit", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await exec("git", ["init", "--initial-branch=main"], { cwd: root });
+    await exec("git", ["config", "user.email", "test@example.com"], {
+      cwd: root,
+    });
+    await exec("git", ["config", "user.name", "Test User"], { cwd: root });
+    await writeFile(join(root, "big.txt"), "x".repeat(1000));
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "add big"], { cwd: root });
+    const sha = (
+      await exec("git", ["rev-parse", "HEAD"], { cwd: root })
+    ).stdout.trim();
+
+    await expect(readGitPathBounded(root, sha, "big.txt", 500)).rejects.toThrow(
+      "exceeds bounded projection limit",
+    );
+  });
+
+  it("returns small git show output within the limit", async () => {
+    const root = await createTempDir();
+    dirs.push(root);
+    await exec("git", ["init", "--initial-branch=main"], { cwd: root });
+    await exec("git", ["config", "user.email", "test@example.com"], {
+      cwd: root,
+    });
+    await exec("git", ["config", "user.name", "Test User"], { cwd: root });
+    await writeFile(join(root, "small.txt"), "hello");
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "add small"], { cwd: root });
+    const sha = (
+      await exec("git", ["rev-parse", "HEAD"], { cwd: root })
+    ).stdout.trim();
+
+    await expect(readGitPathBounded(root, sha, "small.txt", 500)).resolves.toBe(
+      "hello",
+    );
   });
 });

@@ -17,7 +17,7 @@
  * state — that is the isolation guarantee. In the legacy shared-queue
  * model, S1's wedge would block S2 because both shared one queue.
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
@@ -29,9 +29,6 @@ import { changeStateQuery, proposalUpdatedSignal } from "../messages";
 import { requiredAdvSearchAttributes } from "../observability";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 const PROJECT_ID = "proj-wedge-isolation-001";
 const SESSION_S2 = "sess_WedgeS2Active";
 // SESSION_S1 has NO worker in this test — simulates wedge / not-yet-spawned.
@@ -88,7 +85,7 @@ describe("AC2: peer-session wedge isolation (isolateAdvWorkerTaskQueues)", () =>
       // Only S2's worker is started. S1 has no worker — models wedge.
       const s2Worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: s2Queue,
       });
 

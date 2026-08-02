@@ -39,6 +39,7 @@ import {
   type TemporalReadDeadline,
   TEMPORAL_READ_DEADLINE_BUDGET_MS,
 } from "../../temporal/retry-wrapper";
+import { isPoisonedWorkflowForChange } from "../../storage/store-temporal/poisoned-workflow-cache";
 const logger = createLogger("change");
 /**
  * rq-dupActiveCreate01 — Shared pre-create guard. Returns an error payload
@@ -50,13 +51,18 @@ const logger = createLogger("change");
 export async function checkActiveDuplicateChange(
   store: Store,
   summary: string,
+  options?: {
+    forceRecreate?: boolean;
+    projectId?: string;
+  },
 ): Promise<
   | {
       error: string;
-      code: "DUPLICATE_ACTIVE_CHANGE";
+      code: "DUPLICATE_ACTIVE_CHANGE" | "DUPLICATE_ACTIVE_CHANGE_POISONED";
       existing_change_id: string;
       existing_change_title: string;
       hint: string;
+      force_recreate?: true;
     }
   | undefined
 > {
@@ -66,12 +72,36 @@ export async function checkActiveDuplicateChange(
     (c) => c.id === candidateChangeId || c.title === summary,
   );
   if (!existingDuplicate) return undefined;
+
+  const existingIsPoisoned =
+    options?.projectId !== undefined &&
+    isPoisonedWorkflowForChange(options.projectId, existingDuplicate.id);
+
+  if (options?.forceRecreate && existingIsPoisoned) {
+    // Allow a new change to be minted (with the disk store's suffix fallback)
+    // when the duplicate's workflow is poisoned and unusable.
+    return undefined;
+  }
+
+  const baseHint = `Resume the existing change with /adv-apply ${existingDuplicate.id}, or archive it before creating a new one.`;
+  if (existingIsPoisoned) {
+    return {
+      error: `An active change already exists for "${summary}"`,
+      code: "DUPLICATE_ACTIVE_CHANGE_POISONED",
+      existing_change_id: existingDuplicate.id,
+      existing_change_title: existingDuplicate.title,
+      hint: `${baseHint} The existing change's workflow is poisoned; pass forceRecreate: true to recreate.`,
+      force_recreate: true,
+    };
+  }
   return {
     error: `An active change already exists for "${summary}"`,
     code: "DUPLICATE_ACTIVE_CHANGE",
     existing_change_id: existingDuplicate.id,
     existing_change_title: existingDuplicate.title,
-    hint: `Resume the existing change with /adv-apply ${existingDuplicate.id}, or archive it before creating a new one.`,
+    hint: options?.forceRecreate
+      ? `${baseHint} forceRecreate is only allowed when the existing change's workflow is poisoned.`
+      : baseHint,
   };
 }
 /**
@@ -622,6 +652,7 @@ export async function createCrossProjectFollowUp({
   epic_owner_target_confirmed,
   epic_owner_confirmationEvidence,
   store,
+  forceRecreate,
 }: {
   summary: string;
   capability?: string;
@@ -640,6 +671,7 @@ export async function createCrossProjectFollowUp({
   epic_owner_target_confirmed?: true;
   epic_owner_confirmationEvidence?: string;
   store: Store;
+  forceRecreate?: boolean;
 }): Promise<string> {
   const validateNotCurrentProject = async (): Promise<string | null> => {
     try {
@@ -685,6 +717,7 @@ export async function createCrossProjectFollowUp({
         const duplicateError = await checkActiveDuplicateChange(
           targetStore,
           summary,
+          { forceRecreate, projectId: context.projectId },
         );
         if (duplicateError) {
           return formatToolOutput(duplicateError);

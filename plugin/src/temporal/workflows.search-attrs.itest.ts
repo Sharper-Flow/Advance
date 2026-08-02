@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import type { TestWorkflowEnvironment } from "@temporalio/testing";
 import { Worker } from "@temporalio/worker";
@@ -16,8 +16,6 @@ import {
 } from "./messages";
 import { requiredAdvSearchAttributes } from "./search-attributes";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
-
-const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
 
 async function registerSearchAttributes(
   env: TestWorkflowEnvironment,
@@ -77,7 +75,7 @@ describe("changeWorkflow search attribute upserts", () => {
       const taskQueue = "workflow-search-attrs";
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -114,7 +112,7 @@ describe("epicWorkflow search attribute upserts", () => {
       const taskQueue = "epic-workflow-search-attrs";
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -174,7 +172,7 @@ describe("epicWorkflow search attribute upserts", () => {
       const taskQueue = "epic-search-attrs-refresh";
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -234,7 +232,7 @@ describe("epicWorkflow search attribute upserts", () => {
       const taskQueue = "epic-search-attrs-refresh-legacy";
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 

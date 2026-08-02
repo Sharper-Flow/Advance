@@ -9,7 +9,7 @@
  *
  * After R1.1-R1.3 these tests become the GREEN verification.
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
@@ -28,10 +28,6 @@ import type {
   ChangeWorkflowInput,
   ChangeWorkflowState,
 } from "../../../temporal/contracts";
-
-const workflowsPath = fileURLToPath(
-  new URL("../../../temporal/workflows.ts", import.meta.url),
-);
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
@@ -69,7 +65,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-gate-complete",
       });
       await worker.runUntil(async () => {
@@ -97,7 +93,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-gate-reopen",
       });
       await worker.runUntil(async () => {
@@ -134,7 +130,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-task-add",
       });
       await worker.runUntil(async () => {
@@ -168,7 +164,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-task-update",
       });
       await worker.runUntil(async () => {
@@ -208,7 +204,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-task-cancel",
       });
       await worker.runUntil(async () => {
@@ -247,7 +243,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-task-reclassify",
       });
       await worker.runUntil(async () => {
@@ -289,7 +285,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-wisdom-add",
       });
       await worker.runUntil(async () => {
@@ -324,7 +320,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-archive",
       });
       await worker.runUntil(async () => {
@@ -348,7 +344,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-close",
       });
       await worker.runUntil(async () => {
@@ -377,7 +373,7 @@ describe("changeWorkflow signal mutations (R1.0)", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "sig-test-artifact",
       });
       await worker.runUntil(async () => {

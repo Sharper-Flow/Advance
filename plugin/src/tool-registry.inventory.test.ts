@@ -134,6 +134,9 @@ const CONTRACTED_PUBLIC_ADDITIONS = [
   // migrateExistingAdvWorktrees adds the operator-only directory-only worktree
   // detach tool for nonterminal dematerialization.
   "adv_worktree_detach",
+  // boundedProjectionHydration: operator-only quarantine for corrupt or oversized
+  // active change projections.
+  "adv_change_projection_quarantine",
 ] as const;
 
 const VALID_RISKS = ["low", "medium", "high", "operator"] as const;

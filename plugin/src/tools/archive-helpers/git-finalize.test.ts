@@ -1268,6 +1268,90 @@ describe("git-finalize helpers", () => {
       expect(result.details).toEqual(["abc123 unmerged change commit"]);
     });
 
+    // rq-fixArchivedBranchFinalization SC1: no_remote route + deleted change
+    // branch + persisted changeTipSha must re-prove via local tree-SHA match.
+    it("no_remote route + deleted branch + changeTipSha re-proves local merge via tree-SHA", () => {
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "noRemoteDeletedTip",
+          route: { route: "no_remote" },
+          changeTipSha: "tip-local-abc",
+        },
+        {
+          runGit: (_cwd, args) => {
+            const argStr = args.join(" ");
+            if (argStr === "log trunk..change/noRemoteDeletedTip") {
+              // Branch ref is gone; range log fails
+              return { status: 128, stdout: "", stderr: "unknown revision" };
+            }
+            if (args[0] === "rev-parse" && args[1] === "tip-local-abc^{tree}") {
+              return { status: 0, stdout: "shared-tree-sha\n", stderr: "" };
+            }
+            if (
+              args[0] === "log" &&
+              args[1] === "--format=%H %T" &&
+              args[3] === "trunk"
+            ) {
+              return {
+                status: 0,
+                stdout: "merge-local-sha shared-tree-sha\n",
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({
+        reachable: true,
+        proof: "local_merge",
+        releasedCommitSha: "merge-local-sha",
+      });
+    });
+
+    // rq-fixArchivedBranchFinalization SC2: missing or mismatched changeTipSha
+    // must remain fail-closed on no_remote route.
+    it("no_remote route + deleted branch + mismatched changeTipSha stays fail-closed", () => {
+      const result = resolveReleaseReachability(
+        {
+          mainCheckout: "/repo",
+          defaultBranch: "trunk",
+          changeId: "noRemoteMismatch",
+          route: { route: "no_remote" },
+          changeTipSha: "tip-local-abc",
+        },
+        {
+          runGit: (_cwd, args) => {
+            const argStr = args.join(" ");
+            if (argStr === "log trunk..change/noRemoteMismatch") {
+              return { status: 128, stdout: "", stderr: "unknown revision" };
+            }
+            if (args[0] === "rev-parse" && args[1] === "tip-local-abc^{tree}") {
+              return { status: 0, stdout: "different-tree-sha\n", stderr: "" };
+            }
+            if (
+              args[0] === "log" &&
+              args[1] === "--format=%H %T" &&
+              args[3] === "trunk"
+            ) {
+              return {
+                status: 0,
+                stdout: "merge-local-sha other-tree-sha\n",
+                stderr: "",
+              };
+            }
+            return { status: 1, stdout: "", stderr: "unexpected" };
+          },
+        },
+      );
+
+      expect(result.reachable).toBe(false);
+      expect(result.proof).toBe("local_unmerged");
+    });
+
     it("pr_manual route + merged PR returns pr_merged typed proof", () => {
       const result = resolveReleaseReachability(
         {
@@ -2416,6 +2500,11 @@ describe("git-finalize helpers", () => {
     expect(skipped.route).toBe("no_remote");
     expect(skipped.pushStatus).toBe("skipped");
     expect(skipped.pushFailureReason).toContain("origin");
+    // rq-fixArchivedBranchFinalization SC1: change-tip SHA is captured from the
+    // change branch before merge/cleanup so tree re-proof can survive deletion.
+    expect(skipped.changeTipSha).toBe(
+      git(main, ["rev-parse", "change/example"]),
+    );
   });
 
   it("finalizeRelease in PR mode opens PR and returns pending auto-merge", async () => {
@@ -2527,6 +2616,9 @@ describe("git-finalize helpers", () => {
     expect(result.autoMergeArmed).toBe(true);
     expect(result.pushStatus).toBe("pushed");
     expect(pushCalls.some((c) => c.args.includes("change/example"))).toBe(true);
+    expect(result.changeTipSha).toBe(
+      git(main, ["rev-parse", "change/example"]),
+    );
   });
 
   it("finalizeRelease turns protected default push rejection into pending auto-merge PR", async () => {

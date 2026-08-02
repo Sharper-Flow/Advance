@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
@@ -10,8 +10,6 @@ import type { ChangeWorkflowInput } from "./contracts";
 import { writeChangeProjection } from "./activities";
 import { archiveRequestedSignal, gateCompletedSignal } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
-
-const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
 
 function makeChangeInput(
   changeId: string,
@@ -51,7 +49,7 @@ describe("changeWorkflow disk projection", () => {
         const taskQueue = `projection-workflow-${Date.now()}`;
         const worker = await Worker.create({
           connection: env.nativeConnection,
-          workflowsPath,
+          workflowBundle: await getSharedWorkflowBundle(),
           activities: { writeChangeProjection },
           taskQueue,
         });

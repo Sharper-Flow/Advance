@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
@@ -22,10 +22,6 @@ import {
   wisdomAddedSignal,
 } from "../messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
-
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 
 const fixtureContract: ChangeContract = {
   version: 1,
@@ -272,7 +268,7 @@ describe("concurrent signaling integration", () => {
       const taskQueue = `concurrent-signaling-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 

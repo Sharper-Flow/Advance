@@ -7,6 +7,12 @@ import { createDefaultGates, type Change, type Task } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { changeToWorkflowState } from "../../temporal/change-state";
 import { createTemporalStoreBackend } from "./index";
+import {
+  markPoisonedWorkflowForChange,
+  isPoisonedWorkflowForChange,
+  clearPoisonedWorkflowCache,
+} from "./poisoned-workflow-cache";
+import { classifyTemporalReadFailure } from "./shared";
 
 function poisonedHistoryError(): Error {
   return new Error(
@@ -396,12 +402,93 @@ async function createMissingWorkflowSuccessfulReseedStore(
   };
 }
 
+async function createHangingQueryStore(root: string, changeId: string) {
+  const legacy = await createDiskStore(root);
+  await legacy.changes.save(activeChange(changeId));
+  let queryCount = 0;
+  const handle = {
+    query: async () => {
+      queryCount += 1;
+      return new Promise(() => {
+        // Intentionally never resolves — proves the poisoned cache short-
+        // circuits the query path before any timeout budget is consumed.
+      });
+    },
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => handle,
+      },
+    },
+  };
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return { store, queryCount: () => queryCount };
+}
+
+async function createPoisonedSignalStore(root: string, changeId: string) {
+  const legacy = await createDiskStore(root);
+  await legacy.changes.save(activeChange(changeId));
+  let signalCount = 0;
+  const handle = {
+    query: async () => {
+      throw new Error("query should not be called");
+    },
+    signal: async () => {
+      signalCount += 1;
+      throw new Error("signal should not be called");
+    },
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => handle,
+      },
+    },
+  };
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "project-1",
+  });
+  return { store, signalCount: () => signalCount };
+}
+
+async function createMinimalPoisonedInput(root: string) {
+  const legacy = await createDiskStore(root);
+  const handle = {
+    query: async () => {
+      throw poisonedHistoryError();
+    },
+  };
+  const temporal = {
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => handle,
+      },
+    },
+  };
+  return {
+    legacy,
+    temporal,
+    projectId: "project-1",
+  };
+}
+
 describe("createTemporalStoreBackend change projection fallback", () => {
   let tempDir: string | undefined;
 
   afterEach(async () => {
     if (tempDir) await cleanupTempDir(tempDir);
     tempDir = undefined;
+    clearPoisonedWorkflowCache();
   });
 
   it("returns a terminal disk projection when workflow history is poisoned", async () => {
@@ -1060,6 +1147,10 @@ describe("listResolvedChanges circuit breaker", () => {
       type: "not_found" as const,
     });
 
+    for (const id of changeIds) {
+      await mkdir(join(legacy.paths.changes, id), { recursive: true });
+    }
+
     let queryCalls = 0;
     const temporal = {
       client: {
@@ -1070,11 +1161,6 @@ describe("listResolvedChanges circuit breaker", () => {
               return new Promise<never>(() => {});
             },
           }),
-          list: async function* () {
-            for (const id of changeIds) {
-              yield { workflowId: `adv/change/project-1/${id}` };
-            }
-          },
           start: async () => {
             throw new Error("start should not be called");
           },
@@ -1712,7 +1798,7 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
     tempDir = undefined;
   });
 
-  it("reports visibility source degradation on terminal list when visibility list fails", async () => {
+  it("reports active-disk summary degradation on terminal list when summary index is unreadable", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
 
@@ -1728,6 +1814,10 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       JSON.stringify(archivedChange("archiveVisibilityFail"), null, 2),
     );
 
+    // Make the summary index unreadable so the terminal read relies on the
+    // archive bundle while surfacing a durable-source degradation warning.
+    await writeFile(legacy.paths.summariesDir, "not a directory");
+
     const temporal = {
       client: {
         workflow: {
@@ -1736,10 +1826,6 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
               throw new Error("query should not be called");
             },
           }),
-          list: async function* () {
-            yield { workflowId: "unrelated/placeholder" };
-            throw new Error("visibility list unavailable");
-          },
           start: async () => {
             throw new Error("start should not be called");
           },
@@ -1762,8 +1848,8 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       expect.arrayContaining([
         expect.objectContaining({
           code: "TERMINAL_SOURCE_DEGRADED",
-          source: "visibility",
-          message: expect.stringContaining("visibility"),
+          source: "active_disk",
+          message: expect.stringContaining("summaries"),
         }),
       ]),
     );
@@ -1780,13 +1866,19 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
 
-    // Archive dir exists but contains no usable change.json, simulating a
-    // corrupt or partially-written archive bundle.
+    // Active disk directory exists but contains no change.json, so the
+    // projection-only list discovers the candidate from durable disk
+    // enumeration, cannot load it from disk or archive, and falls back to a
+    // workflow query that also fails.
+    await mkdir(join(legacy.paths.changes, "corruptArchive"), {
+      recursive: true,
+    });
+
+    // Archive bundle for the same id is also corrupt.
     const archiveDir = join(tempDir, ".adv", "archive", "corruptArchive");
     await mkdir(archiveDir, { recursive: true });
     await writeFile(join(archiveDir, "change.json"), "not valid json");
 
-    // No active disk shadow for this change.
     const temporal = {
       client: {
         workflow: {
@@ -1795,9 +1887,6 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
               throw workflowNotFoundError();
             },
           }),
-          list: async function* () {
-            yield { workflowId: "adv/change/project-1/corruptArchive" };
-          },
           start: async () => {
             throw new Error("start should not be called");
           },
@@ -1832,39 +1921,60 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
     });
   });
 
-  it("does not include terminal degraded metadata on active/default list", async () => {
+  it("classifies and caches a poisoned-history error from a query failure", async () => {
     tempDir = await createTempDir();
-    const legacy = await createDiskStore(tempDir);
-    await legacy.changes.save(activeChange("activeOnly"));
+    const input = await createMinimalPoisonedInput(tempDir);
+    await classifyTemporalReadFailure(
+      input,
+      "cacheSeedChange",
+      poisonedHistoryError(),
+    );
+    expect(isPoisonedWorkflowForChange("project-1", "cacheSeedChange")).toBe(
+      true,
+    );
+  });
 
-    const temporal = {
-      client: {
-        workflow: {
-          getHandle: () => ({
-            query: async () => {
-              throw new Error("query should not be called");
-            },
-          }),
-          list: async function* () {
-            yield { workflowId: "unrelated/placeholder" };
-            throw new Error("visibility list unavailable");
-          },
-          start: async () => {
-            throw new Error("start should not be called");
-          },
-        },
-      },
-    };
+  it("returns a disk-only change with _poisoned marker and never queries Temporal", async () => {
+    tempDir = await createTempDir();
+    const { store, queryCount } = await createHangingQueryStore(
+      tempDir,
+      "poisonedShow",
+    );
+    markPoisonedWorkflowForChange("project-1", "poisonedShow");
 
-    const store = createTemporalStoreBackend({
-      legacy,
-      temporal,
-      projectId: "project-1",
-    });
+    const result = await store.changes.get("poisonedShow");
 
-    const result = await store.changes.list();
-    expect(result.changes.map((c) => c.id)).toContain("activeOnly");
-    expect(result.warnings).toBeUndefined();
-    expect(result.hydrationStats).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.data?.id).toBe("poisonedShow");
+    expect((result.data as Change & { _poisoned?: true })._poisoned).toBe(true);
+    expect(queryCount()).toBe(0);
+  });
+
+  it("short-circuits post-mutation refresh when the workflow is known poisoned", async () => {
+    tempDir = await createTempDir();
+    const { store, queryCount } = await createHangingQueryStore(
+      tempDir,
+      "poisonedRefresh",
+    );
+    markPoisonedWorkflowForChange("project-1", "poisonedRefresh");
+
+    await store.changes.refresh("poisonedRefresh");
+
+    expect(queryCount()).toBe(0);
+  });
+
+  it("skips the signal in changeCommand when the workflow is known poisoned", async () => {
+    tempDir = await createTempDir();
+    const { store, signalCount } = await createPoisonedSignalStore(
+      tempDir,
+      "poisonedSignal",
+    );
+    markPoisonedWorkflowForChange("project-1", "poisonedSignal");
+
+    await expect(
+      store.gates.complete("poisonedSignal", "proposal"),
+    ).rejects.toThrow(/known poisoned|signal skipped/);
+
+    expect(signalCount()).toBe(0);
   });
 });

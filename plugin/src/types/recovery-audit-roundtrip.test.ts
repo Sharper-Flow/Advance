@@ -415,6 +415,50 @@ describe("recovery_audit round-trips through ChangeSchema.parse", () => {
     });
   });
 
+  describe("contract.reviewMatrix", () => {
+    it("round-trips a review matrix with recovery_audit", () => {
+      const change = ChangeSchema.parse({
+        ...baseChange,
+        contract: {
+          version: 1,
+          rigor: "standard",
+          source: {
+            artifact: "agreement",
+            approvedAt: "2026-07-20T00:00:00.000Z",
+          },
+          items: [
+            {
+              id: "AC1",
+              kind: "acceptance_criterion",
+              text: "Recovery audit round-trips on review matrix.",
+              sourceArtifact: "agreement",
+              verificationRequired: true,
+              evidencePolicy: "test",
+              status: "approved",
+            },
+          ],
+          reviewMatrix: {
+            reviewedAt: "2026-07-20T00:00:00.000Z",
+            rows: [
+              {
+                contractId: "AC1",
+                kind: "acceptance_criterion",
+                status: "pass",
+                evidencePolicy: "test",
+                evidence: "recovery-audit-roundtrip.test.ts passes",
+              },
+            ],
+            recovery_audit: gateRecoveryAudit,
+          },
+          amendments: [],
+        },
+      });
+      expect(change.contract?.reviewMatrix?.recovery_audit).toEqual(
+        gateRecoveryAudit,
+      );
+    });
+  });
+
   describe("subagent_reports[]", () => {
     it.each(allReports)(
       "round-trips $name report with recovery_audit",

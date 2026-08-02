@@ -8,7 +8,7 @@
  *   - Idempotent replay leaves state stable.
  */
 
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
@@ -16,10 +16,6 @@ import { releaseNotesSetSignal, changeStateQuery } from "../messages";
 import { createDefaultGates } from "../../types";
 import type { ChangeWorkflowInput } from "../contracts";
 import type { ReleaseNotesSetSignalPayload } from "../../types";
-
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
@@ -58,7 +54,7 @@ describe("changeWorkflow releaseNotesSetSignal integration", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "release-notes-test",
       });
 
@@ -96,7 +92,7 @@ describe("changeWorkflow releaseNotesSetSignal integration", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "release-notes-test",
       });
 
@@ -132,7 +128,7 @@ describe("changeWorkflow releaseNotesSetSignal integration", () => {
     await withTimeSkippingTestWorkflowEnvironment(async (env) => {
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: "release-notes-test",
       });
 

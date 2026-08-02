@@ -105,6 +105,16 @@ Combination routing examples:
 - `/adv-slop-scan <target> then /adv-optimizer <target>` — first classify slop/deletion-safety evidence, then synthesize simplification proposal.
 - `/adv-arch-scan <target> then /adv-slop-scan <target>` — first validate architecture/structural boundary, then scan quality smells if source evidence also suggests code-level slop.
 
+## Opt-scan Candidate Intake (Tron-side)
+
+When the orchestrator supplies validated static opt-scan candidates under `OPTIMIZATION_CANDIDATES` in the packet, Tron consumes them as read-only, advisory findings. Tron does not run opt-scan itself and does not synthesize candidates from slop-scan PERF findings.
+
+- Preserve every source evidence record: `role`, `file`, `line`, `column`, `matchedSignal`, `snippet`.
+- Include each candidate in the typed `TRON_REPORT` `optimization_candidates` array with `detector_id`, source evidence, `expected_cost_shape` (`family`, `pattern`, `description`), `false_positive_caveat`, `verification_needed`, and a recommended `/adv-optimizer <target>` handoff.
+- Static candidates must never claim speedup, latency reduction, runtime impact, or numeric performance gains. Candidates with measured evidence or measured-impact prose are recorded as coverage gaps, not `optimization_candidates`.
+- Do not edit code, create caches, mutate ADV/task/gate state, or convert slop-scan findings into optimization candidates.
+- If no candidates are supplied, proceed normally; do not fabricate candidates.
+
 ## Report Schema
 
 Structure the final report as:
@@ -152,6 +162,14 @@ SUGGESTED NEXT COMMANDS:
   - /adv-proposal "{summary}" — Trigger: formal durable change needed; Rationale: {why}
   - /adv-task — Trigger: follow-up already bounded; Rationale: {why}
   - /adv-tron {deeper-target} — Trigger: more reconnaissance needed; Rationale: {why}
+
+OPTIMIZATION CANDIDATES (optional):
+  - {detector_id}: {description}
+    Evidence: {file:line references}
+    Cost shape: {family}/{pattern} — {description}
+    False-positive caveat: {why it might be a false positive}
+    Verification needed: {what to verify before optimizing}
+    Recommended handoff: `/adv-optimizer {target}`
 
 ============================================================
 ```

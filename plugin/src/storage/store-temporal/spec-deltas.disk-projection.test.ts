@@ -7,6 +7,9 @@ import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../temporal/contracts";
 import { ChangeSchema, type Change } from "../../types";
 import { SAMPLE_CHANGE } from "../../__tests__/setup";
 import { saveChange } from "../json";
+import { commitChangeProjection } from "../change-projection-transaction";
+import { projectTemporalStateOntoLatest } from "./shared";
+import type { DiskPersistOutcome } from "./disk-persist";
 
 const ADD_DELTA = {
   id: "dl-AAA11111",
@@ -81,6 +84,41 @@ async function makeDeps(
     invalidateChange: vi.fn(),
     setCachedChange: vi.fn(),
     emitChangeSummarySignal: vi.fn(),
+    persistStateToDisk: async (
+      cid: string,
+      state: Record<string, unknown>,
+    ): Promise<DiskPersistOutcome> => {
+      try {
+        const commit = await commitChangeProjection({
+          changesDir,
+          changeId: cid,
+          authority: { kind: "temporal", mutationReceiptId: cid },
+          mutationKind: "temporal_dual_write_projection",
+          mutateLatest: (latest) =>
+            projectTemporalStateOntoLatest(
+              latest,
+              state as Parameters<typeof projectTemporalStateOntoLatest>[1],
+            ),
+          verify: ({ readback }) =>
+            readback.status === state.status &&
+            readback.lifecycleState === state.lifecycleState,
+        });
+        if (commit.kind !== "committed") {
+          return {
+            kind: "failed",
+            error: new Error(
+              `Dual-write commit failed for ${cid}: ${commit.kind}`,
+            ),
+          };
+        }
+        return { kind: "persisted" };
+      } catch (error) {
+        return {
+          kind: "failed",
+          error: error instanceof Error ? error : new Error(String(error)),
+        };
+      }
+    },
   };
 }
 

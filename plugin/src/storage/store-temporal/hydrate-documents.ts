@@ -28,7 +28,7 @@
  * synchronously inline with the workflow start call. We read files directly.
  */
 
-import { readFile, stat } from "node:fs/promises";
+import { stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
@@ -37,6 +37,11 @@ import {
   type ArtifactKind,
 } from "../../types";
 import { createLogger } from "../../utils/debug-log";
+import {
+  readBoundedProjectionDocument,
+  outcomeToWarning,
+  type ProjectionDocumentWarning,
+} from "../change-projection-reader";
 
 const logger = createLogger("hydrate-documents");
 
@@ -59,34 +64,40 @@ function nonWhitespaceCount(text: string): number {
 export async function readDiskArtifactsForHydration(
   changesDir: string,
   changeId: string,
-): Promise<Partial<Record<ArtifactKind, string>> | undefined> {
+): Promise<{
+  documents: Partial<Record<ArtifactKind, string>> | undefined;
+  warnings: ProjectionDocumentWarning[];
+}> {
   const changeDir = join(changesDir, changeId);
 
   // Check existence: if the change dir doesn't exist, there's nothing to
   // hydrate (brand-new change, or the change hasn't been disk-scaffolded
-  // yet). Returning undefined signals "no hydration applied" so callers
-  // can pass seedState.documents through unchanged.
+  // yet). Returning undefined documents signals "no hydration applied" so
+  // callers can pass seedState.documents through unchanged.
   try {
     await stat(changeDir);
   } catch {
-    return undefined;
+    return { documents: undefined, warnings: [] };
   }
 
   const result: Partial<Record<ArtifactKind, string>> = {};
+  const warnings: ProjectionDocumentWarning[] = [];
 
   for (const kind of ArtifactKindSchema.options) {
     const filename = ARTIFACT_FILENAME[kind];
     const filePath = join(changeDir, filename);
-    let content: string;
-    try {
-      content = await readFile(filePath, "utf-8");
-    } catch {
-      // File missing — skip this kind. Common for newer changes that don't
-      // have all 6 artifacts on disk.
+    const readResult = await readBoundedProjectionDocument(filePath);
+    if (readResult.kind !== "ok") {
+      if (readResult.kind === "not_found") {
+        // File missing — skip this kind. Common for newer changes that don't
+        // have all 6 artifacts on disk.
+        continue;
+      }
+      warnings.push(outcomeToWarning(filePath, readResult));
       continue;
     }
 
-    if (nonWhitespaceCount(content) < MIN_HYDRATABLE_CHARS) {
+    if (nonWhitespaceCount(readResult.content) < MIN_HYDRATABLE_CHARS) {
       // Partial-write robustness: skip empty/truncated files.
       logger.debug(
         `Skipping hydration for ${kind} on change ${changeId}: file present but below minimum (${MIN_HYDRATABLE_CHARS}) non-whitespace chars.`,
@@ -94,11 +105,12 @@ export async function readDiskArtifactsForHydration(
       continue;
     }
 
-    result[kind] = content;
+    result[kind] = readResult.content;
   }
 
-  // Return undefined when nothing was hydrated — keeps `seedState.documents`
+  // Return undefined documents when nothing was hydrated — keeps `seedState.documents`
   // unchanged at the caller and signals "no legacy content to migrate."
-  if (Object.keys(result).length === 0) return undefined;
-  return result;
+  if (Object.keys(result).length === 0)
+    return { documents: undefined, warnings };
+  return { documents: result, warnings };
 }

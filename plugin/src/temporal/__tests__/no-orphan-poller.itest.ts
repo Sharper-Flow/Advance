@@ -22,15 +22,12 @@
  * this integration test verifies the observable lifecycle on a
  * session-scoped queue.
  */
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
 import { buildSessionTaskQueue } from "../client";
 
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 const PROJECT_ID = "proj-no-orphan-001";
 const SESSION_ID = "sess_NoOrphanTest1";
 
@@ -41,7 +38,7 @@ describe("AC8: session end leaves no orphan polling process (isolateAdvWorkerTas
 
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue: sessionQueue,
       });
 

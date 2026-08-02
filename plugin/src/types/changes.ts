@@ -21,7 +21,7 @@ import {
 } from "./subagent-reports";
 import { DeltaSchema } from "./specs";
 import { WisdomEntrySchema } from "./wisdom";
-import { GatesSchema, GateIdSchema } from "./gates";
+import { GatesSchema, GateIdSchema, GateRecoveryAuditSchema } from "./gates";
 import { AcceptanceCriteriaSnapshotSchema } from "./gates";
 import { EpicMembershipSchema } from "./epics";
 import { LightweightChangeProfileSchema } from "./lightweight-change-profile";
@@ -1019,6 +1019,14 @@ export type ContractReviewMatrixRow = z.infer<
 export const ContractReviewMatrixSchema = z.object({
   reviewedAt: z.string(),
   rows: z.array(ContractReviewMatrixRowSchema),
+  /**
+   * Recovery-audit marker stamped by saveRecoveredContractReviewMatrix when a
+   * poisoned/completed-workflow recovery write lands on the disk projection.
+   * Optional for backward compatibility with matrices recorded via the normal
+   * contractReviewMatrixSetSignal path. Stripped before the signal is re-fired
+   * during acceptance reconciliation.
+   */
+  recovery_audit: GateRecoveryAuditSchema.optional(),
 });
 export type ContractReviewMatrix = z.infer<typeof ContractReviewMatrixSchema>;
 
@@ -1114,7 +1122,10 @@ export const Phase9FinalizationStatusSchema = z.object({
   // rq-fixPhase9SquashMergeRedetect SC1: change-tip SHA captured at archive
   // dispatch time. Lets reachability detection survive branch deletion by
   // using a content-addressed tip instead of the live change/{id} git ref.
-  changeTipSha: z.string().optional(),
+  changeTipSha: z
+    .string()
+    .regex(/^[0-9a-f]{40}$/, "changeTipSha must be a 40-hex Git SHA")
+    .optional(),
 });
 
 export type Phase9FinalizationStatus = z.infer<

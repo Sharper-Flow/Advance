@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
 
@@ -27,7 +27,7 @@ jobs:
           version: 11
 
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ matrix.node-version }}
           cache: "pnpm"
@@ -73,20 +73,108 @@ jobs:
         working-directory: plugin
 
       - name: Install Temporal CLI
-        uses: temporalio/setup-temporal@v0
+        uses: temporalio/setup-temporal@1059a504f87e7fa2f385e3fa40d1aa7e62f1c6ca # v0
 
       - name: Install Bun
         # opencode-session-debt.test.ts shells out to `bun` to seed a bun:sqlite
         # database under the OpenCode debt-doctor scenario. Without bun on PATH
         # the test fails with `spawnSync bun ENOENT`. Bun is OpenCode's runtime;
         # keeping it on the CI runner mirrors the production environment.
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
 
       - name: Test
         run: pnpm test
         working-directory: plugin
+
+      # The bin CLI suite contains live-Temporal assertions — for example
+      # "adv epic list --json" asserts source == "temporal", live == true and
+      # stale == false. Those need a real server on the ADV defaults
+      # (127.0.0.1:7233, namespace "default"; see plugin/src/temporal/contracts.ts).
+      #
+      # No step ever started one. The suite passed anyway because the vitest
+      # step above leaks temporal-test-server processes that the bin tests
+      # silently connected to — the same leak bin/lib/oc-test-reaper.bash
+      # exists to clean up. Once the vitest suite stopped erroring and shut
+      # down cleanly, the leak disappeared and these tests began failing.
+      #
+      # Start the server explicitly so the dependency is declared rather than
+      # inherited from another step's garbage. Deliberately placed AFTER the
+      # vitest step so it cannot contend with the SDK's own ephemeral test
+      # servers.
+      - name: Start Temporal dev server for bin CLI tests
+        run: |
+          set -euo pipefail
+
+          # Free port 7233 first. The vitest step above leaks
+          # temporal-test-server processes; if one is still bound, our
+          # start-dev silently fails to bind and every readiness probe below
+          # would validate the leaked server instead of ours. That server has
+          # no ADV search attributes, which is exactly the failure mode this
+          # step exists to remove.
+          if pgrep -f 'temporal-test-server' >/dev/null 2>&1; then
+            echo "Reaping leaked temporal-test-server processes before start-dev"
+            pkill -f 'temporal-test-server' || true
+            sleep 2
+          fi
+
+          temporal server start-dev --headless --ip 127.0.0.1 --port 7233 \
+            --log-level error &
+
+          # Poll the Visibility API itself, not just namespace existence.
+          # `namespace describe` answers before the Visibility store is
+          # queryable, which produced a false ready signal.
+          for i in $(seq 1 90); do
+            if temporal workflow list --limit 1 >/dev/null 2>&1; then
+              echo "Temporal Visibility ready after ${i}s"
+              break
+            fi
+            if [ "$i" -eq 90 ]; then
+              echo "Temporal Visibility not queryable within 90s" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+
+          # ADV queries Visibility using custom search attributes
+          # (plugin/src/temporal/search-attributes.ts). A fresh dev server has
+          # none of them, so `adv epic list` / `adv status` fail with
+          # "Failed to list workflows". Register them up front.
+          register_sa() {
+            temporal operator search-attribute create \
+              --name "$1" --type "$2" >/dev/null 2>&1 \
+              || echo "  (already present or unsupported: $1)"
+          }
+          register_sa AdvChangeId Keyword
+          register_sa AdvChangeStatus Keyword
+          register_sa AdvLifecycleState Keyword
+          register_sa AdvChangeTitle Keyword
+          register_sa AdvAffectedProjects KeywordList
+          register_sa AdvCurrentGate Keyword
+          register_sa AdvCurrentBucket Keyword
+          register_sa AdvLastSignalAt Datetime
+          register_sa AdvCreatedAt Datetime
+          register_sa AdvWorktreeBranches KeywordList
+          register_sa AdvWorktreePaths KeywordList
+          register_sa AdvBacklogIssueNumber Keyword
+          register_sa AdvEpicId Keyword
+          register_sa AdvEpicStatus Keyword
+          register_sa AdvCoordinationClaim Text
+
+          # Prove a search-attribute-qualified query actually answers, which is
+          # the shape listChangeWorkflowIds uses.
+          for i in $(seq 1 30); do
+            if temporal workflow list \
+              --query "AdvChangeId is not null" --limit 1 >/dev/null 2>&1; then
+              echo "ADV search attributes queryable after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "ADV search attributes did not become queryable within 30s" >&2
+          temporal operator search-attribute list || true
+          exit 1
 
       - name: Test bin CLI (Bun)
         run: bun test bin/
@@ -99,7 +187,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
 
@@ -109,7 +197,7 @@ jobs:
           version: 11
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24.x
           cache: "pnpm"

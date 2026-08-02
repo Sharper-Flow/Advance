@@ -380,6 +380,11 @@ const FIELD_POLICIES: Record<string, FieldPolicyMap> = {
     scopeDelta: { blank: "omit" },
     approvalEvidence: { blank: "omit" },
   },
+  adv_change_projection_quarantine: {
+    changeId: { blank: "reject" },
+    approvedByUser: { blank: "omit" },
+    approvalEvidence: { blank: "reject" }, // audit
+  },
   adv_change_repair_origin: {
     approvalEvidence: { blank: "reject" }, // audit
     reason: { blank: "reject" }, // audit

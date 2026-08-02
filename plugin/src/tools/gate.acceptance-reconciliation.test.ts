@@ -14,7 +14,7 @@ import { gateTools } from "./gate";
 import { createTempDir } from "../__tests__/setup";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import { loadChange } from "../storage/json";
-import type { Change } from "../types";
+import type { Change, ContractReviewMatrix } from "../types";
 
 const mocks = vi.hoisted(() => {
   const signalMock = vi.fn();
@@ -189,12 +189,55 @@ function disposition(family: "design" | "verification") {
   return base;
 }
 
-function workflowState(families: { design?: boolean; verification?: boolean }) {
+function reviewMatrix(): ContractReviewMatrix {
+  return {
+    reviewedAt: "2026-01-01T00:00:00Z",
+    rows: [
+      {
+        contractId: "AC1",
+        kind: "acceptance_criterion" as const,
+        status: "pass" as const,
+        evidencePolicy: "test" as const,
+        evidence: "Acceptance suite passes.",
+      },
+    ],
+  };
+}
+
+function baseContract(
+  overrides: Partial<NonNullable<Change["contract"]>> = {},
+): NonNullable<Change["contract"]> {
+  return {
+    version: 1,
+    rigor: "standard" as const,
+    source: { artifact: "agreement", approvedAt: "2026-01-01T00:00:00Z" },
+    items: [
+      {
+        id: "AC1",
+        kind: "acceptance_criterion" as const,
+        text: "Criterion one",
+        sourceArtifact: "agreement",
+        verificationRequired: true,
+        evidencePolicy: "test" as const,
+        status: "approved" as const,
+      },
+    ],
+    amendments: [],
+    ...overrides,
+  } as NonNullable<Change["contract"]>;
+}
+
+function workflowState(families: {
+  design?: boolean;
+  verification?: boolean;
+  matrix?: boolean;
+}) {
   return {
     design_concern_dispositions: families.design ? [disposition("design")] : [],
     verification_evidence_dispositions: families.verification
       ? [disposition("verification")]
       : [],
+    contract: families.matrix ? { reviewMatrix: reviewMatrix() } : undefined,
   };
 }
 
@@ -373,6 +416,44 @@ describe("adv_gate_complete acceptance reconciliation", () => {
     expect(vi.mocked(mocks.querySignal)).not.toHaveBeenCalledWith(
       expect.objectContaining({ name: "gateCompleted" }),
     );
+  });
+
+  test("re-delivers a recovered contract review matrix before firing gateCompletedSignal", async () => {
+    const changesDir = await createTempDir("adv-gate-reconciliation-");
+    const change = baseChange({
+      contract: baseContract({
+        reviewMatrix: { ...reviewMatrix(), recovery_audit: recoveryAudit() },
+      }),
+    });
+    await seedProjection(changesDir, change);
+    mocks.queryMock.mockImplementation(
+      (queryName: string, receiptId?: string) => {
+        if (queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt) {
+          return Promise.resolve(receiptId ? { id: receiptId } : undefined);
+        }
+        return Promise.resolve(workflowState({ matrix: true }));
+      },
+    );
+
+    const result = await gateTools.adv_gate_complete.execute(
+      {
+        changeId: "test-change",
+        gateId: "acceptance",
+        completedBy: "agent",
+      },
+      createStore(changesDir, change),
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.success).toBe(true);
+    expect(parsed.gateId).toBe("acceptance");
+    // Matrix reconciliation signal fired before gateCompletedSignal.
+    expect(mocks.signalMock).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(mocks.querySignal)).toHaveBeenCalled();
+
+    const disk = await loadChange(changesDir, "test-change");
+    expect(disk.success).toBe(true);
+    expect(disk.data?.contract?.reviewMatrix?.recovery_audit).toBeUndefined();
   });
 
   test("skips reconciliation and completes acceptance when no recovery markers exist", async () => {

@@ -117,6 +117,9 @@ const mocks = vi.hoisted(() => {
       ...change,
       status,
     })),
+    markPoisonedWorkflowForChange: vi.fn(),
+    isPoisonedWorkflowForChange: vi.fn(() => false),
+    clearPoisonedWorkflowCache: vi.fn(),
     sweepClosedChangesFromDisk: vi.fn(async () => ({
       removed: [] as string[],
       failed: [] as Array<{ id: string; error: string }>,
@@ -143,6 +146,16 @@ const mocks = vi.hoisted(() => {
     ),
   };
 });
+
+vi.mock("../storage/store-temporal/poisoned-workflow-cache", () => ({
+  markPoisonedWorkflowForChange: mocks.markPoisonedWorkflowForChange,
+  isPoisonedWorkflowForChange: mocks.isPoisonedWorkflowForChange,
+  clearPoisonedWorkflowCache: mocks.clearPoisonedWorkflowCache,
+  buildPoisonedWorkflowKey: vi.fn(
+    (projectId: string, changeId: string) =>
+      `poisoned-key-${projectId}-${changeId}`,
+  ),
+}));
 
 vi.mock("../temporal/service", () => ({
   getService: mocks.getService,
@@ -3206,18 +3219,8 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(mocks.removeChangeDir).not.toHaveBeenCalled();
     });
 
-    test("poisoned_history recovery branch skips precheck describe and succeeds via disk projection when signal fails", async () => {
+    test("poisoned_history recovery branch skips precheck describe and workflow signal and writes disk projection directly", async () => {
       const store = createMockStore();
-      (
-        mocks.handleMock as typeof mocks.handleMock & {
-          describe: ReturnType<typeof vi.fn>;
-        }
-      ).describe = vi.fn(async () => {
-        throw new Error("Failed to query Workflow ServiceError");
-      });
-      mocks.fireSignalAndRefresh.mockRejectedValueOnce(
-        new Error("Failed to query Workflow ServiceError"),
-      );
 
       const result = await changeTools.adv_change_close.execute(
         {
@@ -3235,8 +3238,12 @@ describe("change tools — signal-driven lifecycle", () => {
       const parsed = JSON.parse(result);
       expect(parsed.success).toBe(true);
       expect(parsed._recoveryMutation).toBe(true);
-      expect(mocks.handleMock.describe).not.toHaveBeenCalled();
-      expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+      expect(mocks.handleMock.describe).toBeUndefined();
+      expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
+      expect(mocks.markPoisonedWorkflowForChange).toHaveBeenCalledWith(
+        "test-project-id",
+        "test-change",
+      );
       expect(mocks.saveRecoveredChangeStatus).toHaveBeenCalledWith(
         expect.objectContaining({
           store,

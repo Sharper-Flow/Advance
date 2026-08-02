@@ -62,6 +62,21 @@ function spawnDouble(tag: string, tokens: string[] = [], ignoreTerm = false): nu
   return proc.pid;
 }
 
+/**
+ * Spawn a test-server-shaped double whose parent exits immediately, so the
+ * double is reparented (PPid 1 or a subreaper) — i.e. a provable orphan of the
+ * kind an aborted `bin/oc-test` run leaves behind when `finally` never runs.
+ */
+function spawnReparentedDouble(tag: string): number {
+  const fakeArgv0 = `/tmp/temporal-test-server-sdk-typescript-9.9.9-${tag}`;
+  // Inner bash execs the double in the background then exits, orphaning it.
+  const script = `exec -a "$0" bash -c 'while :; do sleep 5; done' -- & echo $!`;
+  const proc = Bun.spawnSync(["bash", "-c", script, fakeArgv0]);
+  const pid = Number(new TextDecoder().decode(proc.stdout).trim());
+  if (Number.isFinite(pid) && pid > 0) spawnedPids.push(pid);
+  return pid;
+}
+
 interface ReaperRun {
   exitCode: number;
   stdout: string;
@@ -113,6 +128,38 @@ describe("oc-test temporal test-server reaper", () => {
     expect(run.exitCode).toBe(0);
     expect(isReaped(pid)).toBe(true);
     expect(run.stderr).toContain(`${pid}`);
+  });
+
+
+  // Orphan-first eligibility: an aborted run (Ctrl-C / hard kill) leaves test
+  // servers whose owning process is gone. Those are provably safe to reap at
+  // ANY age, which is what stops leaks accumulating for the full MIN_AGE window.
+  test("reaps an orphaned test server even when younger than the minimum age", async () => {
+    const pid = spawnReparentedDouble("orphan-young");
+    expect(pid).toBeGreaterThan(0);
+    await sleepMs(300);
+
+    const run = await runReaper([pid], {
+      // Deliberately huge: age alone would skip this process.
+      OC_TEST_REAPER_MIN_AGE_SECONDS: "86400",
+      OC_TEST_REAPER_TERM_GRACE_SECONDS: "3",
+    });
+
+    expect(run.exitCode).toBe(0);
+    expect(isReaped(pid)).toBe(true);
+    expect(run.stderr).toContain("orphaned");
+  });
+
+  test("still skips a young peer whose parent is alive (peer-run safety)", async () => {
+    const pid = spawnDouble("live-parent-peer");
+    await sleepMs(300);
+
+    const run = await runReaper([pid], {
+      OC_TEST_REAPER_MIN_AGE_SECONDS: "86400",
+    });
+
+    expect(run.exitCode).toBe(0);
+    expect(isAlive(pid)).toBe(true);
   });
 
   test("skips a fresh peer younger than the minimum age (AC4)", async () => {

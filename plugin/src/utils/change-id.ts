@@ -164,3 +164,29 @@ export function generateChangeId(summary: string): string {
 
   return result;
 }
+
+/**
+ * Canonical ADV change identifier pattern.
+ *
+ * Change IDs are camelCase titles: leading lowercase letter, followed by
+ * alphanumeric characters. This is a strict identity check, not a sanitization
+ * routine — callers must reject non-matching IDs rather than coercing them.
+ */
+export const CHANGE_ID_PATTERN = /^[a-z][a-zA-Z0-9]+$/;
+
+/** Maximum length for a canonical ADV change identifier. */
+export const MAX_CHANGE_ID_LENGTH = 64;
+
+/**
+ * Validate that a change ID is a safe, canonical ADV identifier.
+ *
+ * Rejects path traversal, separators, and non-identifier characters by only
+ * accepting the canonical pattern. No normalization is performed.
+ */
+export function isValidChangeId(id: string): boolean {
+  return (
+    id.length > 0 &&
+    id.length <= MAX_CHANGE_ID_LENGTH &&
+    CHANGE_ID_PATTERN.test(id)
+  );
+}

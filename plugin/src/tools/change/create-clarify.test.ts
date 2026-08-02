@@ -15,7 +15,14 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { Store } from "../../storage/store-types";
 import type { ChangeListResponse, SpecListResponse } from "../../types";
 import { createTemporalReadDeadline } from "../../temporal/retry-wrapper";
-import { loadValidationContext } from "./create-clarify";
+import {
+  loadValidationContext,
+  checkActiveDuplicateChange,
+} from "./create-clarify";
+import {
+  markPoisonedWorkflowForChange,
+  clearPoisonedWorkflowCache,
+} from "../../storage/store-temporal/poisoned-workflow-cache";
 import type { Spec } from "../../types";
 
 interface MockSpec {
@@ -422,5 +429,72 @@ describe("loadValidationContext", () => {
     expect(result.conflictInventory.completeness).toBe("blocked");
     expect(result.conflictInventory.canConcludeClean).toBe(false);
     expect(result.specs).toHaveLength(0);
+  });
+});
+
+describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
+  afterEach(() => {
+    clearPoisonedWorkflowCache();
+  });
+
+  test("returns undefined when no active duplicate exists", async () => {
+    const store = createMockStore({ peers: [] });
+    const result = await checkActiveDuplicateChange(store, "Add user auth", {
+      projectId: "project-1",
+    });
+    expect(result).toBeUndefined();
+  });
+
+  test("blocks duplicate when the existing workflow is healthy", async () => {
+    const store = createMockStore({
+      peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
+    });
+    const result = await checkActiveDuplicateChange(store, "Add user auth", {
+      projectId: "project-1",
+    });
+    expect(result).toBeDefined();
+    expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE");
+    expect(result?.force_recreate).toBeUndefined();
+  });
+
+  test("reports poisoned duplicate with force_recreate option", async () => {
+    const store = createMockStore({
+      peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
+    });
+    markPoisonedWorkflowForChange("project-1", "addUserAuth");
+    const result = await checkActiveDuplicateChange(store, "Add user auth", {
+      projectId: "project-1",
+    });
+    expect(result).toBeDefined();
+    expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE_POISONED");
+    expect(result?.force_recreate).toBe(true);
+    expect(result?.hint).toContain("forceRecreate: true");
+  });
+
+  test("allows forceRecreate only when the existing workflow is poisoned", async () => {
+    const store = createMockStore({
+      peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
+    });
+    const result = await checkActiveDuplicateChange(store, "Add user auth", {
+      forceRecreate: true,
+      projectId: "project-1",
+    });
+    expect(result).toBeDefined();
+    expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE");
+    expect(result?.hint).toContain(
+      "only allowed when the existing change's workflow is poisoned",
+    );
+  });
+
+  test("allows recreate when the existing workflow is poisoned and forceRecreate is true", async () => {
+    const store = createMockStore({
+      peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
+    });
+    markPoisonedWorkflowForChange("project-1", "addUserAuth");
+    const result = await checkActiveDuplicateChange(store, "Add user auth", {
+      forceRecreate: true,
+      projectId: "project-1",
+    });
+    expect(result).toBeUndefined();
   });
 });

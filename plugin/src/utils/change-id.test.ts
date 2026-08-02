@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect } from "vitest";
-import { generateChangeId } from "./change-id";
+import { generateChangeId, isValidChangeId } from "./change-id";
 
 describe("generateChangeId", () => {
   describe("basic camelCase conversion", () => {
@@ -159,5 +159,33 @@ describe("generateChangeId", () => {
       const id = generateChangeId("Implement new caching layer");
       expect(id).toBe("addNewCachingLayer");
     });
+  });
+});
+
+describe("isValidChangeId", () => {
+  test("accepts canonical camelCase identifiers", () => {
+    expect(isValidChangeId("hardenProjectionHydration")).toBe(true);
+    expect(isValidChangeId("fixBug")).toBe(true);
+    expect(isValidChangeId("a1")).toBe(true);
+  });
+
+  test("rejects path traversal and separators", () => {
+    expect(isValidChangeId("foo/bar")).toBe(false);
+    expect(isValidChangeId("foo\\bar")).toBe(false);
+    expect(isValidChangeId("foo..bar")).toBe(false);
+    expect(isValidChangeId("../foo")).toBe(false);
+    expect(isValidChangeId(".foo")).toBe(false);
+  });
+
+  test("rejects leading uppercase, spaces, and punctuation", () => {
+    expect(isValidChangeId("HardenProjectionHydration")).toBe(false);
+    expect(isValidChangeId("fix bug")).toBe(false);
+    expect(isValidChangeId("fix_bug")).toBe(false);
+    expect(isValidChangeId("fix-bug")).toBe(false);
+  });
+
+  test("rejects empty and over-length IDs", () => {
+    expect(isValidChangeId("")).toBe(false);
+    expect(isValidChangeId("a".repeat(65))).toBe(false);
   });
 });

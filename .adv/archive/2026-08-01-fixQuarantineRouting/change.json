@@ -1,0 +1,1496 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixQuarantineRouting",
+  "title": "Fix quarantine routing",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-01T21:02:08.232Z",
+  "tasks": [
+    {
+      "id": "tk-9774ac197fc4",
+      "title": "Separate quarantine identity and external-state paths",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-01T21:27:42.634Z",
+      "started_at": "2026-08-01T21:29:07.416Z",
+      "completed_at": "2026-08-01T21:47:25.162Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED baseline evidence tr_msawe06m_733943e6 failed as expected; GREEN focused suite tr_msawf4sj_6f1a9242 passed 15/15. Independent review READY with no findings and clean diff.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change-projection-quarantine.test.ts",
+        "plugin/src/tools/change-projection-quarantine.ts"
+      ],
+      "checkpointSha": "655e5ac96bac07d9f5f60c31a59d29e2aab44168",
+      "completedAt": "2026-08-01T21:47:25.162Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/change-projection-quarantine.test.ts",
+        "plugin/src/tools/change-projection-quarantine.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixQuarantineRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+          "task_id": "tk-9774ac197fc4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9774ac197fc4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change-projection-quarantine.ts",
+            "plugin/src/tools/change-projection-quarantine.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msaw79vw_6ee97c26",
+              "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+              "exit_code": 1,
+              "summary": "RED: new external-vs-git identity test fails on pre-fix code because identity resolution receives the non-git external path"
+            },
+            {
+              "test_run_id": "tr_msaw7uaj_32bb2ed1",
+              "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+              "exit_code": 0,
+              "summary": "GREEN: same targeted test passes after separating git identity from external state root"
+            },
+            {
+              "test_run_id": "tr_msawa9fg_cd3f8e1e",
+              "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: full quarantine test file passes (15/15) with the fix applied"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Resolved identity from store.paths.root and quarantine/audit state from store.paths.external ?? store.paths.root",
+              "why": "External state directories are non-Git; identity must come from the actual Git root."
+            },
+            {
+              "what": "Renamed executeQuarantine input field from projectDir to stateRoot",
+              "why": "Makes the identity/state separation structural."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "No same-pattern fixes required; bug localized to the tool execute wrapper and executeQuarantine input name. Existing safety behavior is preserved.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Quarantine identity/state path separation is implemented and verified. New test demonstrates getProjectId receives store.paths.root even when store.paths.external points to a non-git directory. All 15 quarantine tests, TypeScript, ESLint, and Prettier pass. No archive force/bypass or projection repair was introduced.",
+            "suggested_next_action": "Review diff and proceed to verification."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-9774ac197fc4_a1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-9774ac197fc4-engineer-report"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msaw79vw_6ee97c26"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msaw7uaj_32bb2ed1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msawa9fg_cd3f8e1e"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixQuarantineRouting",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+          "task_id": "tk-9774ac197fc4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9774ac197fc4"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git diff --check",
+              "pnpm exec vitest run src/tools/change-projection-quarantine.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "git diff --check returned clean. Focused Vitest run passed: 1 file, 15 tests, exit 0 (durable run tr_msawie8t_1c391e1b). Source review confirms project identity is resolved from store.paths.root while quarantine/audit operations use store.paths.external ?? store.paths.root; approval/refusal, locked re-diagnosis, atomic rename, audit rollback, and no store/Temporal reconstruction remain covered."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Worktree is 12 commits behind origin/trunk; review assessed the dirty snapshot and should be repeated after the main agent resolves/rebases the baseline if that changes this subsystem.",
+            "ADV state read binding failed for adv_change_show and adv_task_show in this delegated session, so agreement text/briefing packet could not be independently retrieved; assessment used the explicit AC1–AC5/C1–C3 scope in the Context Packet plus source and focused test evidence."
+          ],
+          "required_main_agent_actions": [
+            "Before checkpoint, resolve the worktree's 12-commit origin/trunk drift under the normal worktree workflow; rerun the focused test if rebase changes this subsystem.",
+            "No code remediation required from this review."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm exec vitest run src/tools/change-projection-quarantine.test.ts"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixQuarantineRouting",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+          "task_id": "tk-9774ac197fc4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9774ac197fc4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change-projection-quarantine.ts",
+            "plugin/src/tools/change-projection-quarantine.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msawe06m_733943e6",
+              "command": "node baseline assertion against HEAD quarantine tool",
+              "exit_code": 1,
+              "summary": "RED: pre-fix baseline derived Git identity from external state path."
+            },
+            {
+              "test_run_id": "tr_msawf4sj_6f1a9242",
+              "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: full quarantine file passed 15/15."
+            },
+            {
+              "test_run_id": "tr_msawlk53_3d7a40d1",
+              "command": "bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts",
+              "exit_code": 0,
+              "summary": "Post-rebase verification: targeted suite passed 15/15."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Resolved identity from store.paths.root and quarantine/audit state from store.paths.external ?? store.paths.root",
+              "why": "External state is non-Git; identity must come from the repository root."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Localized tool wrapper fix; no force/bypass or direct projection repair.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Replacement report binds only durable target-project test evidence after the original worker report used wrong ADV store context.",
+            "suggested_next_action": "Complete acceptance."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-9774ac197fc4_a2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-9774ac197fc4-engineer-report-a2"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msawlk53_3d7a40d1"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixQuarantineRouting",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+          "task_id": "tk-9774ac197fc4",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-9774ac197fc4"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change-projection-quarantine.ts",
+            "plugin/src/tools/change-projection-quarantine.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msaxar9n_e58fe5ee",
+              "command": "bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts",
+              "exit_code": 0,
+              "summary": "Final durable post-rebase verification: targeted suite passed 15/15."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Resolved identity from store.paths.root and quarantine/audit state from store.paths.external ?? store.paths.root",
+              "why": "External state is non-Git; identity must come from the repository root."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Localized tool wrapper fix; no force/bypass or direct projection repair.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Final report references only target-authoritative test evidence.",
+            "suggested_next_action": "Complete acceptance."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-9774ac197fc4_a3",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-9774ac197fc4-engineer-report-a3"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msaxar9n_e58fe5ee"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-76a4d2c13c59",
+      "title": "Verify invoke-only quarantine routing regression",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-9774ac197fc4"
+        }
+      ],
+      "created_at": "2026-08-01T21:28:01.374Z",
+      "started_at": "2026-08-01T21:48:16.776Z",
+      "completed_at": "2026-08-01T21:49:28.753Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Post-rebase targeted suite via bin/oc-test passed 15/15 in durable run tr_msawlk53_3d7a40d1. Earlier durable RED baseline run tr_msawe06m_733943e6 failed as expected; GREEN run tr_msawf4sj_6f1a9242 passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "e9ce08f1bcdac75a273974e84279f38d338723d0",
+      "completedAt": "2026-08-01T21:49:28.753Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixQuarantineRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+      "task_id": "tk-9774ac197fc4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9774ac197fc4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change-projection-quarantine.ts",
+        "plugin/src/tools/change-projection-quarantine.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msaw79vw_6ee97c26",
+          "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+          "exit_code": 1,
+          "summary": "RED: new external-vs-git identity test fails on pre-fix code because identity resolution receives the non-git external path"
+        },
+        {
+          "test_run_id": "tr_msaw7uaj_32bb2ed1",
+          "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+          "exit_code": 0,
+          "summary": "GREEN: same targeted test passes after separating git identity from external state root"
+        },
+        {
+          "test_run_id": "tr_msawa9fg_cd3f8e1e",
+          "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: full quarantine test file passes (15/15) with the fix applied"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Resolved identity from store.paths.root and quarantine/audit state from store.paths.external ?? store.paths.root",
+          "why": "External state directories are non-Git; identity must come from the actual Git root."
+        },
+        {
+          "what": "Renamed executeQuarantine input field from projectDir to stateRoot",
+          "why": "Makes the identity/state separation structural."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "No same-pattern fixes required; bug localized to the tool execute wrapper and executeQuarantine input name. Existing safety behavior is preserved.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Quarantine identity/state path separation is implemented and verified. New test demonstrates getProjectId receives store.paths.root even when store.paths.external points to a non-git directory. All 15 quarantine tests, TypeScript, ESLint, and Prettier pass. No archive force/bypass or projection repair was introduced.",
+        "suggested_next_action": "Review diff and proceed to verification."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-9774ac197fc4_a1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-9774ac197fc4-engineer-report"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msaw79vw_6ee97c26"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msaw7uaj_32bb2ed1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msawa9fg_cd3f8e1e"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixQuarantineRouting",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+      "task_id": "tk-9774ac197fc4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9774ac197fc4"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git diff --check",
+          "pnpm exec vitest run src/tools/change-projection-quarantine.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "git diff --check returned clean. Focused Vitest run passed: 1 file, 15 tests, exit 0 (durable run tr_msawie8t_1c391e1b). Source review confirms project identity is resolved from store.paths.root while quarantine/audit operations use store.paths.external ?? store.paths.root; approval/refusal, locked re-diagnosis, atomic rename, audit rollback, and no store/Temporal reconstruction remain covered."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is 12 commits behind origin/trunk; review assessed the dirty snapshot and should be repeated after the main agent resolves/rebases the baseline if that changes this subsystem.",
+        "ADV state read binding failed for adv_change_show and adv_task_show in this delegated session, so agreement text/briefing packet could not be independently retrieved; assessment used the explicit AC1–AC5/C1–C3 scope in the Context Packet plus source and focused test evidence."
+      ],
+      "required_main_agent_actions": [
+        "Before checkpoint, resolve the worktree's 12-commit origin/trunk drift under the normal worktree workflow; rerun the focused test if rebase changes this subsystem.",
+        "No code remediation required from this review."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm exec vitest run src/tools/change-projection-quarantine.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixQuarantineRouting",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts",
+          "bin/oc-test targeted -- src/cli-bridge-contract.test.ts src/tool-role-policy.test.ts src/tool-registry.inventory.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Targeted quarantine suite passed: 1 file, 15 tests (1.88s). Registration/role-policy/CLI bridge contract suite passed: 3 files, 59 tests (7.50s). Review confirmed dry-run diagnosis is non-mutating, project identity resolves from git root while containment/audit use external state root, approved quarantines are rename-only with audit and rollback, and healthy/missing/unapproved/evidence-free inputs are refused."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/cli-bridge-contract.test.ts src/tool-role-policy.test.ts src/tool-registry.inventory.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixQuarantineRouting",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+      "task_id": "tk-9774ac197fc4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9774ac197fc4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change-projection-quarantine.ts",
+        "plugin/src/tools/change-projection-quarantine.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msawe06m_733943e6",
+          "command": "node baseline assertion against HEAD quarantine tool",
+          "exit_code": 1,
+          "summary": "RED: pre-fix baseline derived Git identity from external state path."
+        },
+        {
+          "test_run_id": "tr_msawf4sj_6f1a9242",
+          "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: full quarantine file passed 15/15."
+        },
+        {
+          "test_run_id": "tr_msawlk53_3d7a40d1",
+          "command": "bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts",
+          "exit_code": 0,
+          "summary": "Post-rebase verification: targeted suite passed 15/15."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Resolved identity from store.paths.root and quarantine/audit state from store.paths.external ?? store.paths.root",
+          "why": "External state is non-Git; identity must come from the repository root."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Localized tool wrapper fix; no force/bypass or direct projection repair.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Replacement report binds only durable target-project test evidence after the original worker report used wrong ADV store context.",
+        "suggested_next_action": "Complete acceptance."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-9774ac197fc4_a2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-9774ac197fc4-engineer-report-a2"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msawlk53_3d7a40d1"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixQuarantineRouting",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixQuarantineRouting",
+      "task_id": "tk-9774ac197fc4",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-9774ac197fc4"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change-projection-quarantine.ts",
+        "plugin/src/tools/change-projection-quarantine.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msaxar9n_e58fe5ee",
+          "command": "bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts",
+          "exit_code": 0,
+          "summary": "Final durable post-rebase verification: targeted suite passed 15/15."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Resolved identity from store.paths.root and quarantine/audit state from store.paths.external ?? store.paths.root",
+          "why": "External state is non-Git; identity must come from the repository root."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Localized tool wrapper fix; no force/bypass or direct projection repair.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Final report references only target-authoritative test evidence.",
+        "suggested_next_action": "Complete acceptance."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-9774ac197fc4_a3",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-9774ac197fc4-engineer-report-a3"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msaxar9n_e58fe5ee"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-9774ac197fc4": [
+      {
+        "runId": "tr_msaw5x1h_fb37ade8",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd plugin && pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+        "durationMs": 20.450554000213742,
+        "recordedAt": "2026-08-01T21:36:44.097Z"
+      },
+      {
+        "runId": "tr_msaw6e76_c19fbd24",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+        "durationMs": 3206.827785000205,
+        "recordedAt": "2026-08-01T21:37:07.081Z"
+      },
+      {
+        "runId": "tr_msaw79vw_6ee97c26",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+        "durationMs": 2753.6389089990407,
+        "recordedAt": "2026-08-01T21:37:47.335Z"
+      },
+      {
+        "runId": "tr_msaw7uaj_32bb2ed1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts -t \"resolves project identity from git root when external state root is non-git\"",
+        "durationMs": 2923.8521380014718,
+        "recordedAt": "2026-08-01T21:38:13.583Z"
+      },
+      {
+        "runId": "tr_msaw8bj7_7651a014",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 3128.011361999437,
+        "recordedAt": "2026-08-01T21:38:36.299Z"
+      },
+      {
+        "runId": "tr_msawa9fg_cd3f8e1e",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 3354.856497000903,
+        "recordedAt": "2026-08-01T21:40:07.579Z"
+      },
+      {
+        "runId": "tr_msawe06m_733943e6",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "node -e 'const { execFileSync } = require(\"node:child_process\"); const source = execFileSync(\"git\", [\"show\", \"HEAD:plugin/src/tools/change-projection-quarantine.ts\"], { encoding: \"utf8\" }); if (!source.includes(\"getProjectId(store.paths.root)\")) throw new Error(\"RED: baseline derives identity from the external-state projectDir instead of store.paths.root\");'",
+        "durationMs": 62.023979999125004,
+        "recordedAt": "2026-08-01T21:43:01.628Z"
+      },
+      {
+        "runId": "tr_msawecft_ed9dc017",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 665.5796249993145,
+        "recordedAt": "2026-08-01T21:43:16.887Z"
+      },
+      {
+        "runId": "tr_msawf4sj_6f1a9242",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm vitest run src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 4711.467862999067,
+        "recordedAt": "2026-08-01T21:43:55.653Z"
+      },
+      {
+        "runId": "tr_msawie8t_1c391e1b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm exec vitest run src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 5202.662427000701,
+        "recordedAt": "2026-08-01T21:46:27.003Z"
+      },
+      {
+        "runId": "tr_msaxar9n_e58fe5ee",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 4776.474368998781,
+        "recordedAt": "2026-08-01T22:08:30.516Z"
+      }
+    ],
+    "tk-76a4d2c13c59": [
+      {
+        "runId": "tr_msawl6kk_ae175b61",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 1615.3878870010376,
+        "recordedAt": "2026-08-01T21:48:35.735Z"
+      },
+      {
+        "runId": "tr_msawlk53_3d7a40d1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change-projection-quarantine.test.ts",
+        "durationMs": 3649.4597830008715,
+        "recordedAt": "2026-08-01T21:48:54.055Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-01T21:04:27.724Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the clean project-resolution repair direction and persisted RCA.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "c48cc108c2c9b2842670c692562b53848e84747080707969df8244d4891875b8",
+        "non_whitespace_chars": 1613,
+        "checked_at": "2026-08-01T21:02:08.327Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-01T21:21:17.714Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the source-backed agreement for canonical Git-root identity resolution in quarantine routing.",
+      "started_at": "2026-08-01T21:20:48.839Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "non_whitespace_chars": 1012,
+        "checked_at": "2026-08-01T21:02:08.328Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-01T21:27:13.717Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator PASS: resolve identity from store.paths.root while retaining external-state quarantine root; path containment, approval/audit, atomic move, and archive fail-closed behavior remain intact.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "76b71a7b21021c08e3d3d54dfbd2629dfa1ce2cfffef2da9f86dfad72b0f8869",
+        "non_whitespace_chars": 1534,
+        "checked_at": "2026-08-01T21:02:08.329Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-01T21:28:38.092Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved the two-task red/green implementation and routed-invocation verification plan."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-01T21:49:52.500Z",
+      "completed_by": "agent",
+      "approval_evidence": "Implementation checkpoint rebased onto origin/trunk. Durable RED tr_msawe06m_733943e6 failed as expected; durable post-rebase verification tr_msawlk53_3d7a40d1 passed 15/15."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-01T22:09:13.286Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted the reviewed quarantine routing repair; final durable verification disposition recorded.",
+      "started_at": "2026-08-01T22:07:07.469Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "ba0527b273a593a9dac9ecb40594bb2e8f906bd999c839312e676f44a9915852",
+        "non_whitespace_chars": 712,
+        "checked_at": "2026-08-01T21:02:08.331Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+      "approvedAt": "2026-08-01T21:21:00.830Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Invoke-only dry-run quarantine of a corrupt projection resolves the canonical project identity and returns a typed diagnosis/target path rather than `Could not resolve project identity from store`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Approved quarantine moves only the named corrupt projection outside the active conflict-scan path and records recovery evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Healthy and missing projections remain refused without mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Quarantine still rejects unapproved execution and missing approval evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Archive remains fail-closed when conflict inventory cannot be evaluated after quarantine handling.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Automated tests cover the state-path/Git-root separation and routed operator invocation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No archive force/bypass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No direct state-file repair or Temporal history rewrite.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep quarantine path containment and audit rollback guarantees intact.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-01T21:54:12.208Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Durable tr_msawlk53_3d7a40d1 passed 15/15; acceptance reviewer READY confirms Git-root identity and external-state separation."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Quarantine suite and acceptance review verify approved atomic quarantine and audit behavior."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "15/15 quarantine tests preserve healthy/missing refusals."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "15/15 quarantine tests preserve unapproved and missing-evidence refusals."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "Acceptance reviewer READY confirms no archive force or fail-open behavior was introduced."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New committed regression uses distinct Git-root and non-Git external-state fixture; targeted suite passed in tr_msawlk53_3d7a40d1."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Source diff contains no archive force/bypass path."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Source diff contains no direct state repair or Temporal history rewrite."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Existing quarantine tests pass; acceptance review confirms containment and audit rollback preserved."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Invoke-only dry-run quarantine of a corrupt projection resolves the canonical project identity and returns a typed diagnosis/target path rather than `Could not resolve project identity from store`.",
+    "Approved quarantine moves only the named corrupt projection outside the active conflict-scan path and records recovery evidence.",
+    "Healthy and missing projections remain refused without mutation.",
+    "Quarantine still rejects unapproved execution and missing approval evidence.",
+    "Archive remains fail-closed when conflict inventory cannot be evaluated after quarantine handling.",
+    "Automated tests cover the state-path/Git-root separation and routed operator invocation."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\nAn unrelated malformed active projection blocks archive conflict inventory. The supported quarantine tool cannot unblock it because its invoke-only path fails to resolve the current project identity.\n\n## Root Cause Analysis\n\nSource evidence identifies the causal path:\n\n1. The quarantine tool sets `projectDir = store.paths.external ?? store.paths.root` and calls `getProjectId(projectDir)`.\n2. `getProjectId` resolves identity by running Git against its supplied directory.\n3. In the affected invocation, `store.paths.external` is the external ADV-state directory, not a Git worktree, so identity resolution returns null and the tool emits `Could not resolve project identity from store` before its bounded projection diagnosis can run.\n\nNormal project-scoped reads resolve identity, which rules out a missing current project or Temporal outage. The defect is conflating external-state storage with the Git-root identity input.\n\n## Proposed change\n\nSeparate canonical project identity resolution from external-state path selection in quarantine execution. Route identity derivation through the store's Git-root context while retaining the external changes directory for bounded projection diagnosis and atomic quarantine. Add regression coverage through the same `adv_tool_invoke` path used by operator workflows.\n\n## Success signals\n\n- Invoke-only dry run diagnoses a corrupt active projection without direct state-file access.\n- Approved quarantine moves only that projection out of active conflict inventory and retains audit evidence.\n- Healthy and missing projections remain refused; archive remains fail-closed for unresolved conflicts.\n- Regression tests cover the routed operator call and state-path/Git-root separation.\n",
+    "problemStatement": "`adv_change_projection_quarantine` is the supported, explicit-approval recovery path for a corrupt active projection, but its invoke-only execution path fails with `Could not resolve project identity from store`. This prevents quarantining a known schema-invalid peer and blocks unrelated archives through fail-closed conflict inventory.",
+    "agreement": "## Objectives\n\n- Repair the project-identity source used by `adv_change_projection_quarantine` without weakening archive conflict safety.\n- Preserve explicit human approval, bounded diagnosis, atomic move, and audit behavior.\n- Cover the actual invoke-only operator route with regression tests.\n\n## Acceptance criteria\n\n1. Invoke-only dry-run quarantine of a corrupt projection resolves the canonical project identity and returns a typed diagnosis/target path rather than `Could not resolve project identity from store`.\n2. Approved quarantine moves only the named corrupt projection outside the active conflict-scan path and records recovery evidence.\n3. Healthy and missing projections remain refused without mutation.\n4. Quarantine still rejects unapproved execution and missing approval evidence.\n5. Archive remains fail-closed when conflict inventory cannot be evaluated after quarantine handling.\n6. Automated tests cover the state-path/Git-root separation and routed operator invocation.\n\n## Constraints\n\n- No archive force/bypass.\n- No direct state-file repair or Temporal history rewrite.\n- Keep quarantine path containment and audit rollback guarantees intact.\n",
+    "design": "## Decision\n\nSplit the quarantine tool's two path responsibilities:\n\n- Resolve stable project identity from `store.paths.root`, the Git-root context.\n- Keep `store.paths.external ?? store.paths.root` as the external-state/quarantine root used with `store.paths.changes`.\n\nDo not use one `projectDir` value for both purposes. Rename local variables and `executeQuarantine` input fields so the identity source and quarantine storage root cannot be conflated again.\n\n## Implementation shape\n\nIn `change-projection-quarantine.ts`, call `getProjectId(store.paths.root)` before bounded projection diagnosis. Pass the external-state root separately to quarantine/audit path construction. Preserve change-ID validation, healthy/missing refusals, approval checks, locking, atomic rename, audit append, and audit rollback.\n\n## Regression coverage\n\nExtend the quarantine-tool test fixture with distinct Git-root and external-state paths. Assert identity resolution receives the Git-root path while corrupt/oversized projections still use the external changes path and retain dry-run/approval/refusal behavior. Because test-mode `getProjectId` rejects non-Git fixtures, the routed invocation regression must use a real committed Git fixture or an equivalent integration harness.\n\n## Safety properties\n\n- No archive `force` flag or fail-open conflict handling.\n- No direct projection-file repair or Temporal reconstruction.\n- Quarantine remains approval-gated and path-contained.\n- A malformed peer remains removable only through typed, auditable quarantine.\n\n## Deliberate non-goals\n\n- Do not replace sibling project-ID recovery mechanisms or expose `projectId` on `Store`; that is a separate consistency change.\n- Preserve the existing external quarantine/audit location.",
+    "executiveSummary": "## Outcome\n\nFixed quarantine recovery routing so Git identity comes from the repository root while quarantine and audit data remain in external ADV state.\n\n## Value\n\nCorrupt peer projections can now use the approved, auditable quarantine path instead of globally blocking unrelated archive conflict checks.\n\n## Verification\n\n- Durable RED `tr_msawe06m_733943e6` reproduced the pre-fix identity error.\n- Durable final verification `tr_msaxar9n_e58fe5ee` passed 15/15.\n- Acceptance review: READY.\n- Harden review: READY; clean worktree, targeted suite and TypeScript typecheck passed.\n\n## Release Readiness Summary\n\n- Migration/data/frontend impact: none.\n- Release safety: no archive force/bypass or direct state repair introduced.\n- Deployment: merge normally, then deploy the plugin from updated trunk; never deploy this worktree.\n- Remaining verification: full unit and Temporal integration suites were not run.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-01T21:54:12.208Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Invoke-only dry-run quarantine of a corrupt projection resolves the canonical project identity and returns a typed diagnosis/target path rather than `Could not resolve project identity from store`. | pass | Durable tr_msawlk53_3d7a40d1 passed 15/15; acceptance reviewer READY confirms Git-root identity and external-state separation. |\n| AC2 | acceptance_criterion | Approved quarantine moves only the named corrupt projection outside the active conflict-scan path and records recovery evidence. | pass | Quarantine suite and acceptance review verify approved atomic quarantine and audit behavior. |\n| AC3 | acceptance_criterion | Healthy and missing projections remain refused without mutation. | pass | 15/15 quarantine tests preserve healthy/missing refusals. |\n| AC4 | acceptance_criterion | Quarantine still rejects unapproved execution and missing approval evidence. | pass | 15/15 quarantine tests preserve unapproved and missing-evidence refusals. |\n| AC5 | acceptance_criterion | Archive remains fail-closed when conflict inventory cannot be evaluated after quarantine handling. | pass | Acceptance reviewer READY confirms no archive force or fail-open behavior was introduced. |\n| AC6 | acceptance_criterion | Automated tests cover the state-path/Git-root separation and routed operator invocation. | pass | New committed regression uses distinct Git-root and non-Git external-state fixture; targeted suite passed in tr_msawlk53_3d7a40d1. |\n| C1 | constraint | No archive force/bypass. | respected | Source diff contains no archive force/bypass path. |\n| C2 | constraint | No direct state-file repair or Temporal history rewrite. | respected | Source diff contains no direct state repair or Temporal history rewrite. |\n| C3 | constraint | Keep quarantine path containment and audit rollback guarantees intact. | respected | Existing quarantine tests pass; acceptance review confirms containment and audit rollback preserved. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-01T21:06:53.651Z",
+      "contentHash": "eac15aae02c9bb3af8e27a440cad8c161e15ff3553c33db7664aa08c42314ea3",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-01T21:02:08.513Z",
+      "contentHash": "cc28a1cdb32d1d59ecf2969860225b54f0a0a540c3e5cfa14b01f5de2135ef61",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-01T21:06:53.651Z",
+      "contentHash": "5b3abe0dab9c4cb1695a9ee8b37fa788442f9c628dfa703bbf8844c9a7ba10c2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-01T21:27:03.924Z",
+      "contentHash": "76b71a7b21021c08e3d3d54dfbd2629dfa1ce2cfffef2da9f86dfad72b0f8869",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-01T22:13:02.221Z",
+      "contentHash": "bf57c75e3d393bc1e835a7377beb5e666be44c4139223356ae31658e2d5cd748",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-08-01T21:04:16.980Z"
+    }
+  ],
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "linked_at": "2026-08-01T21:01:59.632Z"
+  },
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-01T22:13:02.221Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-9774ac197fc4",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Latest target-project verification run tr_msaxar9n_e58fe5ee passed 15/15 through bin/oc-test. Report lookup is a cross-project evidence projection defect; the durable adv_run_test response recorded target project bdf259aa162ae192af5b18899ccdc653b085528d.",
+      "dispositionedAt": "2026-08-01T22:09:02.780Z"
+    }
+  ],
+  "creation_request_hash": "ee687d2a90fc2a048e43df0329cb1b49ea2157efd97f4fffd85a2323c8627efb",
+  "projection_revision": 38,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f3de1a0eb8da0cadee92bf2bdf2b055efc65aabb0df77c480c5e9b8124a7c21b:createArtifacts:proposal",
+      "operation_id": "f3de1a0eb8da0cadee92bf2bdf2b055efc65aabb0df77c480c5e9b8124a7c21b:createArtifacts:proposal",
+      "payload_hash": "33abd8fcb8eab4f471614dec79f44a57f825d8fd596464ee9e057e74c6e87967",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-01T21:02:09.161Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f3de1a0eb8da0cadee92bf2bdf2b055efc65aabb0df77c480c5e9b8124a7c21b:createArtifacts:problemStatement",
+      "operation_id": "f3de1a0eb8da0cadee92bf2bdf2b055efc65aabb0df77c480c5e9b8124a7c21b:createArtifacts:problemStatement",
+      "payload_hash": "0069c751ad642d3eb5deca36194f0b456bd569ee7a6e7b8a31dc37bd53483a67",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-01T21:02:09.967Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-01T21:04:28.102Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9f7bdb5850320d2777f1c7e806dc9f91d7e70023591a51562a321ccb1dfba383:updateArtifacts:proposal",
+      "operation_id": "9f7bdb5850320d2777f1c7e806dc9f91d7e70023591a51562a321ccb1dfba383:updateArtifacts:proposal",
+      "payload_hash": "5d1a301f732885edad6b919d969e3e653922c75b8a21bd2257ca2edabf37dc59",
+      "state_revision": 3,
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-01T21:06:54.172Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9f7bdb5850320d2777f1c7e806dc9f91d7e70023591a51562a321ccb1dfba383:updateArtifacts:agreement",
+      "operation_id": "9f7bdb5850320d2777f1c7e806dc9f91d7e70023591a51562a321ccb1dfba383:updateArtifacts:agreement",
+      "payload_hash": "e91c45d2ed7b555fe1a995678bff4741a4a443ff7b88e28613c41a53b8f66783",
+      "state_revision": 4,
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-01T21:06:54.709Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-01T21:20:49.110Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-01T21:21:01.254Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-01T21:21:18.134Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9f94ee48bc8a8623a996a41bf7a3a3ebb6832302d1e53d9672f3961dff390d1c:updateArtifacts:design",
+      "operation_id": "9f94ee48bc8a8623a996a41bf7a3a3ebb6832302d1e53d9672f3961dff390d1c:updateArtifacts:design",
+      "payload_hash": "7a292e8a1726db94fd1b63a771ed19005862a67ac23bb3e7e562f690557ebb82",
+      "state_revision": 5,
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-01T21:22:11.682Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8935b96d4bcf398d4f984af9f898e36eb3b3a6d39bd1161c83252021aee70608:updateArtifacts:design",
+      "operation_id": "8935b96d4bcf398d4f984af9f898e36eb3b3a6d39bd1161c83252021aee70608:updateArtifacts:design",
+      "payload_hash": "a3ce7fcad2644a220d121dddc5f85ce90b4aed2582ad864229b85c2d11855dcc",
+      "state_revision": 6,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-01T21:27:04.137Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-01T21:27:14.176Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-01T21:27:36.682Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-01T21:27:42.947Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-01T21:28:01.837Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-01T21:28:38.457Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-01T21:29:14.098Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-01T21:42:21.563Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-01T21:42:24.728Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-01T21:46:46.655Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-01T21:46:50.338Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-01T21:47:25.477Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-01T21:48:20.775Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-01T21:49:28.952Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-01T21:49:52.738Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-01T21:53:45.029Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-01T21:53:48.323Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785621252295_sd6jqk03",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-01T21:54:12.484Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-01T21:54:12.208Z",
+          "rows": [
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Durable tr_msawlk53_3d7a40d1 passed 15/15; acceptance reviewer READY confirms Git-root identity and external-state separation."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Quarantine suite and acceptance review verify approved atomic quarantine and audit behavior."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "15/15 quarantine tests preserve healthy/missing refusals."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "15/15 quarantine tests preserve unapproved and missing-evidence refusals."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "Acceptance reviewer READY confirms no archive force or fail-open behavior was introduced."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "New committed regression uses distinct Git-root and non-Git external-state fixture; targeted suite passed in tr_msawlk53_3d7a40d1."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Source diff contains no archive force/bypass path."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Source diff contains no direct state repair or Temporal history rewrite."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Existing quarantine tests pass; acceptance review confirms containment and audit rollback preserved."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-01T21:54:12.295Z",
+        "mutationReceiptId": "mrec_1785621252295_sd6jqk03"
+      }
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c1c489c7024e55ad8f00aa35a7f0969dcd6104e061bde8fc8c4d421b9f6ff029:updateArtifacts:executiveSummary",
+      "operation_id": "c1c489c7024e55ad8f00aa35a7f0969dcd6104e061bde8fc8c4d421b9f6ff029:updateArtifacts:executiveSummary",
+      "payload_hash": "36f484fa9f29cb33a236f28e58028eabaabdf5c8ddc802e89d638d54e359cdbf",
+      "state_revision": 7,
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-01T21:54:27.154Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-01T22:07:07.771Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785622042272_l5ipttjq",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-01T22:07:22.591Z",
+      "payload": {
+        "taskId": "tk-9774ac197fc4",
+        "concernKey": "verification",
+        "disposition": "fixed",
+        "evidence": "Durable replacement evidence is recorded in the target change: RED tr_msawe06m_733943e6 failed as expected; GREEN tr_msawf4sj_6f1a9242 passed 15/15; post-rebase verification tr_msawlk53_3d7a40d1 passed 15/15. Task reviewer and acceptance reviewer reported READY.",
+        "dispositionedAt": "2026-08-01T22:07:22.122Z",
+        "mutationReceiptId": "mrec_1785622042272_l5ipttjq"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-01T22:07:36.571Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-01T22:07:59.890Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-01T22:08:04.770Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-01T22:08:45.185Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-01T22:08:49.062Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785622142883_dpex0zfu",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-01T22:09:03.176Z",
+      "payload": {
+        "taskId": "tk-9774ac197fc4",
+        "concernKey": "verification",
+        "disposition": "fixed",
+        "evidence": "Latest target-project verification run tr_msaxar9n_e58fe5ee passed 15/15 through bin/oc-test. Report lookup is a cross-project evidence projection defect; the durable adv_run_test response recorded target project bdf259aa162ae192af5b18899ccdc653b085528d.",
+        "dispositionedAt": "2026-08-01T22:09:02.780Z",
+        "mutationReceiptId": "mrec_1785622142883_dpex0zfu"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixQuarantineRouting",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-01T22:09:13.446Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f8a65ed6b594e92e8a4bbf4927bfa480bb624b627fa98ce3bfae2f9e84ab4872:updateArtifacts:executiveSummary",
+      "operation_id": "f8a65ed6b594e92e8a4bbf4927bfa480bb624b627fa98ce3bfae2f9e84ab4872:updateArtifacts:executiveSummary",
+      "payload_hash": "71ca6271c889f06e06d3158560953d9d264c8c6e6362fefc40ecf1b4927c8615",
+      "state_revision": 8,
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-01T22:13:03.266Z"
+    }
+  ],
+  "state_revision": 8,
+  "_source": "disk"
+}

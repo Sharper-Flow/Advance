@@ -18,7 +18,12 @@ import {
   recoveryReasonFromError,
   type ProjectionRecoveryReason,
   type RecoveryReason,
+  isPoisonedHistoryError,
 } from "../../temporal/recovery-classification";
+import {
+  markPoisonedWorkflowForChange,
+  isPoisonedWorkflowForChange,
+} from "./poisoned-workflow-cache";
 import { reinitStsl } from "../../temporal/service";
 import { createLogger } from "../../utils/debug-log";
 import type { ChangeSummaryMemo, ChangeSummary } from "../store-temporal-memo";
@@ -607,6 +612,12 @@ export async function changeCommand(
     eligibility,
   } = options;
   const handle = await getGuardedChangeHandle(deps.input, changeId);
+  if (isPoisonedWorkflowForChange(deps.input.projectId, changeId)) {
+    return {
+      kind: "operator_required",
+      reason: `${commandKind} signal skipped for ${changeId}: workflow is known poisoned`,
+    };
+  }
   try {
     if (eligibility) {
       requireMutationEligible(eligibility);
@@ -618,6 +629,9 @@ export async function changeCommand(
       }
     });
   } catch (err) {
+    if (isPoisonedHistoryError(err)) {
+      markPoisonedWorkflowForChange(deps.input.projectId, changeId);
+    }
     const outcome = classifyMutationOutcome({ signalError: err });
     if (outcome === "outcome_unknown_readback_unavailable") {
       return {
@@ -745,6 +759,14 @@ export async function raceWithTemporalDeadline<T>(
   op: Promise<T>,
   deadline: TemporalReadDeadline,
 ): Promise<T> {
+  // `op` is already in flight by the time we get here, and there are two paths
+  // where we abandon it: the deadline is already expired (below), or the timer
+  // wins the race. In both cases nothing awaits `op` again, so a later
+  // rejection surfaces as an unhandled rejection and fails the process even
+  // though the caller correctly handled the timeout. Attach a terminal no-op
+  // handler so abandonment is always safe. This does not swallow anything the
+  // caller would otherwise see: whoever wins the race below still propagates.
+  void op.catch(() => {});
   const remaining = remainingDeadlineMs(deadline);
   if (remaining <= 0) {
     throw new TemporalQueryTimeoutError(deadline.budgetMs);
@@ -779,6 +801,9 @@ function stringifyEvidence(value: unknown): string {
   }
 }
 
+const TERMINAL_WORKFLOW_STATUS_RE =
+  /TERMINATED|COMPLETED|FAILED|CANCELLED|TIMED_OUT|CONTINUED_AS_NEW/i;
+
 async function hasPoisonedWorkflowDescription(
   input: TemporalStoreBackendInput,
   changeId: string,
@@ -788,10 +813,15 @@ async function hasPoisonedWorkflowDescription(
   if (typeof handle.describe !== "function") return false;
   try {
     const description = await runTemporal(async () => handle.describe?.(), {
-      timeoutMs: QUERY_TIMEOUT_MS,
+      timeoutMs: 1_000,
       deadline,
     });
-    return POISONED_WORKFLOW_EVIDENCE_RE.test(stringifyEvidence(description));
+    const evidence = stringifyEvidence(description);
+    // Also treat terminal workflows as poisoned-from-read-perspective:
+    // queries to terminated/closed workflows on abandoned session queues
+    // hang indefinitely because no poller will answer.
+    if (TERMINAL_WORKFLOW_STATUS_RE.test(evidence)) return true;
+    return POISONED_WORKFLOW_EVIDENCE_RE.test(evidence);
   } catch (error) {
     logger.debug(
       `Poisoned workflow describe probe failed for change ${changeId}: ${collectErrorText(error)}`,
@@ -854,6 +884,7 @@ export async function classifyTemporalReadFailure(
     GENERIC_QUERY_FAILURE_RE.test(collectErrorText(error)) &&
     (await hasPoisonedWorkflowDescription(input, changeId, deadline))
   ) {
+    markPoisonedWorkflowForChange(input.projectId, changeId);
     return {
       errorClass: "fallback",
       recoveryReason: "poisoned_history",
@@ -867,9 +898,13 @@ export async function classifyTemporalReadFailure(
   // Total three-way classification of every other reachable query failure:
   // poisoned → poisoned_history, completed/not-found → missing_workflow,
   // anything else → query_failed (never mutation-authorizing).
+  const recoveryReason = recoveryReasonFromError(error);
+  if (recoveryReason === "poisoned_history") {
+    markPoisonedWorkflowForChange(input.projectId, changeId);
+  }
   return {
     errorClass,
-    recoveryReason: recoveryReasonFromError(error),
+    recoveryReason,
     outcome: classifyMutationOutcome({
       ...(signalError !== undefined ? { signalError } : {}),
       readbackError: error,

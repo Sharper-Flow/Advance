@@ -147,6 +147,48 @@ describe("adv-tron assets", () => {
     expect(frontmatter).toMatch(/^\s+adv_tool_invoke:\s*true\s*$/m);
   });
 
+  test("pins opt-scan candidate intake and read-only advisory boundaries across tron surfaces", () => {
+    const assets = readTronAssets();
+
+    expectAllTronSurfacesToContain(assets, [
+      "OPTIMIZATION_CANDIDATES",
+      "optimization_candidates",
+      "detector_id",
+      "expected_cost_shape",
+      "false_positive_caveat",
+      "verification_needed",
+      "/adv-optimizer",
+    ]);
+
+    expectAllTronSurfacesToContain(assets, [
+      "read-only",
+      "static",
+      "advisory",
+      "preserve",
+      "evidence",
+    ]);
+
+    // Detailed advisory boundaries live in the agent prompt and reusable skill;
+    // the command packet is a higher-level orchestrator prompt.
+    for (const surface of ["agent", "skill"] as const) {
+      const content = assets[surface];
+
+      for (const fragment of ["speedup", "latency", "runtime impact"]) {
+        expect(content, `${surface} missing ${fragment}`).toContain(fragment);
+      }
+
+      for (const fragment of [
+        "slop-scan",
+        "PERF",
+        "Do not edit code",
+        "create caches",
+        "mutate ADV/task/gate state",
+      ]) {
+        expect(content, `${surface} missing ${fragment}`).toContain(fragment);
+      }
+    }
+  });
+
   test("deploy script installs the bundled adv-tron skill globally", () => {
     const content = readFileSync(DEPLOY_SCRIPT_PATH, "utf8");
 

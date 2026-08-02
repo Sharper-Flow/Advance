@@ -1,0 +1,1556 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixAcceptanceMatrixRecovery",
+  "title": "Fix acceptance matrix recovery",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-07-31T21:57:06.962Z",
+  "tasks": [
+    {
+      "id": "tk-cecd4f4c44ca",
+      "title": "Reconcile recovered acceptance matrices into live workflow state",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-07-31T22:22:46.289Z",
+      "completed_at": "2026-08-01T17:48:15.849Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Harden remediation fixed concurrent matrix-marker clearing race; 12 targeted tests and pnpm run check pass.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/acceptance-reconciliation.test.ts",
+        "plugin/src/tools/acceptance-reconciliation.ts"
+      ],
+      "checkpointSha": "5c065bfa91fc32bc275f1c71f7f9c142df84944d",
+      "completedAt": "2026-08-01T17:48:15.849Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/tools/acceptance-reconciliation.test.ts",
+        "plugin/src/tools/acceptance-reconciliation.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixAcceptanceMatrixRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery",
+          "task_id": "tk-cecd4f4c44ca",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cecd4f4c44ca"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/types/changes.ts",
+            "plugin/src/tools/_recovery-writers.ts",
+            "plugin/src/tools/_recovery-writers.test.ts",
+            "plugin/src/tools/change-mutation-coordinator.ts",
+            "plugin/src/tools/contract.ts",
+            "plugin/src/tools/contract.test.ts",
+            "plugin/src/tools/acceptance-reconciliation.ts",
+            "plugin/src/tools/acceptance-reconciliation.test.ts",
+            "plugin/src/tools/gate.acceptance-reconciliation.test.ts",
+            "plugin/src/types/recovery-audit-roundtrip.test.ts",
+            "plugin/schemas/change.schema.json",
+            "plugin/src/tools/worktree/index.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_ms9l3r5d_cac5ecd4",
+              "command": "cd plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts",
+              "exit_code": 0,
+              "summary": "6/6 test files pass, 97/97 tests pass"
+            },
+            {
+              "test_run_id": "tr_ms9k8xbl_9f778c48",
+              "command": "cd plugin && pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Generated JSON schemas are in sync"
+            },
+            {
+              "test_run_id": "tr_ms9l6161_ddf32d48",
+              "command": "cd plugin && pnpm run format:check",
+              "exit_code": 0,
+              "summary": "Prettier formatting is clean"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added optional recovery_audit to ContractReviewMatrixSchema",
+              "why": "Provides a disk-only typed marker so acceptance reconciliation can identify matrices that need re-delivery without leaking recovery metadata into workflow state"
+            },
+            {
+              "what": "Introduced saveRecoveredContractReviewMatrix recovery writer",
+              "why": "Follows the same pattern as disposition recovery writers; stamps recovery_audit on the disk projection while storing a clean (marker-free) signal payload for re-delivery"
+            },
+            {
+              "what": "Extended acceptance reconciliation to handle contract_review_matrix family",
+              "why": "Re-delivers recovered matrices via contractReviewMatrixSetSignal, strips recovery_audit from the payload, compares reviewedAt+rows only, and clears the marker after confirmation"
+            },
+            {
+              "what": "Added recoveryMutateLatestProjection to MutationIntent",
+              "why": "Allows the healthy Temporal signal path to write a clean matrix while the signal-error recovery path writes the matrix with a recovery_audit marker, using one coordinator call"
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Prettier also reformatted plugin/src/tools/worktree/index.ts (minor formatting only); no functional changes. Existing eslint warnings in plugin/src/utils/manifest-frontmatter.ts are pre-existing and untouched.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Acceptance matrix recovery parity implemented. Contract review matrices can now carry a recovery_audit marker, be re-delivered via contractReviewMatrixSetSignal with recovery_audit stripped, and have the marker cleared after confirmation. Schemas regenerated and targeted tests pass.",
+            "suggested_next_action": "Run bin/oc-test smoke/full from the worktree to confirm broader suite, then proceed to task checkpoint"
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-cecd4f4c44ca_attempt1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "engineer_report"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms9l3r5d_cac5ecd4"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms9k8xbl_9f778c48"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_ms9l6161_ddf32d48"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixAcceptanceMatrixRecovery",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery",
+          "task_id": "tk-cecd4f4c44ca",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cecd4f4c44ca"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/contract.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msak2l8d_eaa4aba1",
+              "command": "cd plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts",
+              "exit_code": 0,
+              "summary": "6/6 test files pass, 97/97 tests pass"
+            },
+            {
+              "test_run_id": "tr_msajy45e_f8b5558d",
+              "command": "cd plugin && pnpm run typecheck",
+              "exit_code": 0,
+              "summary": "tsc --noEmit passes"
+            },
+            {
+              "test_run_id": "tr_msajw2ny_d4d7904d",
+              "command": "cd plugin && pnpm run schemas:check",
+              "exit_code": 0,
+              "summary": "Generated JSON schemas are in sync"
+            },
+            {
+              "test_run_id": "tr_msak1ysr_7401db24",
+              "command": "cd plugin && ../bin/oc-test targeted -- src/tools/contract.test.ts",
+              "exit_code": 0,
+              "summary": "contract.test.ts 20/20 tests pass"
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced per-call dynamic import of tool-registry with a module-level dynamic import promise",
+              "why": "The per-call import inside buildWarrantLookup caused tool-registry to start loading inside the 5s Vitest test window for the first contract test; under load the first import exceeded 5s and produced timeouts (and downstream TDZ errors when the import promise was abandoned). Kicking off the promise at module load resolves the registry during test import (outside the per-test timeout) while preserving the dynamic-import cycle break with tool-registry.ts."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Regression in contract.test.ts was caused by the per-call dynamic import of tool-registry inside buildWarrantLookup; under Vitest the first import took >5s and timed out the first contract test, leaving later tests with TDZ symptoms. Changed to a module-level dynamic import promise in plugin/src/tools/contract.ts so the registry loads during module import, outside per-test timeouts, while keeping the dynamic-import break of the tool-registry/contract.ts cycle.",
+            "suggested_next_action": "Run bin/oc-test smoke/full from the worktree to confirm broader suite health, then proceed to task checkpoint."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-cecd4f4c44ca_attempt2",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "engineer_report"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msak2l8d_eaa4aba1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msajy45e_f8b5558d"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msajw2ny_d4d7904d"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msak1ysr_7401db24"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-aeba2288a5cd",
+      "title": "Verify acceptance matrix recovery end-to-end",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cecd4f4c44ca"
+        }
+      ],
+      "created_at": "2026-07-31T22:23:09.821Z",
+      "completed_at": "2026-08-01T16:01:09.221Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Durable test evidence tr_msak5ugw_61e53e84: 5 focused files, 79 tests passed after contract module-initialization remediation.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [],
+      "checkpointSha": "a7f8b636f683192c797965662929222a76aad4f6",
+      "completedAt": "2026-08-01T16:01:09.221Z",
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": []
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAcceptanceMatrixRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate recovered review-matrix reconciliation design against agreement, specs, and local source",
+      "sources": [
+        {
+          "label": "gate.ts acceptance reconciliation path",
+          "locator": "plugin/src/tools/gate.ts:1918-1960",
+          "summary": "For gateId==='acceptance', reconcileRecoveredAcceptanceRemediation runs BEFORE gateCompletedSignal (1948); a blocked reconciliation returns the error WITHOUT firing gateCompletedSignal (fail-closed, 1929-1939). Confirms design ordering."
+        },
+        {
+          "label": "acceptance-reconciliation.ts core seam",
+          "locator": "plugin/src/tools/acceptance-reconciliation.ts:275-356",
+          "summary": "reconcileRecoveredAcceptanceRemediation collects recovery_audit-marked dispositions, re-delivers each via its family signal through coordinateChangeMutation, verifies postcondition, then clears markers via commitChangeProjection with exact-match protection (109-136). Design extends this same seam to the matrix family."
+        },
+        {
+          "label": "coordinator recovered_verified semantics",
+          "locator": "plugin/src/tools/change-mutation-coordinator.ts:88-93,525-593",
+          "summary": "recovered_verified = disk projection committed + disk-readback verified while workflow was completed/missing/poisoned (did NOT receive the signal). Payload is stashed in commit audit 'so the mutation can be re-delivered to a reachable workflow' (90-93). This is the real gap: a later reachable workflow lacks the recovered matrix."
+        },
+        {
+          "label": "projection transaction audit/payload stash (no auto content stamp)",
+          "locator": "plugin/src/storage/change-projection-transaction.ts:336-352",
+          "summary": "commitChangeProjection records a projection_commits audit entry + stashes payload for re-delivery, but does NOT auto-stamp recovery_audit onto projection CONTENT. Per-object recovery_audit is family-specific (stamped in mutateLatestProjection)."
+        },
+        {
+          "label": "ContractReviewMatrixSchema has NO recovery_audit",
+          "locator": "plugin/src/types/changes.ts:1019-1023",
+          "summary": "Schema is {reviewedAt, rows} only. Design 'stamp recovered matrix' requires ADDING an optional recovery_audit field here (schema regenerate required)."
+        },
+        {
+          "label": "review-matrix signal payload reuses matrix schema",
+          "locator": "plugin/src/types/signals.ts:160-167",
+          "summary": "ContractReviewMatrixSetSignalPayloadSchema.reviewMatrix = ContractReviewMatrixSchema (shared, not flat). Contrast dispositions: redelivery signal is flat and EXCLUDES recovery_audit (acceptance-reconciliation.ts:147-162). Adding recovery_audit to the shared schema would leak the disk-only marker into the signal -> workflow state."
+        },
+        {
+          "label": "idempotent review-matrix reducer",
+          "locator": "plugin/src/temporal/change-state.ts:1291-1311",
+          "summary": "applyContractReviewMatrixSetToState sets state.contract.reviewMatrix (last-write-wins), advances acceptance-readiness revision, records mutation receipt. Idempotent re-delivery is safe."
+        },
+        {
+          "label": "contract.ts matrix recovery writer",
+          "locator": "plugin/src/tools/contract.ts:568-635",
+          "summary": "adv_contract_review_matrix_set uses coordinateChangeMutation with mutateLatestProjection (589-594, sets matrix w/o marker) and reviewMatrixPostcondition verifyTemporal; recovered_verified branch (610-627) stamps the OUTPUT (_recoveryMutation/recovered) but not a persisted recovery_audit marker."
+        },
+        {
+          "label": "spec: readiness writes confirm workflow application",
+          "locator": ".adv/specs/advance-workflow/spec.json:6429 (rq-readinessMutationReceipt01)",
+          "summary": "Readiness-affecting write must confirm the exact workflow mutation receipt before success; unconfirmed returns typed non-success. The recovered matrix is unconfirmed in the workflow, so acceptance readiness re-delivery + receipt confirmation directly serves this must-law."
+        },
+        {
+          "label": "spec: acceptance reviewMatrix no-late-homework + recovery sanction",
+          "locator": ".adv/specs/advance-workflow/spec.json:4425,4466",
+          "summary": "contract.reviewMatrix is required proof before acceptance sign-off (no-late-homework); disk recovery MAY repair contract.reviewMatrix under structured completed/poisoned evidence. Re-delivery reconciliation is the sanctioned bridge from disk recovery to a reachable workflow."
+        }
+      ],
+      "architecture_assessment": "The design extends the already-proven, source-resident acceptance-reconciliation seam (reconcileRecoveredAcceptanceRemediation) to a third family (contract review matrix), reusing coordinateChangeMutation + commitChangeProjection + exact-match marker clearing. Ordering (reconcile before gateCompletedSignal) and fail-closed behavior are already structurally wired in gate.ts:1923-1960, so no new control-flow is introduced. The reducer (applyContractReviewMatrixSetToState) is idempotent (last-write-wins + receipt), so re-delivering a recovered matrix to a reachable workflow is safe and replay-tolerant. recovered_verified is correctly understood as disk-confirmed/workflow-unconfirmed (coordinator:525-593), so the gap the design closes is real: a reachable workflow that lacks the recovered matrix would otherwise block acceptance readiness per rq-readinessMutationReceipt01. Deviation from reference pattern: MINOR and confined to (1) adding the optional recovery_audit field to ContractReviewMatrixSchema (currently absent) and stamping it family-specifically in the recovery writer, and (2) one signal-payload cleanliness concern (below).",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Design is correct, simple, and spec-compliant. It reuses established infrastructure rather than inventing a new path. One implementation-level caution (not a blocker): ContractReviewMatrixSetSignalPayloadSchema.reviewMatrix REUSES ContractReviewMatrixSchema (signals.ts:161), unlike dispositions whose redelivery signal is flat and excludes recovery_audit (acceptance-reconciliation.ts:147-162). If recovery_audit is added to the shared matrix schema, the marker would leak into the signal payload and thus workflow state, and reviewMatrixPostcondition would become circular. Resolution: strip recovery_audit before signaling (construct a clean matrix payload in the redelivery sendSignal, mirroring disposition redelivery), and have reviewMatrixPostcondition compare substantive fields (reviewedAt + rows) only. Also ensure the marker clear uses exact-match semantics (recovery_audit reason/evidence/recovered_at) to avoid erasing a newer recovered matrix committed mid-reconciliation, matching matchesPendingRecoveredDisposition."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Per-matrix recovery_audit marker (+schema regenerate) vs reusing the already-stashed projection_commits payload: chose marker for consistency with the disposition contract and precise clear semantics, at the cost of one schema field and a roundtrip test (recovery-audit-roundtrip.test.ts).",
+          "Re-delivery deferred to acceptance rather than at recovery time: necessary because at recovery time the workflow is completed/missing (unreachable); cost is that the recovered matrix is invisible to the workflow until acceptance reconciliation runs.",
+          "Signal payload shares the matrix schema, so marker leakage into workflow state is a real risk that must be handled by stripping recovery_audit at signal construction."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Re-deliver from the stashed projection_commits payload instead of a per-object recovery_audit marker",
+            "disposition": "rejected",
+            "rationale": "The transaction already records the full signal payload for recovery commits (coordinator:90-93, projection-transaction:351). However, the established reconciliation keys on per-object recovery_audit markers (collectPendingReconciliationItems) for precise, newer-marker-safe clearing (acceptance-reconciliation.ts:109-136). A separate audit-payload path would split the reconciliation contract by family and break locality (P04). The marker approach is preferred for consistency."
+          },
+          {
+            "option": "Re-deliver the matrix immediately at adv_contract_review_matrix_set recovery time",
+            "disposition": "rejected",
+            "rationale": "At recovery time the workflow is completed/missing/poisoned (unreachable) — there is no live workflow to signal. Deferring to acceptance, when a reachable workflow may exist and resolveChangeAuthority returns temporal_live, is the only correct time. gate.ts already wires reconciliation before gateCompletedSignal."
+          },
+          {
+            "option": "Stamp recovery_audit on ContractReviewMatrixSchema and let the signal carry it",
+            "disposition": "rejected",
+            "rationale": "Leaks a disk-projection-only concept into workflow state and makes reviewMatrixPostcondition circular. Dispositions avoid this with a flat, marker-excluding signal payload. The matrix must do the same (strip at signal construction)."
+          }
+        ],
+        "recommendation": "Proceed to apply. Concrete guidance for the engineer: (1) add optional recovery_audit (GateRecoveryAuditSchema) to ContractReviewMatrixSchema and run pnpm run schemas:generate; (2) stamp it in the matrix recovery writer's mutateLatestProjection on recovery commits and surface it so collectPendingReconciliationItems picks up a 'contract_review_matrix' family; (3) in the matrix redelivery sendSignal, build a clean payload (matrix without recovery_audit) mirroring disposition redelivery, and make reviewMatrixPostcondition compare reviewedAt+rows only; (4) extend clearRecoveryAuditMarkers/exact-match to the matrix; (5) add focused tests (re-deliver+clear, blocked-no-gateCompleted, newer-marker-retained, idempotent re-run) alongside gate.acceptance-reconciliation.test.ts and acceptance-reconciliation.test.ts."
+      },
+      "recommendation": "Proceed. The design is sound and boring-by-design: it extends the proven reconcileRecoveredAcceptanceRemediation seam to the review-matrix family with no new control-flow (gate.ts already reconciles before gateCompletedSignal and fails closed). The only mandatory refinement is keeping recovery_audit out of the signal payload (strip at sendSignal, compare substantive fields in the postcondition) and using exact-match marker clearing. Spec compliance confirmed: re-delivery+receipt confirmation serves rq-readinessMutationReceipt01; the no-late-homework rule (reviewMatrix required before acceptance) makes re-delivery necessary, not optional.",
+      "follow_ups": [
+        "adv_change_show timed out repeatedly on artifact includes (adv_doctor reports worker/server healthy) — agreement/design/problemStatement artifacts could not be read this attempt; validate the written design.md/agreement.md ACs against these source findings once the read path recovers.",
+        "Confirm how the disposition recovery_audit marker is stamped during the ORIGINAL disposition recovery write (the mechanism the matrix writer must mirror) — likely in the disposition tool's mutateLatestProjection or a recovery-aware projection wrapper; trace it to copy the exact stamp contract.",
+        "Verify reviewMatrixPostcondition (contract.ts:259) currently compares full-matrix equality; ensure it is adjusted to exclude recovery_audit when that field is added."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAcceptanceMatrixRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery",
+      "task_id": "tk-cecd4f4c44ca",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cecd4f4c44ca"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/tools/_recovery-writers.ts",
+        "plugin/src/tools/_recovery-writers.test.ts",
+        "plugin/src/tools/change-mutation-coordinator.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/contract.test.ts",
+        "plugin/src/tools/acceptance-reconciliation.ts",
+        "plugin/src/tools/acceptance-reconciliation.test.ts",
+        "plugin/src/tools/gate.acceptance-reconciliation.test.ts",
+        "plugin/src/types/recovery-audit-roundtrip.test.ts",
+        "plugin/schemas/change.schema.json",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_ms9l3r5d_cac5ecd4",
+          "command": "cd plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts",
+          "exit_code": 0,
+          "summary": "6/6 test files pass, 97/97 tests pass"
+        },
+        {
+          "test_run_id": "tr_ms9k8xbl_9f778c48",
+          "command": "cd plugin && pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Generated JSON schemas are in sync"
+        },
+        {
+          "test_run_id": "tr_ms9l6161_ddf32d48",
+          "command": "cd plugin && pnpm run format:check",
+          "exit_code": 0,
+          "summary": "Prettier formatting is clean"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added optional recovery_audit to ContractReviewMatrixSchema",
+          "why": "Provides a disk-only typed marker so acceptance reconciliation can identify matrices that need re-delivery without leaking recovery metadata into workflow state"
+        },
+        {
+          "what": "Introduced saveRecoveredContractReviewMatrix recovery writer",
+          "why": "Follows the same pattern as disposition recovery writers; stamps recovery_audit on the disk projection while storing a clean (marker-free) signal payload for re-delivery"
+        },
+        {
+          "what": "Extended acceptance reconciliation to handle contract_review_matrix family",
+          "why": "Re-delivers recovered matrices via contractReviewMatrixSetSignal, strips recovery_audit from the payload, compares reviewedAt+rows only, and clears the marker after confirmation"
+        },
+        {
+          "what": "Added recoveryMutateLatestProjection to MutationIntent",
+          "why": "Allows the healthy Temporal signal path to write a clean matrix while the signal-error recovery path writes the matrix with a recovery_audit marker, using one coordinator call"
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Prettier also reformatted plugin/src/tools/worktree/index.ts (minor formatting only); no functional changes. Existing eslint warnings in plugin/src/utils/manifest-frontmatter.ts are pre-existing and untouched.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Acceptance matrix recovery parity implemented. Contract review matrices can now carry a recovery_audit marker, be re-delivered via contractReviewMatrixSetSignal with recovery_audit stripped, and have the marker cleared after confirmation. Schemas regenerated and targeted tests pass.",
+        "suggested_next_action": "Run bin/oc-test smoke/full from the worktree to confirm broader suite, then proceed to task checkpoint"
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-cecd4f4c44ca_attempt1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer_report"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms9l3r5d_cac5ecd4"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms9k8xbl_9f778c48"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_ms9l6161_ddf32d48"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAcceptanceMatrixRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery",
+      "task_id": "tk-cecd4f4c44ca",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cecd4f4c44ca"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/contract.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msak2l8d_eaa4aba1",
+          "command": "cd plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts",
+          "exit_code": 0,
+          "summary": "6/6 test files pass, 97/97 tests pass"
+        },
+        {
+          "test_run_id": "tr_msajy45e_f8b5558d",
+          "command": "cd plugin && pnpm run typecheck",
+          "exit_code": 0,
+          "summary": "tsc --noEmit passes"
+        },
+        {
+          "test_run_id": "tr_msajw2ny_d4d7904d",
+          "command": "cd plugin && pnpm run schemas:check",
+          "exit_code": 0,
+          "summary": "Generated JSON schemas are in sync"
+        },
+        {
+          "test_run_id": "tr_msak1ysr_7401db24",
+          "command": "cd plugin && ../bin/oc-test targeted -- src/tools/contract.test.ts",
+          "exit_code": 0,
+          "summary": "contract.test.ts 20/20 tests pass"
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced per-call dynamic import of tool-registry with a module-level dynamic import promise",
+          "why": "The per-call import inside buildWarrantLookup caused tool-registry to start loading inside the 5s Vitest test window for the first contract test; under load the first import exceeded 5s and produced timeouts (and downstream TDZ errors when the import promise was abandoned). Kicking off the promise at module load resolves the registry during test import (outside the per-test timeout) while preserving the dynamic-import cycle break with tool-registry.ts."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Regression in contract.test.ts was caused by the per-call dynamic import of tool-registry inside buildWarrantLookup; under Vitest the first import took >5s and timed out the first contract test, leaving later tests with TDZ symptoms. Changed to a module-level dynamic import promise in plugin/src/tools/contract.ts so the registry loads during module import, outside per-test timeouts, while keeping the dynamic-import break of the tool-registry/contract.ts cycle.",
+        "suggested_next_action": "Run bin/oc-test smoke/full from the worktree to confirm broader suite health, then proceed to task checkpoint."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-cecd4f4c44ca_attempt2",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "engineer_report"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msak2l8d_eaa4aba1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msajy45e_f8b5558d"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msajw2ny_d4d7904d"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msak1ysr_7401db24"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAcceptanceMatrixRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/contract.ts",
+          "summary": "Removed eager module-level tool-registry import. Contract mint now builds live warrant lookup only when agreement declares a warrant, eliminating healthy and dry-run mint timeouts while retaining structural validation for declared warrants.",
+          "verification": "src/tools/contract.test.ts: 20/20 pass; focused recovery suite: 97/97 pass; warrant suite: 59/59 pass."
+        },
+        {
+          "file": "plugin/src/validator/contract-mint.ts",
+          "summary": "Updated warrant-lookup contract documentation to describe conditional production injection for declared warrant tags.",
+          "verification": "pnpm --dir plugin run typecheck, format:check, and schemas:check pass."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Do not eagerly start the cycle-breaking tool-registry dynamic import in contract.ts: behavioral-only and dry-run contract minting need no warrant lookup, and concurrent focused suites can exceed Vitest's 5s test timeout. Build it only when an agreement contains a declared [warrant: ...] tag."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/contract.test.ts",
+          "bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts",
+          "bin/oc-test targeted -- src/tool-registry.surface.test.ts src/validator/contract-mint.test.ts src/validator/warrant.test.ts src/ac-warrant-guard-assets.test.ts",
+          "pnpm --dir plugin run typecheck",
+          "pnpm --dir plugin run format:check",
+          "pnpm --dir plugin run schemas:check"
+        ],
+        "results": "pass",
+        "evidence": "Contract test 20/20; recovery-focused suite 6 files, 97/97; warrant-focused suite 4 files, 59/59. Typecheck, Prettier, and schema synchronization pass. Inspected checkpoint a7f8b636 and durable verification tr_msak5ugw_61e53e84 (5 focused files, 79 passed). Earlier combined recovery test exposed 3 contract-mint timeouts; scoped remediation was applied and all reruns passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is five commits behind origin/trunk per oc-fresh status; no rebase performed because reviewer role may not mutate ADV worktrees.",
+        "Two reviewed fixes remain uncommitted pending main-agent checkpoint."
+      ],
+      "required_main_agent_actions": [
+        "Review and checkpoint the two in-scope remediation files before acceptance proceeds.",
+        "Do not revisit broader workflow redesign or unrelated acceptance behavior."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/contract.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tool-registry.surface.test.ts src/validator/contract-mint.test.ts src/validator/warrant.test.ts src/ac-warrant-guard-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run format:check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run schemas:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixAcceptanceMatrixRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "harden-slop-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/acceptance-reconciliation.ts",
+          "line": 172,
+          "what": "AST slop scan reports complexity 13, one above the configured threshold, in the recovered-disposition matcher.",
+          "why": "The function is within the acceptance-recovery boundary; extracting the identity/audit comparisons would reduce future review risk without changing behavior."
+        },
+        {
+          "id": "harden-slop-2",
+          "label": "suggestion",
+          "file": "plugin/src/tools/acceptance-reconciliation.ts",
+          "line": 368,
+          "what": "AST slop scan reports complexity 13, one above the configured threshold, in the recovery-marker clear verification callback.",
+          "why": "Splitting per-family verification would make the concurrency guard easier to audit."
+        }
+      ],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/acceptance-reconciliation.ts",
+          "summary": "Prevented reconciliation from removing a newer contract-review-matrix recovery marker: clear only the exact matrix that was successfully re-delivered.",
+          "verification": "Added a race regression test; targeted suite passed (12 tests)."
+        },
+        {
+          "file": "plugin/src/tools/acceptance-reconciliation.test.ts",
+          "summary": "Added coverage for a newer recovered matrix arriving during an older marker-clear attempt; it must remain marked and block acceptance.",
+          "verification": "bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts passed."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Recovery-marker clearing must compare the full recovered contract review matrix, including its audit identity, before stripping metadata. Clearing any current matrix can erase a newer disk-only recovery that has not been re-delivered to Temporal."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts",
+          "pnpm run check",
+          "bin/adv slop-scan plugin/src/tools/acceptance-reconciliation.ts --json"
+        ],
+        "results": "pass",
+        "evidence": "Targeted reconciliation suite: 1 file, 12 tests passed. pnpm run check passed schemas, TypeScript, generated manifests, frontmatter, test-isolation, lockfile policy, lint (3 pre-existing warnings only), and Prettier. Slop scan found no CRITICAL/HIGH findings; two MEDIUM complexity suggestions in the touched reconciliation module and unrelated low-confidence repo-wide Knip candidates."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Branch is five commits behind origin/trunk according to oc-fresh; archive/release finalization must perform its normal freshness and reachability checks.",
+        "Two medium-complexity scanner findings remain as nonblocking maintainability follow-ups."
+      ],
+      "required_main_agent_actions": [
+        "Checkpoint the scoped reviewer remediation before final release/archive processing.",
+        "Run normal archive/release freshness, reachability, and merge evidence checks; this review does not replace Phase 9 proof.",
+        "Optionally schedule the two complexity reductions as a focused maintenance follow-up; they are not release blockers."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/adv slop-scan plugin/src/tools/acceptance-reconciliation.ts --json"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-cecd4f4c44ca": [
+      {
+        "runId": "tr_ms9j5xhg_1b4ef61b",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "grep -n \"function coordinateChangeMutation\" /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin/src/tools/change-mutation-coordinator.ts",
+        "durationMs": 7.382252998650074,
+        "recordedAt": "2026-07-31T22:45:04.517Z"
+      },
+      {
+        "runId": "tr_ms9jl676_31ba3cf1",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts",
+        "durationMs": 8.494130000472069,
+        "recordedAt": "2026-07-31T22:56:55.315Z"
+      },
+      {
+        "runId": "tr_ms9jrn33_2184d460",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && ../bin/oc-test targeted -- src/tools/contract.test.ts 2>&1 | tail -80",
+        "durationMs": 14723.340052001178,
+        "recordedAt": "2026-07-31T23:01:57.006Z"
+      },
+      {
+        "runId": "tr_ms9k0pih_909a73f1",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && pnpm run typecheck 2>&1 | tail -80",
+        "durationMs": 23333.996870998293,
+        "recordedAt": "2026-07-31T23:09:00.550Z"
+      },
+      {
+        "runId": "tr_ms9k27tl_3e99826a",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && pnpm run typecheck 2>&1 | tail -40",
+        "durationMs": 21128.2509310022,
+        "recordedAt": "2026-07-31T23:10:10.814Z"
+      },
+      {
+        "runId": "tr_ms9k3w89_4821f442",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && pnpm run typecheck 2>&1 | tail -40",
+        "durationMs": 23886.450029999018,
+        "recordedAt": "2026-07-31T23:11:28.325Z"
+      },
+      {
+        "runId": "tr_ms9k4mgu_7bab9b8c",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts 2>&1 | tail -60",
+        "durationMs": 13520.558514997363,
+        "recordedAt": "2026-07-31T23:12:04.175Z"
+      },
+      {
+        "runId": "tr_ms9k8xbl_9f778c48",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && pnpm run schemas:check 2>&1 | tail -20",
+        "durationMs": 2772.5296129994094,
+        "recordedAt": "2026-07-31T23:15:25.340Z"
+      },
+      {
+        "runId": "tr_ms9krznn_d8354c81",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts 2>&1 | tail -40",
+        "durationMs": 14259.167286999524,
+        "recordedAt": "2026-07-31T23:30:12.492Z"
+      },
+      {
+        "runId": "tr_ms9kss55_e5c00dd8",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && ../bin/oc-test targeted -- src/tools/contract.test.ts 2>&1 | tail -40",
+        "durationMs": 13395.948731999844,
+        "recordedAt": "2026-07-31T23:30:50.971Z"
+      },
+      {
+        "runId": "tr_ms9kwcx0_90d09af5",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && ../bin/oc-test smoke 2>&1 | tail -60",
+        "durationMs": 30007.635921001434,
+        "recordedAt": "2026-07-31T23:33:35.563Z"
+      },
+      {
+        "runId": "tr_ms9l26dk_28828b59",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && pnpm run format:check 2>&1 | tail -20",
+        "durationMs": 30006.435233999044,
+        "recordedAt": "2026-07-31T23:38:06.970Z"
+      },
+      {
+        "runId": "tr_ms9l3r5d_cac5ecd4",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts",
+        "durationMs": 8253.650623001158,
+        "recordedAt": "2026-07-31T23:39:20.436Z"
+      },
+      {
+        "runId": "tr_ms9l6161_ddf32d48",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixAcceptanceMatrixRecovery/plugin && pnpm run format:check",
+        "durationMs": 28922.245908997953,
+        "recordedAt": "2026-07-31T23:41:06.870Z"
+      },
+      {
+        "runId": "tr_msajw2ny_d4d7904d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run schemas:check",
+        "durationMs": 1915.3610340058804,
+        "recordedAt": "2026-08-01T15:53:09.505Z"
+      },
+      {
+        "runId": "tr_msajwpnd_542d38df",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm run format:check",
+        "durationMs": 30134.02032199502,
+        "recordedAt": "2026-08-01T15:53:39.211Z"
+      },
+      {
+        "runId": "tr_msajy45e_f8b5558d",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run typecheck",
+        "durationMs": 16234.608061000705,
+        "recordedAt": "2026-08-01T15:54:44.040Z"
+      },
+      {
+        "runId": "tr_msak0xiw_b1fca1cd",
+        "exitCode": 1,
+        "classification": "timed_out",
+        "command": "cd plugin && pnpm run lint",
+        "durationMs": 30343.66201199591,
+        "recordedAt": "2026-08-01T15:56:56.077Z"
+      },
+      {
+        "runId": "tr_msak1ysr_7401db24",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/tools/contract.test.ts",
+        "durationMs": 12449.45636999607,
+        "recordedAt": "2026-08-01T15:57:44.648Z"
+      },
+      {
+        "runId": "tr_msak2l8d_eaa4aba1",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && ../bin/oc-test targeted -- src/tools/acceptance-reconciliation.test.ts src/tools/_recovery-writers.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/contract.test.ts src/types/recovery-audit-roundtrip.test.ts",
+        "durationMs": 11586.485484987497,
+        "recordedAt": "2026-08-01T15:58:13.574Z"
+      }
+    ],
+    "tk-aeba2288a5cd": [
+      {
+        "runId": "tr_msaisprl_6e54d3ed",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/_recovery-writers.test.ts src/tools/acceptance-reconciliation.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/recovery-audit-roundtrip.test.ts",
+        "durationMs": 16956.523729994893,
+        "recordedAt": "2026-08-01T15:22:34.912Z"
+      },
+      {
+        "runId": "tr_msak5ugw_61e53e84",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/_recovery-writers.test.ts src/tools/acceptance-reconciliation.test.ts src/tools/contract.test.ts src/tools/gate.acceptance-reconciliation.test.ts src/types/recovery-audit-roundtrip.test.ts",
+        "durationMs": 12798.807669997215,
+        "recordedAt": "2026-08-01T16:00:45.497Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-07-31T21:59:20.315Z",
+      "completed_by": "adv-proposal",
+      "approval_evidence": "User confirmed the acceptance-matrix recovery defect and its RCA.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "c47534972e706b7006778ee69d22d07e3cdae4c6aeec762ec41eb2f5ce73b076",
+        "non_whitespace_chars": 246,
+        "checked_at": "2026-07-31T21:57:07.211Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-07-31T22:08:44.491Z",
+      "completed_by": "adv-discover",
+      "approval_evidence": "User approved agreement; contract minted from source-traced recovery reconciliation RCA.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "non_whitespace_chars": 1000,
+        "checked_at": "2026-07-31T21:57:07.212Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-07-31T22:17:35.974Z",
+      "completed_by": "adv-design",
+      "approval_evidence": "Independent validator PASS; adopted signal-boundary refinement so disk-only recovery audit never enters workflow state.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "04e80210b2fc251b39f33a1ab876e402c6717e63602f8aed4425e3ed3034f7f8",
+        "non_whitespace_chars": 2115,
+        "checked_at": "2026-07-31T21:57:07.213Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-07-31T22:34:05.508Z",
+      "completed_by": "adv-prep",
+      "approval_evidence": "User approved two-task recovery reconciliation graph. Strict validation was degraded only by Temporal input-load time budget; contract coverage is complete."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-01T16:01:20.432Z",
+      "completed_by": "adv-apply",
+      "approval_evidence": "Both tasks checkpointed. Durable verification tr_msak5ugw_61e53e84 passed 79 focused tests after remediation; engineer also passed 97 in-scope tests, typecheck, schema, lint and formatting."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-01T17:36:45.915Z",
+      "completed_by": "adv-review",
+      "approval_evidence": "User accepted approved reviewed delivery. Contract matrix has 11 passing/respected rows; executive summary and release notes are persisted.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "2bc95696ecab30a81c2b921680f9151012bbf61f6979526c0c96ffdcec9c0c83",
+        "non_whitespace_chars": 1293,
+        "checked_at": "2026-07-31T21:57:07.214Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+      "approvedAt": "2026-07-31T22:08:32.876Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A recovered matrix no longer wedges acceptance when the workflow becomes reachable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Missing/failing matrices still block acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "**AC1:** Recovery matrix writes carry a typed recovery marker.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "**AC2:** Acceptance reconciliation re-delivers marked matrices through `contractReviewMatrixSetSignal` before gate completion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "**AC3:** Confirmed re-delivery clears the marker; retry is a no-op.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "**AC4:** End-to-end test proves recovered matrix plus reachable workflow completes acceptance.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "**AC5:** Matrix row validation and disk recovery behavior remain unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Workflow event history remains the readiness authority.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Do not seed/mutate live workflow state outside signals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not bypass acceptance from disk-only proof.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not weaken missing/failing matrix blockers.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-01T17:35:15.488Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Recovery and reconciliation suites pass; reviewer READY."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Negative missing/failing matrix behavior remains covered."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Recovery audit marker tests pass."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Pre-gate clean signal re-delivery tests pass."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Idempotent exact-match clear tests pass."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "End-to-end recovery acceptance tests pass."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Matrix validation and disk recovery regression tests pass."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Workflow signal/reducer remains readiness authority."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No direct workflow seeding added."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No disk-only acceptance bypass."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Missing/failing matrix blockers preserved."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "**AC1:** Recovery matrix writes carry a typed recovery marker.",
+    "**AC2:** Acceptance reconciliation re-delivers marked matrices through `contractReviewMatrixSetSignal` before gate completion.",
+    "**AC3:** Confirmed re-delivery clears the marker; retry is a no-op.",
+    "**AC4:** End-to-end test proves recovered matrix plus reachable workflow completes acceptance.",
+    "**AC5:** Matrix row validation and disk recovery behavior remain unchanged."
+  ],
+  "documents": {
+    "proposal": "# Fix acceptance matrix recovery\n\nRepair the workflow/disk projection divergence so a successfully persisted complete contract review matrix is visible to acceptance readiness, including after recovery re-entry. Preserve the requirement that missing or failing rows block acceptance.\n",
+    "problemStatement": "# Problem Statement\n\nAcceptance cannot complete after a contract review matrix is successfully persisted and read back. Gate readiness still reports `ACCEPTANCE_REVIEW_MATRIX_MISSING` or omits a present row after acceptance recovery/re-entry.\n\n## Root Cause Analysis\n\n- Reproduction: `adv_contract_review_matrix_set` returned success with 15 rows, including C3; `adv_change_show` read the same persisted matrix from disk.\n- Failure: `adv_gate_complete acceptance` still reported the matrix missing from workflow readiness.\n- Evidence: the matrix writer lives in `plugin/src/tools/contract.ts` and signals `contractReviewMatrixSetSignal`; acceptance recovery has distinct matrix guards in `plugin/src/tools/gate.ts` around lines 565-576.\n- Hypothesis to validate in discovery: recovery readiness reads an unrefreshed workflow-side projection or drops the matrix during recovery signal handling, while the writer's disk readback succeeds.\n- Boundary: do not bypass acceptance or rely on disk-only proof when workflow state is authoritative.\n",
+    "agreement": "# Agreement\n\n## Objectives\n- Re-deliver a recovered contract review matrix into a reachable workflow before acceptance readiness.\n- Preserve fail-closed behavior for missing or failing matrix rows.\n- Make reconciliation idempotent and remove recovery audit only after confirmed workflow readback.\n\n## Success Criteria\n- A recovered matrix no longer wedges acceptance when the workflow becomes reachable.\n- Missing/failing matrices still block acceptance.\n\n## Acceptance Criteria\n- **AC1:** Recovery matrix writes carry a typed recovery marker.\n- **AC2:** Acceptance reconciliation re-delivers marked matrices through `contractReviewMatrixSetSignal` before gate completion.\n- **AC3:** Confirmed re-delivery clears the marker; retry is a no-op.\n- **AC4:** End-to-end test proves recovered matrix plus reachable workflow completes acceptance.\n- **AC5:** Matrix row validation and disk recovery behavior remain unchanged.\n\n## Constraints\n- Workflow event history remains the readiness authority.\n- Do not seed/mutate live workflow state outside signals.\n\n## Avoidances\n- Do not bypass acceptance from disk-only proof.\n- Do not weaken missing/failing matrix blockers.\n",
+    "design": "# Design\n\n## Architecture Overview\n\nRecovered review matrices are disk-confirmed but workflow-unconfirmed. They use the established acceptance remediation flow: disk recovery writes a typed marker; reconciliation re-delivers a clean matrix signal to a reachable workflow before acceptance; exact workflow postcondition then clears the marker.\n\n## Key Decisions\n\n- Extend existing marker/reconciliation pattern; workflow readiness remains authoritative.\n- Add optional disk-only `recovery_audit` to matrix schema, regenerate public schema, and strip it before `contractReviewMatrixSetSignal`.\n- Compare only `reviewedAt` and `rows` for workflow postcondition; exact-match clear prevents deleting a newer marker.\n\n## Implementation Strategy\n\n1. Stamp recovery marker when matrix mutation uses recovery path.\n2. Collect/re-deliver marked matrix in acceptance reconciliation before `gateCompletedSignal`.\n3. Strip marker from signal payload; confirm substantive matrix equality before clear.\n4. Test recovery, re-delivery, idempotency, newer-marker retention, and end-to-end acceptance.\n\n## Lever Citations\n\n- Recovery write: `contract.ts` recovery `mutateLatestProjection`.\n- Pre-gate reconciliation: `gate.ts` acceptance path before `gateCompletedSignal`.\n- Re-delivery/clear: `acceptance-reconciliation.ts` marker collection and postcondition path.\n- Workflow reducer: `change-state.ts` contract matrix signal reducer.\n\n## LBP Analysis\n\nParity with existing recovered acceptance artifacts avoids disk-authoritative readiness and replay-unsafe reseeding.\n\n## Affected Components\n\n`contract.ts`, `changes.ts`, `signals.ts`, `acceptance-reconciliation.ts`, `gate.ts`, reconciliation and Temporal tests, generated schema.\n\n## Design-Derived Criteria\n\n- Marker never enters workflow signal payload/state.\n- Reconciliation sends at most once per marker and clears only after exact substantive confirmation.\n- Signal/postcondition failure retains marker and blocks acceptance.\n\n## Risks / Mitigations\n\nShared matrix schema could leak recovery metadata into workflow state; strip audit data before signaling and test the boundary.\n\n## Design Leverage Scout\nScout: inconclusive — packet retrieval failed; existing reconciliation abstraction is directly reusable.\n\n## Validator\nValidator: clean pass. Required refinement adopted: keep disk-only audit metadata out of workflow signal payload; compare substantive matrix fields only.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nRecovered contract review matrices now reach live workflow readiness before acceptance, so valid recovery no longer wedges the change.\n\n## Why It Matters\n\nAcceptance remains fail-closed while allowing legitimate recovered evidence to be re-proven through the normal workflow signal path.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Disk-only recovery audit markers for contract review matrices.\n2. Pre-acceptance clean signal re-delivery with substantive postcondition and idempotent marker clearing.\n3. Contract-tool initialization hardening to prevent mint-time test timeout regressions.\n\n## What Was Verified\n\n- Tests: durable 79-test focused suite passed; reviewer also passed 97 recovery and 59 warrant tests.\n- Preview URL: not_applicable — workflow/backend-only change; no visual surface.\n- Contract matrix: 11 required rows passed/respected.\n\n## Remaining Concerns\n\nNone.\n\n## Supporting Evidence\n\nTasks `tk-cecd4f4c44ca`, `tk-aeba2288a5cd`; durable run `tr_msak5ugw_61e53e84`; reviewer READY report.\n\n## Consequence Context\n\n- delivered value: pass — recovered acceptance evidence reaches live readiness.\n- enabling-only/follow-up dependency: n/a — self-contained repair.\n- ops readiness: pending — harden owns release readiness.\n- migration/data impact: n/a — no data migration.\n- frontend/preview impact: n/a — no visual surface.\n- collision/release risk: low — reviewer READY.\n- open follow-ups: n/a — none recorded.\n- next action: user acceptance proceeds to harden.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-01T17:35:15.488Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A recovered matrix no longer wedges acceptance when the workflow becomes reachable. | pass | Recovery and reconciliation suites pass; reviewer READY. |\n| SC2 | success_criterion | Missing/failing matrices still block acceptance. | pass | Negative missing/failing matrix behavior remains covered. |\n| AC1 | acceptance_criterion | **AC1:** Recovery matrix writes carry a typed recovery marker. | pass | Recovery audit marker tests pass. |\n| AC2 | acceptance_criterion | **AC2:** Acceptance reconciliation re-delivers marked matrices through `contractReviewMatrixSetSignal` before gate completion. | pass | Pre-gate clean signal re-delivery tests pass. |\n| AC3 | acceptance_criterion | **AC3:** Confirmed re-delivery clears the marker; retry is a no-op. | pass | Idempotent exact-match clear tests pass. |\n| AC4 | acceptance_criterion | **AC4:** End-to-end test proves recovered matrix plus reachable workflow completes acceptance. | pass | End-to-end recovery acceptance tests pass. |\n| AC5 | acceptance_criterion | **AC5:** Matrix row validation and disk recovery behavior remain unchanged. | pass | Matrix validation and disk recovery regression tests pass. |\n| C1 | constraint | Workflow event history remains the readiness authority. | respected | Workflow signal/reducer remains readiness authority. |\n| C2 | constraint | Do not seed/mutate live workflow state outside signals. | respected | No direct workflow seeding added. |\n| DONT1 | avoidance | Do not bypass acceptance from disk-only proof. | respected | No disk-only acceptance bypass. |\n| DONT2 | avoidance | Do not weaken missing/failing matrix blockers. | respected | Missing/failing matrix blockers preserved. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-07-31T21:57:07.286Z",
+      "contentHash": "c47534972e706b7006778ee69d22d07e3cdae4c6aeec762ec41eb2f5ce73b076",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-07-31T21:57:07.286Z",
+      "contentHash": "272337ca4becc5bb133c2367674447bdc8eb65724a14fabb657b2572db999ad4",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-07-31T22:08:09.898Z",
+      "contentHash": "54a94d854e4c2fc803a75f06474fb722de92392e940cf7ae8b0b5e33b4f91e41",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-07-31T22:17:22.200Z",
+      "contentHash": "04e80210b2fc251b39f33a1ab876e402c6717e63602f8aed4425e3ed3034f7f8",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-01T17:35:41.725Z",
+      "contentHash": "2bc95696ecab30a81c2b921680f9151012bbf61f6979526c0c96ffdcec9c0c83",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-07-31T22:00:08.675Z"
+    }
+  ],
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-01T17:48:15.849Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "acceptance-matrix-divergence-2026-07-31"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Recovered acceptance review matrices now reconcile into live workflow state.",
+    "highlights": [
+      "Pre-acceptance reconciliation re-delivers recovered matrix evidence without weakening fail-closed readiness checks."
+    ],
+    "area": "acceptance workflow"
+  },
+  "creation_request_hash": "ca9b03f4f264d014fcfa33bbf622393b5d53751cdc7501a2bb7fa57d8b67c1d8",
+  "projection_revision": 33,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "e16cb43fb76facec23ed10196efeb9cdad4237ec1b39fd7cc036c65438a1e832:createArtifacts:proposal",
+      "operation_id": "e16cb43fb76facec23ed10196efeb9cdad4237ec1b39fd7cc036c65438a1e832:createArtifacts:proposal",
+      "payload_hash": "29f6ad520d43a21829bc7892a7c63ced9717b603b9e1f898c13c8ee44ec6ba01",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-07-31T21:57:07.691Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "e16cb43fb76facec23ed10196efeb9cdad4237ec1b39fd7cc036c65438a1e832:createArtifacts:problemStatement",
+      "operation_id": "e16cb43fb76facec23ed10196efeb9cdad4237ec1b39fd7cc036c65438a1e832:createArtifacts:problemStatement",
+      "payload_hash": "131d1e877897ee0366cfe7380f6c3cffed250f7ec40cb24c898aefab44f8c408",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-07-31T21:57:08.275Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-07-31T21:59:20.883Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "e9fd87d8a25ffd5d38fd28e0264cf0124e9f263cda68e893e08870305948083c:updateArtifacts:agreement",
+      "operation_id": "e9fd87d8a25ffd5d38fd28e0264cf0124e9f263cda68e893e08870305948083c:updateArtifacts:agreement",
+      "payload_hash": "bdb2869cea05c3e6df28d7039a13f86e07cc26bb8bf330184fc9c1c30ffdaaa1",
+      "state_revision": 3,
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-07-31T22:08:10.383Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-07-31T22:08:33.344Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-07-31T22:08:44.703Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "3cbeac77d578f089d9bc3ecccee91da3ebf3069af743c29659cc80815a6ac96f:updateArtifacts:design",
+      "operation_id": "3cbeac77d578f089d9bc3ecccee91da3ebf3069af743c29659cc80815a6ac96f:updateArtifacts:design",
+      "payload_hash": "358589e3dd5130a19487ac371ad0566590385e4608c91493822323b9f86eb3a8",
+      "state_revision": 4,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-07-31T22:09:57.014Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-07-31T22:16:31.115Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-07-31T22:16:35.599Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "1c7bf053530f543177b2b78d65fa0976d26c1fabfdf56ba38021294b492c563f:updateArtifacts:design",
+      "operation_id": "1c7bf053530f543177b2b78d65fa0976d26c1fabfdf56ba38021294b492c563f:updateArtifacts:design",
+      "payload_hash": "7b967f28cda337d716ab1df52aeed6a3566ab4f786835fa86b88192791463a44",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-07-31T22:17:22.509Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-07-31T22:17:36.236Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-07-31T22:22:43.069Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-07-31T22:22:46.551Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-07-31T22:23:10.304Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-07-31T22:34:05.841Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-07-31T23:41:32.259Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-07-31T23:41:34.979Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-01T15:21:36.904Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-01T15:59:22.351Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-01T15:59:25.526Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-01T16:00:13.631Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-01T16:01:09.483Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-01T16:01:20.706Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-01T17:32:55.258Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-01T17:33:00.243Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-01T17:33:45.918Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785605715589_8uwbv7mf",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-01T17:35:15.859Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a88d9d5434454b13cf9db983db8149541d96a77c8bf1fc4404a2487872fd8179:updateArtifacts:executiveSummary",
+      "operation_id": "a88d9d5434454b13cf9db983db8149541d96a77c8bf1fc4404a2487872fd8179:updateArtifacts:executiveSummary",
+      "payload_hash": "6c72a4939a4b857ebdcaaf27d7cbcbbc06ce5091b765b8c6fcd0e4807b5853dc",
+      "state_revision": 6,
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-01T17:35:42.235Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0b95be853fe303d6130d4fa69cdd3ae71a2237a5f8cef0a3656bf209bf6f4050:releaseNotesSet",
+      "operation_id": "0b95be853fe303d6130d4fa69cdd3ae71a2237a5f8cef0a3656bf209bf6f4050:releaseNotesSet",
+      "payload_hash": "8892ef030e1c21f079aadc057eb6983a9ed520359cad21e6ef38b47d6e03b150",
+      "state_revision": 7,
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-01T17:36:05.635Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-01T17:36:46.212Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-01T17:47:24.830Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-01T17:47:28.631Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixAcceptanceMatrixRecovery",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-01T17:48:16.072Z"
+    }
+  ],
+  "state_revision": 7,
+  "_source": "disk"
+}

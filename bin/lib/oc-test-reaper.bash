@@ -177,6 +177,21 @@ _uid_of_macos() {
   printf '%s\n' "$uid"
 }
 
+_ppid_of_linux() {
+  local pid="$1" ppid
+  [[ -r "/proc/$pid/status" ]] || return 1
+  ppid="$(awk '/^PPid:/{print $2; exit}' "/proc/$pid/status")"
+  [[ "$ppid" =~ ^[0-9]+$ ]] || return 1
+  printf '%s\n' "$ppid"
+}
+
+_ppid_of_macos() {
+  local pid="$1" ppid
+  ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')" || return 1
+  [[ "$ppid" =~ ^[0-9]+$ ]] || return 1
+  printf '%s\n' "$ppid"
+}
+
 _gone_linux() {
   local pid="$1" stat rest state
   [[ ! -e "/proc/$pid/stat" ]] && return 0
@@ -201,6 +216,7 @@ _load_argv() { if ((IS_LINUX)); then _load_argv_linux "$1"; else _load_argv_maco
 _ident_token() { if ((IS_LINUX)); then _ident_token_linux "$1"; else _ident_token_macos "$1"; fi; }
 _age_seconds() { if ((IS_LINUX)); then _age_seconds_linux "$1"; else _age_seconds_macos "$1"; fi; }
 _uid_of() { if ((IS_LINUX)); then _uid_of_linux "$1"; else _uid_of_macos "$1"; fi; }
+_ppid_of() { if ((IS_LINUX)); then _ppid_of_linux "$1"; else _ppid_of_macos "$1"; fi; }
 _gone() { if ((IS_LINUX)); then _gone_linux "$1"; else _gone_macos "$1"; fi; }
 
 # --- candidate filters -------------------------------------------------------
@@ -265,10 +281,29 @@ reap_one() {
     log "skip pid $pid ($argv0): age unreadable"
     return 0
   }
-  if awk -v a="$age" -v m="$MIN_AGE" 'BEGIN{ exit !((a + 0) >= (m + 0)) }'; then
-    : # stale enough to consider
+  # Orphan-first eligibility (structural, not time-based). A test server whose
+  # parent has died is reparented to PID 1 (or to a subreaper). Its owning run
+  # is provably gone, so it is safe to reap at ANY age. This is what makes an
+  # aborted run (Ctrl-C / hard kill, where `finally` never runs) self-healing
+  # instead of leaving servers alive for the full MIN_AGE window.
+  #
+  # A server whose parent is still alive belongs to a live run and is NEVER
+  # reaped here regardless of age -- peer-run safety is preserved.
+  local ppid orphaned=0
+  if ppid="$(_ppid_of "$pid")"; then
+    if [[ "$ppid" == "1" ]]; then
+      orphaned=1
+    elif ! kill -0 "$ppid" 2>/dev/null; then
+      orphaned=1
+    fi
+  fi
+
+  if ((orphaned)); then
+    log "reap-eligible pid $pid ($argv0): orphaned (ppid ${ppid:-unknown} dead), age ${age}s"
+  elif awk -v a="$age" -v m="$MIN_AGE" 'BEGIN{ exit !((a + 0) >= (m + 0)) }'; then
+    : # live parent but stale enough to consider
   else
-    log "skip pid $pid ($argv0): age ${age}s < ${MIN_AGE}s minimum (fresh peer run)"
+    log "skip pid $pid ($argv0): age ${age}s < ${MIN_AGE}s minimum and parent ${ppid:-unknown} alive (fresh peer run)"
     return 0
   fi
 

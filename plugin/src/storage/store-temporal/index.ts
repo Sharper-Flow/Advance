@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Store } from "../store-types";
 import type { Change } from "../../types";
@@ -9,6 +8,7 @@ import {
   isSchemaError,
   listChangeDirs,
   loadChange,
+  readBoundedProjectionDocument,
 } from "../change-projection-reader";
 import type {
   ChangeStatus,
@@ -59,6 +59,7 @@ import {
   changeStateQuery,
   worktreeAutoManagedSignal,
 } from "../../temporal/messages";
+import { isPoisonedWorkflowForChange } from "./poisoned-workflow-cache";
 import { ensureChangeWorkflowStarted } from "../../temporal/workflow-start";
 import { getCurrentSessionId } from "../../utils/session-id";
 import { changeSeedStateFromChange } from "../../temporal/change-state";
@@ -73,7 +74,11 @@ import { commitChangeProjection } from "../change-projection-transaction";
 
 import { createChangeOps } from "./changes";
 import { createTaskOps } from "./tasks";
-import { readChangeSnapshot, type ChangeReadSnapshot } from "./read-model";
+import {
+  readChangeSnapshot,
+  type ChangeReadSnapshot,
+  snapshotToLoadResult,
+} from "./read-model";
 import { createGateOps } from "./gates";
 import { createWisdomOps } from "./wisdom";
 import { createSpecDeltaOps } from "./spec-deltas";
@@ -375,6 +380,12 @@ export function createTemporalStoreBackend(
    * any caller that observes the cached value.
    */
   const dualWriteAfterMutation = async (changeId: string): Promise<void> => {
+    if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
+      logger.debug(
+        `dualWriteAfterMutation(${changeId}): workflow is known poisoned; skipping post-mutation readback.`,
+      );
+      return;
+    }
     let readbackError: unknown;
     let readbackValue: ChangeWorkflowState | undefined;
     try {
@@ -462,6 +473,12 @@ export function createTemporalStoreBackend(
       return;
     }
     void (async () => {
+      if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
+        logger.debug(
+          `Lazy worktree_auto_managed migration skipped for change ${changeId}: workflow is known poisoned.`,
+        );
+        return;
+      }
       try {
         // SC4 guard at signal-dispatch boundary: refuse the lazy migration
         // signal when the workflow is mutation-ineligible (no-poller,
@@ -949,6 +966,22 @@ export function createTemporalStoreBackend(
       };
     }
 
+    // Poisoned-workflow short-circuit: once a workflow has been classified as
+    // poisoned-history (TMPRL1100 / nondeterminism), never issue another query
+    // or signal against it. Serve the durable disk/archive projection directly
+    // and annotate the result so callers (e.g. adv_change_show) can surface the
+    // poisoned state without paying a timeout.
+    if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
+      const snapshot = await readProjectionSnapshot(changeId);
+      const result = snapshotToLoadResult(snapshot);
+      if (result.success && result.data) {
+        (result.data as Change & { _poisoned?: true })._poisoned = true;
+        setCachedProjection(result.data);
+        indexTasksFromChange(result.data);
+      }
+      return result;
+    }
+
     const cached = changeCache.get(changeId);
     if (cached) {
       indexTasksFromChange(cached);
@@ -1366,11 +1399,19 @@ export function createTemporalStoreBackend(
         async (id): Promise<SourceRankedCandidate> => {
           if (expired()) return { id, source: "disk" };
           try {
-            const raw = await raceWithTemporalDeadline(
-              readFile(join(legacy.paths.changes, id, "change.json"), "utf8"),
+            const readResult = await raceWithTemporalDeadline(
+              readBoundedProjectionDocument(
+                join(legacy.paths.changes, id, "change.json"),
+              ),
               deadline,
             );
-            const parsed = JSON.parse(raw) as Record<string, unknown>;
+            if (readResult.kind !== "ok") {
+              return { id, source: "disk" };
+            }
+            const parsed = JSON.parse(readResult.content) as Record<
+              string,
+              unknown
+            >;
             return {
               id,
               source: "disk",

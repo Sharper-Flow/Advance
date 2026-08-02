@@ -105,13 +105,14 @@ function assertPersistedModify(
  * archive remains the sole global-spec writer.
  */
 export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
-  const {
-    legacy,
-    invalidateChange,
-    setCachedChange,
-    emitChangeSummarySignal,
-    persistStateToDisk,
-  } = deps;
+  // `persistStateToDisk` is deliberately NOT taken from deps. `changeCommand`
+  // already commits the disk projection durably through the single writer via
+  // `buildSummaryCommitProjection`, awaiting it and throwing on failure, and it
+  // calls `setCachedChange` internally. Calling `persistStateToDisk` afterwards
+  // is a second, unawaited write through the same primitive. Gate completion and
+  // wisdom addition both route through `changeCommand` and call neither.
+  const { legacy, invalidateChange, setCachedChange, emitChangeSummarySignal } =
+    deps;
 
   return {
     ...legacy.specDeltas,
@@ -170,7 +171,6 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       );
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
       return persisted;
     },
     modify: async (changeId, capability, delta: DeltaModify, options) => {
@@ -228,7 +228,6 @@ export function createSpecDeltaOps(deps: StoreDeps): Store["specDeltas"] {
       );
       setCachedChange(state);
       emitChangeSummarySignal(changeId, state);
-      persistStateToDisk(changeId, state);
       return persisted;
     },
     amend: async (changeId, capability, deltaId, delta: Delta, options) => {

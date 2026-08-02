@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import type { WorkflowHandle } from "@temporalio/client";
@@ -17,8 +17,6 @@ import {
 } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
 import { DEFAULT_CHANGE_HISTORY_THRESHOLD } from "./contracts";
-
-const workflowsPath = fileURLToPath(new URL("./workflows.ts", import.meta.url));
 
 function makeEpicInput(): EpicWorkflowInput {
   return {
@@ -43,7 +41,7 @@ describe("epicWorkflow", () => {
       const taskQueue = `epic-wf-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -116,7 +114,7 @@ describe("epicWorkflow", () => {
       const taskQueue = `epic-wf-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -166,7 +164,7 @@ describe("epicWorkflow", () => {
       const taskQueue = `epic-can-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -244,7 +242,7 @@ describe("epicWorkflow", () => {
       const taskQueue = `epic-wf-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -312,7 +310,7 @@ describe("epicWorkflow", () => {
       const taskQueue = `epic-wf-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -387,7 +385,7 @@ describe("epicWorkflow", () => {
       const taskQueue = `epic-wf-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 

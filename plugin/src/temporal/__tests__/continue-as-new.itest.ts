@@ -1,4 +1,4 @@
-import { fileURLToPath } from "node:url";
+import { getSharedWorkflowBundle } from "../../temporal/__tests__/with-test-env";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
 import type {
@@ -15,10 +15,6 @@ import {
 import { evaluateGateReadiness } from "../gate-readiness";
 import { getChangeStateQuery, taskAddedSignal } from "../messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
-
-const workflowsPath = fileURLToPath(
-  new URL("../workflows.ts", import.meta.url),
-);
 
 type ChangeWorkflowHandle = WorkflowHandle<
   typeof import("../workflows").changeWorkflow
@@ -96,7 +92,7 @@ describe("changeWorkflow continue-as-new", () => {
       const taskQueue = `continue-as-new-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -157,7 +153,7 @@ describe("changeWorkflow continue-as-new", () => {
       const taskQueue = `continue-as-new-seen-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
@@ -216,7 +212,7 @@ describe("changeWorkflow continue-as-new", () => {
       const taskQueue = `continue-as-new-wbp-${Date.now()}`;
       const worker = await Worker.create({
         connection: env.nativeConnection,
-        workflowsPath,
+        workflowBundle: await getSharedWorkflowBundle(),
         taskQueue,
       });
 
