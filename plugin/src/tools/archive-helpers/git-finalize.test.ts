@@ -495,7 +495,7 @@ describe("git-finalize helpers", () => {
   it("resolveReleaseReachability accepts squash PR merge state instead of ancestry", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "example",
         route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
@@ -536,7 +536,7 @@ describe("git-finalize helpers", () => {
   it("direct route + squash-merged PR falls back to pr_merged when ancestry fails", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -588,7 +588,7 @@ describe("git-finalize helpers", () => {
   it("direct route + deleted branch + changeTipSha provided detects squash-merge via tree-SHA", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixPhase9SquashMergeRedetect",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -656,7 +656,7 @@ describe("git-finalize helpers", () => {
     let ghCalled = false;
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -697,7 +697,7 @@ describe("git-finalize helpers", () => {
   it("direct route + prNumber but PR not merged returns origin_unmerged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -744,7 +744,7 @@ describe("git-finalize helpers", () => {
   it("direct route + prNumber but gh fails returns origin_unmerged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -786,7 +786,7 @@ describe("git-finalize helpers", () => {
   it("direct route + auto-discovered PR merged returns pr_merged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -854,7 +854,7 @@ describe("git-finalize helpers", () => {
   it("direct route + merged PR without mergeCommitOid fails closed", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -909,7 +909,7 @@ describe("git-finalize helpers", () => {
   it("direct route + tree fallback returns pr_merged when ancestry and PR discovery fail", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -973,7 +973,7 @@ describe("git-finalize helpers", () => {
   it("direct route + merge-commit ancestry returns origin_default", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -1016,7 +1016,7 @@ describe("git-finalize helpers", () => {
   it("no_remote route blocks with NO_REMOTE_RELEASE_AUTHORITY", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "no_remote" },
@@ -1038,7 +1038,7 @@ describe("git-finalize helpers", () => {
   it("direct route + all fallbacks fail returns origin_unmerged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -1103,7 +1103,7 @@ describe("git-finalize helpers", () => {
   it("pr_auto_merge route + no prNumber discovers merged PR and returns pr_merged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixPhase9PrDetection",
         route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
@@ -1159,7 +1159,7 @@ describe("git-finalize helpers", () => {
   it("pr_auto_merge route + no prNumber + no discoverable PR + no tip proof returns a distinct classification", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixPhase9PrDetection",
         route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
@@ -1200,7 +1200,7 @@ describe("git-finalize helpers", () => {
       let ioCalled = false;
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "blockedRoute",
           route: {
@@ -1232,7 +1232,7 @@ describe("git-finalize helpers", () => {
     it("no_remote route returns blocked with NO_REMOTE_RELEASE_AUTHORITY", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "noRemoteUnmerged",
           route: { route: "no_remote" },
@@ -1249,12 +1249,13 @@ describe("git-finalize helpers", () => {
       expect(result.details).toEqual(["NO_REMOTE_RELEASE_AUTHORITY"]);
     });
 
-    // rq-fixArchivedBranchFinalization SC1: no_remote route + deleted change
-    // branch + persisted changeTipSha must re-prove via local tree-SHA match.
-    it("no_remote route + deleted branch + changeTipSha re-proves local merge via tree-SHA", () => {
+    // rq-releaseFinalization01 / rq-releaseFinalization03: no_remote route is
+    // blocked without a canonical remote; remote-first archive isolation forbids
+    // local-only release authority and shared-ref mutation.
+    it("no_remote route + deleted branch + changeTipSha is blocked without canonical remote", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "noRemoteDeletedTip",
           route: { route: "no_remote" },
@@ -1267,38 +1268,22 @@ describe("git-finalize helpers", () => {
               // Branch ref is gone; range log fails
               return { status: 128, stdout: "", stderr: "unknown revision" };
             }
-            if (args[0] === "rev-parse" && args[1] === "tip-local-abc^{tree}") {
-              return { status: 0, stdout: "shared-tree-sha\n", stderr: "" };
-            }
-            if (
-              args[0] === "log" &&
-              args[1] === "--format=%H %T" &&
-              args[3] === "trunk"
-            ) {
-              return {
-                status: 0,
-                stdout: "merge-local-sha shared-tree-sha\n",
-                stderr: "",
-              };
-            }
             return { status: 1, stdout: "", stderr: "unexpected" };
           },
         },
       );
 
-      expect(result).toMatchObject({
-        reachable: true,
-        proof: "local_merge",
-        releasedCommitSha: "merge-local-sha",
-      });
+      expect(result.reachable).toBe(false);
+      expect(result.proof).toBe("blocked");
+      expect(result.details).toEqual(["NO_REMOTE_RELEASE_AUTHORITY"]);
     });
 
-    // rq-fixArchivedBranchFinalization SC2: missing or mismatched changeTipSha
-    // must remain fail-closed on no_remote route.
-    it("no_remote route + deleted branch + mismatched changeTipSha stays fail-closed", () => {
+    // Missing or mismatched changeTipSha on no_remote route remains blocked
+    // because the route itself has no canonical remote authority.
+    it("no_remote route + deleted branch + mismatched changeTipSha stays blocked", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "noRemoteMismatch",
           route: { route: "no_remote" },
@@ -1310,33 +1295,20 @@ describe("git-finalize helpers", () => {
             if (argStr === "log trunk..change/noRemoteMismatch") {
               return { status: 128, stdout: "", stderr: "unknown revision" };
             }
-            if (args[0] === "rev-parse" && args[1] === "tip-local-abc^{tree}") {
-              return { status: 0, stdout: "different-tree-sha\n", stderr: "" };
-            }
-            if (
-              args[0] === "log" &&
-              args[1] === "--format=%H %T" &&
-              args[3] === "trunk"
-            ) {
-              return {
-                status: 0,
-                stdout: "merge-local-sha other-tree-sha\n",
-                stderr: "",
-              };
-            }
             return { status: 1, stdout: "", stderr: "unexpected" };
           },
         },
       );
 
       expect(result.reachable).toBe(false);
-      expect(result.proof).toBe("local_unmerged");
+      expect(result.proof).toBe("blocked");
+      expect(result.details).toEqual(["NO_REMOTE_RELEASE_AUTHORITY"]);
     });
 
     it("pr_manual route + merged PR returns pr_merged typed proof", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "manualPrMerged",
           prNumber: 77,
@@ -1377,7 +1349,7 @@ describe("git-finalize helpers", () => {
     it("pr_manual route + open PR returns pr_unmerged actionable state, never success", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "manualPrOpen",
           prNumber: 78,
@@ -1417,7 +1389,7 @@ describe("git-finalize helpers", () => {
     it("merge_queue route + merged PR returns pr_merged typed proof", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "queueMerged",
           prNumber: 99,
@@ -1462,7 +1434,7 @@ describe("git-finalize helpers", () => {
     it("merge_queue route + deleted branch + changeTipSha tree match returns pr_merged via structural fallback", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "queueDeletedBranch",
           changeTipSha: "tip999xyz",
@@ -1518,7 +1490,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedUnmergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         archivedChangeIds: ["archived-one", "already-merged"],
       },
@@ -1587,7 +1559,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1643,7 +1615,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1704,7 +1676,7 @@ describe("git-finalize helpers", () => {
   it("detectArchivedMergedBranches rejects git cherry output with unmerged commits", () => {
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1745,7 +1717,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1814,7 +1786,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         archivedChangeIds: ["A", "C"],
       },
@@ -1880,7 +1852,7 @@ describe("git-finalize helpers", () => {
   it("detectArchivedMergedBranches returns blocked status when local branch list fails", () => {
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -2067,7 +2039,7 @@ describe("git-finalize helpers", () => {
     const ghCalls: string[][] = [];
     const result = redriveArchivedUnmergedBranch(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "archived-one",
         changeTitle: "Archived work",
@@ -3584,7 +3556,7 @@ describe("git-finalize helpers", () => {
 
       const result = completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -3617,7 +3589,7 @@ describe("git-finalize helpers", () => {
 
       const result = completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -3648,7 +3620,7 @@ describe("git-finalize helpers", () => {
 
       const result = completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -3675,7 +3647,7 @@ describe("git-finalize helpers", () => {
 
       const result = executePullRequestHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           repo: "Sharper-Flow/Advance",
           branch: "change/example",
@@ -3795,7 +3767,7 @@ describe("git-finalize helpers", () => {
       const queueGh = queueGhMock({ finalState: "OPEN" });
       completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -3816,7 +3788,7 @@ describe("git-finalize helpers", () => {
       let branchViewCount = 0;
       executePullRequestHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           repo: "Sharper-Flow/Advance",
           branch: "change/example",
@@ -4599,7 +4571,7 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
       };
       const result = createArchivePullRequest(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           repo: "Sharper-Flow/Advance",
           branch: "change/example",
           defaultBranch: "trunk",
@@ -4925,7 +4897,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     const mocks = makeHandoffMocks();
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,
@@ -4978,7 +4950,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     const mocks = makeHandoffMocks();
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,
@@ -5021,7 +4993,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     const mocks = makeRedriveMocks();
     const result = redriveArchivedUnmergedBranch(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         defaultBranch: "trunk",
         changeId,
         changeTitle,
@@ -5058,7 +5030,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     });
     const result = redriveArchivedUnmergedBranch(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         defaultBranch: "trunk",
         changeId,
         changeTitle,
@@ -5096,7 +5068,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     });
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,
@@ -5154,7 +5126,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     });
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,

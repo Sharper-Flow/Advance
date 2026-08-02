@@ -26,6 +26,9 @@ export interface GitFinalizeOutcome {
    *  For direct/no_remote routes this is the verified default-branch HEAD;
    *  for PR routes it is the merged PR commit OID. */
   releasedCommitSha?: string;
+  /** SHA of the change branch tip captured before merge/cleanup so tree-SHA
+   *  re-proof can survive branch deletion (rq-fixArchivedBranchFinalization SC1). */
+  changeTipSha?: string;
   pushStatus: "pushed" | "skipped" | "failed" | "not_attempted";
   pushFailureReason?: string;
   prBranch?: string;
@@ -2832,6 +2835,19 @@ export async function finalizeRelease(
 
   const { branch: defaultBranch } = detectDefaultBranch(repoRoot, deps);
 
+  // Capture change-tip SHA before any mutation can delete or move the branch.
+  // Used by structural squash-merge redetection and recorded in the outcome.
+  let changeTipSha: string | undefined;
+  try {
+    changeTipSha = runGitOrThrow(
+      repoRoot,
+      ["rev-parse", `change/${ctx.changeId}`],
+      deps,
+    );
+  } catch {
+    changeTipSha = undefined;
+  }
+
   // Per-invocation accumulator: caches idempotent git queries and tracks
   // fetch dedup. Mutations call invalidate(state, kind) to drop stale entries.
   const state = createState(repoRoot, defaultBranch, deps);
@@ -3038,6 +3054,7 @@ export async function finalizeRelease(
             route: "direct",
             releasedCommitSha: remoteDefault.sha,
             mergeCommitSha: merge.mergeCommitSha,
+            changeTipSha,
             pushStatus: "pushed",
           };
         }
