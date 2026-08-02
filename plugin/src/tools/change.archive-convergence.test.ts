@@ -67,7 +67,7 @@ function createHalfConvergedChange(): Change {
 function shippedFinalization(): GitFinalizeOutcome {
   return {
     status: "shipped",
-    mainCheckout: "/tmp/main",
+    repoRoot: "/tmp/main",
     defaultBranch: "trunk",
     route: "direct",
     mergeCommitSha: "abc123",

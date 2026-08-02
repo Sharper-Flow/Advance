@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-02T01:09:34.324Z",
+  "capabilities": [],
+  "change_hash": "1560682eff23aa290ae62fb5696383a8db3a5ef6c975acfdb379a0937b6cdce4",
+  "change_id": "decoupleArchiveSharedCheckout",
+  "completed_tasks": 2,
+  "created_at": "2026-08-01T18:20:16.535Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-02T01:06:28.857Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "2de40b06db8d6f1e1290a387e53cf441273922af0043aa7059811eae667f1b93",
+  "task_count": 5,
+  "title": "Decouple archive shared checkout",
+  "version": "1"
+}

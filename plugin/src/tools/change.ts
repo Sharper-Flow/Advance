@@ -992,7 +992,6 @@ import {
   detectArchiveMode,
   deleteChangeBranch,
   finalizeRelease,
-  syncDefaultBranchAfterMerge,
   validateChangeWorktree,
   type GitFinalizeOutcome,
 } from "./archive-helpers/git-finalize";
@@ -4248,7 +4247,7 @@ export const changeTools = {
           );
           if (
             !worktreeValidation.valid ||
-            worktreeValidation.mainCheckout !== store.paths.root
+            worktreeValidation.repoRoot !== store.paths.root
           ) {
             return formatToolOutput({
               success: false,
@@ -4257,7 +4256,7 @@ export const changeTools = {
               changeId,
               remediation:
                 worktreeValidation.error ??
-                `Worktree belongs to ${worktreeValidation.mainCheckout}, expected ${store.paths.root}.`,
+                `Worktree belongs to ${worktreeValidation.repoRoot}, expected ${store.paths.root}.`,
             });
           }
         }
@@ -4296,7 +4295,7 @@ export const changeTools = {
             }
             const proof = await verifyProjectionAtGitCommit({
               manifest,
-              repo: release.mainCheckout,
+              repo: release.repoRoot,
               releasedCommitSha: release.releasedCommitSha,
               manifestGitPath: `.adv/archive/${basename(existingBundlePath)}/spec-projection.json`,
               expectedChangeId: change.id,
@@ -4400,9 +4399,6 @@ export const changeTools = {
               }
             >
           | undefined;
-        let trunkSync:
-          | ReturnType<typeof syncDefaultBranchAfterMerge>
-          | undefined;
         if (!dryRun && archiveResult.success && phase9 !== "skip") {
           // Sync mode (existing behavior) — phase9 === "run" routes through
           // this same awaited finalization path; there is no detached async
@@ -4417,7 +4413,7 @@ export const changeTools = {
               ? await finalizeRelease({
                   changeId,
                   workdir: worktreePath,
-                  expectedMainCheckout: store.paths.root,
+                  expectedRepoRoot: store.paths.root,
                   archiveMode,
                   autoPush,
                   artifactPaths: (archiveResult.commitPaths ?? []).map((path) =>
@@ -4512,7 +4508,7 @@ export const changeTools = {
               phase9: "pending_merge",
               finalization,
               continueFrom: {
-                path: finalization.mainCheckout,
+                path: finalization.repoRoot,
                 branch: finalization.defaultBranch,
               },
               ...openOpsObligationsPayload,
@@ -4525,18 +4521,6 @@ export const changeTools = {
                     })),
                   }
                 : {}),
-            });
-          }
-          // A merged PR is proven by the canonical remote/PR evidence above.
-          // Syncing the developer's local trunk is advisory only: it runs after
-          // that proof and cannot block release, archive retirement, or cleanup.
-          if (
-            finalization.status === "shipped" &&
-            change.phase9_status?.status === "pending_merge"
-          ) {
-            trunkSync = syncDefaultBranchAfterMerge({
-              mainCheckout: finalization.mainCheckout,
-              defaultBranch: finalization.defaultBranch,
             });
           }
           const releaseResult = await completeReleaseGateAfterFinalization({
@@ -4554,7 +4538,7 @@ export const changeTools = {
               archivePath: archiveResult.archivePath,
               finalization,
               continueFrom: {
-                path: finalization.mainCheckout,
+                path: finalization.repoRoot,
                 branch: finalization.defaultBranch,
               },
               workflowGateStatus: releaseResult.workflowGateStatus,
@@ -4584,7 +4568,7 @@ export const changeTools = {
               archivePath: archiveResult.archivePath,
               finalization,
               continueFrom: {
-                path: finalization.mainCheckout,
+                path: finalization.repoRoot,
                 branch: finalization.defaultBranch,
               },
               releaseGateStatus: durableProof.releaseGateStatus,
@@ -4644,7 +4628,7 @@ export const changeTools = {
           }
           const projectionProof = await verifyProjectionAtGitCommit({
             manifest: archiveResult.projectionManifest,
-            repo: proofOutcome.mainCheckout,
+            repo: proofOutcome.repoRoot,
             releasedCommitSha: proofOutcome.releasedCommitSha,
             manifestGitPath: `${relative(inRepoBase, committedBundlePath).replaceAll("\\", "/")}/spec-projection.json`,
             expectedChangeId: change.id,
@@ -4758,7 +4742,7 @@ export const changeTools = {
                       ...(finalization
                         ? {
                             continueFrom: {
-                              path: finalization.mainCheckout,
+                              path: finalization.repoRoot,
                               branch: finalization.defaultBranch,
                             },
                           }
@@ -4816,7 +4800,7 @@ export const changeTools = {
                   ...(finalization
                     ? {
                         continueFrom: {
-                          path: finalization.mainCheckout,
+                          path: finalization.repoRoot,
                           branch: finalization.defaultBranch,
                         },
                       }
@@ -4927,7 +4911,7 @@ export const changeTools = {
           // worktree is still present, in use, or otherwise failed removal.
           if (
             finalization?.status === "shipped" &&
-            finalization.mainCheckout &&
+            finalization.repoRoot &&
             finalization.route !== "pr_auto_merge" &&
             archiveMode === "direct"
           ) {
@@ -4940,7 +4924,7 @@ export const changeTools = {
             if (worktreeAbsent) {
               try {
                 const branchResult = deleteChangeBranch(
-                  finalization.mainCheckout,
+                  finalization.repoRoot,
                   change.id,
                 );
                 if (!branchResult.localDeleted && branchResult.error) {
@@ -5011,11 +4995,10 @@ export const changeTools = {
             ? { issue_closure_error: issueClosure.issue_closure_error }
             : {}),
           ...(finalization ? { finalization } : {}),
-          ...(trunkSync ? { trunkSync } : {}),
           ...(finalization
             ? {
                 continueFrom: {
-                  path: finalization.mainCheckout,
+                  path: finalization.repoRoot,
                   branch: finalization.defaultBranch,
                 },
               }

@@ -300,7 +300,7 @@ describe("handoff blockquote wayfinder contract", () => {
 
     expect(
       codeBlocks.length,
-      "Archive terminal variant must contain at least 2 code blocks (Shipped + Merged locally)",
+      "Archive terminal variant must contain at least 2 code blocks (Shipped + no-origin Blocked)",
     ).toBeGreaterThanOrEqual(2);
 
     const shippedBlock = codeBlocks[0];
@@ -330,7 +330,7 @@ describe("handoff blockquote wayfinder contract", () => {
     ).toMatch(/^> \*\*\{change-id\}\*\* · release ✓ · Shipped\.$/m);
   });
 
-  test("Archive Merged-locally variant uses single-line blockquote terminal", () => {
+  test("Archive no-origin-remote blocked variant uses single-line blockquote terminal", () => {
     const content = readFileSync(
       join(DOCS_DIR, "command-voice-standard.md"),
       "utf8",
@@ -348,32 +348,37 @@ describe("handoff blockquote wayfinder contract", () => {
     const codeBlocks = [...sectionText.matchAll(/```([\s\S]*?)```/g)].map(
       (m) => m[1],
     );
-    const localBlock = codeBlocks[1];
+    const noOriginBlock = codeBlocks[1];
 
     expect(
-      localBlock,
-      "Merged-locally variant must NOT contain 'Current phase:'",
+      noOriginBlock,
+      "No-origin-remote blocked variant must NOT contain 'Current phase:'",
     ).not.toMatch(/Current phase:/);
 
     expect(
-      localBlock,
-      "Merged-locally variant must NOT contain 'Next phase:'",
+      noOriginBlock,
+      "No-origin-remote blocked variant must NOT contain 'Next phase:'",
     ).not.toMatch(/Next phase:/);
 
     expect(
-      localBlock,
-      "Merged-locally variant must NOT contain 'Run when ready:'",
+      noOriginBlock,
+      "No-origin-remote blocked variant must NOT contain 'Run when ready:'",
     ).not.toMatch(/Run when ready:/);
 
     expect(
-      localBlock,
-      "Merged-locally variant must contain 'Merged locally.'",
-    ).toMatch(/Merged locally\./);
+      noOriginBlock,
+      "No-origin-remote blocked variant must contain 'Blocked.'",
+    ).toMatch(/Blocked\./);
 
     expect(
-      localBlock,
-      "Merged-locally variant must use single-line blockquote terminal",
-    ).toMatch(/^> \*\*\{change-id\}\*\* · release ✓ · Merged locally\.$/m);
+      noOriginBlock,
+      "No-origin-remote blocked variant must mention NO_REMOTE_RELEASE_AUTHORITY",
+    ).toMatch(/NO_REMOTE_RELEASE_AUTHORITY/);
+
+    expect(
+      noOriginBlock,
+      "No-origin-remote blocked variant must use single-line blockquote terminal",
+    ).toMatch(/^\u003e \*\*\{change-id\}\*\* · release blocked · Blocked\.$/m);
   });
 });
 

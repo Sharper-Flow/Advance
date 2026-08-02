@@ -399,30 +399,27 @@ What shipped, what spec deltas applied.
 > **{change-id}** · release ✓ · Shipped.
 ```
 
-**Merged locally** (no `origin` remote configured):
+**Blocked — no origin remote** (release authority unavailable):
 
 ```
-## Merged locally.
+## Blocked.
 
 ## Problem
 {One-line restatement.}
 
 ## Chosen direction
-What was merged locally, what spec deltas applied. Note: no remote exists.
+Archive cannot complete release because no canonical origin remote is configured.
 
 ## Delivered
-- Spec deltas applied: {counts}
-- Archive location: {path}
-- Git merge: {default-branch} ({mode})
-- Push: n/a (no origin remote)
-- Release proof: no_remote local merge proof
+- Spec deltas staged only if archive bundle reached that step
+- Reason: no `origin` remote configured; `NO_REMOTE_RELEASE_AUTHORITY`
+- Release proof: missing
+- Cleanup: not run; change remains active
 - Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
-- Reflection: {completed | failed: <reason>; nonblocking}
-- Cleanup: worktree + temp artifacts
 
 ---
 
-> **{change-id}** · release ✓ · Merged locally.
+> **{change-id}** · release blocked · Blocked.
 ```
 
 **Pending auto-merge** (PR auto-merge armed; release not complete):
@@ -464,6 +461,7 @@ Archive stopped before release completion because remote-backed release proof is
 - Reason: {push rejected | gh unavailable | auto-merge unavailable | PR not armable | fetch failed | conflict}
 - Release proof: missing
 - Cleanup: not run; change remains active
+- Local deploy: {ran | ran; OpenCode activation pending restart | not available | not needed | failed: <reason>; nonblocking}
 
 ---
 
@@ -473,13 +471,13 @@ Archive stopped before release completion because remote-backed release proof is
 | Selection (from `/adv-archive` Phase 8) | Variant |
 |---|---|
 | `origin/{default-branch}` reachability proven OR PR state is MERGED | **Shipped.** |
-| no `origin` remote configured and local merge proof exists | **Merged locally.** |
+| no `origin` remote configured and no local bare origin | **Blocked.** (`NO_REMOTE_RELEASE_AUTHORITY`) |
 | PR auto-merge armed and PR state is not MERGED | **Pending auto-merge.** |
 | remote exists and origin/merged-PR proof is unavailable | **Blocked.** |
 
 Deploy/reflection failures remain visible in Delivered lines and do not block release unless they reveal structural release-safety failure already covered by archive proof checks.
 
-`Shipped.` and `Merged locally.` use a single-line blockquote terminal — the change is final. `Pending auto-merge.` and `Blocked.` use a single-line blockquote status and leave the change active.
+`Shipped.` uses a single-line blockquote terminal — the change is final. `Pending auto-merge.` and `Blocked.` use a single-line blockquote status and leave the change active. A `Blocked.` caused by a missing `origin` remote keeps the change active and reports `NO_REMOTE_RELEASE_AUTHORITY`.
 
 ### Fast-track variant (`/adv-task`)
 

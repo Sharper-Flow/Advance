@@ -7,7 +7,8 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, rm, writeFile } from "fs/promises";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, mkdtempSync } from "fs";
+import { tmpdir } from "os";
 import { join } from "path";
 import { spawnSync } from "child_process";
 import { createTempDir } from "../../__tests__/setup";
@@ -26,14 +27,10 @@ import {
   pushToOrigin,
   pushChangeBranch,
   reconcileChangeBranchWithDefault,
-  resolveMainCheckout,
+  resolveRepoRoot,
   verifyChangeBranchPushed,
   verifyChangeBranchReachable,
   verifyDefaultBranchPushed,
-  verifyMainInvariants,
-  verifyGitIdentity,
-  detectMainInProgressState,
-  commitDirtyMainCheckpoint,
   redactGitOutput,
   resolveReleaseReachability,
   validateChangeWorktree,
@@ -45,7 +42,6 @@ import {
   detectArchivedMergedBranches,
   listLocalChangeBranchEntries,
   getCheckedOutChangeBranches,
-  syncDefaultBranchAfterMerge,
   armPullRequestAutoMerge,
   // rq-optimizePhase9GitCalls AC7 — internal accumulator exports for direct matrix testing.
   createState,
@@ -88,14 +84,14 @@ describe("git-finalize helpers", () => {
     await rm(tempRoot, { recursive: true, force: true });
   });
 
-  it("resolveMainCheckout returns the main checkout from a linked worktree", async () => {
+  it("resolveRepoRoot returns the project git root from a linked worktree", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
     await initRepo(main);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
 
-    expect(resolveMainCheckout(worktree)).toBe(main);
+    expect(resolveRepoRoot(worktree)).toBe(main);
   });
 
   it("detectDefaultBranch prefers origin/HEAD, then init.defaultBranch, then local main/trunk", async () => {
@@ -188,33 +184,6 @@ describe("git-finalize helpers", () => {
       "--get",
       "init.defaultBranch",
     ]);
-  });
-
-  it("verifyMainInvariants reports branch mismatch and dirty files", async () => {
-    const repo = join(tempRoot, "repo");
-    await mkdir(repo);
-    await initRepo(repo);
-
-    expect(verifyMainInvariants(repo, "trunk")).toMatchObject({
-      ok: true,
-      branch: "trunk",
-    });
-
-    await writeFile(join(repo, "dirty.txt"), "dirty\n");
-    expect(verifyMainInvariants(repo, "trunk")).toMatchObject({
-      ok: false,
-      code: "DIRTY_MAIN_CHECKOUT",
-      dirtyFiles: ["?? dirty.txt"],
-    });
-
-    git(repo, ["add", "dirty.txt"]);
-    git(repo, ["commit", "-m", "dirty fixture"]);
-    git(repo, ["checkout", "-b", "topic"]);
-    expect(verifyMainInvariants(repo, "trunk")).toMatchObject({
-      ok: false,
-      code: "MAIN_BRANCH_MISMATCH",
-      branch: "topic",
-    });
   });
 
   it("verifyChangeBranchReachable detects unmerged and merged change branches", async () => {
@@ -369,6 +338,35 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("classifyFinalizationRoute treats a local bare origin as direct", () => {
+    const bareRepo = mkdtempSync(join(tmpdir(), "adv-bare-origin-"));
+    spawnSync("git", ["init", "--bare", "-q", "-b", "trunk", bareRepo]);
+
+    const bareOrigin = classifyFinalizationRoute("/repo", "trunk", {
+      runGit: (_cwd, args) => {
+        if (args.join(" ") === "remote get-url origin") {
+          return {
+            status: 0,
+            stdout: `${bareRepo}\n`,
+            stderr: "",
+          };
+        }
+        if (
+          args.join(" ") === "rev-parse --is-bare-repository" &&
+          _cwd === bareRepo
+        ) {
+          return { status: 0, stdout: "true\n", stderr: "" };
+        }
+        return { status: 1, stdout: "", stderr: "unexpected" };
+      },
+    });
+    expect(bareOrigin).toMatchObject({
+      route: "direct",
+      remoteUrl: bareRepo,
+      protected: false,
+    });
+  });
+
   it("classifyFinalizationRoute detects merge_queue rule", () => {
     const result = classifyFinalizationRoute("/repo", "trunk", {
       runGit: (_cwd, args) => {
@@ -497,7 +495,7 @@ describe("git-finalize helpers", () => {
   it("resolveReleaseReachability accepts squash PR merge state instead of ancestry", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "example",
         route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
@@ -538,7 +536,7 @@ describe("git-finalize helpers", () => {
   it("direct route + squash-merged PR falls back to pr_merged when ancestry fails", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -590,7 +588,7 @@ describe("git-finalize helpers", () => {
   it("direct route + deleted branch + changeTipSha provided detects squash-merge via tree-SHA", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixPhase9SquashMergeRedetect",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -658,7 +656,7 @@ describe("git-finalize helpers", () => {
     let ghCalled = false;
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -699,7 +697,7 @@ describe("git-finalize helpers", () => {
   it("direct route + prNumber but PR not merged returns origin_unmerged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -746,7 +744,7 @@ describe("git-finalize helpers", () => {
   it("direct route + prNumber but gh fails returns origin_unmerged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -788,7 +786,7 @@ describe("git-finalize helpers", () => {
   it("direct route + auto-discovered PR merged returns pr_merged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -856,7 +854,7 @@ describe("git-finalize helpers", () => {
   it("direct route + merged PR without mergeCommitOid fails closed", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -911,7 +909,7 @@ describe("git-finalize helpers", () => {
   it("direct route + tree fallback returns pr_merged when ancestry and PR discovery fail", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -975,7 +973,7 @@ describe("git-finalize helpers", () => {
   it("direct route + merge-commit ancestry returns origin_default", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -1015,39 +1013,32 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("no_remote route returns local_merge when change branch reachable locally", () => {
+  it("no_remote route blocks with NO_REMOTE_RELEASE_AUTHORITY", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "no_remote" },
       },
       {
-        runGit: (_cwd, args) => {
-          if (
-            args[0] === "log" &&
-            args[2] === "trunk..change/fixSquashMergeRelease"
-          )
-            return { status: 0, stdout: "", stderr: "" };
-          if (args[0] === "rev-parse" && args[1] === "HEAD")
-            return { status: 0, stdout: "local-head-sha\n", stderr: "" };
+        runGit: (_cwd, _args) => {
           return { status: 1, stdout: "", stderr: "unexpected" };
         },
       },
     );
 
     expect(result).toMatchObject({
-      reachable: true,
-      proof: "local_merge",
-      releasedCommitSha: "local-head-sha",
+      reachable: false,
+      proof: "blocked",
+      details: ["NO_REMOTE_RELEASE_AUTHORITY"],
     });
   });
 
   it("direct route + all fallbacks fail returns origin_unmerged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixSquashMergeRelease",
         route: { route: "direct", repo: "Sharper-Flow/Advance" },
@@ -1112,7 +1103,7 @@ describe("git-finalize helpers", () => {
   it("pr_auto_merge route + no prNumber discovers merged PR and returns pr_merged", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixPhase9PrDetection",
         route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
@@ -1168,7 +1159,7 @@ describe("git-finalize helpers", () => {
   it("pr_auto_merge route + no prNumber + no discoverable PR + no tip proof returns a distinct classification", () => {
     const result = resolveReleaseReachability(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "fixPhase9PrDetection",
         route: { route: "pr_auto_merge", repo: "Sharper-Flow/Advance" },
@@ -1209,7 +1200,7 @@ describe("git-finalize helpers", () => {
       let ioCalled = false;
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "blockedRoute",
           route: {
@@ -1238,42 +1229,33 @@ describe("git-finalize helpers", () => {
       expect(ioCalled).toBe(false);
     });
 
-    it("no_remote route + unmerged change branch returns local_unmerged with actionable details", () => {
+    it("no_remote route returns blocked with NO_REMOTE_RELEASE_AUTHORITY", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "noRemoteUnmerged",
           route: { route: "no_remote" },
         },
         {
-          runGit: (_cwd, args) => {
-            if (
-              args[0] === "log" &&
-              args[2] === "trunk..change/noRemoteUnmerged"
-            ) {
-              return {
-                status: 0,
-                stdout: "abc123 unmerged change commit\n",
-                stderr: "",
-              };
-            }
+          runGit: (_cwd, _args) => {
             return { status: 1, stdout: "", stderr: "unexpected" };
           },
         },
       );
 
       expect(result.reachable).toBe(false);
-      expect(result.proof).toBe("local_unmerged");
-      expect(result.details).toEqual(["abc123 unmerged change commit"]);
+      expect(result.proof).toBe("blocked");
+      expect(result.details).toEqual(["NO_REMOTE_RELEASE_AUTHORITY"]);
     });
 
-    // rq-fixArchivedBranchFinalization SC1: no_remote route + deleted change
-    // branch + persisted changeTipSha must re-prove via local tree-SHA match.
-    it("no_remote route + deleted branch + changeTipSha re-proves local merge via tree-SHA", () => {
+    // rq-releaseFinalization01 / rq-releaseFinalization03: no_remote route is
+    // blocked without a canonical remote; remote-first archive isolation forbids
+    // local-only release authority and shared-ref mutation.
+    it("no_remote route + deleted branch + changeTipSha is blocked without canonical remote", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "noRemoteDeletedTip",
           route: { route: "no_remote" },
@@ -1286,38 +1268,22 @@ describe("git-finalize helpers", () => {
               // Branch ref is gone; range log fails
               return { status: 128, stdout: "", stderr: "unknown revision" };
             }
-            if (args[0] === "rev-parse" && args[1] === "tip-local-abc^{tree}") {
-              return { status: 0, stdout: "shared-tree-sha\n", stderr: "" };
-            }
-            if (
-              args[0] === "log" &&
-              args[1] === "--format=%H %T" &&
-              args[3] === "trunk"
-            ) {
-              return {
-                status: 0,
-                stdout: "merge-local-sha shared-tree-sha\n",
-                stderr: "",
-              };
-            }
             return { status: 1, stdout: "", stderr: "unexpected" };
           },
         },
       );
 
-      expect(result).toMatchObject({
-        reachable: true,
-        proof: "local_merge",
-        releasedCommitSha: "merge-local-sha",
-      });
+      expect(result.reachable).toBe(false);
+      expect(result.proof).toBe("blocked");
+      expect(result.details).toEqual(["NO_REMOTE_RELEASE_AUTHORITY"]);
     });
 
-    // rq-fixArchivedBranchFinalization SC2: missing or mismatched changeTipSha
-    // must remain fail-closed on no_remote route.
-    it("no_remote route + deleted branch + mismatched changeTipSha stays fail-closed", () => {
+    // Missing or mismatched changeTipSha on no_remote route remains blocked
+    // because the route itself has no canonical remote authority.
+    it("no_remote route + deleted branch + mismatched changeTipSha stays blocked", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "noRemoteMismatch",
           route: { route: "no_remote" },
@@ -1329,33 +1295,20 @@ describe("git-finalize helpers", () => {
             if (argStr === "log trunk..change/noRemoteMismatch") {
               return { status: 128, stdout: "", stderr: "unknown revision" };
             }
-            if (args[0] === "rev-parse" && args[1] === "tip-local-abc^{tree}") {
-              return { status: 0, stdout: "different-tree-sha\n", stderr: "" };
-            }
-            if (
-              args[0] === "log" &&
-              args[1] === "--format=%H %T" &&
-              args[3] === "trunk"
-            ) {
-              return {
-                status: 0,
-                stdout: "merge-local-sha other-tree-sha\n",
-                stderr: "",
-              };
-            }
             return { status: 1, stdout: "", stderr: "unexpected" };
           },
         },
       );
 
       expect(result.reachable).toBe(false);
-      expect(result.proof).toBe("local_unmerged");
+      expect(result.proof).toBe("blocked");
+      expect(result.details).toEqual(["NO_REMOTE_RELEASE_AUTHORITY"]);
     });
 
     it("pr_manual route + merged PR returns pr_merged typed proof", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "manualPrMerged",
           prNumber: 77,
@@ -1396,7 +1349,7 @@ describe("git-finalize helpers", () => {
     it("pr_manual route + open PR returns pr_unmerged actionable state, never success", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "manualPrOpen",
           prNumber: 78,
@@ -1436,7 +1389,7 @@ describe("git-finalize helpers", () => {
     it("merge_queue route + merged PR returns pr_merged typed proof", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "queueMerged",
           prNumber: 99,
@@ -1481,7 +1434,7 @@ describe("git-finalize helpers", () => {
     it("merge_queue route + deleted branch + changeTipSha tree match returns pr_merged via structural fallback", () => {
       const result = resolveReleaseReachability(
         {
-          mainCheckout: "/repo",
+          repoRoot: "/repo",
           defaultBranch: "trunk",
           changeId: "queueDeletedBranch",
           changeTipSha: "tip999xyz",
@@ -1537,7 +1490,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedUnmergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         archivedChangeIds: ["archived-one", "already-merged"],
       },
@@ -1606,7 +1559,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1662,7 +1615,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1723,7 +1676,7 @@ describe("git-finalize helpers", () => {
   it("detectArchivedMergedBranches rejects git cherry output with unmerged commits", () => {
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1764,7 +1717,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -1833,7 +1786,7 @@ describe("git-finalize helpers", () => {
     const calls: string[][] = [];
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         archivedChangeIds: ["A", "C"],
       },
@@ -1899,7 +1852,7 @@ describe("git-finalize helpers", () => {
   it("detectArchivedMergedBranches returns blocked status when local branch list fails", () => {
     const result = detectArchivedMergedBranches(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
       },
       {
@@ -2086,7 +2039,7 @@ describe("git-finalize helpers", () => {
     const ghCalls: string[][] = [];
     const result = redriveArchivedUnmergedBranch(
       {
-        mainCheckout: "/repo",
+        repoRoot: "/repo",
         defaultBranch: "trunk",
         changeId: "archived-one",
         changeTitle: "Archived work",
@@ -2435,17 +2388,23 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Dirty main on default branch is checkpointed. With no remote, local
-    // release proof is enough and the terminal is Merged locally.
+    // No remote → no-remote archive is blocked with NO_REMOTE_RELEASE_AUTHORITY
+    // and the shared default branch ref is never mutated.
     expect(result).toMatchObject({
-      status: "shipped",
+      status: "blocked",
       defaultBranch: "trunk",
       route: "no_remote",
-      pushStatus: "skipped",
-      mainCheckpointCommitSha: expect.any(String),
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "NO_REMOTE_RELEASE_AUTHORITY",
+      },
     });
-    // Verify the checkpoint commit actually happened on main
-    expect(result.mainCheckpointCommitSha).toBeTruthy();
+    const trunkHeadAfter = git(main, ["rev-parse", "refs/heads/trunk"]);
+    const trunkHeadBefore = git(main, ["rev-parse", "trunk"]);
+    expect(trunkHeadAfter).toBe(trunkHeadBefore);
+    // The shared main checkout is no longer inspected or checkpointed; dirty
+    // files in the main checkout remain untouched (remote-first isolation).
+    expect(git(main, ["status", "--porcelain"])).toContain("?? dirty.txt");
   });
 
   it("finalizeRelease commits archive artifacts before merge", async () => {
@@ -2476,10 +2435,15 @@ describe("git-finalize helpers", () => {
     expect(result.releasedCommitSha).toBe(
       git(main, ["rev-parse", "origin/trunk"]),
     );
-    expect(git(main, ["show", "HEAD:.adv/archive/bundle.txt"])).toBe("bundle");
+    // The shared main checkout is no longer updated; fetch the remote default
+    // branch to verify the archive bundle landed on origin.
+    git(main, ["fetch", "origin", "trunk"]);
+    expect(git(main, ["show", "origin/trunk:.adv/archive/bundle.txt"])).toBe(
+      "bundle",
+    );
   });
 
-  it("finalizeRelease completes no-remote local archive", async () => {
+  it("finalizeRelease blocks no-remote archive with NO_REMOTE_RELEASE_AUTHORITY", async () => {
     const main = join(tempRoot, "main");
     const worktree = join(tempRoot, "wt");
     await mkdir(main);
@@ -2488,6 +2452,7 @@ describe("git-finalize helpers", () => {
     await writeFile(join(worktree, "feature.txt"), "feature\n");
     git(worktree, ["add", "feature.txt"]);
     git(worktree, ["commit", "-m", "feature"]);
+    const trunkBefore = git(main, ["rev-parse", "trunk"]);
 
     const skipped = await finalizeRelease({
       changeId: "example",
@@ -2496,15 +2461,11 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    expect(skipped.status).toBe("shipped");
+    expect(skipped.status).toBe("blocked");
     expect(skipped.route).toBe("no_remote");
-    expect(skipped.pushStatus).toBe("skipped");
-    expect(skipped.pushFailureReason).toContain("origin");
-    // rq-fixArchivedBranchFinalization SC1: change-tip SHA is captured from the
-    // change branch before merge/cleanup so tree re-proof can survive deletion.
-    expect(skipped.changeTipSha).toBe(
-      git(main, ["rev-parse", "change/example"]),
-    );
+    expect(skipped.pushStatus).toBe("not_attempted");
+    expect(skipped.blocked?.reason).toBe("NO_REMOTE_RELEASE_AUTHORITY");
+    expect(git(main, ["rev-parse", "trunk"])).toBe(trunkBefore);
   });
 
   it("finalizeRelease in PR mode opens PR and returns pending auto-merge", async () => {
@@ -2746,7 +2707,6 @@ describe("git-finalize helpers", () => {
       autoMergeArmed: true,
       pushStatus: "pushed",
     });
-    expect(gitCalls).toContainEqual(["reset", "--hard", "origin/trunk"]);
     expect(ghCalls).toContainEqual([
       "pr",
       "merge",
@@ -2857,6 +2817,63 @@ describe("git-finalize helpers", () => {
       mergeCommitSha: "merge-sha",
       pushStatus: "pushed",
     });
+  });
+
+  it("finalizeRelease direct path fetches origin before selecting base and ignores stale local origin/trunk", async () => {
+    const seed = join(tempRoot, "seed");
+    const remote = join(tempRoot, "remote.git");
+    const main = join(tempRoot, "main");
+    const advancer = join(tempRoot, "advancer");
+    const worktree = join(tempRoot, "wt");
+    await mkdir(seed);
+    await mkdir(remote);
+    await mkdir(main);
+    await mkdir(advancer);
+
+    await initRepo(seed, "trunk");
+    git(tempRoot, ["init", "--bare", "-q", "-b", "trunk", remote]);
+    git(seed, ["remote", "add", "origin", remote]);
+    git(seed, ["push", "origin", "trunk"]);
+
+    git(tempRoot, ["clone", "-q", remote, main]);
+    git(main, ["config", "user.email", "adv-test@example.invalid"]);
+    git(main, ["config", "user.name", "ADV Test"]);
+    git(tempRoot, ["clone", "-q", remote, advancer]);
+    git(advancer, ["config", "user.email", "adv-test@example.invalid"]);
+    git(advancer, ["config", "user.name", "ADV Test"]);
+
+    // Advance the remote default branch from a separate clone so main's
+    // local origin/trunk ref is stale.
+    await writeFile(join(advancer, "remote-advance.txt"), "advanced\n");
+    git(advancer, ["add", "remote-advance.txt"]);
+    git(advancer, ["commit", "-m", "remote advance"]);
+    git(advancer, ["push", "origin", "trunk"]);
+
+    const staleOriginTrunk = git(main, ["rev-parse", "origin/trunk"]);
+
+    git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    await writeFile(join(worktree, "feature.txt"), "feature\n");
+    git(worktree, ["add", "feature.txt"]);
+    git(worktree, ["commit", "-m", "feature"]);
+
+    const result = await finalizeRelease({
+      changeId: "example",
+      workdir: worktree,
+      archiveMode: "direct",
+      autoPush: true,
+    });
+
+    expect(result.status).toBe("shipped");
+    expect(result.route).toBe("direct");
+    expect(result.releasedCommitSha).toBeTruthy();
+    expect(result.releasedCommitSha).not.toBe(staleOriginTrunk);
+
+    const remoteHead = git(remote, ["rev-parse", "refs/heads/trunk"]);
+    expect(result.releasedCommitSha).toBe(remoteHead);
+    expect(git(remote, ["show", `${remoteHead}:remote-advance.txt`])).toBe(
+      "advanced",
+    );
+    expect(git(remote, ["show", `${remoteHead}:feature.txt`])).toBe("feature");
   });
 
   it("finalizeRelease in PR mode blocks when origin is missing", async () => {
@@ -3023,163 +3040,16 @@ describe("git-finalize helpers", () => {
 
   // --- rq-releaseFinalization01.7/.8 regression coverage ---
 
-  describe("verifyGitIdentity", () => {
-    it("succeeds when git identity is configured", async () => {
-      const repo = join(tempRoot, "identity-ok");
-      await mkdir(repo);
-      await initRepo(repo);
-
-      const result = verifyGitIdentity(repo);
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.ident).toContain("ADV Test");
-      }
-    });
-
-    it("fails when git identity is missing", async () => {
-      const repo = join(tempRoot, "identity-missing");
-      await mkdir(repo);
-      git(repo, ["init", "-q", "-b", "trunk"]);
-      // Deliberately do NOT configure user.name/user.email
-      // Use a mock runGit to simulate missing identity
-      const result = verifyGitIdentity(repo, {
-        runGit: () => ({
-          status: 128,
-          stdout: "",
-          stderr: "fatal: EINVAL: invalid argument",
-        }),
-      });
-      expect(result.ok).toBe(false);
-      if (!result.ok) {
-        expect(result.message).toContain("identity");
-      }
-    });
-  });
-
-  describe("detectMainInProgressState", () => {
-    it("returns no in-progress state for clean repo", async () => {
-      const repo = join(tempRoot, "clean-state");
-      await mkdir(repo);
-      await initRepo(repo);
-
-      const result = detectMainInProgressState(repo);
-      expect(result.inProgress).toBe(false);
-    });
-  });
-
-  describe("commitDirtyMainCheckpoint", () => {
-    it("commits tracked dirty files", async () => {
-      const repo = join(tempRoot, "dirty-tracked");
-      await mkdir(repo);
-      await initRepo(repo);
-      await writeFile(join(repo, "existing.txt"), "original\n");
-      git(repo, ["add", "existing.txt"]);
-      git(repo, ["commit", "-m", "initial"]);
-
-      // Modify tracked file
-      await writeFile(join(repo, "existing.txt"), "modified\n");
-
-      const result = commitDirtyMainCheckpoint(repo, "test-change");
-      expect(result.committed).toBe(true);
-      expect(result.commitSha).toBeTruthy();
-
-      // Verify the file is committed
-      const status = git(repo, ["status", "--porcelain"]);
-      expect(status).toBe("");
-    });
-
-    it("commits untracked non-ignored files", async () => {
-      const repo = join(tempRoot, "dirty-untracked");
-      await mkdir(repo);
-      await initRepo(repo);
-      await writeFile(join(repo, "new-file.txt"), "new content\n");
-
-      const result = commitDirtyMainCheckpoint(repo, "test-change");
-      expect(result.committed).toBe(true);
-      expect(result.commitSha).toBeTruthy();
-
-      // Verify the untracked file is now committed
-      const status = git(repo, ["status", "--porcelain"]);
-      expect(status).toBe("");
-    });
-
-    it("returns committed:false for clean repo", async () => {
-      const repo = join(tempRoot, "dirty-clean");
-      await mkdir(repo);
-      await initRepo(repo);
-
-      const result = commitDirtyMainCheckpoint(repo, "test-change");
-      expect(result.committed).toBe(false);
-    });
-
-    it("returns error when git add fails", async () => {
-      const result = commitDirtyMainCheckpoint(
-        "/nonexistent/path",
-        "test-change",
-        {
-          runGit: (_cwd: string, args: string[]) => {
-            if (args[0] === "status") {
-              return {
-                status: 0,
-                stdout: "M file.txt\n",
-                stderr: "",
-              };
-            }
-            if (args[0] === "add") {
-              return {
-                status: 1,
-                stdout: "",
-                stderr: "error: add failed",
-              };
-            }
-            return { status: 0, stdout: "", stderr: "" };
-          },
-        },
-      );
-      expect(result.committed).toBe(false);
-      expect(result.error).toContain("git add -A failed");
-    });
-
-    it("returns error when git commit fails", async () => {
-      const result = commitDirtyMainCheckpoint(
-        "/tmp/no-matter",
-        "test-change",
-        {
-          runGit: (_cwd: string, args: string[]) => {
-            if (args[0] === "status") {
-              return {
-                status: 0,
-                stdout: "M file.txt\n",
-                stderr: "",
-              };
-            }
-            if (args[0] === "add") {
-              return { status: 0, stdout: "", stderr: "" };
-            }
-            if (args[0] === "commit") {
-              return {
-                status: 1,
-                stdout: "",
-                stderr: "error: commit failed",
-              };
-            }
-            return { status: 0, stdout: "", stderr: "" };
-          },
-        },
-      );
-      expect(result.committed).toBe(false);
-      expect(result.error).toContain("git commit failed");
-    });
-  });
-
-  it("finalizeRelease blocks wrong branch (rq-releaseFinalization01.8)", async () => {
+  it("finalizeRelease blocks no-remote archive even when main checkout is on a different branch", async () => {
     const main = join(tempRoot, "wrong-branch");
     const worktree = join(tempRoot, "wrong-branch-wt");
     await mkdir(main);
     await initRepo(main);
-    // Switch main to a non-default branch
+    // Switch main checkout to a non-default branch; the shared checkout should
+    // not be inspected or mutated.
     git(main, ["checkout", "-b", "feature/other"]);
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    const trunkBefore = git(main, ["rev-parse", "trunk"]);
 
     const result = await finalizeRelease({
       changeId: "example",
@@ -3190,21 +3060,24 @@ describe("git-finalize helpers", () => {
 
     expect(result).toMatchObject({
       status: "blocked",
+      route: "no_remote",
+      pushStatus: "not_attempted",
       blocked: {
-        reason: "MAIN_BRANCH_MISMATCH",
-        remediation: expect.stringContaining("feature/other"),
+        reason: "NO_REMOTE_RELEASE_AUTHORITY",
       },
     });
+    expect(git(main, ["rev-parse", "trunk"])).toBe(trunkBefore);
   });
 
-  it("finalizeRelease includes mainCheckpointCommitSha in shipped result", async () => {
+  it("finalizeRelease blocks no-remote archive without mutating dirty main checkout", async () => {
     const main = join(tempRoot, "checkpoint-shipped");
     const worktree = join(tempRoot, "checkpoint-shipped-wt");
     await mkdir(main);
     await initRepo(main);
-    // Make main dirty
+    // Make main dirty; the shared checkout must not be checkpointed or merged.
     await writeFile(join(main, "dirty.txt"), "dirty content\n");
     git(main, ["worktree", "add", "-b", "change/example", worktree]);
+    const trunkBefore = git(main, ["rev-parse", "trunk"]);
 
     const result = await finalizeRelease({
       changeId: "example",
@@ -3213,14 +3086,17 @@ describe("git-finalize helpers", () => {
       autoPush: false,
     });
 
-    // Push is skipped because no remote exists, but no-remote local proof is
-    // release-complete and checkpoint evidence is preserved.
     expect(result).toMatchObject({
-      status: "shipped",
+      status: "blocked",
       route: "no_remote",
-      pushStatus: "skipped",
-      mainCheckpointCommitSha: expect.any(String),
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "NO_REMOTE_RELEASE_AUTHORITY",
+      },
     });
+    expect(git(main, ["rev-parse", "trunk"])).toBe(trunkBefore);
+    // Dirty file in shared main checkout remains untouched.
+    expect(git(main, ["status", "--porcelain"])).toContain("?? dirty.txt");
   });
 
   describe("deleteChangeBranch", () => {
@@ -3548,352 +3424,6 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  describe("syncDefaultBranchAfterMerge (rq-releaseFinalization03)", () => {
-    async function setupRepoWithOrigin(
-      suffix: string,
-      opts: {
-        localAhead?: number;
-        originAhead?: number;
-        sameCommit?: boolean;
-      } = {},
-    ): Promise<{ origin: string; main: string }> {
-      const origin = join(tempRoot, `sync-${suffix}-origin`);
-      const main = join(tempRoot, `sync-${suffix}-main`);
-      await mkdir(origin);
-      git(origin, ["init", "-q", "--bare", "-b", "trunk"]);
-      await mkdir(main);
-      git(main, ["init", "-q", "-b", "trunk"]);
-      git(main, ["config", "user.email", "adv-test@example.invalid"]);
-      git(main, ["config", "user.name", "ADV Test"]);
-      git(main, ["remote", "add", "origin", origin]);
-      await writeFile(join(main, "README.md"), "initial\n");
-      git(main, ["add", "README.md"]);
-      git(main, ["commit", "-m", "initial"]);
-      git(main, ["push", "-u", "origin", "trunk"]);
-
-      // Push `originAhead` commits to origin directly (simulating a remote squash-merge landing).
-      if (opts.originAhead && opts.originAhead > 0) {
-        const remoteWork = join(tempRoot, `sync-${suffix}-rw`);
-        await mkdir(remoteWork);
-        git(remoteWork, ["init", "-q", "-b", "trunk"]);
-        git(remoteWork, ["config", "user.email", "adv-test@example.invalid"]);
-        git(remoteWork, ["config", "user.name", "ADV Test"]);
-        git(remoteWork, ["remote", "add", "origin", origin]);
-        git(remoteWork, ["fetch", "origin", "trunk"]);
-        git(remoteWork, ["checkout", "-b", "scratch", "origin/trunk"]);
-        for (let i = 0; i < opts.originAhead; i++) {
-          await writeFile(
-            join(remoteWork, `remote-${i}.txt`),
-            `remote-commit-${i}\n`,
-          );
-          git(remoteWork, ["add", "."]);
-          git(remoteWork, [
-            "commit",
-            "-m",
-            opts.sameCommit ? `local-only-${i}` : `squash-merge-${i}`,
-          ]);
-        }
-        git(remoteWork, ["push", "origin", "scratch:trunk"]);
-      }
-
-      // Add local-only commits (simulating an unpushed ADV checkpoint).
-      if (opts.localAhead && opts.localAhead > 0) {
-        for (let i = 0; i < opts.localAhead; i++) {
-          await writeFile(join(main, `local-${i}.txt`), `local-commit-${i}\n`);
-          git(main, ["add", "."]);
-          git(main, ["commit", "-m", `local-checkpoint-${i}`]);
-        }
-      }
-      return { origin, main };
-    }
-
-    it("clean ff-only: local fast-forwards to origin/{default} with delta captured", async () => {
-      const { main } = await setupRepoWithOrigin("clean-ff", {
-        localAhead: 0,
-        originAhead: 2,
-      });
-
-      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: main,
-        defaultBranch: "trunk",
-      });
-      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-
-      expect(result.status).toBe("synced");
-      expect(Array.isArray(result.ffCommits)).toBe(true);
-      expect((result.ffCommits ?? []).length).toBe(2);
-      expect(afterHead).not.toBe(beforeHead);
-      const originHead = (
-        git(main, ["rev-parse", "origin/trunk"]) || ""
-      ).trim();
-      expect(afterHead).toBe(originHead);
-    });
-
-    it("diverged: surfaces without mutating local (rq-releaseFinalization03.2)", async () => {
-      const { main } = await setupRepoWithOrigin("diverged", {
-        localAhead: 2,
-        originAhead: 3,
-      });
-      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-      const beforeStatus = git(main, ["status", "--porcelain"]);
-
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: main,
-        defaultBranch: "trunk",
-      });
-      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-      const afterStatus = git(main, ["status", "--porcelain"]);
-
-      expect(result.status).toBe("diverged");
-      expect(result.reason).toBe("LOCAL_AHEAD_OF_ORIGIN");
-      expect((result.localOnlyCommits ?? []).length).toBe(2);
-      expect(afterHead).toBe(beforeHead);
-      expect(afterStatus).toBe(beforeStatus); // no merge conflict markers
-    });
-
-    it("fetch failure: returns blocked with FETCH_FAILED (rq-releaseFinalization03.4)", async () => {
-      // No remote configured — fetch will fail.
-      const noRemote = join(tempRoot, "sync-noremote");
-      await mkdir(noRemote);
-      git(noRemote, ["init", "-q", "-b", "trunk"]);
-      git(noRemote, ["config", "user.email", "adv-test@example.invalid"]);
-      git(noRemote, ["config", "user.name", "ADV Test"]);
-      await writeFile(join(noRemote, "README.md"), "x");
-      git(noRemote, ["add", "README.md"]);
-      git(noRemote, ["commit", "-m", "x"]);
-
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: noRemote,
-        defaultBranch: "trunk",
-      });
-
-      expect(result.status).toBe("blocked");
-      expect(result.reason).toBe("FETCH_FAILED");
-      expect(typeof result.remediation).toBe("string");
-    });
-
-    it("does not mutate the working tree destructively (rq-releaseFinalization03 + DONT5)", async () => {
-      // Spy runGit: collect every argv it receives and assert no `reset --hard`,
-      // `checkout`, `switch`, or `pull` ever appears.
-      const calls: string[][] = [];
-      const spyRunGit: typeof defaultRunGit = (cwd, args, timeoutMs) => {
-        calls.push(args);
-        return defaultRunGit(cwd, args, timeoutMs);
-      };
-
-      const { main } = await setupRepoWithOrigin("no-destructive-ops", {
-        localAhead: 1,
-        originAhead: 1,
-      });
-
-      const result = syncDefaultBranchAfterMerge(
-        {
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        },
-        { runGit: spyRunGit },
-      );
-      expect(result.status).toBe("diverged"); // expect diverged to fire the safety branch
-
-      const flat = calls.map((argv) => argv.join(" ")).join("\n");
-      expect(flat).not.toMatch(/\breset(\s|$)/);
-      expect(flat).not.toMatch(/\bcheckout(\s|$)/);
-      expect(flat).not.toMatch(/\bswitch(\s|$)/);
-      expect(flat).not.toMatch(/\bpull(\s|$)/);
-    });
-
-    it("merge path: does not mutate the working tree destructively", async () => {
-      const calls: string[][] = [];
-      const spyRunGit: typeof defaultRunGit = (cwd, args, timeoutMs) => {
-        calls.push(args);
-        return defaultRunGit(cwd, args, timeoutMs);
-      };
-
-      const { main } = await setupRepoWithOrigin("no-destructive-ops-merge", {
-        localAhead: 0,
-        originAhead: 1,
-      });
-
-      const result = syncDefaultBranchAfterMerge(
-        {
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        },
-        { runGit: spyRunGit },
-      );
-      expect(result.status).toBe("synced");
-
-      const flat = calls.map((argv) => argv.join(" ")).join("\n");
-      expect(flat).not.toMatch(/\breset(\s|$)/);
-      expect(flat).not.toMatch(/\bcheckout(\s|$)/);
-      expect(flat).not.toMatch(/\bswitch(\s|$)/);
-      expect(flat).not.toMatch(/\bpull(\s|$)/);
-    });
-
-    it("does not record release-done (rq-releaseFinalization03.3 closes validator ag-fJ57GzXO)", async () => {
-      // Pure type-level contract: the outcome shape must have no `releaseDone` /
-      // `recorded` field that could let the helper shortcut verifyReleaseEvidenceFromMain.
-      const sample: import("./git-finalize").SyncDefaultBranchAfterMergeOutcome =
-        {
-          status: "synced",
-          ffCommits: ["abc123"],
-        };
-      expect("releaseDone" in sample).toBe(false);
-      expect("recorded" in sample).toBe(false);
-      // Allowed keys (any subset may be present depending on status):
-      expect(
-        Object.keys(sample).every((k) =>
-          [
-            "status",
-            "reason",
-            "remediation",
-            "localOnlyCommits",
-            "ffCommits",
-            "details",
-          ].includes(k),
-        ),
-      ).toBe(true);
-      expect(sample.status).toBe("synced");
-    });
-
-    it("already in sync (no-op): ahead==0 && behind==0 returns synced with empty ffCommits (rq-releaseFinalization03 / ce-5)", async () => {
-      // Trivial no-op case: local and origin are at the same commit.
-      const { main } = await setupRepoWithOrigin("no-op-sync", {
-        localAhead: 0,
-        originAhead: 0,
-      });
-      const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-
-      const result = syncDefaultBranchAfterMerge({
-        mainCheckout: main,
-        defaultBranch: "trunk",
-      });
-      const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-
-      expect(result.status).toBe("synced");
-      expect(result.ffCommits ?? []).toEqual([]);
-      expect(afterHead).toBe(beforeHead);
-      expect(result.details?.[0]).toMatch(/already at/);
-    });
-
-    describe("auto-drive regression guards", () => {
-      it("rev-list failure returns blocked REV_LIST_FAILED (ce-1)", async () => {
-        const { main } = await setupRepoWithOrigin("revlist-fail", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        const result = syncDefaultBranchAfterMerge(
-          { mainCheckout: main, defaultBranch: "trunk" },
-          {
-            runGit: (cwd, args) => {
-              if (args[0] === "fetch" && args[1] === "origin") {
-                return defaultRunGit(cwd, args);
-              }
-              if (
-                args[0] === "rev-parse" &&
-                args[1] === "--abbrev-ref" &&
-                args[2] === "HEAD"
-              ) {
-                return { status: 0, stdout: "trunk\n", stderr: "" };
-              }
-              if (args[0] === "rev-list" && args[1] === "--count") {
-                return {
-                  status: 128,
-                  stdout: "",
-                  stderr: `fatal: malformed revision '${args[2]}'\n`,
-                };
-              }
-              return defaultRunGit(cwd, args);
-            },
-          },
-        );
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("REV_LIST_FAILED");
-        expect(result.remediation).toContain("rev-list failed");
-      });
-
-      it("non-numeric rev-list count returns blocked REV_LIST_FAILED (ce-1)", async () => {
-        const { main } = await setupRepoWithOrigin("revlist-nan", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        let revListCount = 0;
-        const result = syncDefaultBranchAfterMerge(
-          { mainCheckout: main, defaultBranch: "trunk" },
-          {
-            runGit: (cwd, args) => {
-              if (args[0] === "fetch" && args[1] === "origin") {
-                return defaultRunGit(cwd, args);
-              }
-              if (
-                args[0] === "rev-parse" &&
-                args[1] === "--abbrev-ref" &&
-                args[2] === "HEAD"
-              ) {
-                return { status: 0, stdout: "trunk\n", stderr: "" };
-              }
-              if (args[0] === "rev-list" && args[1] === "--count") {
-                revListCount++;
-                const bad = revListCount === 1;
-                return {
-                  status: 0,
-                  stdout: bad ? "not-a-number\n" : "1\n",
-                  stderr: "",
-                };
-              }
-              return defaultRunGit(cwd, args);
-            },
-          },
-        );
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("REV_LIST_FAILED");
-      });
-
-      it("HEAD on wrong branch returns blocked MAIN_NOT_ON_DEFAULT (ce-2)", async () => {
-        const { main } = await setupRepoWithOrigin("head-wrong-branch", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        git(main, ["checkout", "-b", "feature"]);
-        const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        const result = syncDefaultBranchAfterMerge({
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        });
-        const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("MAIN_NOT_ON_DEFAULT");
-        expect(result.details).toContain("HEAD=feature");
-        expect(afterHead).toBe(beforeHead);
-      });
-
-      it("dirty main checkout returns blocked MAIN_DIRTY without mutation (KD3)", async () => {
-        const { main } = await setupRepoWithOrigin("dirty-main", {
-          localAhead: 0,
-          originAhead: 1,
-        });
-        await writeFile(join(main, "dirty.txt"), "untracked-local-change\n");
-        const beforeHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        const beforeStatus = git(main, ["status", "--porcelain"]);
-        expect(beforeStatus).not.toBe("");
-
-        const result = syncDefaultBranchAfterMerge({
-          mainCheckout: main,
-          defaultBranch: "trunk",
-        });
-        const afterHead = (git(main, ["rev-parse", "HEAD"]) || "").trim();
-        const afterStatus = git(main, ["status", "--porcelain"]);
-
-        expect(result.status).toBe("blocked");
-        expect(result.reason).toBe("MAIN_DIRTY");
-        expect(afterHead).toBe(beforeHead);
-        expect(afterStatus).toBe(beforeStatus);
-        expect(result.remediation).toContain("git status");
-      });
-    });
-  });
-
   describe("merge queue handoff", () => {
     function queueGhMock(
       opts: {
@@ -4026,7 +3556,7 @@ describe("git-finalize helpers", () => {
 
       const result = completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -4051,8 +3581,6 @@ describe("git-finalize helpers", () => {
         autoMergeArmed: true,
         pushStatus: "pushed",
       });
-      expect(gitMock.calls).toContainEqual(["fetch", "origin", "trunk"]);
-      expect(gitMock.calls).toContainEqual(["reset", "--hard", "origin/trunk"]);
     });
 
     it("completeMergeQueueHandoff collapses to shipped when PR is already merged", () => {
@@ -4061,7 +3589,7 @@ describe("git-finalize helpers", () => {
 
       const result = completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -4092,7 +3620,7 @@ describe("git-finalize helpers", () => {
 
       const result = completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -4119,7 +3647,7 @@ describe("git-finalize helpers", () => {
 
       const result = executePullRequestHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           repo: "Sharper-Flow/Advance",
           branch: "change/example",
@@ -4239,7 +3767,7 @@ describe("git-finalize helpers", () => {
       const queueGh = queueGhMock({ finalState: "OPEN" });
       completeMergeQueueHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           defaultBranch: "trunk",
           changeId: "example",
@@ -4260,7 +3788,7 @@ describe("git-finalize helpers", () => {
       let branchViewCount = 0;
       executePullRequestHandoff(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           workdir: "/workdir",
           repo: "Sharper-Flow/Advance",
           branch: "change/example",
@@ -4651,34 +4179,6 @@ function defaultRunGit(cwd: string, args: string[]) {
 // checks (no live remote, no Temporal) since the existing parent-change tests
 // already exercise direct/no-remote/ff-only runtime paths.
 describe("auto-drive regression guards (rq-releaseFinalization02 / DONT1 / DONT3)", () => {
-  it("syncDefaultBranchAfterMerge is exported but not invoked internally by git-finalize helpers", () => {
-    // The helper must be exported for the archive handler but must NOT be
-    // auto-invoked by any other git-finalize helper. DONT3 / AC7.
-    const src = readFileSync(join(__dirname, "git-finalize.ts"), "utf8");
-    // Find any helper that calls syncDefaultBranchAfterMerge (other than its own
-    // declaration) — that would be an unintended internal dependency.
-    const lines = src.split("\n");
-    let declaredAt = -1;
-    for (let i = 0; i < lines.length; i++) {
-      if (/export function syncDefaultBranchAfterMerge/.test(lines[i])) {
-        declaredAt = i;
-        break;
-      }
-    }
-    expect(declaredAt).toBeGreaterThan(-1);
-
-    // Count call sites and exclude the declaration line + its immediate docblock
-    const callSites = lines
-      .map((line, idx) => ({ line, idx }))
-      .filter(
-        ({ idx, line }) =>
-          idx !== declaredAt &&
-          /syncDefaultBranchAfterMerge\s*\(/.test(line) &&
-          !/^\s*\*\s/.test(line), // skip JSDoc lines
-      );
-    expect(callSites).toEqual([]); // zero internal call sites
-  });
-
   it("git-finalize.ts adds no new temporal/* imports beyond the existing CHANGE_BRANCH_PREFIX (AC7 layer-boundary)", () => {
     // Reading the file confirms my edit retained only the pre-existing
     // CHANGE_BRANCH_PREFIX import from temporal/contracts and added no other
@@ -4733,8 +4233,8 @@ describe("adv-archive.md auto-drive (rq-releaseFinalization02 DONT3)", () => {
     expect(section).not.toMatch(/redriveArchivedUnmergedBranch/);
     // The section must reference the correct completion entry instead.
     expect(section).toContain("verifyReleaseEvidenceFromMain");
-    // And the new helper it delegates to.
-    expect(section).toContain("syncDefaultBranchAfterMerge");
+    // The removed local-trunk sync helper is no longer mentioned.
+    expect(section).not.toContain("syncDefaultBranchAfterMerge");
   });
 });
 
@@ -5031,9 +4531,10 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
         { runGit: realRunGit },
       );
 
-      // No remote → route is "no_remote", status shipped, push skipped.
-      expect(result.status).toBe("shipped");
+      // No remote → route is "no_remote", status blocked with NO_REMOTE_RELEASE_AUTHORITY.
+      expect(result.status).toBe("blocked");
       expect(result.route).toBe("no_remote");
+      expect(result.blocked?.reason).toBe("NO_REMOTE_RELEASE_AUTHORITY");
 
       // SC1: at most 1 fetch attempt (and the no-remote repo returns 128, but
       // the count tracks attempts, not successes).
@@ -5070,7 +4571,7 @@ describe("FinalizeInvocationState accumulator (rq-optimizePhase9GitCalls)", () =
       };
       const result = createArchivePullRequest(
         {
-          mainCheckout: "/main",
+          repoRoot: "/main",
           repo: "Sharper-Flow/Advance",
           branch: "change/example",
           defaultBranch: "trunk",
@@ -5396,7 +4897,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     const mocks = makeHandoffMocks();
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,
@@ -5449,7 +4950,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     const mocks = makeHandoffMocks();
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,
@@ -5492,7 +4993,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     const mocks = makeRedriveMocks();
     const result = redriveArchivedUnmergedBranch(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         defaultBranch: "trunk",
         changeId,
         changeTitle,
@@ -5529,7 +5030,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     });
     const result = redriveArchivedUnmergedBranch(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         defaultBranch: "trunk",
         changeId,
         changeTitle,
@@ -5567,7 +5068,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     });
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,
@@ -5625,7 +5126,7 @@ describe("archive PR title policy end-to-end integration (AC1-AC5)", () => {
     });
     const result = executePullRequestHandoff(
       {
-        mainCheckout: "/main",
+        repoRoot: "/main",
         workdir: "/workdir",
         repo,
         branch,

@@ -4,7 +4,7 @@ import type { Change } from "../types";
 import type { Store } from "../storage/store-types";
 
 const mocks = vi.hoisted(() => ({
-  resolveMainCheckout: vi.fn(() => "/tmp/main"),
+  resolveRepoRoot: vi.fn(() => "/tmp/main"),
   detectDefaultBranch: vi.fn(() => ({ branch: "trunk", source: "test" })),
   detectArchivedMergedBranches: vi.fn(() => ({
     status: "ok",
@@ -55,7 +55,7 @@ vi.mock("./archive-helpers/git-finalize", async () => {
   >("./archive-helpers/git-finalize");
   return {
     ...actual,
-    resolveMainCheckout: mocks.resolveMainCheckout,
+    resolveRepoRoot: mocks.resolveRepoRoot,
     detectDefaultBranch: mocks.detectDefaultBranch,
     detectArchivedMergedBranches: mocks.detectArchivedMergedBranches,
     listLocalChangeBranchEntries: mocks.listLocalChangeBranchEntries,
@@ -151,7 +151,7 @@ function createMockStore(
 describe("adv_worktree_cleanup mode=archived_branches", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.resolveMainCheckout.mockReturnValue("/tmp/main");
+    mocks.resolveRepoRoot.mockReturnValue("/tmp/main");
     mocks.detectDefaultBranch.mockReturnValue({
       branch: "trunk",
       source: "test",
@@ -219,7 +219,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
 
     // Every synchronous git phase receives an injected, bounded runner. This
     // includes setup and the worktree safety filter, not only merge detection.
-    expect(mocks.resolveMainCheckout).toHaveBeenCalledWith(
+    expect(mocks.resolveRepoRoot).toHaveBeenCalledWith(
       "/tmp/main",
       expect.objectContaining({ runGit: expect.any(Function) }),
     );
@@ -253,7 +253,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     // per-local-branch. A second deps arg (bounded runGit) is now present.
     expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith(
       {
-        mainCheckout: "/tmp/main",
+        repoRoot: "/tmp/main",
         defaultBranch: "trunk",
         archivedChangeIds: ["archived-one", "already-merged"],
       },
@@ -477,7 +477,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     expect(parsed.success).toBe(true);
     expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith(
       {
-        mainCheckout: "/tmp/main",
+        repoRoot: "/tmp/main",
         defaultBranch: "trunk",
         archivedChangeIds: ["X"],
       },
@@ -555,7 +555,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     expect(parsed.success).toBe(true);
     expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith(
       {
-        mainCheckout: "/tmp/main",
+        repoRoot: "/tmp/main",
         defaultBranch: "trunk",
         archivedChangeIds: ["X"],
       },
@@ -689,7 +689,7 @@ describe("adv_worktree_cleanup mode=archived_branches", () => {
     });
     expect(mocks.detectArchivedMergedBranches).toHaveBeenCalledWith(
       {
-        mainCheckout: "/tmp/main",
+        repoRoot: "/tmp/main",
         defaultBranch: "trunk",
         archivedChangeIds: ["archived-one", "already-merged"],
       },

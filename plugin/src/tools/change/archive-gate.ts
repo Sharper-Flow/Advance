@@ -323,16 +323,13 @@ export function buildReleaseCompletionEvidence(
 ): string {
   const details = [
     `defaultBranch=${finalization.defaultBranch}`,
-    `mainCheckout=${finalization.mainCheckout}`,
+    `repoRoot=${finalization.repoRoot}`,
     `pushStatus=${finalization.pushStatus}`,
     finalization.releasedCommitSha
       ? `releasedCommitSha=${finalization.releasedCommitSha}`
       : null,
     finalization.mergeCommitSha
       ? `mergeCommitSha=${finalization.mergeCommitSha}`
-      : null,
-    finalization.mainCheckpointCommitSha
-      ? `mainCheckpointCommitSha=${finalization.mainCheckpointCommitSha}`
       : null,
     finalization.prBranch ? `prBranch=${finalization.prBranch}` : null,
     finalization.prNumber ? `prNumber=${finalization.prNumber}` : null,
@@ -467,7 +464,7 @@ export async function reconcileArchivedBundleRetry(input: {
       ...commonPayload,
       finalization,
       continueFrom: {
-        path: finalization.mainCheckout,
+        path: finalization.repoRoot,
         branch: finalization.defaultBranch,
       },
     });
@@ -491,7 +488,7 @@ export async function reconcileArchivedBundleRetry(input: {
       phase9: "pending_merge",
       finalization,
       continueFrom: {
-        path: finalization.mainCheckout,
+        path: finalization.repoRoot,
         branch: finalization.defaultBranch,
       },
     });
@@ -544,7 +541,7 @@ export async function reconcileArchivedBundleRetry(input: {
         ...commonPayload,
         finalization,
         continueFrom: {
-          path: finalization.mainCheckout,
+          path: finalization.repoRoot,
           branch: finalization.defaultBranch,
         },
         workflowGateStatus: completionResult.workflowGateStatus,
@@ -584,7 +581,7 @@ export async function reconcileArchivedBundleRetry(input: {
         ...commonPayload,
         finalization,
         continueFrom: {
-          path: finalization.mainCheckout,
+          path: finalization.repoRoot,
           branch: finalization.defaultBranch,
         },
         releaseGateStatus: durableProof.releaseGateStatus,
@@ -639,7 +636,7 @@ export async function reconcileArchivedBundleRetry(input: {
     ...commonPayload,
     finalization,
     continueFrom: {
-      path: finalization.mainCheckout,
+      path: finalization.repoRoot,
       branch: finalization.defaultBranch,
     },
     releaseGate: releaseResult.gate,
@@ -769,13 +766,10 @@ export function verifyReleaseEvidenceFromMain(input: {
   change?: Change;
   deps?: Pick<GitFinalizeDeps, "runGit" | "runGh">;
 }): GitFinalizeOutcome {
-  const mainCheckout = input.store.paths.root;
-  const { branch: defaultBranch } = detectDefaultBranch(
-    mainCheckout,
-    input.deps,
-  );
+  const repoRoot = input.store.paths.root;
+  const { branch: defaultBranch } = detectDefaultBranch(repoRoot, input.deps);
   const classifiedRoute = classifyFinalizationRoute(
-    mainCheckout,
+    repoRoot,
     defaultBranch,
     input.deps,
   );
@@ -786,7 +780,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       : classifiedRoute;
   const reachability = resolveReleaseReachability(
     {
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       changeId: input.changeId,
       route,
@@ -803,7 +797,7 @@ export function verifyReleaseEvidenceFromMain(input: {
   if (reachability.reachable) {
     return {
       status: "shipped",
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       route: route.route,
       releasedCommitSha: reachability.releasedCommitSha,
@@ -821,7 +815,7 @@ export function verifyReleaseEvidenceFromMain(input: {
   if (reachability.proof === "origin_push_unverified") {
     return {
       status: "blocked",
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       route: route.route,
       pushStatus: "failed",
@@ -836,7 +830,7 @@ export function verifyReleaseEvidenceFromMain(input: {
   if (reachability.proof === "pr_unmerged") {
     return {
       status: "blocked",
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       route: route.route,
       pushStatus: "pushed",
@@ -856,7 +850,7 @@ export function verifyReleaseEvidenceFromMain(input: {
   if (reachability.proof === "pr_missing_merge_proof") {
     return {
       status: "blocked",
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       route: route.route,
       pushStatus: "pushed",
@@ -872,20 +866,25 @@ export function verifyReleaseEvidenceFromMain(input: {
   }
   return {
     status: "blocked",
-    mainCheckout,
+    repoRoot,
     defaultBranch,
     route: route.route,
     pushStatus: "not_attempted",
     blocked: {
       reason:
-        reachability.proof === "origin_unmerged"
-          ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
-          : "CHANGE_BRANCH_NOT_REACHABLE",
+        route.route === "no_remote" && reachability.proof === "blocked"
+          ? "NO_REMOTE_RELEASE_AUTHORITY"
+          : reachability.proof === "origin_unmerged"
+            ? "CHANGE_BRANCH_NOT_REACHABLE_FROM_ORIGIN"
+            : "CHANGE_BRANCH_NOT_REACHABLE",
       // rq-fixPhase9SquashMergeRedetect AC4: when reachability cannot be
       // established, surface adv_doctor as the recovery path
       // for changes whose branch was legitimately squash-merged and deleted
       // after shipping (gates-done + bundle-present invariant).
-      remediation: `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01). If the branch was squash-merged and deleted after the change shipped, run adv_doctor to diagnose the wedged projection (status-flip recovery being internalized per design D4).`,
+      remediation:
+        route.route === "no_remote" && reachability.proof === "blocked"
+          ? `No origin remote is configured for ${repoRoot}. Configure a canonical origin (a bare repository or a remote-backed repository) before release completion.`
+          : `Change branch change/${input.changeId} must be reachable from ${route.route === "no_remote" ? defaultBranch : `origin/${defaultBranch}`} before release completion (rq-releaseFinalization01). If the branch was squash-merged and deleted after the change shipped, run adv_doctor to diagnose the wedged projection (status-flip recovery being internalized per design D4).`,
       details: reachability.details,
     },
   };
@@ -1241,8 +1240,7 @@ export async function verifyReleaseGateDurableForArchive(input: {
       route === "pr_manual" ||
       route === "merge_queue";
     const validRoutePushCombo =
-      (route === "no_remote" && pushStatus === "skipped") ||
-      ((route === "direct" || prRoute) && pushStatus === "pushed");
+      (route === "direct" || prRoute) && pushStatus === "pushed";
     if (releasedCommitSha && validRoutePushCombo) {
       return {
         accepted: true,

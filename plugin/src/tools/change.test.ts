@@ -264,17 +264,37 @@ function runGit(cwd: string, args: string[]): void {
   execFileSync("git", args, { cwd, stdio: "pipe" });
 }
 
-async function prepareNoRemoteReleaseProof(
+async function prepareLocalReleaseProof(
   repoRoot: string,
   changeId = "test-change",
 ): Promise<void> {
+  const origin = `${repoRoot}.origin.git`;
+  await mkdir(origin, { recursive: true });
   runGit(repoRoot, ["init", "-b", "main"]);
   runGit(repoRoot, ["config", "user.name", "ADV Test"]);
   runGit(repoRoot, ["config", "user.email", "adv-test@example.com"]);
+  runGit(origin, ["init", "--bare", "-b", "main"]);
+  runGit(repoRoot, ["remote", "add", "origin", origin]);
   await writeFile(`${repoRoot}/README.md`, "release proof fixture\n");
   runGit(repoRoot, ["add", "README.md"]);
   runGit(repoRoot, ["commit", "-m", "chore: release proof fixture"]);
-  runGit(repoRoot, ["branch", `change/${changeId}`]);
+  runGit(repoRoot, ["push", "-u", "origin", "main"]);
+
+  // Create a change branch, commit work, merge it back to main, and push so
+  // origin/main contains the change and release proof is reachable.
+  runGit(repoRoot, ["checkout", "-b", `change/${changeId}`]);
+  await writeFile(`${repoRoot}/change.txt`, "change content\n");
+  runGit(repoRoot, ["add", "change.txt"]);
+  runGit(repoRoot, ["commit", "-m", "feat: change work"]);
+  runGit(repoRoot, ["checkout", "main"]);
+  runGit(repoRoot, [
+    "merge",
+    "--no-ff",
+    "-m",
+    `Archive ${changeId}`,
+    `change/${changeId}`,
+  ]);
+  runGit(repoRoot, ["push", "origin", "main"]);
 }
 
 function createMockStore(
@@ -1054,7 +1074,7 @@ describe("change tools — signal-driven lifecycle", () => {
             recovery_audit: {
               reason: "completed_workflow_release_gate_recovery",
               evidence:
-                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; mainCheckout=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
+                "workflow execution already completed | WorkflowNotFoundError; Phase 9 finalization shipped; defaultBranch=trunk; repoRoot=/tmp/main; pushStatus=pushed; mergeCommitSha=abc123",
               recovered_at: "2026-01-01T00:00:01Z",
             },
           },
@@ -5483,7 +5503,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-completed-recovery-",
       );
       try {
-        await prepareNoRemoteReleaseProof(tempDir);
+        await prepareLocalReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
@@ -5522,7 +5542,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-unclassified-no-recovery-",
       );
       try {
-        await prepareNoRemoteReleaseProof(tempDir);
+        await prepareLocalReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
@@ -5551,7 +5571,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-poisoned-recovery-",
       );
       try {
-        await prepareNoRemoteReleaseProof(tempDir);
+        await prepareLocalReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
@@ -5599,7 +5619,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-poisoned-disagree-",
       );
       try {
-        await prepareNoRemoteReleaseProof(tempDir);
+        await prepareLocalReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
@@ -5644,7 +5664,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-no-recovery-generic-error-",
       );
       try {
-        await prepareNoRemoteReleaseProof(tempDir);
+        await prepareLocalReleaseProof(tempDir);
         const store = createMockStore({ gates: allDoneGates });
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/changes`;
@@ -5689,7 +5709,7 @@ describe("change tools — signal-driven lifecycle", () => {
         "adv-change-archive-idempotent-noop-",
       );
       try {
-        await prepareNoRemoteReleaseProof(tempDir, "test-change");
+        await prepareLocalReleaseProof(tempDir, "test-change");
         const archiveDir = `${tempDir}/.adv/archive`;
         const bundleDir = `${archiveDir}/2026-07-01-test-change`;
         await mkdir(bundleDir, { recursive: true });
@@ -5702,7 +5722,7 @@ describe("change tools — signal-driven lifecycle", () => {
         // succeed solely because the store release gate is marked done; the gate
         // must carry matching Phase 9 structural evidence so the no-op path is
         // evidence-authoritative, not status-authoritative.
-        const releaseEvidence = `Phase 9 finalization shipped; defaultBranch=main; mainCheckout=${tempDir}; pushStatus=pushed; route=no_remote`;
+        const releaseEvidence = `Phase 9 finalization shipped; defaultBranch=main; repoRoot=${tempDir}; pushStatus=pushed; route=direct`;
         const gates = {
           ...allDoneGates,
           release: { status: "done", approval_evidence: releaseEvidence },
@@ -5719,7 +5739,7 @@ describe("change tools — signal-driven lifecycle", () => {
           .spyOn(gitFinalize, "finalizeRelease")
           .mockResolvedValue({
             status: "shipped",
-            mainCheckout: tempDir,
+            repoRoot: tempDir,
             defaultBranch: "main",
             pushStatus: "pushed",
           } as Awaited<ReturnType<typeof gitFinalize.finalizeRelease>>);

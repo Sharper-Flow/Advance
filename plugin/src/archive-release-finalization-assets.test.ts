@@ -61,9 +61,8 @@ describe("archive release-finalization docs/spec assets", () => {
     for (const content of [command, voice]) {
       expect(content).toContain("Pending auto-merge.");
       expect(content).toContain("Blocked.");
-      expect(content).toMatch(
-        /Merged locally[\s\S]{0,220}(no `origin` remote|no-remote)/i,
-      );
+      expect(content).toContain("NO_REMOTE_RELEASE_AUTHORITY");
+      expect(content).not.toContain("Merged locally.");
       expect(content).not.toMatch(
         /Merged locally[\s\S]{0,240}(push skipped|push fails|push failed)/i,
       );
@@ -74,6 +73,9 @@ describe("archive release-finalization docs/spec assets", () => {
 
     expect(voice).toMatch(
       /^> \*\*\{change-id\}\*\* · release pending · Pending auto-merge\.$/m,
+    );
+    expect(voice).toMatch(
+      /^> \*\*\{change-id\}\*\* · release blocked · Blocked\.$/m,
     );
     expect(voice).toMatch(
       /^> \*\*\{change-id\}\*\* · release blocked · Blocked\.$/m,

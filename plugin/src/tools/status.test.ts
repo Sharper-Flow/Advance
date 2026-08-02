@@ -56,12 +56,12 @@ const {
   mockDetectArchivedMergedBranches,
   mockDetectDefaultBranch,
   mockGetCheckedOutChangeBranches,
-  mockResolveMainCheckout,
+  mockResolveRepoRoot,
 } = vi.hoisted(() => ({
   mockDetectArchivedMergedBranches: vi.fn(),
   mockDetectDefaultBranch: vi.fn(),
   mockGetCheckedOutChangeBranches: vi.fn(),
-  mockResolveMainCheckout: vi.fn(),
+  mockResolveRepoRoot: vi.fn(),
 }));
 
 vi.mock("../temporal/health-probe", () => ({
@@ -93,7 +93,7 @@ vi.mock("./archive-helpers/git-finalize", async (importOriginal) => {
     detectArchivedMergedBranches: mockDetectArchivedMergedBranches,
     detectDefaultBranch: mockDetectDefaultBranch,
     getCheckedOutChangeBranches: mockGetCheckedOutChangeBranches,
-    resolveMainCheckout: mockResolveMainCheckout,
+    resolveRepoRoot: mockResolveRepoRoot,
   };
 });
 
@@ -190,9 +190,9 @@ describe("Status Tools", () => {
       branch: "main",
       source: "local-main",
     });
-    mockResolveMainCheckout.mockReset();
+    mockResolveRepoRoot.mockReset();
     tempDir = await createTempDir();
-    mockResolveMainCheckout.mockReturnValue(tempDir);
+    mockResolveRepoRoot.mockReturnValue(tempDir);
     mockGetCheckedOutChangeBranches.mockReset();
     mockGetCheckedOutChangeBranches.mockReturnValue({
       status: "ok",

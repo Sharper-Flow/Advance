@@ -66,7 +66,7 @@ import {
 import {
   detectArchiveMode,
   detectDefaultBranch,
-  resolveMainCheckout,
+  resolveRepoRoot,
   classifyFinalizationRoute,
   coercePrWorkflowRoute,
   resolveReleaseReachability,
@@ -463,17 +463,14 @@ function getReleaseFinalizationBlocker(input: {
   changeId: string;
 }): string | null {
   const { archiveMode } = detectArchiveMode(input.store.config ?? {});
-  const mainCheckout = resolveMainCheckout(input.store.paths.root);
-  const { branch: defaultBranch } = detectDefaultBranch(mainCheckout);
+  const repoRoot = resolveRepoRoot(input.store.paths.root);
+  const { branch: defaultBranch } = detectDefaultBranch(repoRoot);
 
   if (archiveMode === "pr") {
-    const classifiedRoute = classifyFinalizationRoute(
-      mainCheckout,
-      defaultBranch,
-    );
+    const classifiedRoute = classifyFinalizationRoute(repoRoot, defaultBranch);
     const route = coercePrWorkflowRoute(classifiedRoute);
     const reachability = resolveReleaseReachability({
-      mainCheckout,
+      repoRoot,
       defaultBranch,
       changeId: input.changeId,
       route,
@@ -485,7 +482,7 @@ function getReleaseFinalizationBlocker(input: {
 
     // No merged PR/default proof; surface branch push failure as actionable
     // detail without making the live branch a hard requirement.
-    const pushCheck = verifyChangeBranchPushed(mainCheckout, input.changeId);
+    const pushCheck = verifyChangeBranchPushed(repoRoot, input.changeId);
     const details = reachability.details ?? [];
     if (!pushCheck.pushed && pushCheck.reason) {
       details.unshift(`change branch not pushed: ${pushCheck.reason}`);
@@ -500,9 +497,9 @@ function getReleaseFinalizationBlocker(input: {
     });
   }
 
-  const route = classifyFinalizationRoute(mainCheckout, defaultBranch);
+  const route = classifyFinalizationRoute(repoRoot, defaultBranch);
   const reachability = resolveReleaseReachability({
-    mainCheckout,
+    repoRoot,
     defaultBranch,
     changeId: input.changeId,
     route,
