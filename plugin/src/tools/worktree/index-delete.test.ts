@@ -36,14 +36,18 @@ vi.mock("../project-workflow-helper", () => ({
 
 // Mock temporal/service so fireWorktreeSignal can reach a handle.
 vi.mock("../../temporal/service", () => ({
-  getService: vi.fn(() => ({
-    connection: { close: vi.fn() },
-    client: {
-      workflow: {
-        getHandle: vi.fn(() => ({ signal: workflowSignal, query: vi.fn() })),
+  getService: vi.fn(() =>
+    createMockOwnerFromClient({
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => ({
+            signal: workflowSignal,
+            query: vi.fn(),
+          })),
+        },
       },
-    },
-  })),
+    }),
+  ),
 }));
 
 // Mock debug-log to capture audit trail.
@@ -76,6 +80,7 @@ import {
 import { appendDebugLog } from "../../utils/debug-log";
 import { runHooksWithSafety } from "./hooks";
 import { worktreeDeletedSignal } from "../../temporal/messages";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import {
   clearPendingDelete,
   getPendingDeletes,

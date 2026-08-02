@@ -37,7 +37,7 @@ describe("temporal runtime manager helpers", () => {
       taskQueue: "adv-change-proj1",
       address: "127.0.0.1:7233",
       namespace: "default",
-      projectId: "proj1",
+      projectId: "0000100000000000000000000000000000000000",
     });
 
     expect(spec.env[ADV_TEMPORAL_WORKER_SELF_ROLL_ENV]).toBe(
@@ -51,7 +51,7 @@ describe("temporal runtime manager helpers", () => {
       taskQueue: "adv-change-proj1",
       address: "127.0.0.1:7233",
       namespace: "default",
-      projectId: "proj1",
+      projectId: "0000100000000000000000000000000000000000",
       sessionId: "sess_TestRoute123",
     });
 
@@ -64,7 +64,7 @@ describe("temporal runtime manager helpers", () => {
       taskQueue: "adv-change-proj1",
       address: "127.0.0.1:7233",
       namespace: "default",
-      projectId: "proj1",
+      projectId: "0000100000000000000000000000000000000000",
     });
 
     expect(spec.env.ADV_TEMPORAL_SESSION_ID).toBeUndefined();

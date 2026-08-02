@@ -760,7 +760,7 @@ async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
   const projectId = service ? await getProjectId(store.paths.root) : null;
   if (!service || !projectId) return undefined;
   const { getChangeHandle } = await import("./_adapters");
-  return getChangeHandle(service.client, projectId, changeId);
+  return getChangeHandle(service, projectId, changeId);
 }
 
 function subagentReportTaskId(
@@ -2701,7 +2701,7 @@ export const changeTools = {
         return formatToolOutput({ error: "Temporal service not available" });
       }
 
-      const handle = getChangeHandle(bundle.client, projectId, changeId);
+      const handle = getChangeHandle(bundle, projectId, changeId);
       const recordedAt = new Date().toISOString();
       await fireSignalAndRefresh(
         handle,
@@ -2807,7 +2807,7 @@ export const changeTools = {
         if (!bundle) {
           return formatToolOutput({ error: "Temporal service not available" });
         }
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        const handle = getChangeHandle(bundle, projectId, changeId);
         await fireSignalAndRefresh(
           handle,
           activeStore,
@@ -3105,7 +3105,7 @@ export const changeTools = {
             changeId,
           });
         }
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        const handle = getChangeHandle(bundle, projectId, changeId);
         const closeInput = {
           approvalEvidence,
           reason,
@@ -3444,7 +3444,7 @@ export const changeTools = {
           let closed = 0;
           for (const id of selection.changeIds) {
             try {
-              const handle = getChangeHandle(bundle.client, projectId, id);
+              const handle = getChangeHandle(bundle, projectId, id);
               const closeInput = {
                 approvalEvidence,
                 reason,
@@ -3582,7 +3582,7 @@ export const changeTools = {
                 // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
                 // signal-error recovery is classified internally from the signal error +
                 // describe() evidence via the unified classifier.
-                const handle = getChangeHandle(bundle.client, projectId, id);
+                const handle = getChangeHandle(bundle, projectId, id);
                 const decision = await classifyMutationRecoveryDecision({
                   signalError: err,
                   handle,
@@ -5353,7 +5353,7 @@ export const changeTools = {
           });
         }
         const { getChangeHandle } = await import("./_adapters");
-        const handle = getChangeHandle(service.client, projectId, changeId);
+        const handle = getChangeHandle(service, projectId, changeId);
         const { isWorkflowCompletedError } =
           await import("../temporal/recovery-classification");
 
@@ -5431,7 +5431,7 @@ export const changeTools = {
         });
       }
       const { getChangeHandle } = await import("./_adapters");
-      const handle = getChangeHandle(service.client, projectId, changeId);
+      const handle = getChangeHandle(service, projectId, changeId);
 
       // Idempotent completed/not-found handling — reachable here, AFTER
       // approval + existence + archived status eligibility.
@@ -5760,19 +5760,10 @@ export const changeTools = {
 
       // Terminate the EXACT pinned run: a handle bound to (workflowId, runId)
       // can never kill a different run of the same workflow.
-      const pinnedHandle = getChangeHandle(
-        service.client,
-        projectId,
-        changeId,
-        runId,
-      );
+      const pinnedHandle = getChangeHandle(service, projectId, changeId, runId);
       let alreadyTerminated = false;
       try {
-        await (
-          pinnedHandle as unknown as {
-            terminate: (reason?: string) => Promise<unknown>;
-          }
-        ).terminate(
+        await pinnedHandle.terminate(
           `adv_change_workflow_terminate: operator-approved termination of ${eligibilityClass} shipped change workflow ${changeId} (run ${runId})`,
         );
       } catch (error) {
@@ -6068,7 +6059,7 @@ export const changeTools = {
           });
         }
         const projectId = (await getProjectId(activeStore.paths.root)) ?? "";
-        const handle = getChangeHandle(bundle.client, projectId, changeId);
+        const handle = getChangeHandle(bundle, projectId, changeId);
         await fireSignalAndRefresh(
           handle,
           activeStore,
@@ -6354,7 +6345,7 @@ export const changeTools = {
               changeId,
             });
           }
-          const handle = getChangeHandle(bundle.client, projectId, changeId);
+          const handle = getChangeHandle(bundle, projectId, changeId);
           // rq-cacheRefresh01: refresh after reenter so buildReentryResult
           // reads the reset-gates state from a fresh cache, not stale gates.
           await fireSignalAndRefresh(

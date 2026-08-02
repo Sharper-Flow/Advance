@@ -7,6 +7,11 @@ import {
   queryActiveChangesByIssueNumbers,
 } from "./visibility-claim-queries";
 
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
+
+const PROJECT_ID = "0".repeat(40);
+const PROJECT_PREFIX = `adv/change/${PROJECT_ID}/`;
+
 // Minimal client mock matching the shape used by visibility-claim-queries.
 function makeClient(
   results: Array<{
@@ -29,12 +34,12 @@ function makeClient(
 describe("visibility-claim-queries: query construction (rq-backlogCoord01, rq-backlogCoord02)", () => {
   it("builds claim-collision query scoped by AdvAffectedProjects + AdvBacklogIssueNumber + open lifecycle", () => {
     const query = buildClaimVisibilityQuery({
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       issueNumber: 42,
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvBacklogIssueNumber = "42" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
+      `AdvAffectedProjects = "${PROJECT_ID}" AND AdvBacklogIssueNumber = "42" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"`,
     );
   });
 
@@ -49,18 +54,18 @@ describe("visibility-claim-queries: query construction (rq-backlogCoord01, rq-ba
 
   it("builds bulk active-claims query for multiple issue numbers using IN operator", () => {
     const query = buildActiveClaimsVisibilityQuery({
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       issueNumbers: [51, 52, 60],
     });
 
     expect(query).toBe(
-      'AdvAffectedProjects = "pid-abc" AND AdvBacklogIssueNumber IN ("51", "52", "60") AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
+      `AdvAffectedProjects = "${PROJECT_ID}" AND AdvBacklogIssueNumber IN ("51", "52", "60") AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"`,
     );
   });
 
   it("returns null for the bulk query when issueNumbers is empty (caller should skip the Temporal call)", () => {
     const query = buildActiveClaimsVisibilityQuery({
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       issueNumbers: [],
     });
 
@@ -69,17 +74,16 @@ describe("visibility-claim-queries: query construction (rq-backlogCoord01, rq-ba
 });
 
 describe("visibility-claim-queries: queryClaimsByIssueNumber (rq-backlogCoord02 pre-create check)", () => {
-  const PROJECT_PREFIX = "adv/change/pid-abc/";
-
   it("returns matching change IDs scoped by project prefix", async () => {
     const client = makeClient([
       { workflowId: `${PROJECT_PREFIX}existingChange` },
       { workflowId: `${PROJECT_PREFIX}anotherProjectChange` },
     ]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const claims = await queryClaimsByIssueNumber(client, "pid-abc", 51);
+    const claims = await queryClaimsByIssueNumber(owner, PROJECT_ID, 51);
 
-    expect(claims).toEqual([
+    expect(claims.value).toEqual([
       { changeId: "existingChange" },
       { changeId: "anotherProjectChange" },
     ]);
@@ -94,24 +98,24 @@ describe("visibility-claim-queries: queryClaimsByIssueNumber (rq-backlogCoord02 
       { workflowId: "adv/change/other-pid/leaked" }, // wrong project — should be filtered
       { workflowId: "adv/project/pid-abc" }, // wrong shape — should be filtered
     ]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const claims = await queryClaimsByIssueNumber(client, "pid-abc", 42);
+    const claims = await queryClaimsByIssueNumber(owner, PROJECT_ID, 42);
 
-    expect(claims).toEqual([{ changeId: "myChange" }]);
+    expect(claims.value).toEqual([{ changeId: "myChange" }]);
   });
 
   it("returns empty array when no matching workflows exist", async () => {
     const client = makeClient([]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const claims = await queryClaimsByIssueNumber(client, "pid-abc", 999);
+    const claims = await queryClaimsByIssueNumber(owner, PROJECT_ID, 999);
 
-    expect(claims).toEqual([]);
+    expect(claims.value).toEqual([]);
   });
 });
 
 describe("visibility-claim-queries: queryActiveChangesByIssueNumbers (rq-backlogCoord05 O(1) lookup)", () => {
-  const PROJECT_PREFIX = "adv/change/pid-abc/";
-
   it("returns Map keyed by issue number for matching changes", async () => {
     const client = makeClient([
       {
@@ -123,42 +127,46 @@ describe("visibility-claim-queries: queryActiveChangesByIssueNumbers (rq-backlog
         searchAttributes: { AdvBacklogIssueNumber: ["52"] },
       },
     ]);
+    const owner = createMockOwnerFromClient({ client });
 
     const map = await queryActiveChangesByIssueNumbers(
-      client,
-      "pid-abc",
+      owner,
+      PROJECT_ID,
       [51, 52, 60],
     );
 
-    expect(map.get(51)).toEqual({ changeId: "changeForIssue51" });
-    expect(map.get(52)).toEqual({ changeId: "changeForIssue52" });
-    expect(map.get(60)).toBeUndefined();
-    expect(map.size).toBe(2);
+    expect(map.value.get(51)).toEqual({ changeId: "changeForIssue51" });
+    expect(map.value.get(52)).toEqual({ changeId: "changeForIssue52" });
+    expect(map.value.get(60)).toBeUndefined();
+    expect(map.value.size).toBe(2);
   });
 
   it("returns empty Map and does NOT call Temporal when issueNumbers is empty", async () => {
     const client = makeClient([{ workflowId: `${PROJECT_PREFIX}irrelevant` }]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const map = await queryActiveChangesByIssueNumbers(client, "pid-abc", []);
+    const map = await queryActiveChangesByIssueNumbers(owner, PROJECT_ID, []);
 
-    expect(map.size).toBe(0);
+    expect(map.value.size).toBe(0);
     expect(client.workflow.list).not.toHaveBeenCalled();
   });
 
   it("uses a single Visibility call for input arrays ≤ 100 issue numbers", async () => {
     const client = makeClient([]);
+    const owner = createMockOwnerFromClient({ client });
     const issueNumbers = Array.from({ length: 100 }, (_, i) => i + 1);
 
-    await queryActiveChangesByIssueNumbers(client, "pid-abc", issueNumbers);
+    await queryActiveChangesByIssueNumbers(owner, PROJECT_ID, issueNumbers);
 
     expect(client.workflow.list).toHaveBeenCalledTimes(1);
   });
 
   it("chunks the call into batches of 100 for larger inputs", async () => {
     const client = makeClient([]);
+    const owner = createMockOwnerFromClient({ client });
     const issueNumbers = Array.from({ length: 250 }, (_, i) => i + 1);
 
-    await queryActiveChangesByIssueNumbers(client, "pid-abc", issueNumbers);
+    await queryActiveChangesByIssueNumbers(owner, PROJECT_ID, issueNumbers);
 
     // 250 issues → ceil(250 / 100) = 3 batches
     expect(client.workflow.list).toHaveBeenCalledTimes(3);
@@ -175,10 +183,11 @@ describe("visibility-claim-queries: queryActiveChangesByIssueNumbers (rq-backlog
         searchAttributes: { AdvBacklogIssueNumber: ["51"] },
       },
     ]);
+    const owner = createMockOwnerFromClient({ client });
 
-    const map = await queryActiveChangesByIssueNumbers(client, "pid-abc", [51]);
+    const map = await queryActiveChangesByIssueNumbers(owner, PROJECT_ID, [51]);
 
-    expect(map.size).toBe(1);
-    expect(map.get(51)?.changeId).toBe("validChange");
+    expect(map.value.size).toBe(1);
+    expect(map.value.get(51)?.changeId).toBe("validChange");
   });
 });

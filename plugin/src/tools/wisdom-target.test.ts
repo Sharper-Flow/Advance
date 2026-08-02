@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   withOptionalTargetPathStore: vi.fn(async (_input: unknown, fn: any) =>
     fn(mocks.targetStore, {
       root: "/target/project",
-      projectId: "a".repeat(40),
+      projectId: "a000000000000000000000000000000000000000".repeat(40),
       trusted: false,
       trustSource: "explicit",
       stateMode: "snapshot",

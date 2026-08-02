@@ -20,7 +20,7 @@ import { execFileSync } from "child_process";
 vi.mock("./state", () => ({
   initStateDb: vi.fn(async () => ({
     projectDir: "/test",
-    projectId: "test-id",
+    projectId: "0e000d0000000000000000000000000000000000",
   })),
   getWorktreeRegistrySnapshot: vi.fn(async () => ({
     records: [],

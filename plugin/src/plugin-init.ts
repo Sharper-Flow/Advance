@@ -11,17 +11,13 @@
  * createDegradedToolMap) when initError is non-null.
  */
 
-import { Client } from "@temporalio/client";
 import { createStore } from "./storage/store";
 import {
   reconcileTerminalWorkflows,
-  type TerminalReconcileClient,
   type TerminalReconcileResult,
 } from "./temporal/reconcile-terminal-workflows";
-import {
-  buildTerminalReconcileDeps,
-  type TerminalSignalClient,
-} from "./temporal/reconcile-terminal-deps";
+import { buildTerminalReconcileDeps } from "./temporal/reconcile-terminal-deps";
+import type { TemporalOperations } from "./temporal/operations";
 import type { Store } from "./storage/store-types";
 import { loadProjectConfig } from "./storage/json";
 import { resolveProjectFeaturePolicy } from "./types";
@@ -400,6 +396,7 @@ export async function tryInitStore(
 
       const bundleStartedAt = performance.now();
       temporalBundle = await initStsl(
+        projectId,
         buildTemporalClientEnv({
           address: runtime.address,
           namespace: runtime.namespace,
@@ -411,7 +408,7 @@ export async function tryInitStore(
       if (worker) {
         attachWorkerWithAdoption(worker, {
           projectId,
-          client: temporalBundle?.client ?? null,
+          owner: temporalBundle ?? null,
         });
       }
     }
@@ -444,7 +441,7 @@ export async function tryInitStore(
     // the init path — this is best-effort repair, never a startup dependency.
     scheduleTerminalReconcileSweep({
       projectId: projectId ?? undefined,
-      client: temporalBundle?.client ?? null,
+      owner: temporalBundle ?? null,
       archiveDir: store.paths.archive,
       changesDir: store.paths.changes,
     });
@@ -661,12 +658,12 @@ export function getLastTerminalReconcile(): TerminalReconcileResult | null {
  */
 export function scheduleTerminalReconcileSweep(input: {
   projectId: string | undefined;
-  client: Client | null;
+  owner: TemporalOperations | null;
   archiveDir: string | undefined;
   changesDir: string | undefined;
 }): void {
-  const { projectId, client, archiveDir, changesDir } = input;
-  if (!projectId || !client) return;
+  const { projectId, owner, archiveDir, changesDir } = input;
+  if (!projectId || !owner) return;
   if (terminalReconcileTimer) clearTimeout(terminalReconcileTimer);
 
   terminalReconcileTimer = setTimeout(() => {
@@ -674,13 +671,13 @@ export function scheduleTerminalReconcileSweep(input: {
     void (async () => {
       try {
         lastTerminalReconcile = await reconcileTerminalWorkflows(
-          client as unknown as TerminalReconcileClient,
+          owner,
           projectId,
           buildTerminalReconcileDeps({
             projectId,
             archiveDir,
             changesDir,
-            client: client as unknown as TerminalSignalClient,
+            owner,
           }),
           { maxPerSweep: TERMINAL_RECONCILE_MAX_PER_SWEEP },
         );
@@ -696,7 +693,7 @@ export function scheduleTerminalReconcileSweep(input: {
 
 export function attachWorkerWithAdoption(
   worker: InProcessWorker,
-  opts: { projectId: string; client: Client | null },
+  opts: { projectId: string; owner: TemporalOperations | null },
 ): WorkerAdoptionHandle {
   registerInProcessTemporalWorker(worker);
   const attachment: WorkerAdoptionAttachment = {
@@ -710,7 +707,7 @@ export function attachWorkerWithAdoption(
     activeOrphanQueueAdopter = null;
     return { stopDriver: null };
   }
-  if (!opts.client) {
+  if (!opts.owner) {
     adoptionConstructionState = {
       kind: "unavailable",
       reason: "no_temporal_client",
@@ -720,7 +717,7 @@ export function attachWorkerWithAdoption(
   }
   try {
     const adopter = new OrphanQueueAdopter({
-      client: opts.client,
+      owner: opts.owner,
       projectId: opts.projectId,
       worker,
     });
@@ -920,7 +917,7 @@ let activeHealthMonitor: HealthMonitor | null = null;
  *    monitor's outer `probeTimeoutMs` catches it and routes to restart.
  */
 const probeWorkerHealth = composeWorkerHealthProbe({
-  getBundle: () => getService(),
+  getOwner: () => getService(),
 });
 
 /**
@@ -1031,7 +1028,7 @@ export async function restartCurrentProjectTemporalWorker(
   workerRef.current = worker;
   attachWorkerWithAdoption(worker, {
     projectId,
-    client: getService()?.client ?? null,
+    owner: getService() ?? null,
   });
   return {
     projectId,

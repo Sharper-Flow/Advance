@@ -34,6 +34,8 @@ const mocks = vi.hoisted(() => {
   const connection = {
     close: connectionClose,
     operatorService: { addSearchAttributes, listSearchAttributes },
+    withDeadline: vi.fn((_deadline: unknown, fn: () => unknown) => fn()),
+    withAbortSignal: vi.fn((_signal: unknown, fn: () => unknown) => fn()),
   };
   const client = {};
   const connect = vi.fn().mockResolvedValue(connection);
@@ -67,6 +69,8 @@ import {
 } from "./service";
 import { withTemporalRetry } from "./retry-wrapper";
 
+const TEST_PROJECT_ID = "a".repeat(40);
+
 /**
  * The closure pattern wired into runTemporal / runTemporalQuery
  * (Task 3 — KD-2, KD-4). Built per-op so `reconnected` is local and
@@ -86,6 +90,20 @@ function makeReconnectingHook(): () => Promise<void> {
   };
 }
 
+function makeReinitConnection() {
+  return {
+    close: vi.fn().mockResolvedValue(undefined),
+    operatorService: {
+      addSearchAttributes: vi.fn().mockResolvedValue({}),
+      listSearchAttributes: vi.fn().mockResolvedValue({
+        customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
+      }),
+    },
+    withDeadline: vi.fn((_deadline: unknown, fn: () => unknown) => fn()),
+    withAbortSignal: vi.fn((_signal: unknown, fn: () => unknown) => fn()),
+  };
+}
+
 describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
   beforeEach(async () => {
     resetStsl();
@@ -94,7 +112,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
     mocks.connectionClose.mockResolvedValue(undefined);
     mocks.addSearchAttributes.mockResolvedValue({});
     mocks.connect.mockResolvedValue(mocks.connection);
-    await initStsl({
+    await initStsl(TEST_PROJECT_ID, {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
     });
@@ -106,15 +124,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
 
   it("op fails transient once → reinit fires → retry succeeds against new connection", async () => {
     // Stub a different connection for the reinit.
-    const newConnection = {
-      close: vi.fn().mockResolvedValue(undefined),
-      operatorService: {
-        addSearchAttributes: vi.fn().mockResolvedValue({}),
-        listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
-        }),
-      },
-    };
+    const newConnection = makeReinitConnection();
     mocks.connect.mockResolvedValueOnce(newConnection);
 
     const op = vi
@@ -155,15 +165,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
   // This test asserts the END-TO-END recovery path: classifier → retry →
   // onTransientFailure → reinitStsl → fresh connection → op succeeds.
   it("op fails with SDK-wrapped channel-shutdown → reinit fires → retry succeeds (AC4)", async () => {
-    const newConnection = {
-      close: vi.fn().mockResolvedValue(undefined),
-      operatorService: {
-        addSearchAttributes: vi.fn().mockResolvedValue({}),
-        listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
-        }),
-      },
-    };
+    const newConnection = makeReinitConnection();
     mocks.connect.mockResolvedValueOnce(newConnection);
 
     const sdkWrappedError = new Error(
@@ -192,15 +194,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
   it("op fails 3 transient times → reinit called only once (per-op idempotent)", async () => {
     // First reinit returns a fresh connection; subsequent reinits would
     // also return fresh ones, but the per-op hook must suppress them.
-    const newConnection = {
-      close: vi.fn().mockResolvedValue(undefined),
-      operatorService: {
-        addSearchAttributes: vi.fn().mockResolvedValue({}),
-        listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
-        }),
-      },
-    };
+    const newConnection = makeReinitConnection();
     mocks.connect.mockResolvedValue(newConnection);
 
     const op = vi
@@ -277,15 +271,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
       return { query: newHandleQuery };
     });
 
-    const newConnection = {
-      close: vi.fn().mockResolvedValue(undefined),
-      operatorService: {
-        addSearchAttributes: vi.fn().mockResolvedValue({}),
-        listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
-        }),
-      },
-    };
+    const newConnection = makeReinitConnection();
     mocks.connect.mockResolvedValueOnce(newConnection);
     mocks.ClientCtor.mockImplementationOnce(function (this: unknown) {
       return newClient;
@@ -319,15 +305,7 @@ describe("STSL reconnect via withTemporalRetry (Task 3 integration)", () => {
 
   it("two parallel ops each get their own per-op idempotent hook", async () => {
     // First reinit only — single-flight at the STSL level.
-    const newConnection = {
-      close: vi.fn().mockResolvedValue(undefined),
-      operatorService: {
-        addSearchAttributes: vi.fn().mockResolvedValue({}),
-        listSearchAttributes: vi.fn().mockResolvedValue({
-          customAttributes: { ...mocks.ADV_SA_FULL_PRESENT },
-        }),
-      },
-    };
+    const newConnection = makeReinitConnection();
     mocks.connect.mockResolvedValueOnce(newConnection);
 
     const op1 = vi

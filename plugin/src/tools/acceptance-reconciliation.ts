@@ -21,10 +21,12 @@ import {
   designConcernDispositionedSignal,
   verificationEvidenceDispositionedSignal,
 } from "../temporal/messages";
-import { coordinateChangeMutation } from "./change-mutation-coordinator";
+import {
+  coordinateChangeMutation,
+  type TemporalWorkflowHandleProxy,
+  type MutationOutcome,
+} from "./change-mutation-coordinator";
 import type { ChangeWorkflowState } from "../temporal/contracts";
-import type { WorkflowHandleLike } from "./change-mutation-coordinator";
-import type { MutationOutcome } from "./change-mutation-coordinator";
 
 export interface ReconciledAcceptanceRemediation {
   kind: "reconciled";
@@ -214,7 +216,7 @@ function matchesPendingRecoveredMatrix(
 }
 
 async function redeliverDisposition(
-  handle: WorkflowHandleLike,
+  handle: TemporalWorkflowHandleProxy,
   changeId: string,
   item: Extract<
     PendingReconciliationItem,
@@ -254,7 +256,7 @@ async function redeliverDisposition(
 }
 
 async function redeliverMatrix(
-  handle: WorkflowHandleLike,
+  handle: TemporalWorkflowHandleProxy,
   changeId: string,
   item: Extract<
     PendingReconciliationItem,
@@ -453,7 +455,7 @@ function itemFailureDetail(
 export async function reconcileRecoveredAcceptanceRemediation(input: {
   store: Store;
   changeId: string;
-  handle: WorkflowHandleLike;
+  handle: TemporalWorkflowHandleProxy;
 }): Promise<ReconcileRecoveredAcceptanceRemediationResult> {
   const { store, changeId, handle } = input;
 

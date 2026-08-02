@@ -30,7 +30,7 @@ describe("dashboard ADV project reader", () => {
   test("routine state does not call per-change ops enrichment", async () => {
     let opsCalls = 0;
     const snapshot = await readDashboardAdvProject(project, {
-      resolveProjectId: async () => "project123",
+      resolveProjectId: async () => "a".repeat(40),
       loadBaseSummaries: async () => [baseSummary],
       loadOpsChanges: async () => {
         opsCalls += 1;
@@ -68,7 +68,7 @@ describe("dashboard ADV project reader", () => {
     } satisfies ChangeRecord & { ops_followup: unknown; ops_followup_links: unknown[]; worktrees: unknown[] };
 
     const snapshot = await readDashboardAdvProject(project, {
-      resolveProjectId: async () => "project123",
+      resolveProjectId: async () => "a".repeat(40),
       loadBaseSummaries: async () => [summary],
       loadOpsChanges: async () => [opsChange],
       now: () => new Date("2026-06-25T21:05:00.000Z"),

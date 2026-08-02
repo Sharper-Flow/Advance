@@ -15,11 +15,8 @@
  *     signals — so the listed IDs from Visibility are mostly used at cold
  *     start before Memo warms up.
  *
- * Pagination: the Temporal SDK's `client.workflow.list({ query })` returns
- * an AsyncIterable that handles cursor-based pagination internally
- * (default page size 1000). Consumers iterate; the SDK fetches more pages
- * as needed. This module wraps the iteration with project-scoped
- * filtering and an optional hard `limit` cap.
+ * Pagination: the TemporalOperations owner materializes the list into a
+ * bounded result set so callers never hold an open AsyncIterable.
  *
  * Search-attribute strategy: ADV registers `AdvAffectedProjects`
  * (KeywordList), `AdvLifecycleState` (Keyword), and `AdvChangeStatus`
@@ -33,6 +30,8 @@
  */
 
 import type { ChangeStatus } from "../types";
+import type { TemporalListOutcome, TemporalOperations } from "./operations";
+import { makeTemporalOperationContext } from "./operations";
 import {
   escapeVisibilityValue,
   isLegacyOpenStatusSet,
@@ -57,32 +56,25 @@ export interface ListChangeWorkflowIdsOptions {
    * the status filter entirely.
    */
   statuses?: ChangeStatus[] | null;
+  /**
+   * Optional execution-status filter (e.g. `"Running"`). Useful for
+   * worker-free status readers that must exclude stale completed workflows.
+   */
+  executionStatus?: string;
   /** Hard cap on result count — stops iteration early. */
   limit?: number;
-}
-
-/**
- * Minimal `Client` shape used by listChangeWorkflowIds. Real
- * `@temporalio/client` Client satisfies this structurally.
- */
-export interface ListClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{
-      workflowId: string;
-    }>;
-  };
 }
 
 /**
  * Build the visibility-API query string for change-workflow enumeration.
  *
  * Exposed for testing (and for callers that need to tweak the query and
- * pass it directly to `client.workflow.list`).
+ * pass it directly to the owner).
  */
 export function buildVisibilityQuery(
   options: ListChangeWorkflowIdsOptions,
 ): string {
-  const { projectId, statuses } = options;
+  const { projectId, statuses, executionStatus } = options;
   const parts: string[] = [];
 
   // Escape double-quotes in projectId. SHA-based project IDs never
@@ -117,6 +109,10 @@ export function buildVisibilityQuery(
     }
   }
 
+  if (executionStatus) {
+    parts.push(`ExecutionStatus = "${executionStatus}"`);
+  }
+
   return parts.join(" AND ");
 }
 
@@ -125,15 +121,31 @@ export function buildVisibilityQuery(
  * via Temporal Visibility API pagination.
  */
 export async function listChangeWorkflowIds(
-  client: ListClient,
+  owner: TemporalOperations,
   options: ListChangeWorkflowIdsOptions,
-): Promise<string[]> {
+): Promise<TemporalListOutcome<string[]>> {
   const query = buildVisibilityQuery(options);
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${options.projectId}/`;
   const limit = options.limit;
-  const ids: string[] = [];
+  const placeholderWorkflowId = `${projectPrefix}change-enumeration`;
+  const effectiveLimit = limit ?? 1_000_000;
+  const ctx = makeTemporalOperationContext(
+    options.projectId,
+    placeholderWorkflowId,
+    "list",
+    "listChangeWorkflowIds",
+    10_000,
+  );
+  const outcome = await owner.list<{ workflowId: string }>(ctx, query, {
+    limit: effectiveLimit,
+  });
 
-  for await (const wf of client.workflow.list({ query })) {
+  if (outcome.kind !== "complete") {
+    return outcome;
+  }
+
+  const ids: string[] = [];
+  for (const wf of outcome.value) {
     const wfid = wf.workflowId;
     // Defensive: visibility may include workflows that match the search
     // attributes but use a non-change workflow ID format (e.g. project
@@ -145,5 +157,5 @@ export async function listChangeWorkflowIds(
     if (limit !== undefined && ids.length >= limit) break;
   }
 
-  return ids;
+  return { kind: "complete", value: ids, truncated: outcome.truncated };
 }

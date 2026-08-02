@@ -1,4 +1,3 @@
-import { Connection } from "@temporalio/client";
 import {
   classifyTemporalFailure,
   type TemporalFailureDiagnostics,
@@ -164,10 +163,10 @@ function buildResult<T>(
 /**
  * Run one authoritative Temporal read under the supplied context.
  *
- * When a real `Connection` is available, the SDK's `withDeadline` and
+ * When a `runWithDeadline` executor is provided, the SDK's `withDeadline` and
  * `withAbortSignal` become the RPC timeout authority — the underlying gRPC
  * call is cancelled on expiry or abort, and no local `Promise.race` can mask
- * a still-running RPC. When no connection is present (test fixtures, mocks,
+ * a still-running RPC. When no executor is present (test fixtures, mocks,
  * target-path snapshots), the read falls back to the existing retry wrapper's
  * bounded deadline behavior.
  *
@@ -176,7 +175,13 @@ function buildResult<T>(
  * as incomplete and must not grant it mutation authority.
  */
 export async function runTemporalRead<T>(
-  connection: Connection | undefined,
+  runWithDeadline:
+    | ((
+        deadlineAt: number,
+        abortSignal: AbortSignal,
+        fn: () => Promise<T>,
+      ) => Promise<T>)
+    | undefined,
   op: () => Promise<T>,
   ctx: TemporalReadContext,
   options?: RunTemporalReadOptions,
@@ -189,7 +194,7 @@ export async function runTemporalRead<T>(
   try {
     const result = await withTemporalRetry(op, {
       deadline: ctx.deadline,
-      connection,
+      runWithDeadline,
       abortSignal: ctx.abortController.signal,
       timeoutMs: options?.timeoutMs,
       opType: options?.opType,

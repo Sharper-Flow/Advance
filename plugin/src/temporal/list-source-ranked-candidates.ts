@@ -18,6 +18,8 @@
 import type { ChangeStatus } from "../types";
 import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
 import { buildVisibilityQuery } from "./list-change-workflows";
+import type { TemporalOperations } from "./operations";
+import { makeTemporalOperationContext } from "./operations";
 
 export interface SourceRankedCandidate {
   id: string;
@@ -26,15 +28,6 @@ export interface SourceRankedCandidate {
   lastSignalAt?: string;
   /** ISO 8601 timestamp from the source (AdvCreatedAt for Visibility). */
   createdAt?: string;
-}
-
-export interface SourceRankedListClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{
-      workflowId: string;
-      searchAttributes?: Record<string, unknown>;
-    }>;
-  };
 }
 
 export interface ListSourceRankedCandidatesOptions {
@@ -114,7 +107,7 @@ function compareCandidates(
 }
 
 export async function listSourceRankedCandidates(
-  client: SourceRankedListClient,
+  owner: TemporalOperations,
   options: ListSourceRankedCandidatesOptions,
 ): Promise<ListSourceRankedCandidatesResult> {
   const { projectId, statuses, limit, diskCandidates = [] } = options;
@@ -122,10 +115,23 @@ export async function listSourceRankedCandidates(
   const effectiveLimit = limit ?? 10;
 
   const query = buildVisibilityQuery({ projectId, statuses });
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    "source-ranked-list",
+    "list",
+    "listSourceRankedCandidates",
+    5_000,
+  );
   const candidates: SourceRankedCandidate[] = [];
   const seenIds = new Set<string>();
-
-  for await (const record of client.workflow.list({ query })) {
+  const result = await owner.list<{
+    workflowId: string;
+    searchAttributes?: Record<string, unknown>;
+  }>(ctx, query, { limit: effectiveLimit * 2 });
+  if (result.kind !== "complete") {
+    throw result.error;
+  }
+  for (const record of result.value) {
     const wfid = record.workflowId;
     // Defensive prefix filter: Visibility may return workflows that match the
     // search attributes but belong to a different project or workflow type.

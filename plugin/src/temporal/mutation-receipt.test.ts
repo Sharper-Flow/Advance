@@ -39,7 +39,7 @@ function baseChangeState(): ReturnType<typeof createChangeWorkflowState> {
     title: "T",
     createdAt: "2026-01-01T00:00:00.000Z",
   });
-  state.projectId = "proj-1";
+  state.projectId = "0000100000000000000000000000000000000000";
   state.initializedAt = "2026-01-01T00:00:00.000Z";
   return state;
 }

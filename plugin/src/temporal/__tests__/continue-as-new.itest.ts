@@ -25,7 +25,7 @@ type StartedChangeWorkflowHandle = WorkflowHandleWithStartDetails<
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
-    projectId: "continue-as-new-test-project",
+    projectId: "c000000ea00e00e000000ec00000000000000000",
     changeId,
     title: `Continue-as-new test: ${changeId}`,
     initializedAt: "2026-05-05T00:00:00.000Z",

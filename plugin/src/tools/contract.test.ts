@@ -10,6 +10,7 @@ import {
 } from "../temporal/messages";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import { loadChange } from "../storage/json";
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 
 const fireSignalAndRefresh = vi.hoisted(() => vi.fn());
 const workflowHandle = vi.hoisted(() => ({
@@ -24,13 +25,16 @@ vi.mock("./_adapters", async (importOriginal) => ({
 }));
 
 vi.mock("../temporal/service", () => ({
-  getService: () => ({
-    client: { workflow: { getHandle: () => workflowHandle } },
-  }),
+  getService: () =>
+    createMockOwnerFromClient({
+      client: { workflow: { getHandle: () => workflowHandle } },
+    }),
 }));
 
+const PROJECT_ID = "0".repeat(40);
+
 vi.mock("../utils/project-id", () => ({
-  getProjectId: async () => "project-1",
+  getProjectId: async () => PROJECT_ID,
 }));
 
 import { contractTools } from "./contract";

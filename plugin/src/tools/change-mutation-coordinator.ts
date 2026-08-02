@@ -28,6 +28,10 @@ import {
   type ProjectionCommitVerifyResult,
 } from "../storage/change-projection-transaction";
 import type { Change, ProjectionCommitAuditEntry } from "../types";
+import type {
+  TemporalOperations,
+  TemporalWorkflowHandle,
+} from "../temporal/operations";
 
 export type { RecoveryReason };
 
@@ -37,18 +41,36 @@ export interface RecoveryEvidence {
 }
 
 /**
- * Minimal workflow-handle surface used by the coordinator. Keeps the coordinator
- * decoupled from the full Temporal SDK WorkflowHandle type so tests can pass
- * lightweight mocks.
+ * Query-only workflow handle proxy. The narrowest surface needed for
+ * polling helpers; full signal/describe operations still require the owner-bound
+ * proxy so they cannot be issued without the owning TemporalOperations.
  */
-export interface WorkflowHandleLike {
-  describe?: () => Promise<unknown>;
-  query(definition: unknown, ...args: unknown[]): Promise<unknown>;
+export interface TemporalWorkflowHandleQueryProxy {
+  readonly workflowId: string;
+  query<T>(definition: unknown, ...args: unknown[]): Promise<T>;
+}
+
+/**
+ * Owner-bound workflow handle proxy. The only production-safe way to perform
+ * query/signal/describe on a workflow: the owner stays the single RPC authority,
+ * and the handle is the opaque workflow reference.
+ */
+export interface TemporalWorkflowHandleProxy extends TemporalWorkflowHandleQueryProxy {
+  readonly owner: TemporalOperations;
+  readonly handle: TemporalWorkflowHandle;
+  readonly projectId: string;
   signal(definition: unknown, ...args: unknown[]): Promise<void>;
+  describe(): Promise<unknown>;
+  terminate(reason?: string): Promise<void>;
+  cancel(): Promise<void>;
 }
 
 export type ChangeAuthority =
-  | { kind: "temporal_live"; handle: WorkflowHandleLike; changeId: string }
+  | {
+      kind: "temporal_live";
+      handle: TemporalWorkflowHandleProxy;
+      changeId: string;
+    }
   | { kind: "workflow_completed"; evidence: RecoveryEvidence }
   | { kind: "workflow_missing"; evidence: RecoveryEvidence }
   | { kind: "workflow_poisoned"; evidence: RecoveryEvidence }
@@ -78,11 +100,11 @@ export interface MutationIntent<T> {
    * mutation receipt id and the full signal payload; callers must use both.
    */
   sendSignal: (
-    handle: WorkflowHandleLike,
+    handle: TemporalWorkflowHandleProxy,
     payload: Record<string, unknown>,
   ) => Promise<void>;
   /** Refresh authoritative state from Temporal after the signal is applied. */
-  refresh: (handle: WorkflowHandleLike) => Promise<T>;
+  refresh: (handle: TemporalWorkflowHandleProxy) => Promise<T>;
   /** Verify the intended postcondition against the refreshed Temporal state. */
   verifyTemporal: (value: T) => ProjectionCommitVerifyResult;
   /**
@@ -304,7 +326,7 @@ function failureToMutationOutcome<T>(
 export async function resolveChangeAuthority(args: {
   changeId?: string;
   signalError?: unknown;
-  handle?: WorkflowHandleLike;
+  handle?: TemporalWorkflowHandleProxy;
   skipProbe?: boolean;
 }): Promise<ChangeAuthority> {
   const { signalError, handle, skipProbe, changeId } = args;
@@ -313,7 +335,7 @@ export async function resolveChangeAuthority(args: {
     return failureToAuthority(normalizeWorkflowFailure(signalError));
   }
 
-  if (skipProbe || !handle || typeof handle.describe !== "function") {
+  if (skipProbe || !handle) {
     if (handle) {
       return {
         kind: "temporal_live",

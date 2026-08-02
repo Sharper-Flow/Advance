@@ -213,11 +213,11 @@ describe("legacy createProbeCache", () => {
 describe("queue serviceability input isolation", () => {
   test("concurrent queue requests cannot overwrite each other's input", async () => {
     const projectA = {
-      projectId: "project-a",
+      projectId: "0000ec0a00000000000000000000000000000000",
       health: buildUsableTemporalHealth(),
     };
     const projectB = {
-      projectId: "project-b",
+      projectId: "0000ec0b00000000000000000000000000000000",
       health: buildUsableTemporalHealth(),
     };
 
@@ -226,16 +226,16 @@ describe("queue serviceability input isolation", () => {
       getQueueServiceability(projectB),
     ]);
 
-    expect(resultA.value?.expectedQueue).toContain("project-a");
-    expect(resultB.value?.expectedQueue).toContain("project-b");
+    expect(resultA.value?.expectedQueue).toContain("ec0a");
+    expect(resultB.value?.expectedQueue).toContain("ec0b");
     // Neither result should be polluted by the other project's input.
-    expect(resultA.value?.expectedQueue).not.toContain("project-b");
-    expect(resultB.value?.expectedQueue).not.toContain("project-a");
+    expect(resultA.value?.expectedQueue).not.toContain("ec0b");
+    expect(resultB.value?.expectedQueue).not.toContain("ec0a");
   });
 
   test("unusable Temporal dependency immediately yields queue not_admitted", async () => {
     const result = await getQueueServiceability({
-      projectId: "project-a",
+      projectId: "0000ec0a00000000000000000000000000000000",
       health: buildUnusableTemporalHealth(),
     });
 
@@ -245,7 +245,7 @@ describe("queue serviceability input isolation", () => {
 
   test("degraded Temporal health is still usable for queue serviceability", async () => {
     const result = await getQueueServiceability({
-      projectId: "project-a",
+      projectId: "0000ec0a00000000000000000000000000000000",
       health: {
         ...buildUnusableTemporalHealth(),
         server_alive: false,

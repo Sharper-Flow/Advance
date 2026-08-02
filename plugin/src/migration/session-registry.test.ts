@@ -45,7 +45,7 @@ describe("registerLoadedBuildSession", () => {
     const root = await tempDir("adv-sessreg-write-");
     const result = registerLoadedBuildSession({
       migrationRoot: root,
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       buildDigest: DIGEST,
       pluginRoot: "/deploy/Advance/plugin",
       pid: 4321,
@@ -58,7 +58,7 @@ describe("registerLoadedBuildSession", () => {
     expect(parsed).toMatchObject({
       pid: 4321,
       processStartTicks: "777",
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       buildDigest: DIGEST,
       startedAt: "2026-07-16T01:00:00.000Z",
     });
@@ -68,7 +68,7 @@ describe("registerLoadedBuildSession", () => {
     const root = await tempDir("adv-sessreg-rewrite-");
     registerLoadedBuildSession({
       migrationRoot: root,
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       buildDigest: DIGEST,
       pluginRoot: "/deploy/Advance/plugin",
       pid: 1,
@@ -76,21 +76,21 @@ describe("registerLoadedBuildSession", () => {
     });
     registerLoadedBuildSession({
       migrationRoot: root,
-      projectId: "proj-2",
+      projectId: "0000200000000000000000000000000000000000",
       buildDigest: DIGEST,
       pluginRoot: "/deploy/Advance/plugin",
       pid: 1,
       now: new Date("2026-07-16T02:00:00.000Z"),
     });
     const parsed = JSON.parse(readFileSync(sessionFile(root, 1), "utf8"));
-    expect(parsed.projectId).toBe("proj-2");
+    expect(parsed.projectId).toBe("0000200000000000000000000000000000000000");
     expect(parsed.startedAt).toBe("2026-07-16T02:00:00.000Z");
   });
 
   test("never throws on unwritable roots — reports the error", async () => {
     const result = registerLoadedBuildSession({
       migrationRoot: join("/definitely", "not", "writable-\0"),
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       buildDigest: DIGEST,
       pluginRoot: "/x",
       pid: 1,
@@ -105,14 +105,14 @@ describe("unregisterLoadedBuildSession", () => {
     const root = await tempDir("adv-sessreg-unreg-");
     registerLoadedBuildSession({
       migrationRoot: root,
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       buildDigest: DIGEST,
       pluginRoot: "/x",
       pid: 10,
     });
     registerLoadedBuildSession({
       migrationRoot: root,
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       buildDigest: DIGEST,
       pluginRoot: "/x",
       pid: 20,
@@ -134,7 +134,7 @@ describe("listLiveBuildSessions", () => {
     ] as const) {
       registerLoadedBuildSession({
         migrationRoot: root,
-        projectId: "proj-1",
+        projectId: "0000100000000000000000000000000000000000",
         buildDigest: DIGEST,
         pluginRoot: "/x",
         pid,
@@ -175,7 +175,7 @@ describe("registerPluginSession (init seam)", () => {
   test("skips registration in test mode even with an identity", async () => {
     const root = await tempDir("adv-sessreg-seam-test-");
     const result = registerPluginSession({
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       migrationRoot: root,
       identity: {
         schemaVersion: 1,
@@ -194,7 +194,7 @@ describe("registerPluginSession (init seam)", () => {
   test("skips when no build identity is available (dev/src mode)", async () => {
     const root = await tempDir("adv-sessreg-seam-noident-");
     const result = registerPluginSession({
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       migrationRoot: root,
       identity: null,
       sessionId: "sess_test123",
@@ -206,7 +206,7 @@ describe("registerPluginSession (init seam)", () => {
   test("registers when identity is present outside test mode", async () => {
     const root = await tempDir("adv-sessreg-seam-ok-");
     const result = registerPluginSession({
-      projectId: "proj-1",
+      projectId: "0000100000000000000000000000000000000000",
       migrationRoot: root,
       identity: {
         schemaVersion: 1,

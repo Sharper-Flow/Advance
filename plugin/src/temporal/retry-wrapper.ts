@@ -1,4 +1,3 @@
-import { Connection } from "@temporalio/client";
 import { collectErrorText } from "./error-text";
 
 export type TemporalErrorClass = "transient" | "fallback" | "fatal";
@@ -251,7 +250,7 @@ export function resetTemporalRetryTelemetry(): void {
   lastWorkerRunError = null;
 }
 
-interface RetryOptions {
+interface RetryOptions<T = unknown> {
   maxAttempts?: number;
   initialDelayMs?: number;
   maxDelayMs?: number;
@@ -267,20 +266,25 @@ interface RetryOptions {
    */
   deadline?: TemporalReadDeadline;
   /**
-   * SDK connection to use for native gRPC deadline/abort propagation.
-   * When provided alongside `deadline`, `Promise.race` is no longer the
-   * RPC timeout authority — the SDK's `Connection.withDeadline` and
-   * `withAbortSignal` cancel the in-flight RPC instead.
+   * Owner-provided deadline/abort executor. When provided alongside
+   * `deadline`, `Promise.race` is no longer the RPC timeout authority —
+   * the closure cancels the in-flight RPC instead. This closure is the
+   * only thing that may touch the raw SDK Connection; it is supplied by
+   * the operation owner so the retry wrapper itself stays client-free.
    */
-  connection?: Connection;
+  runWithDeadline?: (
+    deadlineAt: number,
+    abortSignal: AbortSignal,
+    fn: () => Promise<T>,
+  ) => Promise<T>;
   /**
-   * Request-scoped abort signal. When provided, the SDK cancels the
+   * Request-scoped abort signal. When provided, the executor cancels the
    * in-flight RPC if the signal is aborted.
    */
   abortSignal?: AbortSignal;
 }
 
-function delayMs(attempt: number, options: RetryOptions): number {
+function delayMs<T>(attempt: number, options: RetryOptions<T>): number {
   const initial = options.initialDelayMs ?? 250;
   const coefficient = options.backoffCoefficient ?? 2;
   const max = options.maxDelayMs ?? 2_000;
@@ -307,7 +311,7 @@ async function withTimeout<T>(op: Promise<T>, timeoutMs?: number): Promise<T> {
 
 export async function withTemporalRetry<T>(
   op: () => Promise<T>,
-  options: RetryOptions = {},
+  options: RetryOptions<T> = {},
 ): Promise<T> {
   const maxAttempts = options.maxAttempts ?? 3;
   const deadline = options.deadline;
@@ -328,19 +332,18 @@ export async function withTemporalRetry<T>(
         : options.timeoutMs;
     try {
       let result: T;
-      if (deadline && options.connection) {
-        // rq-boundedAuthoritativeRead02: use the SDK's native gRPC deadline
-        // and abort propagation as the RPC timeout authority. The per-attempt
+      if (deadline && options.runWithDeadline) {
+        // rq-boundedAuthoritativeRead02: use the owner-provided gRPC deadline
+        // and abort executor as the RPC timeout authority. The per-attempt
         // deadline is the same cap that the legacy Promise.race fallback
         // would have applied, but the SDK cancels the in-flight RPC instead
         // of merely resolving a local race.
         const attemptDeadlineAt =
           Date.now() + (attemptTimeoutMs ?? remainingDeadlineMs(deadline));
-        result = await options.connection.withDeadline(attemptDeadlineAt, () =>
-          options.connection!.withAbortSignal(
-            options.abortSignal ?? new AbortController().signal,
-            op,
-          ),
+        result = await options.runWithDeadline(
+          attemptDeadlineAt,
+          options.abortSignal ?? new AbortController().signal,
+          op,
         );
       } else {
         result = await withTimeout(op(), attemptTimeoutMs);

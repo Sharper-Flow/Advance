@@ -225,7 +225,10 @@ describe("evaluateGateWorktreeIsolation — existing-worktree ALLOW (rq-worktree
       worktreeExists,
       resumeRuntime: {
         projectRoot: "/repo/main",
-        database: { projectDir: "/repo/main", projectId: "proj-1" },
+        database: {
+          projectDir: "/repo/main",
+          projectId: "0000100000000000000000000000000000000000",
+        },
         log: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
       } as never,
     };

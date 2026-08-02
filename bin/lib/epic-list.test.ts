@@ -6,22 +6,23 @@ import {
   listEpicsFromVisibility,
 } from "./epic-list";
 
-function fakeEpicClient(
+const PROJECT_ID = "e".repeat(40);
+
+function fakeEpicOwner(
   workflowRows: Array<{ workflowId: string; startTime?: Date | null }>,
   listError?: Error,
 ) {
   const queries: string[] = [];
   return {
     queries,
-    workflow: {
-      list: (opts: { query: string }) => {
-        if (listError) throw listError;
-        queries.push(opts.query);
-        async function* iter() {
-          for (const row of workflowRows) yield row;
-        }
-        return iter();
-      },
+    list: async <T extends { workflowId: string; startTime?: Date | null }>(
+      _ctx: unknown,
+      query: string,
+      _options?: { limit?: number; nextPageToken?: string },
+    ): Promise<{ kind: "complete"; value: T[]; truncated: boolean }> => {
+      if (listError) throw listError;
+      queries.push(query);
+      return { kind: "complete", value: workflowRows as T[], truncated: false };
     },
   };
 }
@@ -42,7 +43,7 @@ describe("epic list CLI helper", () => {
         },
       ],
       {
-        projectId: "pid-abc",
+        projectId: PROJECT_ID,
         now,
       },
     );
@@ -52,7 +53,7 @@ describe("epic list CLI helper", () => {
       live: true,
       stale: false,
       generated_at: "2026-06-26T03:00:00.000Z",
-      project_id: "pid-abc",
+      project_id: PROJECT_ID,
       epics: [
         { id: "cardIdentity", startTime: "2026-06-25T10:00:00.000Z" },
         {
@@ -67,7 +68,7 @@ describe("epic list CLI helper", () => {
     const payload = buildLiveEpicListPayload(
       [{ id: "cardIdentity", startTime: null }],
       {
-        projectId: "pid-abc",
+        projectId: PROJECT_ID,
         now,
       },
     );
@@ -77,7 +78,7 @@ describe("epic list CLI helper", () => {
 
   test("builds fail-closed JSON metadata", () => {
     const payload = buildLiveEpicListFailure(
-      "pid-abc",
+      PROJECT_ID,
       new Error("Temporal unavailable"),
       now,
     );
@@ -85,16 +86,16 @@ describe("epic list CLI helper", () => {
     expect(payload.source).toBe("temporal");
     expect(payload.live).toBe(false);
     expect(payload.stale).toBe(false);
-    expect(payload.project_id).toBe("pid-abc");
+    expect(payload.project_id).toBe(PROJECT_ID);
     expect(payload.epics).toEqual([]);
     expect(payload.error).toBe("Temporal unavailable");
     expect(payload.remediation).toContain("Temporal");
   });
 
   test("lists only Epic IDs in the current project prefix", async () => {
-    const client = fakeEpicClient([
+    const client = fakeEpicOwner([
       {
-        workflowId: "adv/epic/pid-abc/cardIdentity",
+        workflowId: `adv/epic/${PROJECT_ID}/cardIdentity`,
         startTime: new Date("2026-06-25T10:00:00.000Z"),
       },
       {
@@ -102,21 +103,21 @@ describe("epic list CLI helper", () => {
         startTime: new Date("2026-06-25T10:01:00.000Z"),
       },
       {
-        workflowId: "adv/change/pid-abc/notEpic",
+        workflowId: `adv/change/${PROJECT_ID}/notEpic`,
         startTime: new Date("2026-06-25T10:02:00.000Z"),
       },
       {
-        workflowId: "adv/epic/pid-abc/",
+        workflowId: `adv/epic/${PROJECT_ID}/`,
         startTime: new Date("2026-06-25T10:03:00.000Z"),
       },
       {
-        workflowId: "adv/epic/pid-abc/addLauncherRows",
+        workflowId: `adv/epic/${PROJECT_ID}/addLauncherRows`,
         startTime: null,
       },
     ]);
 
     const epics = await listEpicsFromVisibility(client, {
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       timeoutMs: 1000,
     });
 
@@ -133,15 +134,15 @@ describe("epic list CLI helper", () => {
   });
 
   test("can request all execution statuses without ExecutionStatus filter", async () => {
-    const client = fakeEpicClient([
+    const client = fakeEpicOwner([
       {
-        workflowId: "adv/epic/pid-abc/cardIdentity",
+        workflowId: `adv/epic/${PROJECT_ID}/cardIdentity`,
         startTime: new Date("2026-06-25T10:00:00.000Z"),
       },
     ]);
 
     await listEpicsFromVisibility(client, {
-      projectId: "pid-abc",
+      projectId: PROJECT_ID,
       timeoutMs: 1000,
       status: "all",
     });
@@ -150,10 +151,10 @@ describe("epic list CLI helper", () => {
   });
 
   test("fails closed by throwing when Visibility listing fails", async () => {
-    const client = fakeEpicClient([], new Error("visibility unavailable"));
+    const client = fakeEpicOwner([], new Error("visibility unavailable"));
 
     await expect(
-      listEpicsFromVisibility(client, { projectId: "pid-abc", timeoutMs: 1000 }),
+      listEpicsFromVisibility(client, { projectId: PROJECT_ID, timeoutMs: 1000 }),
     ).rejects.toThrow("visibility unavailable");
   });
 });

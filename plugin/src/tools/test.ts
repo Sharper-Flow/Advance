@@ -516,7 +516,7 @@ export const testTools = {
             const projectId = await getProjectId(store.paths.root);
             if (projectId) {
               const handle = getChangeHandle(
-                bundle.client,
+                bundle,
                 projectId,
                 taskInfo.changeId,
               );

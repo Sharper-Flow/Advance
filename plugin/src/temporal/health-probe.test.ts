@@ -3,6 +3,7 @@ import {
   getTemporalHealth,
   resetTemporalHealthProbeState,
 } from "./health-probe";
+import { createMockOwner } from "./__tests__/mock-owner";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -74,10 +75,7 @@ describe("getTemporalHealth — server poller probe integration", () => {
     mockGetTemporalAddress.mockReturnValue("127.0.0.1:7233");
     mockGetTemporalNamespace.mockReturnValue("default");
     mockBuildProjectTaskQueue.mockImplementation((pid: string) => `adv-${pid}`);
-    mockGetService.mockReturnValue({
-      connection: { workflowService: { describeTaskQueue: vi.fn() } },
-      namespace: "default",
-    });
+    mockGetService.mockReturnValue(createMockOwner());
     mockGetTemporalRetryTelemetry.mockReturnValue({
       lastOpAt: null,
       lastError: null,
@@ -223,10 +221,7 @@ describe("getTemporalHealth — multi-queue probing", () => {
     mockGetTemporalAddress.mockReturnValue("127.0.0.1:7233");
     mockGetTemporalNamespace.mockReturnValue("default");
     mockBuildProjectTaskQueue.mockImplementation((pid: string) => `adv-${pid}`);
-    mockGetService.mockReturnValue({
-      connection: { workflowService: { describeTaskQueue: vi.fn() } },
-      namespace: "default",
-    });
+    mockGetService.mockReturnValue(createMockOwner());
     mockGetTemporalRetryTelemetry.mockReturnValue({
       lastOpAt: null,
       lastError: null,

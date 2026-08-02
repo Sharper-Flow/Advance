@@ -70,7 +70,10 @@ import { worktreeDematerializedSignal } from "../../temporal/messages";
 import type { ChangeWorkflowState } from "../../temporal/contracts";
 import { WorktreeDematerializedSignalPayloadSchema } from "../../types";
 
-const access = { projectDir: "/repo", projectId: "proj-123" };
+const access = {
+  projectDir: "/repo",
+  projectId: "0000123000000000000000000000000000000000",
+};
 const repoRoot = "/repo";
 const TEN_DAYS_MS = 10 * 24 * 60 * 60 * 1000;
 

@@ -20,28 +20,13 @@ import type {
   LiveStatusPayload,
 } from "./types";
 import {
-  createTemporalClientBundle,
-  escapeVisibilityValue,
+  withTemporalOperations,
+  buildVisibilityQuery,
+  makeTemporalOperationContext,
+  type TemporalOperations,
 } from "../../plugin/src/cli/temporal-boundary";
 
 export const QUERY_TIMEOUT_MS = 5_000;
-
-function withTimeout<T>(
-  promise: Promise<T>,
-  timeoutMs: number,
-  label: string,
-): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeout = setTimeout(() => {
-      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
-  });
-
-  return Promise.race([promise, timeoutPromise]).finally(() => {
-    if (timeout) clearTimeout(timeout);
-  });
-}
 
 export function summarizeLiveChanges(
   changes: ChangeRecord[],
@@ -137,12 +122,6 @@ const CHANGE_WORKFLOW_PREFIX = "adv/change/";
 export interface VisibilityExecution {
   workflowId: string;
   searchAttributes?: Record<string, unknown> | null;
-}
-
-export interface VisibilityListClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<VisibilityExecution>;
-  };
 }
 
 function firstSearchAttribute(
@@ -254,40 +233,42 @@ export function buildSummaryFromSearchAttributes(
  * or list failure so callers can fail closed.
  */
 export async function summariesFromVisibility(
-  client: VisibilityListClient,
-  options: { projectId: string; now: Date; timeoutMs?: number },
+  owner: TemporalOperations,
+  options: { projectId: string; now: Date; timeoutMs?: number; limit?: number },
 ): Promise<ChangeSummary[]> {
-  const { projectId, now } = options;
-  const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
+  const { projectId, now, timeoutMs, limit } = options;
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
-  const clauses = [
-    `AdvAffectedProjects = "${escapeVisibilityValue(projectId)}"`,
-    `ExecutionStatus = "Running"`,
-  ];
-  const query = clauses.join(" AND ");
-
-  const collect = async (): Promise<ChangeSummary[]> => {
-    const summaries: ChangeSummary[] = [];
-    for await (const exec of client.workflow.list({ query })) {
-      const wfid = exec.workflowId;
-      if (!wfid.startsWith(projectPrefix)) continue;
-      const changeId = wfid.slice(projectPrefix.length);
-      if (changeId.length === 0) continue;
-      const summary = buildSummaryFromSearchAttributes(
-        changeId,
-        exec.searchAttributes,
-        now,
-      );
-      if (summary) summaries.push(summary);
-    }
-    return summaries;
-  };
-
-  const summaries = await withTimeout(
-    collect(),
-    timeoutMs,
-    "Temporal Visibility list",
+  const query = buildVisibilityQuery({
+    projectId,
+    statuses: null,
+    limit,
+    executionStatus: "Running",
+  });
+  // Visibility scan is scoped to this project's AdvAffectedProjects keyword
+  // list via buildVisibilityQuery; the attribute is registered on every
+  // change workflow start.
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    `${projectPrefix}visibility-status`,
+    "list",
+    "bin.liveStatus.summariesFromVisibility",
+    timeoutMs ?? QUERY_TIMEOUT_MS,
   );
+
+  const result = await owner.list<VisibilityExecution>(ctx, query, { limit: limit ?? 1_000_000 });
+  if (result.kind !== "complete") {
+    throw result.error;
+  }
+  const summaries: ChangeSummary[] = [];
+  for (const exec of result.value) {
+    const wfid = exec.workflowId;
+    if (!wfid.startsWith(projectPrefix)) continue;
+    const changeId = wfid.slice(projectPrefix.length);
+    if (changeId.length === 0) continue;
+    const summary = buildSummaryFromSearchAttributes(changeId, exec.searchAttributes, now);
+    if (summary) summaries.push(summary);
+    if (limit !== undefined && summaries.length >= limit) break;
+  }
   summaries.sort((a, b) => b.lastActivityAt.localeCompare(a.lastActivityAt));
   return summaries;
 }
@@ -329,19 +310,12 @@ export async function loadLiveSummaries(
   now: Date,
   timeoutMs = QUERY_TIMEOUT_MS,
 ): Promise<ChangeSummary[]> {
-  const bundle = await withTimeout(
-    createTemporalClientBundle(),
-    timeoutMs,
-    "Temporal connection",
+  return withTemporalOperations(
+    projectId,
+    (owner) => summariesFromVisibility(owner, { projectId, now, timeoutMs }),
+    undefined,
+    { connectTimeoutMs: timeoutMs },
   );
-  try {
-    return await summariesFromVisibility(
-      bundle.client as unknown as VisibilityListClient,
-      { projectId, now, timeoutMs },
-    );
-  } finally {
-    await bundle.connection.close();
-  }
 }
 
 

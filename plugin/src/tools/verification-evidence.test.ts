@@ -424,7 +424,7 @@ describe("adv_verification_evidence_disposition", () => {
       fn({
         context: {
           root: targetDir,
-          projectId: "target-project-id",
+          projectId: "0a00e00000ec00d0000000000000000000000000",
           trusted: true,
           trustSource: "explicit",
           stateMode: "temporal",

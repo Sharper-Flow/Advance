@@ -16,11 +16,15 @@
 
 import { describe, expect, it } from "vitest";
 import { performance } from "node:perf_hooks";
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
 
 import {
   listChangeWorkflowIds,
   buildVisibilityQuery,
 } from "./list-change-workflows";
+
+const PROJECT_ID = "0000000000000000000000000000000000000001";
+const OTHER_PROJECT_ID = "0000000000000000000000000000000000000002";
 
 interface FakeWorkflow {
   workflowId: string;
@@ -107,13 +111,16 @@ describe("buildVisibilityQuery", () => {
 describe("listChangeWorkflowIds", () => {
   it("returns change IDs from matching workflows", async () => {
     const fakeClient = makeFakeClient([
-      { workflowId: "adv/change/proj1/changeA" },
-      { workflowId: "adv/change/proj1/changeB" },
+      { workflowId: `adv/change/${PROJECT_ID}/changeA` },
+      { workflowId: `adv/change/${PROJECT_ID}/changeB` },
     ]);
-    const ids = await listChangeWorkflowIds(fakeClient, {
-      projectId: "proj1",
-    });
-    expect(ids.sort((a, b) => a.localeCompare(b))).toEqual([
+    const ids = await listChangeWorkflowIds(
+      createMockOwnerFromClient({ client: fakeClient }),
+      {
+        projectId: PROJECT_ID,
+      },
+    );
+    expect(ids.value.sort((a, b) => a.localeCompare(b))).toEqual([
       "changeA",
       "changeB",
     ]);
@@ -121,36 +128,47 @@ describe("listChangeWorkflowIds", () => {
 
   it("filters out workflow IDs that do not belong to the project", async () => {
     const fakeClient = makeFakeClient([
-      { workflowId: "adv/change/proj1/changeA" },
-      { workflowId: "adv/change/proj2/changeStranger" },
-      { workflowId: "adv/project/proj1" }, // PSW workflow, must skip
+      { workflowId: `adv/change/${PROJECT_ID}/changeA` },
+      { workflowId: `adv/change/${OTHER_PROJECT_ID}/changeStranger` },
+      { workflowId: `adv/project/${PROJECT_ID}` }, // PSW workflow, must skip
       { workflowId: "totally-unrelated" },
     ]);
-    const ids = await listChangeWorkflowIds(fakeClient, {
-      projectId: "proj1",
-    });
-    expect(ids).toEqual(["changeA"]);
+    const ids = await listChangeWorkflowIds(
+      createMockOwnerFromClient({ client: fakeClient }),
+      {
+        projectId: PROJECT_ID,
+      },
+    );
+    expect(ids.value).toEqual(["changeA"]);
   });
 
   it("respects the `limit` cap and stops iteration early", async () => {
     const workflows: FakeWorkflow[] = Array.from({ length: 50 }, (_, i) => ({
-      workflowId: `adv/change/proj1/c${i}`,
+      workflowId: `adv/change/${PROJECT_ID}/c${i}`,
     }));
     const fakeClient = makeFakeClient(workflows);
-    const ids = await listChangeWorkflowIds(fakeClient, {
-      projectId: "proj1",
-      limit: 10,
-    });
-    expect(ids).toHaveLength(10);
+    const ids = await listChangeWorkflowIds(
+      createMockOwnerFromClient({ client: fakeClient }),
+      {
+        projectId: PROJECT_ID,
+        limit: 10,
+      },
+    );
+    expect(ids.value).toHaveLength(10);
   });
 
   it("constructs the correct visibility query for the SDK", async () => {
     const fakeClient = makeFakeClient([]);
-    await listChangeWorkflowIds(fakeClient, {
-      projectId: "proj1",
-      statuses: ["draft"],
-    });
-    expect(fakeClient.lastQuery).toContain('AdvAffectedProjects = "proj1"');
+    await listChangeWorkflowIds(
+      createMockOwnerFromClient({ client: fakeClient }),
+      {
+        projectId: PROJECT_ID,
+        statuses: ["draft"],
+      },
+    );
+    expect(fakeClient.lastQuery).toContain(
+      `AdvAffectedProjects = "${PROJECT_ID}"`,
+    );
     expect(fakeClient.lastQuery).toContain('AdvLifecycleState = "open"');
     expect(fakeClient.lastQuery).toContain('ExecutionStatus = "Running"');
   });
@@ -158,34 +176,40 @@ describe("listChangeWorkflowIds", () => {
   it("handles 1500 paginated results without dropping any", async () => {
     const N = 1500;
     const workflows: FakeWorkflow[] = Array.from({ length: N }, (_, i) => ({
-      workflowId: `adv/change/proj1/c${i}`,
+      workflowId: `adv/change/${PROJECT_ID}/c${i}`,
     }));
     const fakeClient = makeFakeClient(workflows);
-    const ids = await listChangeWorkflowIds(fakeClient, {
-      projectId: "proj1",
-    });
-    expect(ids).toHaveLength(N);
+    const ids = await listChangeWorkflowIds(
+      createMockOwnerFromClient({ client: fakeClient }),
+      {
+        projectId: PROJECT_ID,
+      },
+    );
+    expect(ids.value).toHaveLength(N);
     // Spot-check edge ids
-    expect(ids).toContain("c0");
-    expect(ids).toContain("c1499");
+    expect(ids.value).toContain("c0");
+    expect(ids.value).toContain("c1499");
   });
 
   // AC1 measurement: 552 changes in <2s p99 for the listChangeWorkflowIds path
   it("processes 552 changes well under AC1 budget (<2s p99)", async () => {
     const N = 552;
     const workflows: FakeWorkflow[] = Array.from({ length: N }, (_, i) => ({
-      workflowId: `adv/change/proj1/c${i}`,
+      workflowId: `adv/change/${PROJECT_ID}/c${i}`,
     }));
 
     const samples: number[] = [];
     for (let iter = 0; iter < 10; iter++) {
       const fakeClient = makeFakeClient(workflows);
       const t = performance.now();
-      const ids = await listChangeWorkflowIds(fakeClient, {
-        projectId: "proj1",
-      });
+      const ids = await listChangeWorkflowIds(
+        createMockOwnerFromClient({ client: fakeClient }),
+        {
+          projectId: PROJECT_ID,
+        },
+      );
       samples.push(performance.now() - t);
-      expect(ids).toHaveLength(N);
+      expect(ids.value).toHaveLength(N);
     }
 
     samples.sort((a, b) => a - b);
@@ -199,26 +223,29 @@ describe("listChangeWorkflowIds", () => {
   it("remains an ID-only enumerator even when records carry search attributes", async () => {
     const fakeClient = makeFakeClient([
       {
-        workflowId: "adv/change/proj1/changeA",
+        workflowId: `adv/change/${PROJECT_ID}/changeA`,
         searchAttributes: {
           AdvLastSignalAt: ["2026-07-18T12:00:00.000Z"],
           AdvCreatedAt: ["2026-07-18T10:00:00.000Z"],
         },
       },
       {
-        workflowId: "adv/change/proj1/changeB",
+        workflowId: `adv/change/${PROJECT_ID}/changeB`,
         searchAttributes: {
           AdvLastSignalAt: ["2026-07-18T11:00:00.000Z"],
           AdvCreatedAt: ["2026-07-18T09:00:00.000Z"],
         },
       },
     ]);
-    const ids = await listChangeWorkflowIds(fakeClient, {
-      projectId: "proj1",
-    });
-    expect(Array.isArray(ids)).toBe(true);
-    expect(ids.every((id) => typeof id === "string")).toBe(true);
-    expect(ids.sort((a, b) => a.localeCompare(b))).toEqual([
+    const ids = await listChangeWorkflowIds(
+      createMockOwnerFromClient({ client: fakeClient }),
+      {
+        projectId: PROJECT_ID,
+      },
+    );
+    expect(ids.kind).toBe("complete");
+    expect(ids.value.every((id) => typeof id === "string")).toBe(true);
+    expect(ids.value.sort((a, b) => a.localeCompare(b))).toEqual([
       "changeA",
       "changeB",
     ]);

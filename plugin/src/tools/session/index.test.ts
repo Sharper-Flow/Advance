@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 vi.mock("../worktree/state", () => ({
   initStateDb: vi.fn(async () => ({
     projectDir: "/test",
-    projectId: "test-id",
+    projectId: "0e000d0000000000000000000000000000000000",
   })),
   listSessions: vi.fn(async () => []),
   getSessionRecord: vi.fn(async () => null),

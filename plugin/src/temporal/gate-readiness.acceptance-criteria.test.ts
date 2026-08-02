@@ -16,7 +16,7 @@ function makeState(
   overrides: Partial<ChangeWorkflowState> = {},
 ): ChangeWorkflowState {
   return {
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",
     title: "Test change",
     initializedAt: "2026-05-20T00:00:00.000Z",

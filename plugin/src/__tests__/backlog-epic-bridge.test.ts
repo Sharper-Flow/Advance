@@ -60,7 +60,7 @@ describe("backlog-epic bridge", () => {
 
   test("applyShellAddedToState preserves imported_from provenance", () => {
     const state = createEpicWorkflowState({
-      projectId: "p",
+      projectId: "0000000000000000000000000000000000000000",
       epicId: "epic",
       title: "Epic",
       narrative: "n",

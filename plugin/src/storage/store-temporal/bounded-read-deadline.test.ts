@@ -138,7 +138,7 @@ describe("projection-only change-list reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisoned.temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.list({});
@@ -168,7 +168,7 @@ describe("projection-only change-list reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisoned.temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const archived = await store.changes.list({ includeArchived: true });
@@ -183,8 +183,10 @@ describe("projection-only change-list reads", () => {
       "closedOne",
     ]);
 
-    // Terminal reads are projection-only (#353): the rows above come from
-    // durable summary shards, so no Temporal surface is touched at all.
+    // Terminal and routine list reads are projection-only (#353): even
+    // terminal reads do not enumerate Temporal Visibility. The rows above
+    // came from durable summary shards, so no Temporal client surface was
+    // touched.
     expect(poisoned.list).not.toHaveBeenCalled();
     expect(poisoned.query).not.toHaveBeenCalled();
     expect(poisoned.start).not.toHaveBeenCalled();
@@ -204,7 +206,7 @@ describe("projection-only change-list reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisoned.temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const page = await store.changes.listSummary!({ limit: 1, offset: 0 });
@@ -229,7 +231,7 @@ describe("projection-only change-list reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisonedTemporal().temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const archived = await store.changes.listSummary!({
@@ -255,7 +257,7 @@ describe("projection-only change-list reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisonedTemporal().temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const closed = await store.changes.listSummary!({ includeClosed: true });
@@ -273,7 +275,7 @@ describe("projection-only change-list reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisonedTemporal().temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listSummary!({});
@@ -297,7 +299,7 @@ describe("projection-only change-list reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisoned.temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.list({});
@@ -311,9 +313,10 @@ describe("projection-only change-list reads", () => {
       ]),
     );
 
-    // Projection-only reads (#353) do not fall back to Visibility: an
-    // unreadable summary index degrades to an empty, typed-degraded result
-    // rather than reaching for Temporal.
+    // Projection-only reads (#353) do not fall back to Visibility: when
+    // durable sources fail, the summary index degrades to an empty,
+    // typed-degraded result rather than reaching for Temporal. The Temporal
+    // client surface stays untouched.
     expect(poisoned.list).not.toHaveBeenCalled();
     expect(poisoned.query).not.toHaveBeenCalled();
     expect(poisoned.start).not.toHaveBeenCalled();

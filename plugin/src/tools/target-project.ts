@@ -266,10 +266,8 @@ export async function ensureTargetMutationQueueReady(input: {
   // Bounded fresh server poller evidence is conservative admission evidence
   // only: it admits the mutation without proving local worker liveness.
   const serverPollerProbe = await probeTaskQueuePollers({
-    connection: input.temporalBundle.connection as Parameters<
-      typeof probeTaskQueuePollers
-    >[0]["connection"],
-    namespace: input.temporalBundle.namespace,
+    owner: input.temporalBundle,
+    projectId: input.projectId,
     taskQueue: expectedQueue,
     freshPollerMs: input.freshPollerMs ?? TARGET_MUTATION_FRESH_POLLER_MS,
   });

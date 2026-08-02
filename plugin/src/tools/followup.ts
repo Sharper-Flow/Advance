@@ -175,7 +175,7 @@ async function getChangeHandleForChangeId(
     store.productContext?.productProjectId ??
     (await getProjectId(store.paths.root));
   if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle.client, projectId, changeId);
+  return getChangeHandle(bundle, projectId, changeId);
 }
 
 async function loadSourceChange(

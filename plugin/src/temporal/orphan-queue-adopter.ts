@@ -17,10 +17,8 @@
  * surface. Phase B wires this into the heartbeat `onBeat` (env-gated).
  */
 import { listOrphanSessionQueues } from "./list-orphan-session-queues";
-import type {
-  OrphanListClient,
-  OrphanSessionQueue,
-} from "./list-orphan-session-queues";
+import type { OrphanSessionQueue } from "./list-orphan-session-queues";
+import type { TemporalOperations } from "./operations";
 import { markStale } from "./session-readiness";
 
 /** Minimal worker shape the coordinator depends on (structural). */
@@ -31,7 +29,7 @@ export interface OrphanAdopterWorker {
 }
 
 export interface OrphanQueueAdopterOptions {
-  client: OrphanListClient;
+  owner: TemporalOperations;
   projectId: string;
   worker: OrphanAdopterWorker;
   /** Per-tick hard timeout (DDC2; default 8 s, just under the 10 s heartbeat). */
@@ -239,7 +237,7 @@ export function isOrphanQueueAdoptionEnabled(
 }
 
 export class OrphanQueueAdopter {
-  private readonly client: OrphanListClient;
+  private readonly owner: TemporalOperations;
   private readonly projectId: string;
   private readonly worker: OrphanAdopterWorker;
   private readonly tickTimeoutMs: number;
@@ -261,7 +259,7 @@ export class OrphanQueueAdopter {
   private suppressedShutdownCount = 0;
 
   constructor(options: OrphanQueueAdopterOptions) {
-    this.client = options.client;
+    this.owner = options.owner;
     this.projectId = options.projectId;
     this.worker = options.worker;
     this.tickTimeoutMs = options.tickTimeoutMs ?? DEFAULT_TICK_TIMEOUT_MS;
@@ -422,7 +420,7 @@ export class OrphanQueueAdopter {
     this.lastScanStartedAt = this.now();
 
     const scan = listOrphanSessionQueues(
-      this.client,
+      this.owner,
       this.projectId,
       this.worker.queues,
       {
@@ -434,10 +432,17 @@ export class OrphanQueueAdopter {
 
     try {
       const outcome = await Promise.race([
-        scan.then((queues) => ({ ok: true as const, queues })),
+        scan.then((listOutcome) => ({ ok: true as const, listOutcome })),
         timeout.promise.then(() => ({ ok: false as const })),
       ]);
-      if (outcome.ok) return outcome.queues;
+      if (outcome.ok) {
+        if (outcome.listOutcome.kind !== "complete") {
+          throw new Error(
+            `Visibility list failed: ${outcome.listOutcome.kind}`,
+          );
+        }
+        return outcome.listOutcome.value;
+      }
 
       controller.abort();
       // `Promise.race` already attached handlers to both branches, so a late

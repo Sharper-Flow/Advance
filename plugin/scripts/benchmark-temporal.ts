@@ -691,7 +691,7 @@ export async function runConcurrentClients(opts: {
 
   // Close the Temporal connection unless caller manages lifecycle (tests).
   if (!skipConnectionClose) {
-    await temporal.bundle.connection.close();
+    await temporal.owner?.close?.();
   }
 
   const totalOps = records.length;
@@ -955,7 +955,7 @@ export async function runPromotePipeline(
       }));
 
       await writeJsonlAtomic(store.paths.wisdom, mapped);
-      await temporal.bundle.connection.close();
+      await temporal.owner?.close?.();
     }
   } catch (err) {
     warning = err instanceof Error ? err.message : String(err);

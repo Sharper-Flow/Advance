@@ -73,7 +73,7 @@ describe("advWorktreeTools", () => {
         fn({
           context: {
             root: "/target",
-            projectId: "target-project",
+            projectId: "0a00e00000ec0000000000000000000000000000",
             externalRoot: "/external/target-project",
             trusted: false,
             trustSource: "explicit",
@@ -85,7 +85,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create delegates to advWorktreeCreate", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({ ok: true, path: "/wt" });
 
@@ -106,7 +109,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create warps the current OpenCode session when runtime context is available", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.loadWorktreeConfig.mockResolvedValue({ mode: "warp" });
     worktreeMock.advWorktreeCreate.mockResolvedValue({
@@ -156,7 +162,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create emits downgrade_reason: missing_server when runtime.serverUrl is absent", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -176,7 +185,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create emits downgrade_reason: missing_session when sessionID is unavailable", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.loadWorktreeConfig.mockResolvedValue({ mode: "warp" });
     worktreeMock.advWorktreeCreate.mockResolvedValue({
@@ -200,7 +212,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create emits downgrade_reason: missing_client when client is absent", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -223,7 +238,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create downgrades to terminal mode before endpoint probing when the workspace flag is off", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.loadWorktreeConfig.mockResolvedValue({ mode: "warp" });
     worktreeMock.advWorktreeCreate.mockResolvedValue({
@@ -251,7 +269,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create blocks already-warped sessions before endpoint probing", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     workspaceWarpMock.warpFlagEnabled.mockReturnValue(true);
     workspaceWarpMock.getSessionWorkspaceID.mockResolvedValue({
@@ -278,7 +299,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create emits downgrade_reason: lookup_failed when session lookup tuple is { ok: false }", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -310,7 +334,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create emits downgrade_reason: lookup_failed (no status) on network error tuple", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -340,7 +367,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create emits downgrade_reason: endpoint_unreachable when workspace endpoint is unavailable", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -375,7 +405,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create emits downgrade_reason: warp_failed after post-create warp failure", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -415,7 +448,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create reports cleanupFailed=true when orphan workspace cleanup also fails", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -452,7 +488,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create preserves legacy warning string alongside downgrade_reason", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -476,7 +515,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_create constructs WarpDeps with directory and client", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCreate.mockResolvedValue({
       ok: true,
@@ -525,7 +567,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_resume passes store for cache refresh on materialization", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeResume.mockResolvedValue({ ok: true, path: "/wt" });
 
@@ -542,7 +587,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_resume routes target_path materialization through target store", async () => {
-    const database = { projectDir: "/target", projectId: "target-project" };
+    const database = {
+      projectDir: "/target",
+      projectId: "0a00e00000ec0000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeResume.mockResolvedValue({
       ok: true,
@@ -584,12 +632,15 @@ describe("advWorktreeTools", () => {
     expect(parsed.ok).toBe(true);
     expect(parsed._projectContext).toMatchObject({
       root: "/target",
-      projectId: "target-project",
+      projectId: "0a00e00000ec0000000000000000000000000000",
     });
   });
 
   it("adv_worktree_delete delegates to advWorktreeDelete", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDelete.mockResolvedValue({
       ok: true,
@@ -616,7 +667,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_delete passes dryRun to advWorktreeDelete", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDelete.mockResolvedValue({
       ok: true,
@@ -639,7 +693,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_delete routes target_path mutations through target store", async () => {
-    const database = { projectDir: "/target", projectId: "target-project" };
+    const database = {
+      projectDir: "/target",
+      projectId: "0a00e00000ec0000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDelete.mockResolvedValue({
       ok: true,
@@ -694,7 +751,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_cleanup formats removed and retained branches", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCleanup.mockResolvedValue({
       removed: ["change/done"],
@@ -725,7 +785,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_cleanup passes dryRun to advWorktreeCleanup", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCleanup.mockResolvedValue({
       removed: 0,
@@ -751,7 +814,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_cleanup routes target_path mutations through target store", async () => {
-    const database = { projectDir: "/target", projectId: "target-project" };
+    const database = {
+      projectDir: "/target",
+      projectId: "0a00e00000ec0000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCleanup.mockResolvedValue({
       removed: ["change/done"],
@@ -798,7 +864,10 @@ describe("advWorktreeTools", () => {
   // cleanup hangs (e.g. workflow query on a poisoned workflow) so it
   // doesn't exceed the SDK's 10s tool-execution timeout.
   it("adv_worktree_cleanup returns a timeout response instead of hanging", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCleanup.mockImplementation(
       () => new Promise(() => {}),
@@ -823,7 +892,10 @@ describe("advWorktreeTools", () => {
 
   // rq-worktreeBoundedCleanup02 AC2: oversize timeoutMs is clamped to safe budget
   it("adv_worktree_cleanup clamps oversize timeoutMs to safe budget and reports effectiveTimeoutMs", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCleanup.mockResolvedValue({
       removed: 0,
@@ -843,7 +915,10 @@ describe("advWorktreeTools", () => {
 
   // rq-worktreeBoundedCleanup02 AC4: default timeout is the safe budget (8000ms)
   it("adv_worktree_cleanup uses safe budget default when no timeoutMs provided", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCleanup.mockResolvedValue({
       removed: 1,
@@ -861,7 +936,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_cleanup passes an internal cleanup item timeout below the wrapper budget", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeCleanup.mockResolvedValue({
       removed: 0,
@@ -887,7 +965,10 @@ describe("advWorktreeTools", () => {
 
   // rq-worktreeBoundedCleanup02 AC1: delete tool also uses safe budget
   it("adv_worktree_delete returns a timeout response instead of hanging", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDelete.mockImplementation(
       () => new Promise(() => {}),
@@ -955,7 +1036,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_detach delegates to advWorktreeDetachBatch", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDetachBatch.mockResolvedValue({
       ok: true,
@@ -999,7 +1083,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_detach routes target_path mutations through target store", async () => {
-    const database = { projectDir: "/target", projectId: "target-project" };
+    const database = {
+      projectDir: "/target",
+      projectId: "0a00e00000ec0000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDetachBatch.mockResolvedValue({
       ok: true,
@@ -1062,7 +1149,10 @@ describe("advWorktreeTools", () => {
   });
 
   it("adv_worktree_detach returns a timeout response instead of hanging", async () => {
-    const database = { projectDir: "/repo", projectId: "p" };
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
     stateMock.initStateDb.mockResolvedValue(database);
     worktreeMock.advWorktreeDetachBatch.mockImplementation(
       () => new Promise(() => {}),

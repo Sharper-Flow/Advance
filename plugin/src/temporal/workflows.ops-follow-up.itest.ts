@@ -21,7 +21,7 @@ import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-e
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
-    projectId: "ops-follow-up-test-project",
+    projectId: "000f00000000e000000ec0000000000000000000",
     changeId,
     title: `Ops follow-up test: ${changeId}`,
     initializedAt: "2026-06-20T04:00:00.000Z",

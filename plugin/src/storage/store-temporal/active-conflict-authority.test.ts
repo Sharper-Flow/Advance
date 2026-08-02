@@ -28,11 +28,13 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { createDefaultGates, type Change } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
 import { createTemporalReadDeadline } from "../../temporal/retry-wrapper";
 import { TEMPORAL_READ_DEADLINE_BUDGET_MS } from "./shared";
+const PROJECT_ID = "0000ec0100000000000000000000000000000000";
 
 const archiveReadCalls: { fn: string; args: unknown[] }[] = [];
 
@@ -110,7 +112,7 @@ function workflowStateFor(change: Change) {
     status: change.status,
     createdAt: change.created_at,
     initializedAt: change.created_at,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
     tasks: [],
     deltas: change.deltas,
     wisdom: [],
@@ -144,13 +146,13 @@ interface MockTemporalOptions {
 }
 
 function mockTemporalClient(opts: MockTemporalOptions = {}) {
-  return {
+  return createMockOwnerFromClient({
     client: {
       workflow: {
         list: async function* () {
           if (opts.listError) throw opts.listError;
           for (const id of opts.ids ?? []) {
-            yield { workflowId: `adv/change/project-1/${id}` };
+            yield { workflowId: `adv/change/${PROJECT_ID}/${id}` };
             if (opts.listDelayAfter !== undefined) {
               await new Promise<void>((resolve) =>
                 globalThis.setTimeout(resolve, opts.listDelayAfter),
@@ -159,7 +161,7 @@ function mockTemporalClient(opts: MockTemporalOptions = {}) {
           }
         },
         getHandle: (workflowId: string) => {
-          const id = workflowId.replace(`adv/change/project-1/`, "");
+          const id = workflowId.replace(`adv/change/${PROJECT_ID}/`, "");
           return {
             query: async () => {
               if (opts.queryError) throw opts.queryError;
@@ -183,7 +185,7 @@ function mockTemporalClient(opts: MockTemporalOptions = {}) {
         },
       },
     },
-  };
+  });
 }
 
 /**
@@ -242,7 +244,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const authority = store.changes.listConflictAuthority;
@@ -280,7 +282,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listConflictAuthority!();
@@ -300,7 +302,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listConflictAuthority!();
@@ -321,7 +323,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const pending = store.changes.listConflictAuthority!({
@@ -352,7 +354,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const pending = store.changes.listConflictAuthority!({
@@ -384,7 +386,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const pending = store.changes.listConflictAuthority!({
@@ -411,7 +413,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listConflictAuthority!();
@@ -434,7 +436,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listConflictAuthority!();
@@ -461,7 +463,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listConflictAuthority!();
@@ -497,7 +499,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listConflictAuthority!();
@@ -523,7 +525,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Warm the non-authoritative cache by listing the change.

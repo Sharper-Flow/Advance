@@ -46,7 +46,11 @@ import {
 } from "../src/migration/inventory";
 import { verifyCommittedReplayFixtures } from "../src/migration/replay-verification";
 import { validateStrictPlanSurface } from "../src/migration/strict-plan-validation";
-import { listChangeWorkflowIds } from "../src/temporal/list-change-workflows";
+import {
+  createTemporalScriptFacadeFactory,
+  TemporalScriptOutcomeError,
+  type TemporalScriptFacadeFactory,
+} from "./temporal-script-facade";
 
 interface Args {
   command: string;
@@ -99,20 +103,33 @@ function parseArgs(argv: string[]): Args {
   return args;
 }
 
-async function makeWorkflowProbe(address: string) {
-  const { Connection, Client } = await import("@temporalio/client");
-  const connection = await Connection.connect({ address });
-  const client = new Client({ connection });
+async function makeWorkflowProbe(factory: TemporalScriptFacadeFactory) {
   return async (projectId: string): Promise<number> => {
-    const ids = await listChangeWorkflowIds(client, {
-      projectId,
-      statuses: null, // count every known change workflow
-    });
-    return ids.length;
+    try {
+      const owner = await factory.get(projectId);
+      const ids = await owner.listChangeWorkflowIds();
+      return ids.length;
+    } catch (error) {
+      if (error instanceof TemporalScriptOutcomeError) {
+        console.error(
+          `workflow probe for ${projectId}: ${error.kind} — ${error.message}`,
+        );
+      } else {
+        console.error(
+          `workflow probe for ${projectId} unavailable (${error instanceof Error ? error.message : String(error)}); treating as zero`,
+        );
+      }
+      return 0;
+    }
   };
 }
 
 async function main(): Promise<void> {
+  const exitCode = await run();
+  process.exit(exitCode);
+}
+
+async function run(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
   const deployRoot = dirname(args.pluginRoot);
   const migrationRoot = args.migrationRoot ?? resolve(deployRoot, "migration");
@@ -126,148 +143,154 @@ async function main(): Promise<void> {
       reason: args.reason,
     });
     console.log(JSON.stringify(result, null, 2));
-    process.exit(result.disabled ? 0 : 1);
+    return result.disabled ? 0 : 1;
   }
 
-  // Shared proof gathering for status + activate.
-  const identity = verifyDeployedBuildIdentity(args.pluginRoot);
-  let workflowProbe: ((projectId: string) => Promise<number>) | undefined;
+  const factory = createTemporalScriptFacadeFactory({
+    address: args.temporalAddress,
+  });
   try {
-    workflowProbe = await makeWorkflowProbe(args.temporalAddress);
-  } catch (error) {
-    console.error(
-      `workflow probe unavailable (${error instanceof Error ? error.message : String(error)}); inventory will be incomplete`,
-    );
-  }
-  const inventory = await collectMachineInventory({
-    pluginRoot: args.pluginRoot,
-    deployRoot,
-    migrationRoot,
-    homeDir: args.homeDir,
-    listRunningWorkflows: workflowProbe,
-  });
-  const readiness = validateMigrationReadiness(inventory);
+    // Shared proof gathering for status + activate.
+    let workflowProbe: ((projectId: string) => Promise<number>) | undefined;
+    try {
+      workflowProbe = await makeWorkflowProbe(factory);
+    } catch (error) {
+      console.error(
+        `workflow probe unavailable (${error instanceof Error ? error.message : String(error)}); inventory will be incomplete`,
+      );
+    }
+    const inventory = await collectMachineInventory({
+      pluginRoot: args.pluginRoot,
+      deployRoot,
+      migrationRoot,
+      homeDir: args.homeDir,
+      listRunningWorkflows: workflowProbe,
+    });
+    const readiness = validateMigrationReadiness(inventory);
 
-  if (args.command === "status") {
-    const receipt = readCutoverReceipt({ migrationRoot });
-    console.log(
-      JSON.stringify(
-        {
-          receipt: receipt.receipt,
-          receiptMalformed: receipt.malformed,
-          build: inventory.build,
-          readiness,
-          inventorySummary: inventory.summary,
-        },
-        null,
-        2,
+    if (args.command === "status") {
+      const receipt = readCutoverReceipt({ migrationRoot });
+      console.log(
+        JSON.stringify(
+          {
+            receipt: receipt.receipt,
+            receiptMalformed: receipt.malformed,
+            build: inventory.build,
+            readiness,
+            inventorySummary: inventory.summary,
+          },
+          null,
+          2,
+        ),
+      );
+      return readiness.complete ? 0 : 1;
+    }
+
+    if (args.command !== "activate") {
+      throw new Error(
+        `unknown command "${args.command}" — expected status | activate | disable`,
+      );
+    }
+
+    if (!readiness.complete) {
+      console.error(
+        JSON.stringify(
+          { activated: false, blockers: readiness.blockers },
+          null,
+          2,
+        ),
+      );
+      return 1;
+    }
+    if (inventory.build.status !== "match" || !inventory.build.digest) {
+      console.error(
+        JSON.stringify(
+          {
+            activated: false,
+            error: `build identity status: ${inventory.build.status}`,
+          },
+          null,
+          2,
+        ),
+      );
+      return 1;
+    }
+
+    // Replay verification against the built workflows bundle (DDC6).
+    const replay = await verifyCommittedReplayFixtures({
+      historiesDir: resolve(
+        args.pluginRoot,
+        "src/temporal/__tests__/replay/histories",
       ),
-    );
-    process.exit(readiness.complete ? 0 : 1);
+      workflowsPath: resolve(args.pluginRoot, "dist/temporal/workflows.js"),
+    });
+    if (!replay.passed) {
+      console.error(JSON.stringify({ activated: false, replay }, null, 2));
+      return 1;
+    }
+
+    // Worker serviceability: current worker capacity must exist — a current
+    // deployed worker process or at least one live session registered on the
+    // current build digest (in-process worker hosts).
+    const currentCapacity =
+      inventory.processes.workers.filter((worker) => worker.root === "deployed")
+        .length + inventory.sessions.live.length;
+    const serviceability =
+      currentCapacity > 0
+        ? {
+            status: "serviceable" as const,
+            detail: `${currentCapacity} current worker-capacity source(s) (deployed workers + current sessions)`,
+          }
+        : {
+            status: "not_serviceable" as const,
+            detail:
+              "no current worker capacity: no deployed worker process and no live session on the current build",
+          };
+
+    const planValidation = validateStrictPlanSurface();
+    if (!planValidation.passed || serviceability.status !== "serviceable") {
+      console.error(
+        JSON.stringify(
+          { activated: false, serviceability, planValidation },
+          null,
+          2,
+        ),
+      );
+      return 1;
+    }
+
+    const proofs: CutoverProofs = {
+      buildIdentityDigest: inventory.build.digest,
+      inventoryComplete: true,
+      inventorySummary: inventory.summary,
+      replay: {
+        passed: true,
+        fixturesVerified: replay.fixtures.length,
+        verifiedAt: replay.verifiedAt,
+      },
+      workerServiceability: {
+        status: "serviceable",
+        detail: serviceability.detail,
+      },
+      strictPlanValidation: {
+        passed: true,
+        checks: planValidation.checks,
+        detail: planValidation.detail,
+      },
+    };
+
+    const result = activateCutoverReceipt({
+      migrationRoot,
+      pluginRoot: args.pluginRoot,
+      buildDigest: inventory.build.digest,
+      proofs,
+      activatedBy: process.env.USER ?? "operator",
+    });
+    console.log(JSON.stringify(result, null, 2));
+    return result.activated ? 0 : 1;
+  } finally {
+    await factory.closeAll();
   }
-
-  if (args.command !== "activate") {
-    throw new Error(
-      `unknown command "${args.command}" — expected status | activate | disable`,
-    );
-  }
-
-  if (!readiness.complete) {
-    console.error(
-      JSON.stringify(
-        { activated: false, blockers: readiness.blockers },
-        null,
-        2,
-      ),
-    );
-    process.exit(1);
-  }
-  if (inventory.build.status !== "match" || !inventory.build.digest) {
-    console.error(
-      JSON.stringify(
-        {
-          activated: false,
-          error: `build identity status: ${inventory.build.status}`,
-        },
-        null,
-        2,
-      ),
-    );
-    process.exit(1);
-  }
-
-  // Replay verification against the built workflows bundle (DDC6).
-  const replay = await verifyCommittedReplayFixtures({
-    historiesDir: resolve(
-      args.pluginRoot,
-      "src/temporal/__tests__/replay/histories",
-    ),
-    workflowsPath: resolve(args.pluginRoot, "dist/temporal/workflows.js"),
-  });
-  if (!replay.passed) {
-    console.error(JSON.stringify({ activated: false, replay }, null, 2));
-    process.exit(1);
-  }
-
-  // Worker serviceability: current worker capacity must exist — a current
-  // deployed worker process or at least one live session registered on the
-  // current build digest (in-process worker hosts).
-  const currentCapacity =
-    inventory.processes.workers.filter((worker) => worker.root === "deployed")
-      .length + inventory.sessions.live.length;
-  const serviceability =
-    currentCapacity > 0
-      ? {
-          status: "serviceable" as const,
-          detail: `${currentCapacity} current worker-capacity source(s) (deployed workers + current sessions)`,
-        }
-      : {
-          status: "not_serviceable" as const,
-          detail:
-            "no current worker capacity: no deployed worker process and no live session on the current build",
-        };
-
-  const planValidation = validateStrictPlanSurface();
-  if (!planValidation.passed || serviceability.status !== "serviceable") {
-    console.error(
-      JSON.stringify(
-        { activated: false, serviceability, planValidation },
-        null,
-        2,
-      ),
-    );
-    process.exit(1);
-  }
-
-  const proofs: CutoverProofs = {
-    buildIdentityDigest: inventory.build.digest,
-    inventoryComplete: true,
-    inventorySummary: inventory.summary,
-    replay: {
-      passed: true,
-      fixturesVerified: replay.fixtures.length,
-      verifiedAt: replay.verifiedAt,
-    },
-    workerServiceability: {
-      status: "serviceable",
-      detail: serviceability.detail,
-    },
-    strictPlanValidation: {
-      passed: true,
-      checks: planValidation.checks,
-      detail: planValidation.detail,
-    },
-  };
-
-  const result = activateCutoverReceipt({
-    migrationRoot,
-    pluginRoot: args.pluginRoot,
-    buildDigest: inventory.build.digest,
-    proofs,
-    activatedBy: process.env.USER ?? "operator",
-  });
-  console.log(JSON.stringify(result, null, 2));
-  process.exit(result.activated ? 0 : 1);
 }
 
 main().catch((error) => {

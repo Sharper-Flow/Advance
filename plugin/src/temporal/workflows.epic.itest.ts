@@ -20,7 +20,7 @@ import { DEFAULT_CHANGE_HISTORY_THRESHOLD } from "./contracts";
 
 function makeEpicInput(): EpicWorkflowInput {
   return {
-    projectId: "epic-wf-test-project",
+    projectId: "e00c0f0e000000ec000000000000000000000000",
     epicId: `epic-${Date.now()}`,
     title: "Epic Workflow Test",
     narrative: "Testing epic workflow.",

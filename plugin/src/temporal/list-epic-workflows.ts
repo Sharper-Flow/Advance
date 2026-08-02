@@ -8,6 +8,8 @@
  * rq-epicCliList01
  */
 
+import type { TemporalListOutcome, TemporalOperations } from "./operations";
+import { makeTemporalOperationContext } from "./operations";
 import { EPIC_WORKFLOW_NAME, EPIC_WORKFLOW_PREFIX } from "./contracts";
 
 export interface ListEpicWorkflowIdsOptions {
@@ -33,18 +35,6 @@ function normalizeVisibilityStartTime(value: unknown): Date | null {
   if (!(value instanceof Date)) return null;
   if (Number.isNaN(value.getTime())) return null;
   return value;
-}
-
-/**
- * Minimal `Client` shape used by listEpicWorkflowIds.
- */
-export interface ListEpicClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{
-      workflowId: string;
-      startTime?: Date | null;
-    }>;
-  };
 }
 
 /**
@@ -75,15 +65,33 @@ export function buildEpicVisibilityQuery(
  * Default `status` is "active", which enumerates running workflows only.
  */
 export async function listEpicWorkflows(
-  client: ListEpicClient,
+  owner: TemporalOperations,
   options: ListEpicWorkflowIdsOptions,
-): Promise<EpicWorkflowListEntry[]> {
-  const query = buildEpicVisibilityQuery(options.projectId, options.status);
-  const projectPrefix = `${EPIC_WORKFLOW_PREFIX}${options.projectId}/`;
-  const limit = options.limit;
-  const epics: EpicWorkflowListEntry[] = [];
+): Promise<TemporalListOutcome<EpicWorkflowListEntry[]>> {
+  const { projectId, status, limit } = options;
+  const query = buildEpicVisibilityQuery(projectId, status);
+  const projectPrefix = `${EPIC_WORKFLOW_PREFIX}${projectId}/`;
+  const effectiveLimit = limit ?? 1000;
+  const placeholderWorkflowId = `${projectPrefix}epic-enumeration`;
 
-  for await (const wf of client.workflow.list({ query })) {
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    placeholderWorkflowId,
+    "list",
+    "listEpicWorkflows",
+    10_000,
+  );
+  const outcome = await owner.list<{
+    workflowId: string;
+    startTime?: Date | null;
+  }>(ctx, query, { limit: effectiveLimit });
+
+  if (outcome.kind !== "complete") {
+    return outcome;
+  }
+
+  const epics: EpicWorkflowListEntry[] = [];
+  for (const wf of outcome.value) {
     const wfid = wf.workflowId;
     if (!wfid.startsWith(projectPrefix)) continue;
     const epicId = wfid.slice(projectPrefix.length);
@@ -95,7 +103,7 @@ export async function listEpicWorkflows(
     if (limit !== undefined && epics.length >= limit) break;
   }
 
-  return epics;
+  return { kind: "complete", value: epics, truncated: outcome.truncated };
 }
 
 /**
@@ -105,9 +113,16 @@ export async function listEpicWorkflows(
  * Default `status` is "active", which enumerates running workflows only.
  */
 export async function listEpicWorkflowIds(
-  client: ListEpicClient,
+  owner: TemporalOperations,
   options: ListEpicWorkflowIdsOptions,
-): Promise<string[]> {
-  const epics = await listEpicWorkflows(client, options);
-  return epics.map((epic) => epic.id);
+): Promise<TemporalListOutcome<string[]>> {
+  const epics = await listEpicWorkflows(owner, options);
+  if (epics.kind !== "complete") {
+    return epics;
+  }
+  return {
+    kind: "complete",
+    value: epics.value.map((epic) => epic.id),
+    truncated: epics.truncated,
+  };
 }

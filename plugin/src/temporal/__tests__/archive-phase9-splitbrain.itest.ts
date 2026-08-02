@@ -225,7 +225,7 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
           // Real STSL so getService() inside recordPhase9Status resolves and
           // the phase9 signal routes through a live Temporal client.
           resetStsl();
-          const bundle = await initStsl({
+          const bundle = await initStsl(projectId!, {
             ADV_TEMPORAL_ADDRESS: env.address ?? "127.0.0.1:7233",
             ADV_TEMPORAL_NAMESPACE: namespace,
             ADV_TEMPORAL_ALLOW_REMOTE: "true",

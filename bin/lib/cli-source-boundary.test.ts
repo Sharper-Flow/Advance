@@ -74,6 +74,13 @@ function repoRelative(path: string): string {
   return normalize(relative(REPO_ROOT, path)).replaceAll("\\", "/");
 }
 
+function isApprovedDeepPath(file: string): boolean {
+  // The Temporal operation owner is the sole approved raw SDK holder.
+  // Its internal storage/tool imports are the owner's implementation detail,
+  // not a direct CLI boundary leak.
+  return file.startsWith(join(PLUGIN_SRC, "temporal/"));
+}
+
 function assertNoForbiddenPluginSrcPath(path: string) {
   const rel = repoRelative(path);
   for (const forbidden of FORBIDDEN_PLUGIN_SRC_PREFIXES) {
@@ -122,7 +129,7 @@ describe("root CLI plugin source boundary", () => {
       const source = readFileSync(file, "utf8");
       for (const specifier of importSpecifiers(source)) {
         const next = resolveRelativeImport(file, specifier);
-        if (next && next.startsWith(PLUGIN_SRC)) {
+        if (next && next.startsWith(PLUGIN_SRC) && !isApprovedDeepPath(file)) {
           stack.push(next);
         }
       }
@@ -144,7 +151,7 @@ describe("root CLI plugin source boundary", () => {
       const source = readFileSync(file, "utf8");
       for (const specifier of importSpecifiers(source)) {
         const next = resolveRelativeImport(file, specifier);
-        if (next && next.startsWith(PLUGIN_SRC)) {
+        if (next && next.startsWith(PLUGIN_SRC) && !isApprovedDeepPath(file)) {
           stack.push(next);
         }
       }

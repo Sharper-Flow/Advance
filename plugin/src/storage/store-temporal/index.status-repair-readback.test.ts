@@ -75,7 +75,7 @@ describe("status repair public read-path parity", () => {
               status: "active",
               createdAt: "2026-05-07T00:00:00.000Z",
               initializedAt: "2026-05-07T00:00:00.000Z",
-              projectId: "project-1",
+              projectId: "0000ec0100000000000000000000000000000000",
               tasks: [],
               deltas: {},
               wisdom: [],
@@ -98,7 +98,7 @@ describe("status repair public read-path parity", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Warm public read paths with the disk projection. At this point the

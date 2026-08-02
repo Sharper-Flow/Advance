@@ -25,20 +25,14 @@ import {
   isAdvSessionNotReady,
   ADV_SESSION_READINESS_RETRY_HINT,
 } from "./readiness-types";
-import type { OrphanListClient } from "./list-orphan-session-queues";
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
 
 const TARGET_PROJECT_ID = "a".repeat(40);
 const EXPECTED_QUEUE = `advance-${TARGET_PROJECT_ID}`;
 
 const mocks = vi.hoisted(() => {
-  const temporalBundle = {
-    client: { workflow: { getHandle: vi.fn() } },
-    connection: { workflowService: { describeTaskQueue: vi.fn() } },
-    namespace: "default",
-  };
-
   return {
-    temporalBundle,
+    temporalBundle: null as any,
     ensureProjectTemporalQueue: vi.fn(async () => {}),
     getRegisteredTemporalWorkerQueues: vi.fn(() => [] as string[]),
     getTemporalWorkerAliveness: vi.fn(() => false),
@@ -51,6 +45,12 @@ const mocks = vi.hoisted(() => {
     })),
     ensureChangeWorkflowStarted: vi.fn(),
   };
+});
+
+mocks.temporalBundle = createMockOwnerFromClient({
+  client: { workflow: { getHandle: vi.fn() } },
+  connection: { workflowService: { describeTaskQueue: vi.fn() } },
+  namespace: "default",
 });
 
 vi.mock("../plugin-init", () => ({
@@ -446,7 +446,7 @@ describe("acceptance matrix — fireSignalAndRefresh (AC1-AC7)", () => {
         },
       },
       {
-        projectId: "proj-abc",
+        projectId: "0000abc000000000000000000000000000000000",
         changeId: "chg-def",
         title: "Test Change",
         initializedAt: new Date().toISOString(),
@@ -572,7 +572,8 @@ describe("DDC budget compliance", () => {
   });
 
   test("DDC5: orphan adopter marks target queue stale within a single heartbeat tick on worker death", async () => {
-    const queue = `advance-P-sess_death`;
+    const projectId = "0000000000000000000000000000000000000000";
+    const queue = `advance-${projectId}-sess_death`;
     const { OrphanQueueAdopter } = await import("./orphan-queue-adopter");
 
     const worker = {
@@ -582,22 +583,24 @@ describe("DDC budget compliance", () => {
       }),
     };
 
-    const client: OrphanListClient = {
-      workflow: {
-        list: async function* () {
-          yield {
-            workflowId: `adv/change/P/${queue}/wf1`,
-            taskQueue: queue,
-            startTime: new Date("2026-07-22T00:00:00Z"),
-            status: { name: "RUNNING" },
-          };
+    const owner = createMockOwnerFromClient({
+      client: {
+        workflow: {
+          list: async function* () {
+            yield {
+              workflowId: `adv/change/${projectId}/${queue}/wf1`,
+              taskQueue: queue,
+              startTime: new Date("2026-07-22T00:00:00Z"),
+              status: { name: "RUNNING" },
+            };
+          },
         },
       },
-    };
+    });
 
     const adopter = new OrphanQueueAdopter({
-      client,
-      projectId: "P",
+      owner,
+      projectId,
       worker,
       tickTimeoutMs: 20,
       now: () => 1000,
@@ -648,7 +651,7 @@ describe("rq-isolSessionTaskQueue05 regression — worker startup non-blocking (
         },
       },
       {
-        projectId: "proj-abc",
+        projectId: "0000abc000000000000000000000000000000000",
         changeId: "chg-def",
         title: "Test Change",
         initializedAt: new Date().toISOString(),

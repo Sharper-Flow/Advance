@@ -169,7 +169,7 @@ describe("createOutOfProcessWorker", () => {
       namespace: "default",
       queues: ["advance-proj-a", "advance-proj-b"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "proj-a",
+      projectId: "0000a00000000000000000000000000000000000",
     });
 
     // Shared worker: only ONE spawn for all queues
@@ -181,7 +181,7 @@ describe("createOutOfProcessWorker", () => {
       ADV_TEMPORAL_ADDRESS: "127.0.0.1:7233",
       ADV_TEMPORAL_NAMESPACE: "default",
       ADV_TEMPORAL_MULTI_QUEUE: "1",
-      ADV_TEMPORAL_PROJECT_ID: "proj-a",
+      ADV_TEMPORAL_PROJECT_ID: "0000a00000000000000000000000000000000000",
     });
     expect(opts.env.ADV_TEMPORAL_TASK_QUEUES).toContain("advance-proj-a");
     expect(opts.env.ADV_TEMPORAL_TASK_QUEUES).toContain("advance-proj-b");
@@ -202,7 +202,7 @@ describe("createOutOfProcessWorker", () => {
       namespace: "default",
       queues: ["advance-a"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "a",
+      projectId: "a000000000000000000000000000000000000000",
     });
 
     expect(worker.queues).toEqual(["advance-a"]);
@@ -227,7 +227,7 @@ describe("createOutOfProcessWorker", () => {
       namespace: "default",
       queues: ["advance-dup"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "dup",
+      projectId: "d000000000000000000000000000000000000000",
     });
 
     await worker.registerQueue("advance-dup");
@@ -248,7 +248,7 @@ describe("createOutOfProcessWorker", () => {
       namespace: "default",
       queues: ["advance-q"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "q",
+      projectId: "0000000000000000000000000000000000000000",
     });
 
     await worker.shutdown();
@@ -271,7 +271,7 @@ describe("createOutOfProcessWorker", () => {
       namespace: "default",
       queues: ["advance-stuck"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "stuck",
+      projectId: "000c000000000000000000000000000000000000",
     });
 
     const shutdownPromise = worker.shutdown();
@@ -296,7 +296,7 @@ describe("createOutOfProcessWorker", () => {
       namespace: "default",
       queues: ["advance-diag"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "diag",
+      projectId: "d0a0000000000000000000000000000000000000",
     });
 
     expect(typeof worker.getDiagnostics).toBe("function");
@@ -330,7 +330,7 @@ describe("createOutOfProcessWorker", () => {
         namespace: "default",
         queues: ["advance-q"],
         workerScript: "/plugin/dist/temporal/worker.js",
-        projectId: "q",
+        projectId: "0000000000000000000000000000000000000000",
       }),
     ).rejects.toThrow(/Install Node|Node executable/);
   });
@@ -347,7 +347,7 @@ describe("createOutOfProcessWorker", () => {
         namespace: "default",
         queues: ["advance-q"],
         workerScript: "/nonexistent/path/worker.js",
-        projectId: "q",
+        projectId: "0000000000000000000000000000000000000000",
       }),
     ).rejects.toThrow(/worker script not found/);
   });
@@ -364,7 +364,7 @@ describe("createOutOfProcessWorker", () => {
       namespace: "default",
       queues: ["advance-sanitize"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "sanitize",
+      projectId: "0a00000e00000000000000000000000000000000",
     });
 
     // Emit a chunk with control characters and a huge payload
@@ -435,7 +435,7 @@ describe("createOutOfProcessWorker restart policy", () => {
       namespace: "default",
       queues: ["advance-crasher"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "crasher",
+      projectId: "c0a00e0000000000000000000000000000000000",
     });
 
     expect(spawnCount).toBe(1);
@@ -482,7 +482,7 @@ describe("createOutOfProcessWorker restart policy", () => {
       namespace: "default",
       queues: ["advance-q"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "q",
+      projectId: "0000000000000000000000000000000000000000",
     });
 
     // Start shutdown, then crash the child
@@ -508,7 +508,7 @@ describe("createOutOfProcessWorker restart policy", () => {
       namespace: "default",
       queues: ["advance-q"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "q",
+      projectId: "0000000000000000000000000000000000000000",
     });
 
     child.exitCode = 0;
@@ -537,7 +537,7 @@ describe("createOutOfProcessWorker restart policy", () => {
       namespace: "default",
       queues: ["advance-q"],
       workerScript: "/plugin/dist/temporal/worker.js",
-      projectId: "q",
+      projectId: "0000000000000000000000000000000000000000",
     });
 
     await worker.restartChild();

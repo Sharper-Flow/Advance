@@ -440,7 +440,7 @@ describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
   test("returns undefined when no active duplicate exists", async () => {
     const store = createMockStore({ peers: [] });
     const result = await checkActiveDuplicateChange(store, "Add user auth", {
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
     expect(result).toBeUndefined();
   });
@@ -450,7 +450,7 @@ describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
       peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
     });
     const result = await checkActiveDuplicateChange(store, "Add user auth", {
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
     expect(result).toBeDefined();
     expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE");
@@ -461,9 +461,12 @@ describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
     const store = createMockStore({
       peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
     });
-    markPoisonedWorkflowForChange("project-1", "addUserAuth");
+    markPoisonedWorkflowForChange(
+      "0000ec0100000000000000000000000000000000",
+      "addUserAuth",
+    );
     const result = await checkActiveDuplicateChange(store, "Add user auth", {
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
     expect(result).toBeDefined();
     expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE_POISONED");
@@ -477,7 +480,7 @@ describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
     });
     const result = await checkActiveDuplicateChange(store, "Add user auth", {
       forceRecreate: true,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
     expect(result).toBeDefined();
     expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE");
@@ -490,10 +493,13 @@ describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
     const store = createMockStore({
       peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
     });
-    markPoisonedWorkflowForChange("project-1", "addUserAuth");
+    markPoisonedWorkflowForChange(
+      "0000ec0100000000000000000000000000000000",
+      "addUserAuth",
+    );
     const result = await checkActiveDuplicateChange(store, "Add user auth", {
       forceRecreate: true,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
     expect(result).toBeUndefined();
   });

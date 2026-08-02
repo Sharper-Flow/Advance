@@ -13,7 +13,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   reconcileTerminalWorkflows,
-  type TerminalReconcileClient,
   type TerminalReconcileDeps,
 } from "./reconcile-terminal-workflows";
 import {
@@ -22,30 +21,32 @@ import {
   isTerminalChangeStatus,
   terminalChangeIdsFromStatuses,
 } from "./reconcile-terminal-deps";
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
+import type { TemporalOperations } from "./operations";
 
-const PROJECT = "proj1";
+const PROJECT = "0".repeat(40);
 const WF = (changeId: string) => `adv/change/${PROJECT}/${changeId}`;
 
 function client(
   entries: Array<{ workflowId: string; status?: string }>,
   terminate: () => Promise<void> = vi.fn(async () => {}),
-): TerminalReconcileClient & {
-  workflow: { terminate: () => Promise<void> };
-} {
-  return {
-    workflow: {
-      list: () =>
-        (async function* () {
-          for (const e of entries) {
-            yield {
-              workflowId: e.workflowId,
-              status: { name: e.status ?? "RUNNING" },
-            };
-          }
-        })(),
-      terminate,
+): TemporalOperations {
+  return createMockOwnerFromClient({
+    client: {
+      workflow: {
+        list: () =>
+          (async function* () {
+            for (const e of entries) {
+              yield {
+                workflowId: e.workflowId,
+                status: { name: e.status ?? "RUNNING" },
+              };
+            }
+          })(),
+        terminate,
+      },
     },
-  };
+  });
 }
 
 function deps(
@@ -224,7 +225,9 @@ describe("reconcileTerminalWorkflows", () => {
       })(),
     );
     const result = await reconcileTerminalWorkflows(
-      { workflow: { list } },
+      createMockOwnerFromClient({
+        client: { workflow: { list } },
+      }),
       PROJECT,
       deps({ listArchivedChangeIds: async () => new Set<string>() }),
     );

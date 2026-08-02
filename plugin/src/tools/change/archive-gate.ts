@@ -25,17 +25,14 @@ import {
   TemporalQueryTimeoutError,
 } from "../../temporal/retry-wrapper";
 import { getService } from "../../temporal/service";
+import { buildChangeWorkflowId } from "../../temporal/client";
 import {
   fireSignalAndRefresh,
   getChangeHandle,
   waitForGateCompletion,
 } from "../_adapters";
-import {
-  createTemporalReadContext,
-  runTemporalQuery,
-  runTemporalRead,
-  type WorkflowHandleLike,
-} from "../../storage/store-temporal/shared";
+import { runTemporalQuery } from "../../storage/store-temporal/shared";
+import type { TemporalWorkflowHandleQueryProxy } from "../change-mutation-coordinator";
 import { isWorkflowCompletedError } from "../../temporal/recovery-classification";
 import {
   gateCompletedSignal,
@@ -188,10 +185,7 @@ function queryWithFreshChangeHandle(
   if (!bundle) {
     throw new Error("STSL not initialized for change query");
   }
-  return getChangeHandle(bundle.client, projectId, changeId).query(
-    query,
-    ...args,
-  );
+  return getChangeHandle(bundle, projectId, changeId).query(query, ...args);
 }
 export function runReacquiringChangeQuery<T>(
   projectId: string,
@@ -212,22 +206,18 @@ export function runReacquiringChangeQuery<T>(
 function reacquiringChangeQueryHandle(
   projectId: string,
   changeId: string,
-): WorkflowHandleLike {
+): TemporalWorkflowHandleQueryProxy {
   return {
-    query: (definition: unknown, ...args: unknown[]) =>
-      queryWithFreshChangeHandle(projectId, changeId, definition, args),
-    executeUpdate: () =>
-      Promise.reject(
-        new Error("reacquiring query handle does not support executeUpdate"),
-      ),
-    signal: () =>
-      Promise.reject(
-        new Error("reacquiring query handle does not support signal"),
-      ),
+    workflowId: buildChangeWorkflowId(projectId, changeId),
+    query: <T>(definition: unknown, ...args: unknown[]) =>
+      queryWithFreshChangeHandle(
+        projectId,
+        changeId,
+        definition,
+        args,
+      ) as Promise<T>,
   };
 }
-
-const RELEASE_GATE_PRE_QUERY_BUDGET_MS = 3_000;
 
 const TERMINAL_WORKFLOW_STATUS_NAMES = new Set([
   "COMPLETED",
@@ -250,61 +240,15 @@ function isUnresponsiveWorkflowError(error: unknown): boolean {
   );
 }
 
-async function describeChangeHandleWithDeadline(
-  bundle: NonNullable<ReturnType<typeof getService>>,
-  projectId: string,
-  changeId: string,
-): Promise<unknown> {
-  const handle = getChangeHandle(bundle.client, projectId, changeId);
-  // Fallback for environments without native deadline support (test mocks):
-  // use the direct describe() call. Production uses runTemporalRead for a
-  // bounded 3s deadline + AbortController that cancels the gRPC call cleanly.
-  if (
-    !bundle.connection ||
-    typeof (bundle.connection as unknown as { withDeadline?: unknown })
-      .withDeadline !== "function"
-  ) {
-    return handle.describe?.();
-  }
-  const ctx = createTemporalReadContext(RELEASE_GATE_PRE_QUERY_BUDGET_MS);
-  const result = await runTemporalRead(
-    bundle.connection,
-    () =>
-      handle.describe?.() ??
-      Promise.reject(new Error("Workflow handle has no describe() method")),
-    ctx,
-    { timeoutMs: RELEASE_GATE_PRE_QUERY_BUDGET_MS },
-  );
-  if (result.error) throw result.error;
-  return result.data;
-}
-
 async function runBoundedReacquiringChangeQuery<T>(
-  bundle: NonNullable<ReturnType<typeof getService>>,
   projectId: string,
   changeId: string,
   query: unknown,
   ...args: unknown[]
 ): Promise<T> {
-  // Fallback for environments without native deadline support (test mocks):
-  // use the original unbounded query path. Production uses runTemporalRead
-  // for a bounded 3s deadline + AbortController.
-  if (
-    !bundle.connection ||
-    typeof (bundle.connection as unknown as { withDeadline?: unknown })
-      .withDeadline !== "function"
-  ) {
-    return runReacquiringChangeQuery<T>(projectId, changeId, query, ...args);
-  }
-  const ctx = createTemporalReadContext(RELEASE_GATE_PRE_QUERY_BUDGET_MS);
-  const result = await runTemporalRead(
-    bundle.connection,
-    () => queryWithFreshChangeHandle(projectId, changeId, query, args),
-    ctx,
-    { timeoutMs: RELEASE_GATE_PRE_QUERY_BUDGET_MS },
-  );
-  if (result.error) throw result.error;
-  return result.data as T;
+  return runTemporalQuery(() =>
+    queryWithFreshChangeHandle(projectId, changeId, query, args),
+  ) as Promise<T>;
 }
 
 export async function waitForArchiveReleaseGateCompletion(
@@ -696,7 +640,7 @@ export async function recordPhase9Status(input: {
   if (!projectId) {
     throw new Error("Could not resolve project ID for phase9 status update");
   }
-  const handle = getChangeHandle(bundle.client, projectId, input.changeId);
+  const handle = getChangeHandle(bundle, projectId, input.changeId);
   await fireSignalAndRefresh(
     handle,
     input.store,
@@ -1391,11 +1335,11 @@ export async function completeReleaseGateAfterFinalization(input: {
   const evidence = buildReleaseCompletionEvidence(input.finalization);
   let currentGate: GateCompletion | undefined;
   try {
-    const description = await describeChangeHandleWithDeadline(
+    const description = await getChangeHandle(
       bundle,
       projectId,
       input.changeId,
-    );
+    ).describe();
     if (isTerminalWorkflowStatus(description)) {
       return recoverReleaseGateViaDiskProjection({
         store: input.store,
@@ -1408,7 +1352,6 @@ export async function completeReleaseGateAfterFinalization(input: {
     }
 
     currentGate = await runBoundedReacquiringChangeQuery<GateCompletion>(
-      bundle,
       projectId,
       input.changeId,
       getGateStatusQuery,
@@ -1442,11 +1385,7 @@ export async function completeReleaseGateAfterFinalization(input: {
   // the bounded reconcile read in the catch — never via re-fire. The handle is
   // built here, after the pre-signal query, so a mid-query reconnect
   // (reinitStsl swaps bundle.client in place) cannot pin a closed client (T2).
-  const signalHandle = getChangeHandle(
-    bundle.client,
-    projectId,
-    input.changeId,
-  );
+  const signalHandle = getChangeHandle(bundle, projectId, input.changeId);
   try {
     await signalHandle.signal(gateCompletedSignal, {
       gateId: "release",

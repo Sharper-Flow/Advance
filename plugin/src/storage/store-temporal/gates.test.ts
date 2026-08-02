@@ -38,7 +38,7 @@ function makeDeps(change: Change | null = makeChange("c1")): StoreDeps {
           },
         },
       },
-      projectId: "p",
+      projectId: "0000000000000000000000000000000000000000",
     } as unknown as StoreDeps["input"],
     legacy: {} as Store,
     changeCache: new Map(),
@@ -75,7 +75,6 @@ function makeDeps(change: Change | null = makeChange("c1")): StoreDeps {
     ),
     getTemporalChange,
     listResolvedChanges: vi.fn(),
-    reseedChangeFromDisk: vi.fn(),
   } as unknown as StoreDeps;
 }
 

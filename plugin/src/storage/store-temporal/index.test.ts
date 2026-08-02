@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -12,6 +12,7 @@ import {
   isPoisonedWorkflowForChange,
   clearPoisonedWorkflowCache,
 } from "./poisoned-workflow-cache";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { classifyTemporalReadFailure } from "./shared";
 
 function poisonedHistoryError(): Error {
@@ -115,7 +116,11 @@ function contractProof(): NonNullable<Change["contract"]> {
   };
 }
 
-async function createPoisonedPostReseedFailureStore(root: string) {
+/**
+ * Poisoned query fixture for disk-first read tests. The `start` spy is
+ * present only so tests can prove it is never invoked by a routine read.
+ */
+async function createPoisonedPostReadStore(root: string) {
   const legacy = await createDiskStore(root);
   let startArgs: unknown[] | undefined;
   const handle = {
@@ -138,7 +143,7 @@ async function createPoisonedPostReseedFailureStore(root: string) {
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return { store, startArgs: () => startArgs };
 }
@@ -162,17 +167,16 @@ async function createPoisonedStore(root: string) {
   return createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
 }
 
 /**
- * rq-replayFallback01.3: query throws TMPRL1100 (poisoned), AND `start`
- * throws a non-already-started error so re-seed itself fails. Used to
- * exercise the catch block at reseedChangeFromDisk's `try/catch` around
- * `ensureChangeWorkflowStarted` (vs the post-reseed-query catch).
+ * rq-replayFallback01.3: query throws TMPRL1100 (poisoned). The read path
+ * must fall back to the durable disk projection and must never start or
+ * signal the workflow.
  */
-async function createPoisonedReseedFailureStore(root: string) {
+async function createPoisonedReadStore(root: string) {
   const legacy = await createDiskStore(root);
   let startCallCount = 0;
   const handle = {
@@ -186,9 +190,8 @@ async function createPoisonedReseedFailureStore(root: string) {
         getHandle: () => handle,
         start: async () => {
           startCallCount += 1;
-          // Non-already-started error → ensureChangeWorkflowStarted rethrows
-          // → reseedChangeFromDisk's catch at the `ensureChangeWorkflowStarted`
-          // try/catch fires.
+          // start is reachable only from mutation paths; a routine read must
+          // never call it.
           throw new Error("Temporal start failed: namespace handshake error");
         },
       },
@@ -198,7 +201,7 @@ async function createPoisonedReseedFailureStore(root: string) {
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return { store, startCallCount: () => startCallCount };
 }
@@ -206,11 +209,10 @@ async function createPoisonedReseedFailureStore(root: string) {
 /**
  * Negative-case fixture: query throws WorkflowNotFoundError (matches
  * `not_found` regex → fallback class, but reason resolves to
- * `missing_workflow`, not `poisoned_history`). re-seed fails. The fix
- * MUST NOT mask this — the original WorkflowNotFoundError must still
- * surface.
+ * `missing_workflow`, not `poisoned_history`). The read path must fall back to
+ * disk and must never start or signal the workflow.
  */
-async function createMissingWorkflowReseedFailureStore(root: string) {
+async function createMissingWorkflowReadStore(root: string) {
   const legacy = await createDiskStore(root);
   const handle = {
     query: async () => {
@@ -231,11 +233,11 @@ async function createMissingWorkflowReseedFailureStore(root: string) {
   return createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
 }
 
-async function createGenericQueryPoisonedReseedFailureStore(root: string) {
+async function createGenericQueryPoisonedReadStore(root: string) {
   const legacy = await createDiskStore(root);
   let startCallCount = 0;
   const handle = {
@@ -265,7 +267,7 @@ async function createGenericQueryPoisonedReseedFailureStore(root: string) {
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return { store, startCallCount: () => startCallCount };
 }
@@ -294,7 +296,7 @@ async function createGenericQueryUnprovenStore(root: string) {
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return { store, startCallCount: () => startCallCount };
 }
@@ -303,8 +305,8 @@ async function createGenericQueryUnprovenStore(root: string) {
  * query_failed guard fixture: the query fails with a fallback-class error
  * that is neither poisoned nor completed/not-found ("query type not
  * registered" — the workflow exists but cannot answer). The typed
- * `query_failed` reason must never authorize re-seed mutation, even though
- * the retry-wrapper error class is `fallback`.
+ * `query_failed` reason must only produce a disk fallback; routine reads
+ * must never start or signal the workflow.
  */
 async function createUnregisteredQueryStore(root: string) {
   const legacy = await createDiskStore(root);
@@ -330,15 +332,12 @@ async function createUnregisteredQueryStore(root: string) {
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return { store, startCallCount: () => startCallCount };
 }
 
-async function createMissingWorkflowSuccessfulReseedStore(
-  root: string,
-  changes: Change[],
-) {
+async function createDiskOnlyChangeStore(root: string, changes: Change[]) {
   const legacy = await createDiskStore(root);
   for (const change of changes) {
     await legacy.changes.save(change);
@@ -368,7 +367,7 @@ async function createMissingWorkflowSuccessfulReseedStore(
               queryCounts.set(changeId, (queryCounts.get(changeId) ?? 0) + 1);
               if (!started.has(changeId)) throw workflowNotFoundError();
               return changeToWorkflowState({
-                projectId: "project-1",
+                projectId: "0000ec0100000000000000000000000000000000",
                 change: byId.get(changeId)!,
               });
             },
@@ -381,7 +380,7 @@ async function createMissingWorkflowSuccessfulReseedStore(
           return {
             query: async () =>
               changeToWorkflowState({
-                projectId: "project-1",
+                projectId: "0000ec0100000000000000000000000000000000",
                 change: byId.get(input.changeId)!,
               }),
           };
@@ -393,7 +392,7 @@ async function createMissingWorkflowSuccessfulReseedStore(
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return {
     store,
@@ -415,18 +414,18 @@ async function createHangingQueryStore(root: string, changeId: string) {
       });
     },
   };
-  const temporal = {
+  const temporal = createMockOwnerFromClient({
     client: {
       workflow: {
         getHandle: () => handle,
         start: async () => handle,
       },
     },
-  };
+  });
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return { store, queryCount: () => queryCount };
 }
@@ -444,18 +443,18 @@ async function createPoisonedSignalStore(root: string, changeId: string) {
       throw new Error("signal should not be called");
     },
   };
-  const temporal = {
+  const temporal = createMockOwnerFromClient({
     client: {
       workflow: {
         getHandle: () => handle,
         start: async () => handle,
       },
     },
-  };
+  });
   const store = createTemporalStoreBackend({
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   });
   return { store, signalCount: () => signalCount };
 }
@@ -478,7 +477,7 @@ async function createMinimalPoisonedInput(root: string) {
   return {
     legacy,
     temporal,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
   };
 }
 
@@ -542,17 +541,16 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(gates).toEqual(change.gates);
   });
 
-  it("returns disk projection for non-terminal poisoned change without touching Temporal", async () => {
+  it("returns disk projection for non-terminal poisoned change without starting a workflow", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
-    await legacy.changes.save(activeChange("activePoisonedReseedFail"));
+    await legacy.changes.save(activeChange("activePoisonedFallback"));
 
-    const { store, startCallCount } =
-      await createPoisonedReseedFailureStore(tempDir);
-    const result = await store.changes.get("activePoisonedReseedFail");
+    const { store, startCallCount } = await createPoisonedReadStore(tempDir);
+    const result = await store.changes.get("activePoisonedFallback");
 
     expect(result.success).toBe(true);
-    expect(result.data?.id).toBe("activePoisonedReseedFail");
+    expect(result.data?.id).toBe("activePoisonedFallback");
     // Legacy stored "active" normalizes to "draft" at the disk load path
     // (loadChange); the disk-first read returns it directly.
     expect(result.data?.status).toBe("draft");
@@ -562,27 +560,28 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     };
     expect(recovered._source).toBe("disk");
     expect(recovered._recovery).toBeUndefined();
-    // No workflow start or query is attempted for a routine read.
+    // Routine reads never start or signal workflows.
     expect(startCallCount()).toBe(0);
   });
 
-  it("returns recovered gates for non-terminal poisoned change with reseed failure", async () => {
+  it("returns recovered gates for non-terminal poisoned change from disk projection", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
-    const change = activeChange("activePoisonedReseedFailGates");
+    const change = activeChange("activePoisonedFallbackGates");
     await legacy.changes.save(change);
 
-    const { store } = await createPoisonedReseedFailureStore(tempDir);
-    const gates = await store.gates.get("activePoisonedReseedFailGates");
+    const { store } = await createPoisonedReadStore(tempDir);
+    const gates = await store.gates.get("activePoisonedFallbackGates");
 
     expect(gates).toEqual(change.gates);
   });
 
-  it("returns an active disk-only change on direct read without re-seeding", async () => {
+  it("returns an active disk-only change on direct read without starting a workflow", async () => {
     tempDir = await createTempDir();
     const active = activeChange("activeDiskOnlyRead");
-    const { store, startInputs } =
-      await createMissingWorkflowSuccessfulReseedStore(tempDir, [active]);
+    const { store, startInputs } = await createDiskOnlyChangeStore(tempDir, [
+      active,
+    ]);
 
     const result = await store.changes.get("activeDiskOnlyRead");
 
@@ -601,12 +600,10 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const active = activeChange("activeDiskOnlyList");
     const archived = archivedChange("archivedDiskOnlyList");
     const closed = closedChange("closedDiskOnlyList");
-    const { store, startInputs, queryCount } =
-      await createMissingWorkflowSuccessfulReseedStore(tempDir, [
-        active,
-        archived,
-        closed,
-      ]);
+    const { store, startInputs, queryCount } = await createDiskOnlyChangeStore(
+      tempDir,
+      [active, archived, closed],
+    );
 
     const list = await store.changes.list();
 
@@ -621,9 +618,8 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     );
     // bl-HiZJbUuy / disk-authoritative reads: enumeration is side-effect-free.
     // The active change is served from its durable change.json projection
-    // WITHOUT re-seeding (resurrecting) its workflow. Orphan re-seed now happens
-    // on the next mutation (getTemporalChange), never during a read — so no
-    // workflow start occurs for ANY candidate during list.
+    // without starting or signaling its workflow. Routine reads never mutate
+    // Temporal state, so no workflow start occurs for ANY candidate during list.
     expect(startInputs()).toEqual([]);
     // All candidates (active + both terminal) resolve from disk with zero
     // workflow queries, so a poisoned/terminated workflow is never touched
@@ -644,8 +640,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     } as Change;
     await legacy.changes.save(change);
 
-    const { store, startArgs } =
-      await createPoisonedPostReseedFailureStore(tempDir);
+    const { store, startArgs } = await createPoisonedPostReadStore(tempDir);
     const result = await store.changes.get("activePoisonedContractSeed");
 
     expect(result.success).toBe(true);
@@ -663,13 +658,13 @@ describe("createTemporalStoreBackend change projection fallback", () => {
   it("returns disk projection for an active disk-only change without querying workflow", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
-    await legacy.changes.save(activeChange("activeMissingReseedFail"));
+    await legacy.changes.save(activeChange("activeMissingFallback"));
 
-    const store = await createMissingWorkflowReseedFailureStore(tempDir);
+    const store = await createMissingWorkflowReadStore(tempDir);
 
-    const result = await store.changes.get("activeMissingReseedFail");
+    const result = await store.changes.get("activeMissingFallback");
     expect(result.success).toBe(true);
-    expect(result.data?.id).toBe("activeMissingReseedFail");
+    expect(result.data?.id).toBe("activeMissingFallback");
     expect(result.data?.status).toBe("draft");
     expect(result.source).toBe("disk");
   });
@@ -680,7 +675,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     await legacy.changes.save(activeChange("genericPoisonedVisibility"));
 
     const { store, startCallCount } =
-      await createGenericQueryPoisonedReseedFailureStore(tempDir);
+      await createGenericQueryPoisonedReadStore(tempDir);
     const result = await store.changes.get("genericPoisonedVisibility");
 
     expect(result.success).toBe(true);
@@ -700,8 +695,7 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     const change = activeChange("genericPoisonedVisibilityGates");
     await legacy.changes.save(change);
 
-    const { store } =
-      await createGenericQueryPoisonedReseedFailureStore(tempDir);
+    const { store } = await createGenericQueryPoisonedReadStore(tempDir);
     const gates = await store.gates.get("genericPoisonedVisibilityGates");
 
     expect(gates).toEqual(change.gates);
@@ -719,11 +713,11 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("genericUnproven");
     expect(result.source).toBe("disk");
-    // query_failed never authorizes re-seed mutation.
+    // query_failed never authorizes a workflow start from a routine read.
     expect(startCallCount()).toBe(0);
   });
 
-  it("returns disk projection for a fallback-class query failure without re-seeding", async () => {
+  it("returns disk projection for a fallback-class query failure without starting a workflow", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);
     await legacy.changes.save(activeChange("unregisteredQuery"));
@@ -736,180 +730,6 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(result.data?.id).toBe("unregisteredQuery");
     expect(result.source).toBe("disk");
     expect(startCallCount()).toBe(0);
-  });
-});
-
-/**
- * rq-autoManageAdvWorktrees AC3 — lazy migration of legacy changes
- * on first read. When a change.json predating this field is loaded,
- * `getTemporalChange` fires `worktreeAutoManagedSignal` once with
- * `value: false, source: "migrate"`. The signal handler is sticky so
- * concurrent migrations from peer sessions are idempotent. Failure
- * to fire (e.g., Temporal unreachable) MUST NOT block the read.
- */
-describe("createTemporalStoreBackend worktree_auto_managed lazy migration", () => {
-  let tempDir: string | undefined;
-
-  afterEach(async () => {
-    if (tempDir) await cleanupTempDir(tempDir);
-    tempDir = undefined;
-  });
-
-  function legacyChangeWithoutMarker(id: string): Change {
-    return {
-      $schema: "https://advance.dev/schemas/change.v1.json",
-      id,
-      title: `Legacy ${id}`,
-      status: "active",
-      created_at: "2026-05-21T00:00:00.000Z",
-      tasks: [],
-      deltas: {},
-      gates: createDefaultGates(),
-      reentry_history: [],
-      wisdom: [],
-    };
-  }
-
-  async function createMigrationCaptureStore(
-    root: string,
-    options: {
-      markerInWorkflowState?: boolean;
-      signalShouldFail?: boolean;
-    } = {},
-  ) {
-    const legacy = await createDiskStore(root);
-    const signalCalls: Array<{
-      signal: { name?: string };
-      args: unknown;
-    }> = [];
-    let lastHandleId: string | undefined;
-    const makeHandle = (changeId: string) => ({
-      query: async () => ({
-        id: changeId,
-        changeId,
-        title: `Legacy ${changeId}`,
-        status: "active",
-        createdAt: "2026-05-21T00:00:00.000Z",
-        initializedAt: "2026-05-21T00:00:00.000Z",
-        projectId: "project-1",
-        tasks: [],
-        deltas: {},
-        wisdom: [],
-        gates: createDefaultGates(),
-        reentry_history: [],
-        artifacts: {},
-        documents: {},
-        reflections: [],
-        worktrees: {},
-        conformance: { lockedSpecs: [], overrides: [] },
-        ...(typeof options.markerInWorkflowState === "boolean"
-          ? { worktree_auto_managed: options.markerInWorkflowState }
-          : {}),
-      }),
-      signal: async (signal: { name?: string }, args: unknown) => {
-        if (options.signalShouldFail) {
-          throw new Error("Temporal signal failed: connection refused");
-        }
-        signalCalls.push({ signal, args });
-      },
-    });
-    const temporal = {
-      client: {
-        workflow: {
-          getHandle: (workflowId: string) => {
-            // Extract change-id suffix from the constructed workflow id
-            const suffix =
-              workflowId.split("/").pop() ?? workflowId.split(":").pop() ?? "";
-            lastHandleId = suffix || workflowId;
-            return makeHandle(lastHandleId);
-          },
-          start: async () => makeHandle(lastHandleId ?? "unknown"),
-        },
-      },
-    };
-    const store = createTemporalStoreBackend({
-      legacy,
-      temporal,
-      projectId: "project-1",
-    });
-    return { store, signalCalls: () => signalCalls };
-  }
-
-  it("fires worktreeAutoManagedSignal best-effort when state lacks marker", async () => {
-    tempDir = await createTempDir();
-    const legacy = await createDiskStore(tempDir);
-    await legacy.changes.save(legacyChangeWithoutMarker("legacyChangeA"));
-
-    const { store, signalCalls } = await createMigrationCaptureStore(tempDir);
-    const result = await store.changes.get("legacyChangeA");
-
-    // Read succeeds even though the marker is missing.
-    expect(result.success).toBe(true);
-
-    // Wait several event-loop ticks for the void async fire (which awaits
-    // getGuardedChangeHandle's legacy-disk-read then handle.signal) to
-    // enqueue + complete. setImmediate × 50 + sleep allows the disk read.
-    for (let i = 0; i < 50; i++) {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const calls = signalCalls();
-    expect(calls).toHaveLength(1);
-    expect(calls[0].args).toMatchObject({
-      value: false,
-      source: "migrate",
-    });
-    expect(typeof (calls[0].args as { recordedAt?: string }).recordedAt).toBe(
-      "string",
-    );
-  });
-
-  it("does NOT fire migration when workflow state already has marker set", async () => {
-    tempDir = await createTempDir();
-    const legacy = await createDiskStore(tempDir);
-    await legacy.changes.save(legacyChangeWithoutMarker("alreadyMigratedB"));
-
-    const { store, signalCalls } = await createMigrationCaptureStore(tempDir, {
-      markerInWorkflowState: true,
-    });
-    await store.changes.get("alreadyMigratedB");
-    for (let i = 0; i < 5; i++) {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
-
-    expect(signalCalls()).toHaveLength(0);
-  });
-
-  it("does NOT fire migration when workflow state has marker explicitly false (legacy already-migrated)", async () => {
-    tempDir = await createTempDir();
-    const legacy = await createDiskStore(tempDir);
-    await legacy.changes.save(legacyChangeWithoutMarker("alreadyMigratedC"));
-
-    const { store, signalCalls } = await createMigrationCaptureStore(tempDir, {
-      markerInWorkflowState: false,
-    });
-    await store.changes.get("alreadyMigratedC");
-    for (let i = 0; i < 5; i++) {
-      await new Promise((resolve) => setImmediate(resolve));
-    }
-
-    expect(signalCalls()).toHaveLength(0);
-  });
-
-  it("read succeeds when migration signal fire fails (best-effort, non-blocking)", async () => {
-    tempDir = await createTempDir();
-    const legacy = await createDiskStore(tempDir);
-    await legacy.changes.save(legacyChangeWithoutMarker("signalFailureD"));
-
-    const { store } = await createMigrationCaptureStore(tempDir, {
-      signalShouldFail: true,
-    });
-    const result = await store.changes.get("signalFailureD");
-
-    // Failure to fire migration MUST NOT block the read.
-    expect(result.success).toBe(true);
-    expect(result.data?.id).toBe("signalFailureD");
   });
 });
 
@@ -945,7 +765,7 @@ describe("listResolvedChanges memo fast path", () => {
                   status: "active",
                   createdAt: "2026-05-07T00:00:00.000Z",
                   initializedAt: "2026-05-07T00:00:00.000Z",
-                  projectId: "project-1",
+                  projectId: "0000ec0100000000000000000000000000000000",
                   tasks: [],
                   deltas: {},
                   wisdom: [],
@@ -975,7 +795,7 @@ describe("listResolvedChanges memo fast path", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Warm memo for changeA
@@ -1026,7 +846,7 @@ describe("listResolvedChanges memo fast path", () => {
               status: "active",
               createdAt: "2026-05-07T00:00:00.000Z",
               initializedAt: "2026-05-07T00:00:00.000Z",
-              projectId: "project-1",
+              projectId: "0000ec0100000000000000000000000000000000",
               tasks,
               deltas: {},
               wisdom: [],
@@ -1049,7 +869,7 @@ describe("listResolvedChanges memo fast path", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Warm memo for taskedChange
@@ -1081,7 +901,7 @@ describe("listResolvedChanges memo fast path", () => {
               status: "active",
               createdAt: "2026-05-07T00:00:00.000Z",
               initializedAt: "2026-05-07T00:00:00.000Z",
-              projectId: "project-1",
+              projectId: "0000ec0100000000000000000000000000000000",
               tasks: [],
               deltas: {},
               wisdom: [],
@@ -1109,7 +929,7 @@ describe("listResolvedChanges memo fast path", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const getResult = await store.changes.get("staleClosedChange");
@@ -1152,7 +972,7 @@ describe("listResolvedChanges circuit breaker", () => {
     }
 
     let queryCalls = 0;
-    const temporal = {
+    const temporal = createMockOwnerFromClient({
       client: {
         workflow: {
           getHandle: () => ({
@@ -1166,12 +986,12 @@ describe("listResolvedChanges circuit breaker", () => {
           },
         },
       },
-    };
+    });
 
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const start = Date.now();
@@ -1218,7 +1038,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
                   status: "active",
                   createdAt: "2026-05-07T00:00:00.000Z",
                   initializedAt: "2026-05-07T00:00:00.000Z",
-                  projectId: "project-1",
+                  projectId: "0000ec0100000000000000000000000000000000",
                   tasks: [],
                   deltas: {},
                   wisdom: [],
@@ -1238,7 +1058,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
                 status: "archived",
                 createdAt: "2026-05-07T00:00:00.000Z",
                 initializedAt: "2026-05-07T00:00:00.000Z",
-                projectId: "project-1",
+                projectId: "0000ec0100000000000000000000000000000000",
                 tasks: [],
                 deltas: {},
                 wisdom: [],
@@ -1267,7 +1087,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Warm memo with disk-normalized status (active is normalized to draft).
@@ -1315,7 +1135,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
       status: "draft",
       createdAt: "2026-05-07T00:00:00.000Z",
       initializedAt: "2026-05-07T00:00:00.000Z",
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
       tasks: [],
       deltas: {},
       wisdom: [],
@@ -1343,7 +1163,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const initial = await store.changes.get("staleWorkflowChange");
@@ -1399,7 +1219,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Warm memo with archived status
@@ -1446,7 +1266,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
               status: "active",
               createdAt: "2026-05-07T00:00:00.000Z",
               initializedAt: "2026-05-07T00:00:00.000Z",
-              projectId: "project-1",
+              projectId: "0000ec0100000000000000000000000000000000",
               tasks: [],
               deltas: {},
               wisdom: [],
@@ -1469,7 +1289,7 @@ describe("listResolvedChanges memo busting (rq-crossSessionCacheConsistency01)",
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     // Warm memo
@@ -1525,7 +1345,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
                 status: "active",
                 createdAt: "2026-05-07T00:00:00.000Z",
                 initializedAt: "2026-05-07T00:00:00.000Z",
-                projectId: "project-1",
+                projectId: "0000ec0100000000000000000000000000000000",
                 tasks: [],
                 deltas: {},
                 wisdom: [],
@@ -1552,7 +1372,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.get("archiveDominatesGet");
@@ -1566,7 +1386,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     // served from the disk terminal projection WITHOUT a live workflow query.
     // Previously loadDiskTerminalProjection only short-circuited `closed`, so an
     // archived-without-bundle change fell through to the live query and hit the
-    // poisoned/terminated workflow (TMPRL1100) before the catch→reseed path
+    // poisoned/terminated workflow (TMPRL1100) before the disk-fallback path
     // finally returned the same disk data — the per-candidate cost that
     // accumulated into the enumeration wedge.
     tempDir = await createTempDir();
@@ -1598,7 +1418,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.get("archivedNoBundlePoisoned");
@@ -1635,7 +1455,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
                 status: "active",
                 createdAt: "2026-05-07T00:00:00.000Z",
                 initializedAt: "2026-05-07T00:00:00.000Z",
-                projectId: "project-1",
+                projectId: "0000ec0100000000000000000000000000000000",
                 tasks: [],
                 deltas: {},
                 wisdom: [],
@@ -1662,7 +1482,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const list = await store.changes.list({ status: "archived" });
@@ -1721,7 +1541,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const list = await store.changes.list({ includeArchived: true });
@@ -1751,7 +1571,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
                 status: "active",
                 createdAt: "2026-05-07T00:00:00.000Z",
                 initializedAt: "2026-05-07T00:00:00.000Z",
-                projectId: "project-1",
+                projectId: "0000ec0100000000000000000000000000000000",
                 tasks: [],
                 deltas: {},
                 wisdom: [],
@@ -1775,7 +1595,7 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listSummary!({});
@@ -1836,7 +1656,7 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.list({ includeArchived: true });
@@ -1897,7 +1717,7 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.list({ status: "archived" });
@@ -1929,9 +1749,12 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       "cacheSeedChange",
       poisonedHistoryError(),
     );
-    expect(isPoisonedWorkflowForChange("project-1", "cacheSeedChange")).toBe(
-      true,
-    );
+    expect(
+      isPoisonedWorkflowForChange(
+        "0000ec0100000000000000000000000000000000",
+        "cacheSeedChange",
+      ),
+    ).toBe(true);
   });
 
   it("returns a disk-only change with _poisoned marker and never queries Temporal", async () => {
@@ -1940,7 +1763,10 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       tempDir,
       "poisonedShow",
     );
-    markPoisonedWorkflowForChange("project-1", "poisonedShow");
+    markPoisonedWorkflowForChange(
+      "0000ec0100000000000000000000000000000000",
+      "poisonedShow",
+    );
 
     const result = await store.changes.get("poisonedShow");
 
@@ -1956,7 +1782,10 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       tempDir,
       "poisonedRefresh",
     );
-    markPoisonedWorkflowForChange("project-1", "poisonedRefresh");
+    markPoisonedWorkflowForChange(
+      "0000ec0100000000000000000000000000000000",
+      "poisonedRefresh",
+    );
 
     await store.changes.refresh("poisonedRefresh");
 
@@ -1969,12 +1798,49 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
       tempDir,
       "poisonedSignal",
     );
-    markPoisonedWorkflowForChange("project-1", "poisonedSignal");
+    markPoisonedWorkflowForChange(
+      "0000ec0100000000000000000000000000000000",
+      "poisonedSignal",
+    );
 
     await expect(
       store.gates.complete("poisonedSignal", "proposal"),
     ).rejects.toThrow(/known poisoned|signal skipped/);
 
     expect(signalCount()).toBe(0);
+  });
+});
+
+describe("createTemporalStoreBackend projection-only read enforcement", () => {
+  it("getTemporalChange source never starts, signals, reseeds, or writes recovery state", async () => {
+    const source = await readFile(
+      new URL("./index.ts", import.meta.url),
+      "utf8",
+    );
+    const body = source.match(
+      /const getTemporalChange = async \([\s\S]*?\n\s{2}};\n\n\s{2}const loadDiskTerminalProjection = async \(/,
+    )?.[0];
+    expect(body).toBeDefined();
+    const dangerous = [
+      "reseedChangeFromDisk",
+      "fireWorktreeAutoManagedMigrationIfNeeded",
+      "worktreeAutoManagedSignal",
+      "readAmbiguityLedger",
+      "writeAmbiguityLedger",
+      "ambiguity-ledger",
+      "ambiguityLedger",
+      "ensureChangeWorkflowStarted",
+      "startChangeWorkflow",
+      "signalChangeWorkflowGuarded",
+      "fireSignal",
+      "owner.signal",
+      "owner.start",
+      "legacy.changes.save",
+      "persistStateToDisk",
+      "persistAndRefreshDurable",
+    ];
+    for (const pattern of dangerous) {
+      expect(body).not.toMatch(new RegExp(`\\b${pattern}\\b`));
+    }
   });
 });

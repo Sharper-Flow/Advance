@@ -1,4 +1,3 @@
-import { Client, Connection } from "@temporalio/client";
 import {
   ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX,
   CHANGE_WORKFLOW_PREFIX,
@@ -22,9 +21,6 @@ function allowRemoteTemporal(env: NodeJS.ProcessEnv): boolean {
 }
 
 const SAFE_NAMESPACE_REGEX = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
-
-type TemporalEnv = NodeJS.ProcessEnv &
-  Partial<Record<"ADV_TEMPORAL_ADDRESS" | "ADV_TEMPORAL_NAMESPACE", string>>;
 
 export function getTemporalAddress(
   env: NodeJS.ProcessEnv = process.env,
@@ -72,26 +68,4 @@ export function buildChangeWorkflowId(
 
 export function buildEpicWorkflowId(projectId: string, epicId: string): string {
   return `${EPIC_WORKFLOW_PREFIX}${projectId}/${epicId}`;
-}
-
-export interface TemporalClientBundle {
-  address: string;
-  namespace: string;
-  connection: Connection;
-  client: Client;
-}
-
-export async function createTemporalClientBundle(
-  env: TemporalEnv = process.env,
-): Promise<TemporalClientBundle> {
-  const address = getTemporalAddress(env);
-  const namespace = getTemporalNamespace(env);
-  const connection = await Connection.connect({ address });
-
-  return {
-    address,
-    namespace,
-    connection,
-    client: new Client({ connection, namespace }),
-  };
 }

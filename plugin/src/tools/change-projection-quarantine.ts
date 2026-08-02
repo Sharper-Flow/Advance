@@ -44,6 +44,7 @@ interface QuarantineSuccess {
   success: true;
   code: "QUARANTINED";
   change_id: string;
+  project_id: string;
   source_path: string;
   quarantine_path: string;
   reason: ChangeProjectionQuarantineReason;
@@ -141,7 +142,7 @@ export const changeProjectionQuarantineTools = {
       store: Store,
     ) => {
       const gitRoot = store.paths.root;
-      const stateRoot = store.paths.external ?? store.paths.root;
+      const projectDir = store.paths.external ?? store.paths.root;
       const projectId = await getProjectId(gitRoot);
 
       if (!projectId) {
@@ -156,7 +157,8 @@ export const changeProjectionQuarantineTools = {
         approvedByUser: args.approvedByUser ?? false,
         approvalEvidence: args.approvalEvidence ?? "",
         dryRun: args.dryRun ?? false,
-        stateRoot,
+        projectId,
+        projectDir,
         changesDir: store.paths.changes,
       });
 
@@ -174,7 +176,8 @@ interface QuarantineExecuteInput {
   approvedByUser: boolean;
   approvalEvidence: string;
   dryRun: boolean;
-  stateRoot: string;
+  projectId: string;
+  projectDir: string;
   changesDir: string;
 }
 
@@ -186,7 +189,8 @@ export async function executeQuarantine(
     approvedByUser,
     approvalEvidence,
     dryRun,
-    stateRoot,
+    projectId,
+    projectDir,
     changesDir,
   } = input;
 
@@ -202,7 +206,7 @@ export async function executeQuarantine(
 
   const sourcePath = join(changesDir, changeId, "change.json");
   const quarantineDir = join(
-    stateRoot,
+    projectDir,
     ".adv",
     "quarantine",
     "changes",
@@ -250,6 +254,7 @@ export async function executeQuarantine(
       success: true,
       code: "QUARANTINED",
       change_id: changeId,
+      project_id: projectId,
       source_path: sourcePath,
       quarantine_path: quarantinePath,
       reason,
@@ -349,7 +354,8 @@ export async function executeQuarantine(
 
     let auditId: string;
     try {
-      const audit = await appendChangeProjectionQuarantineAudit(stateRoot, {
+      const audit = await appendChangeProjectionQuarantineAudit(projectDir, {
+        project_id: projectId,
         change_id: changeId,
         reason: lockedDiagnosis.reason,
         action: "quarantine",
@@ -407,6 +413,7 @@ export async function executeQuarantine(
       success: true,
       code: "QUARANTINED",
       change_id: changeId,
+      project_id: projectId,
       source_path: sourcePath,
       quarantine_path: quarantinePath,
       reason: lockedDiagnosis.reason,

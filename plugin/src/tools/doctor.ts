@@ -30,10 +30,8 @@ import { z } from "zod";
 import type { Store } from "../storage/store";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
 import { getTemporalHealth } from "../temporal/health-probe";
-import {
-  checkAdvSearchAttributes,
-  registerMissingAdvSearchAttributes,
-} from "../temporal/observability";
+import { makeTemporalLifecycleContext } from "../temporal/operations";
+
 import {
   getOrphanQueueAdoptionStatus,
   getTemporalWorkerAliveness,
@@ -44,13 +42,9 @@ import { probeTaskQueuePollers } from "../temporal/queue-serviceability";
 import { evaluateOrphanAdoptionHealth } from "../temporal/orphan-queue-adopter";
 import {
   reconcileTerminalWorkflows,
-  type TerminalReconcileClient,
   type TerminalReconcileResult,
 } from "../temporal/reconcile-terminal-workflows";
-import {
-  buildTerminalReconcileDeps,
-  type TerminalSignalClient,
-} from "../temporal/reconcile-terminal-deps";
+import { buildTerminalReconcileDeps } from "../temporal/reconcile-terminal-deps";
 import { buildProjectTaskQueue } from "../temporal/client";
 import { basename, join } from "path";
 import { existsSync } from "fs";
@@ -209,13 +203,6 @@ interface SearchAttributeCheck {
   }>;
 }
 
-interface SearchAttributeRegisterResult {
-  ok: boolean;
-  created: Array<{ name: string }>;
-  error: string | null;
-  verificationStatus: string;
-}
-
 interface WorkerDiagnosticsEntry {
   kind: string;
   queues: string[];
@@ -239,10 +226,8 @@ async function probeQueue(
   if (!bundle) return false;
   try {
     const probe = await probeTaskQueuePollers({
-      connection: bundle.connection as unknown as Parameters<
-        typeof probeTaskQueuePollers
-      >[0]["connection"],
-      namespace: bundle.namespace,
+      owner: bundle,
+      projectId,
       taskQueue: buildProjectTaskQueue(projectId),
     });
     return probe.status === "fresh";
@@ -335,11 +320,14 @@ export const doctorTools = {
 
       // Search attributes probe (cheap; cheap to fail too).
       let searchAttrs: SearchAttributeCheck | null = null;
-      if (bundle) {
+      if (bundle && projectId) {
         try {
-          searchAttrs = (await checkAdvSearchAttributes(
-            bundle.connection,
-            bundle.namespace,
+          searchAttrs = (await bundle.checkSearchAttributes(
+            makeTemporalLifecycleContext(
+              projectId,
+              "adv_doctor.checkSearchAttributes",
+              5_000,
+            ),
           )) as SearchAttributeCheck;
         } catch {
           searchAttrs = null;
@@ -458,17 +446,16 @@ export const doctorTools = {
       // active sweep is required. Idempotent, and gated on positive archive
       // evidence plus an active-change veto.
       let terminalReconcile: TerminalReconcileResult | null = null;
-      const reconcileClient = bundle?.client as unknown;
-      if (reconcileClient && projectId) {
+      if (bundle && projectId) {
         try {
           terminalReconcile = await reconcileTerminalWorkflows(
-            reconcileClient as TerminalReconcileClient,
+            bundle,
             projectId,
             buildTerminalReconcileDeps({
               projectId,
               archiveDir: store.paths.archive,
               changesDir: store.paths.changes,
-              client: reconcileClient as TerminalSignalClient,
+              owner: bundle,
             }),
           );
           if (terminalReconcile.reconciled.length > 0) {
@@ -600,28 +587,47 @@ export const doctorTools = {
               });
               break;
             }
-            try {
-              const result = (await registerMissingAdvSearchAttributes(
-                bundle.connection,
-                bundle.namespace,
-              )) as SearchAttributeRegisterResult;
-              fixesApplied.push({
+            if (bundle && projectId) {
+              try {
+                const ctx = makeTemporalLifecycleContext(
+                  projectId,
+                  "adv_doctor.registerSearchAttributes",
+                  5_000,
+                );
+                const before = searchAttrs?.missing.map((a) => a.name) ?? [];
+                await bundle.registerSearchAttributes(ctx);
+                const recheck = (await bundle.checkSearchAttributes(
+                  ctx,
+                )) as SearchAttributeCheck;
+                const after = recheck.missing.map((a) => a.name);
+                const created = before.filter((n) => !after.includes(n));
+                fixesApplied.push({
+                  class: "missing_search_attributes",
+                  action: "register_missing",
+                  outcome: created.length > 0 ? "applied" : "no_op",
+                  before,
+                  after: created,
+                  evidence: `Registered ${created.length} missing attribute(s); remainingMissing=${after.length}`,
+                });
+              } catch (err) {
+                fixesApplied.push({
+                  class: "missing_search_attributes",
+                  action: "register_missing",
+                  outcome: "failed",
+                  evidence: `registerSearchAttributes threw: ${
+                    err instanceof Error ? err.message : String(err)
+                  }`,
+                });
+              }
+            } else {
+              fixesRefused.push({
                 class: "missing_search_attributes",
-                action: "register_missing",
-                outcome:
-                  result.ok && result.created.length > 0 ? "applied" : "no_op",
-                before: searchAttrs?.missing.map((a) => a.name) ?? [],
-                after: result.created.map((a) => a.name),
-                evidence: `Registered ${result.created.length} missing attribute(s); verificationStatus=${result.verificationStatus}`,
-              });
-            } catch (err) {
-              fixesApplied.push({
-                class: "missing_search_attributes",
-                action: "register_missing",
-                outcome: "failed",
-                evidence: `registerMissingAdvSearchAttributes threw: ${
-                  err instanceof Error ? err.message : String(err)
-                }`,
+                outcome: "approval_required",
+                operator_action:
+                  "Provide a valid project id so search attributes can be registered.",
+                proposal:
+                  "Cannot register search attributes without a project id. Ensure the store exposes a valid ADV project id.",
+                evidence: "projectId is undefined",
               });
             }
             break;
@@ -759,11 +765,14 @@ export const doctorTools = {
           ? await probeQueue(projectId, recheckBundle)
           : false;
         let recheckSAs = true;
-        if (recheckBundle) {
+        if (recheckBundle && projectId) {
           try {
-            const sa = (await checkAdvSearchAttributes(
-              recheckBundle.connection,
-              recheckBundle.namespace,
+            const sa = (await recheckBundle.checkSearchAttributes(
+              makeTemporalLifecycleContext(
+                projectId,
+                "adv_doctor.verify.checkSearchAttributes",
+                5_000,
+              ),
             )) as SearchAttributeCheck;
             recheckSAs = sa.ok;
           } catch {

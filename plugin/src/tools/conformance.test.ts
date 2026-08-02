@@ -13,6 +13,7 @@ import { tmpdir } from "os";
 
 import { conformanceTools } from "./conformance";
 import { loadConformanceState } from "../storage/conformance";
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 
 const mocks = vi.hoisted(() => {
   const signal = vi.fn(async () => {});
@@ -20,17 +21,19 @@ const mocks = vi.hoisted(() => {
   return {
     signal,
     query,
-    getService: vi.fn(() => ({
-      connection: { close: vi.fn(async () => {}) },
-      client: {
-        workflow: {
-          // Mock workflow handle must include both signal AND query so
-          // _adapters.isWorkflowHandleLike() recognizes it as a handle
-          // and routes fireSignal() through the direct-handle path.
-          getHandle: vi.fn(() => ({ signal, query })),
+    getService: vi.fn(() =>
+      createMockOwnerFromClient({
+        connection: { close: vi.fn(async () => {}) },
+        client: {
+          workflow: {
+            // Mock workflow handle must include both signal AND query so
+            // _adapters.isWorkflowHandleLike() recognizes it as a handle
+            // and routes fireSignal() through the direct-handle path.
+            getHandle: vi.fn(() => ({ signal, query })),
+          },
         },
-      },
-    })),
+      }),
+    ),
   };
 });
 
@@ -50,7 +53,7 @@ vi.mock("../utils/project-id", async () => {
   );
   return {
     ...actual,
-    getProjectId: vi.fn(async () => "proj123"),
+    getProjectId: vi.fn(async () => "0000000000000000000000000000000000000000"),
   };
 });
 
@@ -168,7 +171,11 @@ describe("adv_conformance action: init", () => {
 
   test("mode=sibling records the sibling path (does not require git availability)", async () => {
     const result = await tool.execute(
-      { action: "init", mode: "sibling", projectId: "abc123" },
+      {
+        action: "init",
+        mode: "sibling",
+        projectId: "abc1230000000000000000000000000000000000",
+      },
       makeStore(),
     );
     const parsed = JSON.parse(result);

@@ -12,6 +12,7 @@
  *   authorize mutation for SC4-ineligible classes, and reports
  *   `outcome_unknown_readback_unavailable` for ambiguous readback.
  */
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { describe, expect, test, vi } from "vitest";
 import {
   signalChangeWorkflowGuarded,
@@ -23,6 +24,7 @@ import {
   type TemporalMutationOutcome,
   type TemporalWorkflowDiagnostic,
 } from "../../temporal/mutation-safety";
+import { TemporalMutationOutcomeError } from "../../temporal/outcome-errors";
 
 function makeInput(
   opts: {
@@ -31,8 +33,8 @@ function makeInput(
   } = {},
 ): TemporalStoreBackendInput {
   return {
-    projectId: "test-project",
-    temporal: {
+    projectId: "0e000000ec000000000000000000000000000000",
+    temporal: createMockOwnerFromClient({
       client: {
         workflow: {
           start: vi.fn(async () => ({})),
@@ -42,7 +44,7 @@ function makeInput(
           })),
         },
       },
-    },
+    }),
     paths: { changes: "/tmp/changes", root: "/tmp" },
   } as unknown as TemporalStoreBackendInput;
 }
@@ -80,33 +82,50 @@ describe("signalChangeWorkflowGuarded (SC4 wiring)", () => {
     }
   });
 
-  test("passes through not_found diagnostic (not SC4-blocked)", async () => {
+  test("passes through not_found diagnostic (not SC4-blocked) as a typed mutation outcome error", async () => {
     const signal = vi.fn(async () => {
       throw new Error("workflow not found");
     });
     const input = makeInput({ signal });
-    // The helper passes the diagnostic guard for not_found, then re-throws
-    // the underlying signal error so the caller can decide.
+    // The helper passes the diagnostic guard for not_found, then throws a
+    // typed TemporalMutationOutcomeError preserving the non-confirmed
+    // outcome so callers can distinguish kind/cause.
+    let caught: unknown;
     await expect(
       signalChangeWorkflowGuarded(input, "change-1", "anySignal", [], {
         reachable: false,
         class: "not_found",
+      }).catch((err) => {
+        caught = err;
+        throw err;
       }),
-    ).rejects.toThrow(/workflow not found/);
+    ).rejects.toBeInstanceOf(TemporalMutationOutcomeError);
+    expect(
+      caught instanceof TemporalMutationOutcomeError &&
+        caught.outcome.kind === "confirmed_failure",
+    ).toBe(true);
     expect(signal).toHaveBeenCalled();
   });
 
-  test("passes through poisoned_history diagnostic (not SC4-blocked)", async () => {
+  test("passes through poisoned_history diagnostic (not SC4-blocked) as a typed mutation outcome error", async () => {
     const signal = vi.fn(async () => {
       throw new Error("TMPRL1100 No command scheduled for event");
     });
     const input = makeInput({ signal });
+    let caught: unknown;
     await expect(
       signalChangeWorkflowGuarded(input, "change-1", "anySignal", [], {
         reachable: false,
         class: "poisoned_history",
+      }).catch((err) => {
+        caught = err;
+        throw err;
       }),
-    ).rejects.toThrow(/TMPRL1100/);
+    ).rejects.toBeInstanceOf(TemporalMutationOutcomeError);
+    expect(
+      caught instanceof TemporalMutationOutcomeError &&
+        caught.outcome.kind === "confirmed_failure",
+    ).toBe(true);
     expect(signal).toHaveBeenCalled();
   });
 

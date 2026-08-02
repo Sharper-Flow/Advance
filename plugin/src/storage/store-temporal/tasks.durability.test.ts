@@ -4,6 +4,7 @@ import { createTaskOps } from "./tasks";
 import { DiskProjectionPersistError } from "./disk-persist";
 import { commitChangeProjectionWithSummary } from "../change-summary-shard";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../../temporal/contracts";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import {
   createToolOperationContext,
   withToolOperationContext,
@@ -72,6 +73,7 @@ function makeHandle(stateAfterSignal: unknown) {
     return stateAfterSignal;
   });
   return {
+    workflowId: `adv/change/pid-task/${CHANGE_ID}`,
     signal: signalMock,
     query: queryMock,
   };
@@ -81,19 +83,17 @@ function makeDeps(stateAfterSignal: unknown) {
   const handle = makeHandle(stateAfterSignal);
   return {
     input: {
-      projectId: "pid-task",
+      projectId: "00d0a00000000000000000000000000000000000",
       legacy: {
         changes: {
           get: vi.fn().mockResolvedValue({ success: true, data: null }),
         },
       },
-      temporal: {
-        client: {
-          workflow: {
-            getHandle: vi.fn().mockReturnValue(handle),
-          },
+      temporal: createMockOwnerFromClient({
+        workflow: {
+          getHandle: vi.fn().mockReturnValue(handle),
         },
-      },
+      }),
     },
     legacy: {
       tasks: {},

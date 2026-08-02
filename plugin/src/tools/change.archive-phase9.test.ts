@@ -24,6 +24,9 @@ import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import * as storageJson from "../storage/json";
 import * as worktree from "./worktree";
 import * as gitFinalize from "./archive-helpers/git-finalize";
+import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
+
+const PROJECT_ID = "0".repeat(40);
 
 const mocks = vi.hoisted(() => {
   const workflow = {
@@ -122,14 +125,16 @@ const mocks = vi.hoisted(() => {
     loadSpecsMap: vi.fn(() => Promise.resolve(new Map())),
     findArchiveBundle: vi.fn(() => Promise.resolve(null)),
     fireSignalAndRefresh: vi.fn(async () => {}),
-    getProjectId: vi.fn(() => Promise.resolve("test-project")),
-    getService: vi.fn(() => ({
-      client: {
-        workflow: {
-          getHandle: vi.fn(() => workflow.handle),
+    getProjectId: vi.fn(() => Promise.resolve(PROJECT_ID)),
+    getService: vi.fn(() =>
+      createMockOwnerFromClient({
+        client: {
+          workflow: {
+            getHandle: vi.fn(() => workflow.handle),
+          },
         },
-      },
-    })),
+      }),
+    ),
     saveRecoveredGateCompletion: vi.fn(
       async (input: {
         change: Change;

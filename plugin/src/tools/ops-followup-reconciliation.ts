@@ -16,7 +16,7 @@ import type {
 } from "../types";
 import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import type { WorkflowHandleLike } from "../storage/store-temporal/shared";
+import type { TemporalWorkflowHandleProxy } from "./change-mutation-coordinator";
 import {
   withTargetPathStore,
   type TargetStoreScope,
@@ -438,7 +438,7 @@ async function persistResolutionUpsert(input: {
 
   if (deps.fireSignalAndRefresh) {
     await deps.fireSignalAndRefresh(
-      {} as unknown as WorkflowHandleLike,
+      {} as unknown as TemporalWorkflowHandleProxy,
       store,
       changeId,
       opsFollowupResolutionUpsertedSignal,
@@ -461,13 +461,7 @@ async function persistResolutionUpsert(input: {
   if (!projectId) {
     throw new Error("Could not resolve project ID");
   }
-  const handle = getChangeHandleFn(
-    bundle.client as unknown as {
-      workflow: { getHandle: (workflowId: string) => WorkflowHandleLike };
-    },
-    projectId,
-    changeId,
-  );
+  const handle = getChangeHandleFn(bundle, projectId, changeId);
   await fireSignalAndRefresh(
     handle,
     store,

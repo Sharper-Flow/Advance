@@ -17,6 +17,7 @@ import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDefaultGates, type Change } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { createTemporalStoreBackend } from "./index";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 import { rebuildSummaryIndex } from "../change-summary-shard";
 
 function activeChange(
@@ -45,7 +46,7 @@ function workflowStateFor(change: Change) {
     status: change.status,
     createdAt: change.created_at,
     initializedAt: change.created_at,
-    projectId: "project-1",
+    projectId: "0000ec0100000000000000000000000000000000",
     tasks: [],
     deltas: {},
     wisdom: [],
@@ -69,7 +70,7 @@ function makeTemporal(
     createdAt?: string;
   }> = [],
 ) {
-  return {
+  return createMockOwnerFromClient({
     client: {
       workflow: {
         getHandle: (workflowId: string) => ({
@@ -97,7 +98,7 @@ function makeTemporal(
         },
       },
     },
-  };
+  });
 }
 
 describe("bounded summary status reads", () => {
@@ -129,7 +130,7 @@ describe("bounded summary status reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: makeTemporal(queried),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const status = await store.status({ recentLimit: 10 });
@@ -172,7 +173,7 @@ describe("bounded summary status reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: makeTemporal(queried),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const status = await store.status({ recentLimit: 10 });
@@ -208,7 +209,7 @@ describe("bounded summary status reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: makeTemporal(queried),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const status = await store.status();
@@ -256,7 +257,7 @@ describe("bounded summary status reads", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal: makeTemporal(queried, new Map(seeded)),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const status = await store.status({ recentLimit: 2 });
@@ -301,7 +302,7 @@ describe("bounded summary status reads", () => {
         new Map(rows.map((row) => [row.id, row.createdAt])),
         [...rows].reverse(),
       ),
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const status = await store.status({

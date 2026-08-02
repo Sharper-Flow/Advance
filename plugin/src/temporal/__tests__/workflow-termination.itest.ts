@@ -63,7 +63,7 @@ async function waitForCompleted(
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
-    projectId: "proj-term-001",
+    projectId: "00000e0000100000000000000000000000000000",
     changeId,
     title: `Termination test: ${changeId}`,
     initializedAt: new Date().toISOString(),

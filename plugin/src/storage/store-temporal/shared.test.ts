@@ -15,8 +15,12 @@ import {
   createTemporalReadDeadline,
   TemporalQueryTimeoutError,
 } from "../../temporal/retry-wrapper";
+import { createMockOwner } from "../../temporal/__tests__/mock-owner";
 import { reinitStsl } from "../../temporal/service";
 import { createChangeWorkflowState } from "../../temporal/change-state";
+
+const PROJECT_ID_A = "0000ec0a00000000000000000000000000000000";
+const PROJECT_ID_B = "0000ec0b00000000000000000000000000000000";
 
 vi.mock("../../temporal/service", () => ({
   reinitStsl: vi.fn(async () => undefined),
@@ -79,19 +83,13 @@ function createInput(args: {
   return {
     getHandle,
     input: {
-      projectId: args.projectId ?? "project-a",
+      projectId: args.projectId ?? PROJECT_ID_A,
       legacy: {
         changes: {
           get: args.changesGet,
         },
       } as unknown as Store,
-      temporal: {
-        client: {
-          workflow: {
-            getHandle,
-          },
-        },
-      },
+      temporal: createMockOwner({ getHandle }),
     },
   };
 }
@@ -100,7 +98,7 @@ describe("getGuardedChangeHandle owner guard cache", () => {
   test("caches successful owner-bearing validation while returning fresh handles", async () => {
     const changesGet = vi.fn(async () => ({
       success: true,
-      data: { adv_project_id: "project-a" },
+      data: { adv_project_id: PROJECT_ID_A },
     }));
     const { input, getHandle } = createInput({ changesGet });
 
@@ -125,7 +123,7 @@ describe("getGuardedChangeHandle owner guard cache", () => {
   test("does not cache owner mismatches", async () => {
     const changesGet = vi.fn(async () => ({
       success: true,
-      data: { adv_project_id: "other-project" },
+      data: { adv_project_id: PROJECT_ID_B },
     }));
     const { input, getHandle } = createInput({ changesGet });
 
@@ -143,18 +141,18 @@ describe("getGuardedChangeHandle owner guard cache", () => {
   test("isolates cache entries per Temporal store input", async () => {
     const changesGetA = vi.fn(async () => ({
       success: true,
-      data: { adv_project_id: "project-a" },
+      data: { adv_project_id: PROJECT_ID_A },
     }));
     const changesGetB = vi.fn(async () => ({
       success: true,
-      data: { adv_project_id: "project-a" },
+      data: { adv_project_id: PROJECT_ID_A },
     }));
     const { input: inputA } = createInput({
-      projectId: "project-a",
+      projectId: PROJECT_ID_A,
       changesGet: changesGetA,
     });
     const { input: inputB } = createInput({
-      projectId: "project-b",
+      projectId: PROJECT_ID_B,
       changesGet: changesGetB,
     });
 
@@ -378,17 +376,19 @@ describe("classifyTemporalReadFailure", () => {
       ...(args.describe ? { describe: args.describe } : {}),
     };
     return {
-      projectId: "project-a",
+      projectId: PROJECT_ID_A,
       legacy: {
         changes: { get: vi.fn() },
       } as unknown as Store,
-      temporal: {
-        client: {
-          workflow: {
-            getHandle: () => handle,
-          },
-        },
-      },
+      temporal: createMockOwner({
+        getHandle: vi.fn(() => handle),
+        describe: vi.fn(async (_ctx, _handle) => {
+          return {
+            kind: "complete" as const,
+            value: args.describe ? await args.describe() : undefined,
+          };
+        }),
+      }),
     };
   }
 
@@ -473,7 +473,7 @@ describe("classifyTemporalReadFailure", () => {
 
   test("fallback-class but neither poisoned nor missing → query_failed (never mutation-authorizing)", async () => {
     // "not registered" matches the retry-wrapper fallback family, but the
-    // workflow exists and cannot answer the query — re-seed mutation must
+    // workflow exists and cannot answer the query — a start/signal mutation must
     // NOT be authorized for it.
     const input = createClassifyInput({});
     const failure = await classifyTemporalReadFailure(

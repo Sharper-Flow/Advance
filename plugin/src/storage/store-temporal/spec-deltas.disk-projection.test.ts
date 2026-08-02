@@ -10,6 +10,7 @@ import { saveChange } from "../json";
 import { commitChangeProjection } from "../change-projection-transaction";
 import { projectTemporalStateOntoLatest } from "./shared";
 import type { DiskPersistOutcome } from "./disk-persist";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 
 const ADD_DELTA = {
   id: "dl-AAA11111",
@@ -34,8 +35,9 @@ const ADD_DELTA = {
 const signalMock = vi.fn();
 const queryMock = vi.fn();
 
-function makeHandle() {
+function makeHandle(changeId: string) {
   return {
+    workflowId: `adv/change/pid-delta-disk/${changeId}`,
     signal: signalMock,
     query: queryMock,
   };
@@ -60,22 +62,20 @@ async function makeDeps(
   } as Change);
   await saveChange(changesDir, seed);
 
-  const handle = makeHandle();
+  const handle = makeHandle(changeId);
   return {
     input: {
-      projectId: "pid-delta-disk",
+      projectId: "00dde00ad0000000000000000000000000000000",
       legacy: {
         changes: {
           get: vi.fn().mockResolvedValue({ success: true, data: null }),
         },
       },
-      temporal: {
-        client: {
-          workflow: {
-            getHandle: vi.fn().mockReturnValue(handle),
-          },
+      temporal: createMockOwnerFromClient({
+        workflow: {
+          getHandle: vi.fn().mockReturnValue(handle),
         },
-      },
+      }),
     },
     legacy: {
       specDeltas: {},

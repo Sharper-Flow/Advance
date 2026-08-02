@@ -19,7 +19,7 @@ function makeChangeInput(
   projectionChangesDir: string,
 ): ChangeWorkflowInput {
   return {
-    projectId: "launcher-projection-project",
+    projectId: "0a00c0e00000ec00000000ec0000000000000000",
     changeId,
     title: `Launcher projection test: ${changeId}`,
     initializedAt: "2026-07-23T10:00:00.000Z",

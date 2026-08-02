@@ -44,6 +44,38 @@ vi.mock("./shared", () => ({
   raceWithTemporalDeadline: async <T>(op: Promise<T>): Promise<T> => op,
   remainingDeadlineMs: vi.fn(),
   TemporalQueryTimeoutError: Error,
+  getTemporalOwner: () => ({
+    signal: async (
+      _ctx: unknown,
+      _handle: unknown,
+      def: unknown,
+      args: unknown[],
+    ) => {
+      await signalMock(def, ...args);
+      return { kind: "confirmed" };
+    },
+    query: async (
+      _ctx: unknown,
+      _handle: unknown,
+      def: unknown,
+      ...args: unknown[]
+    ) => {
+      const value = await queryMock(def, ...args);
+      return { kind: "complete", value };
+    },
+    getHandle: (_ctx: unknown) => ({
+      workflowId: "mock",
+      _opaque: Symbol("mock-handle"),
+    }),
+    describe: async () => ({ kind: "complete", value: {} }),
+    startChangeWorkflow: async () => ({
+      workflowId: "mock",
+      _opaque: Symbol("mock-handle"),
+    }),
+    list: async function* () {},
+    terminate: async () => ({ kind: "confirmed" }),
+    cancel: async () => ({ kind: "confirmed" }),
+  }),
   fallbackOperationId: vi.fn((kind: string) => kind),
   buildSummaryCommitProjection: vi.fn(() => vi.fn()),
   changeCommand: async (options: {
@@ -93,7 +125,7 @@ import { createHash, randomUUID } from "crypto";
 import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
 
 const CHANGE_ID = "chg-close-store";
-const PROJECT_ID = "pid-close";
+const PROJECT_ID = "0000000000000000000000000000000000000000";
 const AT = "2026-01-01T00:00:00.000Z";
 
 function draftChange(): Change {

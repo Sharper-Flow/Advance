@@ -73,6 +73,7 @@ vi.mock("../utils/worker-process-probe", () => ({
 vi.mock("./snapshot-scan", () => ({ scanSnapshotHealth: vi.fn() }));
 
 import { computeStatusQueueServiceability } from "./status-health";
+const PROJECT_ID = "0000000000000000000000000000000000000000";
 
 const HEALTH = {
   server_alive: true,
@@ -110,32 +111,32 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
     mockProbeTaskQueuePollers.mockResolvedValue({ status: "fresh" });
 
     const result = await computeStatusQueueServiceability({
-      projectId: "proj-status-test-001",
+      projectId: PROJECT_ID,
       health: { ...HEALTH },
     });
 
     expect(result).not.toBeNull();
     expect(result?.sessionQueue).toBe(
-      "advance-proj-status-test-001-sess_StatusHealth1",
+      "advance-" + PROJECT_ID + "-sess_StatusHealth1",
     );
     expect(result?.sessionQueueServiceability).toBeDefined();
     expect(result?.sessionQueueServiceability?.status).toBe("serviceable");
     // Project queue still probed alongside
-    expect(result?.expectedQueue).toBe("advance-proj-status-test-001");
+    expect(result?.expectedQueue).toBe("advance-" + PROJECT_ID);
     expect(result?.serviceability).toBeDefined();
   });
 
   it("omits sessionQueueServiceability when getCurrentSessionId is undefined (backward compat)", async () => {
     // sessionId unset (default mock state)
     const result = await computeStatusQueueServiceability({
-      projectId: "proj-status-test-002",
+      projectId: PROJECT_ID,
       health: { ...HEALTH },
     });
 
     expect(result).not.toBeNull();
     expect(result?.sessionQueue).toBeUndefined();
     expect(result?.sessionQueueServiceability).toBeUndefined();
-    expect(result?.expectedQueue).toBe("advance-proj-status-test-002");
+    expect(result?.expectedQueue).toBe("advance-" + PROJECT_ID);
   });
 
   it("exposes sessionQueue name but omits serviceability when bundle is unavailable", async () => {
@@ -143,7 +144,7 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
     // bundle stays null (default mock)
 
     const result = await computeStatusQueueServiceability({
-      projectId: "proj-status-test-003",
+      projectId: PROJECT_ID,
       health: { ...HEALTH },
     });
 
@@ -151,7 +152,7 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
     // sessionQueue is still exposed (operator visibility into what
     // session routing would target) even when the probe couldn't run.
     expect(result?.sessionQueue).toBe(
-      "advance-proj-status-test-003-sess_NoBundle",
+      "advance-" + PROJECT_ID + "-sess_NoBundle",
     );
     // Serviceability is omitted because probeTaskQueuePollers needs a
     // service bundle to call describeTaskQueue.
@@ -174,7 +175,7 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
     });
 
     const result = await computeStatusQueueServiceability({
-      projectId: "proj-status-test-004",
+      projectId: PROJECT_ID,
       health: { ...HEALTH },
     });
 
@@ -203,7 +204,7 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
     });
 
     const result = await computeStatusQueueServiceability({
-      projectId: "proj-status-test-004b",
+      projectId: PROJECT_ID,
       health: { ...HEALTH },
     });
 
@@ -217,7 +218,7 @@ describe("computeStatusQueueServiceability multi-queue (rq-isolSessionTaskQueue0
 
   it("reports no orphan-queue adoption summary when no adopter is active", async () => {
     const result = await computeStatusQueueServiceability({
-      projectId: "proj-status-test-005",
+      projectId: PROJECT_ID,
       health: { ...HEALTH },
     });
 

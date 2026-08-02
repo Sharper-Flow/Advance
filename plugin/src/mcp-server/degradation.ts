@@ -16,6 +16,8 @@
  */
 
 import type { Tier4ToolName, ToolClassification } from "./tools/index.js";
+import { TemporalOperationsOwner } from "../temporal/operations.js";
+import { makeTemporalLifecycleContext } from "../temporal/operations.js";
 
 export interface DegradationOptions {
   /** Override Temporal reachability probe. */
@@ -45,35 +47,30 @@ export const HOST_PROBE_FIELDS: readonly string[] = [
   "worktree_census",
 ];
 
+const TEMPORAL_REACHABILITY_PROBE_PROJECT_ID =
+  "0000000000000000000000000000000000000000";
+
 /**
  * Probe whether the configured Temporal server is reachable right now.
  * Returns `false` on any connection or timeout error.
  */
 export async function isTemporalReachable(): Promise<boolean> {
+  let owner: TemporalOperationsOwner | undefined;
   try {
-    const { createTemporalClientBundle } =
-      await import("../temporal/client.js");
-    const bundlePromise = createTemporalClientBundle();
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error("Temporal reachability timeout"));
-      }, TEMPORAL_REACHABILITY_TIMEOUT_MS);
-      // Node timers are not unref'd by default in all test runners; unref
-      // prevents this timer from keeping the process alive.
-      if (typeof timer === "number") {
-        // Node environment: setTimeout returns a number; no unref needed.
-      } else if (typeof timer === "object" && timer !== null) {
-        (timer as NodeJS.Timeout).unref?.();
-      }
-    });
-    const { connection } = await Promise.race([bundlePromise, timeoutPromise]);
-    try {
-      return true;
-    } finally {
-      await connection.close().catch(() => undefined);
-    }
+    owner = await TemporalOperationsOwner.fromEnv(
+      TEMPORAL_REACHABILITY_PROBE_PROJECT_ID,
+    );
+    return await owner.isReachable(
+      makeTemporalLifecycleContext(
+        TEMPORAL_REACHABILITY_PROBE_PROJECT_ID,
+        "isTemporalReachable",
+        TEMPORAL_REACHABILITY_TIMEOUT_MS,
+      ),
+    );
   } catch {
     return false;
+  } finally {
+    await owner?.close();
   }
 }
 

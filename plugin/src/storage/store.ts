@@ -14,7 +14,10 @@
  */
 
 import { getProjectId } from "../utils/project-id";
-import type { TemporalClientBundle } from "../temporal/client";
+import {
+  TemporalOperationsOwner,
+  type TemporalOperations,
+} from "../temporal/operations";
 import { createTemporalStoreBackend } from "./store-temporal";
 import { createDiskStore } from "./store-disk";
 
@@ -38,9 +41,16 @@ import type { ProductContext } from "./product-context";
 
 export interface CreateStoreOptions {
   externalRoot?: string;
-  temporalBundle: TemporalClientBundle;
+  temporalBundle: TemporalOperations;
   projectIdOverride?: string;
   productContext?: ProductContext;
+}
+
+function asTemporalOperations(bundle: TemporalOperations): TemporalOperations {
+  if (bundle instanceof TemporalOperationsOwner) {
+    return bundle;
+  }
+  return bundle;
 }
 
 export async function createStore(
@@ -68,7 +78,7 @@ export async function createStore(
 
   const store = createTemporalStoreBackend({
     legacy,
-    temporal: options.temporalBundle,
+    temporal: asTemporalOperations(options.temporalBundle),
     projectId,
   });
   store.productContext = options.productContext;

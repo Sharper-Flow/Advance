@@ -102,7 +102,7 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
       store: createTemporalStoreBackend({
         legacy,
         temporal: poisoned.temporal,
-        projectId: "routine-read-project",
+        projectId: "000000e0ead0000ec00000000000000000000000",
       }),
       ...poisoned,
     };
@@ -224,7 +224,7 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisoned.temporal,
-      projectId: "routine-read-project",
+      projectId: "000000e0ead0000ec00000000000000000000000",
     });
     const result = await store.changes
       .get("missing-read-model")
@@ -249,7 +249,7 @@ describe("routine reads route through the disk ReadStore projection (RED)", () =
     const store = createTemporalStoreBackend({
       legacy,
       temporal: poisoned.temporal,
-      projectId: "routine-read-project",
+      projectId: "000000e0ead0000ec00000000000000000000000",
     });
     const result = await store.changes.get(corruptId).catch((error) => error);
 

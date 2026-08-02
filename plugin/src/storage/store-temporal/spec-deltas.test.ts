@@ -8,6 +8,10 @@ import {
 import { DiskProjectionPersistError } from "./disk-persist";
 import { commitChangeProjectionWithSummary } from "../change-summary-shard";
 
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
+
+const PROJECT_ID = "0".repeat(40);
+
 const { signalMock, queryMock } = vi.hoisted(() => ({
   signalMock: vi.fn(),
   queryMock: vi.fn(),
@@ -120,19 +124,19 @@ function makeDeps(stateAfterSignal: unknown) {
   const handle = makeHandle(stateAfterSignal);
   return {
     input: {
-      projectId: "pid-spec-delta",
+      projectId: PROJECT_ID,
       legacy: {
         changes: {
           get: vi.fn().mockResolvedValue({ success: true, data: null }),
         },
       },
-      temporal: {
+      temporal: createMockOwnerFromClient({
         client: {
           workflow: {
             getHandle: vi.fn().mockReturnValue(handle),
           },
         },
-      },
+      }),
     },
     legacy: {
       specDeltas: {},

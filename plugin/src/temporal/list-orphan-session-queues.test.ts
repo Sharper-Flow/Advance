@@ -2,6 +2,15 @@ import { describe, expect, test } from "vitest";
 import type { AsyncIterable } from "node:stream";
 import { listOrphanSessionQueues } from "./list-orphan-session-queues";
 import { ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX } from "./contracts";
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
+
+/** Canonical 40-character lowercase hex project ID used across these tests. */
+const PROJECT_ID = "0".repeat(40);
+const CHANGE_PREFIX = `adv/change/${PROJECT_ID}/`;
+const PROJ_Q = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PROJECT_ID}`;
+const SESS_DEAD_1 = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PROJECT_ID}-sess_deadOne`;
+const SESS_DEAD_2 = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PROJECT_ID}-sess_deadTwo`;
+const SESS_LIVE = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PROJECT_ID}-sess_live`;
 
 /** Build a mock Visibility entry. */
 function entry(
@@ -22,11 +31,14 @@ function makeList(
   };
 }
 
-const PID = "pid-abc";
-const PROJ_Q = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PID}`;
-const SESS_DEAD_1 = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PID}-sess_deadOne`;
-const SESS_DEAD_2 = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PID}-sess_deadTwo`;
-const SESS_LIVE = `${ADVANCE_TEMPORAL_TASK_QUEUE_PREFIX}-${PID}-sess_live`;
+function unwrapOrphans(
+  outcome: Awaited<ReturnType<typeof listOrphanSessionQueues>>,
+): { queue: string; oldestStartTime: Date }[] {
+  if (outcome.kind !== "complete") {
+    throw new Error(`Unexpected outcome: ${outcome.kind}`);
+  }
+  return outcome.value;
+}
 
 describe("listOrphanSessionQueues", () => {
   test("discovers session-scoped queues not already polled, sorted by oldest startTime", async () => {
@@ -36,19 +48,22 @@ describe("listOrphanSessionQueues", () => {
       workflow: {
         list: makeList([
           [
-            entry("adv/change/pid-abc/changeA", SESS_DEAD_1, t0),
-            entry("adv/change/pid-abc/changeB", SESS_DEAD_2, t1),
-            entry("adv/change/pid-abc/changeC", PROJ_Q, t0),
-            entry("adv/change/pid-abc/changeD", SESS_LIVE, t0),
+            entry(`${CHANGE_PREFIX}changeA`, SESS_DEAD_1, t0),
+            entry(`${CHANGE_PREFIX}changeB`, SESS_DEAD_2, t1),
+            entry(`${CHANGE_PREFIX}changeC`, PROJ_Q, t0),
+            entry(`${CHANGE_PREFIX}changeD`, SESS_LIVE, t0),
           ],
         ]),
       },
     };
 
-    const result = await listOrphanSessionQueues(client, PID, [
-      SESS_LIVE,
-      PROJ_Q,
-    ]);
+    const result = unwrapOrphans(
+      await listOrphanSessionQueues(
+        createMockOwnerFromClient(client),
+        PROJECT_ID,
+        [SESS_LIVE, PROJ_Q],
+      ),
+    );
 
     // Dead queues discovered; project + live excluded; sorted oldest-first
     expect(result).toHaveLength(2);
@@ -65,13 +80,19 @@ describe("listOrphanSessionQueues", () => {
       workflow: {
         // Page 2 has the older entry — Visibility may return unordered
         list: makeList([
-          [entry("adv/change/pid-abc/newer", SESS_DEAD_2, tNew)],
-          [entry("adv/change/pid-abc/older", SESS_DEAD_1, tOld)],
+          [entry(`${CHANGE_PREFIX}newer`, SESS_DEAD_2, tNew)],
+          [entry(`${CHANGE_PREFIX}older`, SESS_DEAD_1, tOld)],
         ]),
       },
     };
 
-    const result = await listOrphanSessionQueues(client, PID, [PROJ_Q]);
+    const result = unwrapOrphans(
+      await listOrphanSessionQueues(
+        createMockOwnerFromClient(client),
+        PROJECT_ID,
+        [PROJ_Q],
+      ),
+    );
 
     // Sorted by oldest startTime regardless of page order
     expect(result[0].queue).toBe(SESS_DEAD_1);
@@ -84,14 +105,20 @@ describe("listOrphanSessionQueues", () => {
       workflow: {
         list: makeList([
           [
-            entry("adv/change/pid-abc/changeA", SESS_DEAD_1, t),
-            entry("adv/epic/pid-abc/someEpic", SESS_DEAD_2, t),
+            entry(`${CHANGE_PREFIX}changeA`, SESS_DEAD_1, t),
+            entry(`adv/epic/${PROJECT_ID}/someEpic`, SESS_DEAD_2, t),
           ],
         ]),
       },
     };
 
-    const result = await listOrphanSessionQueues(client, PID, [PROJ_Q]);
+    const result = unwrapOrphans(
+      await listOrphanSessionQueues(
+        createMockOwnerFromClient(client),
+        PROJECT_ID,
+        [PROJ_Q],
+      ),
+    );
     expect(result).toEqual([{ queue: SESS_DEAD_1, oldestStartTime: t }]);
   });
 
@@ -101,14 +128,20 @@ describe("listOrphanSessionQueues", () => {
       workflow: {
         list: makeList([
           [
-            entry("adv/change/pid-abc/running", SESS_DEAD_1, t, "RUNNING"),
-            entry("adv/change/pid-abc/completed", SESS_DEAD_2, t, "COMPLETED"),
+            entry(`${CHANGE_PREFIX}running`, SESS_DEAD_1, t, "RUNNING"),
+            entry(`${CHANGE_PREFIX}completed`, SESS_DEAD_2, t, "COMPLETED"),
           ],
         ]),
       },
     };
 
-    const result = await listOrphanSessionQueues(client, PID, [PROJ_Q]);
+    const result = unwrapOrphans(
+      await listOrphanSessionQueues(
+        createMockOwnerFromClient(client),
+        PROJECT_ID,
+        [PROJ_Q],
+      ),
+    );
     expect(result).toEqual([{ queue: SESS_DEAD_1, oldestStartTime: t }]);
   });
 
@@ -118,17 +151,20 @@ describe("listOrphanSessionQueues", () => {
       workflow: {
         list: makeList([
           [
-            entry("adv/change/pid-abc/a", PROJ_Q, t),
-            entry("adv/change/pid-abc/b", SESS_LIVE, t),
+            entry(`${CHANGE_PREFIX}a`, PROJ_Q, t),
+            entry(`${CHANGE_PREFIX}b`, SESS_LIVE, t),
           ],
         ]),
       },
     };
 
-    const result = await listOrphanSessionQueues(client, PID, [
-      PROJ_Q,
-      SESS_LIVE,
-    ]);
+    const result = unwrapOrphans(
+      await listOrphanSessionQueues(
+        createMockOwnerFromClient(client),
+        PROJECT_ID,
+        [PROJ_Q, SESS_LIVE],
+      ),
+    );
     expect(result).toEqual([]);
   });
 
@@ -139,14 +175,20 @@ describe("listOrphanSessionQueues", () => {
       workflow: {
         list: makeList([
           [
-            entry("adv/change/pid-abc/newer", SESS_DEAD_1, tNew),
-            entry("adv/change/pid-abc/older", SESS_DEAD_1, tOld),
+            entry(`${CHANGE_PREFIX}newer`, SESS_DEAD_1, tNew),
+            entry(`${CHANGE_PREFIX}older`, SESS_DEAD_1, tOld),
           ],
         ]),
       },
     };
 
-    const result = await listOrphanSessionQueues(client, PID, [PROJ_Q]);
+    const result = unwrapOrphans(
+      await listOrphanSessionQueues(
+        createMockOwnerFromClient(client),
+        PROJECT_ID,
+        [PROJ_Q],
+      ),
+    );
     expect(result).toHaveLength(1);
     expect(result[0].oldestStartTime).toBe(tOld);
   });

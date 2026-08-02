@@ -22,6 +22,7 @@ import {
 import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
+import { createMockOwnerFromClient } from "../../temporal/__tests__/mock-owner";
 
 const workflowExecuteUpdate = vi.hoisted(() => vi.fn(async () => undefined));
 const workflowQuery = vi.hoisted(() =>
@@ -54,18 +55,19 @@ vi.mock("../project-workflow-helper", () => ({
 
 // Mock temporal/service so fireWorktreeSignal can reach a handle.
 vi.mock("../../temporal/service", () => ({
-  getService: vi.fn(() => ({
-    connection: { close: vi.fn() },
-    client: {
-      workflow: {
-        getHandle: vi.fn(() => ({
-          signal: workflowSignal,
-          query: workflowQuery,
-        })),
-        list: workflowList,
+  getService: vi.fn(() =>
+    createMockOwnerFromClient({
+      client: {
+        workflow: {
+          getHandle: vi.fn(() => ({
+            signal: workflowSignal,
+            query: workflowQuery,
+          })),
+          list: workflowList,
+        },
       },
-    },
-  })),
+    }),
+  ),
 }));
 
 // Mock debug-log to capture audit trail.
@@ -119,7 +121,10 @@ function createGitRepo(): string {
 function createMockDeps(repoRoot: string): AdvWorktreeCreateDeps {
   return {
     projectRoot: repoRoot,
-    database: { projectDir: repoRoot, projectId: "test-id" },
+    database: {
+      projectDir: repoRoot,
+      projectId: "0e000d0000000000000000000000000000000000",
+    },
     log: {
       debug: vi.fn(),
       info: vi.fn(),
@@ -363,7 +368,8 @@ describe.skipIf(!isLinux)(
       workflowList.mockImplementationOnce(() =>
         (async function* () {
           yield {
-            workflowId: "adv/change/test-id/other-change",
+            workflowId:
+              "adv/change/0e000d0000000000000000000000000000000000/other-change",
           };
         })(),
       );
@@ -1006,7 +1012,8 @@ describe.skipIf(!isLinux)(
       workflowList.mockImplementationOnce(() =>
         (async function* () {
           yield {
-            workflowId: "adv/change/test-id/other-change",
+            workflowId:
+              "adv/change/0e000d0000000000000000000000000000000000/other-change",
           };
         })(),
       );
@@ -1025,7 +1032,7 @@ describe.skipIf(!isLinux)(
       });
       expect(workflowList).toHaveBeenCalledWith({
         query:
-          'AdvAffectedProjects = "test-id" AND AdvWorktreeBranches = "change/feature" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
+          'AdvAffectedProjects = "0e000d0000000000000000000000000000000000" AND AdvWorktreeBranches = "change/feature" AND AdvLifecycleState = "open" AND ExecutionStatus = "Running"',
       });
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).not.toContain("change/feature");

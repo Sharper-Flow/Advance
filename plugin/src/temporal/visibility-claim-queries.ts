@@ -17,6 +17,8 @@
  * and claim paths share one Visibility search-attribute contract.
  */
 
+import type { TemporalListOutcome, TemporalOperations } from "./operations";
+import { makeTemporalOperationContext } from "./operations";
 import {
   escapeVisibilityValue,
   openLifecycleVisibilityClauses,
@@ -43,19 +45,6 @@ export interface BulkClaimQueryOptions {
 
 export interface ClaimVisibilityResult {
   changeId: string;
-}
-
-/**
- * Minimal Visibility-list client shape. Real `@temporalio/client` Client
- * satisfies this structurally.
- */
-export interface VisibilityListClient {
-  workflow: {
-    list: (opts: { query: string }) => AsyncIterable<{
-      workflowId: string;
-      searchAttributes?: Record<string, unknown>;
-    }>;
-  };
 }
 
 /**
@@ -102,15 +91,27 @@ export function buildActiveClaimsVisibilityQuery(
  * rq-backlogCoord03).
  */
 export async function queryClaimsByIssueNumber(
-  client: VisibilityListClient,
+  owner: TemporalOperations,
   projectId: string,
   issueNumber: number,
-): Promise<ClaimVisibilityResult[]> {
+): Promise<TemporalListOutcome<ClaimVisibilityResult[]>> {
   const query = buildClaimVisibilityQuery({ projectId, issueNumber });
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
+  const placeholderWorkflowId = `${projectPrefix}claim-query-${issueNumber}`;
+  const ctx = makeTemporalOperationContext(
+    projectId,
+    placeholderWorkflowId,
+    "list",
+    "queryClaimsByIssueNumber",
+    10_000,
+  );
+  const outcome = await owner.list<{ workflowId: string }>(ctx, query);
+  if (outcome.kind !== "complete") {
+    return outcome;
+  }
   const results: ClaimVisibilityResult[] = [];
 
-  for await (const wf of client.workflow.list({ query })) {
+  for (const wf of outcome.value) {
     const wfid = wf.workflowId;
     if (!wfid.startsWith(projectPrefix)) continue;
     const changeId = wfid.slice(projectPrefix.length);
@@ -118,7 +119,7 @@ export async function queryClaimsByIssueNumber(
     results.push({ changeId });
   }
 
-  return results;
+  return { kind: "complete", value: results, truncated: outcome.truncated };
 }
 
 /**
@@ -131,14 +132,18 @@ export async function queryClaimsByIssueNumber(
  * Empty input array skips the Temporal call entirely.
  */
 export async function queryActiveChangesByIssueNumbers(
-  client: VisibilityListClient,
+  owner: TemporalOperations,
   projectId: string,
   issueNumbers: number[],
-): Promise<Map<number, ClaimVisibilityResult>> {
+): Promise<TemporalListOutcome<Map<number, ClaimVisibilityResult>>> {
   const result = new Map<number, ClaimVisibilityResult>();
-  if (issueNumbers.length === 0) return result;
+  if (issueNumbers.length === 0) {
+    return { kind: "complete", value: result, truncated: false };
+  }
 
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
+  const placeholderWorkflowId = `${projectPrefix}bulk-claims`;
+  let truncated = false;
 
   // Chunk to stay under query-string length limits.
   for (let i = 0; i < issueNumbers.length; i += BULK_QUERY_CHUNK_SIZE) {
@@ -149,7 +154,26 @@ export async function queryActiveChangesByIssueNumbers(
     });
     if (query === null) continue;
 
-    for await (const wf of client.workflow.list({ query })) {
+    const ctx = makeTemporalOperationContext(
+      projectId,
+      placeholderWorkflowId,
+      "list",
+      "queryActiveChangesByIssueNumbers",
+      10_000,
+    );
+    const listOutcome = await owner.list<{
+      workflowId: string;
+      searchAttributes?: Record<string, unknown>;
+    }>(ctx, query, { limit: BULK_QUERY_CHUNK_SIZE * 2 });
+
+    if (listOutcome.kind !== "complete") {
+      return listOutcome;
+    }
+    if (listOutcome.truncated) {
+      truncated = true;
+    }
+
+    for (const wf of listOutcome.value) {
       const wfid = wf.workflowId;
       if (!wfid.startsWith(projectPrefix)) continue;
       const changeId = wfid.slice(projectPrefix.length);
@@ -180,5 +204,5 @@ export async function queryActiveChangesByIssueNumbers(
     }
   }
 
-  return result;
+  return { kind: "complete", value: result, truncated };
 }

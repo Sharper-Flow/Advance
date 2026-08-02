@@ -360,7 +360,8 @@ describe("withTargetPathStore", () => {
     expect(result.store).toBe(mocks.temporalStore);
     expect(mocks.probeTaskQueuePollers).toHaveBeenCalledWith(
       expect.objectContaining({
-        namespace: "default",
+        owner: mocks.temporalBundle,
+        projectId: TARGET_PROJECT_ID,
         taskQueue: `advance-${TARGET_PROJECT_ID}`,
         freshPollerMs: 60_000,
       }),

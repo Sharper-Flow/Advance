@@ -19,7 +19,7 @@ const timestamp = "2026-07-16T18:00:00.000Z";
 
 function makeChangeInput(changeId: string): ChangeWorkflowInput {
   return {
-    projectId: "lightweight-profile-test-project",
+    projectId: "000000e0000000f00e0e000000ec000000000000",
     changeId,
     title: `Lightweight profile test: ${changeId}`,
     initializedAt: timestamp,
