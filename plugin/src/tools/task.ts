@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { Store } from "../storage/store";
 import {
   DelegationRecoverySchema,
@@ -245,32 +246,42 @@ function detectTransitionPersistenceDisagreement(
         "Task update succeeded but the authoritative read-back returned no task.",
     };
   }
+  if (task.status !== args.status) {
+    return {
+      code: "TASK_PERSISTENCE_DISAGREEMENT",
+      field: "status",
+      message: `Task update requested status ${args.status} but the authoritative read-back returned ${task.status}.`,
+    };
+  }
   const checks: Array<{ field: string; present: () => boolean }> = [];
   if (args.notes !== undefined) {
-    checks.push({ field: "notes", present: () => task.notes !== undefined });
+    checks.push({ field: "notes", present: () => task.notes === args.notes });
   }
   if (args.implementation_summary !== undefined) {
     checks.push({
       field: "implementation_summary",
-      present: () => task.implementation_summary !== undefined,
+      present: () =>
+        task.implementation_summary === args.implementation_summary,
     });
   }
   if (args.error_recovery !== undefined) {
     checks.push({
       field: "error_recovery",
-      present: () => task.error_recovery !== undefined,
+      present: () =>
+        isDeepStrictEqual(task.error_recovery, args.error_recovery),
     });
   }
   if (args.contract_refs !== undefined) {
     checks.push({
       field: "contract_refs",
-      present: () => task.contract_refs !== undefined,
+      present: () => isDeepStrictEqual(task.contract_refs, args.contract_refs),
     });
   }
   if (args.delegation_recovery !== undefined) {
     checks.push({
       field: "delegation_recovery",
-      present: () => task.delegation_recovery !== undefined,
+      present: () =>
+        isDeepStrictEqual(task.delegation_recovery, args.delegation_recovery),
     });
   }
   for (const { field, present } of checks) {
@@ -278,7 +289,7 @@ function detectTransitionPersistenceDisagreement(
       return {
         code: "TASK_PERSISTENCE_DISAGREEMENT",
         field,
-        message: `Task update accepted ${field} but the authoritative read-back did not return it persisted.`,
+        message: `Task update accepted ${field} but the authoritative read-back did not return the requested value.`,
       };
     }
   }

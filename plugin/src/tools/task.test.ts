@@ -1229,11 +1229,51 @@ describe("task tools — signal/query adapters", () => {
 
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain(
-        "Task update accepted notes but the authoritative read-back did not return it persisted.",
+        "Task update accepted notes but the authoritative read-back did not return the requested value.",
       );
       expect(parsed.code).toBe("TASK_PERSISTENCE_DISAGREEMENT");
       expect(parsed.field).toBe("notes");
       expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
+    });
+
+    test("returns TASK_PERSISTENCE_DISAGREEMENT when read-back status or fields differ from the request", async () => {
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValueOnce({
+        id: "tk-abc",
+        status: "pending",
+        notes: "Should persist",
+      });
+
+      const statusResult = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+          notes: "Should persist",
+        },
+        store,
+      );
+
+      const statusParsed = JSON.parse(statusResult);
+      expect(statusParsed.code).toBe("TASK_PERSISTENCE_DISAGREEMENT");
+      expect(statusParsed.field).toBe("status");
+
+      mocks.querySignal.mockResolvedValueOnce({
+        id: "tk-abc",
+        status: "in_progress",
+        notes: "Stale value",
+      });
+      const fieldResult = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-abc",
+          status: "in_progress",
+          notes: "Should persist",
+        },
+        store,
+      );
+
+      const fieldParsed = JSON.parse(fieldResult);
+      expect(fieldParsed.code).toBe("TASK_PERSISTENCE_DISAGREEMENT");
+      expect(fieldParsed.field).toBe("notes");
     });
 
     test("AC5: SEMANTIC error_recovery on taskUpdatedSignal clears blocked delegation_recovery", async () => {
@@ -1771,6 +1811,10 @@ describe("task tools — signal/query adapters", () => {
           workflowExecutionInfo: { status: "RUNNING", historyLength: 12 },
         }),
       );
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-abc",
+        status: "in_progress",
+      });
 
       const result = await taskTools.adv_task_update.execute(
         {
@@ -1930,7 +1974,7 @@ describe("task tools — signal/query adapters", () => {
       });
       mocks.querySignal.mockResolvedValue({
         id: "tk-abc",
-        status: "done",
+        status: "in_progress",
       });
 
       const result = await taskTools.adv_task_update.execute(
