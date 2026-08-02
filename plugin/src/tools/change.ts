@@ -30,6 +30,7 @@ import {
   type GateCompletion,
   type WorkerBundleImpact,
   type ReleaseNotesContent,
+  type HydrationStats,
 } from "../types";
 import { ChangeSchema } from "../types/changes";
 import type { ChangeCreateInitialMetadata, Store } from "../storage/store";
@@ -186,32 +187,30 @@ function createChangeShowSubreadRunner(readCtx: TemporalReadContext) {
         opType: label,
         maxAttempts: 1,
       });
-      if (read.complete) {
-        readCtx.recordResponsiveMember();
-        return { ok: true, value: read.data as T };
+      if (!read.complete) {
+        if (read.error instanceof TemporalQueryTimeoutError) {
+          readCtx.recordUnresponsiveMember();
+        }
+        omittedIds.push(label);
+        return { ok: false, error: read.error };
       }
-      readCtx.recordUnresponsiveMember();
-      omittedIds.push(label);
-      return { ok: false, error: read.error };
+      readCtx.recordResponsiveMember();
+      return { ok: true, value: read.data as T };
     } catch (error) {
-      console.error("[DEBUG] subread.run degraded", label, error);
-      readCtx.recordUnresponsiveMember();
+      logger.debug("subread.run error", { label, error });
+      if (error instanceof TemporalQueryTimeoutError) {
+        readCtx.recordUnresponsiveMember();
+      }
       omittedIds.push(label);
       return { ok: false, error };
     }
   }
 
-  function getHydrationStats():
-    | {
-        deadlineExceeded: boolean;
-        boundedOmitted: number;
-        omittedIds: string[];
-      }
-    | undefined {
+  function getHydrationStats(): HydrationStats | undefined {
     if (omittedIds.length === 0) return undefined;
     return {
       deadlineExceeded: true,
-      boundedOmitted: omittedIds.length,
+      omitted: omittedIds.length,
       omittedIds,
     };
   }
@@ -1562,6 +1561,10 @@ export const changeTools = {
                   : String(artifactRead.error);
             }
           }
+          const changeShowHydrationStats = subread.getHydrationStats();
+          if (changeShowHydrationStats) {
+            output.hydrationStats = changeShowHydrationStats;
+          }
           return formatToolOutput(output);
         }
         const { content: proposalText } = await loadProposalForContext(
@@ -1600,6 +1603,7 @@ export const changeTools = {
             proposalText,
             changeId,
             store: activeStore,
+            persist: false,
           }),
         );
         if (!clarifyRead.ok) {

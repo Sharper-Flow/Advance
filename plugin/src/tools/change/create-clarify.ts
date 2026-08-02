@@ -589,12 +589,14 @@ export async function applyClarifyReadinessToChangeOutput({
   proposalText,
   changeId,
   store,
+  persist = true,
 }: {
   output: Record<string, unknown>;
   change: Change;
   proposalText: string;
   changeId: string;
   store: Store;
+  persist?: boolean;
 }): Promise<void> {
   const features = store.config?.features as FeatureFlags | undefined;
   const clarifyMode = features?.clarify_enforcement ?? "advisory";
@@ -615,7 +617,7 @@ export async function applyClarifyReadinessToChangeOutput({
       clarifyResult.findings,
       new Date().toISOString(),
     );
-    if (updated.length > 0) {
+    if (persist && updated.length > 0) {
       await persistClarifyFindings(
         store,
         changeId,
@@ -631,12 +633,14 @@ export async function applyClarifyReadinessToChangeOutput({
       [],
       new Date().toISOString(),
     );
-    await persistClarifyFindings(
-      store,
-      changeId,
-      updated,
-      "Failed to resolve clarify findings",
-    );
+    if (persist && updated.length > 0) {
+      await persistClarifyFindings(
+        store,
+        changeId,
+        updated,
+        "Failed to resolve clarify findings",
+      );
+    }
   }
 }
 export async function appendClarifyNeededForCreatedChange(

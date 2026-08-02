@@ -204,66 +204,74 @@ describe("buildExternalDependencyStatus", () => {
     expect(elapsed).toBeLessThan(400);
   });
 
-  test("returns partial summary with same shape when total budget expires", async () => {
+  test("preserves satisfied results when total budget expires", async () => {
+    let callCount = 0;
     mocks.createDiskStore.mockImplementation(async () => {
+      const thisCall = ++callCount;
       const store = {
         close: vi.fn(),
         changes: {
-          get: vi.fn(
-            async () =>
-              new Promise<{ success: true; data: unknown }>((resolve) =>
-                setTimeout(
-                  () =>
-                    resolve({
-                      success: true,
-                      data: {
-                        id: "target-change",
-                        status: "active",
-                        gates: {
-                          proposal: { status: "done" },
-                          discovery: { status: "done" },
-                          design: { status: "done" },
-                          planning: { status: "done" },
-                          execution: { status: "done" },
-                          acceptance: { status: "done" },
-                          release: { status: "done" },
-                        },
-                        tasks: [],
-                      },
-                    }),
-                  500,
-                ),
-              ),
-          ),
+          get: vi.fn(async () => {
+            if (thisCall === 1) {
+              return {
+                success: true,
+                data: {
+                  id: "target-change",
+                  status: "active",
+                  gates: {
+                    proposal: { status: "done" },
+                    discovery: { status: "done" },
+                    design: { status: "done" },
+                    planning: { status: "done" },
+                    execution: { status: "done" },
+                    acceptance: { status: "done" },
+                    release: { status: "done" },
+                  },
+                  tasks: [],
+                },
+              };
+            }
+            return new Promise<never>((_resolve) => {
+              /* never resolves */
+            });
+          }),
         },
       };
       mocks.stores.push(store);
       return store;
     });
 
-    const dependencies = Array.from({ length: 4 }, (_, i) => ({
-      target_path: `/repo/dep-${i}`,
-      changeId: `target-change-${i}`,
-      relationship: "follow_up" as const,
-      advisory: true,
-    }));
+    const dependencies = [
+      {
+        target_path: "/repo/fast",
+        changeId: "fast-change",
+        relationship: "follow_up" as const,
+        advisory: true,
+      },
+      {
+        target_path: "/repo/slow",
+        changeId: "slow-change",
+        relationship: "follow_up" as const,
+        advisory: true,
+      },
+    ];
 
     const result = await buildExternalDependencyStatus(dependencies, {
-      concurrency: 4,
-      perItemTimeoutMs: 1000,
+      concurrency: 2,
+      perItemTimeoutMs: 1_000,
       totalTimeoutMs: 100,
     });
 
     expect(result).toBeDefined();
     expect(result?.summary).toMatchObject({
-      total: 4,
-      satisfied: 0,
-      warning: 4,
+      total: 2,
+      satisfied: 1,
+      warning: 1,
       blocking: 0,
       advisoryOnly: true,
     });
+    expect(result?.dependencies[0].status).toBe("satisfied");
+    expect(result?.dependencies[1].status).toBe("warning");
     expect(result?.note).toMatch(/partial/i);
-    expect(result?.dependencies).toHaveLength(4);
-    expect(result?.dependencies[0].status).toBe("warning");
   });
 });

@@ -3,7 +3,6 @@ import { validateCrossRepoTarget } from "../temporal/activities";
 import { createDefaultGates, type ExternalDependency } from "../types";
 import { getExternalRootForProject, getProjectId } from "../utils/project-id";
 import { withTimeout, TimeoutError } from "../utils/with-timeout";
-import { mapWithConcurrency } from "../utils/concurrency";
 
 export type ExternalDependencyStatus = {
   summary: {
@@ -45,8 +44,25 @@ export interface ExternalDependencyStatusOptions {
 }
 
 const DEFAULT_CONCURRENCY = 4;
-const DEFAULT_PER_ITEM_TIMEOUT_MS = 2_000;
-const DEFAULT_TOTAL_TIMEOUT_MS = 5_000;
+// Aligned with the 1500ms adv_change_show per-member outer cap: inner budgets
+// larger than that are never reachable, and the same-shape warning output is
+// preserved when the total budget expires.
+const DEFAULT_PER_ITEM_TIMEOUT_MS = 1_500;
+const DEFAULT_TOTAL_TIMEOUT_MS = 1_500;
+
+const TOTAL_DEADLINE_MESSAGE =
+  "External dependency status enrichment deadline exceeded";
+
+function baseDependencyFields(dependency: ExternalDependency) {
+  return {
+    target_path: dependency.target_path,
+    changeId: dependency.changeId,
+    gate: dependency.gate,
+    taskId: dependency.taskId,
+    relationship: dependency.relationship,
+    advisory: dependency.advisory,
+  };
+}
 
 export async function buildExternalDependencyStatus(
   dependencies: ExternalDependency[] | undefined,
@@ -64,14 +80,7 @@ export async function buildExternalDependencyStatus(
   async function resolveDependency(
     dependency: ExternalDependency,
   ): Promise<ExternalDependencyStatus["dependencies"][number]> {
-    const base = {
-      target_path: dependency.target_path,
-      changeId: dependency.changeId,
-      gate: dependency.gate,
-      taskId: dependency.taskId,
-      relationship: dependency.relationship,
-      advisory: dependency.advisory,
-    };
+    const base = baseDependencyFields(dependency);
 
     try {
       const validation = await validateCrossRepoTarget(dependency.target_path);
@@ -153,64 +162,107 @@ export async function buildExternalDependencyStatus(
         `External dependency lookup timed out for ${dependency.changeId} at ${dependency.target_path}`,
       );
     } catch (err) {
+      const base = baseDependencyFields(dependency);
       if (err instanceof TimeoutError) {
         return {
-          target_path: dependency.target_path,
-          changeId: dependency.changeId,
-          gate: dependency.gate,
-          taskId: dependency.taskId,
-          relationship: dependency.relationship,
-          advisory: dependency.advisory,
+          ...base,
           status: "warning" as const,
           message: `External dependency lookup timed out (${perItemMs}ms budget)`,
         };
       }
-      throw err;
+      return {
+        ...base,
+        status: "warning" as const,
+        message: err instanceof Error ? err.message : String(err),
+      };
     }
   }
 
-  let dependencyStatuses: ExternalDependencyStatus["dependencies"];
-  try {
-    dependencyStatuses = await withTimeout(
-      mapWithConcurrency(
-        dependencies,
-        concurrency,
-        resolveDependencyWithTimeout,
-      ),
-      totalMs,
-      "External dependency status enrichment timed out",
-    );
-  } catch (err) {
-    if (err instanceof TimeoutError) {
-      dependencyStatuses = dependencies.map((dependency) => ({
-        target_path: dependency.target_path,
-        changeId: dependency.changeId,
-        gate: dependency.gate,
-        taskId: dependency.taskId,
-        relationship: dependency.relationship,
-        advisory: dependency.advisory,
-        status: "warning" as const,
-        message: "External dependency status enrichment deadline exceeded",
-      }));
-      return {
-        summary: {
-          total: dependencyStatuses.length,
-          satisfied: 0,
-          warning: dependencyStatuses.length,
-          blocking: 0,
-          advisoryOnly: true,
-        },
-        note: `External dependency status is partial: enrichment deadline exceeded (${totalMs}ms budget). External dependencies are advisory only and do not block gates or archive by default.`,
-        dependencies: dependencyStatuses,
-      };
+  /**
+   * Bounded-concurrency map that returns whatever has resolved when the total
+   * deadline expires. Completed results are preserved; only unfinished items are
+   * marked as warnings so a single slow dependency cannot overwrite already
+   * satisfied ones.
+   */
+  async function mapWithDeadline<T, R>(
+    items: readonly T[],
+    limit: number,
+    fn: (item: T, index: number) => Promise<R>,
+    deadlineMs: number,
+    timeoutResult: (item: T, index: number) => R,
+  ): Promise<R[]> {
+    const n = items.length;
+    const results = new Array<R>(n);
+    const assigned = new Set<number>();
+    let started = 0;
+
+    const deadlinePromise = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        for (let i = 0; i < n; i++) {
+          if (!assigned.has(i)) {
+            results[i] = timeoutResult(items[i], i);
+            assigned.add(i);
+          }
+        }
+        resolve();
+      }, deadlineMs);
+    });
+
+    async function worker(): Promise<void> {
+      for (;;) {
+        if (assigned.size === n) return;
+        const index = started++;
+        if (index >= n) return;
+        try {
+          const value = await fn(items[index], index);
+          if (!assigned.has(index)) {
+            results[index] = value;
+            assigned.add(index);
+          }
+        } catch {
+          if (!assigned.has(index)) {
+            results[index] = timeoutResult(items[index], index);
+            assigned.add(index);
+          }
+        }
+      }
     }
-    throw err;
+
+    await Promise.race([
+      Promise.all(Array.from({ length: limit }, () => worker())),
+      deadlinePromise,
+    ]);
+
+    // Fill any indices that were not assigned by the deadline or a worker.
+    for (let i = 0; i < n; i++) {
+      if (!assigned.has(i)) {
+        results[i] = timeoutResult(items[i], i);
+        assigned.add(i);
+      }
+    }
+
+    return results;
   }
+
+  const dependencyStatuses = await mapWithDeadline(
+    dependencies,
+    concurrency,
+    resolveDependencyWithTimeout,
+    totalMs,
+    (dependency) => ({
+      ...baseDependencyFields(dependency),
+      status: "warning" as const,
+      message: TOTAL_DEADLINE_MESSAGE,
+    }),
+  );
 
   const satisfied = dependencyStatuses.filter(
     (dependency) => dependency.status === "satisfied",
   ).length;
   const warning = dependencyStatuses.length - satisfied;
+  const deadlineExceeded = dependencyStatuses.some(
+    (dependency) => dependency.message === TOTAL_DEADLINE_MESSAGE,
+  );
 
   return {
     summary: {
@@ -220,7 +272,9 @@ export async function buildExternalDependencyStatus(
       blocking: 0,
       advisoryOnly: true,
     },
-    note: "External dependencies are advisory only and do not block gates or archive by default.",
+    note: deadlineExceeded
+      ? `External dependency status is partial: enrichment deadline exceeded (${totalMs}ms budget). External dependencies are advisory only and do not block gates or archive by default.`
+      : "External dependencies are advisory only and do not block gates or archive by default.",
     dependencies: dependencyStatuses,
   };
 }

@@ -87,6 +87,12 @@ export interface HydrationStats {
    * explicitly incomplete.
    */
   boundedOmitted?: number;
+  /**
+   * Specific candidate IDs omitted because the aggregate read deadline
+   * expired or the circuit breaker tripped. Present when callers need to
+   * re-query named items instead of inferring completeness from counts.
+   */
+  omittedIds?: string[];
 }
 
 export interface ChangeListResponse {

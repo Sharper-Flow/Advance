@@ -3,12 +3,17 @@
  *
  * Verifies that degraded/best-effort clarify and external-dependency enrichment
  * preserves the core disk-authoritative change output shape and never issues
- * Temporal workflow queries or signals.
+ * Temporal workflow queries, signals, or disk writes on the read path.
  */
 
-import { describe, test, expect, vi, beforeEach } from "vitest";
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import type { Store } from "../storage/store";
 import type { Change } from "../types";
+
+let readContextBudgetMs = 2_000;
+function setReadContextBudgetMs(ms: number) {
+  readContextBudgetMs = ms;
+}
 
 const mocks = vi.hoisted(() => {
   return {
@@ -19,30 +24,8 @@ const mocks = vi.hoisted(() => {
     getChangeHandle: vi.fn(() => ({ query: vi.fn() })),
     waitForGateCompletion: vi.fn(),
     getProjectId: vi.fn(async () => "test-project-id"),
-    buildExternalDependencyStatus: vi.fn(
-      async () =>
-        ({
-          summary: {
-            total: 1,
-            satisfied: 0,
-            warning: 1,
-            blocking: 0,
-            advisoryOnly: true,
-          },
-          note: "mocked partial dependency enrichment",
-          dependencies: [
-            {
-              target_path: "/repo/other",
-              changeId: "other-change",
-              relationship: "follow_up",
-              advisory: true,
-              status: "warning" as const,
-              message: "mocked dependency warning",
-            },
-          ],
-        }) as const,
-    ),
-    applyClarifyReadinessToChangeOutput: vi.fn(async () => {}),
+    validateCrossRepoTarget: vi.fn(async () => ({ ok: true }) as const),
+    runClarifyReadinessChecks: vi.fn(() => ({ findings: [] })),
   };
 });
 
@@ -54,7 +37,10 @@ vi.mock("../utils/project-id", async () => {
   const actual = await vi.importActual<typeof import("../utils/project-id")>(
     "../utils/project-id",
   );
-  return { ...actual, getProjectId: mocks.getProjectId };
+  return {
+    ...actual,
+    getProjectId: mocks.getProjectId,
+  };
 });
 
 vi.mock("./_adapters", () => ({
@@ -63,10 +49,6 @@ vi.mock("./_adapters", () => ({
   querySignal: mocks.querySignal,
   getChangeHandle: mocks.getChangeHandle,
   waitForGateCompletion: mocks.waitForGateCompletion,
-}));
-
-vi.mock("./external-dependency-status", () => ({
-  buildExternalDependencyStatus: mocks.buildExternalDependencyStatus,
 }));
 
 vi.mock("../storage/store-temporal/read-context", async () => {
@@ -78,20 +60,46 @@ vi.mock("../storage/store-temporal/read-context", async () => {
     // Use a short aggregate budget in tests so deadline degradation is
     // deterministic without waiting the full 8 seconds.
     createTemporalReadContext: (budgetMs?: number) =>
-      actual.createTemporalReadContext(budgetMs ?? 2_000),
+      actual.createTemporalReadContext(budgetMs ?? readContextBudgetMs),
   };
 });
 
-vi.mock("./change/create-clarify", async () => {
-  const actual = await vi.importActual<
-    typeof import("./change/create-clarify")
-  >("./change/create-clarify");
-  return {
-    ...actual,
-    applyClarifyReadinessToChangeOutput:
-      mocks.applyClarifyReadinessToChangeOutput,
-  };
-});
+vi.mock("../validator/clarify-readiness", () => ({
+  runClarifyReadinessChecks: mocks.runClarifyReadinessChecks,
+}));
+
+vi.mock("../storage/store-disk", () => ({
+  createDiskStore: vi.fn(async () => {
+    const store = {
+      close: vi.fn(),
+      changes: {
+        get: vi.fn(async () => ({
+          success: true,
+          data: {
+            id: "target-change",
+            title: "Target Change",
+            status: "active",
+            gates: {
+              proposal: { status: "done" },
+              discovery: { status: "done" },
+              design: { status: "done" },
+              planning: { status: "done" },
+              execution: { status: "done" },
+              acceptance: { status: "done" },
+              release: { status: "done" },
+            },
+            tasks: [],
+          },
+        })),
+      },
+    };
+    return store;
+  }),
+}));
+
+vi.mock("../temporal/activities", () => ({
+  validateCrossRepoTarget: mocks.validateCrossRepoTarget,
+}));
 
 import { changeTools } from "./change";
 
@@ -115,14 +123,7 @@ function createMockStore(changeOverride: Partial<Change> = {}): Store {
       release: { status: "pending" },
     },
     artifacts: {},
-    external_dependencies: [
-      {
-        target_path: "/repo/other",
-        changeId: "other-change",
-        relationship: "follow_up",
-        advisory: true,
-      },
-    ],
+    external_dependencies: [],
     ...changeOverride,
   } as Change;
 
@@ -178,43 +179,33 @@ function createMockStore(changeOverride: Partial<Change> = {}): Store {
   } as unknown as Store;
 }
 
-function assertNoWorkflowCalls() {
+function assertNoWorkflowCalls(store: Store) {
   expect(mocks.getChangeHandle).not.toHaveBeenCalled();
   expect(mocks.querySignal).not.toHaveBeenCalled();
   expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   expect(mocks.fireSignal).not.toHaveBeenCalled();
+  expect(store.changes.save).not.toHaveBeenCalled();
+  expect(store.changes.updateArtifacts).not.toHaveBeenCalled();
 }
 
 describe("adv_change_show enrichment best-effort integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.applyClarifyReadinessToChangeOutput.mockImplementation(
-      async () => {},
-    );
-    mocks.buildExternalDependencyStatus.mockImplementation(async () => ({
-      summary: {
-        total: 1,
-        satisfied: 0,
-        warning: 1,
-        blocking: 0,
-        advisoryOnly: true,
-      },
-      note: "mocked partial dependency enrichment",
-      dependencies: [
+    mocks.runClarifyReadinessChecks.mockReturnValue({ findings: [] });
+  });
+
+  test("preserves core change shape and includes degraded external-dependency status", async () => {
+    const store = createMockStore({
+      external_dependencies: [
         {
           target_path: "/repo/other",
           changeId: "other-change",
           relationship: "follow_up",
           advisory: true,
-          status: "warning" as const,
-          message: "mocked dependency warning",
+          taskId: "missing-task",
         },
       ],
-    }));
-  });
-
-  test("preserves core change shape and includes degraded external-dependency status", async () => {
-    const store = createMockStore();
+    });
 
     const result = await changeTools.adv_change_show.execute(
       { changeId: "test-change" },
@@ -233,82 +224,58 @@ describe("adv_change_show enrichment best-effort integration", () => {
         blocking: 0,
         advisoryOnly: true,
       },
-      note: "mocked partial dependency enrichment",
     });
-    assertNoWorkflowCalls();
+    expect(parsed._externalDependencyStatus.dependencies[0].status).toBe(
+      "warning",
+    );
+    assertNoWorkflowCalls(store);
   });
 
-  test("still returns core change when applyClarifyReadinessToChangeOutput is slow", async () => {
-    mocks.applyClarifyReadinessToChangeOutput.mockImplementation(
-      async () => new Promise((resolve) => setTimeout(resolve, 100)),
-    );
+  test("surfaces clarify findings on the read path without persisting", async () => {
+    mocks.runClarifyReadinessChecks.mockReturnValue({
+      findings: [
+        {
+          code: "missing-acceptance",
+          severity: "warning",
+          message: "Acceptance criteria are missing.",
+          details: { questionCategory: "scope" },
+        },
+      ],
+    });
 
     const store = createMockStore();
-    const start = Date.now();
     const result = await changeTools.adv_change_show.execute(
       { changeId: "test-change" },
       store,
     );
-    const elapsed = Date.now() - start;
     const parsed = JSON.parse(result);
 
-    expect(parsed.id).toBe("test-change");
-    expect(parsed.title).toBe("Test Change");
-    expect(elapsed).toBeLessThan(500);
-    assertNoWorkflowCalls();
-  });
-
-  test("still returns core change when buildExternalDependencyStatus is slow", async () => {
-    mocks.buildExternalDependencyStatus.mockImplementation(
-      async () => new Promise((resolve) => setTimeout(resolve, 100)),
-    );
-
-    const store = createMockStore();
-    const start = Date.now();
-    const result = await changeTools.adv_change_show.execute(
-      { changeId: "test-change" },
-      store,
-    );
-    const elapsed = Date.now() - start;
-    const parsed = JSON.parse(result);
-
-    expect(parsed.id).toBe("test-change");
-    expect(parsed.title).toBe("Test Change");
-    expect(elapsed).toBeLessThan(500);
-    assertNoWorkflowCalls();
+    expect(parsed.clarifyFindings).toMatchObject({
+      count: 1,
+      findings: [
+        {
+          code: "missing-acceptance",
+          severity: "warning",
+          message: "Acceptance criteria are missing.",
+          questionCategory: "scope",
+        },
+      ],
+    });
+    expect(store.changes.save).not.toHaveBeenCalled();
+    assertNoWorkflowCalls(store);
   });
 });
 
 describe("adv_change_show shared aggregate deadline", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.applyClarifyReadinessToChangeOutput.mockImplementation(
-      async () => {},
-    );
-    mocks.buildExternalDependencyStatus.mockImplementation(async () => ({
-      summary: {
-        total: 1,
-        satisfied: 0,
-        warning: 1,
-        blocking: 0,
-        advisoryOnly: true,
-      },
-      note: "mocked partial dependency enrichment",
-      dependencies: [
-        {
-          target_path: "/repo/other",
-          changeId: "other-change",
-          relationship: "follow_up",
-          advisory: true,
-          status: "warning" as const,
-          message: "mocked dependency warning",
-        },
-      ],
-    }));
+    setReadContextBudgetMs(2_000);
+    mocks.runClarifyReadinessChecks.mockReturnValue({ findings: [] });
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    setReadContextBudgetMs(2_000);
   });
 
   test("skips optional subreads once the aggregate deadline expires and surfaces degraded hydrationStats", async () => {
@@ -318,12 +285,6 @@ describe("adv_change_show shared aggregate deadline", () => {
     const store = createMockStore();
     store.gates.get = vi.fn(async () => new Promise(() => {}));
     store.tasks.ready = vi.fn(async () => new Promise(() => {}));
-    mocks.applyClarifyReadinessToChangeOutput.mockImplementation(
-      async () => new Promise(() => {}),
-    );
-    mocks.buildExternalDependencyStatus.mockImplementation(
-      async () => new Promise(() => {}),
-    );
 
     const executePromise = changeTools.adv_change_show.execute(
       {
@@ -344,9 +305,9 @@ describe("adv_change_show shared aggregate deadline", () => {
     expect(parsed.id).toBe("test-change");
     expect(parsed.title).toBe("Test Change");
     expect(parsed.hydrationStats?.deadlineExceeded).toBe(true);
-    expect(parsed.hydrationStats?.boundedOmitted).toBeGreaterThanOrEqual(1);
+    expect(parsed.hydrationStats?.omitted).toBeGreaterThanOrEqual(1);
     expect(parsed.hydrationStats?.omittedIds?.length).toBeGreaterThanOrEqual(1);
-    assertNoWorkflowCalls();
+    assertNoWorkflowCalls(store);
   });
 
   test("stays complete when all subreads resolve within the aggregate deadline", async () => {
@@ -360,6 +321,42 @@ describe("adv_change_show shared aggregate deadline", () => {
     expect(parsed.id).toBe("test-change");
     expect(parsed.title).toBe("Test Change");
     expect(parsed.hydrationStats).toBeUndefined();
-    assertNoWorkflowCalls();
+    assertNoWorkflowCalls(store);
+  });
+
+  test("completes within production 8s budget when subreads wedge", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-13T00:00:00.000Z"));
+    setReadContextBudgetMs(8_000);
+
+    const store = createMockStore();
+    store.gates.get = vi.fn(async () => new Promise(() => {}));
+    store.tasks.ready = vi.fn(async () => new Promise(() => {}));
+
+    const start = Date.now();
+    const executePromise = changeTools.adv_change_show.execute(
+      {
+        changeId: "test-change",
+        include: {
+          snapshot: true,
+          phasePlan: true,
+          readyTasks: true,
+        },
+      },
+      store,
+    );
+
+    await vi.advanceTimersByTimeAsync(8_500);
+    const result = await executePromise;
+    const elapsed = Date.now() - start;
+    const parsed = JSON.parse(result);
+
+    expect(elapsed).toBeLessThan(10_000);
+    expect(parsed.id).toBe("test-change");
+    expect(parsed.title).toBe("Test Change");
+    expect(parsed.hydrationStats?.deadlineExceeded).toBe(true);
+    expect(parsed.hydrationStats?.omitted).toBeGreaterThanOrEqual(1);
+    expect(parsed.hydrationStats?.omittedIds?.length).toBeGreaterThanOrEqual(1);
+    assertNoWorkflowCalls(store);
   });
 });

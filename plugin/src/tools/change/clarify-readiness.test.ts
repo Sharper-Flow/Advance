@@ -119,6 +119,51 @@ describe("applyClarifyReadinessToChangeOutput", () => {
     expect(store.changes.save).toHaveBeenCalled();
   });
 
+  test("skips persistence when persist is false", async () => {
+    mocks.runClarifyReadinessChecks.mockReturnValue({
+      findings: [
+        {
+          code: "missing-acceptance",
+          severity: "warning",
+          message: "Acceptance criteria are missing.",
+          details: { questionCategory: "scope" },
+        },
+      ],
+    });
+
+    const store = createMockStore();
+    const output: Record<string, unknown> = {};
+    const change: Change = {
+      id: "test-change",
+      title: "Test Change",
+      status: "active",
+      tasks: [],
+      clarify_findings: [],
+    } as unknown as Change;
+
+    await applyClarifyReadinessToChangeOutput({
+      output,
+      change,
+      proposalText: "",
+      changeId: "test-change",
+      store,
+      persist: false,
+    });
+
+    expect(output.clarifyFindings).toMatchObject({
+      count: 1,
+      findings: [
+        {
+          code: "missing-acceptance",
+          severity: "warning",
+          message: "Acceptance criteria are missing.",
+          questionCategory: "scope",
+        },
+      ],
+    });
+    expect(store.changes.save).not.toHaveBeenCalled();
+  });
+
   test("does not throw and still surfaces findings when persistence times out", async () => {
     mocks.runClarifyReadinessChecks.mockReturnValue({
       findings: [
