@@ -499,7 +499,7 @@ describe("active conflict authority", () => {
     const store = createTemporalStoreBackend({
       legacy,
       temporal,
-      projectId: "project-1",
+      projectId: "0000ec0100000000000000000000000000000000",
     });
 
     const result = await store.changes.listConflictAuthority!();
