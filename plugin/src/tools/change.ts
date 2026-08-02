@@ -124,6 +124,14 @@ import {
 } from "../validator/work-graph-enforcement";
 import { nodeRefKey } from "../validator/work-graph-validation";
 
+import {
+  createTemporalReadContext,
+  isTemporalReadExpired,
+  runTemporalRead,
+  type TemporalReadContext,
+} from "../storage/store-temporal/read-context";
+import { TemporalQueryTimeoutError } from "../temporal/retry-wrapper";
+
 const logger = createLogger("change");
 
 function formatD3Error(error: D3EnforcementError): string {
@@ -146,6 +154,65 @@ function formatD3Error(error: D3EnforcementError): string {
     default:
       return `Dependency enforcement failed: ${error.code}`;
   }
+}
+
+/**
+ * rq-boundedAuthoritativeRead01: shared aggregate deadline runner for the
+ * composed adv_change_show read. Every optional/enrichment subread (clarify
+ * readiness, external dependency status, snapshot/phase-plan projection, ready
+ * tasks, briefing packet, artifact content, archived reflection) shares one
+ * request-scoped 8-second TemporalReadContext and a 1500ms per-member cap so
+ * a slow optional enrichment cannot take a fresh budget.
+ */
+function createChangeShowSubreadRunner(readCtx: TemporalReadContext) {
+  const omittedIds: string[] = [];
+
+  async function run<T>(
+    label: string,
+    op: () => Promise<T>,
+  ): Promise<{ ok: true; value: T } | { ok: false; error: unknown }> {
+    if (isTemporalReadExpired(readCtx) || readCtx.isCircuitBreakerTripped()) {
+      const error = new TemporalQueryTimeoutError(readCtx.deadline.budgetMs);
+      omittedIds.push(label);
+      return { ok: false, error };
+    }
+    try {
+      const read = await runTemporalRead(undefined, op, readCtx, {
+        timeoutMs: 1_500,
+        opType: label,
+        maxAttempts: 1,
+      });
+      if (read.complete) {
+        readCtx.recordResponsiveMember();
+        return { ok: true, value: read.data as T };
+      }
+      readCtx.recordUnresponsiveMember();
+      omittedIds.push(label);
+      return { ok: false, error: read.error };
+    } catch (error) {
+      console.error("[DEBUG] subread.run degraded", label, error);
+      readCtx.recordUnresponsiveMember();
+      omittedIds.push(label);
+      return { ok: false, error };
+    }
+  }
+
+  function getHydrationStats():
+    | {
+        deadlineExceeded: boolean;
+        boundedOmitted: number;
+        omittedIds: string[];
+      }
+    | undefined {
+    if (omittedIds.length === 0) return undefined;
+    return {
+      deadlineExceeded: true,
+      boundedOmitted: omittedIds.length,
+      omittedIds,
+    };
+  }
+
+  return { run, getHydrationStats };
 }
 
 // adv_change_workflow_terminate: shipped proof = acceptance AND release gates
@@ -1437,7 +1504,11 @@ export const changeTools = {
         activeStore: Store,
         projectContext?: TargetProjectOutputContext,
       ) => {
-        const result = await activeStore.changes.get(changeId);
+        const readCtx = createTemporalReadContext();
+        const subread = createChangeShowSubreadRunner(readCtx);
+        const result = await activeStore.changes.get(changeId, {
+          context: readCtx,
+        });
         if (!result.success) {
           return formatToolOutput({ error: result.error });
         }
@@ -1463,23 +1534,29 @@ export const changeTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
           if (requestedKinds.length > 0) {
-            const artifactContent = await readArtifacts(
-              activeStore,
-              changeId,
-              requestedKinds,
+            const artifactRead = await subread.run("artifacts", () =>
+              readArtifacts(activeStore, changeId, requestedKinds),
             );
-            if (artifactContent.proposal !== undefined)
-              output._proposal = artifactContent.proposal;
-            if (artifactContent.problemStatement !== undefined)
-              output._problemStatement = artifactContent.problemStatement;
-            if (artifactContent.agreement !== undefined)
-              output._agreement = artifactContent.agreement;
-            if (artifactContent.design !== undefined)
-              output._design = artifactContent.design;
-            if (artifactContent.executiveSummary !== undefined)
-              output._executiveSummary = artifactContent.executiveSummary;
-            if (artifactContent.acceptance !== undefined)
-              output._acceptance = artifactContent.acceptance;
+            if (artifactRead.ok) {
+              const artifactContent = artifactRead.value;
+              if (artifactContent.proposal !== undefined)
+                output._proposal = artifactContent.proposal;
+              if (artifactContent.problemStatement !== undefined)
+                output._problemStatement = artifactContent.problemStatement;
+              if (artifactContent.agreement !== undefined)
+                output._agreement = artifactContent.agreement;
+              if (artifactContent.design !== undefined)
+                output._design = artifactContent.design;
+              if (artifactContent.executiveSummary !== undefined)
+                output._executiveSummary = artifactContent.executiveSummary;
+              if (artifactContent.acceptance !== undefined)
+                output._acceptance = artifactContent.acceptance;
+            } else {
+              output._artifactsError =
+                artifactRead.error instanceof Error
+                  ? artifactRead.error.message
+                  : String(artifactRead.error);
+            }
           }
           return formatToolOutput(output);
         }
@@ -1512,13 +1589,21 @@ export const changeTools = {
         if (problemStatementExists) {
           output.problemStatementPath = problemStatementPath;
         }
-        await applyClarifyReadinessToChangeOutput({
-          output,
-          change,
-          proposalText,
-          changeId,
-          store: activeStore,
-        });
+        const clarifyRead = await subread.run("clarify", () =>
+          applyClarifyReadinessToChangeOutput({
+            output,
+            change,
+            proposalText,
+            changeId,
+            store: activeStore,
+          }),
+        );
+        if (!clarifyRead.ok) {
+          output._clarifyFindingsError =
+            clarifyRead.error instanceof Error
+              ? clarifyRead.error.message
+              : String(clarifyRead.error);
+        }
         // Surface cross-project origin prominently when present
         if (change.cross_project_origin) {
           output._crossProjectOrigin = {
@@ -1533,20 +1618,29 @@ export const changeTools = {
             ...change.fast_follow_of,
           };
         }
-        const dependencyStatus = await buildExternalDependencyStatus(
-          change.external_dependencies,
+        const dependencyRead = await subread.run("externalDependency", () =>
+          buildExternalDependencyStatus(change.external_dependencies),
         );
-        if (dependencyStatus) {
-          output._externalDependencyStatus = dependencyStatus;
+        if (dependencyRead.ok) {
+          if (dependencyRead.value) {
+            output._externalDependencyStatus = dependencyRead.value;
+          }
+        } else {
+          output._externalDependencyStatusError =
+            dependencyRead.error instanceof Error
+              ? dependencyRead.error.message
+              : String(dependencyRead.error);
         }
         // Include reflection data for archived changes
         if (change.status === "archived") {
-          const reflection = await getReflection(
-            activeStore.paths.external ?? activeStore.paths.root,
-            changeId,
+          const reflectionRead = await subread.run("reflection", () =>
+            getReflection(
+              activeStore.paths.external ?? activeStore.paths.root,
+              changeId,
+            ),
           );
-          if (reflection) {
-            output._reflection = reflection;
+          if (reflectionRead.ok && reflectionRead.value) {
+            output._reflection = reflectionRead.value;
           }
         }
         // include flags (AC3) — opt-in attachments. Defaults preserve
@@ -1593,30 +1687,43 @@ export const changeTools = {
           // `_contextSnapshot`). Uses the same formatter live emission
           // and compaction use, ensuring fidelity parity.
           if (include.snapshot) {
-            try {
-              const { directiveState, normalizedGates } =
-                await loadProjectionState();
-              // AC5: derive the authoritative directive from the same change
-              // projection + gates the snapshot renders, so the change-show
-              // packet carries the `Next:` orientation line. Best effort: a
-              // derivation failure must not break change-show; the snapshot
-              // omits the `Next:` line.
-              const directive = deriveDirectiveSafe(directiveState, Date.now());
-              if (!directive) {
-                logger.warn(
-                  `deriveWorkflowDirective failed in change-show for ${changeId}; snapshot omits Next line`,
+            const snapshotRead = await subread.run(
+              "snapshot",
+              () => projectionStatePromise ?? loadProjectionState(),
+            );
+            if (snapshotRead.ok) {
+              try {
+                const { directiveState, normalizedGates } = snapshotRead.value;
+                // AC5: derive the authoritative directive from the same change
+                // projection + gates the snapshot renders, so the change-show
+                // packet carries the `Next:` orientation line. Best effort: a
+                // derivation failure must not break change-show; the snapshot
+                // omits the `Next:` line.
+                const directive = deriveDirectiveSafe(
+                  directiveState,
+                  Date.now(),
                 );
+                if (!directive) {
+                  logger.warn(
+                    `deriveWorkflowDirective failed in change-show for ${changeId}; snapshot omits Next line`,
+                  );
+                }
+                output._contextSnapshot = buildChangeContextSnapshot({
+                  change: displayChange,
+                  proposalText,
+                  gates: normalizedGates,
+                  workdir: activeStore.paths.root,
+                  directive,
+                });
+              } catch (e) {
+                output._contextSnapshotError =
+                  e instanceof Error ? e.message : String(e);
               }
-              output._contextSnapshot = buildChangeContextSnapshot({
-                change: displayChange,
-                proposalText,
-                gates: normalizedGates,
-                workdir: activeStore.paths.root,
-                directive,
-              });
-            } catch (e) {
+            } else {
               output._contextSnapshotError =
-                e instanceof Error ? e.message : String(e);
+                snapshotRead.error instanceof Error
+                  ? snapshotRead.error.message
+                  : String(snapshotRead.error);
             }
           }
           // Phase plan — typed, read-only current-action projection (SC1,
@@ -1624,17 +1731,31 @@ export const changeTools = {
           // conflicting, or unsupported state degrades into a typed
           // non-authorizing plan with provenance and no route/command.
           if (include.phasePlan) {
-            try {
-              const { directiveState } = await loadProjectionState();
-              output._phasePlan = derivePhasePlanSafe(
-                directiveState,
-                Date.now(),
-              );
-            } catch (e) {
+            const phasePlanRead = await subread.run(
+              "phasePlan",
+              () => projectionStatePromise ?? loadProjectionState(),
+            );
+            if (phasePlanRead.ok) {
+              try {
+                const { directiveState } = phasePlanRead.value;
+                output._phasePlan = derivePhasePlanSafe(
+                  directiveState,
+                  Date.now(),
+                );
+              } catch (e) {
+                output._phasePlan = degradedPhasePlan(
+                  changeId,
+                  "missing_state",
+                  e instanceof Error ? e.message : String(e),
+                );
+              }
+            } else {
               output._phasePlan = degradedPhasePlan(
                 changeId,
                 "missing_state",
-                e instanceof Error ? e.message : String(e),
+                phasePlanRead.error instanceof Error
+                  ? phasePlanRead.error.message
+                  : String(phasePlanRead.error),
               );
             }
           }
@@ -1679,46 +1800,65 @@ export const changeTools = {
           // Ready tasks — unblocked queue, sliced to top-N. Avoids the
           // separate adv_task_ready round-trip on phase boundaries.
           if (include.readyTasks) {
-            try {
-              const readyResult = await activeStore.tasks.ready(changeId);
-              const readyLimit = include.readyTasksLimit ?? 10;
-              output._readyTasks = readyResult.ready.slice(0, readyLimit);
-              output._readyTasksMeta = {
-                total: readyResult.ready.length,
-                limit: readyLimit,
-                blockedCount: readyResult.blocked.length,
-              };
-              output._todoProjection = buildTodoProjection({
-                current:
-                  change.tasks.find((task) => task.status === "in_progress") ??
-                  null,
-                ready: readyResult.ready.map((task) => ({
-                  id: task.id,
-                  title: task.title,
-                  status: task.status,
-                })),
-              });
-            } catch (e) {
+            const readyRead = await subread.run("readyTasks", () =>
+              activeStore.tasks.ready(changeId),
+            );
+            if (readyRead.ok) {
+              try {
+                const readyResult = readyRead.value;
+                const readyLimit = include.readyTasksLimit ?? 10;
+                output._readyTasks = readyResult.ready.slice(0, readyLimit);
+                output._readyTasksMeta = {
+                  total: readyResult.ready.length,
+                  limit: readyLimit,
+                  blockedCount: readyResult.blocked.length,
+                };
+                output._todoProjection = buildTodoProjection({
+                  current:
+                    change.tasks.find(
+                      (task) => task.status === "in_progress",
+                    ) ?? null,
+                  ready: readyResult.ready.map((task) => ({
+                    id: task.id,
+                    title: task.title,
+                    status: task.status,
+                  })),
+                });
+              } catch (e) {
+                output._readyTasksError =
+                  e instanceof Error ? e.message : String(e);
+              }
+            } else {
               output._readyTasksError =
-                e instanceof Error ? e.message : String(e);
+                readyRead.error instanceof Error
+                  ? readyRead.error.message
+                  : String(readyRead.error);
             }
           }
           // Briefing packet — generated read projection over existing
           // structured state. No live packet state is persisted.
           if (include.briefingPacket) {
-            try {
-              const lane =
-                include.briefingPacketLane ?? DEFAULT_BRIEFING_PACKET_LANE;
-              const packetInput = await buildBriefingPacketForChange(
-                activeStore,
-                change,
-                lane,
-                include.briefingPacketRequest,
-              );
-              output._briefingPacket = renderBriefingPacket(packetInput);
-            } catch (e) {
+            const briefingRead = await subread.run(
+              "briefingPacket",
+              async () => {
+                const lane =
+                  include.briefingPacketLane ?? DEFAULT_BRIEFING_PACKET_LANE;
+                const packetInput = await buildBriefingPacketForChange(
+                  activeStore,
+                  change,
+                  lane,
+                  include.briefingPacketRequest,
+                );
+                return renderBriefingPacket(packetInput);
+              },
+            );
+            if (briefingRead.ok) {
+              output._briefingPacket = briefingRead.value;
+            } else {
               output._briefingPacketError =
-                e instanceof Error ? e.message : String(e);
+                briefingRead.error instanceof Error
+                  ? briefingRead.error.message
+                  : String(briefingRead.error);
             }
           }
 
@@ -1729,24 +1869,34 @@ export const changeTools = {
           // Batched multi-include read per C9 — single store.changes.get()
           // query covers all requested kinds (KD-6 readArtifacts).
           if (requestedKinds.length > 0) {
-            const artifactContent = await readArtifacts(
-              activeStore,
-              changeId,
-              requestedKinds,
+            const artifactRead = await subread.run("artifacts", () =>
+              readArtifacts(activeStore, changeId, requestedKinds),
             );
-            if (artifactContent.proposal !== undefined)
-              output._proposal = artifactContent.proposal;
-            if (artifactContent.problemStatement !== undefined)
-              output._problemStatement = artifactContent.problemStatement;
-            if (artifactContent.agreement !== undefined)
-              output._agreement = artifactContent.agreement;
-            if (artifactContent.design !== undefined)
-              output._design = artifactContent.design;
-            if (artifactContent.executiveSummary !== undefined)
-              output._executiveSummary = artifactContent.executiveSummary;
-            if (artifactContent.acceptance !== undefined)
-              output._acceptance = artifactContent.acceptance;
+            if (artifactRead.ok) {
+              const artifactContent = artifactRead.value;
+              if (artifactContent.proposal !== undefined)
+                output._proposal = artifactContent.proposal;
+              if (artifactContent.problemStatement !== undefined)
+                output._problemStatement = artifactContent.problemStatement;
+              if (artifactContent.agreement !== undefined)
+                output._agreement = artifactContent.agreement;
+              if (artifactContent.design !== undefined)
+                output._design = artifactContent.design;
+              if (artifactContent.executiveSummary !== undefined)
+                output._executiveSummary = artifactContent.executiveSummary;
+              if (artifactContent.acceptance !== undefined)
+                output._acceptance = artifactContent.acceptance;
+            } else {
+              output._artifactsError =
+                artifactRead.error instanceof Error
+                  ? artifactRead.error.message
+                  : String(artifactRead.error);
+            }
           }
+        }
+        const changeShowHydrationStats = subread.getHydrationStats();
+        if (changeShowHydrationStats) {
+          output.hydrationStats = changeShowHydrationStats;
         }
         return formatToolOutput(output, {
           pretty: resolveOutputMode(outputMode),
