@@ -168,6 +168,34 @@ Do not silently mutate. Repairs require `evidence`; target-routed repairs follow
 
 ---
 
+## Phase 6.5: Refactor Coverage Audit
+
+Classify follow-up coverage for out-of-date work using evidence already gathered in Phases 1, 3, and 6. Add no new tool call; this phase reads nothing the earlier phases did not already collect.
+
+Reachability: this phase runs only when coordination proceeds past Phase 1. When Phase 1 short-circuits on no active Epics, the audit does not run and no referral is emitted.
+
+**Candidate population.** Every nonterminal in-flight change from the Phase 1 project inventory, whether or not it is linked to an Epic. Exclude terminal (archived or closed) changes at selection time. List all qualifying candidates; do not cap the group.
+
+**Evidence threshold.** Only a candidate whose drift is supported by `repo_backed_fact` or `adv-backed-fact` evidence may carry a command. Age, heuristic overlap ranking, and recency never qualify as authority.
+
+Group findings as follows:
+
+| Group | Membership | Output |
+|---|---|---|
+| Actionable change candidates | Nonterminal change, drift supported by `repo_backed_fact` or `adv-backed-fact` | Referral command plus candidate status at emit time |
+| Epic coverage findings | Stale Epic narrative, order, or membership | Named stale field routed to the existing approval-gated Epic action |
+| Review/deferred | `judgment_call`, `freshness_limited`, or unresolved evidence | Finding and reason only — no command |
+
+**Referral form.** Emit exactly `/adv-refactor <change-id>`. That bare form is dry-run. Never emit `--execute`, `--interactive`, `--force`, or a batch invocation from coordination: `--execute` applies changes without a further approval prompt, and coordination has no authority to route a user into an ungated mutation.
+
+**Epic findings never receive a `/adv-refactor` target.** `/adv-refactor` resolves a change ID only and has no Epic mode. Route stale Epic narrative, order, or membership to `adv_epic_update`, `adv_epic_reorder`, or `adv_epic_show` convergence exactly as Phase 9 already applies them, naming the exact stale field.
+
+**Insufficient evidence never produces a referral.** When a candidate's evidence cannot be resolved — unreadable artifact, failed or timed-out read, or missing repository freshness — classify it `freshness_limited` and place it in the review/deferred group. Keep these separate from evidence-backed rows exactly as Phase 8 requires.
+
+**Point-in-time discipline.** The report is a snapshot. Record each candidate's status as observed at emit time and state that status must be re-validated before running the referral, because `/adv-refactor` performs no status check of its own and a candidate may reach a terminal state after the report is produced.
+
+---
+
 ## Phase 7: Present Coordination Report
 
 Emit grouped report:
@@ -178,6 +206,7 @@ Emit grouped report:
 - Alignment findings: clear-cut vs judgment calls.
 - Sequencing findings: inversions, capstone placement, proposed `entry_ids` order.
 - Health findings: status, evidence, suggested repair mode.
+- Refactor coverage findings: actionable change candidates with their dry-run `/adv-refactor <change-id>` referral and status at emit time, Epic coverage findings with their named stale field and typed action, and review/deferred candidates with no command.
 - Proposed durable actions: narrative updates, reorders, membership repairs.
 - No-action findings: already aligned, intentionally advisory, current repository evidence shows plan still valid, or out of scope.
 
@@ -236,6 +265,7 @@ Emit:
 - Epics scanned.
 - Entries scanned.
 - Findings by category.
+- Refactor coverage: actionable, Epic coverage, and review/deferred candidate counts.
 - Actions approved/applied/skipped/failed.
 - Remaining judgment calls.
 - Safe retry command or repair recommendation.
