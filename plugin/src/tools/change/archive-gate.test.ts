@@ -1679,8 +1679,8 @@ describe("worker-bundle provenance chokepoint (fixArchivedProvenanceRecovery)", 
       query: vi.fn(async () => ({ status: "pending" })),
       signal: vi.fn(async () => {}),
     };
-    const client = fakeClientWithHandle(handle);
-    vi.mocked(getService).mockReturnValue({ client } as never);
+    const owner = fakeOwnerWithHandle(handle);
+    vi.mocked(getService).mockReturnValue(owner as never);
 
     const result = await completeReleaseGateAfterFinalization({
       store: createStore("/repo"),
