@@ -1722,6 +1722,18 @@ describe("worker-bundle provenance chokepoint (fixArchivedProvenanceRecovery)", 
       "worker-bundle release provenance is undeclared or invalid",
     );
     expect(error).toContain("WORKER_BUNDLE_PROVENANCE_MISSING");
+
+    const output = JSON.parse(error as string) as {
+      readinessBlockers?: Array<Record<string, unknown>>;
+    };
+    expect(output.readinessBlockers).toEqual([
+      expect.objectContaining({
+        code: "WORKER_BUNDLE_PROVENANCE_MISSING",
+        gateId: "release",
+        message: expect.stringContaining("worker_bundle_impact is 'required'"),
+        remediation: expect.stringContaining("source_sha"),
+      }),
+    ]);
   });
 
   it("getArchiveGatePreflightError blocks release-pending archive entry when not_applicable lacks rationale", () => {
