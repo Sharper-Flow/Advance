@@ -279,6 +279,64 @@ describe("git-finalize helpers", () => {
     ]);
   });
 
+  it("verifyChangeBranchReachableFromOrigin rejects a stale tracking ref after refresh", () => {
+    const calls: string[][] = [];
+    let refreshed = false;
+    const result = verifyChangeBranchReachableFromOrigin(
+      "/repo",
+      "trunk",
+      "stale-example",
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "fetch") {
+            refreshed = true;
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (
+            args[0] === "rev-parse" &&
+            args[2] === "refs/remotes/origin/change/stale-example"
+          ) {
+            // Before the fetch this tracking ref would have pointed at the
+            // old merged tip. The refresh exposes the newer unmerged tip.
+            return {
+              status: 0,
+              stdout: `${refreshed ? "new-unmerged-tip" : "old-merged-tip"}\n`,
+              stderr: "",
+            };
+          }
+          if (args[0] === "merge-base") {
+            expect(refreshed).toBe(true);
+            if (args[2] === "old-merged-tip") {
+              return { status: 0, stdout: "", stderr: "" };
+            }
+            expect(args[2]).toBe("new-unmerged-tip");
+            return { status: 1, stdout: "", stderr: "" };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      reachable: false,
+      unmergedCommits: [],
+      refSource: "refreshed_ref",
+    });
+    const fetchIndex = calls.findIndex((args) => args[0] === "fetch");
+    const resolveIndex = calls.findIndex((args) => args[0] === "rev-parse");
+    const ancestryIndex = calls.findIndex((args) => args[0] === "merge-base");
+    expect(fetchIndex).toBeGreaterThanOrEqual(0);
+    expect(resolveIndex).toBeGreaterThan(fetchIndex);
+    expect(ancestryIndex).toBeGreaterThan(resolveIndex);
+    expect(calls[ancestryIndex]).toEqual([
+      "merge-base",
+      "--is-ancestor",
+      "new-unmerged-tip",
+      "origin/trunk",
+    ]);
+  });
+
   it("verifyChangeBranchReachableFromOrigin uses persisted tip without network", () => {
     const calls: string[][] = [];
     const result = verifyChangeBranchReachableFromOrigin(
@@ -334,6 +392,69 @@ describe("git-finalize helpers", () => {
       reachable: false,
       unmergedCommits: [],
       refUnresolved: true,
+    });
+  });
+
+  it("resolves AC4 from a refreshed origin change ref after local and tracking deletion", async () => {
+    const origin = join(tempRoot, "ac4-origin.git");
+    const seed = join(tempRoot, "ac4-seed");
+    const repo = join(tempRoot, "ac4-clone");
+    const changeId = "ac4-deleted-change";
+    await mkdir(origin);
+    await mkdir(seed);
+    await initRepo(seed);
+    git(origin, ["init", "--bare", "-q", "--initial-branch=trunk"]);
+    git(seed, ["remote", "add", "origin", origin]);
+    git(seed, ["checkout", "-q", "-b", `change/${changeId}`]);
+    await writeFile(join(seed, "change.txt"), "change\n");
+    git(seed, ["add", "change.txt"]);
+    git(seed, ["commit", "-m", "change"]);
+    git(seed, ["checkout", "-q", "trunk"]);
+    git(seed, ["merge", "--no-ff", `change/${changeId}`, "-m", "merge change"]);
+    git(seed, ["push", "-q", "origin", "trunk", `change/${changeId}`]);
+    git(tempRoot, ["clone", "-q", origin, repo]);
+    git(repo, [
+      "checkout",
+      "-q",
+      "-b",
+      `change/${changeId}`,
+      `origin/change/${changeId}`,
+    ]);
+    git(repo, ["checkout", "-q", "trunk"]);
+    git(repo, ["branch", "-D", `change/${changeId}`]);
+    git(repo, ["update-ref", "-d", `refs/remotes/origin/change/${changeId}`]);
+
+    const localChangeRef = spawnSync(
+      "git",
+      ["show-ref", "--verify", "--quiet", `refs/heads/change/${changeId}`],
+      { cwd: repo },
+    );
+    const trackingChangeRef = spawnSync(
+      "git",
+      [
+        "show-ref",
+        "--verify",
+        "--quiet",
+        `refs/remotes/origin/change/${changeId}`,
+      ],
+      { cwd: repo },
+    );
+    expect(localChangeRef.status).not.toBe(0);
+    expect(trackingChangeRef.status).not.toBe(0);
+    expect(
+      git(repo, ["ls-remote", "origin", `refs/heads/change/${changeId}`]),
+    ).toContain(`refs/heads/change/${changeId}`);
+
+    const result = resolveReleaseReachability({
+      repoRoot: repo,
+      defaultBranch: "trunk",
+      changeId,
+      route: { route: "direct", repo: "unused/repo" },
+    });
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "origin_default",
     });
   });
 
@@ -675,6 +796,102 @@ describe("git-finalize helpers", () => {
       prNumber: 159,
       mergeCommitOid: "squash-merge-sha",
     });
+  });
+
+  it("direct route rescues a non-ancestor squash merge with a tree match", () => {
+    const calls: string[][] = [];
+    const result = resolveReleaseReachability(
+      {
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        changeId: "squash-rescue",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+        prNumber: 160,
+      },
+      {
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (args[0] === "fetch" && args[2] === "trunk") {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (args[0] === "rev-parse" && args[1] === "HEAD") {
+            return { status: 0, stdout: "default-head\n", stderr: "" };
+          }
+          if (args[0] === "ls-remote") {
+            return {
+              status: 0,
+              stdout: "default-head\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          }
+          if (
+            args[0] === "fetch" &&
+            args[2] === "refs/heads/trunk:refs/remotes/origin/trunk"
+          ) {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (
+            args[0] === "rev-parse" &&
+            args[2] === "refs/remotes/origin/change/squash-rescue"
+          ) {
+            return { status: 0, stdout: "squash-tip\n", stderr: "" };
+          }
+          if (args[0] === "merge-base") {
+            // Squash creates a new commit, so the original tip is not an
+            // ancestor even though the resulting tree is present on trunk.
+            return { status: 1, stdout: "", stderr: "" };
+          }
+          if (
+            args[0] === "rev-parse" &&
+            args[1] === "change/squash-rescue^{tree}"
+          ) {
+            return { status: 0, stdout: "squash-tree\n", stderr: "" };
+          }
+          if (args[0] === "log" && args[1] === "--format=%H %T") {
+            return {
+              status: 0,
+              stdout: "squash-merge-commit squash-tree\n",
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: (_cwd, args) => {
+          if (args[0] === "pr" && args[1] === "view") {
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                state: "OPEN",
+                mergedAt: null,
+                mergeCommit: null,
+                autoMergeRequest: null,
+              }),
+              stderr: "",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: true,
+      proof: "pr_merged",
+      mergeCommitOid: "squash-merge-commit",
+    });
+    expect(calls).toContainEqual([
+      "merge-base",
+      "--is-ancestor",
+      "squash-tip",
+      "origin/trunk",
+    ]);
+    expect(calls).toContainEqual(["rev-parse", "change/squash-rescue^{tree}"]);
+    expect(calls).toContainEqual([
+      "log",
+      "--format=%H %T",
+      "-50",
+      "origin/trunk",
+    ]);
   });
 
   // rq-fixPhase9SquashMergeRedetect AC1: branch-deleted + persisted tip must
@@ -1193,6 +1410,7 @@ describe("git-finalize helpers", () => {
 
   it("direct route + unresolved origin ref returns change_ref_unresolved after fallbacks fail", () => {
     let ghCalls = 0;
+    const fallbackCalls: string[] = [];
     const result = resolveReleaseReachability(
       {
         repoRoot: "/repo",
@@ -1217,20 +1435,42 @@ describe("git-finalize helpers", () => {
           if (
             args[0] === "rev-parse" &&
             args[1] === "change/unresolvedRef^{tree}"
-          )
+          ) {
+            fallbackCalls.push("detectSquashMergeByTree");
             return { status: 1, stdout: "", stderr: "unknown revision" };
-          if (args[0] === "log" && args[1] === "--format=%H %T")
+          }
+          if (args[0] === "log" && args[1] === "--format=%H %T") {
             return {
               status: 0,
               stdout: "trunk-sha different-tree\n",
               stderr: "",
             };
+          }
           return { status: 1, stdout: "", stderr: "unexpected" };
         },
         runGh: (_cwd, args) => {
           ghCalls += 1;
-          if (args[0] === "pr" && args[1] === "list")
-            return { status: 0, stdout: "[]", stderr: "" };
+          if (args[0] === "pr" && args[1] === "list") {
+            fallbackCalls.push("discoverMergedPr");
+            return {
+              status: 0,
+              stdout: JSON.stringify([{ number: 161, mergeCommit: null }]),
+              stderr: "",
+            };
+          }
+          if (args[0] === "pr" && args[1] === "view") {
+            fallbackCalls.push("readPrMergeState");
+            return {
+              status: 0,
+              stdout: JSON.stringify({
+                state: "OPEN",
+                mergedAt: null,
+                mergeCommit: null,
+                autoMergeRequest: null,
+              }),
+              stderr: "",
+            };
+          }
           return { status: 1, stdout: "", stderr: "unexpected" };
         },
       },
@@ -1241,6 +1481,11 @@ describe("git-finalize helpers", () => {
       proof: "change_ref_unresolved",
     });
     expect(ghCalls).toBeGreaterThan(0);
+    expect(fallbackCalls).toEqual([
+      "discoverMergedPr",
+      "readPrMergeState",
+      "detectSquashMergeByTree",
+    ]);
   });
 
   // rq-fixPhase9PrDetection AC1: PR workflow route (pr_auto_merge) with no
