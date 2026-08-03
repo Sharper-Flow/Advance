@@ -210,6 +210,21 @@ describe("git-finalize helpers", () => {
     });
   });
 
+  it("verifyChangeBranchReachable does not present git fatal text as unmerged commits", async () => {
+    const repo = join(tempRoot, "repo-missing-ref");
+    await mkdir(repo);
+    await initRepo(repo);
+
+    // change/absent was never created — the ref cannot resolve. This models a
+    // branch deleted after merge. The git fatal string must NOT be laundered
+    // into unmergedCommits, which callers read as real commit evidence.
+    const result = verifyChangeBranchReachable(repo, "trunk", "absent");
+
+    expect(result.reachable).toBe(false);
+    expect(result.unmergedCommits).toEqual([]);
+    expect(result.refUnresolved).toBe(true);
+  });
+
   it("verifyChangeBranchReachableFromOrigin refreshes the remote change ref before ancestry", () => {
     const calls: string[][] = [];
     const result = verifyChangeBranchReachableFromOrigin(

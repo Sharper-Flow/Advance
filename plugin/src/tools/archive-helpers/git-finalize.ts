@@ -783,22 +783,46 @@ export function detectDefaultBranch(
   );
 }
 
+/**
+ * Local-only merge pre-check used by `mergeChangeBranch`.
+ *
+ * NOT RELEASE-CRITICAL: this is not the release reachability proof. The release
+ * path uses `verifyChangeBranchReachableFromOrigin`. This helper runs while the
+ * change branch still exists locally, immediately before an attempted merge.
+ *
+ * It shares one defect class with the release proof and is hardened for the same
+ * reason (P25): a nonzero `git log` exit must never be laundered into
+ * `unmergedCommits`, which callers read as real commit evidence.
+ */
 export function verifyChangeBranchReachable(
   repoRoot: string,
   defaultBranch: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
-): { reachable: boolean; unmergedCommits: string[] } {
-  const result = (deps.runGit ?? defaultRunGit)(repoRoot, [
+): {
+  reachable: boolean;
+  unmergedCommits: string[];
+  refUnresolved?: true;
+} {
+  const runGit = deps.runGit ?? defaultRunGit;
+  const resolved = runGit(repoRoot, [
+    "rev-parse",
+    "--verify",
+    "--quiet",
+    `refs/heads/change/${changeId}`,
+  ]);
+  if (resolved.status !== 0 || !resolved.stdout.trim()) {
+    return { reachable: false, unmergedCommits: [], refUnresolved: true };
+  }
+
+  const result = runGit(repoRoot, [
     "log",
     "--oneline",
     `${defaultBranch}..change/${changeId}`,
   ]);
   if (result.status !== 0) {
-    return {
-      reachable: false,
-      unmergedCommits: splitLines(result.stderr || result.stdout),
-    };
+    // Ref resolved, so this is an operational git failure, not commit evidence.
+    return { reachable: false, unmergedCommits: [], refUnresolved: true };
   }
   const unmergedCommits = splitLines(result.stdout);
   return { reachable: unmergedCommits.length === 0, unmergedCommits };
