@@ -192,7 +192,7 @@ Group findings as follows:
 
 **Insufficient evidence never produces a referral.** When a candidate's evidence cannot be resolved — unreadable artifact, failed or timed-out read, or missing repository freshness — classify it `freshness_limited` and place it in the review/deferred group. Keep these separate from evidence-backed rows exactly as Phase 8 requires.
 
-**Point-in-time discipline.** The report is a snapshot. Record each candidate's status as observed at emit time and state that status must be re-validated before running the referral, because `/adv-refactor` performs no status check of its own and a candidate may reach a terminal state after the report is produced.
+**Point-in-time discipline.** The report is a snapshot. Record each candidate's status as observed at emit time and state that status must be re-validated before running the referral, because `/adv-refactor` has no explicit terminal-state guard and a candidate may reach a terminal state after the report is produced.
 
 ---
 
