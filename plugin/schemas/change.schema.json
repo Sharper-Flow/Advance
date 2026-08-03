@@ -9689,6 +9689,32 @@
       ],
       "type": "object"
     },
+    "workerBundleProvenance": {
+      "properties": {
+        "build_run_id": {
+          "type": "string"
+        },
+        "recorded_at": {
+          "type": "string"
+        },
+        "replay_run_id": {
+          "type": "string"
+        },
+        "source_sha": {
+          "type": "string"
+        },
+        "worker_manifest_generation": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "source_sha",
+        "build_run_id",
+        "replay_run_id",
+        "recorded_at"
+      ],
+      "type": "object"
+    },
     "worktree_auto_managed": {
       "type": "boolean"
     }
