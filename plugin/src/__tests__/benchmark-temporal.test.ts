@@ -9,9 +9,37 @@ import {
   type BenchmarkOp,
   type BenchmarkMode,
   type ContaminationContext,
+  type BenchmarkRecord,
 } from "../../scripts/benchmark-temporal";
 
 describe("benchmark-temporal scaffold (A1)", () => {
+  it("accepts unavailable worker liveness in benchmark health records", () => {
+    const record: Pick<BenchmarkRecord, "temporal_health"> = {
+      temporal_health: {
+        server_alive: true,
+        worker_alive: { status: "unavailable", reason: "not_host_capable" },
+        worker_process_alive: {
+          status: "unavailable",
+          reason: "not_host_capable",
+        },
+        registered_queues: [],
+        last_op_at: null,
+        last_error: null,
+        fallback_counts: {},
+        stale_queues: [],
+        reconnect_count: 0,
+        op_counters: [],
+        worker_lock: null,
+        last_worker_run_error: null,
+      },
+    };
+
+    expect(record.temporal_health?.worker_alive).toEqual({
+      status: "unavailable",
+      reason: "not_host_capable",
+    });
+  });
+
   describe("checkEnvBypass", () => {
     it("returns ok=true when no bypass flags are set", () => {
       const result = checkEnvBypass();

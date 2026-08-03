@@ -20,6 +20,7 @@
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
+import type { TemporalHealth } from "../src/temporal/health-probe";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -75,14 +76,7 @@ export interface BenchmarkRecord {
     ADV_ALLOW_DEGRADED_FALLBACK: string | undefined;
     ADV_TEMPORAL_ADDRESS: string | undefined;
   };
-  temporal_health: {
-    server_alive: boolean;
-    worker_alive: boolean;
-    worker_process_alive: boolean;
-    registered_queues: string[];
-    last_op_at: string | null;
-    last_error: string | null;
-  } | null;
+  temporal_health: TemporalHealth | null;
   retry_telemetry: {
     lastOpAt: string | null;
     lastError: string | null;
