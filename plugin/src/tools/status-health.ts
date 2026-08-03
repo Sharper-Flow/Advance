@@ -14,6 +14,7 @@ import { getTemporalHealth } from "../temporal/health-probe";
 import { getCurrentSessionId } from "../utils/session-id";
 import {
   getOrphanQueueAdoptionDiagnostics,
+  hasResolvedWorkerRole,
   getTemporalWorkerAliveness,
   getTemporalWorkerDiagnostics,
 } from "../plugin-init";
@@ -499,11 +500,16 @@ function isProbeTimeoutError(err: unknown): boolean {
 export function buildTemporalHealthFallback(
   err: unknown,
 ): TemporalHealthSnapshot {
+  const workerRoleResolved = hasResolvedWorkerRole();
   if (isProbeTimeoutError(err)) {
     return {
       server_alive: true,
-      worker_alive: true,
-      worker_process_alive: true,
+      worker_alive: workerRoleResolved
+        ? { status: "available", value: true }
+        : { status: "unavailable", reason: "not_host_capable" },
+      worker_process_alive: workerRoleResolved
+        ? { status: "available", value: true }
+        : { status: "unavailable", reason: "not_host_capable" },
       registered_queues: [],
       last_op_at: null,
       last_error: err instanceof Error ? err.message : String(err),
@@ -518,8 +524,12 @@ export function buildTemporalHealthFallback(
   }
   return {
     server_alive: false,
-    worker_alive: false,
-    worker_process_alive: false,
+    worker_alive: workerRoleResolved
+      ? { status: "unavailable", reason: "probe_failed" }
+      : { status: "unavailable", reason: "not_host_capable" },
+    worker_process_alive: workerRoleResolved
+      ? { status: "unavailable", reason: "probe_failed" }
+      : { status: "unavailable", reason: "not_host_capable" },
     registered_queues: [],
     last_op_at: null,
     last_error: err instanceof Error ? err.message : String(err),

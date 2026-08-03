@@ -11,6 +11,7 @@ import { createMockOwner } from "./__tests__/mock-owner";
 
 const mockCanReachTemporalAddress = vi.fn();
 const mockGetTemporalWorkerAliveness = vi.fn();
+const mockHasResolvedWorkerRole = vi.fn();
 const mockGetRegisteredTemporalWorkerQueues = vi.fn();
 const mockGetTemporalAddress = vi.fn();
 const mockGetTemporalNamespace = vi.fn();
@@ -28,6 +29,7 @@ vi.mock("./runtime-manager", () => ({
 
 vi.mock("../plugin-init", () => ({
   getTemporalWorkerAliveness: () => mockGetTemporalWorkerAliveness(),
+  hasResolvedWorkerRole: () => mockHasResolvedWorkerRole(),
   getRegisteredTemporalWorkerQueues: () =>
     mockGetRegisteredTemporalWorkerQueues(),
 }));
@@ -71,6 +73,7 @@ describe("getTemporalHealth — server poller probe integration", () => {
     // Default happy-path stubs
     mockCanReachTemporalAddress.mockResolvedValue(true);
     mockGetTemporalWorkerAliveness.mockReturnValue(false);
+    mockHasResolvedWorkerRole.mockReturnValue(true);
     mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
     mockGetTemporalAddress.mockReturnValue("127.0.0.1:7233");
     mockGetTemporalNamespace.mockReturnValue("default");
@@ -84,6 +87,41 @@ describe("getTemporalHealth — server poller probe integration", () => {
     mockGetLastWorkerRunError.mockReturnValue(null);
   });
 
+  it("reports worker liveness as unavailable when worker role was never resolved", async () => {
+    mockHasResolvedWorkerRole.mockReturnValue(false);
+    mockGetTemporalWorkerAliveness.mockReturnValue(false);
+    mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
+
+    const health = await getTemporalHealth();
+
+    expect(health.worker_alive).toEqual({
+      status: "unavailable",
+      reason: "not_host_capable",
+    });
+    expect(health.worker_process_alive).toEqual({
+      status: "unavailable",
+      reason: "not_host_capable",
+    });
+  });
+
+  it("reports an available false worker distinctly after role resolution", async () => {
+    mockHasResolvedWorkerRole.mockReturnValue(true);
+    mockGetTemporalWorkerAliveness.mockReturnValue(false);
+    mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
+
+    const health = await getTemporalHealth();
+
+    expect(health.worker_alive).toEqual({ status: "available", value: false });
+    expect(health.worker_process_alive).toEqual({
+      status: "available",
+      value: false,
+    });
+    expect(health.worker_process_alive).not.toEqual({
+      status: "unavailable",
+      reason: "not_host_capable",
+    });
+  });
+
   it("worker_alive returns true when serverPollerProbe.status === 'fresh' even with worker_process_alive=false and no registered queues", async () => {
     mockGetTemporalWorkerAliveness.mockReturnValue(false);
     mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
@@ -94,8 +132,11 @@ describe("getTemporalHealth — server poller probe integration", () => {
 
     const health = await getTemporalHealth("proj123");
 
-    expect(health.worker_alive).toBe(true);
-    expect(health.worker_process_alive).toBe(false);
+    expect(health.worker_alive).toEqual({ status: "available", value: true });
+    expect(health.worker_process_alive).toEqual({
+      status: "available",
+      value: false,
+    });
     expect(health.registered_queues).toEqual([]);
     expect(health.server_poller_probe).toEqual({
       status: "fresh",
@@ -113,8 +154,11 @@ describe("getTemporalHealth — server poller probe integration", () => {
 
     const health = await getTemporalHealth("proj123");
 
-    expect(health.worker_process_alive).toBe(true);
-    expect(health.worker_alive).toBe(true);
+    expect(health.worker_process_alive).toEqual({
+      status: "available",
+      value: true,
+    });
+    expect(health.worker_alive).toEqual({ status: "available", value: true });
   });
 
   it("caches poller probe result within 30s TTL and avoids redundant API calls", async () => {
@@ -161,8 +205,11 @@ describe("getTemporalHealth — server poller probe integration", () => {
       2,
       expect.objectContaining({ taskQueue: "adv-proj-b" }),
     );
-    expect(projectA.worker_alive).toBe(true);
-    expect(projectB.worker_alive).toBe(false);
+    expect(projectA.worker_alive).toEqual({ status: "available", value: true });
+    expect(projectB.worker_alive).toEqual({
+      status: "available",
+      value: false,
+    });
   });
 
   it("refreshes poller probe cache after TTL expiry (30s)", async () => {
@@ -190,7 +237,10 @@ describe("getTemporalHealth — server poller probe integration", () => {
 
     expect(mockProbeTaskQueuePollers).not.toHaveBeenCalled();
     expect(health.server_poller_probe).toBeNull();
-    expect(health.worker_alive).toBe(false); // worker_process_alive=false, no queues
+    expect(health.worker_alive).toEqual({
+      status: "available",
+      value: false,
+    }); // worker_process_alive=false, no queues
   });
 
   it("skips probe when _projectId is undefined", async () => {
@@ -206,7 +256,10 @@ describe("getTemporalHealth — server poller probe integration", () => {
     const health = await getTemporalHealth("proj123");
 
     expect(health.server_poller_probe).toBeNull();
-    expect(health.worker_alive).toBe(false);
+    expect(health.worker_alive).toEqual({
+      status: "available",
+      value: false,
+    });
   });
 });
 
@@ -217,6 +270,7 @@ describe("getTemporalHealth — multi-queue probing", () => {
 
     mockCanReachTemporalAddress.mockResolvedValue(true);
     mockGetTemporalWorkerAliveness.mockReturnValue(false);
+    mockHasResolvedWorkerRole.mockReturnValue(true);
     mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
     mockGetTemporalAddress.mockReturnValue("127.0.0.1:7233");
     mockGetTemporalNamespace.mockReturnValue("default");
@@ -280,7 +334,10 @@ describe("getTemporalHealth — multi-queue probing", () => {
     const health = await getTemporalHealth([]);
 
     expect(health.queues).toEqual([]);
-    expect(health.worker_alive).toBe(false);
+    expect(health.worker_alive).toEqual({
+      status: "available",
+      value: false,
+    });
     expect(mockProbeTaskQueuePollers).not.toHaveBeenCalled();
   });
 

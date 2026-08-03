@@ -1,6 +1,7 @@
 import {
   getRegisteredTemporalWorkerQueues,
   getTemporalWorkerAliveness,
+  hasResolvedWorkerRole,
 } from "../plugin-init";
 import { getTemporalAddress, buildProjectTaskQueue } from "./client";
 import {
@@ -40,10 +41,19 @@ export interface WorkerLockHealth {
   schema_version: 1;
 }
 
+export type WorkerObservabilityReason =
+  | "not_host_capable"
+  | "probe_failed"
+  | "probe_timeout";
+
+export type WorkerLiveness =
+  | { status: "available"; value: boolean }
+  | { status: "unavailable"; reason: WorkerObservabilityReason };
+
 export interface TemporalHealth {
   server_alive: boolean;
-  worker_alive: boolean;
-  worker_process_alive: boolean;
+  worker_alive: WorkerLiveness;
+  worker_process_alive: WorkerLiveness;
   registered_queues: string[];
   last_op_at: string | null;
   last_error: string | null;
@@ -153,6 +163,7 @@ export async function getTemporalHealth(
   }).catch(() => false);
   const registered_queues = getRegisteredTemporalWorkerQueues();
   const worker_process_alive = getTemporalWorkerAliveness();
+  const worker_role_resolved = hasResolvedWorkerRole();
   const telemetry = overrideTelemetry ?? getTemporalRetryTelemetry();
 
   const targets: QueueProbeTarget[] = Array.isArray(_projectIdOrTargets)
@@ -174,11 +185,18 @@ export async function getTemporalHealth(
 
   return {
     server_alive,
-    worker_alive:
-      worker_process_alive ||
-      registered_queues.length > 0 ||
-      queues.some((q) => q.serviceable),
-    worker_process_alive,
+    worker_alive: worker_role_resolved
+      ? {
+          status: "available",
+          value:
+            worker_process_alive ||
+            registered_queues.length > 0 ||
+            queues.some((q) => q.serviceable),
+        }
+      : { status: "unavailable", reason: "not_host_capable" },
+    worker_process_alive: worker_role_resolved
+      ? { status: "available", value: worker_process_alive }
+      : { status: "unavailable", reason: "not_host_capable" },
     registered_queues,
     last_op_at: telemetry.lastOpAt,
     last_error: telemetry.lastError,
