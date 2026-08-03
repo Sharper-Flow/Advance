@@ -1,10 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  getTemporalHealth,
-  resetTemporalHealthProbeState,
-} from "../temporal/health-probe";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { resetTemporalHealthProbeState } from "../temporal/health-probe";
+import { createTier4ToolMap } from "./tier4-tool-map";
 import { executeTier4Tool, TOOL_CLASSIFICATIONS } from "./tools/index";
 import { tagHostProbeFields } from "./degradation";
+import {
+  cleanupTempDir,
+  createTempDir,
+  createTestProject,
+} from "../__tests__/setup";
 
 const mockCanReachTemporalAddress = vi.hoisted(() => vi.fn());
 const mockGetTemporalWorkerAliveness = vi.hoisted(() => vi.fn());
@@ -22,7 +25,8 @@ vi.mock("../temporal/runtime-manager", () => ({
     mockCanReachTemporalAddress(...args),
 }));
 
-vi.mock("../plugin-init", () => ({
+vi.mock("../plugin-init", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../plugin-init")>()),
   getTemporalWorkerAliveness: () => mockGetTemporalWorkerAliveness(),
   hasResolvedWorkerRole: () => mockHasResolvedWorkerRole(),
   getRegisteredTemporalWorkerQueues: () =>
@@ -49,7 +53,15 @@ vi.mock("../temporal/retry-wrapper", () => ({
 }));
 
 describe("MCP health worker-field contract", () => {
-  beforeEach(() => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await createTempDir("adv-mcp-health-");
+    await createTestProject(tempDir, {
+      withSpecs: false,
+      withChanges: false,
+      withConfig: true,
+    });
     vi.clearAllMocks();
     resetTemporalHealthProbeState();
     mockCanReachTemporalAddress.mockResolvedValue(true);
@@ -66,27 +78,25 @@ describe("MCP health worker-field contract", () => {
     mockGetLastWorkerRunError.mockReturnValue(null);
   });
 
+  afterEach(async () => {
+    await cleanupTempDir(tempDir);
+  });
+
   it("serializes role-unresolved health without boolean worker liveness", async () => {
     const result = await executeTier4Tool(
-      process.cwd(),
+      tempDir,
       "status",
-      {},
+      { view: "health" },
       {
         temporalReachable: () => Promise.resolve(true),
-        createToolMap: () => ({
-          adv_status: {
-            execute: async () =>
-              JSON.stringify({
-                temporal_health: await getTemporalHealth(),
-              }),
-          },
-        }),
+        createToolMap: createTier4ToolMap,
       },
     );
 
     const serializedPayload = JSON.parse(JSON.stringify(JSON.parse(result)));
     const health = serializedPayload.temporal_health;
 
+    expect(serializedPayload).toHaveProperty("temporal_health");
     expect(typeof health.worker_alive).not.toBe("boolean");
     expect(typeof health.worker_process_alive).not.toBe("boolean");
     expect(health.worker_alive).toEqual({
@@ -97,7 +107,7 @@ describe("MCP health worker-field contract", () => {
       status: "unavailable",
       reason: "not_host_capable",
     });
-  });
+  }, 20_000);
 
   it("adds degradation metadata around temporal_health without rewriting nested unions", () => {
     const payload = tagHostProbeFields({
