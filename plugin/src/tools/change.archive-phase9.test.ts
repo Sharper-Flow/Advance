@@ -1677,6 +1677,26 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(parsed.finalization).toMatchObject({
+      status: "shipped",
+      changeTipSha: "tip-abc-123",
+    });
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "archived",
+        phase9_status: expect.objectContaining({
+          status: "done",
+          changeTipSha: "tip-abc-123",
+        }),
+      }),
+    );
+  });
+
   test("no_remote existing-bundle retry with terminal workflow uses recovery writer", async () => {
     mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
     mocks.classifyFinalizationRoute.mockReturnValue({
@@ -1702,17 +1722,6 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.finalization).toMatchObject({
       status: "shipped",
-      changeTipSha: "tip-abc-123",
-    });
-    expect(store.changes.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: "archived",
-        phase9_status: expect.objectContaining({
-          status: "done",
-          changeTipSha: "tip-abc-123",
-        }),
-      }),
-    );
       route: "no_remote",
       pushStatus: "skipped",
       releasedCommitSha: "local-trunk-sha",
