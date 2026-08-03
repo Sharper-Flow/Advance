@@ -40,6 +40,34 @@ export const WorkerBundleImpactSchema = z.object({
 
 export type WorkerBundleImpact = z.infer<typeof WorkerBundleImpactSchema>;
 
+/**
+ * Worker-bundle release-provenance receipt recorded by
+ * `workerBundleProvenanceRecordedSignal` and read by the release-readiness
+ * evaluator (`temporal/gate-readiness.ts`).
+ *
+ * Mirrors the stored declaration on `ChangeWorkflowState`
+ * (`temporal/contracts.ts`), which uses plain `string` / `number`. Format
+ * validation of `recorded_at` belongs to the signal boundary
+ * (`types/signals.ts` applies `IsoTimestampSchema`); repeating it here could
+ * reject state the workflow already accepted.
+ *
+ * Declared rather than left to `ChangeSchema.passthrough()` because
+ * `TEMPORAL_OWNED_PROJECTION_FIELDS` (`storage/store-temporal/shared.ts`) is
+ * constrained to `keyof Change` and cannot project a field the type does not
+ * declare.
+ */
+export const WorkerBundleProvenanceSchema = z.object({
+  source_sha: z.string(),
+  build_run_id: z.string(),
+  replay_run_id: z.string(),
+  worker_manifest_generation: z.number().optional(),
+  recorded_at: z.string(),
+});
+
+export type WorkerBundleProvenance = z.infer<
+  typeof WorkerBundleProvenanceSchema
+>;
+
 // =============================================================================
 // Coordination Claims
 // =============================================================================
@@ -1468,6 +1496,7 @@ export const ChangeSchema = z
      * affects the Temporal worker bundle and needs provenance before release.
      */
     worker_bundle_impact: WorkerBundleImpactSchema.optional(),
+    workerBundleProvenance: WorkerBundleProvenanceSchema.optional(),
 
     /**
      * rq-creationRequestHash01 (tk-74c358188ffb, design D2 / AC4 / AC11):
