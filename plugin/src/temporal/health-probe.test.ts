@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getTemporalHealth,
@@ -151,6 +152,22 @@ describe("getTemporalHealth — server poller probe integration", () => {
       status: "unavailable",
       reason: "not_host_capable",
     });
+
+    // This test mocks the plugin-init signal, so also pin the production
+    // ordering: moving the assignment into the spawn block must fail here.
+    const pluginInitSource = readFileSync(
+      new URL("../plugin-init.ts", import.meta.url),
+      "utf8",
+    );
+    const roleResolution = pluginInitSource.indexOf(
+      "currentWorkerRole = singletonPlan.workerRole;\n      workerRoleResolved = true;",
+    );
+    const spawnGate = pluginInitSource.indexOf(
+      "if (shouldSpawnWorker) {",
+      roleResolution,
+    );
+    expect(roleResolution).toBeGreaterThanOrEqual(0);
+    expect(spawnGate).toBeGreaterThan(roleResolution);
   });
 
   it("worker_alive returns true when serverPollerProbe.status === 'fresh' even with worker_process_alive=false and no registered queues", async () => {
