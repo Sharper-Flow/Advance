@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixWorkerBundleProvenanceGate",
+  "title": "Fix worker bundle provenance gate",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Worker-bundle release provenance receipts now reach the release gate",
+    "highlights": [
+      "Recorded worker-bundle provenance is now projected to the disk snapshot the archive evaluates, so worker_bundle_impact: required changes can complete release",
+      "worker_bundle_impact is projected alongside it, closing a latent trap where it survived only via its setter's direct disk write",
+      "Added signal-to-disk-to-gate round-trip coverage plus red-path guards; no test previously crossed that boundary, which is why the defect shipped",
+      "Known limitation: gate evidence authenticity is weak and is tracked in follow-up change bindProvenanceEvidence"
+    ],
+    "area": "release-provenance",
+    "user_action_required": false
+  }
+}

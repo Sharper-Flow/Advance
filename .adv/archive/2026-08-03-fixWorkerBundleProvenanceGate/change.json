@@ -1,0 +1,2465 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixWorkerBundleProvenanceGate",
+  "title": "Fix worker bundle provenance gate",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-03T19:33:39.970Z",
+  "tasks": [
+    {
+      "id": "tk-853702694f84",
+      "title": "Author WorkerBundleProvenanceSchema and declare it on ChangeSchema",
+      "type": "code",
+      "section": "Schema",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-03T19:47:10.956Z",
+      "started_at": "2026-08-03T19:53:44.481Z",
+      "completed_at": "2026-08-03T20:02:59.010Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Authored WorkerBundleProvenanceSchema and the WorkerBundleProvenance type in types/changes.ts beside WorkerBundleImpactSchema, and declared workerBundleProvenance as an optional field on ChangeSchema immediately after worker_bundle_impact. This is a hard prerequisite for the projection fix: TEMPORAL_OWNED_PROJECTION_FIELDS is declared as const satisfies readonly (keyof Change)[] and cannot list the field until Change declares it. Independent adv-reviewer verdict READY with no blocking findings, report key fixWorkerBundleProvenanceGate|tk-853702694f84|adv-reviewer|1, satisfying the reviewer-owned static_check evidence route. Reviewer confirmed shape fidelity is exact between changes.ts:59-65 and the authoritative stored declaration at contracts.ts:751-757; confirmed the seed cast in change-state.ts remains type-compatible with no collision; confirmed the additive-optional field is replay-safe for histories predating it, which matters because changes.ts sits inside the worker-bundle import closure; and confirmed the typed-field test is non-tautological because an undeclared passthrough field would preserve a malformed payload while the declared schema rejects it. Reviewer also corrected my stated rationale in a useful way: IsoTimestampSchema is itself plain z.string() at signals.ts:67, so using z.string() for recorded_at forfeits no validation whatsoever rather than trading strictness for cycle safety. TDD evidence despite the static_check policy because planning flagged rq-TDD009seq ordering: RED tr_msdng1mb_694708d0 with 3 of 7 failing, GREEN tr_msdnh2y2_629c97b8 with 7/7, typecheck tr_msdnin0c_4c84a04b clean.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/changes.worker-bundle-provenance.test.ts"
+      ],
+      "checkpointSha": "1680c330cbd285f519fea00f20b9e7070705927e",
+      "completedAt": "2026-08-03T20:02:59.010Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Type declaration correctness is proven by tsc plus the downstream allowlist type constraint; behavior is proven by the round-trip test task.",
+        "review_evidence_ref": {
+          "report_key": "fixWorkerBundleProvenanceGate|tk-853702694f84|adv-reviewer|1"
+        },
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/types/changes.ts",
+        "plugin/src/types/changes.worker-bundle-provenance.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWorkerBundleProvenanceGate",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+          "task_id": "tk-853702694f84",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-853702694f84"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "bin/oc-test targeted -- src/types/changes.worker-bundle-provenance.test.ts",
+              "pnpm --dir plugin run typecheck",
+              "git diff --check 1680c330^ 1680c330 -- plugin/src/types/changes.ts plugin/src/types/changes.worker-bundle-provenance.test.ts"
+            ],
+            "results": "pass",
+            "evidence": "Focused Vitest suite passed 7/7. TypeScript typecheck exited 0 with no output. git diff --check was clean. An initial focused-test invocation with plugin/src/... exited 1 because oc-test executes from plugin/ and the filter must be src/...; corrected invocation passed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "No residual task-local risk found. Projection persistence in storage/store-temporal/shared.ts remains explicitly out of scope and unreviewed."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/types/changes.worker-bundle-provenance.test.ts"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run typecheck"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check 1680c330^ 1680c330 -- plugin/src/types/changes.ts plugin/src/types/changes.worker-bundle-provenance.test.ts"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-0f7410ffe9b7",
+      "title": "Project worker_bundle_impact and workerBundleProvenance through the Temporal disk projection",
+      "type": "code",
+      "section": "Core fix",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-853702694f84"
+        }
+      ],
+      "created_at": "2026-08-03T19:47:55.242Z",
+      "started_at": "2026-08-03T20:03:44.625Z",
+      "completed_at": "2026-08-03T20:07:07.803Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Core fix. Added worker_bundle_impact and workerBundleProvenance to both projection layers in storage/store-temporal/shared.ts: the mapTemporalChangeStateToChange output and the TEMPORAL_OWNED_PROJECTION_FIELDS allowlist. Both edits are required because projectTemporalStateOntoLatest merges { ...latest, ...temporalOwned } where temporalOwned is the mapper output filtered through the allowlist, so editing either alone has no effect. Casing preserved exactly as-is (worker_bundle_impact snake, workerBundleProvenance camel) because renaming would break replay histories. Did not remove the direct save in the impact setter; both writers derive from the same declaration and the projection test proves they agree. Routed inline rather than delegating despite delegation_hint delegate_preferred, because the context-shed precondition blocks: the change is roughly four lines in a single file, far below the ~50-line/5-file floor, and authoring the RED test required precise knowledge of the projection internals. RED tr_msdnrcq2_9f948857 failed all four assertions, reproducing the defect exactly: provenance undefined after projection, impact undefined after projection, a stale disk source_sha of 0000000000000000 surviving a newer workflow receipt, and a disk value persisting when the workflow held none. That fourth case is the inverse hazard and matters most, because a projection that preserves disk state the workflow no longer holds would fabricate release evidence. GREEN tr_msdnsjke_e5820a09 passed 4/4. Incremental verification tr_msdntldx_72bd4e75 passed across the whole store-temporal directory plus change.worker-bundle, changes.worker-bundle-provenance, and gate-readiness suites.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-temporal/worker-bundle.disk-projection.test.ts"
+      ],
+      "checkpointSha": "384e9422acc355a425aef18d7fa4466f363af647",
+      "completedAt": "2026-08-03T20:07:07.803Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/storage/store-temporal/shared.ts",
+        "plugin/src/storage/store-temporal/worker-bundle.disk-projection.test.ts"
+      ]
+    },
+    {
+      "id": "tk-e314f51294f0",
+      "title": "Regenerate tracked public JSON schema artifacts",
+      "type": "ops",
+      "section": "Schema",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-853702694f84"
+        }
+      ],
+      "created_at": "2026-08-03T19:48:31.176Z",
+      "started_at": "2026-08-03T20:07:24.026Z",
+      "completed_at": "2026-08-03T20:12:23.736Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Regenerated tracked public JSON schema artifacts after the ChangeSchema declaration landed. Pre-generate schemas:check failed with \"Generated JSON schemas are stale: change.schema.json\", proving the artifact genuinely required regeneration rather than the task being a no-op. pnpm run schemas:generate emitted 9 schemas; the resulting diff is exactly one file, plugin/schemas/change.schema.json, +26/-0, containing only the new optional workerBundleProvenance property with no unrelated churn. Determinism verified explicitly as the task required: two consecutive generate runs produced identical SHA-256 ccf1dc84bcf83450, so the artifact is reproducible by anyone running the generator and there was no need to invoke the stop-and-report path for unstable output. Post-generate schemas:check passed, run tr_msdnwc8x_9b512706. No schema-registry.ts entry was added or needed because the registry already points at ChangeSchema. Independent adv-reviewer verdict READY with no blocking findings, satisfying the reviewer-owned static_check evidence route; reviewer confirmed diff scope, generated shape fidelity against the Zod source including correct optionality on the parent, absence of hand-editing, and registry correctness. First review attempt returned a packet defect because I omitted the TASK identity anchor; corrected and resent as attempt 2.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/schemas/change.schema.json"
+      ],
+      "checkpointSha": "3a21a954194f09e99112e2ccf6e8230364456982",
+      "completedAt": "2026-08-03T20:12:23.736Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "respects": [
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Correctness is proven by the deterministic generator plus schemas:check, not by a behavioral test.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "touched_files": [
+        "plugin/schemas/change.schema.json"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWorkerBundleProvenanceGate",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+          "task_id": "tk-e314f51294f0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-e314f51294f0"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "git diff --stat -- plugin/schemas/ && git diff --numstat -- plugin/schemas/ && git diff --check -- plugin/schemas/ && git diff -- plugin/schemas/",
+              "pnpm run schemas:check"
+            ],
+            "results": "pass",
+            "evidence": "Schema diff is exactly one file, plugin/schemas/change.schema.json, with 26 insertions and 0 deletions; git diff --check passed. The added workerBundleProvenance object has four required string fields (source_sha, build_run_id, replay_run_id, recorded_at), optional numeric worker_manifest_generation, and is absent from the parent required list. schemas:check exited successfully. schema-registry.ts has no diff and already registers ChangeSchema as change.schema.json."
+          },
+          "scope_drift": null,
+          "risks": [],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --stat -- plugin/schemas/ && git diff --numstat -- plugin/schemas/ && git diff --check -- plugin/schemas/ && git diff -- plugin/schemas/"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run schemas:check"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-cbff6085c204",
+      "title": "Add signal-to-disk-to-gate round-trip coverage and close the mocked-boundary gap",
+      "type": "code",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-0f7410ffe9b7"
+        }
+      ],
+      "created_at": "2026-08-03T19:49:01.982Z",
+      "completed_at": "2026-08-03T20:32:41.308Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Closed the coverage gap that let this defect ship. Added plugin/src/storage/worker-bundle.archive-roundtrip.test.ts, which persists a Change carrying workerBundleProvenance plus matching passing test_runs via the real saveChange, reloads it via loadChange, and asserts evaluateWorkerBundleProvenanceForChange returns exactly { ok: true, blockers: [] }. That is AC3 and scenario rq-workerBundleReleaseProvenance01.2, the passing path that had never once been reachable. Test uses createTempDir/cleanupTempDir isolation as the repo isolation checker requires. Also tightened plugin/src/tools/change.worker-bundle.test.ts, which owned the record tool but mocked fireSignalAndRefresh to a no-op and asserted only signal arguments, so it passed while the recorded value never persisted; the mock now applies the payload to the captured change so the test fails if provenance is dropped, with existing argument assertions preserved. Delegated to adv-engineer because the context-shed precondition was satisfied here (two files, decisions already made) unlike the four-line core fix. Verified the delegated work myself rather than trusting the report, given sub-agent evidence reliability issues earlier in this session: confirmed the mock is no longer a discard, confirmed the round-trip test asserts the passing path with proper isolation, and reviewed the one edit it made to an already-checkpointed T1 file, which is pure prettier reformatting of a destructuring statement and therefore benign. Engineer evidence RED tr_msdo788u_e3cd1006, GREEN tr_msdo9i7m_b731ad94, verify tr_msdoj5cv_a333cfae, check tr_msdonguv_41f8a8cb. Orchestrator re-verification tr_msdoqnvn_7ccca30d passed 22/22 across all four worker-bundle suites.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/worker-bundle.archive-roundtrip.test.ts",
+        "plugin/src/tools/change.worker-bundle.test.ts",
+        "plugin/src/types/changes.worker-bundle-provenance.test.ts"
+      ],
+      "checkpointSha": "b5302ce4b593eb0ee169df97325d6aacb67339ac",
+      "completedAt": "2026-08-03T20:32:41.308Z",
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/storage/worker-bundle.archive-roundtrip.test.ts",
+        "plugin/src/tools/change.worker-bundle.test.ts",
+        "plugin/src/types/changes.worker-bundle-provenance.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWorkerBundleProvenanceGate",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+          "task_id": "tk-cbff6085c204",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-cbff6085c204"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/change.worker-bundle.test.ts",
+            "plugin/src/storage/worker-bundle.archive-roundtrip.test.ts",
+            "plugin/src/types/changes.worker-bundle-provenance.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msdo788u_e3cd1006",
+              "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts",
+              "exit_code": 1,
+              "summary": "RED: tightened mocked-boundary assertion failed because the no-op fireSignalAndRefresh mock dropped workerBundleProvenance."
+            },
+            {
+              "test_run_id": "tr_msdo9i7m_b731ad94",
+              "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts src/storage/worker-bundle.archive-roundtrip.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 2 test files and 11 tests passed after applying payload persistence in the mock and adding the disk round-trip/archive preflight test."
+            },
+            {
+              "test_run_id": "tr_msdoj5cv_a333cfae",
+              "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts src/storage/worker-bundle.archive-roundtrip.test.ts src/types/changes.worker-bundle-provenance.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: 3 test files and 18 tests passed."
+            },
+            {
+              "run_id": "tr_msdonguv_41f8a8cb",
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "PASS: schemas, typecheck, manifest/frontmatter/isolation/lockfile checks, lint (existing warnings only), and formatting checks."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Made the provenance signal mock apply its payload to a captured Change before retaining the existing signal-argument assertions.",
+              "why": "The mocked boundary now fails when the recorded receipt is dropped, reproducing the defect the prior no-op mock concealed."
+            },
+            {
+              "what": "Used real TestRunRecord-shaped build_worker and replay_determinism entries in a saveChange/loadChange fixture and asserted both the evaluator and archive preflight pass.",
+              "why": "This proves the full persisted Change shape required by the evaluator survives disk reload and satisfies AC2/AC3 without duplicating projection-layer tests."
+            },
+            {
+              "what": "Applied a formatting-only cleanup to the adjacent worker-bundle schema test.",
+              "why": "The repository check was otherwise blocked by that pre-existing Prettier failure; no behavior or assertions changed."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Inspected existing projection, gate-readiness, archive-gate, JSON storage, and worker-bundle tests; added only the missing disk-to-gate round trip and tightened the mocked provenance boundary.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Full red-before-green evidence recorded. The new temp-isolated test persists a required-impact Change with matching passing build_worker/replay_determinism runs, reloads it, and proves evaluator plus release-pending archive preflight return no blockers. Mocked provenance test now applies payload to captured change and still asserts signal arguments.",
+            "suggested_next_action": "Review diff and run the normal task checkpoint/status workflow."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-cbff6085c204_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-cbff6085c204-attempt-1"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdo788u_e3cd1006"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdo9i7m_b731ad94"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdoj5cv_a333cfae"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdonguv_41f8a8cb"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-214f5645a3ab",
+      "title": "Fail-open guards and full regression sweep",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cbff6085c204"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e314f51294f0"
+        }
+      ],
+      "created_at": "2026-08-03T19:49:37.522Z",
+      "completed_at": "2026-08-03T21:01:50.671Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Fail-open guards and full regression sweep. Added negative guards asserting the blocking branches still block: AC5 provenance IDs resolving to no durable typed runs block with WORKER_BUNDLE_PROVENANCE_MISSING naming the unresolved run, and AC6/C3 undeclared impact blocks despite worker-bundle path hints, which is the explicit no-path-heuristic constraint. Confirmed existing coverage already handled missing receipts, blank source_sha, missing not_applicable rationale, wrong evidence kinds, and failing runs, so those were extended rather than duplicated. Added an archive blocker code/reason-shape preservation assertion for C4. Guards assert specific blocker codes and lengths rather than mere falsiness, so they fail if a branch stops blocking. Notably the sweep caught a real defect in my own prior task: the round-trip test I accepted in tk-cbff6085c204 used raw saveChange and violated the save-change allow-list architectural guard, the same guard that caught me earlier in this session on a different change; it is now enumerated as test_raw_primitive with rationale rather than the guard being weakened. Orchestrator-owned verification rather than trusting the sub-agent report: full sweep tr_msdppwn2_616813b1 exit 0 with no failures at VITEST_MAX_WORKERS=4, and combined schemas:check plus pnpm run check tr_msdps3n3_643b2d46 exit 0 with 0 errors, prettier clean, agent manifests matching, test-isolation and lockfile policy checks passing, and only the 4 pre-existing no-explicit-any warnings in untouched files mock-owner.ts and operations.ts. No environmental classification was needed because the final sweep was clean outright.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/save-change-allow-list.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "checkpointSha": "f4290954f0bccf658716d129d4626aab3f2e83ec",
+      "completedAt": "2026-08-03T21:01:50.671Z",
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC8"
+        ],
+        "verifies": [
+          "AC1",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [
+        "plugin/src/storage/save-change-allow-list.ts",
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixWorkerBundleProvenanceGate",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+          "task_id": "tk-214f5645a3ab",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-214f5645a3ab"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/temporal/gate-readiness.test.ts",
+            "plugin/src/tools/change/archive-gate.test.ts",
+            "plugin/src/storage/save-change-allow-list.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msdp084l_22b38222",
+              "command": "pnpm --dir plugin exec vitest run src/temporal/gate-readiness.test.ts src/tools/change/archive-gate.test.ts",
+              "exit_code": 0,
+              "summary": "Pass: 2 test files, 168 tests; worker-bundle readiness and archive-gate tests."
+            },
+            {
+              "test_run_id": "tr_msdpphonx_09557993",
+              "command": "pnpm --dir plugin run schemas:check",
+              "exit_code": 0,
+              "summary": "Pass: generated JSON schemas are deterministic and up to date."
+            },
+            {
+              "test_run_id": "tr_msdp2ufx_c47e8eda",
+              "command": "pnpm --dir plugin run check",
+              "exit_code": 0,
+              "summary": "Pass: typecheck, manifest/frontmatter/isolation/lockfile checks, lint (4 pre-existing warnings), and format check."
+            },
+            {
+              "test_run_id": "tr_msdp8ekm_523fdaa2",
+              "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+              "exit_code": 1,
+              "summary": "Initial full unit sweep failed one inventory assertion: worker-bundle.archive-roundtrip.test.ts was an unenumerated raw saveChange caller."
+            },
+            {
+              "test_run_id": "tr_msdp8u9z_95562a2b",
+              "command": "pnpm --dir plugin exec vitest run src/storage/save-change-allow-list.test.ts",
+              "exit_code": 1,
+              "summary": "Isolated reproduction confirmed the inventory failure: 5 passed, 1 failed."
+            },
+            {
+              "test_run_id": "tr_msdp9yuu_ff0573b7",
+              "command": "pnpm --dir plugin exec vitest run src/storage/save-change-allow-list.test.ts",
+              "exit_code": 0,
+              "summary": "Pass after adding the adjacent test-only allow-list entry: 6 tests passed."
+            },
+            {
+              "test_run_id": "tr_msdpev90_750c8961",
+              "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+              "exit_code": 0,
+              "summary": "Pass: final full unit sweep completed with exit code 0 and no failed tests reported by oc-test; aggregate Vitest counts were truncated by the bounded runner output."
+            },
+            {
+              "test_run_id": "tr_msdp8ekm_523fdaa2",
+              "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+              "exit_code": 1,
+              "summary": "Recorded initial full-sweep failure for regression comparison; resolved before final verification."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Added an explicit unresolvable build/replay run-ID guard test.",
+              "why": "Existing tests covered missing receipts, blank source_sha, wrong evidence_kind, and failing runs, but did not prove both plausible IDs must resolve to durable typed runs."
+            },
+            {
+              "what": "Added a persistent-Change path-hint test for undeclared impact.",
+              "why": "It verifies worker-bundle path hints cannot bypass the typed worker_bundle_impact declaration authority."
+            },
+            {
+              "what": "Strengthened archive preflight assertions to inspect readinessBlockers shape.",
+              "why": "Existing archive-gate coverage checked blocker text/codes; this preserves the structured code, gateId, message, and remediation contract consumed downstream."
+            },
+            {
+              "what": "Added the already-present worker-bundle archive round-trip test to the raw saveChange inventory.",
+              "why": "The required full sweep exposed a deterministic test-inventory regression from that test's intentional disk fixture write; the allow-list entry is test-only and does not alter production behavior."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Reviewed every evaluateWorkerBundleProvenance branch and adjacent archive-gate chokepoint. Existing coverage retained for no receipt, blank source_sha, not_applicable without rationale, wrong evidence kinds, and failing runs; added missing durable-run resolution, path-hint non-bypass, and structured archive blocker-shape assertions.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Negative guard coverage is complete. Existing tests already covered no receipt, missing source_sha, not_applicable rationale, wrong evidence_kind, and failing runs; new tests cover both unresolvable run IDs, typed declaration authority despite worker path hints, and archive blocker shape. Initial full sweep found a deterministic missing allow-list entry for the already-present archive round-trip fixture; added only that test inventory entry. Final schemas:check, check, isolated inventory test, targeted tests, and full unit sweep pass. Full runner bounded output omitted aggregate Vitest counts, but final exit code was 0.",
+            "suggested_next_action": "Review the three-file diff, then proceed with the parent acceptance workflow."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdp084l_22b38222"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdpphonx_09557993"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdp2ufx_c47e8eda"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdp8ekm_523fdaa2"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdp8u9z_95562a2b"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdp9yuu_ff0573b7"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdpev90_750c8961"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdp8ekm_523fdaa2"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkerBundleProvenanceGate",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:worker-bundle-provenance-schema-fix"
+      },
+      "agent": "adv-researcher",
+      "topic": "Worker-bundle provenance release-gate defect: hydration-path trace and fix validation",
+      "sources": [
+        {
+          "label": "TEMPORAL_OWNED_PROJECTION_FIELDS + projectTemporalStateOntoLatest (DECISIVE)",
+          "locator": "plugin/src/storage/store-temporal/shared.ts:136-184",
+          "summary": "Explicit allowlist of fields a Temporal dual-write may overwrite on the disk projection. Neither worker_bundle_impact nor workerBundleProvenance is listed. projectTemporalStateOntoLatest maps state then picks ONLY allowlisted fields, returning {...latest, ...temporalOwned}."
+        },
+        {
+          "label": "mapTemporalChangeStateToChange (DECISIVE)",
+          "locator": "plugin/src/storage/store-temporal/shared.ts:87-124",
+          "summary": "Field-by-field mapper from ChangeWorkflowState to Change. Produces neither worker_bundle_impact nor workerBundleProvenance. This is the explicit mapping the user could not find."
+        },
+        {
+          "label": "persistStateToDisk dual-write path",
+          "locator": "plugin/src/storage/store-temporal/index.ts:266-304",
+          "summary": "Every workflow-driven disk write routes through commitChangeProjection with mutateLatest=projectTemporalStateOntoLatest. Strips both worker-bundle fields."
+        },
+        {
+          "label": "store.changes.refresh -> dualWriteAfterMutation",
+          "locator": "plugin/src/storage/store-temporal/changes.ts:1573-1584",
+          "summary": "refresh (called by fireSignalAndRefresh after the provenance signal) calls dualWriteAfterMutation -> persistStateToDisk -> projectTemporalStateOntoLatest. Strips the field even on refresh."
+        },
+        {
+          "label": "set_worker_bundle_impact DIRECT disk save (why sibling works)",
+          "locator": "plugin/src/tools/change.ts:2955-2956",
+          "summary": "adv_change_set_worker_bundle_impact does store.changes.save({...change, worker_bundle_impact}) BEFORE firing the signal. The direct save lands the field on disk; later spread {...latest,...temporalOwned} preserves it from latest."
+        },
+        {
+          "label": "provenance record tool: signal-only, NO direct save (the break)",
+          "locator": "plugin/src/tools/change.ts:2862-2878",
+          "summary": "adv_worker_bundle_provenance_record fires workerBundleProvenanceRecordedSignal via fireSignalAndRefresh and performs NO store.changes.save. Relies entirely on the dual-write path that strips the field."
+        },
+        {
+          "label": "ChangeSchema .passthrough()",
+          "locator": "plugin/src/types/changes.ts:1526",
+          "summary": "ChangeSchema is declared .passthrough() so unknown fields are preserved on READ. Therefore the missing schema declaration is NOT the blocking cause; the projection write stripping is."
+        },
+        {
+          "label": "loadChange parse path",
+          "locator": "plugin/src/storage/change-projection-reader.ts:408-411",
+          "summary": "Read returns ChangeSchema.parse(normalized). With passthrough, any field present in disk JSON survives; the field is simply never written to disk JSON."
+        },
+        {
+          "label": "evaluator + ForChange wrapper",
+          "locator": "plugin/src/temporal/gate-readiness.ts:1020-1169",
+          "summary": "evaluateWorkerBundleProvenance reads state.workerBundleProvenance (line 1055). evaluateWorkerBundleProvenanceForChange casts change to read workerBundleProvenance and test_runs. All blocking branches (missing/incomplete/unresolved/failing) remain reachable."
+        },
+        {
+          "label": "archive gate preflight call site",
+          "locator": "plugin/src/tools/change.ts:4255-4274",
+          "summary": "archive resolves gateState then calls getArchiveGatePreflightError(change,...) with the disk-loaded change."
+        },
+        {
+          "label": "read-model: routine reads come from disk projection",
+          "locator": "plugin/src/storage/store-temporal/read-model.ts:44-82",
+          "summary": "readChangeSnapshot loads from disk via loadChange; routine reads never issue a workflow query. So the archive's change object is the disk projection."
+        },
+        {
+          "label": "ChangeSchema is PUBLIC",
+          "locator": "plugin/src/schema-registry.ts:37-41",
+          "summary": "ChangeSchema is registered as public 'change' -> change.schema.json. Any field addition requires pnpm run schemas:generate and schemas:check green."
+        },
+        {
+          "label": "inline provenance shape on ChangeWorkflowState",
+          "locator": "plugin/src/temporal/contracts.ts:746-757",
+          "summary": "workerBundleProvenance is defined inline (not a reusable Zod schema). Shape: source_sha, build_run_id, replay_run_id, worker_manifest_generation?, recorded_at."
+        },
+        {
+          "label": "signal payload schema",
+          "locator": "plugin/src/types/signals.ts:266-275",
+          "summary": "WorkerBundleProvenanceRecordedSignalPayloadSchema is the signal payload; identical shape to stored provenance. No standalone stored-provenance Zod schema exists."
+        },
+        {
+          "label": "TEST GAP: provenance record test mocks the projection away",
+          "locator": "plugin/src/tools/change.worker-bundle.test.ts:22,119,122-155",
+          "summary": "adv_worker_bundle_provenance_record test mocks fireSignalAndRefresh to a no-op and only asserts the signal args. Never writes disk, never reads back, never runs the gate. Cannot catch a projection bug."
+        },
+        {
+          "label": "TEST GAP: gate tests construct state directly",
+          "locator": "plugin/src/temporal/gate-readiness.test.ts:2425-2715",
+          "summary": "evaluateWorkerBundleProvenance tests hand-construct state/change with workerBundleProvenance already set, bypassing the projection boundary entirely."
+        }
+      ],
+      "architecture_assessment": "DECISIVE HYDRATION ANSWER: (b). The user searched for stateToChange/hydrateChange and found nothing because the mapping is split across TWO named functions in store-temporal/shared.ts: mapTemporalChangeStateToChange (field-by-field producer, lines 87-124) and TEMPORAL_OWNED_PROJECTION_FIELDS (allowlist, lines 136-167), combined by projectTemporalStateOntoLatest (lines 174-184) into {...latest, ...temporalOwned}. Neither worker-bundle field appears in EITHER list. Every workflow-driven disk write (persistStateToDisk index.ts:266; refresh changes.ts:1573) routes through this stripping merge. ROOT CAUSE REFUTED AS STATED: the missing Change schema declaration is NOT why the evaluator sees undefined. ChangeSchema uses .passthrough() (changes.ts:1526), so unknown fields are preserved on read; the field simply never reaches disk JSON because the projection write strips it. The real cause is the projection allowlist/mapper omitting workerBundleProvenance. WHY THE SIBLING worker_bundle_impact WORKS: set_worker_bundle_impact writes disk DIRECTLY via store.changes.save({...change, worker_bundle_impact}) at change.ts:2955-2956 before firing the signal; the field lands on latest and survives subsequent {...latest,...temporalOwned} spreads. provenance_record has NO direct save (change.ts:2862-2878), so the field is never on latest and never persists. Latent finding: worker_bundle_impact itself is ALSO absent from the allowlist and survives only via the direct-save coupling; any future signal-only setter would lose it too.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Proposed schema-only fix is INSUFFICIENT: adding workerBundleProvenance to ChangeSchema alone will not fix the release gate, because the projection write (projectTemporalStateOntoLatest + TEMPORAL_OWNED_PROJECTION_FIELDS, shared.ts:136-184) strips the field before it reaches disk JSON. The complete fix requires editing the projection allowlist + mapper (shared.ts) and declaring the field on ChangeSchema (types/changes.ts) + regenerating public schemas. No fail-open: all blocking branches in evaluateWorkerBundleProvenance (missing receipt 1055, incomplete 1068, unresolved runs 1080, failing runs 1109) remain reachable once provenance is defined; test_runs already projects (allowlist line 144) so run-validation works end-to-end."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Option A (mirror sibling: direct store.changes.save + schema decl) is minimal and consistent with the working worker_bundle_impact pattern, but propagates a per-tool direct-save workaround and leaves the latent allowlist gap for both fields.",
+          "Option B (add worker_bundle_impact + workerBundleProvenance to mapTemporalChangeStateToChange AND TEMPORAL_OWNED_PROJECTION_FIELDS + schema decl) is structurally correct: the projection faithfully mirrors workflow state and the signal path alone suffices. The change is purely additive.",
+          "Both fields use inconsistent casing on the workflow state (worker_bundle_impact snake vs workerBundleProvenance camel); renaming is out of scope and would break replay histories, so the fix must preserve existing casing."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Option A: direct store.changes.save in provenance_record (mirror sibling worker_bundle_impact)",
+            "disposition": "deferred",
+            "rationale": "Smallest diff, consistent with worker_bundle_impact. But does not fix the structural allowlist gap; worker_bundle_impact remains fragile and provenance depends on every setter remembering the direct save."
+          },
+          {
+            "option": "Option B: fix the projection allowlist + mapper (structural) + schema declaration",
+            "disposition": "preferred",
+            "rationale": "P33 structural correctness: the projection should mirror workflow state, not rely on per-tool workarounds. Makes both worker-bundle fields robust for any future signal-only setter. Additive and low-risk; touches a shared hot path but only additively."
+          },
+          {
+            "option": "Schema declaration only (user's proposed fix)",
+            "disposition": "rejected",
+            "rationale": "ChangeSchema .passthrough() already preserves the field on read; the bug is the write-side allowlist. Schema-only change leaves the gate permanently blocked."
+          }
+        ],
+        "recommendation": "Apply Option B: (1) add workerBundleProvenance and worker_bundle_impact to TEMPORAL_OWNED_PROJECTION_FIELDS (shared.ts:136-167); (2) add both to mapTemporalChangeStateToChange output (shared.ts:93-124), preserving existing casing; (3) author a dedicated WorkerBundleProvenanceSchema near WorkerBundleImpactSchema (types/changes.ts) and add workerBundleProvenance: WorkerBundleProvenanceSchema.optional() to ChangeSchema; (4) run pnpm run schemas:generate (ChangeSchema is public, schema-registry.ts:37-41); (5) add an integration/disk-projection test that records provenance via the real signal path, reloads the Change from disk, and asserts getArchiveGatePreflightError/evaluateWorkerBundleProvenanceForChange passes. Optionally simplify the now-redundant Partial<Pick<ChangeWorkflowState,'workerBundleProvenance'>> cast in changeSeedStateFromChange (change-state.ts:202-208) as campsite cleanup."
+      },
+      "recommendation": "VERDICT: NEEDS_WORK on the proposed schema-only fix. HYDRATION ANSWER: (b). ROOT CAUSE: REFUTED as stated (schema decl is not the blocker due to .passthrough()); CONFIRMED in direction (field never reaches disk). The actual blocker is the projection write stripping the field via projectTemporalStateOntoLatest + TEMPORAL_OWNED_PROJECTION_FIELDS (shared.ts). REQUIRED: edit shared.ts allowlist+mapper, declare WorkerBundleProvenanceSchema on ChangeSchema, regenerate public schemas (ChangeSchema is public), add round-trip test. No fail-open. Test gap: change.worker-bundle.test.ts mocks the projection away.",
+      "follow_ups": [
+        "Author WorkerBundleProvenanceSchema and wire Option B fix in shared.ts + types/changes.ts",
+        "Add disk-projection round-trip test (provenance record -> disk read -> archive preflight pass) mirroring spec-deltas.disk-projection.test.ts",
+        "Consider auditing TEMPORAL_OWNED_PROJECTION_FIELDS vs ChangeWorkflowState for any OTHER workflow-owned fields silently dropped (related-scan P25)"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkerBundleProvenanceGate",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+      "task_id": "tk-853702694f84",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-853702694f84"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/types/changes.worker-bundle-provenance.test.ts",
+          "pnpm --dir plugin run typecheck",
+          "git diff --check 1680c330^ 1680c330 -- plugin/src/types/changes.ts plugin/src/types/changes.worker-bundle-provenance.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Focused Vitest suite passed 7/7. TypeScript typecheck exited 0 with no output. git diff --check was clean. An initial focused-test invocation with plugin/src/... exited 1 because oc-test executes from plugin/ and the filter must be src/...; corrected invocation passed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "No residual task-local risk found. Projection persistence in storage/store-temporal/shared.ts remains explicitly out of scope and unreviewed."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/types/changes.worker-bundle-provenance.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm --dir plugin run typecheck"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check 1680c330^ 1680c330 -- plugin/src/types/changes.ts plugin/src/types/changes.worker-bundle-provenance.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkerBundleProvenanceGate",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+      "task_id": "tk-e314f51294f0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-e314f51294f0"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "git diff --stat -- plugin/schemas/ && git diff --numstat -- plugin/schemas/ && git diff --check -- plugin/schemas/ && git diff -- plugin/schemas/",
+          "pnpm run schemas:check"
+        ],
+        "results": "pass",
+        "evidence": "Schema diff is exactly one file, plugin/schemas/change.schema.json, with 26 insertions and 0 deletions; git diff --check passed. The added workerBundleProvenance object has four required string fields (source_sha, build_run_id, replay_run_id, recorded_at), optional numeric worker_manifest_generation, and is absent from the parent required list. schemas:check exited successfully. schema-registry.ts has no diff and already registers ChangeSchema as change.schema.json."
+      },
+      "scope_drift": null,
+      "risks": [],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --stat -- plugin/schemas/ && git diff --numstat -- plugin/schemas/ && git diff --check -- plugin/schemas/ && git diff -- plugin/schemas/"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run schemas:check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkerBundleProvenanceGate",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+      "task_id": "tk-cbff6085c204",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-cbff6085c204"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/change.worker-bundle.test.ts",
+        "plugin/src/storage/worker-bundle.archive-roundtrip.test.ts",
+        "plugin/src/types/changes.worker-bundle-provenance.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msdo788u_e3cd1006",
+          "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts",
+          "exit_code": 1,
+          "summary": "RED: tightened mocked-boundary assertion failed because the no-op fireSignalAndRefresh mock dropped workerBundleProvenance."
+        },
+        {
+          "test_run_id": "tr_msdo9i7m_b731ad94",
+          "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts src/storage/worker-bundle.archive-roundtrip.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 2 test files and 11 tests passed after applying payload persistence in the mock and adding the disk round-trip/archive preflight test."
+        },
+        {
+          "test_run_id": "tr_msdoj5cv_a333cfae",
+          "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts src/storage/worker-bundle.archive-roundtrip.test.ts src/types/changes.worker-bundle-provenance.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: 3 test files and 18 tests passed."
+        },
+        {
+          "run_id": "tr_msdonguv_41f8a8cb",
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "PASS: schemas, typecheck, manifest/frontmatter/isolation/lockfile checks, lint (existing warnings only), and formatting checks."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Made the provenance signal mock apply its payload to a captured Change before retaining the existing signal-argument assertions.",
+          "why": "The mocked boundary now fails when the recorded receipt is dropped, reproducing the defect the prior no-op mock concealed."
+        },
+        {
+          "what": "Used real TestRunRecord-shaped build_worker and replay_determinism entries in a saveChange/loadChange fixture and asserted both the evaluator and archive preflight pass.",
+          "why": "This proves the full persisted Change shape required by the evaluator survives disk reload and satisfies AC2/AC3 without duplicating projection-layer tests."
+        },
+        {
+          "what": "Applied a formatting-only cleanup to the adjacent worker-bundle schema test.",
+          "why": "The repository check was otherwise blocked by that pre-existing Prettier failure; no behavior or assertions changed."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Inspected existing projection, gate-readiness, archive-gate, JSON storage, and worker-bundle tests; added only the missing disk-to-gate round trip and tightened the mocked provenance boundary.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Full red-before-green evidence recorded. The new temp-isolated test persists a required-impact Change with matching passing build_worker/replay_determinism runs, reloads it, and proves evaluator plus release-pending archive preflight return no blockers. Mocked provenance test now applies payload to captured change and still asserts signal arguments.",
+        "suggested_next_action": "Review diff and run the normal task checkpoint/status workflow."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-cbff6085c204_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-cbff6085c204-attempt-1"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdo788u_e3cd1006"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdo9i7m_b731ad94"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdoj5cv_a333cfae"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdonguv_41f8a8cb"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkerBundleProvenanceGate",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+      "task_id": "tk-214f5645a3ab",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-214f5645a3ab"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/temporal/gate-readiness.test.ts",
+        "plugin/src/tools/change/archive-gate.test.ts",
+        "plugin/src/storage/save-change-allow-list.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msdp084l_22b38222",
+          "command": "pnpm --dir plugin exec vitest run src/temporal/gate-readiness.test.ts src/tools/change/archive-gate.test.ts",
+          "exit_code": 0,
+          "summary": "Pass: 2 test files, 168 tests; worker-bundle readiness and archive-gate tests."
+        },
+        {
+          "test_run_id": "tr_msdpphonx_09557993",
+          "command": "pnpm --dir plugin run schemas:check",
+          "exit_code": 0,
+          "summary": "Pass: generated JSON schemas are deterministic and up to date."
+        },
+        {
+          "test_run_id": "tr_msdp2ufx_c47e8eda",
+          "command": "pnpm --dir plugin run check",
+          "exit_code": 0,
+          "summary": "Pass: typecheck, manifest/frontmatter/isolation/lockfile checks, lint (4 pre-existing warnings), and format check."
+        },
+        {
+          "test_run_id": "tr_msdp8ekm_523fdaa2",
+          "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+          "exit_code": 1,
+          "summary": "Initial full unit sweep failed one inventory assertion: worker-bundle.archive-roundtrip.test.ts was an unenumerated raw saveChange caller."
+        },
+        {
+          "test_run_id": "tr_msdp8u9z_95562a2b",
+          "command": "pnpm --dir plugin exec vitest run src/storage/save-change-allow-list.test.ts",
+          "exit_code": 1,
+          "summary": "Isolated reproduction confirmed the inventory failure: 5 passed, 1 failed."
+        },
+        {
+          "test_run_id": "tr_msdp9yuu_ff0573b7",
+          "command": "pnpm --dir plugin exec vitest run src/storage/save-change-allow-list.test.ts",
+          "exit_code": 0,
+          "summary": "Pass after adding the adjacent test-only allow-list entry: 6 tests passed."
+        },
+        {
+          "test_run_id": "tr_msdpev90_750c8961",
+          "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+          "exit_code": 0,
+          "summary": "Pass: final full unit sweep completed with exit code 0 and no failed tests reported by oc-test; aggregate Vitest counts were truncated by the bounded runner output."
+        },
+        {
+          "test_run_id": "tr_msdp8ekm_523fdaa2",
+          "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+          "exit_code": 1,
+          "summary": "Recorded initial full-sweep failure for regression comparison; resolved before final verification."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Added an explicit unresolvable build/replay run-ID guard test.",
+          "why": "Existing tests covered missing receipts, blank source_sha, wrong evidence_kind, and failing runs, but did not prove both plausible IDs must resolve to durable typed runs."
+        },
+        {
+          "what": "Added a persistent-Change path-hint test for undeclared impact.",
+          "why": "It verifies worker-bundle path hints cannot bypass the typed worker_bundle_impact declaration authority."
+        },
+        {
+          "what": "Strengthened archive preflight assertions to inspect readinessBlockers shape.",
+          "why": "Existing archive-gate coverage checked blocker text/codes; this preserves the structured code, gateId, message, and remediation contract consumed downstream."
+        },
+        {
+          "what": "Added the already-present worker-bundle archive round-trip test to the raw saveChange inventory.",
+          "why": "The required full sweep exposed a deterministic test-inventory regression from that test's intentional disk fixture write; the allow-list entry is test-only and does not alter production behavior."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reviewed every evaluateWorkerBundleProvenance branch and adjacent archive-gate chokepoint. Existing coverage retained for no receipt, blank source_sha, not_applicable without rationale, wrong evidence kinds, and failing runs; added missing durable-run resolution, path-hint non-bypass, and structured archive blocker-shape assertions.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Negative guard coverage is complete. Existing tests already covered no receipt, missing source_sha, not_applicable rationale, wrong evidence_kind, and failing runs; new tests cover both unresolvable run IDs, typed declaration authority despite worker path hints, and archive blocker shape. Initial full sweep found a deterministic missing allow-list entry for the already-present archive round-trip fixture; added only that test inventory entry. Final schemas:check, check, isolated inventory test, targeted tests, and full unit sweep pass. Full runner bounded output omitted aggregate Vitest counts, but final exit code was 0.",
+        "suggested_next_action": "Review the three-file diff, then proceed with the parent acceptance workflow."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdp084l_22b38222"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdpphonx_09557993"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdp2ufx_c47e8eda"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdp8ekm_523fdaa2"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdp8u9z_95562a2b"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdp9yuu_ff0573b7"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdpev90_750c8961"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdp8ekm_523fdaa2"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixWorkerBundleProvenanceGate",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixWorkerBundleProvenanceGate",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:validate-provenance-authenticity-design"
+      },
+      "agent": "adv-researcher",
+      "topic": "Worker-bundle provenance gate forgery — design validation",
+      "sources": [
+        {
+          "label": "adv_run_test signal payload",
+          "locator": "plugin/src/tools/test.ts:386,525-543",
+          "summary": "evidence_kind is caller-supplied enum label passed through unvalidated. testRunRecorded records runId/exitCode/classification/command/durationMs/evidence_kind/quality only; records NO bundle generation, artifact hash, or source SHA. A run record attests only 'this command exited 0'."
+        },
+        {
+          "label": "adv_worker_bundle_provenance_record",
+          "locator": "plugin/src/tools/change.ts:2793-2891",
+          "summary": "source_sha, build_run_id, replay_run_id all caller-supplied and passed straight into the signal. worker_manifest_generation also caller-supplied and optional."
+        },
+        {
+          "label": "Evaluator match logic + source_sha nonblank-only check",
+          "locator": "plugin/src/temporal/gate-readiness.ts:1068,1080-1131",
+          "summary": "No binding of source_sha to any commit; no binding of receipt to any bundle generation. Match is purely (runId, evidence_kind, exitCode===0)."
+        },
+        {
+          "label": "WorkerBundleManifest.generation is SHA-256 hex STRING; readWorkerBundleGeneration reads disk",
+          "locator": "plugin/src/temporal/worker-bundle-manifest.ts:35,81-89,182-187",
+          "summary": "generation is 64-hex-char string digest over worker.js+workflows.js. readWorkerBundleGeneration(bundleDir) reads from disk; returns null when manifest absent/invalid. Proves existence, not causation."
+        },
+        {
+          "label": "Receipt field typed number — never wirable",
+          "locator": "plugin/src/types/signals.ts:270; plugin/src/types/changes.ts:63; plugin/src/temporal/contracts.ts:755",
+          "summary": "worker_manifest_generation is z.number()/.optional() in three persisted/workflow-reachable shapes. 64-char hex string cannot parse as number; artifact binding never satisfiable. Dead field."
+        },
+        {
+          "label": "Reducer + signalMutation (no type branching, no Zod validation)",
+          "locator": "plugin/src/temporal/change-state.ts:1434-1449; plugin/src/temporal/workflows.ts:1154-1165,1661-1666",
+          "summary": "applyWorkerBundleProvenanceRecordedToState copies field verbatim; no typeof check. signalMutation wraps handler without schema validation. No signal validator exists (grep validateSignal/signalValidator = 0)."
+        },
+        {
+          "label": "Bundle dir via import.meta.url (DEPLOYED dist); build run builds WORKTREE bundle",
+          "locator": "plugin/src/temporal/worker.ts:417; plugin/src/plugin-init.ts:166-182; plugin/src/tools/test.ts:467",
+          "summary": "Worker child and host resolve dist/temporal/worker.js via import.meta.url (deployed). build_worker adv_run_test runs pnpm run build:worker in worktree cwd, producing WORKTREE bundle — different artifact/path than deployed bundle."
+        },
+        {
+          "label": "Codebase replay-patch discipline",
+          "locator": "plugin/src/temporal/workflows.ts:1167-1198",
+          "summary": "Every prior workflow state-shape/command-sequence change gated behind named PATCH marker to preserve replay determinism for pre-change histories. Bare type flip departs from this discipline."
+        }
+      ],
+      "architecture_assessment": "The proposed design (capture source_sha from HEAD + bundle generation from disk at RECORD time; reject caller-supplied authenticity values) is NECESSARY but INSUFFICIENT. Record-time capture proves a bundle EXISTS on disk and that HEAD is some commit; it does NOT prove the recorded build_worker RUN produced that bundle. The reproduction survives unchanged whenever a real (possibly stale) worktree bundle is present on disk — the normal state after any prior legitimate build. The temporal binding (run -> artifact) is entirely absent. The robust closure is for ADV to perform build+replay itself in one privileged tool that emits the receipt with ADV-captured anchors and ADV-owned run IDs, eliminating caller-supplied run IDs and the evidence_kind label as an authority channel. Even that leaves a residual: worktree-build provenance does not bind the separately-deployed trunk artifact.",
+      "validation": {
+        "status": "fail",
+        "blockers": [
+          {
+            "finding": "Core security claim false: design does not stop the true/true forgery. Capturing bundle generation at record time attests existence, not causation. With a stale-but-real worktree bundle on disk (normal post-build state), attacker running adv_run_test command:true evidence_kind:build_worker then ...replay_determinism then adv_worker_bundle_provenance_record records a receipt whose generation equals current on-disk generation and whose runs both exited 0 — gate passes. Evaluator (gate-readiness.ts:1080-1131) matches runId+evidence_kind+exitCode===0 and would additionally match generation==current, which holds because attacker never touched bundle. No file:line in proposed design establishes before/after-diff or ADV-owned-build binding.",
+            "contract_ids": [
+              "rq-workerBundleReleaseProvenance01"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Either (a) ADV runs build:worker + replay itself in a single privileged tool emitting the receipt (preferred; eliminates caller-supplied run IDs + evidence_kind authority), or (b) capture worktree bundle generation immediately BEFORE the build_worker run and AFTER, and require the build run to have produced/refreshed the bundle (generation changed OR freshly created where null). Option (b) must handle deterministic no-op rebuilds explicitly to avoid false negatives. Without one of these, the gate remains forgeable.",
+            "source": {
+              "label": "Run record / evaluator / manifest reader",
+              "locator": "plugin/src/tools/test.ts:525-543; plugin/src/temporal/gate-readiness.ts:1080-1131; plugin/src/temporal/worker-bundle-manifest.ts:182-187",
+              "summary": "run record carries no artifact binding; evaluator match logic is runId+kind+exitCode; readWorkerBundleGeneration reads whatever is on disk (existence, not causation)."
+            }
+          }
+        ],
+        "notes": "Replay safety: bare number->string type flip on worker_manifest_generation will likely NOT raise TMPRL1100 (reducer at change-state.ts:1434-1449 does not branch on value type; no signal validator runs at workflow boundary). But it violates codebase patch-marker discipline (workflows.ts:1167-1198) and risks projection Zod parse (changes.ts:63) for any history storing a number. Conservative fix: NEW optional field worker_manifest_generation_sha:string alongside legacy number field, not type flip."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "high",
+        "tradeoffs": [
+          "ADV-owned build+replay tool is strongest closure but removes agent flexibility and centralizes a slow host-blocking operation (build:worker is heavy).",
+          "Before/after generation-diff keeps existing tool surface but cannot distinguish real deterministic no-op rebuild from `true` no-op without clean-tree precondition — fragile.",
+          "New-field approach is replay-safe and discipline-consistent but leaves dead legacy field and requires evaluator to read new field.",
+          "Worktree-bundle provenance cannot bind deployed trunk artifact (deploy runs post-merge from trunk) — inherent scope ceiling."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Proposed: capture anchors at record time, type-flip generation to string, evaluator verifies generation==current + source_sha==release commit",
+            "disposition": "rejected",
+            "rationale": "Does not bind run to artifact (blocker 1). source_sha==release-commit unimplementable at record time (merge commit does not exist yet — chicken-and-egg). Type flip replay-risky vs codebase discipline."
+          },
+          {
+            "option": "ADV-owned build+replay privileged tool emits the receipt (no caller run IDs)",
+            "disposition": "preferred",
+            "rationale": "Only design that structurally binds the build to the artifact it produced and removes evidence_kind as an authority channel. Heaviest to implement but closes the forgery class."
+          },
+          {
+            "option": "Before/after worktree-bundle generation diff across the build_worker run",
+            "disposition": "deferred",
+            "rationale": "Closes `true` forgery only with clean-tree/no-prior-bundle precondition; otherwise defeated by stale bundle and deterministic rebuilds. Weaker than ADV-owned build; fallback only."
+          },
+          {
+            "option": "New worker_manifest_generation_sha:string field instead of type flip",
+            "disposition": "preferred",
+            "rationale": "Replay-safe, matches existing patch discipline; required in addition to whichever binding fix is chosen."
+          }
+        ],
+        "recommendation": "Do NOT implement design as proposed. Two required changes: (1) close run->artifact binding via ADV-owned build+replay tool (preferred) or before/after generation-diff with clean-tree precondition; (2) use NEW optional string field for generation, not number->string flip. Update agreement to state residual: this gate attests worktree-build provenance only, not deployed-artifact provenance."
+      },
+      "recommendation": "Return NEEDS_WORK to orchestrator. Design is directionally correct (server-captured anchors necessary) but as stated does not stop reported forgery and introduces replay-safety risk via type flip. Require run->artifact binding (ADV-owned build tool preferred) and new-field generation schema before implementation.",
+      "follow_ups": [
+        "Confirm whether ADV-owned build:worker+replay tool acceptable given it blocks host on heavy build; if not, spec before/after generation-diff precondition precisely (clean tree? no prior bundle?).",
+        "Decide canonical bundle path at record/eval time: worktree plugin/dist/temporal (what build run produces) vs deployed ~/.local/share/Advance/plugin/dist/temporal (what ships). Document worktree-bundle provenance != deployed-artifact provenance in agreement.",
+        "If proceeding, add replay-patch marker consistent with workflows.ts:1167-1198 discipline if any command-sequence divergence introduced."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-853702694f84": [
+      {
+        "runId": "tr_msdng1mb_694708d0",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec vitest run --project unit src/types/changes.worker-bundle-provenance.test.ts",
+        "durationMs": 1902.7987130000256,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T19:55:59.036Z"
+      },
+      {
+        "runId": "tr_msdnh2y2_629c97b8",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run --project unit src/types/changes.worker-bundle-provenance.test.ts",
+        "durationMs": 1708.6478619999252,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T19:56:46.842Z"
+      },
+      {
+        "runId": "tr_msdnhqa8_e8824259",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec tsc --noEmit -p plugin/tsconfig.json 2>/dev/null || (cd plugin && npx tsc --noEmit -p tsconfig.json)",
+        "durationMs": 15038.859746000264,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T19:57:17.732Z"
+      },
+      {
+        "runId": "tr_msdnin0c_4c84a04b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx tsc --noEmit -p tsconfig.json",
+        "durationMs": 18871.284167999867,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T19:58:00.417Z"
+      }
+    ],
+    "tk-0f7410ffe9b7": [
+      {
+        "runId": "tr_msdnrcq2_9f948857",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec vitest run --project unit src/storage/store-temporal/worker-bundle.disk-projection.test.ts",
+        "durationMs": 3311.1927649998106,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:04:46.817Z"
+      },
+      {
+        "runId": "tr_msdnsjke_e5820a09",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run --project unit src/storage/store-temporal/worker-bundle.disk-projection.test.ts",
+        "durationMs": 4228.2639449997805,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:05:42.556Z"
+      },
+      {
+        "runId": "tr_msdntldx_72bd4e75",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/store-temporal/ src/tools/change.worker-bundle.test.ts src/types/changes.worker-bundle-provenance.test.ts src/temporal/gate-readiness.test.ts",
+        "durationMs": 28536.789584999904,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:06:31.393Z"
+      }
+    ],
+    "tk-e314f51294f0": [
+      {
+        "runId": "tr_msdnwc8x_9b512706",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run schemas:check",
+        "durationMs": 1598.2771909995936,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T20:08:40.095Z"
+      }
+    ],
+    "tk-cbff6085c204": [
+      {
+        "runId": "tr_msdo6rel_abbbc394",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- plugin/src/tools/change.worker-bundle.test.ts",
+        "durationMs": 1170.2000230001286,
+        "assertionDensity": 1.9565217391304348,
+        "mockSurface": [
+          {
+            "pattern": "vi.mock",
+            "count": 4
+          },
+          {
+            "pattern": "vi.fn",
+            "count": 12
+          }
+        ],
+        "behaviorSurface": "large",
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:16:45.504Z"
+      },
+      {
+        "runId": "tr_msdo788u_e3cd1006",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts",
+        "durationMs": 5909.137524999678,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:17:07.062Z"
+      },
+      {
+        "runId": "tr_msdo9i7m_b731ad94",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts src/storage/worker-bundle.archive-roundtrip.test.ts",
+        "durationMs": 7298.563683999702,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:18:54.185Z"
+      },
+      {
+        "runId": "tr_msdoj5cv_a333cfae",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/change.worker-bundle.test.ts src/storage/worker-bundle.archive-roundtrip.test.ts src/types/changes.worker-bundle-provenance.test.ts",
+        "durationMs": 5589.173034999985,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:26:23.708Z"
+      },
+      {
+        "runId": "tr_msdonguv_41f8a8cb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 78851.36954300012,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:29:44.561Z"
+      },
+      {
+        "runId": "tr_msdoqnvn_7ccca30d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/worker-bundle.archive-roundtrip.test.ts src/tools/change.worker-bundle.test.ts src/types/changes.worker-bundle-provenance.test.ts src/storage/store-temporal/worker-bundle.disk-projection.test.ts",
+        "durationMs": 6643.545079999603,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:32:14.222Z"
+      }
+    ],
+    "tk-214f5645a3ab": [
+      {
+        "runId": "tr_msdowzdz_569f88b2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/temporal/gate-readiness.test.ts",
+        "durationMs": 2356.3427649997175,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:37:08.983Z"
+      },
+      {
+        "runId": "tr_msdp084l_22b38222",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/temporal/gate-readiness.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 4752.631530999206,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:39:39.590Z"
+      },
+      {
+        "runId": "tr_msdp0llq_e981798f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run schemas:check",
+        "durationMs": 1302.2680759998038,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T20:39:57.063Z"
+      },
+      {
+        "runId": "tr_msdp2ufx_c47e8eda",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 86132.55862899963,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T20:41:42.857Z"
+      },
+      {
+        "runId": "tr_msdp8ekm_523fdaa2",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+        "durationMs": 242525.627142,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:46:01.252Z"
+      },
+      {
+        "runId": "tr_msdp8u9z_95562a2b",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin exec vitest run src/storage/save-change-allow-list.test.ts",
+        "durationMs": 2811.9293050002307,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:46:21.083Z"
+      },
+      {
+        "runId": "tr_msdp9yuu_ff0573b7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run src/storage/save-change-allow-list.test.ts",
+        "durationMs": 2889.8097540000454,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:47:14.391Z"
+      },
+      {
+        "runId": "tr_msdpev90_750c8961",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+        "durationMs": 212447.44024300016,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:51:02.994Z"
+      },
+      {
+        "runId": "tr_msdph90t_126c1ff2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 75324.52893900033,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T20:52:53.973Z"
+      },
+      {
+        "runId": "tr_msdphonx_09557993",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run schemas:check",
+        "durationMs": 1343.803559999913,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T20:53:14.443Z"
+      },
+      {
+        "runId": "tr_msdppwn2_616813b1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+        "durationMs": 201231.41427300032,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T20:59:38.134Z"
+      },
+      {
+        "runId": "tr_msdps3n3_643b2d46",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run schemas:check && pnpm --dir plugin run check",
+        "durationMs": 80097.63620799966,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T21:01:20.359Z"
+      },
+      {
+        "runId": "tr_msdrk83s_adf3f6b4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/worker-bundle.archive-roundtrip.test.ts src/storage/store-temporal/worker-bundle.disk-projection.test.ts src/types/changes.worker-bundle-provenance.test.ts src/tools/change.worker-bundle.test.ts src/temporal/gate-readiness.test.ts src/tools/change/archive-gate.test.ts",
+        "durationMs": 5003.750842999667,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T21:51:11.881Z"
+      },
+      {
+        "runId": "tr_msdubfjp_8bdffa54",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/storage/worker-bundle.archive-roundtrip.test.ts src/storage/store-temporal/shared.test.ts",
+        "durationMs": 3721.2531989999115,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T23:08:22.186Z"
+      },
+      {
+        "runId": "tr_msduee8a_b36b6310",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 83788.56063299999,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T23:10:39.611Z"
+      },
+      {
+        "runId": "tr_msduh78y_e649b046",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run check",
+        "durationMs": 77055.96677299961,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T23:12:50.284Z"
+      },
+      {
+        "runId": "tr_msdulghd_868c6801",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "VITEST_MAX_WORKERS=4 bin/oc-test full",
+        "durationMs": 182591.48759300075,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T23:16:09.234Z"
+      },
+      {
+        "runId": "tr_msdutf4v_28c099d4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run build:worker",
+        "durationMs": 13302.467379998416,
+        "evidence_kind": "build_worker",
+        "recordedAt": "2026-08-03T23:22:20.072Z"
+      },
+      {
+        "runId": "tr_msduuu9v_04fd1cbe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec vitest run --project unit src/migration/replay-verification.test.ts",
+        "durationMs": 48881.27015000023,
+        "evidence_kind": "replay_determinism",
+        "recordedAt": "2026-08-03T23:23:26.402Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-03T19:34:19.765Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track (/adv-task) Quick Contract confirmed by user. Defect origin per rq-defectOriginRca01, so the persisted proposal carries a full Root Cause Analysis section rather than taking the fast-track ceremony exemption. RCA traced the field through all five layers: signal defined (messages.ts:398), handler wired (workflows.ts:1662), state written (change-state.ts:1438), query response (workflows.ts:737) — all present; Change schema declaration and store-temporal references both ABSENT. Sibling field worker_bundle_impact on the adjacent query line (736) IS declared at types/changes.ts:1470 and works. Empirically confirmed: jq finds no workerBundleProvenance JSON path in any archived bundle, and fixArchivedProvenanceRecovery shipped this chokepoint while archiving itself with impact required and provenance absent, so the record-then-archive round trip was never exercised. Reproduced 3x on fixTaskUpdatePersistence with matching source_sha.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "e18942c5fe04385e3f21225026ad1275c2ff0d06c16f526a3007ac7c4792413d",
+        "non_whitespace_chars": 3754,
+        "checked_at": "2026-08-03T19:33:40.111Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-03T21:50:05.403Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-completed after the acceptance-stage re-entry cycle resolved to a scope split. Operator initially directed \"fix it here\" for the forged-evidence finding; adversarial design validation then proved the proposed authenticity design did not stop the attack (capture-at-record-time proves the bundle exists, not that the recorded runs built it, and a stale-but-real bundle from any prior build defeats it), and that the design which does work requires ADV to perform the build and replay itself in a new privileged tool with an unresolved host-blocking/timeout problem. On that evidence the operator directed shipping criteria 1-8 and splitting the authenticity work to a separate change. Agreement is rev 4 with the contract reminted back to 12 items (AC1-AC8, C1-C4) matching the delivered scope. The authenticity limitation is documented explicitly in the agreement rather than dropped silently, including the verified reproduction, the pre-existing-versus-activated distinction, and six carried findings so the follow-up starts from a validated position: capture-at-record-time insufficiency, the need for causal run-to-artifact binding, the prohibition on type-flipping worker_manifest_generation across three persisted shapes given the repository's named replay-patch discipline, the canonical worktree bundle path versus the deployed artifact, the source_sha release-commit deadlock, and the residual deployed-artifact and source-review provenance gaps. Spec-law impact unchanged: No spec law update required.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "non_whitespace_chars": 4710,
+        "checked_at": "2026-08-03T19:33:40.116Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-03T21:50:26.818Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design for the delivered scope is unchanged and was independently validated in the original cycle: adv-researcher returned NEEDS_WORK on the first approach, refuting the missing-schema-declaration root cause because ChangeSchema is .passthrough(), and the corrected write-side design (both fields added to mapTemporalChangeStateToChange and TEMPORAL_OWNED_PROJECTION_FIELDS) was adopted and implemented. Option B structural projection chosen over Option A per-tool direct save per P33. Both worker_bundle_impact and workerBundleProvenance are projected so the disk snapshot mirrors workflow state, closing the latent trap where impact survived only via its setter's direct save. Snake/camel casing preserved to avoid breaking replay histories. Validator confirmed zero fail-open risk across all six blocking branches in evaluateWorkerBundleProvenance. The rev 2 and rev 3 authenticity designs explored during re-entry are withdrawn from this change and carried into the follow-up; the second validation cycle that refuted them is preserved in the agreement's carried-findings list rather than discarded, so the follow-up inherits a proven-wrong design and a proven-necessary one instead of relitigating. No user design approval trigger for the delivered scope: no contract compromise, no validator CONFLICT on the shipped approach, no user-value tradeoff.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "6988ae6454df49ffeb92047c714c33229165c705b3d62a1f97bad37563b6cfa6",
+        "non_whitespace_chars": 4626,
+        "checked_at": "2026-08-03T19:33:40.117Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-03T21:50:46.856Z",
+      "completed_by": "user",
+      "approval_evidence": "Re-completed after the scope split. The five-task graph is unchanged and already fully executed: schema declaration, core projection fix to mapper and allowlist, public schema regeneration, signal-to-disk-to-gate round-trip coverage, and the fail-open guard sweep. All 12 reminted contract items (AC1-AC8, C1-C4) are covered by the existing task contract_refs; no new tasks are required because the authenticity scope that would have added them was split to a follow-up change. Operator approval is the explicit \"lets ship 1-8 and then create a separate change\" direction given after being shown that the authenticity design had been proven insufficient by adversarial validation and that the working design requires a new privileged build-executing tool. Worker-bundle impact remains declared required on structural evidence (types/changes.ts is inside the 38-file transitive import closure of workflows.ts), preserving the deliberate bootstrap: this change is subject to the gate it repairs and cannot archive until merged and deployed."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-03T21:51:28.202Z",
+      "completed_by": "agent",
+      "approval_evidence": "Re-completed after the re-entry cycle resolved to a scope split. No implementation changed during re-entry; the branch is unchanged at 5 checkpointed commits and re-verified green after the agreement and contract were restored to the delivered scope, run tr_msdrk83s_adf3f6b4 passing 190/190 across all six worker-bundle suites. Original execution evidence stands: full suite tr_msdppwn2_616813b1 exit 0 with zero failures at VITEST_MAX_WORKERS=4, combined schemas:check plus pnpm run check tr_msdps3n3_643b2d46 exit 0 with 0 errors and prettier/manifest/isolation/lockfile checks clean, and genuine red-before-green on all three code tasks including RED tr_msdnrcq2_9f948857 which reproduced the defect on all four projection assertions. Both static_check tasks retain reviewer-owned review_evidence_ref from adv-reviewer READY verdicts. The forged-evidence limitation found at acceptance is documented in the agreement rather than silently absorbed, with the verified reproduction, the pre-existing-versus-activated distinction, and six carried findings for the follow-up change."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-03T22:35:39.331Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted via inline \"approve\" after the full acceptance summary, Approval Consequence Context, and the disclosed forged-evidence limitation. Contract review matrix persisted with 12 rows and 0 failing before the prompt; executive summary and typed release notes persisted. Preview URL not_applicable: no user-facing or visual output. Review verdict APPROVED, 0 blockers and 0 issues in shipped scope, three coverage gaps deferred to harden. Acceptance was initially blocked by VERIFICATION_EVIDENCE_MISSING on three tasks because sub-agent reports cited commands as prose without typed adv_run_test run IDs. Resolved with typed fixed dispositions rather than by weakening the check, each citing durable orchestrator-owned runs that already existed because the sub-agent evidence-binding gap was distrusted and every verification independently re-run: tr_msdng1mb_694708d0, tr_msdnh2y2_629c97b8, tr_msdnin0c_4c84a04b for the schema task; tr_msdnwc8x_9b512706 for regeneration plus the failing pre-generate check and two-run SHA-256 determinism proof; tr_msdppwn2_616813b1 and tr_msdps3n3_643b2d46 for the guard sweep; and post-split re-verification tr_msdrk83s_adf3f6b4 at 190/190. The severe security finding was disclosed rather than absorbed: the gate's positive evidence is forgeable via caller-chosen evidence_kind, a pre-existing weakness in files this change does not touch. Investigated in scope at operator direction, the proposed authenticity design was independently refuted because capture-at-record-time proves bundle existence rather than causation, and the operator then directed shipping criteria 1-8 with authenticity split. Follow-up bindProvenanceEvidence created and linked as fast_follow_of before approval, carrying the reproduction, the proven-wrong design, and six established constraints. Correctness scanner returned corrupted output; that dimension was completed inline per the sub-agent resilience protocol rather than skipped.",
+      "started_at": "2026-08-03T22:31:17.358Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "05ebac3046b5bf027ebd94558c8e69b40360ef15fb89975654dabe531cb9cc81",
+        "non_whitespace_chars": 4144,
+        "checked_at": "2026-08-03T19:33:40.119Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+      "approvedAt": "2026-08-03T21:32:54.830Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`workerBundleProvenance` is declared on the `Change` schema so a persisted change can carry it, mirroring the sibling `worker_bundle_impact` declaration.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "A provenance receipt recorded via `adv_worker_bundle_provenance_record` is observable to `evaluateWorkerBundleProvenanceForChange` when the archive evaluates a loaded `Change`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "A change with `worker_bundle_impact: \"required\"` and a valid receipt referencing passing build and replay runs completes release, satisfying `rq-workerBundleReleaseProvenance01.2`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "A change with `required` impact and no receipt still blocks with the existing declaration/missing blocker codes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "A receipt referencing a failing or unresolvable run still blocks.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "`not_applicable` still skips the gate, and the typed declaration remains the applicability authority with no path heuristics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Tracked public JSON schema artifacts regenerate deterministically and `schemas:check` stays green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Full suite green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "No fail-open. The gate must keep blocking every case it blocks today except the genuinely-valid one.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No relaxation of run validation; referenced build and replay runs must still resolve and have passed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "No path heuristics or file inspection as an applicability fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve existing blocker codes and reason shapes consumed by `archive-gate.ts`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-03T21:52:00.000Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "WorkerBundleProvenanceSchema authored beside WorkerBundleImpactSchema and workerBundleProvenance declared optional on ChangeSchema (types/changes.ts). Load-bearing: TEMPORAL_OWNED_PROJECTION_FIELDS is typed satisfies readonly (keyof Change)[] and will not compile without it. RED tr_msdng1mb_694708d0 3 of 7 failing, GREEN tr_msdnh2y2_629c97b8 7/7. adv-reviewer READY, report fixWorkerBundleProvenanceGate|tk-853702694f84|adv-reviewer|1, confirming shape fidelity against contracts.ts:751-757."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Both worker_bundle_impact and workerBundleProvenance added to mapTemporalChangeStateToChange and TEMPORAL_OWNED_PROJECTION_FIELDS in store-temporal/shared.ts; both layers required because projectTemporalStateOntoLatest merges mapper output filtered through the allowlist. RED tr_msdnrcq2_9f948857 failed all four assertions reproducing the defect; GREEN tr_msdnsjke_e5820a09 4/4."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "storage/worker-bundle.archive-roundtrip.test.ts persists a required-impact Change with matching passing build_worker and replay_determinism runs via real saveChange, reloads via loadChange, and asserts evaluateWorkerBundleProvenanceForChange returns exactly { ok: true, blockers: [] }. This is rq-workerBundleReleaseProvenance01.2, the passing path that had never been reachable. Verified tr_msdrk83s_adf3f6b4."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Missing-receipt and blank-source_sha blocking branches asserted with specific blocker codes in gate-readiness.test.ts, not mere falsiness. Independent scanner RED-verified the guards by reverting production code and observing specific failure messages."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Unresolvable run IDs block with WORKER_BUNDLE_PROVENANCE_MISSING naming the unresolved run; failing runs with exitCode !== 0 block with WORKER_BUNDLE_PROVENANCE_FAILING. Both asserted in gate-readiness.test.ts. Scanner confirmed the typed-evidence contract is pinned by a matches-runs-by-typed-evidence_kind-not-command-substring test."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "not_applicable without rationale blocks; undeclared impact blocks and is not bypassed by worker-bundle path hints, asserted at gate-readiness.test.ts:2478-2495. Security scanner independently confirmed the evaluator reads state.worker_bundle_impact and introduces no file or path inspection."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "static_check",
+          "evidence": "Pre-generate schemas:check failed with stale change.schema.json, proving regeneration was required. Diff is exactly one file, +26/-0, containing only the new optional property. Determinism verified: two consecutive generate runs produced identical SHA-256 ccf1dc84bcf83450. Post-generate schemas:check passed tr_msdnwc8x_9b512706. adv-reviewer READY on diff scope, shape fidelity, absence of hand-editing, and registry correctness."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full suite tr_msdppwn2_616813b1 exit 0 with zero failures at VITEST_MAX_WORKERS=4. Combined schemas:check plus pnpm run check tr_msdps3n3_643b2d46 exit 0, 0 errors, prettier clean, agent manifests matching, test-isolation, frontmatter, and lockfile policy checks passing; only 4 pre-existing no-explicit-any warnings in untouched files. Post-split re-verification tr_msdrk83s_adf3f6b4 190/190."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No fail-open introduced. Independent security scanner confirmed all six blocking branches remain reachable and blocking: undeclared impact 1027-1036, not_applicable without rationale 1043-1052, missing receipt 1055-1065, blank source_sha 1068-1077, unresolved or wrongly typed run IDs 1080-1106, and nonzero or null run exits 1109-1128. The only behavioral change is the intended one. Separately disclosed and NOT silently absorbed: the gate's positive evidence is forgeable via caller-chosen evidence_kind, a pre-existing weakness in files this change does not touch, documented in the agreement and split to a follow-up change by operator direction."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Run validation untouched. The evaluator still requires runId match, evidence_kind match, and exitCode === 0 for both build_worker and replay_determinism. test_runs already projected correctly before this change, so run validation works end to end without modification."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No path heuristics introduced. Applicability remains exclusively the typed declaration; regression test at gate-readiness.test.ts:2478-2495 asserts affectedPaths cannot bypass the declaration. Security scanner independently verified the evaluator introduces no file or path inspection."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Existing blocker codes and reason shapes preserved; a dedicated assertion in archive-gate.test.ts pins the structured readinessBlockers payload consumed by archive-gate.ts. Return-type widening on the projection path was additive. Schema change is additive-optional, preserving replay safety for histories predating it, which matters because types/changes.ts is inside the worker-bundle import closure."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "`workerBundleProvenance` is declared on the `Change` schema so a persisted change can carry it, mirroring the sibling `worker_bundle_impact` declaration.",
+    "A provenance receipt recorded via `adv_worker_bundle_provenance_record` is observable to `evaluateWorkerBundleProvenanceForChange` when the archive evaluates a loaded `Change`.",
+    "A change with `worker_bundle_impact: \"required\"` and a valid receipt referencing passing build and replay runs completes release, satisfying `rq-workerBundleReleaseProvenance01.2`.",
+    "A change with `required` impact and no receipt still blocks with the existing declaration/missing blocker codes.",
+    "A receipt referencing a failing or unresolvable run still blocks.",
+    "`not_applicable` still skips the gate, and the typed declaration remains the applicability authority with no path heuristics.",
+    "Tracked public JSON schema artifacts regenerate deterministically and `schemas:check` stays green.",
+    "Full suite green."
+  ],
+  "documents": {
+    "proposal": "## Intent\n\nMake the worker-bundle release-provenance gate satisfiable. A recorded provenance receipt never reaches the disk projection the archive reads, so every change declaring `worker_bundle_impact: \"required\"` blocks forever.\n\n## Root Cause Analysis\n\n> **Correction:** an earlier revision of this RCA attributed the defect to a missing `Change` Zod schema declaration. Independent validation **refuted** that mechanism. `ChangeSchema` is declared `.passthrough()` (`plugin/src/types/changes.ts:1526`), so an unknown field present in disk JSON would survive parsing and reach the evaluator with no schema change at all. The direction was right — the field never reaches the evaluator — but the mechanism is on the **write** side, not the read side. The corrected analysis follows.\n\n### Actual cause\n\nWorkflow-driven disk writes route through an explicit two-layer projection in `plugin/src/storage/store-temporal/shared.ts`, and **both layers drop the field**:\n\n| Layer | Location | Behavior |\n|---|---|---|\n| `mapTemporalChangeStateToChange` | `shared.ts:87-124` | Field-by-field producer, `ChangeWorkflowState` → `Change`. Does not emit `workerBundleProvenance`. |\n| `TEMPORAL_OWNED_PROJECTION_FIELDS` | `shared.ts:136-167` | Allowlist of fields a Temporal dual-write may overwrite on disk. Does not list `workerBundleProvenance`. |\n| `projectTemporalStateOntoLatest` | `shared.ts:174-184` | Merges `{ ...latest, ...temporalOwned }`, taking only allowlisted fields from the mapper output. |\n\nEvery workflow-driven write uses this path: `persistStateToDisk` (`store-temporal/index.ts:266-304`) calls `commitChangeProjection` with `mutateLatest: projectTemporalStateOntoLatest`; `store.changes.refresh` (`changes.ts:1573-1584`) reaches it via `dualWriteAfterMutation`.\n\nThe archive reads the **disk projection**, not the workflow — routine reads never query the workflow (`read-model.ts:44-82`), and the projection is parsed by `ChangeSchema` (`change-projection-reader.ts:408-411`). So `workflows.ts:737` genuinely returns the provenance, and it is genuinely discarded before disk.\n\n### Why the sibling field appears to work\n\n`worker_bundle_impact` is returned on the adjacent query line (`workflows.ts:736`) and does reach the archive — but **not** through the projection. `adv_change_set_worker_bundle_impact` writes disk directly via `store.changes.save({...change, worker_bundle_impact})` (`change.ts:2955-2956`) *before* firing its signal. The value lands on `latest`, and because it is absent from `temporalOwned`, the `{ ...latest, ...temporalOwned }` spread inherits it.\n\n`adv_worker_bundle_provenance_record` (`change.ts:2862-2878`) fires its signal through `fireSignalAndRefresh` and performs **no** direct save. It depends entirely on the projection path, which strips the field.\n\n**Latent defect:** `worker_bundle_impact` is *also* absent from the allowlist. It survives only through that direct-save coupling. Any future signal-only writer of impact would lose it the same way. This change fixes both fields rather than leaving the second trap armed.\n\n### Empirical confirmation\n\n- `jq` finds no `workerBundleProvenance` JSON path in **any** archived bundle. The four textual matches are prose inside proposals and spec deltas, not data.\n- `fixArchivedProvenanceRecovery` — the change that introduced this chokepoint — archived on 2026-08-02 with `worker_bundle_impact.kind: \"required\"` and provenance absent. It shipped its own gate before that gate could apply to it.\n- Reproduced 3× on `fixTaskUpdatePersistence`: record returns `success: true` with `recorded_at`; the immediately following archive returns `WORKER_BUNDLE_PROVENANCE_MISSING`. Attempts covered a plain record, a re-record, and re-confirming `worker_bundle_impact` to force a projection write. `source_sha` matched branch HEAD exactly every time.\n\n### Why no test caught it\n\n`change.worker-bundle.test.ts:122` owns the record tool but **mocks `fireSignalAndRefresh` to a no-op** (lines 22, 119) and asserts only the signal arguments. It never writes disk, never reads back, never runs the gate — it stops exactly one layer short of the defect. `gate-readiness.test.ts:2425+` hand-constructs state with provenance already set, bypassing the projection boundary entirely. `contracts.test.ts` covers the reducer and continue-as-new seed, which are workflow-state only.\n\nNo test exercises `signal → reduce → projection → disk → archive preflight`.\n\n## LBP Targets\n\n1. Add both `workerBundleProvenance` and `worker_bundle_impact` to the projection mapper and the owned-field allowlist, so the projection structurally mirrors workflow state (P33) rather than depending on a per-tool direct-save workaround.\n2. Author a `WorkerBundleProvenanceSchema` — none exists standalone today. The signal payload schema (`signals.ts:266-272`) and the inline `ChangeWorkflowState` shape (`contracts.ts:751-757`) share the shape but are not reusable as the stored declaration.\n3. Regenerate tracked public JSON schemas — `ChangeSchema` is public (`schema-registry.ts:37-41` → `change.schema.json`). No new registry entry is needed.\n\n## Scope\n\n- `plugin/src/storage/store-temporal/shared.ts` — mapper + allowlist\n- `plugin/src/types/changes.ts` — `WorkerBundleProvenanceSchema` + field declaration\n- `plugin/schemas/` — regenerated artifacts\n- `plugin/src/storage/store-temporal/` round-trip test\n- `plugin/src/tools/change.worker-bundle.test.ts` — close the mocked-boundary gap\n\n## User Outcomes\n\n- Changes carrying real build + replay evidence can complete release.\n- 17 changes unblocked: `fixTaskUpdatePersistence` plus the 16 classified `REQUIRED`.\n- The release-safety gate begins verifying worker bundles instead of rejecting all of them identically.\n- The latent `worker_bundle_impact` projection gap is closed before it produces a second incident.\n\n## Explicitly out of scope\n\n- No fail-open. Missing, incomplete, and failing-run receipts must all keep blocking.\n- No relaxation of run validation.\n- No retroactive provenance backfill for archived changes.\n- No change to `worker_bundle_impact` classification semantics.\n- No renaming of the existing snake/camel casing inconsistency between the two fields — renaming would break replay histories.\n",
+    "problemStatement": "Every change that declares `worker_bundle_impact: \"required\"` is permanently unreleasable. Provenance can be recorded successfully, but the archive gate never sees it and blocks with `WORKER_BUNDLE_PROVENANCE_MISSING`.\n\n17 changes are affected: `fixTaskUpdatePersistence` plus 16 classified `REQUIRED` during backlog triage.\n",
+    "agreement": "## Agreement (rev 4 — authenticity scope split to a follow-up)\n\nScope returned to the delivered projection fix. The authenticity work explored in rev 2/rev 3 is split into a linked follow-up change; the evidence gathered is preserved below so the follow-up starts from a validated position rather than from scratch.\n\n### Spec-law impact: No spec law update required\n\n`rq-workerBundleReleaseProvenance01` already states the correct law, and scenario `.2` (\"Required impact with valid provenance passes release\") already asserts the behavior that was broken. This change restores conformance; it adds, modifies, and removes nothing.\n\n### Objectives\n\n- Make a recorded provenance receipt observable to the release-readiness evaluator, restoring conformance to `rq-workerBundleReleaseProvenance01.2`.\n- Preserve every blocking path exactly: missing, incomplete, or failing-run receipts must still block.\n- Add the round-trip regression coverage whose absence allowed this to ship.\n\n### Acceptance criteria\n\n1. `workerBundleProvenance` is declared on the `Change` schema so a persisted change can carry it, mirroring the sibling `worker_bundle_impact` declaration.\n2. A provenance receipt recorded via `adv_worker_bundle_provenance_record` is observable to `evaluateWorkerBundleProvenanceForChange` when the archive evaluates a loaded `Change`.\n3. A change with `worker_bundle_impact: \"required\"` and a valid receipt referencing passing build and replay runs completes release, satisfying `rq-workerBundleReleaseProvenance01.2`.\n4. A change with `required` impact and no receipt still blocks with the existing declaration/missing blocker codes.\n5. A receipt referencing a failing or unresolvable run still blocks.\n6. `not_applicable` still skips the gate, and the typed declaration remains the applicability authority with no path heuristics.\n7. Tracked public JSON schema artifacts regenerate deterministically and `schemas:check` stays green.\n8. Full suite green.\n\n### Constraints\n\n1. No fail-open. The gate must keep blocking every case it blocks today except the genuinely-valid one.\n2. No relaxation of run validation; referenced build and replay runs must still resolve and have passed.\n3. No path heuristics or file inspection as an applicability fallback.\n4. Preserve existing blocker codes and reason shapes consumed by `archive-gate.ts`.\n\n### Avoidances and out of scope\n\n- Retroactive provenance backfill for already-archived changes.\n- Changes to `worker_bundle_impact` classification semantics.\n- Post-deployment or runtime freshness, explicitly out of scope per the requirement body.\n- Reconciling the 17 blocked changes; this change makes their release possible but does not perform it.\n- **Evidence authenticity — split to a linked follow-up change.** See below.\n\n### Known limitation: positive evidence is weak (deferred, not accepted silently)\n\nThis change makes the gate *function*. It does not make the gate's positive evidence *trustworthy*. Acceptance-stage security review found the gate is satisfiable with forged evidence, and adversarial design validation confirmed the fix is materially larger than this change's scope.\n\nReproduction, verified:\n\n```\nadv_run_test  command: \"true\"  evidence_kind: \"build_worker\"       -> exit 0\nadv_run_test  command: \"true\"  evidence_kind: \"replay_determinism\" -> exit 0\nadv_worker_bundle_provenance_record  source_sha: <any nonblank string>\n-> gate passes; no worker built, no replay verified\n```\n\nBecause `evidence_kind` is caller-supplied (`tools/test.ts:386`, passed through unvalidated at 534-535) and `source_sha` is caller-supplied (`tools/change.ts:2801`) and only nonblank-checked (`temporal/gate-readiness.ts:1068`).\n\nThis weakness is **pre-existing** in the verifier and the evidence-recording surface, none of which this change touches. This change does not introduce it; it makes it reachable by repairing the gate's positive path. Before this change the gate rejected valid and invalid receipts identically, so it had never verified a worker bundle at all.\n\nDeferred deliberately because the validated fix requires ADV to perform the build and replay itself in a dedicated privileged tool — a new execution model with an unresolved host-blocking/timeout problem — which is a different problem from the projection defect this change repairs, and which would keep 17 changes blocked while it is solved.\n\nFindings carried to the follow-up so it does not restart from scratch:\n\n- Capture-at-record-time is insufficient. It proves the bundle exists, not that the recorded runs built it; a stale-but-real bundle from any prior build defeats it.\n- The run-to-artifact binding must be causal: ADV performs build and replay and emits the receipt with ADV-owned run identifiers.\n- `worker_manifest_generation` must not be type-flipped from number to string. It appears in three persisted shapes and the repository gates state-shape changes behind named replay patches; add a new optional string field instead.\n- The canonical bundle path is the worktree bundle at `<worktree>/plugin/dist/temporal/`, not the deployed bundle resolved via `import.meta.url`, which is a different artifact.\n- `source_sha` cannot be matched against the release/merge commit, which does not exist at record time; matching worktree HEAD at evaluation time is the implementable form.\n- Residual risk that remains even after the follow-up: worktree-build provenance is not deployed-artifact provenance, and a generation hash is not source-review provenance.\n",
+    "design": "## Design\n\nValidated by independent researcher: **NEEDS_WORK** on the original schema-only approach, with a concrete recommended alternative. Option B (structural) adopted below.\n\n### D1 — Project both fields, not just the broken one\n\n`plugin/src/storage/store-temporal/shared.ts`:\n\n- **Mapper** (`shared.ts:93-124`): emit `worker_bundle_impact: safeState.worker_bundle_impact` and `workerBundleProvenance: safeState.workerBundleProvenance`.\n- **Allowlist** (`shared.ts:136-167`): add `\"worker_bundle_impact\"` and `\"workerBundleProvenance\"`.\n\nBoth fields are included deliberately. `worker_bundle_impact` currently survives only because `adv_change_set_worker_bundle_impact` happens to direct-save before signaling; that is an accidental coupling, not a design. Fixing only provenance would leave an identical trap armed for any future signal-only writer.\n\n**Casing is preserved as-is** (`worker_bundle_impact` snake, `workerBundleProvenance` camel). The inconsistency is pre-existing and cosmetic; renaming either would break replay histories.\n\n**Rejected — Option A (minimal):** add `store.changes.save({...change, workerBundleProvenance})` to the record tool, mirroring the impact setter. Smaller diff, but it propagates the per-tool workaround, leaves the allowlist gap intact, and keeps the projection structurally out of sync with workflow state. Rejected per P33: make correctness structural, not per-caller.\n\n### D2 — Author the stored schema\n\n`plugin/src/types/changes.ts`, beside `WorkerBundleImpactSchema` (~1470):\n\n```ts\nexport const WorkerBundleProvenanceSchema = z.object({\n  source_sha: z.string(),\n  build_run_id: z.string(),\n  replay_run_id: z.string(),\n  worker_manifest_generation: z.number().optional(),\n  recorded_at: z.string(),\n});\n```\n\nShape mirrors the signal payload (`signals.ts:266-272`) and the inline `ChangeWorkflowState` declaration (`contracts.ts:751-757`). Added to `ChangeSchema` as `workerBundleProvenance: WorkerBundleProvenanceSchema.optional()`.\n\nNote this is **not** what unblocks the gate — `.passthrough()` at `types/changes.ts:1526` already preserves unknown fields on read. The declaration is for type safety and public-schema accuracy, so the field is a first-class part of the contract rather than an undeclared passenger.\n\n### D3 — Regenerate public schemas\n\n`ChangeSchema` is public via `schema-registry.ts:37-41` → `change.schema.json`. Run `pnpm run schemas:generate`; keep `pnpm run schemas:check` green. No new registry entry required — it already points at `ChangeSchema`.\n\n### D4 — Close the round-trip test gap\n\nThe defect's real signature is a **boundary crossing that no test crosses**. Mirror `spec-deltas.disk-projection.test.ts`, which already covers `projectTemporalStateOntoLatest` for deltas:\n\n- Record provenance through the real signal path (not a mocked `fireSignalAndRefresh`).\n- Reload the `Change` from disk.\n- Assert `evaluateWorkerBundleProvenanceForChange` / `getArchiveGatePreflightError` passes.\n\nAlso tighten `change.worker-bundle.test.ts:122`, which mocks `fireSignalAndRefresh` at lines 22/119 and stops one layer short. It owns the record tool and should not be able to pass while the recorded value never persists.\n\n### D5 — Preserve every blocking branch\n\nValidator confirmed all blocking paths in `evaluateWorkerBundleProvenance` (`gate-readiness.ts:1020-1132`) remain reachable once `provenance` is defined:\n\n| Branch | Location |\n|---|---|\n| Missing receipt | `1055-1066` |\n| Incomplete (no `source_sha`) | `1068-1078` |\n| Unresolved run IDs | `1080-1107` |\n| Failing runs (`exitCode !== 0`) | `1109-1129` |\n| `not_applicable` without rationale | `1043-1053` |\n| Undeclared impact | `~1024-1037` |\n\n`test_runs` already projects correctly (allowlist `144`, mapper `101`), so run validation works end-to-end today. The only behavioral change is the intended one: a complete receipt referencing passing runs now passes. **No fail-open introduced.**\n\n### D6 — Campsite\n\n`changeSeedStateFromChange` (`change-state.ts:198-265`) casts a `Change` through `Partial<Pick<ChangeWorkflowState, \"workerBundleProvenance\" | ...>>` to read the field. Once it is a real `Change` field the cast is redundant and may be simplified. No type collision — both declarations share the same shape. Optional; not required for correctness.\n\n### Verification strategy\n\n- **RED:** record provenance through the real path, reload from disk, assert the field is absent / the gate blocks. Must fail before the fix.\n- **GREEN:** same test passes after mapper + allowlist changes.\n- Regression: missing receipt still blocks.\n- Regression: receipt with unresolvable run IDs still blocks.\n- Regression: receipt referencing a failing run still blocks.\n- Regression: `not_applicable` still skips.\n- `worker_bundle_impact` still reaches the archive after being added to the allowlist (guards against the direct-save path and the projection path conflicting).\n- `pnpm run schemas:check` green after regeneration.\n- Full suite green.\n\n### Residual risk\n\nAdding `worker_bundle_impact` to the allowlist changes which writer wins when both the direct save and the projection carry a value. Both derive from the same declaration, so they should agree — but the regression test above exists specifically to prove that, since a disagreement would silently overwrite an operator's declaration.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nA safety check that was supposed to confirm a piece of infrastructure had been rebuilt and tested was rejecting every change, including correct ones. It now works. You are approving a repair that unblocks 17 pieces of completed work which could not be released.\n\n## Why It Matters\n\nSeventeen changes were finished but stuck — they could not complete release because the check refused all evidence, valid or not. This repair releases that backlog. It also closes the gap in testing that allowed the fault to ship unnoticed.\n\nOne limitation is carried forward deliberately and is described under Remaining Concerns.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. Recorded evidence is now saved where the release check can see it. Previously it was written to one place and read from another, so the check never found it (the disk projection dropped the field).\n2. A related field was fixed at the same time. It only appeared to work because a different part of the system happened to write it separately — any future change to how it was recorded would have lost it the same way.\n3. The published data format was regenerated to match, verified reproducible.\n4. A test was added that follows evidence all the way from recording to the release check. No test previously crossed that boundary, which is why the fault shipped.\n5. Tests were added confirming the check still refuses incomplete, missing, and failed evidence.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 blockers and 0 issues in the shipped scope.\n- Tests: full suite passed, zero failures. Every code change was proven by first writing a test that failed, then making it pass.\n- Preview URL: not_applicable — no user-facing or visual output; all changes are internal data-handling and release-checking logic.\n- Contract matrix: 12 of 12 required rows passed or respected, 0 failing.\n\n## Remaining Concerns\n\n**Non-blocking, disclosed, and assigned to a follow-up change.** The check now works, but the evidence it accepts is weaker than it appears. A person or agent could run a command that does nothing, label it \"the build\", and satisfy the check. Nothing verifies the command did what the label claims.\n\nThis weakness already existed and is not introduced here — but before this repair the check rejected everything, so it was unreachable. Repairing the check makes it reachable.\n\nIt was investigated during review. An initial fix was designed, independently challenged, and **proven not to work** — it would have added ceremony while leaving the gap open. The design that does work requires the system to perform the build itself, a materially larger piece of work with an unresolved timing problem. On that evidence the decision was to release this repair now and address evidence trustworthiness separately, rather than keep 17 changes blocked.\n\nEverything learned, including the design proven wrong, is recorded so the follow-up starts from a validated position.\n\n## Supporting Evidence\n\nTasks tk-853702694f84, tk-0f7410ffe9b7, tk-e314f51294f0, tk-cbff6085c204, tk-214f5645a3ab. Full suite tr_msdulghd_868c6801; checks tr_msduh78y_e649b046; earlier full suite tr_msdppwn2_616813b1. Two independent reviewer approvals. Three independent scanner reviews at acceptance. Two adversarial design validations, the second refuting the proposed authenticity fix. Contract review matrix, 12 rows, 0 failing.\n\n## Release Readiness Summary\n\nRelease-ready. Hardening found no blocking defects and closed the three test-coverage findings raised at review, so nothing actionable remains open against this change.\n\nThe repair itself is small and contained: three hand-edited source files plus regenerated data format and tests. It touches no configuration, no database migrations, no external services, and no deployment pipeline, so there is nothing operational to prepare or roll back.\n\nOne sequencing point matters for release. This change is subject to the very check it repairs, so it cannot complete release until it is merged and the plugin is redeployed. That ordering is deliberate — declaring the change exempt to sidestep the check would be the exact shortcut this work exists to prevent.\n\nVerification: full suite passed with zero failures; all quality checks passed with zero errors; a dry-run merge into the default branch was clean.\n\n## Approval Consequence Context\n\n1. **Delivered value** — pass. Release check repaired; 17 blocked changes become releasable. Source: contract matrix 12/12, task implementation summaries.\n2. **Enabling-only / follow-up dependency** — pass. Makes release possible; does not perform the backlog reconciliation. Source: agreement out-of-scope.\n3. **Ops readiness** — pass. No env vars, migrations, external services, CI/CD, or infrastructure touched; cleanup scan found no temp files, debug code, or dead imports. Source: harden deployment and cleanup scans.\n4. **Migration / data impact** — n/a. Schema change is additive-optional; existing records remain valid and replay-safe. Source: reviewer confirmation on additive-optional shape, no migration surface in diff.\n5. **Frontend / preview impact** — not_applicable. No user-facing or visual output. Source: Preview URL Proof and matching contract matrix rationale.\n6. **Collision / release risk** — warning. Dry-run merge into the default branch is clean and the branch is level with it. One other active change overlaps a file but sits 767 commits behind and needs a large rebase regardless. Source: harden merge-compatibility check, review branch comparison.\n7. **Open follow-ups** — warning. One substantive and non-blocking: `bindProvenanceEvidence`, carrying the verified reproduction, the design proven wrong, and six established constraints. The three review coverage findings were fixed during hardening, not deferred.\n8. **Next action** — `/adv-archive fixWorkerBundleProvenanceGate`. Release completion additionally requires merge and redeploy because of the bootstrap noted above.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-03T21:52:00.000Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `workerBundleProvenance` is declared on the `Change` schema so a persisted change can carry it, mirroring the sibling `worker_bundle_impact` declaration. | pass | WorkerBundleProvenanceSchema authored beside WorkerBundleImpactSchema and workerBundleProvenance declared optional on ChangeSchema (types/changes.ts). Load-bearing: TEMPORAL_OWNED_PROJECTION_FIELDS is typed satisfies readonly (keyof Change)[] and will not compile without it. RED tr_msdng1mb_694708d0 3 of 7 failing, GREEN tr_msdnh2y2_629c97b8 7/7. adv-reviewer READY, report fixWorkerBundleProvenanceGate|tk-853702694f84|adv-reviewer|1, confirming shape fidelity against contracts.ts:751-757. |\n| AC2 | acceptance_criterion | A provenance receipt recorded via `adv_worker_bundle_provenance_record` is observable to `evaluateWorkerBundleProvenanceForChange` when the archive evaluates a loaded `Change`. | pass | Both worker_bundle_impact and workerBundleProvenance added to mapTemporalChangeStateToChange and TEMPORAL_OWNED_PROJECTION_FIELDS in store-temporal/shared.ts; both layers required because projectTemporalStateOntoLatest merges mapper output filtered through the allowlist. RED tr_msdnrcq2_9f948857 failed all four assertions reproducing the defect; GREEN tr_msdnsjke_e5820a09 4/4. |\n| AC3 | acceptance_criterion | A change with `worker_bundle_impact: \"required\"` and a valid receipt referencing passing build and replay runs completes release, satisfying `rq-workerBundleReleaseProvenance01.2`. | pass | storage/worker-bundle.archive-roundtrip.test.ts persists a required-impact Change with matching passing build_worker and replay_determinism runs via real saveChange, reloads via loadChange, and asserts evaluateWorkerBundleProvenanceForChange returns exactly { ok: true, blockers: [] }. This is rq-workerBundleReleaseProvenance01.2, the passing path that had never been reachable. Verified tr_msdrk83s_adf3f6b4. |\n| AC4 | acceptance_criterion | A change with `required` impact and no receipt still blocks with the existing declaration/missing blocker codes. | pass | Missing-receipt and blank-source_sha blocking branches asserted with specific blocker codes in gate-readiness.test.ts, not mere falsiness. Independent scanner RED-verified the guards by reverting production code and observing specific failure messages. |\n| AC5 | acceptance_criterion | A receipt referencing a failing or unresolvable run still blocks. | pass | Unresolvable run IDs block with WORKER_BUNDLE_PROVENANCE_MISSING naming the unresolved run; failing runs with exitCode !== 0 block with WORKER_BUNDLE_PROVENANCE_FAILING. Both asserted in gate-readiness.test.ts. Scanner confirmed the typed-evidence contract is pinned by a matches-runs-by-typed-evidence_kind-not-command-substring test. |\n| AC6 | acceptance_criterion | `not_applicable` still skips the gate, and the typed declaration remains the applicability authority with no path heuristics. | pass | not_applicable without rationale blocks; undeclared impact blocks and is not bypassed by worker-bundle path hints, asserted at gate-readiness.test.ts:2478-2495. Security scanner independently confirmed the evaluator reads state.worker_bundle_impact and introduces no file or path inspection. |\n| AC7 | acceptance_criterion | Tracked public JSON schema artifacts regenerate deterministically and `schemas:check` stays green. | pass | Pre-generate schemas:check failed with stale change.schema.json, proving regeneration was required. Diff is exactly one file, +26/-0, containing only the new optional property. Determinism verified: two consecutive generate runs produced identical SHA-256 ccf1dc84bcf83450. Post-generate schemas:check passed tr_msdnwc8x_9b512706. adv-reviewer READY on diff scope, shape fidelity, absence of hand-editing, and registry correctness. |\n| AC8 | acceptance_criterion | Full suite green. | pass | Full suite tr_msdppwn2_616813b1 exit 0 with zero failures at VITEST_MAX_WORKERS=4. Combined schemas:check plus pnpm run check tr_msdps3n3_643b2d46 exit 0, 0 errors, prettier clean, agent manifests matching, test-isolation, frontmatter, and lockfile policy checks passing; only 4 pre-existing no-explicit-any warnings in untouched files. Post-split re-verification tr_msdrk83s_adf3f6b4 190/190. |\n| C1 | constraint | No fail-open. The gate must keep blocking every case it blocks today except the genuinely-valid one. | respected | No fail-open introduced. Independent security scanner confirmed all six blocking branches remain reachable and blocking: undeclared impact 1027-1036, not_applicable without rationale 1043-1052, missing receipt 1055-1065, blank source_sha 1068-1077, unresolved or wrongly typed run IDs 1080-1106, and nonzero or null run exits 1109-1128. The only behavioral change is the intended one. Separately disclosed and NOT silently absorbed: the gate's positive evidence is forgeable via caller-chosen evidence_kind, a pre-existing weakness in files this change does not touch, documented in the agreement and split to a follow-up change by operator direction. |\n| C2 | constraint | No relaxation of run validation; referenced build and replay runs must still resolve and have passed. | respected | Run validation untouched. The evaluator still requires runId match, evidence_kind match, and exitCode === 0 for both build_worker and replay_determinism. test_runs already projected correctly before this change, so run validation works end to end without modification. |\n| C3 | constraint | No path heuristics or file inspection as an applicability fallback. | respected | No path heuristics introduced. Applicability remains exclusively the typed declaration; regression test at gate-readiness.test.ts:2478-2495 asserts affectedPaths cannot bypass the declaration. Security scanner independently verified the evaluator introduces no file or path inspection. |\n| C4 | constraint | Preserve existing blocker codes and reason shapes consumed by `archive-gate.ts`. | respected | Existing blocker codes and reason shapes preserved; a dedicated assertion in archive-gate.test.ts pins the structured readinessBlockers payload consumed by archive-gate.ts. Return-type widening on the projection path was additive. Schema change is additive-optional, preserving replay safety for histories predating it, which matters because types/changes.ts is inside the worker-bundle import closure. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-03T19:44:50.545Z",
+      "contentHash": "cebbf80069d1022e3eaabcabee4dfafccb1b9f8c5fdab6b1e11808d87ad50088",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-03T19:33:40.792Z",
+      "contentHash": "7ecb683bf8d2b8876533bd8cc447f9729c1bab9194164759dad4065b9c4147c7",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-03T21:49:35.122Z",
+      "contentHash": "c8713ac2cbeae7e2ac19d0424316d72e17fb86e02f538099d3add5f77653b9a2",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-03T19:44:50.545Z",
+      "contentHash": "6988ae6454df49ffeb92047c714c33229165c705b3d62a1f97bad37563b6cfa6",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-03T23:17:05.923Z",
+      "contentHash": "bd8137ae69de027135c76531f8eab892b168641e2d23ae4a29ca62d2dac8b0d8",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "discovery",
+      "reason": "Acceptance-stage security review found the release-provenance gate is satisfiable with forged evidence. The gate authenticates only a generated runId, a caller-chosen evidence_kind, and exitCode === 0. Nothing verifies that the referenced runs performed a worker build or a replay-determinism check. A caller can run any trivially-successful command twice, label the runs build_worker and replay_determinism, supply any nonblank source_sha, and pass the gate with no worker built and no replay verified. Evidence: evidence_kind is caller-supplied at tools/test.ts:386 and passed through unvalidated at 534-535; source_sha is caller-supplied at tools/change.ts:2801 and only nonblank-checked at temporal/gate-readiness.ts:1068. The weakness is pre-existing in the verifier and the evidence-recording surface, none of which this change touches, but this change converts it from unreachable (the gate previously blocked every change including legitimate ones) into an exploitable release pass. A further finding confirms the binding was never wired at all: WorkerBundleManifest.generation is a SHA-256 hex string (temporal/worker-bundle-manifest.ts:35) while the receipt field worker_manifest_generation is typed z.number().int().nonnegative() (types/signals.ts:270), so the receipt could never have held the real bundle generation. Operator reviewed the plain-language explanation and directed that authenticity be fixed within this change rather than split into a fast-follow.",
+      "scope_delta": "Add evidence-authenticity binding to the worker-bundle release-provenance gate, so a passing receipt proves a real worker build and replay-determinism run against the code being released. (1) ADV captures the authenticity anchors itself instead of accepting them from the caller: source_sha from git HEAD, and the worker bundle generation from the on-disk bundle manifest via the existing readWorkerBundleGeneration / computeWorkerBundleGeneration contract in temporal/worker-bundle-manifest.ts, which is already a SHA-256 over worker.js and workflows.js and already consumed at runtime by worker.ts, in-process-worker.ts, and worker-roll.ts. (2) Correct the receipt's worker_manifest_generation type mismatch so it can actually hold the SHA-256 hex generation rather than a number. (3) The release-readiness evaluator verifies the receipt's captured bundle generation matches the current on-disk bundle and that source_sha matches the release commit, rejecting stale receipts after the bundle or source changes. (4) Caller-supplied authenticity values are either rejected outright or must match the ADV-captured values; evidence_kind alone no longer confers release authority. Preserves every existing blocking branch and the typed-declaration applicability authority (no path heuristics). Does not change worker_bundle_impact classification semantics and does not retroactively backfill archived changes.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-08-03T21:30:27.534Z",
+      "gates_reset": [
+        "discovery",
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-03T23:41:16.641Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "Live reconciliation session 2026-08-03; reproduced 3x on fixTaskUpdatePersistence archive attempts"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-853702694f84",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "The warning originates from the adv-reviewer report, which cited three commands (bin/oc-test targeted, pnpm run typecheck, git diff --check) as prose without typed adv_run_test run IDs, making reviewer aggregate evidence non-authoritative. The underlying verification was not missing; it was performed by the orchestrator with durable typed evidence bound to this task before the reviewer was ever spawned. Durable runs: RED tr_msdng1mb_694708d0 recording 3 of 7 tests failing, including the decisive assertion that ChangeSchema.passthrough() accepts a malformed receipt while the field is undeclared; GREEN tr_msdnh2y2_629c97b8 passing 7/7; typecheck tr_msdnin0c_4c84a04b exit 0 with zero output. An earlier verify attempt tr_msdnhqa8_e8824259 was explicitly discarded rather than counted, because its exit code came from a shell fallback while the captured output showed the first command's path error. Post-scope-split re-verification tr_msdrk83s_adf3f6b4 passed 190/190 across all six worker-bundle suites including this task's schema suite.",
+      "dispositionedAt": "2026-08-03T22:31:45.498Z"
+    },
+    {
+      "taskId": "tk-e314f51294f0",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "The warning originates from the adv-reviewer report, which cited its git diff inspection and pnpm run schemas:check as prose without typed adv_run_test run IDs. The underlying verification was performed by the orchestrator with durable typed evidence bound to this task: schemas:check tr_msdnwc8x_9b512706 exit 0. Additional non-prose proof for this specific task: the pre-generate schemas:check FAILED with the message Generated JSON schemas are stale: change.schema.json, which establishes the regeneration was genuinely required rather than a no-op; the resulting diff is exactly one file, plugin/schemas/change.schema.json, +26/-0, containing only the new optional workerBundleProvenance property with no unrelated churn; and generation determinism was verified by running the generator twice and comparing SHA-256 ccf1dc84bcf83450 on both runs, satisfying the task's explicit stop-and-report-if-nondeterministic requirement. The full-suite run tr_msdppwn2_616813b1 and the combined schemas:check plus pnpm run check run tr_msdps3n3_643b2d46 both exited 0 and cover the regenerated artifact.",
+      "dispositionedAt": "2026-08-03T22:32:03.949Z"
+    },
+    {
+      "taskId": "tk-214f5645a3ab",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "The warning originates from the adv-engineer report, whose four cited run IDs carried no durable adv_run_test evidence resolvable from this task. That binding gap is precisely why the orchestrator re-ran every verification itself rather than accepting the report. Durable orchestrator-owned evidence bound to this task: full suite tr_msdppwn2_616813b1 exit 0 with zero failures at VITEST_MAX_WORKERS=4; combined schemas:check plus pnpm run check tr_msdps3n3_643b2d46 exit 0 with 0 errors, prettier clean, agent manifests matching, and test-isolation, frontmatter, and lockfile policy checks passing, leaving only 4 pre-existing no-explicit-any warnings in untouched files mock-owner.ts and operations.ts; and post-scope-split re-verification tr_msdrk83s_adf3f6b4 passing 190/190 across all six worker-bundle suites. This task's substance was independently corroborated rather than taken on trust: it caught a real defect in an earlier already-checkpointed task, where the round-trip test used raw saveChange and violated the save-change allow-list architectural guard, and the guard was enumerated with rationale rather than weakened. Its fail-open guards assert specific blocker codes such as WORKER_BUNDLE_PROVENANCE_MISSING rather than mere falsiness, and an independent review scanner separately RED-verified the change's guards by reverting production code and observing specific failure messages.",
+      "dispositionedAt": "2026-08-03T22:32:22.160Z"
+    }
+  ],
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Worker-bundle release provenance receipts now reach the release gate",
+    "highlights": [
+      "Recorded worker-bundle provenance is now projected to the disk snapshot the archive evaluates, so worker_bundle_impact: required changes can complete release",
+      "worker_bundle_impact is projected alongside it, closing a latent trap where it survived only via its setter's direct disk write",
+      "Added signal-to-disk-to-gate round-trip coverage plus red-path guards; no test previously crossed that boundary, which is why the defect shipped",
+      "Known limitation: gate evidence authenticity is weak and is tracked in follow-up change bindProvenanceEvidence"
+    ],
+    "area": "release-provenance",
+    "user_action_required": false
+  },
+  "worker_bundle_impact": {
+    "kind": "required",
+    "rationale": "Determined structurally, not by assumption: computed the transitive import closure of plugin/src/temporal/workflows.ts (the worker-bundle root, 38 files) and intersected it with this change's scope. plugin/src/types/changes.ts IS in the closure, so the ChangeSchema edit is workflow-bundle reachable and requires build_worker + replay_determinism provenance before release. plugin/src/storage/store-temporal/shared.ts and plugin/src/schema-registry.ts are NOT reachable, but a single reachable file is sufficient to require provenance. Declaring required despite the bootstrap consequence — this change is subject to the very gate it repairs — because declaring not_applicable to dodge the gate would be exactly the shortcut this change exists to prevent.",
+    "confirmed_at": "2026-08-03T19:50:39.408Z"
+  },
+  "workerBundleProvenance": {
+    "source_sha": "87541da0e4ba946d0af1c9168b5afd9062fb81a2",
+    "build_run_id": "tr_msdutf4v_28c099d4",
+    "replay_run_id": "tr_msduuu9v_04fd1cbe",
+    "recorded_at": "2026-08-03T23:41:16.641Z"
+  },
+  "creation_request_hash": "8a80c7a1ec495280d51dfcb0572f4eaa73e94c1f1478684b72564c5d9fdb01ed",
+  "projection_revision": 74,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-03T20:02:59.182Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-03T20:03:49.746Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-03T20:07:08.125Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-03T20:07:28.891Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-03T20:11:41.422Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-03T20:11:44.930Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-03T20:12:23.893Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-03T20:30:06.200Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-03T20:30:10.327Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-03T20:32:41.467Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-03T20:54:29.637Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-03T20:54:32.515Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-03T20:55:04.642Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-03T21:01:50.825Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-03T21:03:28.475Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-03T21:30:27.668Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a6455a120d4c4b1f5d465a8fc58ae7e135c430ccbfb59b42fffee3e85c2f0ae0:updateArtifacts:agreement",
+      "operation_id": "a6455a120d4c4b1f5d465a8fc58ae7e135c430ccbfb59b42fffee3e85c2f0ae0:updateArtifacts:agreement",
+      "payload_hash": "dfc67bab97b100d350ec11e95cfa80399c28a2dd60d8f2fc3d118de5f8c65dbc",
+      "state_revision": 6,
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-03T21:31:25.076Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-03T21:31:49.598Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "e26fbac24d340bb55c54edc34a36f2bf80002d551d8bb42c06e1bcef99a2d5aa:updateArtifacts:agreement",
+      "operation_id": "e26fbac24d340bb55c54edc34a36f2bf80002d551d8bb42c06e1bcef99a2d5aa:updateArtifacts:agreement",
+      "payload_hash": "57415a8dfc0b9daa4425f553cfdb3952e7fa2202113fdb92fea5178ca22d4695",
+      "state_revision": 7,
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-03T21:32:18.203Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-03T21:32:34.442Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-03T21:32:54.998Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-03T21:38:02.595Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-08-03T21:38:30.036Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-08-03T21:38:33.228Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "639c03b2a2e3f1b975bd55e4f4a5affeb37a36f0018ecbdd7f04cacf5c7d3a50:updateArtifacts:agreement",
+      "operation_id": "639c03b2a2e3f1b975bd55e4f4a5affeb37a36f0018ecbdd7f04cacf5c7d3a50:updateArtifacts:agreement",
+      "payload_hash": "5c72182d0acbfb915d3a9647e17f3a5f61fdc817942d0b1f436f914c01e13116",
+      "state_revision": 8,
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-08-03T21:40:20.434Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-08-03T21:40:41.623Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "6b6403cd0ce185bbc867b1a3090f94548e17368dacc98e84a77800daf10582ea:updateArtifacts:agreement",
+      "operation_id": "6b6403cd0ce185bbc867b1a3090f94548e17368dacc98e84a77800daf10582ea:updateArtifacts:agreement",
+      "payload_hash": "e728a59edc516080db8c2e66348472218f86463174b13a6a5ad5257ba970d256",
+      "state_revision": 9,
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-08-03T21:49:35.503Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-08-03T21:49:49.656Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-08-03T21:50:05.530Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-08-03T21:50:26.927Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-08-03T21:50:46.986Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-08-03T21:51:28.355Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785793928237_fwax2gem",
+      "prior_revision": 56,
+      "new_revision": 57,
+      "committed_at": "2026-08-03T21:52:08.363Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-03T21:52:00.000Z",
+          "rows": [
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "WorkerBundleProvenanceSchema authored beside WorkerBundleImpactSchema and workerBundleProvenance declared optional on ChangeSchema (types/changes.ts). Load-bearing: TEMPORAL_OWNED_PROJECTION_FIELDS is typed satisfies readonly (keyof Change)[] and will not compile without it. RED tr_msdng1mb_694708d0 3 of 7 failing, GREEN tr_msdnh2y2_629c97b8 7/7. adv-reviewer READY, report fixWorkerBundleProvenanceGate|tk-853702694f84|adv-reviewer|1, confirming shape fidelity against contracts.ts:751-757."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Both worker_bundle_impact and workerBundleProvenance added to mapTemporalChangeStateToChange and TEMPORAL_OWNED_PROJECTION_FIELDS in store-temporal/shared.ts; both layers required because projectTemporalStateOntoLatest merges mapper output filtered through the allowlist. RED tr_msdnrcq2_9f948857 failed all four assertions reproducing the defect; GREEN tr_msdnsjke_e5820a09 4/4."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "storage/worker-bundle.archive-roundtrip.test.ts persists a required-impact Change with matching passing build_worker and replay_determinism runs via real saveChange, reloads via loadChange, and asserts evaluateWorkerBundleProvenanceForChange returns exactly { ok: true, blockers: [] }. This is rq-workerBundleReleaseProvenance01.2, the passing path that had never been reachable. Verified tr_msdrk83s_adf3f6b4."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Missing-receipt and blank-source_sha blocking branches asserted with specific blocker codes in gate-readiness.test.ts, not mere falsiness. Independent scanner RED-verified the guards by reverting production code and observing specific failure messages."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Unresolvable run IDs block with WORKER_BUNDLE_PROVENANCE_MISSING naming the unresolved run; failing runs with exitCode !== 0 block with WORKER_BUNDLE_PROVENANCE_FAILING. Both asserted in gate-readiness.test.ts. Scanner confirmed the typed-evidence contract is pinned by a matches-runs-by-typed-evidence_kind-not-command-substring test."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "not_applicable without rationale blocks; undeclared impact blocks and is not bypassed by worker-bundle path hints, asserted at gate-readiness.test.ts:2478-2495. Security scanner independently confirmed the evaluator reads state.worker_bundle_impact and introduces no file or path inspection."
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "static_check",
+              "evidence": "Pre-generate schemas:check failed with stale change.schema.json, proving regeneration was required. Diff is exactly one file, +26/-0, containing only the new optional property. Determinism verified: two consecutive generate runs produced identical SHA-256 ccf1dc84bcf83450. Post-generate schemas:check passed tr_msdnwc8x_9b512706. adv-reviewer READY on diff scope, shape fidelity, absence of hand-editing, and registry correctness."
+            },
+            {
+              "contractId": "AC8",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Full suite tr_msdppwn2_616813b1 exit 0 with zero failures at VITEST_MAX_WORKERS=4. Combined schemas:check plus pnpm run check tr_msdps3n3_643b2d46 exit 0, 0 errors, prettier clean, agent manifests matching, test-isolation, frontmatter, and lockfile policy checks passing; only 4 pre-existing no-explicit-any warnings in untouched files. Post-split re-verification tr_msdrk83s_adf3f6b4 190/190."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No fail-open introduced. Independent security scanner confirmed all six blocking branches remain reachable and blocking: undeclared impact 1027-1036, not_applicable without rationale 1043-1052, missing receipt 1055-1065, blank source_sha 1068-1077, unresolved or wrongly typed run IDs 1080-1106, and nonzero or null run exits 1109-1128. The only behavioral change is the intended one. Separately disclosed and NOT silently absorbed: the gate's positive evidence is forgeable via caller-chosen evidence_kind, a pre-existing weakness in files this change does not touch, documented in the agreement and split to a follow-up change by operator direction."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Run validation untouched. The evaluator still requires runId match, evidence_kind match, and exitCode === 0 for both build_worker and replay_determinism. test_runs already projected correctly before this change, so run validation works end to end without modification."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "No path heuristics introduced. Applicability remains exclusively the typed declaration; regression test at gate-readiness.test.ts:2478-2495 asserts affectedPaths cannot bypass the declaration. Security scanner independently verified the evaluator introduces no file or path inspection."
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Existing blocker codes and reason shapes preserved; a dedicated assertion in archive-gate.test.ts pins the structured readinessBlockers payload consumed by archive-gate.ts. Return-type widening on the projection path was additive. Schema change is additive-optional, preserving replay safety for histories predating it, which matters because types/changes.ts is inside the worker-bundle import closure."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-03T21:52:08.236Z",
+        "mutationReceiptId": "mrec_1785793928237_fwax2gem"
+      }
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fd86c6e2b91e737e25f49d02e6990ab62d18cbf1fb54842e7fc6882231be7095:updateArtifacts:executiveSummary",
+      "operation_id": "fd86c6e2b91e737e25f49d02e6990ab62d18cbf1fb54842e7fc6882231be7095:updateArtifacts:executiveSummary",
+      "payload_hash": "4810ecda15bc1d80b2bd19ab27ace810422e21478c7fd034a0f2b98640feb476",
+      "state_revision": 10,
+      "prior_revision": 57,
+      "new_revision": 58,
+      "committed_at": "2026-08-03T21:52:44.877Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "7719de2a9b0fa4d16aad0db6217efce60ed49838950aa39c1fd82bf7aebcf9e1:releaseNotesSet",
+      "operation_id": "7719de2a9b0fa4d16aad0db6217efce60ed49838950aa39c1fd82bf7aebcf9e1:releaseNotesSet",
+      "payload_hash": "e6ed1a77972b612a324c57e99a9e9b955f1a88593ac7829cec6b763d561de024",
+      "state_revision": 11,
+      "prior_revision": 58,
+      "new_revision": 59,
+      "committed_at": "2026-08-03T21:52:58.373Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 59,
+      "new_revision": 60,
+      "committed_at": "2026-08-03T22:31:17.492Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785796305511_eqg016q2",
+      "prior_revision": 60,
+      "new_revision": 61,
+      "committed_at": "2026-08-03T22:31:45.697Z",
+      "payload": {
+        "taskId": "tk-853702694f84",
+        "concernKey": "verification",
+        "disposition": "fixed",
+        "evidence": "The warning originates from the adv-reviewer report, which cited three commands (bin/oc-test targeted, pnpm run typecheck, git diff --check) as prose without typed adv_run_test run IDs, making reviewer aggregate evidence non-authoritative. The underlying verification was not missing; it was performed by the orchestrator with durable typed evidence bound to this task before the reviewer was ever spawned. Durable runs: RED tr_msdng1mb_694708d0 recording 3 of 7 tests failing, including the decisive assertion that ChangeSchema.passthrough() accepts a malformed receipt while the field is undeclared; GREEN tr_msdnh2y2_629c97b8 passing 7/7; typecheck tr_msdnin0c_4c84a04b exit 0 with zero output. An earlier verify attempt tr_msdnhqa8_e8824259 was explicitly discarded rather than counted, because its exit code came from a shell fallback while the captured output showed the first command's path error. Post-scope-split re-verification tr_msdrk83s_adf3f6b4 passed 190/190 across all six worker-bundle suites including this task's schema suite.",
+        "dispositionedAt": "2026-08-03T22:31:45.498Z",
+        "mutationReceiptId": "mrec_1785796305511_eqg016q2"
+      }
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785796323955_5dsg3gam",
+      "prior_revision": 61,
+      "new_revision": 62,
+      "committed_at": "2026-08-03T22:32:04.233Z",
+      "payload": {
+        "taskId": "tk-e314f51294f0",
+        "concernKey": "verification",
+        "disposition": "fixed",
+        "evidence": "The warning originates from the adv-reviewer report, which cited its git diff inspection and pnpm run schemas:check as prose without typed adv_run_test run IDs. The underlying verification was performed by the orchestrator with durable typed evidence bound to this task: schemas:check tr_msdnwc8x_9b512706 exit 0. Additional non-prose proof for this specific task: the pre-generate schemas:check FAILED with the message Generated JSON schemas are stale: change.schema.json, which establishes the regeneration was genuinely required rather than a no-op; the resulting diff is exactly one file, plugin/schemas/change.schema.json, +26/-0, containing only the new optional workerBundleProvenance property with no unrelated churn; and generation determinism was verified by running the generator twice and comparing SHA-256 ccf1dc84bcf83450 on both runs, satisfying the task's explicit stop-and-report-if-nondeterministic requirement. The full-suite run tr_msdppwn2_616813b1 and the combined schemas:check plus pnpm run check run tr_msdps3n3_643b2d46 both exited 0 and cover the regenerated artifact.",
+        "dispositionedAt": "2026-08-03T22:32:03.949Z",
+        "mutationReceiptId": "mrec_1785796323955_5dsg3gam"
+      }
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785796342169_jwe6xh4v",
+      "prior_revision": 62,
+      "new_revision": 63,
+      "committed_at": "2026-08-03T22:32:22.511Z",
+      "payload": {
+        "taskId": "tk-214f5645a3ab",
+        "concernKey": "verification",
+        "disposition": "fixed",
+        "evidence": "The warning originates from the adv-engineer report, whose four cited run IDs carried no durable adv_run_test evidence resolvable from this task. That binding gap is precisely why the orchestrator re-ran every verification itself rather than accepting the report. Durable orchestrator-owned evidence bound to this task: full suite tr_msdppwn2_616813b1 exit 0 with zero failures at VITEST_MAX_WORKERS=4; combined schemas:check plus pnpm run check tr_msdps3n3_643b2d46 exit 0 with 0 errors, prettier clean, agent manifests matching, and test-isolation, frontmatter, and lockfile policy checks passing, leaving only 4 pre-existing no-explicit-any warnings in untouched files mock-owner.ts and operations.ts; and post-scope-split re-verification tr_msdrk83s_adf3f6b4 passing 190/190 across all six worker-bundle suites. This task's substance was independently corroborated rather than taken on trust: it caught a real defect in an earlier already-checkpointed task, where the round-trip test used raw saveChange and violated the save-change allow-list architectural guard, and the guard was enumerated with rationale rather than weakened. Its fail-open guards assert specific blocker codes such as WORKER_BUNDLE_PROVENANCE_MISSING rather than mere falsiness, and an independent review scanner separately RED-verified the change's guards by reverting production code and observing specific failure messages.",
+        "dispositionedAt": "2026-08-03T22:32:22.160Z",
+        "mutationReceiptId": "mrec_1785796342169_jwe6xh4v"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 63,
+      "new_revision": 64,
+      "committed_at": "2026-08-03T22:32:46.297Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 64,
+      "new_revision": 65,
+      "committed_at": "2026-08-03T22:35:39.703Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9f376883b88fd5a40209b2d25247d36e9f89cdfa2ff0245d91cf9c6d185b4b72:updateArtifacts:executiveSummary",
+      "operation_id": "9f376883b88fd5a40209b2d25247d36e9f89cdfa2ff0245d91cf9c6d185b4b72:updateArtifacts:executiveSummary",
+      "payload_hash": "57388eb20a3cf5c8072295f98cb78c13159a72b264dd494710388f47148dc3e5",
+      "state_revision": 12,
+      "prior_revision": 65,
+      "new_revision": 66,
+      "committed_at": "2026-08-03T23:17:06.240Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "38ceb11342e55141ead0d99b74ea6934335328e6fcdca8c4f438705c51066c20:releaseNotesSet",
+      "operation_id": "38ceb11342e55141ead0d99b74ea6934335328e6fcdca8c4f438705c51066c20:releaseNotesSet",
+      "payload_hash": "690de8c89121254dc79aad424804bcdab7d51a464c57443b2eaaf36ff1bad388",
+      "state_revision": 13,
+      "prior_revision": 66,
+      "new_revision": 67,
+      "committed_at": "2026-08-03T23:17:20.320Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 67,
+      "new_revision": 68,
+      "committed_at": "2026-08-03T23:20:51.876Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 68,
+      "new_revision": 69,
+      "committed_at": "2026-08-03T23:23:39.576Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 69,
+      "new_revision": 70,
+      "committed_at": "2026-08-03T23:24:06.812Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 70,
+      "new_revision": 71,
+      "committed_at": "2026-08-03T23:24:16.013Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 71,
+      "new_revision": 72,
+      "committed_at": "2026-08-03T23:40:58.511Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 72,
+      "new_revision": 73,
+      "committed_at": "2026-08-03T23:41:17.113Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixWorkerBundleProvenanceGate",
+      "prior_revision": 73,
+      "new_revision": 74,
+      "committed_at": "2026-08-03T23:41:21.655Z"
+    }
+  ],
+  "state_revision": 13,
+  "_source": "disk"
+}
