@@ -48,6 +48,7 @@ import {
   invalidate,
   getRoute,
   ensureOriginDefaultFetched,
+  discoverMergedPr,
   readPrMergeState,
 } from "./git-finalize";
 import type { PrTitlePolicy } from "../../types/project";
@@ -781,6 +782,20 @@ describe("git-finalize helpers", () => {
       details: [],
     });
     expect(malformed).not.toEqual(empty);
+  });
+
+  it("preserves NO_MERGED_PR_FOUND while retaining malformed gh diagnostics", () => {
+    const discover = (stdout: string) =>
+      discoverMergedPr("/repo", "Sharper-Flow/Advance", "example", {
+        runGh: () => ({ status: 0, stdout, stderr: "" }),
+      });
+
+    const malformed = discover("not-json-at-all");
+    const empty = discover("");
+
+    expect(malformed).toMatchObject({ error: "NO_MERGED_PR_FOUND" });
+    expect(empty).toEqual({ error: "NO_MERGED_PR_FOUND" });
+    expect(malformed).toHaveProperty("details");
   });
 
   it("direct route + squash-merged PR falls back to pr_merged when ancestry fails", () => {

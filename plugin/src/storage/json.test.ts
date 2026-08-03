@@ -159,6 +159,9 @@ describe("ProjectConfig", () => {
       success: false,
       type: "read_error",
     });
+    if (!diagnostics.success) {
+      expect(diagnostics.error).toContain((thrown as Error).message);
+    }
 
     const source = await readFile(
       join(import.meta.dirname, "json.ts"),
