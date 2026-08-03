@@ -70,6 +70,13 @@ export const SAVE_CHANGE_ALLOW_LIST: SaveChangeAllowListEntry[] = [
       "Terminal archive convergence after shipped proof and archive bundle validation; writes the final archived projection and performs explicit read-after-write verification.",
   },
   {
+    file: "plugin/src/tools/change/archive-gate.ts",
+    context: "writeActiveReleaseGateProjection",
+    category: "terminal_archive",
+    rationale:
+      "Create-when-missing fallback for the poll-confirmed release-gate projection during Phase 9 finalization. commitChangeProjection is attempted first and owns every update path; this branch runs only when that commit reports the active projection absent, which the conditional-commit primitive cannot create. Followed by an explicit loadChange read-after-write verification.",
+  },
+  {
     file: "plugin/src/tools/_recovery-writers.ts",
     context: "persistTerminalProjection",
     category: "terminal_without_bundle",
