@@ -1,0 +1,22 @@
+{
+  "archived_at": "2026-08-03T02:20:56.170Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "b0dd3d970f4baa08945a761f5b8e244fdd77a0a13abab817ddbf7b30a144b174",
+  "change_id": "fixBranchReachabilityRef",
+  "completed_tasks": 5,
+  "created_at": "2026-08-02T23:30:39.537Z",
+  "current_gate": "acceptance",
+  "fast_follow_of": {
+    "linked_at": "2026-08-02T23:30:34.235Z",
+    "parent_change_id": "fixArchivedBranchFinalization"
+  },
+  "last_activity_at": "2026-08-03T01:52:51.904Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "e4f1627cf6cdcf8f0eec763bc52cb3fcedac7e29e298b2c163fa341b30f9429b",
+  "task_count": 5,
+  "title": "Fix branch reachability ref resolution",
+  "version": "1"
+}

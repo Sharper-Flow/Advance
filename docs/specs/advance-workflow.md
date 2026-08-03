@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.42.0
-> **Updated:** 2026-07-30
+> **Version:** 1.43.1
+> **Updated:** 2026-08-03
 
 ## Purpose
 
@@ -451,7 +451,7 @@ When a user explicitly grants merge authority for the current ADV change and req
 
 **ID:** `rq-releaseFinalization01` | **Priority:** **[MUST]**
 
-Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update the shared default-branch ref. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. A local bare origin is a valid remote route and is treated as `direct`. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
+Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update the shared default-branch ref. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. A local bare origin is a valid remote route and is treated as `direct`. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:"skip"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. Release reachability MUST distinguish an unresolvable change ref from unmerged commits: when the change ref cannot be resolved to a commit, the archive MUST block with a reason distinct from the unmerged-commit reason, and git ref-resolution failure output MUST NOT be recorded as unmerged-commit evidence. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.
 
 **Tags:** `workflow`, `archive`, `worktree`, `git`
 
@@ -468,7 +468,7 @@ Phase 9 Git Finalization must refresh the current default-branch basis before de
 
 **Then:**
 - The archive blocks with `NO_REMOTE_RELEASE_AUTHORITY`
-- No `git update-ref` or other shared default-branch ref mutation is attempted
+- No shared default-branch ref mutation is attempted
 - The shared main checkout remains untouched
 - The change stays active so the user can configure a canonical origin and retry
 
@@ -648,7 +648,7 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 **Then:**
 - ADV spawns “adv-ci-waiter” against the PR via the Task tool
 - The main agent does not poll CI status itself
-- ADV reads “finalization.prNumber”, “finalization.prUrl”, “finalization.repoRoot”, “finalization.defaultBranch” from the structured return (fields are nested inside “finalization”, not top-level)
+- ADV reads “finalization.prNumber”, “finalization.prUrl”, “finalization.mainCheckout”, “finalization.defaultBranch” from the structured return (fields are nested inside “finalization”, not top-level)
 
 **Auto-drive completes end-to-end on merge** (`rq-releaseFinalization02.2`)
 
@@ -665,13 +665,13 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 **Non-pending-PR paths are untouched** (`rq-releaseFinalization02.3`)
 
 **Given:**
-- A change is archived via direct push, no-remote local fast path, or “ff-only” reconcile
+- A change is archived via direct push, local bare origin push, or “ff-only” reconcile
 
 **When:** Phase 9 Git Finalization runs
 
 **Then:**
 - The auto-drive does NOT trigger (no “pending_merge” is returned)
-- The route return and ordering match the pre-existing direct/no-remote/ff-only behavior
+- The route return and ordering match the pre-existing direct/local-bare-origin/ff-only behavior
 - The change continues to reach its existing terminal state synchronously
 
 **Layer-boundary: no CI-wait imports in worker-bundle-reachable modules** (`rq-releaseFinalization02.4`)
@@ -692,7 +692,7 @@ When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queu
 
 **ID:** `rq-releaseFinalization03` | **Priority:** **[MUST]**
 
-ADV archive finalization MUST NOT inspect, reset, merge, or commit into the shared main checkout. All merge and push operations happen in ephemeral detached worktrees forked from the canonical remote default branch (or the local default branch when a local bare origin is used as the remote). The shared main checkout's working tree, index, and checked-out branch remain untouched. In the no-remote case, finalization blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update any shared ref. Release completion remains gated solely by `verifyReleaseEvidenceFromMain` and the persisted tip + origin/PR proof chain.
+ADV archive finalization MUST NOT inspect, reset, merge, or commit into the shared main checkout. All merge and push operations happen in ephemeral detached worktrees forked from the canonical remote default branch (or the local default branch when a local bare origin is used as the remote). The shared main checkout's working tree, index, and checked-out branch remain untouched. In the no-remote case, finalization blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update any shared ref. Release completion remains gated solely by 'verifyReleaseEvidenceFromMain' and the persisted tip + origin/PR proof chain.
 
 **Tags:** `workflow`, `archive`, `git`
 
@@ -702,7 +702,7 @@ ADV archive finalization MUST NOT inspect, reset, merge, or commit into the shar
 
 **Given:**
 - A remote-backed archive finalization is running
-- The change worktree is on `change/{id}` and shares git state with the project
+- The change worktree is on change/{id} and shares git state with the project
 
 **When:** ADV merges and pushes the archive
 
