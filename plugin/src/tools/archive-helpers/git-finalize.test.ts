@@ -48,6 +48,7 @@ import {
   invalidate,
   getRoute,
   ensureOriginDefaultFetched,
+  readPrMergeState,
 } from "./git-finalize";
 import type { PrTitlePolicy } from "../../types/project";
 
@@ -742,6 +743,44 @@ describe("git-finalize helpers", () => {
       proof: "pr_merged",
       prNumber: 12,
     });
+  });
+
+  it("distinguishes malformed PR JSON from empty stdout", () => {
+    let parserMessage = "";
+    try {
+      JSON.parse("not-json-at-all");
+    } catch (error) {
+      parserMessage = error instanceof Error ? error.message : String(error);
+    }
+
+    const runRead = (stdout: string) =>
+      readPrMergeState("/repo", "Sharper-Flow/Advance", 12, {
+        runGh: (_cwd, args) => {
+          expect(args).toEqual([
+            "pr",
+            "view",
+            "12",
+            "--repo",
+            "Sharper-Flow/Advance",
+            "--json",
+            "state,mergedAt,mergeCommit,autoMergeRequest",
+          ]);
+          return { status: 0, stdout, stderr: "" };
+        },
+      });
+
+    const malformed = runRead("not-json-at-all");
+    const empty = runRead("");
+
+    expect(malformed).toEqual({
+      error: "PR_STATE_UNPARSEABLE",
+      details: [parserMessage],
+    });
+    expect(empty).toEqual({
+      error: "PR_STATE_UNPARSEABLE",
+      details: [],
+    });
+    expect(malformed).not.toEqual(empty);
   });
 
   it("direct route + squash-merged PR falls back to pr_merged when ancestry fails", () => {

@@ -470,12 +470,26 @@ function splitLines(value: string): string[] {
     .filter(Boolean);
 }
 
-function parseJson(value: string): unknown {
+type GhJsonParse =
+  | { kind: "empty" }
+  | { kind: "ok"; value: unknown }
+  | { kind: "malformed"; message: string };
+
+function parseGhJson(value: string): GhJsonParse {
+  const trimmed = value.trim();
+  if (!trimmed) return { kind: "empty" };
   try {
-    return JSON.parse(value.trim() || "null");
-  } catch {
-    return undefined;
+    return { kind: "ok", value: JSON.parse(trimmed) };
+  } catch (error) {
+    return {
+      kind: "malformed",
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unhandled gh JSON parse result: ${String(value)}`);
 }
 
 export function parseGitHubRepoFromRemote(url: string): string | undefined {
@@ -624,78 +638,126 @@ export function classifyFinalizationRoute(
     };
   }
 
-  const parsedRules = parseJson(rules.stdout);
-  if (!Array.isArray(parsedRules)) {
-    return {
-      route: "blocked",
-      repo: origin.repo,
-      remoteUrl: origin.remoteUrl,
-      reason: "POLICY_DETECTION_FAILED",
-      parsedRules: Array.isArray(parsedRules) ? parsedRules : undefined,
-      details: splitLines(rules.stdout),
-    };
-  }
+  const parsedRules = parseGhJson(rules.stdout);
+  switch (parsedRules.kind) {
+    case "empty":
+      return {
+        route: "blocked",
+        repo: origin.repo,
+        remoteUrl: origin.remoteUrl,
+        reason: "POLICY_DETECTION_FAILED",
+        details: splitLines(rules.stdout),
+      };
+    case "malformed":
+      return {
+        route: "blocked",
+        repo: origin.repo,
+        remoteUrl: origin.remoteUrl,
+        reason: "POLICY_DETECTION_FAILED",
+        details: [parsedRules.message],
+      };
+    case "ok": {
+      const rulesValue = parsedRules.value;
+      if (!Array.isArray(rulesValue)) {
+        return {
+          route: "blocked",
+          repo: origin.repo,
+          remoteUrl: origin.remoteUrl,
+          reason: "POLICY_DETECTION_FAILED",
+          parsedRules: undefined,
+          details: splitLines(rules.stdout),
+        };
+      }
 
-  if (parsedRules.some((r) => r?.type === "merge_queue")) {
-    return {
-      route: "merge_queue",
-      repo: origin.repo,
-      remoteUrl: origin.remoteUrl,
-      protected: true,
-      mergeQueueRequired: true,
-      parsedRules,
-    };
-  }
+      if (rulesValue.some((r) => r?.type === "merge_queue")) {
+        return {
+          route: "merge_queue",
+          repo: origin.repo,
+          remoteUrl: origin.remoteUrl,
+          protected: true,
+          mergeQueueRequired: true,
+          parsedRules: rulesValue,
+        };
+      }
 
-  if (parsedRules.length === 0) {
-    return {
-      route: "direct",
-      repo: origin.repo,
-      remoteUrl: origin.remoteUrl,
-      protected: false,
-      parsedRules,
-    };
-  }
+      if (rulesValue.length === 0) {
+        return {
+          route: "direct",
+          repo: origin.repo,
+          remoteUrl: origin.remoteUrl,
+          protected: false,
+          parsedRules: rulesValue,
+        };
+      }
 
-  const allowAutoMerge = runGh(repoRoot, [
-    "api",
-    `repos/${origin.repo}`,
-    "--jq",
-    ".allow_auto_merge",
-  ]);
-  if (allowAutoMerge.status !== 0) {
-    return {
-      route: "blocked",
-      repo: origin.repo,
-      remoteUrl: origin.remoteUrl,
-      protected: true,
-      reason: "POLICY_DETECTION_FAILED",
-      parsedRules,
-      details: splitLines(allowAutoMerge.stderr || allowAutoMerge.stdout),
-    };
-  }
+      const allowAutoMerge = runGh(repoRoot, [
+        "api",
+        `repos/${origin.repo}`,
+        "--jq",
+        ".allow_auto_merge",
+      ]);
+      if (allowAutoMerge.status !== 0) {
+        return {
+          route: "blocked",
+          repo: origin.repo,
+          remoteUrl: origin.remoteUrl,
+          protected: true,
+          reason: "POLICY_DETECTION_FAILED",
+          parsedRules: rulesValue,
+          details: splitLines(allowAutoMerge.stderr || allowAutoMerge.stdout),
+        };
+      }
 
-  const parsedAllowAutoMerge = parseJson(allowAutoMerge.stdout);
-  if (parsedAllowAutoMerge === true) {
-    return {
-      route: "pr_auto_merge",
-      repo: origin.repo,
-      remoteUrl: origin.remoteUrl,
-      protected: true,
-      autoMergeAllowed: true,
-      parsedRules,
-    };
-  }
+      const parsedAllowAutoMerge = parseGhJson(allowAutoMerge.stdout);
+      switch (parsedAllowAutoMerge.kind) {
+        case "empty":
+          return {
+            route: "pr_manual",
+            repo: origin.repo,
+            remoteUrl: origin.remoteUrl,
+            protected: true,
+            autoMergeAllowed: false,
+            parsedRules: rulesValue,
+            reason: "AUTO_MERGE_DISABLED",
+          };
+        case "malformed":
+          return {
+            route: "blocked",
+            repo: origin.repo,
+            remoteUrl: origin.remoteUrl,
+            protected: true,
+            reason: "POLICY_DETECTION_FAILED",
+            parsedRules: rulesValue,
+            details: [parsedAllowAutoMerge.message],
+          };
+        case "ok":
+          if (parsedAllowAutoMerge.value === true) {
+            return {
+              route: "pr_auto_merge",
+              repo: origin.repo,
+              remoteUrl: origin.remoteUrl,
+              protected: true,
+              autoMergeAllowed: true,
+              parsedRules: rulesValue,
+            };
+          }
 
-  return {
-    route: "pr_manual",
-    repo: origin.repo,
-    remoteUrl: origin.remoteUrl,
-    protected: true,
-    autoMergeAllowed: false,
-    parsedRules,
-    reason: "AUTO_MERGE_DISABLED",
-  };
+          return {
+            route: "pr_manual",
+            repo: origin.repo,
+            remoteUrl: origin.remoteUrl,
+            protected: true,
+            autoMergeAllowed: false,
+            parsedRules: rulesValue,
+            reason: "AUTO_MERGE_DISABLED",
+          };
+        default:
+          return assertNever(parsedAllowAutoMerge);
+      }
+    }
+    default:
+      return assertNever(parsedRules);
+  }
 }
 
 export function coercePrWorkflowRoute(
@@ -1205,31 +1267,48 @@ export function readPrMergeState(
       details: splitLines(result.stderr || result.stdout),
     };
   }
-  const parsed = parseJson(result.stdout);
-  if (!parsed || typeof parsed !== "object") {
-    return {
-      error: "PR_STATE_UNPARSEABLE",
-      details: splitLines(result.stdout),
-    };
+  const parsed = parseGhJson(result.stdout);
+  switch (parsed.kind) {
+    case "empty":
+      return {
+        error: "PR_STATE_UNPARSEABLE",
+        details: splitLines(result.stdout),
+      };
+    case "malformed":
+      return {
+        error: "PR_STATE_UNPARSEABLE",
+        details: [parsed.message],
+      };
+    case "ok": {
+      if (!parsed.value || typeof parsed.value !== "object") {
+        return {
+          error: "PR_STATE_UNPARSEABLE",
+          details: splitLines(result.stdout),
+        };
+      }
+      const payload = parsed.value as {
+        state?: unknown;
+        mergedAt?: unknown;
+        mergeCommit?: { oid?: unknown } | null;
+        autoMergeRequest?: unknown;
+      };
+      return {
+        state: typeof payload.state === "string" ? payload.state : "UNKNOWN",
+        mergedAt:
+          typeof payload.mergedAt === "string" ? payload.mergedAt : null,
+        mergeCommitOid:
+          payload.mergeCommit && typeof payload.mergeCommit.oid === "string"
+            ? payload.mergeCommit.oid
+            : undefined,
+        autoMergeArmed:
+          payload.autoMergeRequest !== null &&
+          payload.autoMergeRequest !== undefined,
+        raw: parsed.value,
+      };
+    }
+    default:
+      return assertNever(parsed);
   }
-  const payload = parsed as {
-    state?: unknown;
-    mergedAt?: unknown;
-    mergeCommit?: { oid?: unknown } | null;
-    autoMergeRequest?: unknown;
-  };
-  return {
-    state: typeof payload.state === "string" ? payload.state : "UNKNOWN",
-    mergedAt: typeof payload.mergedAt === "string" ? payload.mergedAt : null,
-    mergeCommitOid:
-      payload.mergeCommit && typeof payload.mergeCommit.oid === "string"
-        ? payload.mergeCommit.oid
-        : undefined,
-    autoMergeArmed:
-      payload.autoMergeRequest !== null &&
-      payload.autoMergeRequest !== undefined,
-    raw: parsed,
-  };
 }
 
 export function discoverMergedPr(
@@ -1260,24 +1339,34 @@ export function discoverMergedPr(
       details: splitLines(result.stderr || result.stdout),
     };
   }
-  const parsed = parseJson(result.stdout);
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    return { error: "NO_MERGED_PR_FOUND" };
+  const parsed = parseGhJson(result.stdout);
+  switch (parsed.kind) {
+    case "empty":
+      return { error: "NO_MERGED_PR_FOUND" };
+    case "malformed":
+      return { error: "NO_MERGED_PR_FOUND", details: [parsed.message] };
+    case "ok": {
+      if (!Array.isArray(parsed.value) || parsed.value.length === 0) {
+        return { error: "NO_MERGED_PR_FOUND" };
+      }
+      const pr = parsed.value[0] as {
+        number?: unknown;
+        mergeCommit?: { oid?: unknown } | null;
+      };
+      if (typeof pr.number !== "number" || !Number.isInteger(pr.number)) {
+        return { error: "PR_NUMBER_UNPARSEABLE" };
+      }
+      return {
+        prNumber: pr.number,
+        mergeCommitOid:
+          pr.mergeCommit && typeof pr.mergeCommit.oid === "string"
+            ? pr.mergeCommit.oid
+            : undefined,
+      };
+    }
+    default:
+      return assertNever(parsed);
   }
-  const pr = parsed[0] as {
-    number?: unknown;
-    mergeCommit?: { oid?: unknown } | null;
-  };
-  if (typeof pr.number !== "number" || !Number.isInteger(pr.number)) {
-    return { error: "PR_NUMBER_UNPARSEABLE" };
-  }
-  return {
-    prNumber: pr.number,
-    mergeCommitOid:
-      pr.mergeCommit && typeof pr.mergeCommit.oid === "string"
-        ? pr.mergeCommit.oid
-        : undefined,
-  };
 }
 
 export function detectSquashMergeByTree(
@@ -1380,11 +1469,24 @@ function readPullRequestByBranch(
       details: splitLines(result.stderr || result.stdout),
     };
   }
-  const parsed = parseJson(result.stdout);
-  const summary = parsePullRequestSummary(parsed);
-  return "error" in summary
-    ? { ...summary, details: splitLines(result.stdout) }
-    : summary;
+  const parsed = parseGhJson(result.stdout);
+  switch (parsed.kind) {
+    case "empty":
+      return {
+        error: "PR_SUMMARY_UNPARSEABLE",
+        details: splitLines(result.stdout),
+      };
+    case "malformed":
+      return { error: "PR_SUMMARY_UNPARSEABLE", details: [parsed.message] };
+    case "ok": {
+      const summary = parsePullRequestSummary(parsed.value);
+      return "error" in summary
+        ? { ...summary, details: splitLines(result.stdout) }
+        : summary;
+    }
+    default:
+      return assertNever(parsed);
+  }
 }
 
 export function createArchivePullRequest(
@@ -1540,19 +1642,37 @@ export function armPullRequestAutoMerge(
           details: splitLines(titleResult.stderr || titleResult.stdout),
         };
       }
-      const parsed = parseJson(titleResult.stdout);
-      if (
-        !parsed ||
-        typeof parsed !== "object" ||
-        typeof (parsed as { title?: unknown }).title !== "string"
-      ) {
-        return {
-          ok: false,
-          reason: "PR_TITLE_LOOKUP_FAILED",
-          details: ["gh pr view did not return a parseable title."],
-        };
+      const parsed = parseGhJson(titleResult.stdout);
+      switch (parsed.kind) {
+        case "empty":
+          return {
+            ok: false,
+            reason: "PR_TITLE_LOOKUP_FAILED",
+            details: ["gh pr view did not return a parseable title."],
+          };
+        case "malformed":
+          return {
+            ok: false,
+            reason: "PR_TITLE_LOOKUP_FAILED",
+            details: [parsed.message],
+          };
+        case "ok":
+          if (
+            !parsed.value ||
+            typeof parsed.value !== "object" ||
+            typeof (parsed.value as { title?: unknown }).title !== "string"
+          ) {
+            return {
+              ok: false,
+              reason: "PR_TITLE_LOOKUP_FAILED",
+              details: ["gh pr view did not return a parseable title."],
+            };
+          }
+          liveTitle = (parsed.value as { title: string }).title;
+          break;
+        default:
+          return assertNever(parsed);
       }
-      liveTitle = (parsed as { title: string }).title;
     }
 
     const expectedPrefix = `${prTitleType}:`;
