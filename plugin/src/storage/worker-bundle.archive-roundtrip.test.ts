@@ -114,4 +114,56 @@ describe("worker-bundle provenance disk round trip", () => {
       ),
     ).toBeNull();
   });
+
+  // Red paths across the same disk boundary. The green case alone would not
+  // catch a regression that made the evaluator permissive, and the Change-shaped
+  // adapter (test_runs -> testRuns) is only exercised through this route.
+  it("still blocks after reload when a referenced run does not resolve", async () => {
+    const changesDir = join(tempDir, ".adv", "changes");
+    const original: Change = {
+      ...makeChange(),
+      workerBundleProvenance: {
+        ...PROVENANCE,
+        build_run_id: "tr_build_worker_does_not_exist",
+      },
+    };
+
+    await saveChange(changesDir, original);
+    const loaded = await loadChange(changesDir, original.id);
+    expect(loaded.success).toBe(true);
+    if (!loaded.success) throw new Error(loaded.error);
+
+    const readiness = evaluateWorkerBundleProvenanceForChange(loaded.data);
+    expect(readiness.ok).toBe(false);
+    expect(readiness.blockers[0]?.code).toBe(
+      "WORKER_BUNDLE_PROVENANCE_MISSING",
+    );
+    expect(readiness.blockers[0]?.message).toContain(
+      "tr_build_worker_does_not_exist",
+    );
+  });
+
+  it("skips the gate after reload when impact is not_applicable with rationale", async () => {
+    const changesDir = join(tempDir, ".adv", "changes");
+    const original: Change = {
+      ...makeChange(),
+      worker_bundle_impact: {
+        kind: "not_applicable",
+        rationale: "No workflow-bundle reachable files touched.",
+        confirmed_at: "2026-08-03T16:35:00.000Z",
+      },
+      workerBundleProvenance: undefined,
+      test_runs: undefined,
+    };
+
+    await saveChange(changesDir, original);
+    const loaded = await loadChange(changesDir, original.id);
+    expect(loaded.success).toBe(true);
+    if (!loaded.success) throw new Error(loaded.error);
+
+    expect(evaluateWorkerBundleProvenanceForChange(loaded.data)).toEqual({
+      ok: true,
+      blockers: [],
+    });
+  });
 });

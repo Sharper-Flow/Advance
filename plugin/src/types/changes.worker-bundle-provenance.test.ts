@@ -31,7 +31,11 @@ const minimalChange = {
 };
 
 describe("WorkerBundleProvenanceSchema", () => {
-  test("accepts a complete receipt", () => {
+  // Anchor/smoke cases. These assert the parser returns the input unchanged and
+  // are deliberately weak — the structural guards are the rejection cases below
+  // and the "is typed, not merely passed through" case. Do not trim these
+  // expecting them to be redundant coverage; they are a shape sanity check.
+  test("returns a complete receipt unchanged", () => {
     const parsed = WorkerBundleProvenanceSchema.parse(validProvenance);
     expect(parsed.source_sha).toBe(validProvenance.source_sha);
     expect(parsed.build_run_id).toBe(validProvenance.build_run_id);
@@ -39,7 +43,7 @@ describe("WorkerBundleProvenanceSchema", () => {
     expect(parsed.recorded_at).toBe(validProvenance.recorded_at);
   });
 
-  test("accepts the optional worker_manifest_generation", () => {
+  test("preserves the optional worker_manifest_generation", () => {
     const parsed = WorkerBundleProvenanceSchema.parse({
       ...validProvenance,
       worker_manifest_generation: 12,
