@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixHealthFieldScope",
+  "title": "Fix health field scope",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Fix health field scope: worker_alive reports unavailable, not false, from workerless processes",
+    "headline_external": "Health reporting no longer claims a worker is down when the reporting process simply has no worker to observe",
+    "highlights": [
+      "worker_alive and worker_process_alive are now a discriminated union carrying either an available value or an unavailable reason (not_host_capable), so a workerless process cannot emit a bare false that is indistinguishable from a real dead worker",
+      "The keying signal (workerRoleResolved) is set at worker-role resolution before the spawn branch, correctly classifying a non-lock-owning host under worker_singleton_enforce as host-capable",
+      "Reconciled duplicate TemporalHealthSnapshot declarations that had been hidden by as-unknown-as casts; removing the casts surfaced 9 masked consumer errors",
+      "A shared isWorkerAffirmativelyAlive predicate gives consumers and operator docs one vocabulary; unavailable cannot be coerced to falsy or truthy",
+      "Operator diagnostic matrix and field table migrated to the shipped vocabulary, including a new not_host_capable row"
+    ],
+    "area": "plugin/core",
+    "user_action_required": false,
+    "links": {
+      "pr": "pending"
+    }
+  }
+}

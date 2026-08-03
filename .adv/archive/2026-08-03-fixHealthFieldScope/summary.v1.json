@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-03T07:13:33.239Z",
+  "capabilities": [],
+  "change_hash": "ad583cb8c23537152bc576896d3cc7d45ea5bf2ff6ec8365ba4c52f766320a57",
+  "change_id": "fixHealthFieldScope",
+  "completed_tasks": 4,
+  "created_at": "2026-08-03T04:33:35.911Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-03T07:06:27.921Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "40c7ff86a1774a95bc5bd28c1997a925e88c2635649c0c2bf0b2aacf6c77c203",
+  "task_count": 4,
+  "title": "Fix health field scope",
+  "version": "1"
+}
