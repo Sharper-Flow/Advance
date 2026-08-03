@@ -142,6 +142,34 @@ describe("ProjectConfig", () => {
     await expect(loadProjectConfig(tempDir)).rejects.toThrow();
   });
 
+  test("uses one read/parse boundary for malformed JSON classification", async () => {
+    const configPath = join(tempDir, "project.json");
+    await writeFile(configPath, "{ not valid json !!!", "utf-8");
+
+    let thrown: unknown;
+    try {
+      await loadProjectConfig(tempDir);
+    } catch (error) {
+      thrown = error;
+    }
+
+    const diagnostics = await loadProjectConfigWithDiagnostics(tempDir);
+    expect(thrown).toBeInstanceOf(SyntaxError);
+    expect(diagnostics).toMatchObject({
+      success: false,
+      type: "read_error",
+    });
+
+    const source = await readFile(
+      join(import.meta.dirname, "json.ts"),
+      "utf-8",
+    );
+    expect(source.match(/JSON\.parse\(/g)).toHaveLength(1);
+    expect(source.match(/await readFile\(configPath, "utf-8"\)/g)).toHaveLength(
+      1,
+    );
+  });
+
   test("loadProjectConfig returns null on schema-invalid JSON (legacy fallback)", async () => {
     // Schema failures must NOT abort plugin init. loadProjectConfig returns
     // null so callers fall back to defaults; use loadProjectConfigWithDiagnostics

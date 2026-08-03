@@ -149,31 +149,92 @@ export function getProjectPaths(
 // Project Config
 // =============================================================================
 
+type ProjectConfigLoad =
+  | { kind: "ok"; config: ProjectConfig }
+  | { kind: "not_found" }
+  | { kind: "read_error"; error: Error }
+  | { kind: "schema_error"; error: ZodError };
+
+function errorCode(error: unknown): string | undefined {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+  return undefined;
+}
+
+function asError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+async function parseProjectConfigFile(
+  root: string,
+): Promise<ProjectConfigLoad> {
+  const configPath = join(root, "project.json");
+
+  try {
+    await access(configPath);
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") {
+      return { kind: "not_found" };
+    }
+    return { kind: "read_error", error: asError(error) };
+  }
+
+  let content: string;
+  try {
+    content = await readFile(configPath, "utf-8");
+  } catch (error) {
+    if (errorCode(error) === "ENOENT") {
+      return { kind: "not_found" };
+    }
+    return { kind: "read_error", error: asError(error) };
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (error) {
+    return { kind: "read_error", error: asError(error) };
+  }
+
+  try {
+    return { kind: "ok", config: ProjectConfigSchema.parse(parsed) };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return { kind: "schema_error", error };
+    }
+    return { kind: "read_error", error: asError(error) };
+  }
+}
+
 export async function loadProjectConfig(
   root: string,
 ): Promise<ProjectConfig | null> {
   const configPath = join(root, "project.json");
 
-  try {
-    const content = await readFile(configPath, "utf-8");
-    return ProjectConfigSchema.parse(JSON.parse(content));
-  } catch (error) {
-    // File not found is normal — use defaults
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+  const result = await parseProjectConfigFile(root);
+  switch (result.kind) {
+    case "ok":
+      return result.config;
+    case "not_found":
       return null;
-    }
-    // Schema validation failure on a legacy/invalid project.json must NOT abort
-    // plugin initialization. Log a warning and fall back to defaults so the
-    // rest of the plugin (tools, events, status markers) remains available.
-    // Use loadProjectConfigWithDiagnostics for structured error reporting.
-    if (error instanceof ZodError) {
+    case "schema_error":
+      // Schema validation failure on a legacy/invalid project.json must NOT abort
+      // plugin initialization. Log a warning and fall back to defaults so the
+      // rest of the plugin (tools, events, status markers) remains available.
+      // Use loadProjectConfigWithDiagnostics for structured error reporting.
       logger.warn(
         `project.json failed schema validation at ${configPath}; continuing with defaults. Run adv-status for details.`,
       );
       return null;
-    }
-    // Malformed JSON, permission errors — surface to caller
-    throw error;
+    case "read_error":
+      // Malformed JSON, permission errors — surface to caller.
+      throw result.error;
   }
 }
 
@@ -194,59 +255,46 @@ export async function loadProjectConfigWithDiagnostics(
 ): Promise<LoadResult<ProjectConfig>> {
   const configPath = join(root, "project.json");
 
-  // Check file existence first for a clean not_found signal
-  try {
-    await access(configPath);
-  } catch {
-    return {
-      success: false,
-      error: `project.json not found at ${configPath}`,
-      type: "not_found",
-    };
-  }
-
-  let raw: string;
-  try {
-    raw = await readFile(configPath, "utf-8");
-  } catch (e) {
-    return {
-      success: false,
-      error: `Failed to read project.json: ${(e as Error).message}`,
-      type: "read_error",
-    };
-  }
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (e) {
-    return {
-      success: false,
-      error: `project.json contains invalid JSON: ${(e as Error).message}`,
-      type: "read_error",
-    };
-  }
-
-  try {
-    const config = ProjectConfigSchema.parse(parsed);
-    return { success: true, data: config };
-  } catch (error) {
-    if (error instanceof ZodError) {
+  const result = await parseProjectConfigFile(root);
+  switch (result.kind) {
+    case "ok":
+      return { success: true, data: result.config };
+    case "not_found":
       return {
         success: false,
-        error: formatZodError(error, {
+        error: `project.json not found at ${configPath}`,
+        type: "not_found",
+      };
+    case "schema_error":
+      return {
+        success: false,
+        error: formatZodError(result.error, {
           type: "project config",
           id: "project.json",
           path: configPath,
         }),
         type: "schema_error",
       };
-    }
-    return {
-      success: false,
-      error: `Unexpected error parsing project.json: ${(error as Error).message}`,
-      type: "read_error",
-    };
+    case "read_error":
+      if (result.error instanceof SyntaxError) {
+        return {
+          success: false,
+          error: `project.json contains invalid JSON: ${result.error.message}`,
+          type: "read_error",
+        };
+      }
+      if (errorCode(result.error)) {
+        return {
+          success: false,
+          error: `Failed to read project.json: ${result.error.message}`,
+          type: "read_error",
+        };
+      }
+      return {
+        success: false,
+        error: `Unexpected error parsing project.json: ${result.error.message}`,
+        type: "read_error",
+      };
   }
 }
 
