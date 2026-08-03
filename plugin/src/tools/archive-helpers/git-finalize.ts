@@ -845,6 +845,14 @@ export function verifyChangeBranchReachable(
  * satisfies this by calling `verifyDefaultBranchPushed` immediately beforehand.
  * A stale default branch can only under-report reachability (fail-closed), never
  * over-report it.
+ *
+ * NETWORK COST (constraint C3 — no new round-trip): the direct route already
+ * performed two fetches before this change — one in `verifyDefaultBranchPushed`
+ * and one here. The refreshed-ref path folds the change ref into this function's
+ * single pre-existing fetch via a second refspec, so the total is unchanged at
+ * two; the persisted-tip path performs none, reducing the total to one. The
+ * default-branch refspec is retained here rather than relying on the caller's
+ * fetch so the function stays self-sufficient for direct callers.
  */
 export function verifyChangeBranchReachableFromOrigin(
   repoRoot: string,
