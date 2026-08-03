@@ -200,7 +200,7 @@ plugin works around this by spawning a Node child process instead — but that
 requires a Node binary reachable from the plugin host.
 
 **Symptom**: after plugin load, `adv_status` reports
-`worker_process_alive: false` OR the session emits (to the debug log, not
+`worker_process_alive: { status: "available", value: false }` OR the session emits (to the debug log, not
 stdout) "Temporal worker cannot run under bun. Install Node (v20+) on PATH
 or set ADV_NODE_PATH."
 
@@ -233,27 +233,24 @@ or set ADV_NODE_PATH."
 If Node is genuinely unavailable, install Node (v20+) following the steps
 above. ADV is Temporal-only at runtime — there is no file-backed fallback.
 
-#### Health metric: `worker_process_alive`
+#### Health metrics: `worker_alive` and `worker_process_alive`
 
-`adv_status` exposes a `worker_process_alive` boolean alongside
-`worker_alive` and `server_alive`. The two fields separate registration state
-from runtime state:
+`adv_status` exposes `worker_alive` and `worker_process_alive` alongside
+`server_alive`. Both worker fields use the same three-state vocabulary and are
+scoped to the process answering the query:
 
-| Field                  | Meaning                                                                                                                                            |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `worker_alive`         | A worker object is registered (at least one task queue).                                                                                           |
-| `worker_process_alive` | The worker is actually running. For the OOP worker this reflects the Node child process liveness; for the in-process worker it tracks queue count. |
+| Field                  | `{ status: "available", value: true }` | `{ status: "available", value: false }` | `{ status: "unavailable", reason }` |
+| ---------------------- | ---------------------------------------- | ----------------------------------------- | ------------------------------------- |
+| `worker_alive`         | This process has affirmative local or queue-serviceability evidence of a live worker. | This process could observe no live local or serviceable worker. | This process cannot observe worker liveness. `reason` is `not_host_capable`, `probe_failed`, or `probe_timeout`. |
+| `worker_process_alive` | This process observes its worker process running. | This process observes its worker process is not running. | This process cannot observe worker-process liveness. `reason` is `not_host_capable`, `probe_failed`, or `probe_timeout`. |
 
-Typical outcomes:
-
-- **`true` / `true`** — worker registered and running. Healthy.
-- **`true` / `false`** — worker registered but the child process exited and
-  cannot be restarted (exponential-backoff exhausted). Follow the Node-install
-  steps above and restart opencode. Check the debug log at
-  `$ADV_CACHE_DIR/adv-debug.log` for the crash reason.
-- **`false` / `false`** — no worker registered (init failure or Temporal
-  not yet started). Temporal workflows are not running; check init logs at
-  `$ADV_CACHE_DIR/adv-debug.log` for the failure reason.
+Only `{ status: "available", value: true }` is affirmatively alive, matching
+`isWorkerAffirmativelyAlive`. `not_host_capable` means the queried process does
+not host workers (for example, the Vision-managed MCP server); re-check from the
+host plugin via `adv_doctor`. For available `false`, follow the Node-install
+steps above and inspect `$ADV_CACHE_DIR/adv-debug.log` for the crash or init
+failure. For `probe_failed` or `probe_timeout`, use `adv_doctor` from the host
+plugin and inspect the probe error before retrying.
 
 > The OOP worker uses exponential backoff (1s / 3s / 10s, max 3 attempts)
 > before marking the queue dead.
@@ -1519,8 +1516,8 @@ If you customized your global `plan.md` or `build.md`, the sync script only patc
 
 ### Temporal Worker Errors
 
-If ADV reports `worker_alive: false` or `worker_process_alive: false`, verify
-the local Temporal dev server and Node worker host:
+If ADV reports either worker field as `{ status: "available", value: false }`,
+verify the local Temporal dev server and Node worker host:
 
 ```bash
 temporal server start-dev
