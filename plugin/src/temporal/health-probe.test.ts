@@ -131,7 +131,11 @@ describe("getTemporalHealth — server poller probe integration", () => {
     });
   });
 
-  it("reports an available false worker distinctly after role resolution", async () => {
+  it("reports a client-role host as available false, unlike never-resolved", async () => {
+    // Client-role hosts are host-capable but intentionally spawn no worker:
+    // plugin-init.ts:280 marks the role resolved before the spawn block at
+    // :289. Moving workerRoleResolved into that block would regress this case
+    // to not_host_capable.
     mockHasResolvedWorkerRole.mockReturnValue(true);
     mockGetTemporalWorkerAliveness.mockReturnValue(false);
     mockGetRegisteredTemporalWorkerQueues.mockReturnValue([]);
