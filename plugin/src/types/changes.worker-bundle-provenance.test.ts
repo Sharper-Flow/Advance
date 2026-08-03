@@ -53,8 +53,11 @@ describe("WorkerBundleProvenanceSchema", () => {
   });
 
   test("rejects a receipt missing run ids", () => {
-    const { build_run_id: _b, replay_run_id: _r, ...withoutRuns } =
-      validProvenance;
+    const {
+      build_run_id: _b,
+      replay_run_id: _r,
+      ...withoutRuns
+    } = validProvenance;
     expect(() => WorkerBundleProvenanceSchema.parse(withoutRuns)).toThrow();
   });
 });
