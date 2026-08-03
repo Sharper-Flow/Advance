@@ -418,13 +418,12 @@ const advancePluginImpl: Plugin = async (input) => {
             return false;
           }
         },
-        diskChecker: async (_dir: string, cid: string) => {
-          try {
-            return existsSync(join(store.paths.changes, cid, "change.json"));
-          } catch {
-            return false;
-          }
-        },
+        // existsSync returns a boolean and does not throw for string
+        // arguments (its only documented throw, DEP0187, is raised for
+        // invalid argument TYPES, and join() always yields a string), so
+        // this needs no guard.
+        diskChecker: async (_dir: string, cid: string) =>
+          existsSync(join(store.paths.changes, cid, "change.json")),
         workflowStateGetter: async (cid: string) => {
           try {
             const result = await store.changes.get(cid);
