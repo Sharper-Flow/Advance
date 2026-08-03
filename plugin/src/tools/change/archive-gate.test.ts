@@ -1858,7 +1858,7 @@ describe("worker-bundle provenance chokepoint (fixArchivedProvenanceRecovery)", 
       proof.readinessBlockers?.some((b) =>
         b.code.startsWith("WORKER_BUNDLE_PROVENANCE"),
       ),
-     ).toBe(true);
+    ).toBe(true);
   });
 });
 

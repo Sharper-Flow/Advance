@@ -95,6 +95,14 @@ async function setupMergedChangeBranchRepo(
   root: string,
   changeId: string,
 ): Promise<void> {
+  // rq-releaseFinalization01: a repo with no `origin` classifies as
+  // `no_remote`, which blocks with NO_REMOTE_RELEASE_AUTHORITY before phase9
+  // can be recorded. The same requirement states a local bare origin is a
+  // valid remote route treated as `direct`, so the split-brain re-run needs
+  // one to reach the phase9 recording step at all.
+  const originPath = join(root, "_origin.git");
+  git(root, ["init", "--bare", "-b", "main", originPath]);
+
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "phase9-test@example.com"]);
   git(root, ["config", "user.name", "phase9-test"]);
@@ -107,6 +115,9 @@ async function setupMergedChangeBranchRepo(
   git(root, ["commit", "-m", "change"]);
   git(root, ["checkout", "main"]);
   git(root, ["merge", "--no-ff", `change/${changeId}`, "-m", "merge change"]);
+  git(root, ["remote", "add", "origin", originPath]);
+  git(root, ["push", "origin", "main"]);
+  git(root, ["push", "origin", `change/${changeId}`]);
 }
 
 /**
@@ -181,6 +192,14 @@ function makeSplitBrainChange(changeId: string): Change {
     wisdom: [],
     gates: createDefaultGates(),
     phase9_status: undefined,
+    // rq-workerBundleReleaseProvenance01: release-gate completion refuses an
+    // undeclared worker-bundle impact. This fixture is a config-only
+    // split-brain recovery scenario that touches no worker-bundle code.
+    worker_bundle_impact: {
+      kind: "not_applicable",
+      rationale:
+        "Config-only archive phase9 split-brain fixture; no worker bundle change.",
+    } satisfies WorkerBundleImpact,
   };
 }
 
@@ -277,12 +296,14 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
           ).toBeUndefined();
           expect(parsed.success).toBe(true);
 
-          // No-remote finalization must retain shipped semantics and the
-          // structural proof shape required by the durable release-gate verifier.
+          // A local bare origin is a valid remote route (rq-releaseFinalization01)
+          // and classifies as `direct`, so finalization ships with a real push
+          // and carries the structural proof shape the durable release-gate
+          // verifier requires.
           expect(parsed.finalization).toMatchObject({
             status: "shipped",
-            route: "no_remote",
-            pushStatus: "skipped",
+            route: "direct",
+            pushStatus: "pushed",
             releasedCommitSha: expect.any(String),
           });
 
