@@ -844,6 +844,20 @@ export function verifyReleaseEvidenceFromMain(input: {
       },
     };
   }
+  if (reachability.proof === "change_ref_unresolved") {
+    return {
+      status: "blocked",
+      repoRoot,
+      defaultBranch,
+      route: route.route,
+      pushStatus: "not_attempted",
+      blocked: {
+        reason: "CHANGE_BRANCH_REF_UNRESOLVED",
+        remediation: `Unable to resolve the origin change ref for change/${input.changeId}. Run adv_doctor to diagnose the wedged projection before release completion (rq-releaseFinalization01).`,
+        details: reachability.details,
+      },
+    };
+  }
   return {
     status: "blocked",
     repoRoot,

@@ -2366,6 +2366,10 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(parsed.phase9).toBeUndefined();
+    expect(parsed.finalization).toEqual({
+      evaluated: false,
+      reason: "dry run does not exercise Phase 9 git finalization",
+    });
   });
 
   test("phase9=skip behavior unchanged with explicit run default", async () => {

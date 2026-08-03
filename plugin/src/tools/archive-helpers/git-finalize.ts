@@ -284,6 +284,7 @@ export type ReleaseReachabilityProof =
         | "origin_push_unverified"
         | "pr_unmerged"
         | "pr_missing_merge_proof"
+        | "change_ref_unresolved"
         | "blocked";
       prNumber?: number;
       autoMergeArmed?: boolean;
@@ -2482,7 +2483,9 @@ export function resolveReleaseReachability(
 
     return {
       reachable: false,
-      proof: "origin_unmerged",
+      proof: originReachability.refUnresolved
+        ? "change_ref_unresolved"
+        : "origin_unmerged",
       details: originReachability.unmergedCommits,
     };
   }

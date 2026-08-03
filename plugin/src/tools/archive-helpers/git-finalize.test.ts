@@ -1129,7 +1129,7 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("direct route + all fallbacks fail returns origin_unmerged", () => {
+  it("direct route + all fallbacks fail with unresolved ancestry returns change_ref_unresolved", () => {
     const result = resolveReleaseReachability(
       {
         repoRoot: "/repo",
@@ -1187,8 +1187,60 @@ describe("git-finalize helpers", () => {
 
     expect(result).toMatchObject({
       reachable: false,
-      proof: "origin_unmerged",
+      proof: "change_ref_unresolved",
     });
+  });
+
+  it("direct route + unresolved origin ref returns change_ref_unresolved after fallbacks fail", () => {
+    let ghCalls = 0;
+    const result = resolveReleaseReachability(
+      {
+        repoRoot: "/repo",
+        defaultBranch: "trunk",
+        changeId: "unresolvedRef",
+        route: { route: "direct", repo: "Sharper-Flow/Advance" },
+      },
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch" && args[2] === "trunk")
+            return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse" && args[1] === "HEAD")
+            return { status: 0, stdout: "abc123\n", stderr: "" };
+          if (args[0] === "ls-remote")
+            return {
+              status: 0,
+              stdout: "abc123\trefs/heads/trunk\n",
+              stderr: "",
+            };
+          if (args[0] === "fetch")
+            return { status: 1, stdout: "", stderr: "change ref unavailable" };
+          if (
+            args[0] === "rev-parse" &&
+            args[1] === "change/unresolvedRef^{tree}"
+          )
+            return { status: 1, stdout: "", stderr: "unknown revision" };
+          if (args[0] === "log" && args[1] === "--format=%H %T")
+            return {
+              status: 0,
+              stdout: "trunk-sha different-tree\n",
+              stderr: "",
+            };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+        runGh: (_cwd, args) => {
+          ghCalls += 1;
+          if (args[0] === "pr" && args[1] === "list")
+            return { status: 0, stdout: "[]", stderr: "" };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      reachable: false,
+      proof: "change_ref_unresolved",
+    });
+    expect(ghCalls).toBeGreaterThan(0);
   });
 
   // rq-fixPhase9PrDetection AC1: PR workflow route (pr_auto_merge) with no

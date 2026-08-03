@@ -5169,7 +5169,16 @@ export const changeTools = {
           ...(issueClosure.issue_closure_error
             ? { issue_closure_error: issueClosure.issue_closure_error }
             : {}),
-          ...(finalization ? { finalization } : {}),
+          ...(dryRun
+            ? {
+                finalization: {
+                  evaluated: false,
+                  reason: "dry run does not exercise Phase 9 git finalization",
+                },
+              }
+            : finalization
+              ? { finalization }
+              : {}),
           ...(finalization
             ? {
                 continueFrom: {

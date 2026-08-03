@@ -229,6 +229,32 @@ describe("verifyReleaseEvidenceFromMain", () => {
     );
   });
 
+  it("returns CHANGE_BRANCH_REF_UNRESOLVED when the origin change ref is unresolved", () => {
+    vi.spyOn(gitFinalize, "detectDefaultBranch").mockReturnValue({
+      branch: "trunk",
+      source: "test",
+    });
+    vi.spyOn(gitFinalize, "classifyFinalizationRoute").mockReturnValue({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+    vi.spyOn(gitFinalize, "resolveReleaseReachability").mockReturnValue({
+      reachable: false,
+      proof: "change_ref_unresolved",
+      details: ["change ref unavailable"],
+    });
+
+    const result = verifyReleaseEvidenceFromMain({
+      store: createStore("/repo"),
+      changeId: "unresolvedRef",
+      archiveMode: "direct",
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.blocked?.reason).toBe("CHANGE_BRANCH_REF_UNRESOLVED");
+    expect(result.blocked?.remediation).toContain("adv_doctor");
+  });
+
   // rq-fixPhase9PrDetection release-readiness: PR-mode route coercion must
   // preserve no_remote and pr_manual semantics instead of forcing pr_auto_merge.
   it("preserves no_remote route semantics through coercePrWorkflowRoute in PR mode", () => {
