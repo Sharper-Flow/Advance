@@ -2475,6 +2475,25 @@ describe("evaluateWorkerBundleProvenance — worker-bundle release provenance (K
     expect(result.blockers[0].gateId).toBe("release");
   });
 
+  it("AC6/C3: undeclared impact blocks despite worker-bundle path hints", () => {
+    const change = ChangeSchema.parse({
+      id: "change-1",
+      title: "Worker-reachable change",
+      status: "draft",
+      created_at: "2026-05-20T00:00:00.000Z",
+      tasks: [],
+      deltas: {},
+      affectedPaths: ["plugin/src/temporal/workflows.ts"],
+    });
+    const result = evaluateWorkerBundleProvenanceForChange(change);
+
+    expect(result.ok).toBe(false);
+    expect(result.blockers).toHaveLength(1);
+    expect(result.blockers[0].code).toBe(
+      "WORKER_BUNDLE_PROVENANCE_DECLARATION_REQUIRED",
+    );
+  });
+
   it("AC3: not_applicable impact -> no blocker", () => {
     const state = workerBundleState({
       worker_bundle_impact: { kind: "not_applicable", rationale: "pure UI" },
@@ -2532,6 +2551,38 @@ describe("evaluateWorkerBundleProvenance — worker-bundle release provenance (K
     const result = evaluateWorkerBundleProvenance(state);
     expect(result.ok).toBe(true);
     expect(result.blockers).toEqual([]);
+  });
+
+  it("AC5: provenance IDs that resolve to no durable typed runs block", () => {
+    const state = workerBundleState({
+      worker_bundle_impact: {
+        kind: "required",
+        rationale: "touches worker bundle",
+      },
+      workerBundleProvenance: {
+        source_sha: "abc123",
+        build_run_id: "run-build-missing",
+        replay_run_id: "run-replay-missing",
+        recorded_at: "2026-05-20T00:00:00.000Z",
+      },
+      testRuns: {
+        tk: [
+          passingRun("unrelated-build", "build_worker"),
+          passingRun("unrelated-replay", "replay_determinism"),
+        ],
+      },
+    });
+    const result = evaluateWorkerBundleProvenance(state);
+
+    expect(result.ok).toBe(false);
+    expect(result.blockers).toHaveLength(1);
+    expect(result.blockers[0]).toMatchObject({
+      code: "WORKER_BUNDLE_PROVENANCE_MISSING",
+      gateId: "release",
+      message: expect.stringContaining("run-build-missing"),
+      remediation: expect.stringContaining("passing test runs"),
+    });
+    expect(result.blockers[0].message).toContain("run-replay-missing");
   });
 
   it("preserves typed evidence_kind through the durable Change projection for recovery", () => {

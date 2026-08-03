@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   signalMock: vi.fn(),
   queryMock: vi.fn(),
   withTargetPathStore: vi.fn(),
+  changeToRefresh: null as { workerBundleProvenance?: unknown } | null,
 }));
 
 const handleMock = {
@@ -116,12 +117,27 @@ describe("adv_worker_bundle_provenance_record", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getService.mockReturnValue(temporalBundle);
-    mocks.fireSignalAndRefresh.mockImplementation(async () => {});
+    mocks.fireSignalAndRefresh.mockImplementation(
+      async (...args: unknown[]) => {
+        const signal = args[3];
+        const payload = args[4];
+        if (
+          signal === workerBundleProvenanceRecordedSignal &&
+          mocks.changeToRefresh &&
+          payload &&
+          typeof payload === "object"
+        ) {
+          mocks.changeToRefresh.workerBundleProvenance = payload;
+        }
+      },
+    );
+    mocks.changeToRefresh = null;
   });
 
   test("fires workerBundleProvenanceRecordedSignal with the typed payload and refreshes the cache", async () => {
     const change = activeChange();
     const store = createMockStore(change);
+    mocks.changeToRefresh = change;
 
     const result = await tools.adv_worker_bundle_provenance_record.execute(
       {
@@ -152,6 +168,16 @@ describe("adv_worker_bundle_provenance_record", () => {
       worker_manifest_generation: 7,
     });
     expect(typeof call[4].recorded_at).toBe("string");
+    expect(change.workerBundleProvenance).toMatchObject({
+      source_sha: "abc123def456",
+      build_run_id: "tr_build_001",
+      replay_run_id: "tr_replay_002",
+      worker_manifest_generation: 7,
+    });
+    expect(
+      typeof (change.workerBundleProvenance as { recorded_at?: unknown })
+        .recorded_at,
+    ).toBe("string");
   });
 
   test("rejects an unknown change id", async () => {

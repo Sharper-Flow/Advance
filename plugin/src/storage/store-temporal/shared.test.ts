@@ -234,6 +234,35 @@ describe("mapTemporalChangeStateToChange", () => {
     });
   });
 
+  test("projects worker-bundle impact and provenance into Change read model", () => {
+    // Direct mapper coverage. The projection tests exercise
+    // projectTemporalStateOntoLatest, which would still catch a dropped field
+    // via mapped[field] being undefined — but the mapper is the boundary
+    // inlined by context-snapshot-fetch and store-temporal/index, so a
+    // regression here would be invisible to anyone reading only this file.
+    const state = createChangeWorkflowState({
+      changeId: "worker-bundle-projection",
+      title: "Worker bundle projection",
+      createdAt: "2026-08-03T00:00:00.000Z",
+    });
+    state.worker_bundle_impact = {
+      kind: "required",
+      rationale: "Touches workflow-bundle reachable code.",
+      confirmed_at: "2026-08-03T00:01:00.000Z",
+    };
+    state.workerBundleProvenance = {
+      source_sha: "b170f70b254c26e89126f3ce6c604e7bc9547836",
+      build_run_id: "tr_build_001",
+      replay_run_id: "tr_replay_002",
+      recorded_at: "2026-08-03T00:02:00.000Z",
+    };
+
+    const change = mapTemporalChangeStateToChange(state);
+
+    expect(change.worker_bundle_impact).toEqual(state.worker_bundle_impact);
+    expect(change.workerBundleProvenance).toEqual(state.workerBundleProvenance);
+  });
+
   test("projects ops_followup and ops_followup_links into Change read model", () => {
     const state = createChangeWorkflowState({
       changeId: "ops-projection",

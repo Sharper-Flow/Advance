@@ -121,6 +121,13 @@ export function mapTemporalChangeStateToChange(
     epic_membership: safeState.epic_membership,
     lightweight_profile: safeState.lightweight_profile,
     release_notes: safeState.release_notes,
+    // Worker-bundle release evidence. Both fields are projected so the disk
+    // snapshot the archive reads mirrors workflow state. `worker_bundle_impact`
+    // previously reached the archive only because its setter direct-saves
+    // before signalling; a signal-only writer would have lost it exactly the
+    // way `workerBundleProvenance` was lost (rq-workerBundleReleaseProvenance01).
+    worker_bundle_impact: safeState.worker_bundle_impact,
+    workerBundleProvenance: safeState.workerBundleProvenance,
   };
 }
 
@@ -164,6 +171,8 @@ const TEMPORAL_OWNED_PROJECTION_FIELDS = [
   "epic_membership",
   "lightweight_profile",
   "release_notes",
+  "worker_bundle_impact",
+  "workerBundleProvenance",
 ] as const satisfies readonly (keyof Change)[];
 
 /**
