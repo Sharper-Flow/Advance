@@ -20,8 +20,8 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 function buildUsableTemporalHealth(): TemporalHealthSnapshot {
   return {
     server_alive: true,
-    worker_alive: true,
-    worker_process_alive: true,
+    worker_alive: { status: "available", value: true },
+    worker_process_alive: { status: "available", value: true },
     registered_queues: ["queue-a"],
     last_op_at: Date.now(),
     last_error: null,
@@ -37,8 +37,8 @@ function buildUsableTemporalHealth(): TemporalHealthSnapshot {
 function buildUnusableTemporalHealth(): TemporalHealthSnapshot {
   return {
     server_alive: false,
-    worker_alive: false,
-    worker_process_alive: false,
+    worker_alive: { status: "available", value: false },
+    worker_process_alive: { status: "available", value: false },
     registered_queues: [],
     last_op_at: null,
     last_error: "temporal unreachable",
@@ -249,8 +249,8 @@ describe("queue serviceability input isolation", () => {
       health: {
         ...buildUnusableTemporalHealth(),
         server_alive: false,
-        worker_alive: true,
-        worker_process_alive: true,
+        worker_alive: { status: "available", value: true },
+        worker_process_alive: { status: "available", value: true },
         probe_degraded: true,
       },
     });

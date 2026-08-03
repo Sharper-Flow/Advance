@@ -24,6 +24,10 @@ const mockGetOrphanQueueAdoptionDiagnostics = vi.hoisted(() =>
 
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: mockGetTemporalHealth,
+  isWorkerAffirmativelyAlive: (worker: {
+    status: "available" | "unavailable";
+    value?: boolean;
+  }) => worker.status === "available" && worker.value === true,
 }));
 
 vi.mock("../temporal/queue-serviceability", () => ({
@@ -77,8 +81,8 @@ const PROJECT_ID = "0000000000000000000000000000000000000000";
 
 const HEALTH = {
   server_alive: true,
-  worker_alive: true,
-  worker_process_alive: true,
+  worker_alive: { status: "available", value: true },
+  worker_process_alive: { status: "available", value: true },
   registered_queues: [],
   last_op_at: null,
   last_error: null,

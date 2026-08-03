@@ -86,8 +86,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
       const ctx: ContaminationContext = {
         health: {
           server_alive: true,
-          worker_alive: true,
-          worker_process_alive: true,
+          worker_alive: { status: "available", value: true },
+          worker_process_alive: { status: "available", value: true },
           registered_queues: [],
           last_op_at: new Date().toISOString(),
           last_error: null,
@@ -113,8 +113,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
       const ctx: ContaminationContext = {
         health: {
           server_alive: false,
-          worker_alive: false,
-          worker_process_alive: false,
+          worker_alive: { status: "available", value: false },
+          worker_process_alive: { status: "available", value: false },
           registered_queues: [],
           last_op_at: null,
           last_error: null,
@@ -140,8 +140,8 @@ describe("benchmark-temporal scaffold (A1)", () => {
       const ctx: ContaminationContext = {
         health: {
           server_alive: true,
-          worker_alive: true,
-          worker_process_alive: true,
+          worker_alive: { status: "available", value: true },
+          worker_process_alive: { status: "available", value: true },
           registered_queues: [],
           last_op_at: null,
           last_error: "err",

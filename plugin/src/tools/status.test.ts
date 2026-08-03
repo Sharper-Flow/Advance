@@ -66,6 +66,10 @@ const {
 
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: mockGetTemporalHealth,
+  isWorkerAffirmativelyAlive: (worker: {
+    status: "available" | "unavailable";
+    value?: boolean;
+  }) => worker.status === "available" && worker.value === true,
 }));
 
 vi.mock("../utils/worktree-census", () => ({
@@ -131,8 +135,8 @@ describe("Status Tools", () => {
     mockGetTemporalHealth.mockReset();
     mockGetTemporalHealth.mockResolvedValue({
       server_alive: true,
-      worker_alive: false,
-      worker_process_alive: false,
+      worker_alive: { status: "available", value: false },
+      worker_process_alive: { status: "available", value: false },
       registered_queues: [],
       last_op_at: null,
       last_error: null,

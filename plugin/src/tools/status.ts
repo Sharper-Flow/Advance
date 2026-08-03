@@ -13,6 +13,7 @@ import {
   classifyTemporalError,
   getTemporalRetryTelemetry,
 } from "../temporal/retry-wrapper";
+import { isWorkerAffirmativelyAlive } from "../temporal/health-probe";
 import { formatToolOutput, resolveOutputMode } from "../utils/tool-output";
 import { formatStatusOutput } from "../utils/tool-formatters";
 import { listPeerSessions } from "./session/index";
@@ -987,9 +988,8 @@ export const statusTools = {
                 temporalDegraded: temporalHealth?.probe_degraded === true,
                 temporalHealth: temporalHealth
                   ? {
-                      worker_alive: temporalHealth.worker_alive ?? false,
-                      worker_process_alive:
-                        temporalHealth.worker_process_alive ?? false,
+                      worker_alive: temporalHealth.worker_alive,
+                      worker_process_alive: temporalHealth.worker_process_alive,
                       worker_lock: temporalHealth.worker_lock ?? null,
                       last_worker_run_error:
                         temporalHealth.last_worker_run_error ?? null,
@@ -1146,11 +1146,19 @@ export const statusTools = {
               : {}),
             plugin_runtime: pluginRuntimeInfo,
             diagnostics: {
-              temporalWorker: temporalHealth?.worker_alive
-                ? ("healthy" as const)
-                : temporalHealth?.server_alive
-                  ? ("degraded" as const)
-                  : ("unknown" as const),
+              temporalWorker:
+                temporalHealth?.worker_alive?.status === "unavailable"
+                  ? ("unknown" as const)
+                  : isWorkerAffirmativelyAlive(
+                        temporalHealth?.worker_alive ?? {
+                          status: "available",
+                          value: false,
+                        },
+                      )
+                    ? ("healthy" as const)
+                    : temporalHealth?.server_alive
+                      ? ("degraded" as const)
+                      : ("unknown" as const),
               lastErrorClass:
                 bootstrapDiagnostic?.recovered === false
                   ? bootstrapDiagnostic.lastErrorClass

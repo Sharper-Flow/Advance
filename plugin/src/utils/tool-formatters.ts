@@ -12,6 +12,8 @@
  * - Graceful degradation: missing data → placeholder, not errors
  */
 
+import type { WorkerLiveness } from "../temporal/health-probe";
+
 // =============================================================================
 // Shared Types
 // =============================================================================
@@ -149,8 +151,8 @@ export interface StatusInput {
     reason?: string;
   };
   temporalHealth?: {
-    worker_alive?: boolean;
-    worker_process_alive?: boolean;
+    worker_alive?: WorkerLiveness;
+    worker_process_alive?: WorkerLiveness;
     worker_lock?: WorkerLockHealthInput | null;
     last_worker_run_error?: WorkerRunErrorInput | null;
   };
@@ -317,7 +319,12 @@ export function formatWorkerRunError(
 }
 
 function formatWorkerProcessStatus(input: StatusInput): string {
-  if (input.temporalHealth?.worker_process_alive) {
+  const workerProcessAlive = input.temporalHealth?.worker_process_alive;
+  if (workerProcessAlive?.status === "unavailable") {
+    return "cannot observe";
+  }
+
+  if (workerProcessAlive?.status === "available" && workerProcessAlive.value) {
     return "healthy";
   }
 

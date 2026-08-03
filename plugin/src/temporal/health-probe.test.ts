@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getTemporalHealth,
+  isWorkerAffirmativelyAlive,
   resetTemporalHealthProbeState,
 } from "./health-probe";
 import { createMockOwner } from "./__tests__/mock-owner";
@@ -64,6 +65,32 @@ vi.mock("./retry-wrapper", () => ({
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+describe("isWorkerAffirmativelyAlive", () => {
+  it("accepts available true", () => {
+    expect(
+      isWorkerAffirmativelyAlive({ status: "available", value: true }),
+    ).toBe(true);
+  });
+
+  it("rejects available false", () => {
+    expect(
+      isWorkerAffirmativelyAlive({ status: "available", value: false }),
+    ).toBe(false);
+  });
+
+  it("rejects unavailable without conflating it with available false", () => {
+    const availableFalse = { status: "available" as const, value: false };
+    const unavailable = {
+      status: "unavailable" as const,
+      reason: "not_host_capable" as const,
+    };
+
+    expect(unavailable).not.toEqual(availableFalse);
+    expect(isWorkerAffirmativelyAlive(availableFalse)).toBe(false);
+    expect(isWorkerAffirmativelyAlive(unavailable)).toBe(false);
+  });
+});
 
 describe("getTemporalHealth — server poller probe integration", () => {
   beforeEach(() => {

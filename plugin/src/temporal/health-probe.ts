@@ -50,6 +50,10 @@ export type WorkerLiveness =
   | { status: "available"; value: boolean }
   | { status: "unavailable"; reason: WorkerObservabilityReason };
 
+export function isWorkerAffirmativelyAlive(w: WorkerLiveness): boolean {
+  return w.status === "available" && w.value;
+}
+
 export interface TemporalHealth {
   server_alive: boolean;
   worker_alive: WorkerLiveness;

@@ -29,7 +29,11 @@
 import { z } from "zod";
 import type { Store } from "../storage/store";
 import { getService, getStslStats, reinitStsl } from "../temporal/service";
-import { getTemporalHealth } from "../temporal/health-probe";
+import {
+  getTemporalHealth,
+  isWorkerAffirmativelyAlive,
+  type TemporalHealth,
+} from "../temporal/health-probe";
 import { makeTemporalLifecycleContext } from "../temporal/operations";
 
 import {
@@ -156,42 +160,6 @@ export function getDoctorPointerRepairProvider(): DoctorPointerRepairProvider | 
   return pointerRepairProvider;
 }
 
-interface TemporalHealthSnapshot {
-  server_alive: boolean;
-  worker_alive: boolean;
-  worker_process_alive?: boolean;
-  registered_queues?: string[];
-  last_op_at?: string | null;
-  last_error?: string | null;
-  fallback_counts?: Record<string, number>;
-  stale_queues?: string[];
-  reconnect_count?: number;
-  op_counters?: unknown[];
-  worker_lock?: {
-    pid: number;
-    kind?: string;
-    acquiredAt?: string;
-    /** True when the lock is held by a live process. */
-    live?: boolean;
-    /** True when the lock is owned by the current ADV worker process. */
-    owned?: boolean;
-  } | null;
-  last_worker_run_error?: string | null;
-  server_poller_probe?: {
-    status: string;
-    lastAccessMs?: number;
-    pollerCount?: number;
-    lastPollerAt?: string | null;
-  };
-  queues?: Array<{
-    queueName: string;
-    queueType?: string;
-    serviceable?: boolean;
-    pollerCount?: number;
-    lastPollerAt?: string;
-  }>;
-}
-
 interface SearchAttributeCheck {
   ok: boolean;
   present: Array<{ name: string }>;
@@ -253,18 +221,16 @@ function addNonHealthyFinding(
   findings.push(finding);
 }
 
-function isSuspectLock(
-  health: TemporalHealthSnapshot,
-  workerAlive: boolean,
-): boolean {
+function isSuspectLock(health: TemporalHealth, workerAlive: boolean): boolean {
   // A "suspect" lock is one that blocks restart but is held by a live
   // process the current ADV worker does NOT own. Doctor must refuse so
   // the operator decides whether to forcibly reclaim.
   if (workerAlive) return false;
   const lock = health.worker_lock;
   if (!lock) return false;
-  if (lock.owned === true) return false; // our lock, safe to reclaim
-  return lock.live !== false; // live or unknown → suspect
+  // The shared health snapshot identifies the lock holder, so a lock held by
+  // this process is safe to reclaim; any peer-held lock remains suspect.
+  return lock.holder_pid !== process.pid;
 }
 
 export const doctorTools = {
@@ -299,9 +265,7 @@ export const doctorTools = {
       const startedAt = new Date().toISOString();
 
       // ── Step 1: diagnose ─────────────────────────────────────────────
-      const health = (await getTemporalHealth(
-        projectId,
-      )) as unknown as TemporalHealthSnapshot;
+      const health = await getTemporalHealth(projectId);
       const bundle = getService();
 
       const serverAlive = health.server_alive === true;
@@ -353,7 +317,9 @@ export const doctorTools = {
       }
 
       // Worker + queue probe.
-      const workerAlive = health.worker_alive === true;
+      // adv_doctor runs host-side and always resolves a worker role, so the
+      // unavailable arm is unreachable at this boundary.
+      const workerAlive = isWorkerAffirmativelyAlive(health.worker_alive);
       const queueServiceable = projectId
         ? await probeQueue(projectId, bundle)
         : false;
@@ -361,7 +327,7 @@ export const doctorTools = {
         if (isSuspectLock(health, workerAlive)) {
           findings.push({
             class: "suspect_lock",
-            detail: `worker.lock held by live pid=${health.worker_lock?.pid} (kind=${health.worker_lock?.kind ?? "?"}, owned=${health.worker_lock?.owned ?? false}); doctor refuses to reclaim`,
+            detail: `worker.lock held by peer pid=${health.worker_lock?.holder_pid} (schema_version=${health.worker_lock?.schema_version}); doctor refuses to reclaim`,
           });
         } else {
           // Distinguish "exclusively owned" (safe to restart) from
@@ -642,7 +608,9 @@ export const doctorTools = {
                 class: "worker_down_owned",
                 action: "worker_restart",
                 outcome: "applied",
-                before: { worker_alive: false },
+                before: {
+                  worker_alive: { status: "available", value: false },
+                },
                 after: {
                   projectId: result.projectId,
                   expectedQueue: result.expectedQueue,
@@ -686,8 +654,8 @@ export const doctorTools = {
               outcome: "approval_required",
               operator_action:
                 "Operator must reclaim the suspect live worker.lock explicitly (stop the holding process, or restart OpenCode). Doctor never forcibly reclaims a live lock it does not own.",
-              proposal: `worker.lock held by live pid=${health.worker_lock?.pid} (owned=${health.worker_lock?.owned ?? false}). Doctor refuses to forcibly reclaim; operator must approve explicitly.`,
-              evidence: `worker_lock.live=${health.worker_lock?.live ?? "?"}, owned=${health.worker_lock?.owned ?? "?"}`,
+              proposal: `worker.lock held by peer pid=${health.worker_lock?.holder_pid} (schema_version=${health.worker_lock?.schema_version}). Doctor refuses to forcibly reclaim; operator must approve explicitly.`,
+              evidence: `worker_lock.holder_pid=${health.worker_lock?.holder_pid}, schema_version=${health.worker_lock?.schema_version}`,
             });
             break;
           }
@@ -757,9 +725,7 @@ export const doctorTools = {
       // mask the fix outcomes above.
       let verification: DoctorVerification;
       try {
-        const recheck = (await getTemporalHealth(
-          projectId,
-        )) as unknown as TemporalHealthSnapshot;
+        const recheck = await getTemporalHealth(projectId);
         const recheckBundle = getService();
         const recheckQueue = projectId
           ? await probeQueue(projectId, recheckBundle)
@@ -784,11 +750,13 @@ export const doctorTools = {
         verification = {
           healthy:
             recheck.server_alive === true &&
-            recheck.worker_alive === true &&
+            isWorkerAffirmativelyAlive(recheck.worker_alive) &&
             recheckQueue &&
             recheckSAs,
           server_alive: recheck.server_alive === true,
-          worker_alive: recheck.worker_alive === true,
+          // adv_doctor is host-side and always resolves a worker role; retain
+          // boolean verification output at this boundary.
+          worker_alive: isWorkerAffirmativelyAlive(recheck.worker_alive),
           queue_serviceable: recheckQueue,
           search_attributes_ok: recheckSAs,
           rechecked_at: new Date().toISOString(),

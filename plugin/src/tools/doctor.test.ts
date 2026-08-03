@@ -38,6 +38,10 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: getTemporalHealthMock,
+  isWorkerAffirmativelyAlive: (worker: {
+    status: "available" | "unavailable";
+    value?: boolean;
+  }) => worker.status === "available" && worker.value === true,
 }));
 
 vi.mock("../temporal/observability", () => ({
@@ -98,8 +102,8 @@ function setHealthy() {
   );
   getTemporalHealthMock.mockResolvedValue({
     server_alive: true,
-    worker_alive: true,
-    worker_process_alive: true,
+    worker_alive: { status: "available", value: true },
+    worker_process_alive: { status: "available", value: true },
     registered_queues: ["advance-" + PROJECT_ID],
     last_op_at: "2026-07-22T00:00:00.000Z",
     last_error: null,
@@ -410,8 +414,8 @@ describe("adv_doctor", () => {
     getTemporalHealthMock.mockResolvedValueOnce({
       ...({} as never),
       server_alive: false,
-      worker_alive: false,
-      worker_process_alive: false,
+      worker_alive: { status: "available", value: false },
+      worker_process_alive: { status: "available", value: false },
       registered_queues: [],
       last_op_at: null,
       last_error: "connection refused",
@@ -506,8 +510,8 @@ describe("adv_doctor", () => {
     getTemporalHealthMock.mockResolvedValue({
       ...({} as never),
       server_alive: true,
-      worker_alive: false,
-      worker_process_alive: false,
+      worker_alive: { status: "available", value: false },
+      worker_process_alive: { status: "available", value: false },
       registered_queues: [],
       last_op_at: "2026-07-22T00:00:00.000Z",
       last_error: null,
@@ -607,8 +611,8 @@ describe("adv_doctor", () => {
     getTemporalHealthMock.mockResolvedValue({
       ...({} as never),
       server_alive: true,
-      worker_alive: false,
-      worker_process_alive: false,
+      worker_alive: { status: "available", value: false },
+      worker_process_alive: { status: "available", value: false },
       registered_queues: [],
       last_op_at: "2026-07-22T00:00:00.000Z",
       last_error: null,
@@ -617,11 +621,8 @@ describe("adv_doctor", () => {
       reconnect_count: 0,
       op_counters: [],
       worker_lock: {
-        pid: 99999,
-        kind: "v2",
-        acquiredAt: "2026-07-22T00:00:00.000Z",
-        live: true,
-        owned: false,
+        holder_pid: 99999,
+        schema_version: 1,
       },
       last_worker_run_error: null,
       server_poller_probe: {

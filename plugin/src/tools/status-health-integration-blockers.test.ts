@@ -76,6 +76,10 @@ const mockProbeConfig = vi.hoisted(() => ({ delayMs: 0 }));
 
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: (...args: unknown[]) => mockGetTemporalHealth(...args),
+  isWorkerAffirmativelyAlive: (worker: {
+    status: "available" | "unavailable";
+    value?: boolean;
+  }) => worker.status === "available" && worker.value === true,
 }));
 
 vi.mock("../utils/worktree-census", () => ({
@@ -187,8 +191,11 @@ function buildTemporalHealth(
 ): any {
   return {
     server_alive: serverAlive,
-    worker_alive: options.workerAlive ?? false,
-    worker_process_alive: false,
+    worker_alive: {
+      status: "available",
+      value: options.workerAlive ?? false,
+    },
+    worker_process_alive: { status: "available", value: false },
     registered_queues: [],
     last_op_at: null,
     last_error: null,
@@ -804,12 +811,18 @@ describe("C: concurrent same-key health forceRefresh is request-owned", () => {
       [
         p1Parsed.temporal_health.worker_alive,
         p2Parsed.temporal_health.worker_alive,
-      ].sort(),
-    ).toEqual([false, true]);
+      ].sort((a, b) => Number(a.value) - Number(b.value)),
+    ).toEqual([
+      { status: "available", value: false },
+      { status: "available", value: true },
+    ]);
 
     const r3 = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed3 = parseStatusOutput(r3);
-    expect(parsed3.temporal_health.worker_alive).toBe(true);
+    expect(parsed3.temporal_health.worker_alive).toEqual({
+      status: "available",
+      value: true,
+    });
   });
 
   test("C.2: late-resolving older request cannot overwrite a newer publication", async () => {
@@ -843,7 +856,10 @@ describe("C: concurrent same-key health forceRefresh is request-owned", () => {
 
     const r3 = await statusTools.adv_status.execute({ view: "health" }, store);
     const parsed3 = parseStatusOutput(r3);
-    expect(parsed3.temporal_health.worker_alive).toBe(true);
+    expect(parsed3.temporal_health.worker_alive).toEqual({
+      status: "available",
+      value: true,
+    });
   });
 });
 
