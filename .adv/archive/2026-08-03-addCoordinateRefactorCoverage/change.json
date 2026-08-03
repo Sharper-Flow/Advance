@@ -1,0 +1,1789 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "addCoordinateRefactorCoverage",
+  "title": "Add coordinate refactor coverage",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-02T20:07:00.194Z",
+  "tasks": [
+    {
+      "id": "tk-7829f97d60a1",
+      "title": "Add Refactor Coverage Audit to /adv-coordinate contract",
+      "type": "docs",
+      "section": "Contract",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-02T23:38:39.980Z",
+      "started_at": "2026-08-02T23:41:58.984Z",
+      "completed_at": "2026-08-02T23:44:15.380Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Contract edit committed as f08fa395; worktree clean. Phase 6.5 Refactor Coverage Audit inserted with all six rules plus DDC7 reachability note; Phase 7 report bullet and Final Report counts bullet added. Invariants verified programmatically: DDC1 clean, DDC2 Phase 7/8 headings intact with four inventory rows, DDC3 adv_change_list precedes No active Epics, DDC4 Final Report four rows intact, C7 hyphen form 8 occurrences / underscore 0, read-first language preserved, no renumbering, no new tool call.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "checkpointSha": "f08fa395c7bc8bfc0b56bedbda0b296363d2149e",
+      "completedAt": "2026-08-02T23:44:15.380Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C7",
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Deliverable is command-contract prose, not code. The user explicitly decided this change adds no new asset test (C5), so proof is the resulting artifact content plus the unchanged existing test suite (verified separately in the follow-on verification task). Red/green TDD does not apply to a markdown contract.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "artifact_reference",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "touched_files": [
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-08-02T23:43:41.103Z"
+    },
+    {
+      "id": "tk-b4dc15023ef9",
+      "title": "Verify existing asset and boundary tests stay green",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7829f97d60a1"
+        }
+      ],
+      "created_at": "2026-08-02T23:39:09.664Z",
+      "started_at": "2026-08-02T23:44:28.344Z",
+      "completed_at": "2026-08-02T23:45:25.941Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "bin/oc-test targeted -- src/advance-epics-assets.test.ts src/consumer-integration.test.ts exited 0. 2 test files passed, 87 tests passed, 0 failed (runId tr_mscg6t7s_05f1144c, 4.79s). Proves C6 (existing asset and boundary tests green with zero modification to their assertions) and confirms DDC1-DDC4 plus C7 hold against the edited contract file: positional slice assertions for Phase 7/Phase 8 and Final Report, the adv_change_list before No active Epics ordering, the hyphen adv-backed-fact assertions, and the consumer-integration no-new-mutation-verb heading filter all pass unchanged. Neither test file was edited.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "checkpointSha": "f08fa395c7bc8bfc0b56bedbda0b296363d2149e",
+      "completedAt": "2026-08-02T23:45:25.941Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "respects": [
+          "C6",
+          "C7",
+          "C1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        ".opencode/command/adv-coordinate.md"
+      ]
+    },
+    {
+      "id": "tk-4d141d1c68be",
+      "title": "Confirm repo and deployed adv-coordinate.md stay SHA-identical",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-b4dc15023ef9"
+        }
+      ],
+      "created_at": "2026-08-02T23:39:34.593Z",
+      "started_at": "2026-08-02T23:45:38.075Z",
+      "completed_at": "2026-08-02T23:48:59.892Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "DDC6 satisfied and independently reviewed. Branch copy and deployed copy of .opencode/command/adv-coordinate.md both hash 9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb, differing from the pre-change baseline 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015 — proving the new contract content deployed. adv-reviewer verdict READY (task-scoped REVIEWER_REPORT persisted, changes_made: none): independently re-ran all three hashes, confirmed the deployed file actually contains the \"## Phase 6.5: Refactor Coverage Audit\" section rather than matching by coincidence, confirmed .githooks/post-commit is the automatic mirroring mechanism and was unchanged by the checkpoint, and confirmed no manual deploy was run from the worktree (P32 / trunk-worktree-isolation respected). Reviewer classified the deployed-ahead-of-trunk state as correctly-recorded release-time behavior, non-blocking for DDC6, with the underlying hook/P32 policy interaction meriting separate review as a follow-up.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "checkpointSha": "f08fa395c7bc8bfc0b56bedbda0b296363d2149e",
+      "completedAt": "2026-08-02T23:48:59.892Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "not_applicable_reason": "Closes design-derived criterion DDC6 (repo/deployed SHA parity). No approved contract item governs deployment parity — the agreement is scoped to command-contract content, not asset deployment."
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Deployed-copy parity is a filesystem hash comparison, not a behavior under test. No approved contract item governs deployment parity; this closes design-derived criterion DDC6 only.",
+        "review_evidence_ref": {
+          "report_key": "addCoordinateRefactorCoverage|tk-4d141d1c68be|adv-reviewer|2"
+        },
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        ".opencode/command/adv-coordinate.md"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "addCoordinateRefactorCoverage",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCoordinateRefactorCoverage",
+          "task_id": "tk-4d141d1c68be",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4d141d1c68be"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "The post-commit deployment hook is intentionally unchanged by the command-content checkpoint and deploys local assets from the committing checkout. DDC parity can therefore be proven before trunk merge, but this produces a deployed copy ahead of trunk until merge."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "sha256sum \".opencode/command/adv-coordinate.md\" \"/home/jon/.config/opencode/command/adv-coordinate.md\" \"/home/jon/dev/advance/.opencode/command/adv-coordinate.md\"",
+              "grep '^## Phase 6\\.5: Refactor Coverage Audit$' /home/jon/.config/opencode/command/adv-coordinate.md",
+              "git diff --quiet f08fa395^ f08fa395 -- .githooks/post-commit; git show f08fa395^:.githooks/post-commit | sha256sum; sha256sum .githooks/post-commit",
+              "git log --format='%H%n%B%n---' -1 f08fa395; git show --format= --name-status f08fa395; git config --get core.hooksPath"
+            ],
+            "results": "pass",
+            "evidence": "Branch and deployed hashes are both 9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb; trunk is 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015. Deployed file contains Phase 6.5 at line 171. f08fa395 changed only .opencode/command/adv-coordinate.md; post-commit hook was byte-identical before/after and is active via core.hooksPath=.githooks. Hook lines 21-25 include .opencode/command/ and line 53 runs deploy-local.sh --fix; deploy-local lines 26 and 137-144 copy command assets to ~/.config/opencode/command. No manual deployment command was run for this task. The deployed-ahead-of-trunk state is accurately a pre-existing automatic-hook release-time observation, not a DDC6 defect, and does not block this static parity task."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Automatic post-commit deployment leaves the local installed command ahead of trunk until the change merges. This is correctly recorded as a release-time observation; it does not alter DDC6 parity.",
+            "The existing hook invokes deploy-local.sh from the committing checkout. Although this task performed no manual deploy and did not modify the hook, the broader automatic-deployment policy should be assessed separately against the full P32 no-deploy-from-worktree rule."
+          ],
+          "required_main_agent_actions": [
+            "Use this persisted reviewer report as the reviewer-owned static-check evidence for tk-4d141d1c68be and proceed with normal task completion.",
+            "Do not revisit the command content or alter deployment behavior in this task. If desired, separately assess the pre-existing post-commit deployment design against P32; it is not a blocker for DDC6 parity."
+          ],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: sha256sum \".opencode/command/adv-coordinate.md\" \"/home/jon/.config/opencode/command/adv-coordinate.md\" \"/home/jon/dev/advance/.opencode/command/adv-coordinate.md\""
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: grep '^## Phase 6\\.5: Refactor Coverage Audit$' /home/jon/.config/opencode/command/adv-coordinate.md"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --quiet f08fa395^ f08fa395 -- .githooks/post-commit; git show f08fa395^:.githooks/post-commit | sha256sum; sha256sum .githooks/post-commit"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git log --format='%H%n%B%n---' -1 f08fa395; git show --format= --name-status f08fa395; git config --get core.hooksPath"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "addCoordinateRefactorCoverage",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCoordinateRefactorCoverage",
+          "task_id": "tk-4d141d1c68be",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4d141d1c68be"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "branch=$(sha256sum .opencode/command/adv-coordinate.md | cut -d ' ' -f1); deployed=$(sha256sum ~/.config/opencode/command/adv-coordinate.md | cut -d ' ' -f1); test \"$branch\" = \"$deployed\" && test \"$branch\" != \"5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015\" && grep -Fqx '## Phase 6.5: Refactor Coverage Audit' ~/.config/opencode/command/adv-coordinate.md && printf 'branch=%s\\ndeployed=%s\\nPASS: branch==deployed, differs from baseline, deployed contains Phase 6.5\\n' \"$branch\" \"$deployed\""
+            ],
+            "results": "pass",
+            "evidence": "Typed adv_run_test run tr_mscgrs6m_1a8ef40a: exit 0, classification passed. It proved branch/deployed SHA equality (9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb), inequality from baseline 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015, and deployed literal Phase 6.5 heading. Prior proving run tr_mscgomr2_486b2e9f independently recorded the same assertions."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Pre-existing automatic post-commit deployment can place the deployed command file ahead of trunk; this is a release-time observation, not a DDC6 blocker."
+          ],
+          "required_main_agent_actions": [],
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: branch=$(sha256sum .opencode/command/adv-coordinate.md | cut -d ' ' -f1); deployed=$(sha256sum ~/.config/opencode/command/adv-coordinate.md | cut -d ' ' -f1); test \"$branch\" = \"$deployed\" && test \"$branch\" != \"5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015\" && grep -Fqx '## Phase 6.5: Refactor Coverage Audit' ~/.config/opencode/command/adv-coordinate.md && printf 'branch=%s\\ndeployed=%s\\nPASS: branch==deployed, differs from baseline, deployed contains Phase 6.5\\n' \"$branch\" \"$deployed\""
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "addCoordinateRefactorCoverage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCoordinateRefactorCoverage",
+      "task_id": "tk-4d141d1c68be",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4d141d1c68be"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "The post-commit deployment hook is intentionally unchanged by the command-content checkpoint and deploys local assets from the committing checkout. DDC parity can therefore be proven before trunk merge, but this produces a deployed copy ahead of trunk until merge."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "sha256sum \".opencode/command/adv-coordinate.md\" \"/home/jon/.config/opencode/command/adv-coordinate.md\" \"/home/jon/dev/advance/.opencode/command/adv-coordinate.md\"",
+          "grep '^## Phase 6\\.5: Refactor Coverage Audit$' /home/jon/.config/opencode/command/adv-coordinate.md",
+          "git diff --quiet f08fa395^ f08fa395 -- .githooks/post-commit; git show f08fa395^:.githooks/post-commit | sha256sum; sha256sum .githooks/post-commit",
+          "git log --format='%H%n%B%n---' -1 f08fa395; git show --format= --name-status f08fa395; git config --get core.hooksPath"
+        ],
+        "results": "pass",
+        "evidence": "Branch and deployed hashes are both 9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb; trunk is 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015. Deployed file contains Phase 6.5 at line 171. f08fa395 changed only .opencode/command/adv-coordinate.md; post-commit hook was byte-identical before/after and is active via core.hooksPath=.githooks. Hook lines 21-25 include .opencode/command/ and line 53 runs deploy-local.sh --fix; deploy-local lines 26 and 137-144 copy command assets to ~/.config/opencode/command. No manual deployment command was run for this task. The deployed-ahead-of-trunk state is accurately a pre-existing automatic-hook release-time observation, not a DDC6 defect, and does not block this static parity task."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Automatic post-commit deployment leaves the local installed command ahead of trunk until the change merges. This is correctly recorded as a release-time observation; it does not alter DDC6 parity.",
+        "The existing hook invokes deploy-local.sh from the committing checkout. Although this task performed no manual deploy and did not modify the hook, the broader automatic-deployment policy should be assessed separately against the full P32 no-deploy-from-worktree rule."
+      ],
+      "required_main_agent_actions": [
+        "Use this persisted reviewer report as the reviewer-owned static-check evidence for tk-4d141d1c68be and proceed with normal task completion.",
+        "Do not revisit the command content or alter deployment behavior in this task. If desired, separately assess the pre-existing post-commit deployment design against P32; it is not a blocker for DDC6 parity."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: sha256sum \".opencode/command/adv-coordinate.md\" \"/home/jon/.config/opencode/command/adv-coordinate.md\" \"/home/jon/dev/advance/.opencode/command/adv-coordinate.md\""
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: grep '^## Phase 6\\.5: Refactor Coverage Audit$' /home/jon/.config/opencode/command/adv-coordinate.md"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --quiet f08fa395^ f08fa395 -- .githooks/post-commit; git show f08fa395^:.githooks/post-commit | sha256sum; sha256sum .githooks/post-commit"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git log --format='%H%n%B%n---' -1 f08fa395; git show --format= --name-status f08fa395; git config --get core.hooksPath"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCoordinateRefactorCoverage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCoordinateRefactorCoverage",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:review"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "review",
+      "scanner_count": 1,
+      "dimensions": [
+        "contract-traceability",
+        "correctness-edge-cases",
+        "security",
+        "tests-tdd-evidence",
+        "scope-conformance",
+        "non-code-evidence-policy"
+      ],
+      "summary": "Single inline orchestrator pass; no explore scanners spawned. Risk-trigger assessment: change is +30 lines of prose in one markdown command-contract file, no code, no control flow, no user input, no auth, no secrets, no persistence, no external calls, no cross-repo work, no test-file modification. No dedicated-scanner risk trigger fired. All 12 review dimensions assessed inline against the diff. Contract traceability: 22/22 items verified against delivered text, 0 failing rows in the persisted review matrix, all 8 AC mapped to specific paragraphs. Correctness: the six audit rules are internally consistent and consistent with the phases they consume (1, 3, 6) and feed (7, 8, 9). Security: no new mutation authority; the change strictly reduces risk surface by forbidding coordination from emitting --execute, which mutates with no approval prompt. Tests: no new tests by explicit user decision C5; existing asset and boundary tests pass 87/87 with zero assertion edits (runId tr_mscg6t7s_05f1144c). Scope conformance: diff touches exactly one file; adv-refactor.md, spec.json, docs/specs mirror, and both test files untouched. Non-code evidence policy: T1 artifact_reference proven by delivered contract text, T2 test proven by typed run evidence, T3 static_check backed by a persisted reviewer report per stage-v2. Verdict APPROVED, zero blockers, zero issues.",
+      "findings": [],
+      "follow_ups": [
+        "Evidence-label vocabulary drift persists by design: adv-coordinate.md uses hyphen adv-backed-fact while spec/docs use underscore adv_backed_fact, both assertion-locked. Normalization deferred per DONT3 and warrants its own change.",
+        "The pre-existing .githooks/post-commit hook deploys from the committing checkout, leaving the deployed copy ahead of trunk until merge. Not introduced by this change; warrants separate assessment against the deploy-from-trunk rule.",
+        "adv_subagent_report_submit rejects agent value adv-researcher (discriminator allows engineer/reviewer/designer only) and its lifecycle excludes discovery/design, so researcher-lane reports have no valid typed transport. Observed twice during this change."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCoordinateRefactorCoverage",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCoordinateRefactorCoverage",
+      "task_id": "tk-4d141d1c68be",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4d141d1c68be"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "branch=$(sha256sum .opencode/command/adv-coordinate.md | cut -d ' ' -f1); deployed=$(sha256sum ~/.config/opencode/command/adv-coordinate.md | cut -d ' ' -f1); test \"$branch\" = \"$deployed\" && test \"$branch\" != \"5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015\" && grep -Fqx '## Phase 6.5: Refactor Coverage Audit' ~/.config/opencode/command/adv-coordinate.md && printf 'branch=%s\\ndeployed=%s\\nPASS: branch==deployed, differs from baseline, deployed contains Phase 6.5\\n' \"$branch\" \"$deployed\""
+        ],
+        "results": "pass",
+        "evidence": "Typed adv_run_test run tr_mscgrs6m_1a8ef40a: exit 0, classification passed. It proved branch/deployed SHA equality (9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb), inequality from baseline 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015, and deployed literal Phase 6.5 heading. Prior proving run tr_mscgomr2_486b2e9f independently recorded the same assertions."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Pre-existing automatic post-commit deployment can place the deployed command file ahead of trunk; this is a release-time observation, not a DDC6 blocker."
+      ],
+      "required_main_agent_actions": [],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: branch=$(sha256sum .opencode/command/adv-coordinate.md | cut -d ' ' -f1); deployed=$(sha256sum ~/.config/opencode/command/adv-coordinate.md | cut -d ' ' -f1); test \"$branch\" = \"$deployed\" && test \"$branch\" != \"5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015\" && grep -Fqx '## Phase 6.5: Refactor Coverage Audit' ~/.config/opencode/command/adv-coordinate.md && printf 'branch=%s\\ndeployed=%s\\nPASS: branch==deployed, differs from baseline, deployed contains Phase 6.5\\n' \"$branch\" \"$deployed\""
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "addCoordinateRefactorCoverage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/addCoordinateRefactorCoverage",
+      "scope": {
+        "kind": "change",
+        "scope_key": "scanner-bundle:harden"
+      },
+      "agent": "adv-scanner-bundle",
+      "phase": "harden",
+      "scanner_count": 1,
+      "dimensions": [
+        "release-deploy-readiness",
+        "production-readiness",
+        "documentation-hygiene",
+        "cleanup-readiness",
+        "residual-slop-maintainability"
+      ],
+      "summary": "Risk-triggered routing selected exactly one dedicated scanner: documentation hygiene (trigger: command-contract / agent-guidance text changed). Remaining release-owned dimensions assessed inline with evidence. DOCUMENTATION HYGIENE: 0 conflicts, 0 stale references, 0 deletions, 0 updates_needed, 0 verbose; confirmed manifest.ts:402-416 declaration still accurate (description does not enumerate phases; scope creates/modifies/gates still empty because the audit adds no tool call), asset-test slice boundaries hold because Phase 6.5 sits before the literal '## Phase 7:' heading, no spec MUST contradicted, Phase 6.5 cross-references to Phase 8 separation and the Phase 9 tool table are factually correct, and no doc enumerates coordinate phases by number so no stale numbering was created. Two LOW findings, zero BLOCKER/HIGH/MEDIUM: one fixed during harden (commit 1c7ecfa2), one recorded as rejected_with_evidence for scope reasons. RELEASE/DEPLOY READINESS: no env vars, migrations, external services, CI/CD, or infrastructure touched; git diff trunk...HEAD lists only .opencode/command/adv-coordinate.md. Deployment automatic via .githooks/post-commit; parity re-verified after the harden commit (branch and deployed both 0f8e0f57930b66987938d35e16508bebf807a21f0831889b37a6385b05de9ba4). Merge compatibility: dry-run merge of origin/trunk into the change branch CLEAN, 1 ahead / 0 behind, working tree clean. PRODUCTION READINESS: not applicable with evidence - no executable code, no security/reliability/performance/complexity surface; the change reduces risk by forbidding coordination from emitting the ungated --execute form. CLEANUP: zero temp/backup/marked artifacts, zero untracked session files, zero debug markers in the changed file. RESIDUAL SLOP: 30 lines of hand-authored contract prose; no placeholders, type erosion, copy-paste duplication, or generic naming; terminology and table style match the host file. Status READY.",
+      "findings": [
+        {
+          "scanner": "documentation-hygiene",
+          "severity": "info",
+          "summary": "FIXED during harden: Phase 6.5 overstated /adv-refactor's lack of status checking. Its pre-flight does read change status via adv_change_show; the accurate claim is that it has no explicit terminal-state guard. Reworded so the contract text is precisely true.",
+          "evidence": [
+            {
+              "label": "changed file",
+              "locator": ".opencode/command/adv-coordinate.md",
+              "summary": "Point-in-time discipline paragraph reworded to 'no explicit terminal-state guard'"
+            },
+            {
+              "label": "commit",
+              "locator": "1c7ecfa2",
+              "summary": "docs(adv-coordinate): sharpen status-guard wording in refactor coverage audit"
+            },
+            {
+              "label": "drift check",
+              "locator": "agreement AC7",
+              "summary": "Passed before edit: AC7 still requires status at emit time plus re-validation advice; only the stated reason was made precise, so no AC, constraint, or avoidance changed"
+            },
+            {
+              "label": "re-verification",
+              "locator": "bin/oc-test targeted",
+              "summary": "87 tests passing across 2 files after the edit"
+            },
+            {
+              "label": "deployed parity",
+              "locator": "sha256 0f8e0f57930b66987938d35e16508bebf807a21f0831889b37a6385b05de9ba4",
+              "summary": "Branch and deployed copies re-confirmed identical after the harden commit"
+            }
+          ]
+        },
+        {
+          "scanner": "documentation-hygiene",
+          "severity": "info",
+          "summary": "REJECTED WITH EVIDENCE: adv-refactor.md and adv-cleanup.md do not name /adv-coordinate as an upstream referral source. Not fixed during this change.",
+          "evidence": [
+            {
+              "label": "scope boundary",
+              "locator": "agreement Affected Code",
+              "summary": "Fixing would edit files outside the declared affected scope, which is the /adv-coordinate command contract and report shape"
+            },
+            {
+              "label": "coverage",
+              "locator": ".opencode/command/adv-coordinate.md Phase 6.5",
+              "summary": "The referral route is fully documented in the producing command, so no reader of the coordination report lacks the information"
+            },
+            {
+              "label": "scanner judgment",
+              "locator": "documentation-hygiene scanner LOW-1",
+              "summary": "Explicitly judged acceptable as-is and not release-blocking"
+            },
+            {
+              "label": "follow-up",
+              "locator": "harden follow_ups[0]",
+              "summary": "Recorded as a candidate for a separate change if the referral pattern spreads"
+            }
+          ]
+        }
+      ],
+      "follow_ups": [
+        "Optional cross-reference: add an upstream-callers pointer in adv-refactor.md and a matching line in the adv-cleanup.md coexistence table now that /adv-coordinate also feeds /adv-refactor.",
+        "Evidence-label vocabulary drift (hyphen adv-backed-fact in command vs underscore adv_backed_fact in spec/docs) remains deliberately untouched per DONT3; normalization warrants its own change.",
+        "Pre-existing .githooks/post-commit deploys from the committing checkout, leaving the deployed copy ahead of trunk until merge; warrants separate assessment against the deploy-from-trunk rule.",
+        "adv_subagent_report_submit rejects agent value adv-researcher and its lifecycle excludes discovery/design, leaving researcher-lane reports without a valid typed transport."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-b4dc15023ef9": [
+      {
+        "runId": "tr_mscg6eld_8d50e23c",
+        "phase": "verify",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "../../../../../../dev/advance/bin/oc-test targeted -- src/advance-epics-assets.test.ts src/consumer-integration.test.ts",
+        "durationMs": 14.209451000206172,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-02T23:44:44.879Z"
+      },
+      {
+        "runId": "tr_mscg6t7s_05f1144c",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/advance-epics-assets.test.ts src/consumer-integration.test.ts",
+        "durationMs": 4793.135682000313,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-02T23:45:03.397Z"
+      }
+    ],
+    "tk-4d141d1c68be": [
+      {
+        "runId": "tr_mscgomr2_486b2e9f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "set -e; A=$(sha256sum .opencode/command/adv-coordinate.md | cut -d' ' -f1); B=$(sha256sum \"$HOME/.config/opencode/command/adv-coordinate.md\" | cut -d' ' -f1); echo \"branch=$A\"; echo \"deployed=$B\"; test \"$A\" = \"$B\" || { echo \"FAIL: parity mismatch\"; exit 1; }; test \"$A\" != \"5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015\" || { echo \"FAIL: still at pre-change baseline\"; exit 1; }; grep -q '^## Phase 6.5: Refactor Coverage Audit$' \"$HOME/.config/opencode/command/adv-coordinate.md\" || { echo \"FAIL: deployed copy missing Phase 6.5\"; exit 1; }; echo \"PASS: branch==deployed, differs from baseline, deployed contains Phase 6.5\"",
+        "durationMs": 49.709888000041246,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-02T23:58:55.773Z"
+      },
+      {
+        "runId": "tr_mscgrs6m_1a8ef40a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "branch=$(sha256sum .opencode/command/adv-coordinate.md | cut -d ' ' -f1); deployed=$(sha256sum ~/.config/opencode/command/adv-coordinate.md | cut -d ' ' -f1); test \"$branch\" = \"$deployed\" && test \"$branch\" != \"5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015\" && grep -Fqx '## Phase 6.5: Refactor Coverage Audit' ~/.config/opencode/command/adv-coordinate.md && printf 'branch=%s\\ndeployed=%s\\nPASS: branch==deployed, differs from baseline, deployed contains Phase 6.5\\n' \"$branch\" \"$deployed\"",
+        "durationMs": 30.283564999699593,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T00:01:22.563Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-02T20:11:30.624Z",
+      "completed_by": "agent",
+      "approval_evidence": "User confirmed the problem statement and approved the completed proposal. Discovery agenda preserves candidate population, evidence threshold, report cap, and contract-enforcement questions.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "640f68e260e2d2f194e4f02f065ec7148d452e825103c7ee37ecbe983374bee9",
+        "non_whitespace_chars": 2785,
+        "checked_at": "2026-08-02T20:07:00.479Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-02T23:22:18.032Z",
+      "completed_by": "agent",
+      "approval_evidence": "Discovery complete. All 9 protocol steps PASS. Ambiguity scan clean (0 CRITICAL, 0 HIGH; coverage B:C F:C S:P M:P) — no /adv-clarify handoff. Conflict scan complete: 58/58 active changes enumerated, zero collisions, adv_change_validate passed with expected NO_TASKS/NO_DELTAS baseline only. Opportunity scout ran: 5 candidates, 4 auto-adopted (taxonomy reuse, snapshot/expiry semantics, dry-run pinning, evidence-failure classification), 1 surfaced to user. Three open questions resolved by user decision: (1) command contract prose only — no new spec law, no new asset tests, superseding the proposal's In Scope structural-tests line; (2) candidate population = all nonterminal in-flight changes; (3) no report cap, completeness over brevity. Criteria approved by user at Phase 4.5.1 checkpoint (reply \"approve\"). Contract minted: 22 items (SC1-3, AC1-8, C1-7, DONT1-4); AC4 warrants tool:adv_epic_update, tool:adv_epic_reorder, tool:adv_epic_show all resolved.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "non_whitespace_chars": 5752,
+        "checked_at": "2026-08-02T20:07:00.480Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-02T23:36:10.137Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design complete. Architecture: command-contract extension to .opencode/command/adv-coordinate.md only — new Phase 6.5 Refactor Coverage Audit between Phase 6 and Phase 7, plus one Phase 7 report bullet and one Final Report bullet. No new tool call; audit classifies evidence already gathered by Phases 1/3/6. Lever cited through to call sites (OpenCode slash-command loader, deploy-local.sh mirror, asset tests); P38 preemption check confirms manifest.ts declares but never parses the command body. 9 key decisions, 7 design-derived criteria (DDC1-DDC7) capturing the positional test invariants. Leverage scout skipped with rationale (discovery scout enumerated the same surface ~30min prior; 4 candidates already adopted into the agreement as KD5/KD7/KD8). Independent validator (adv-researcher): validation.status=caution, ZERO blockers, confidence high — confirmed all four positional test invariants, no code parses phase structure, /adv-refactor has no Epic support or status guard, no spec MUST violated, all 8 ACs mapped. Validator surfaced one gap the design had missed: Phase 1 no-Epics early stop at :55 (mandated by rq-epicCoordinateProjectInventory01.3, unmodifiable under C5) makes Phase 6.5 unreachable in zero-Epic projects, narrowing User Decision 2's rationale. Resolved via validator's lowest-scope path — accepted and recorded as Known Limitation + DDC7 + risk row + contract text. No AC violated (all conditioned on a report being presented). Measured impact: this project has 2 active Epics, so audit runs and covers all 58 nonterminal changes. User approved design at Phase 4 Tier A checkpoint (reply \"approve\") with the limitation explicitly surfaced.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "133ee98aca1a522b02aea936c064975ed0572c92bae9befc4aa751b920ab445b",
+        "non_whitespace_chars": 15294,
+        "checked_at": "2026-08-02T20:07:00.481Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-02T23:41:31.785Z",
+      "completed_by": "user",
+      "approval_evidence": "Planning complete. 3-task graph synthesized from approved agreement + validated design. T1 (docs, artifact_reference, inline_required) implements SC1-3 + AC1-8 and respects C1,C2,C3,C4,C5,C7,DONT1-4 — single coherent contract edit per design KD1/absorption analysis, deliberately not split. T2 (verification, test, blockedBy T1) respects C6,C7,C1 via targeted run of advance-epics-assets.test.ts + consumer-integration.test.ts, covering DDC1-DDC4. T3 (verification, static_check, blockedBy T2) closes DDC6 with explicit not_applicable_reason. Contract coverage complete: uncoveredAcceptanceCriteria: []. adv_change_validate strict:true passed, 0 errors; NO_DELTAS warning expected per user decision C5 (no spec law). 7-step gap analysis executed; cross-cutting concerns documented N/A with rationale (no runtime code: no logging/config/migration/input-validation surface; security unchanged as no mutation verb added per C1; performance bounded by DDC5; cross-repo routing N/A, advance-only). Prep correction to design implementation strategy step 5: design said re-deploy via deploy-local.sh --fix, but running that from an ADV worktree would violate deploy-from-trunk (P32). Verified .githooks/post-commit and .githooks/pre-push already automate deploy-local.sh --fix on deployed-asset changes, so T3 verifies SHA parity instead of deploying, and explicitly forbids a worktree deploy. User approved the prep contract at the Phase 5.2 Tier A checkpoint (reply \"approve\") — last human checkpoint before autonomous execution."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-02T23:49:32.998Z",
+      "completed_by": "agent",
+      "approval_evidence": "Execution complete. All 3 tasks done, 0 cancelled, contract coverage complete (uncoveredAcceptanceCriteria: []). Single commit f08fa395 on change/addCoordinateRefactorCoverage, worktree clean, touched exactly one file: .opencode/command/adv-coordinate.md. T1 (tk-7829f97d60a1) inserted \"## Phase 6.5: Refactor Coverage Audit\" between Phase 6 and Phase 7 carrying all six rules — uncapped nonterminal in-flight candidate population with terminal exclusion, repo_backed_fact/adv-backed-fact evidence threshold, three-group table, bare dry-run referral with explicit --execute/--interactive/--force/batch prohibition, Epic routing to adv_epic_update/adv_epic_reorder/adv_epic_show with no /adv-refactor target, unresolved-evidence to freshness_limited with no referral, and point-in-time status/re-validation discipline — plus the DDC7 no-Epics reachability note; also added the Phase 7 report bullet and Final Report counts bullet. T2 (tk-b4dc15023ef9) proved C6 via bin/oc-test targeted: 2 files, 87 tests passed, exit 0, runId tr_mscg6t7s_05f1144c, with zero edits to either test file. T3 (tk-4d141d1c68be) closed DDC6: branch and deployed copies both hash 9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb vs pre-change baseline 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015; stage-v2 correctly refused the static_check route without reviewer evidence, so adv-reviewer was spawned and returned verdict READY with a persisted task-scoped report (report_key addCoordinateRefactorCoverage|tk-4d141d1c68be|adv-reviewer|1, changes_made: none, blocking_findings: none). All design-derived criteria verified programmatically: DDC1 no heading matches the mutation-verb filter, DDC2 Phase 7/Phase 8 headings byte-identical with four inventory rows intact, DDC3 adv_change_list still precedes No active Epics, DDC4 Final Report four rows intact, DDC5 no new tool invocation, DDC6 parity reviewed, DDC7 limitation stated in contract text. C7 satisfied: hyphen adv-backed-fact now 8 occurrences, underscore adv_backed_fact 0. Phases 7/8/9 not renumbered. Reviewer flagged one non-blocking follow-up: the pre-existing .githooks/post-commit deploy runs from the committing checkout, leaving the deployed copy ahead of trunk until merge — correctly recorded as release-time behavior, warrants separate assessment against P32 but is not introduced by this change."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-03T00:03:10.170Z",
+      "completed_by": "user",
+      "approval_evidence": "Acceptance complete. Review verdict APPROVED with zero findings (0 blockers, 0 issues, 0 suggestions, 0 nits, 1 praise); no remediation required. All 12 review dimensions assessed inline with no skips; no explore scanner fan-out because no risk trigger fired (+30 lines of prose in one markdown command-contract file — no code, control flow, user input, auth, secrets, persistence, external calls, cross-repo work, or test-file modification). Scanner bundle persisted (addCoordinateRefactorCoverage|change:scanner-bundle:review|adv-scanner-bundle|1). Contract review matrix persisted before the approval prompt per the no-late-homework rule: 22 rows, 0 failing — AC1-AC8 pass, SC1-SC3 pass, C1-C7 respected, DONT1-DONT4 respected. Preview URL: not_applicable (visual_surface false; command-instruction text with no browser-visible output; rationale in the matrix). Executive summary persisted and workflow-visible (contentHash 6a7d809e5d7705d9e8785fcd5cb3d18788f44f0ed2c9fca0f0354b73884ebfde) with rendered Consequence Context covering all 8 required categories. Typed release notes persisted (audience internal, category added, area adv-coordinate). Verification evidence: bin/oc-test targeted run tr_mscg6t7s_05f1144c (2 files, 87 tests, 0 failed, zero assertion edits); single commit f08fa395 touching one file. Two prior gate_complete attempts were correctly refused with VERIFICATION_EVIDENCE_MISSING on tk-4d141d1c68be: the attempt-1 adv-reviewer report proving DDC6 listed four raw shell commands in verification.tests_run with no typed run IDs, producing four verification_missing consumer warnings, and the readiness check requires the LATEST task report to be warning-free (a standalone adv_verification_evidence_disposition did not clear it). Remediated by producing genuine typed evidence rather than bypassing the check: orchestrator adv_run_test runId tr_mscgomr2_486b2e9f (exitCode 0) asserting branch/deployed hash parity, difference from the pre-change baseline, and literal presence of the Phase 6.5 heading in the deployed copy; then adv-reviewer attempt 2 re-verified through adv_run_test (runId tr_mscgrs6m_1a8ef40a, passed) and submitted a warning-free REVIEWER_REPORT with changes_made empty and verdict READY unchanged. Outstanding non-blocking caveats carried to harden: no-Epics reachability limitation recorded in the contract text (does not affect this project, which has 2 active Epics); adv-backed-fact/adv_backed_fact vocabulary drift left untouched per DONT3; pre-existing post-commit deploy-from-committing-checkout behavior warranting separate P32 assessment; adv_subagent_report_submit rejecting agent adv-researcher. User accepted at the Phase 7 Tier A acceptance checkpoint (reply \"approve\") with caveats and Consequence Context explicitly surfaced.",
+      "started_at": "2026-08-02T23:58:26.378Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "6a7d809e5d7705d9e8785fcd5cb3d18788f44f0ed2c9fca0f0354b73884ebfde",
+        "non_whitespace_chars": 4583,
+        "checked_at": "2026-08-02T20:07:00.484Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+      "approvedAt": "2026-08-02T23:22:04.302Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A coordinator reading a single coordination report can tell, for each out-of-date change, what the next safe action is without opening another command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "A coordinator is never offered a next action that the target command cannot actually perform.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Weak-evidence findings are visibly separated from actionable ones.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an in-flight nonterminal change whose drift is supported by `repo_backed_fact` or `adv-backed-fact` evidence, when the coordination report is presented, then it emits a dry-run `/adv-refactor <change-id>` referral for that change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an in-flight nonterminal change whose drift is supported by `repo_backed_fact` or `adv-backed-fact` evidence",
+          "trigger": "the coordination report is presented",
+          "outcome": "it emits a dry-run `/adv-refactor <change-id>` referral for that change"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a finding classified `judgment_call` or `freshness_limited`, when the report is presented, then the finding appears in a review/deferred group carrying no mutation command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a finding classified `judgment_call` or `freshness_limited`",
+          "trigger": "the report is presented",
+          "outcome": "the finding appears in a review/deferred group carrying no mutation command"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given evidence for a candidate cannot be resolved because an artifact is unreadable or a read fails, when the report is presented, then the candidate is classified `freshness_limited` and no referral is emitted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "evidence for a candidate cannot be resolved because an artifact is unreadable or a read fails",
+          "trigger": "the report is presented",
+          "outcome": "the candidate is classified `freshness_limited` and no referral is emitted"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given an Epic with stale narrative, order, or membership, when the report is presented, then the recommendation names the exact stale field and routes to an existing approval-gated Epic action.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "warrants": [
+          "tool:adv_epic_update",
+          "tool:adv_epic_reorder",
+          "tool:adv_epic_show"
+        ],
+        "variant": {
+          "kind": "behavioral",
+          "context": "an Epic with stale narrative, order, or membership",
+          "trigger": "the report is presented",
+          "outcome": "the recommendation names the exact stale field and routes to an existing approval-gated Epic action"
+        }
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given any refactor-coverage referral, when it is emitted, then it uses the bare dry-run form and never includes `--execute`, `--interactive`, `--force`, or a batch invocation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "any refactor-coverage referral",
+          "trigger": "it is emitted",
+          "outcome": "it uses the bare dry-run form and never includes `--execute`, `--interactive`, `--force`, or a batch invocation"
+        }
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given an Epic candidate, when the report is presented, then no `/adv-refactor` target is offered for it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an Epic candidate",
+          "trigger": "the report is presented",
+          "outcome": "no `/adv-refactor` target is offered for it"
+        }
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given the report is a point-in-time snapshot, when a referral is emitted, then it records the candidate's status at emit time and advises re-validating status before running it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the report is a point-in-time snapshot",
+          "trigger": "a referral is emitted",
+          "outcome": "it records the candidate's status at emit time and advises re-validating status before running it"
+        }
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given every nonterminal in-flight change is eligible, when the report is presented, then all qualifying candidates are listed uncapped under their own heading.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "every nonterminal in-flight change is eligible",
+          "trigger": "the report is presented",
+          "outcome": "all qualifying candidates are listed uncapped under their own heading"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must not add a new mutation verb, runtime tool, or CLI command.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not add a new mutation verb, runtime tool, or CLI command"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must not treat age, heuristic overlap, `judgment_call`, or `freshness_limited` as authority for a refactor or mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not treat age, heuristic overlap, `judgment_call`, or `freshness_limited` as authority",
+          "scope": "a refactor or mutation"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must not make Epic membership mandatory or Epic order blocking.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not make Epic membership mandatory or Epic order blocking"
+        }
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Must not bypass the existing explicit approval requirement for intent-bearing Epic actions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not bypass the existing explicit approval requirement",
+          "scope": "intent-bearing Epic actions"
+        }
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Must not add a new spec requirement or a new asset test for this coverage.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not add a new spec requirement or a new asset test",
+          "scope": "this coverage"
+        }
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Must keep existing asset and boundary tests green without modifying their assertions.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must keep existing asset and boundary tests green without modifying their assertions"
+        }
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "Must use the hyphen form `adv-backed-fact` in new `/adv-coordinate` report text, matching the six existing occurrences in that file.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must use the hyphen form `adv-backed-fact` in new `/adv-coordinate` report text, matching the six existing occurrences in that file"
+        }
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not add an Epic mode to `/adv-refactor`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not auto-run `/adv-refactor`, especially with `--execute`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not normalize the `adv-backed-fact` / `adv_backed_fact` vocabulary drift in this change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not re-declare a fourth copy of the evidence-label taxonomy.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-02T23:55:44.420Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Phase 6.5 three-group table plus Referral form paragraph give each out-of-date change an explicit next action inside the coordination report; no second command needed.",
+          "notes": "adv-coordinate.md Phase 6.5, commit f08fa395"
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Epic findings never receive a /adv-refactor target (no Epic mode exists); referral pinned to the bare dry-run form that /adv-refactor actually supports.",
+          "notes": "Verified /adv-refactor has zero Epic references and resolves change-id only"
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Three-group table separates actionable rows from review/deferred; review/deferred output column reads 'Finding and reason only — no command'.",
+          "notes": "Mirrors existing Phase 8 fact-vs-heuristic separation"
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Actionable group row requires nonterminal change with drift supported by repo_backed_fact or adv-backed-fact, output = referral command plus status at emit time.",
+          "notes": "adv-coordinate.md Phase 6.5 group table + Referral form"
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Review/deferred row covers judgment_call, freshness_limited, and unresolved evidence with output 'Finding and reason only — no command'.",
+          "notes": "No mutation command emitted for heuristic labels"
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "'Insufficient evidence never produces a referral' paragraph names unreadable artifact, failed or timed-out read, and missing repository freshness, classifying all as freshness_limited with no referral.",
+          "notes": "Closes the CLARIFY_MISSING_ERROR_HANDLING finding raised at proposal"
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Epic paragraph routes stale narrative, order, or membership to adv_epic_update, adv_epic_reorder, or adv_epic_show convergence 'naming the exact stale field', consistent with existing Phase 9 application.",
+          "notes": "Warrant tools verified callable via adv_tool_describe at discovery"
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Referral form paragraph: 'Emit exactly /adv-refactor <change-id>. That bare form is dry-run. Never emit --execute, --interactive, --force, or a batch invocation from coordination.'",
+          "notes": "Rationale stated inline: --execute applies without further approval"
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Dedicated paragraph 'Epic findings never receive a /adv-refactor target' states /adv-refactor resolves a change ID only and has no Epic mode.",
+          "notes": "Prevents offering an unsupported target"
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "'Point-in-time discipline' paragraph requires recording status as observed at emit time and re-validating before running the referral, because /adv-refactor performs no status check.",
+          "notes": "Status carried in the actionable group output column as well"
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Candidate population paragraph covers every nonterminal in-flight change 'whether or not it is linked to an Epic', excludes terminal changes, and states 'do not cap the group'; findings carry their own Phase 6.5 heading and dedicated Phase 7 report row.",
+          "notes": "Known limitation: unreachable when Phase 1 short-circuits on no active Epics; stated in contract text"
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No new mutation verb, tool, or CLI added. consumer-integration.test.ts AC14 heading filter and read-first assertion pass; diff is 30 added lines in one markdown file with no code or schema change.",
+          "notes": "runId tr_mscg6t7s_05f1144c, 87 tests passed"
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Evidence threshold paragraph states 'Age, heuristic overlap ranking, and recency never qualify as authority'; only repo_backed_fact or adv-backed-fact may carry a command.",
+          "notes": "Heuristic labels routed to review/deferred with no command"
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Candidate population explicitly includes changes 'whether or not it is linked to an Epic', preserving optional membership. No Epic order semantics were added or made blocking; Phase 5 sequencing text untouched.",
+          "notes": "Diff touches no ordering language"
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Epic findings route to the existing approval-gated actions; Phase 8 approval and Phase 9 apply sections are unmodified in the diff.",
+          "notes": "No bypass of intent-bearing Epic approval"
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff trunk...HEAD shows exactly one changed file, .opencode/command/adv-coordinate.md, 30 insertions. No spec.json, no docs/specs mirror, no new test file.",
+          "notes": "Matches the user's command-contract-prose-only decision"
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "bin/oc-test targeted -- src/advance-epics-assets.test.ts src/consumer-integration.test.ts exited 0: 2 files, 87 tests passed, 0 failed. Neither test file appears in the diff, so no assertion was modified.",
+          "notes": "runId tr_mscg6t7s_05f1144c"
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Hyphen form adv-backed-fact now appears 8 times (6 pre-existing plus 2 added); underscore form adv_backed_fact appears 0 times in the command file.",
+          "notes": "Keeps the file internally consistent and its assertions green"
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": ".opencode/command/adv-refactor.md is not in the diff; no Epic mode was added to it.",
+          "notes": "Referral only"
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Contract emits a referral command for the user to run; it never invokes /adv-refactor, and explicitly forbids emitting --execute from coordination.",
+          "notes": "No auto-run path introduced"
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "The six pre-existing adv-backed-fact occurrences are untouched by the diff and no underscore form was introduced; the spec/command vocabulary divergence is left exactly as found.",
+          "notes": "Normalization deferred as a separate follow-up"
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "Phase 6.5 references the four evidence labels but declares no definition table; the sole definition remains the Phase 3 table at lines 105-108.",
+          "notes": "No fourth taxonomy copy created"
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given an in-flight nonterminal change whose drift is supported by `repo_backed_fact` or `adv-backed-fact` evidence, when the coordination report is presented, then it emits a dry-run `/adv-refactor <change-id>` referral for that change.",
+    "Given a finding classified `judgment_call` or `freshness_limited`, when the report is presented, then the finding appears in a review/deferred group carrying no mutation command.",
+    "Given evidence for a candidate cannot be resolved because an artifact is unreadable or a read fails, when the report is presented, then the candidate is classified `freshness_limited` and no referral is emitted.",
+    "Given an Epic with stale narrative, order, or membership, when the report is presented, then the recommendation names the exact stale field and routes to an existing approval-gated Epic action.",
+    "Given any refactor-coverage referral, when it is emitted, then it uses the bare dry-run form and never includes `--execute`, `--interactive`, `--force`, or a batch invocation.",
+    "Given an Epic candidate, when the report is presented, then no `/adv-refactor` target is offered for it.",
+    "Given the report is a point-in-time snapshot, when a referral is emitted, then it records the candidate's status at emit time and advises re-validating status before running it.",
+    "Given every nonterminal in-flight change is eligible, when the report is presented, then all qualifying candidates are listed uncapped under their own heading."
+  ],
+  "documents": {
+    "proposal": "# Add Coordinate Refactor Coverage\n\n## Why\n\n`/adv-coordinate` compares active change and Epic plans with current repository evidence, but its report does not offer a consistent refactor-coverage route when that evidence shows a plan is out of date. Users need to see whether a linked change should be refreshed through `/adv-refactor`, whether an Epic needs one of its existing approval-gated corrections, or whether evidence is too weak to act.\n\n## What Changes\n\nExtend the coordination contract and report to surface refactor-coverage findings for participating changes and Epics. Evidence-backed outdated changes receive a safe dry-run `/adv-refactor <change-id>` referral. Outdated Epic narrative, order, or membership findings remain within the current typed, approval-gated Epic action paths. Review-only findings remain explicitly deferred.\n\n## User Outcomes\n\n- A coordinator can identify which out-of-date changes have an evidence-backed, safe next refactor command.\n- A coordinator can distinguish Epic corrections from change-proposal refreshes without being offered an unsupported Epic target for `/adv-refactor`.\n- A coordinator can see when repository or ADV evidence is insufficient and requires review rather than a mutation.\n\n## Affected Code\n\n- `/adv-coordinate` command contract and report shape.\n- Epic coordination capability law and mirrored documentation, if the coverage requirement is elevated to a law.\n- Command manifest and command-asset tests that enforce coordination boundaries and report content.\n\n## Related Repositories\n\n- `advance` only. No cross-repository code or state mutation is expected.\n\n## Scope\n\n### In Scope\n\n- Refactor-coverage classification and report output within `/adv-coordinate`.\n- Safe dry-run referral for evidence-backed, nonterminal change candidates.\n- Clear routing of stale Epic findings to existing approval-gated Epic actions.\n- Structural tests for the new command contract and preserved safety boundaries.\n\n### Out of Scope\n\n- Automatically running `/adv-refactor`, especially with `--execute`.\n- Adding an Epic mode to `/adv-refactor`.\n- Creating a new runtime coordination/refactor tool or CLI mutation verb.\n- Applying refactors to candidate changes or Epic actions during coordination.\n\n### Must Not\n\n- Treat age, heuristic overlap, `judgment_call`, or `freshness_limited` findings as authority for a refactor or mutation.\n- Change optional Epic membership or make advisory Epic order blocking.\n- Bypass the existing explicit approval requirement for intent-bearing Epic actions.\n\n## Impact\n\nCoordination output gains a bounded, explicit follow-up route. Existing change and Epic mutation authority remains unchanged.\n\n## Context\n\nPrior analysis: `docs/adv-coordinate-refactor-coverage-prep.md`.\n\n> **Discovery correction:** this file is **untracked** and exists only in the ad-hoc worktree `/home/jon/.local/share/opencode/worktree-adhoc/advance/docs-preserve-prep-packs` (`git log --all --diff-filter=A` returns nothing; `git status` shows `??`). It has never been committed to any branch. Content was recovered and cited below.\n\n## Discovery Agenda\n\n- Confirm whether refactor coverage belongs in the MUST-level Epic coordination law or only command/test assets.\n- Define the exact evidence threshold, candidate population, and report cap.\n- Determine whether unlinked in-flight changes belong in the report or only active Epic participants.\n- Verify the current `/adv-refactor` dry-run and execution boundary remains accurately represented.\n- Map all command, manifest, spec, and test anchors that must change together.\n\n---\n\n# Discovery Findings\n\n## Discovery Checklist\n\n| # | Step | Status | Reason |\n|---|---|---|---|\n| 1 | Skill Discovery (Phase 1.5) | PASS | 28 skills scanned; no `review_status: pending`; `adv-refactor` + `adv-opportunity-scout` matched and applied |\n| 2 | Prior Research Extension | PASS | Recovered untracked prep pack + `docs/adv-resume-freshness-check-prep.md`; 3 new findings added |\n| 3 | Conflict & Related-Work Scan (Phase 1.6) | PASS | 58/58 active changes enumerated (complete); `adv_change_validate` passed; zero collisions |\n| 4 | Edge Case Investigation | PASS | 6 edge cases across 3 gaps |\n| 5 | Design Question Depth | PASS | 3 open questions, each with trust model + blast radius + alternatives |\n| 6 | Draft Spec Delta Shapes | PASS | 1 conditional delta (`rq-epicCoordinateRefactorCoverage01`), gated on OQ1 |\n| 7 | P25 Related-Pattern Scan (Phase 1.7) | PASS | Evidence-label vocabulary drift found and characterized |\n| 8 | LBP Check (+ gated External-Solution Check) | PASS | External check skipped — purely internal command-contract change (rationale recorded) |\n| 9 | Completeness Verification (Phase 1.8) | PASS | Both checks run; no sole-entry claim relied on; 2 secondary surfaces dispositioned |\n\n## Skills Considered\n\n| Skill | Match | Action |\n|---|---|---|\n| `adv-refactor` | Direct — the referral target's own methodology | Loaded via worker; established dry-run/execute boundary and staleness model |\n| `adv-opportunity-scout` | Direct — Phase 3.5 scout | Loaded by `adv-researcher` in `discovery` mode |\n| `adv-agent-tool-contracts` | Partial — command/test/spec co-presence | Applied as the anchor-alignment checklist |\n| `adv-cleanup`, `adv-triage`, `adv-audit`, `adv-improve` | Tangential — adjacent staleness surfaces | Not loaded; used only to classify secondary surfaces |\n\nPending-review scan: no skill in `~/.config/opencode/skills/` carries `review_status: \"pending\"` (only `reviewed` values found). No gap detected — the core domain (ADV command contracts) is well covered. No skill created.\n\n## Extends\n\n| Prior artifact | Cited content | New finding added by this discovery |\n|---|---|---|\n| `docs/adv-coordinate-refactor-coverage-prep.md` (untracked, recovered) | LBP/Reference Comparison table; Applicability recommendations 1-5; Open Questions 1-3; Sources | **New:** the pack itself is uncommitted and at risk of loss — the proposal's sole cited context has no durable home |\n| `docs/adv-resume-freshness-check-prep.md` | Reuse of the `repo_backed_fact / adv_backed_fact / judgment_call / freshness_limited` taxonomy | **New:** the taxonomy was since extracted into typed code at `plugin/src/storage/resume-freshness.ts:17-30`, so this change can consume types rather than re-declare a third copy |\n| Archived `addResumeFreshnessAdvisory` | Proposed extracting a shared resolver | **New:** types landed, resolver extraction did NOT (`resume-freshness.ts:8-10` defers to \"downstream tasks T2/T3/T4/T5\") — still open |\n\n## Conflict Scan\n\n**Inventory completeness: `complete`** for conflict-authoritative scope.\n\n- Active/in-flight: 58 of 58 enumerated across 2 pages (`hasMore: false`). Active changes are authoritative for conflict detection.\n- Full corpus incl. archived: 217 total; pages 1-2 (100) inspected directly, remainder treated as related context only.\n- `adv_change_validate`: `passed: true`, 0 errors, warnings `NO_TASKS` + `NO_DELTAS` only — expected pre-prep baseline, not conflicts. `activeCandidateCount: 77`, `omittedCount: 0`, `shadowCount: 0`.\n\n**Collisions: none.** No active change modifies `/adv-coordinate`, `/adv-refactor`, the `advance-epics` spec, or the coordination asset tests.\n\nRelated active context (informs, does not conflict): `fixChangeReadTimeouts` (acceptance) and `fixMultiSessionTemporalRead` (proposal) own the `adv_change_show` read-timeout defect that this discovery hit live — relevant to the evidence-failure classification below, but no shared file.\n\nArchived context (informs): `addResumeFreshnessAdvisory` (taxonomy + typed labels), `fixReviewerEvidence` (evidence-policy authority), `fixEpicRepair` (nearest existing Epic coordination law).\n\n## Current State\n\n- `.opencode/command/adv-coordinate.md` — 258 lines, Phases 1-8, `Gate: None`. Deployed copy is SHA-identical (no drift). **Contains zero references to \"refactor\".** The `/adv-coordinate` → `/adv-refactor` referral is net-new, not a consistency edit.\n- Evidence labels are defined at `adv-coordinate.md:105-108` and consumed in the Phase 7 report (`:177`, `:188`) and Phase 8 approval separation (`:198`).\n- Existing Epic action paths (approval-gated, typed): `adv_epic_update`, `adv_epic_reorder`, `adv_epic_show` (bounded convergence) — enumerated at `adv-coordinate.md:189`.\n- Phase 8 approval vocabulary: `approve all` / `reject all` / `approve 1,3` / `revise` / `stop`; no LLM fallback for mutation approval.\n- `/adv-refactor` — 87 lines. **Accepts a change-id only; no Epic target exists** (zero \"epic\" matches in command or skill). Default is dry-run; `--execute` mutates. Governing spec: `.adv/specs/advance-epics/` with `rq-epicCoordinateCommand01`, `rq-epicCoordinateRepoFreshness01`, `rq-epicCoordinateProjectInventory01`.\n- Asset-test anchors: `plugin/src/advance-epics-assets.test.ts` (requirement-id allowlist `:30-53`, docs-mirror heading/priority regex `:184`, command-content assertions `:205,:348-349,:867`, manifest scope invariant `:256-258`); `plugin/src/consumer-integration.test.ts:185-197` locks the no-new-mutation-verb boundary; `plugin/src/manifest.ts:402-416` declares `adv-coordinate` scope `creates/modifies/gates = []`, `requiresChangeId: false`.\n\n**Three current-state facts that constrain the referral** (each would otherwise produce a misleading report row):\n\n1. `/adv-refactor --execute` has **no approval prompt** — Phase 3 runs directly after Phase 2 synthesis (`adv-refactor.md:59-64`). Rollback is manual `git restore .` (`:76`).\n2. `--interactive` and `--force` are **dead prose** — parsed at `:23`, never referenced in the body.\n3. Batch mode passes `excludeRecencyBands` to `adv_change_list` (`:29`), but that parameter **does not exist** in the tool's Zod schema (zero matches across `plugin/src`).\n\n## Edge Cases\n\n**Gap A — candidate goes terminal between report and referral**\n1. Change is active at report time, archived/cancelled before the user runs the referral; `/adv-refactor` has no status guard (contrast `adv-reflect.md:38`, which blocks on non-archived) and will run its scanners anyway.\n2. Change is archived at report time — must never become a candidate at all.\n\n**Gap B — evidence resolution fails**\n3. `adv_change_show` artifact read times out or errors (**observed live twice this session**, 10000 ms) → evidence cannot resolve to a fact label.\n4. Change exists but has no proposal artifact → `/adv-refactor` has no documented graceful path for a proposal-less target.\n\n**Gap C — label/threshold boundary**\n5. Overlap is heuristic-ranked only (`judgment_call`) → must produce a review row with no command.\n6. Repository freshness unavailable (`freshness_limited`, per `rq-epicCoordinateRepoFreshness01`) → must not emit an evidence-backed referral.\n\n## Related Pattern Scan\n\nScanned for the class \"evidence-label vocabulary drift across command/spec/test surfaces\".\n\n**Found — one live drift, already frozen by tests.** `/adv-coordinate` uses the hyphen form `adv-backed-fact` (6 occurrences: `:43, :106, :132, :177, :188, :198`) while the spec and docs mirror use the underscore form `adv_backed_fact` (`docs/specs/advance-epics.md:214, :253, :274`; `plugin/src/storage/resume-freshness.ts:23,27`). The other three labels (`repo_backed_fact`, `judgment_call`, `freshness_limited`) use underscores in **both** surfaces — so `adv-backed-fact` is the sole outlier.\n\nBoth forms are independently assertion-locked: underscore at `advance-epics-assets.test.ts:102-103,164,190`; hyphen at `:205,:348-349,:867`. `plugin/src/tool-name-assets.test.ts:91-93` explicitly skips `adv_backed_fact`, commenting it is a \"Pre-existing reference in `.opencode/command/adv-coordinate.md`\".\n\n**Disposition: out of scope, surfaced as follow-up.** Normalizing would break three assertions in a file this change must already edit, mixing a cosmetic rename into a contract change. New report rows added by this change must use the **hyphen** form to stay internally consistent with the command; any new spec text must use the **underscore** form.\n\n## Completeness Verification\n\n**Problem-completeness check — confidence: high.** The full problem is the absence of a *classified follow-up route*, not merely a missing report line. Confirmed by reading all 8 phases: Phase 3 produces classified overlap findings and Phase 6 produces membership-health findings, but neither terminates in a next action for an out-of-date **change**; Epic findings already terminate in typed approval-gated actions. So the gap is asymmetric — changes lack the route Epics already have. That asymmetry, not \"no refactor section\", is the problem.\n\n**Solution-scope check — confidence: high.** Scope is the classification + report + test surface. **No sole-entry / single-chokepoint claim is relied on**, so the KD2 blocking path does not apply and no broad target-operation surface scan was required (proportionality). The change adds a reporting section to one command; it introduces no runtime tool, no mutation verb, and no new control surface.\n\n**Secondary-surface disposition (explicit, per AC4):**\n\n| Surface | Evidence | Disposition |\n|---|---|---|\n| `/adv-cleanup` | 12 stale/drift matches; already cross-references `/adv-refactor` at `adv-cleanup.md:131` (\"cleanup closes abandoned/dead; refactor refreshes stale-but-valid\") | **Out of scope, with rationale** — it already owns its own routing and its framing is the consistency precedent this change should match |\n| `/adv-triage` | 5 stale/drift matches; portfolio-balance surface | **Out of scope, with rationale** — operates on portfolio/issue balance, not Epic/repo plan drift; no coordination report to extend |\n| `/adv-audit`, `/adv-harden`, `/adv-review` | 16/20/11 matches | **Out of scope** — spec-drift and quality surfaces, unrelated to plan-vs-repo coordination |\n\nNo secondary surface is silently deferred.\n\n**Reproduction finding classification (rq-acWarrant01):** the `adv_change_show` timeout observed twice this session is classified `broken_capability` — it is an existing, separately-owned defect (`fixChangeReadTimeouts`, `fixMultiSessionTemporalRead`), verified by direct reproduction. It may seed an error-handling criterion here only in the narrow sense that the audit must classify evidence-read failure; it must NOT seed a criterion asserting the read must work (that belongs to those changes).\n\n## LBP Check\n\n**Direction matches long-term best practice.** The prep pack's LBP table classifies change-drift handoff as DRIFTED (coordinate detects overlap but omits a refactor route) and both the Epic-drift handling and the mutation boundary as SOUND. The correction — referral-only, execution stays in the owning workflow — matches the established read-model pattern: keep discovery/reporting read-first, transfer mutation authority to the owning workflow.\n\n**External-Solution Check: skipped, with rationale.** This is a purely internal command-contract change. The prep pack recorded \"No external competitors researched. This is an internal ADV command-contract change; the relevant alternatives are existing local command boundaries.\" No external tool, library, or service is a realistic option for how one internal command refers to another. Per the gated rule, the check is explicitly skipped rather than silently omitted.\n\n**Greenfield alternative considered and rejected:** a typed, read-only refactor-candidate projection would remove prose-only joining, but it adds a planning primitive contrary to current law and is unnecessary for a focused command change.\n\n## Discovery Opportunity Scout\n\n**Trigger decision: `run`** — open question 1 (MUST-level law vs asset-test assertion) is a genuine product-contract fork, so the narrow-change opt-out did not apply.\n\nCandidates considered: 5. **Auto-adopted: 4** (all contract-tied, low risk, no user-value tradeoff). **Surfaced to user: 1.**\n\n| # | Candidate | Fate |\n|---|---|---|\n| C1 | Consume the typed label taxonomy from `resume-freshness.ts:17-30` instead of re-declaring a third copy | adopted (design_around) |\n| C2 | Report is a point-in-time snapshot; referral may be stale by invocation time and `/adv-refactor` has no status guard | adopted |\n| C3 | Pin the referral to the bare dry-run form; never emit `--execute`/`--interactive`/`--force`/batch | adopted |\n| C4 | Evidence-resolution failure classifies as `freshness_limited` with NO referral | adopted |\n| C5 | Assert via command asset tests first; record an elevation criterion rather than minting MUST-level law now | **surfaced to user (OQ1)** |\n\nC2 and C4 together retire the outstanding `CLARIFY_MISSING_ERROR_HANDLING` finding.\n\n## Open Design Questions\n\n**OQ1 — Should refactor coverage be a MUST-level `advance-epics` law, or asserted only by command asset tests?**\n- Trust model: **joint** — agent supplies cost/benefit, user owns the product-contract call.\n- Blast radius: a new `rq-*` requires a spec.json requirement, a `docs/specs/advance-epics.md` mirror entry conforming to the `:184` heading/priority regex, and an addition to the `:30-53` allowlist or the mirror test fails. Choosing law makes coverage machine-required on every run; choosing asset-tests keeps it reversible.\n- Alternatives: (a) asset-test-first + recorded elevation criterion (**recommended**); (b) MUST-level law now; (c) both.\n\n**OQ2 — Candidate population: active-Epic participants only, or also unlinked in-flight changes?**\n- Trust model: **joint** — scoping intent is the user's.\n- Blast radius: Epic-only keeps the audit inside existing Epic-coordination law and matches `rq-epicCoordinateCommand01`'s framing; including unlinked in-flight changes makes the audit useful in projects with no Epics at all (currently 58 active changes, most unlinked) but widens the report and edges toward portfolio triage, which `/adv-triage` owns.\n- Alternatives: (a) Epic participants only; (b) all nonterminal in-flight changes; (c) Epic participants plus unlinked changes that already show `repo_backed_fact` drift.\n\n**OQ3 — Should the report cap the number of refactor-coverage candidates per run?**\n- Trust model: **joint** — an output-size/completeness tradeoff the user feels directly.\n- Blast radius: uncapped output can dominate the coordination report at 58 active changes; a cap risks hiding a real candidate. Phase 1.7 precedent already caps \"many matches at top N with rationale\".\n- Alternatives: (a) fixed cap with explicit \"N more not shown\" line; (b) uncapped; (c) cap only the deferred/review group.\n\n## Draft Spec Deltas\n\n**Conditional on OQ1.** If the user selects law-level assertion:\n\n`rq-epicCoordinateRefactorCoverage01` — **[MUST]** — `/adv-coordinate` MUST classify refactor coverage for participating changes and Epics and MUST NOT emit a mutation command for findings labelled `judgment_call` or `freshness_limited`.\n\n- **Given** an in-flight linked change whose drift is supported by `repo_backed_fact` or `adv_backed_fact` evidence, **when** `/adv-coordinate` presents the coordination report, **then** the report emits a dry-run `/adv-refactor <change-id>` referral with the candidate's status recorded at emit time.\n- **Given** a finding classified `judgment_call` or `freshness_limited`, **when** the report is presented, **then** the finding appears in a review/deferred group with no mutation command.\n- **Given** an Epic whose narrative, order, or membership is stale, **when** the report is presented, **then** the recommendation names the exact stale field and routes to `adv_epic_update`, `adv_epic_reorder`, or `adv_epic_show`, and never to `/adv-refactor`.\n\nIf the user selects asset-test-only: **no spec delta required** — coverage is asserted by new tests in `plugin/src/advance-epics-assets.test.ts` against the command file, and the elevation criterion is recorded in the agreement.\n\n## Recommended Objectives\n\n1. Add a bounded **Refactor Coverage Audit** to `/adv-coordinate`, positioned after the Phase 3 overlap audit and Phase 6 membership-health audit, feeding a dedicated Phase 7 report group.\n2. Emit a dry-run `/adv-refactor <change-id>` referral **only** for nonterminal change candidates whose drift is supported by `repo_backed_fact` or `adv_backed_fact` evidence.\n3. Route stale Epic findings to the existing approval-gated `adv_epic_update` / `adv_epic_reorder` / `adv_epic_show` paths, naming the exact stale field, and never offer an Epic target to `/adv-refactor`.\n4. Place `judgment_call` and `freshness_limited` findings — including evidence-read failures — in a review/deferred group carrying no mutation command.\n5. State in the contract that the report is point-in-time, record candidate status at emit time, and advise re-validating status before running the referral.\n6. Preserve every existing boundary: read-first, no new mutation verb, optional Epic membership, advisory Epic order, and explicit approval for intent-bearing Epic actions.\n7. Add asset tests covering the new report group, the referral form, and the no-command-for-heuristic-labels rule.\n\n## AMBIGUITY ANALYSIS\n\n`Coverage: B:C F:C S:P M:P`\n\n| ID | Severity | Category | Finding |\n|---|---|---|---|\n| M1 | **MEDIUM** | Missing Information | The proposal's only cited context is an untracked file with no durable home. Evidence: `\"Prior analysis: \\`docs/adv-coordinate-refactor-coverage-prep.md\\`.\"` — `git log --all --diff-filter=A` returns empty; `git status` reports `??`. Reason: unclear because the cited basis could be lost before implementation. Resolved in discovery by recovering and inlining the content; persisting the pack is a recommended follow-up. |\n| S1 | **MEDIUM** | Completion Signals | Report cap left open. Evidence: `\"Define the exact evidence threshold, candidate population, and report cap.\"` Reason: unclear because \"bounded\" has no numeric commitment. Routed to OQ3. |\n| F1 | **MEDIUM** | Functional Scope | Candidate population left open. Evidence: `\"Determine whether unlinked in-flight changes belong in the report or only active Epic participants.\"` Reason: unclear because it changes report size and which law governs. Routed to OQ2. |\n| M2 | **LOW** | Missing Information | Error handling unstated. Evidence: automated finding `CLARIFY_MISSING_ERROR_HANDLING`. Reason: unclear because failure modes were not named. Resolved by adopting scout candidates C2 and C4. |\n\n**No CRITICAL findings. No HIGH findings.** Trigger evaluation: `CRITICAL = 0`, `HIGH = 0` → **Clean**; discovery proceeds without a `/adv-clarify` handoff.",
+    "problemStatement": "## Problem Statement\n\n`/adv-coordinate` can identify repository-plan drift for participating changes and Epics, but it does not clearly classify or route the follow-up refactoring work. Users need one coordination report that distinguishes evidence-backed change-refactor candidates from Epic corrections, while retaining the existing read-first and approval boundaries.\n\n## Desired Outcome\n\nA coordination report makes the next safe action explicit for each supported outdated change or Epic without automatically changing ADV state, executing refactors, or treating heuristic/age signals as authority.",
+    "agreement": "# Agreement\n\n## Objectives\n\n1. Add a bounded Refactor Coverage Audit to `/adv-coordinate`, positioned after the Phase 3 overlap audit and Phase 6 membership-health audit, feeding a dedicated report group in Phase 7.\n2. Emit a dry-run `/adv-refactor <change-id>` referral only for nonterminal change candidates whose drift is supported by `repo_backed_fact` or `adv-backed-fact` evidence.\n3. Route stale Epic findings to the existing approval-gated Epic actions, naming the exact stale field, and never offer an Epic target to `/adv-refactor`.\n4. Place `judgment_call` and `freshness_limited` findings — including evidence-read failures — in a review/deferred group carrying no mutation command.\n5. State that the report is point-in-time, record candidate status at emit time, and advise re-validating status before running a referral.\n6. Preserve every existing boundary: read-first, no new mutation verb, optional Epic membership, advisory Epic order, explicit approval for intent-bearing Epic actions.\n\n## Success Criteria\n\n1. A coordinator reading a single coordination report can tell, for each out-of-date change, what the next safe action is without opening another command.\n2. A coordinator is never offered a next action that the target command cannot actually perform.\n3. Weak-evidence findings are visibly separated from actionable ones.\n\n## Acceptance Criteria\n\n1. Given an in-flight nonterminal change whose drift is supported by `repo_backed_fact` or `adv-backed-fact` evidence, when the coordination report is presented, then it emits a dry-run `/adv-refactor <change-id>` referral for that change.\n2. Given a finding classified `judgment_call` or `freshness_limited`, when the report is presented, then the finding appears in a review/deferred group carrying no mutation command.\n3. Given evidence for a candidate cannot be resolved because an artifact is unreadable or a read fails, when the report is presented, then the candidate is classified `freshness_limited` and no referral is emitted.\n4. Given an Epic with stale narrative, order, or membership, when the report is presented, then the recommendation names the exact stale field and routes to an existing approval-gated Epic action. [warrant: tool:adv_epic_update, tool:adv_epic_reorder, tool:adv_epic_show]\n5. Given any refactor-coverage referral, when it is emitted, then it uses the bare dry-run form and never includes `--execute`, `--interactive`, `--force`, or a batch invocation.\n6. Given an Epic candidate, when the report is presented, then no `/adv-refactor` target is offered for it.\n7. Given the report is a point-in-time snapshot, when a referral is emitted, then it records the candidate's status at emit time and advises re-validating status before running it.\n8. Given every nonterminal in-flight change is eligible, when the report is presented, then all qualifying candidates are listed uncapped under their own heading.\n\n## Constraints\n\n1. Must not add a new mutation verb, runtime tool, or CLI command.\n2. Must not treat age, heuristic overlap, `judgment_call`, or `freshness_limited` as authority for a refactor or mutation.\n3. Must not make Epic membership mandatory or Epic order blocking.\n4. Must not bypass the existing explicit approval requirement for intent-bearing Epic actions.\n5. Must not add a new spec requirement or a new asset test for this coverage.\n6. Must keep existing asset and boundary tests green without modifying their assertions.\n7. Must use the hyphen form `adv-backed-fact` in new `/adv-coordinate` report text, matching the six existing occurrences in that file.\n\n## Avoidances\n\n1. Do not add an Epic mode to `/adv-refactor`.\n2. Do not auto-run `/adv-refactor`, especially with `--execute`.\n3. Do not normalize the `adv-backed-fact` / `adv_backed_fact` vocabulary drift in this change.\n4. Do not re-declare a fourth copy of the evidence-label taxonomy.\n\n## Preview Applicability\n\n- `visual_surface: false` — the deliverable is command-contract markdown in `.opencode/command/adv-coordinate.md`. No front-end, browser-visible, or visual output can be affected.\n- `preview_expectation`:\n  - `exact_route_required`: not_applicable\n  - `data_state_expectation`: not_applicable\n  - `viewport_expectation`: not_applicable\n  - rationale: text-only command contract; there is no route or rendered surface to preview.\n\n## Decisions\n\n### User Decisions\n\n1. **Rule strength — command contract prose only.** No new MUST-level spec law and no new coverage-specific asset tests. Why it matters: it makes this a documentation/contract change rather than a spec+test change, and it supersedes the proposal's In Scope line \"Structural tests for the new command contract and preserved safety boundaries\" — that line no longer applies. Existing tests must still pass unchanged.\n2. **Candidate population — all nonterminal in-flight changes.** Not limited to active-Epic participants. Why it matters: the audit stays useful in projects with no active Epics, where most in-flight changes are unlinked.\n3. **Report cap — none.** Every qualifying candidate is listed. Why it matters: the user chose completeness over brevity and accepted that at 58 active changes a run can list dozens of candidates.\n\n### Agent Decisions (LBP)\n\n1. **Evidence threshold set at `repo_backed_fact` or `adv-backed-fact`.** Matches the prep pack's recommendation and `rq-epicCoordinateRepoFreshness01`'s existing classification rule; heuristic labels never authorize a command.\n2. **Referral pinned to the bare dry-run form.** `/adv-refactor --execute` runs its mutating phase with no approval prompt and manual `git restore .` rollback, so emitting anything beyond the bare form would route users into an un-gated mutation.\n3. **No Epic target in any referral.** `/adv-refactor` has zero Epic support; offering one would be an unsupported instruction.\n4. **Evidence-read failure classifies as `freshness_limited`.** Extends the existing Phase 8 fact-vs-heuristic separation rule rather than inventing new handling. Retires the `CLARIFY_MISSING_ERROR_HANDLING` finding together with the point-in-time snapshot statement.\n5. **Consume the existing typed label taxonomy** (`plugin/src/storage/resume-freshness.ts:17-30`) rather than re-declaring it; that module already declares itself the verbatim-inherited source.\n6. **Audit placement after Phase 3 and Phase 6.** Both phases produce the classified findings the audit consumes.\n\n## Deferred Questions\n\nNone. All three open questions were resolved by user decision in the Phase 4.5 resolution loop.\n\n## Sign-Off\n\nCriteria approved by the user at the Phase 4.5.1 acceptance-criteria checkpoint (reply: `approve`). Objectives, constraints, avoidances, and preview applicability approved with them.",
+    "design": "# Design\n\n## Architecture Overview\n\nThis change is a **command-contract extension, not a code change**. The deliverable is new prose in one file, `.opencode/command/adv-coordinate.md`, which is the executable contract an agent follows when running `/adv-coordinate`.\n\nThe audit adds no new data source. `/adv-coordinate` already produces everything the Refactor Coverage Audit needs:\n\n| Existing phase | Output the audit consumes |\n|---|---|\n| Phase 1: Project and Epic Inventory (`:41`) | Complete, fully-paginated list of in-flight changes per `rq-epicCoordinateProjectInventory01` — this is the candidate population |\n| Phase 3: Current Repository Overlap Audit (`:91`) | Per-finding evidence label (`repo_backed_fact` / `adv-backed-fact` / `judgment_call` / `freshness_limited`) — this is the evidence threshold |\n| Phase 6: Membership Health Audit (`:156`) | Epic-side staleness signals and their typed repair paths |\n\nThe audit is therefore a **classification-and-routing step over already-gathered evidence**. It issues no new tool call, which is what keeps it inside the read-first boundary and adds no runtime cost.\n\nStructurally the change is three insertions:\n\n1. A new `## Phase 6.5: Refactor Coverage Audit` between Phase 6 (`:156`) and Phase 7 (`:171`).\n2. One new bullet in the Phase 7 report group list (`:173-182`).\n3. One new bullet in the Final Report list (`:232-241`).\n\n### Known Limitation — no-Epics projects\n\nPhase 1 ends with an unconditional early stop at `:55`: *\"If no active Epics exist, report project inventory first, then `No active Epics. No coordination actions.` and stop.\"* That stop is mandated by `rq-epicCoordinateProjectInventory01.3` and cannot be modified under agreement constraint C5 (no new/changed spec requirement).\n\nConsequence: in a project with **zero active Epics**, Phase 6.5 is unreachable and no refactor referral is emitted. This does not violate any approved AC — every AC is conditioned on *\"when the report is presented\"*, and in that path no report is presented — but it does narrow the reach of User Decision 2, whose stated rationale was usefulness in projects with no active Epics.\n\nScope of the limitation in practice: this project currently has **2 active Epics** (`advInfrastructureHealth`, `sessionContextEconomy`), so the audit runs here and covers all 58 nonterminal in-flight changes, only 6 of which are Epic-linked. The limitation binds only the zero-Epic case. Recorded here deliberately so it is a known boundary rather than a runtime surprise; lifting it belongs to the typed refactor-candidate projection recorded as a follow-up.\n\n## Lever Citation\n\nThe mechanism being changed is the command contract text. Per P38, its declaration is not its behavior — here is where the text actually takes effect:\n\n| Call site | Effect | Locator |\n|---|---|---|\n| OpenCode slash-command loader | Reads `.opencode/command/*.md` and injects the body as the executed contract when the user runs `/adv-coordinate`. The body IS the behavior; there is no interpreter between text and execution. | `.opencode/command/adv-coordinate.md` (project command dir) |\n| `scripts/deploy-local.sh` | Mirrors command assets to `~/.config/opencode/command/`. Repo and deployed copies are currently SHA-identical (`5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015`); the edit must be re-deployed or the two diverge. | `scripts/deploy-local.sh` |\n| Asset tests | The enforcement call sites — they `readRepoFile(\".opencode/command/adv-coordinate.md\")` and assert content and *position*. | `plugin/src/advance-epics-assets.test.ts:198,214,222,235,270,281,296,316,327,336,360,854`; `plugin/src/consumer-integration.test.ts:187` |\n\n**Preemption check.** `plugin/src/manifest.ts:402-416` *declares* `adv-coordinate` (description, `requiresChangeId: false`, `scope.creates/modifies/gates = []`) but **does not read or parse the command body**. No loader, parser, or generator consumes the phase structure — independently confirmed by the validator (`lgrep search_text \"## Phase 6\"` across `plugin/src` returns 0 results). The only consumers are the agent at runtime and the asset tests. This is why the phase-numbering decision below is governed entirely by test string-matching, not by any code path.\n\n## Key Decisions\n\n**KD1 — Insert as `Phase 6.5`; do not renumber Phases 7, 8, or 9.**\n`advance-epics-assets.test.ts:223-227` slices the file between the literal strings `\"## Phase 7:\"` and `\"## Phase 8:\"` and asserts the resulting section contains the four inventory rows. Renumbering Phase 7→8 would either break that slice or silently move the assertion onto the wrong section. `Phase 6.5` places the audit after both evidence-producing phases (satisfying agreement objective 1) at zero renumbering cost. Rationale is defensive, not aesthetic.\n\n**KD2 — No new `##` heading may contain create, close, archive, delete, or mutate.**\n`consumer-integration.test.ts:193-196` filters every line matching `^##\\s` and fails if any also matches `/create|close|archive|delete|mutate/i`. `## Phase 6.5: Refactor Coverage Audit` is clean. This constrains all heading wording in this change.\n\n**KD3 — New report text uses the hyphen form `adv-backed-fact`.**\nThe file uses the hyphen form in all six existing occurrences (`:43, :106, :132, :177, :188, :198`), and `advance-epics-assets.test.ts:205,348-349,867` assert it. The spec's underscore form is deliberately not imported here (agreement C7, DONT3).\n\n**KD4 — Candidate population is every nonterminal in-flight change from the Phase 1 inventory.**\nPer user decision, not limited to Epic participants. Phase 1 already paginates completely, so the population is free. Terminal changes (archived/closed) are excluded at selection time — this is the structural answer to edge case A2.\n\n**KD5 — Referral is the bare dry-run form, always.**\nEmit exactly `/adv-refactor <change-id>`. Never `--execute`, `--interactive`, `--force`, or batch. Grounded in verified current state: `/adv-refactor --execute` runs its mutating phase with no approval prompt (`adv-refactor.md:59-64`) and manual `git restore .` rollback (`:76`); `--interactive`/`--force` are parsed at `:23` but never referenced in the body; batch mode passes an `excludeRecencyBands` parameter that does not exist in the `adv_change_list` schema.\n\n**KD6 — Epic findings never receive a `/adv-refactor` target.**\n`/adv-refactor` has zero Epic support — independently confirmed by the validator (no `Epic` string in its 87 lines). Epic rows name the exact stale field and route to `adv_epic_update`, `adv_epic_reorder`, or `adv_epic_show` convergence — the paths Phase 9 (`:214-224`) already implements, including its `expected_version` staleness re-check.\n\n**KD7 — Two-group output: actionable vs review/deferred.**\nOnly `repo_backed_fact` and `adv-backed-fact` candidates carry a command. `judgment_call`, `freshness_limited`, and evidence-read failures go to a review group with no command. This extends the fact-vs-heuristic separation Phase 8 already requires (`:198`) rather than inventing new handling.\n\n**KD8 — Every row records candidate status at emit time and carries a re-validation note.**\nThe report is point-in-time and `/adv-refactor` has no status guard — independently confirmed by the validator (its pre-flight at `:33` loads artifacts and task list, checking no change status; contrast `adv-reflect.md:38`, which blocks on non-archived). This mirrors the `expected_version` staleness discipline at `:224`, applied to changes, which have no version field — status is the available proxy.\n\n**KD9 — Uncapped, under a dedicated heading.**\nPer user decision, completeness over brevity. The dedicated group heading is what stops dozens of candidates from burying the Epic alignment, sequencing, and health findings that precede it.\n\n## ADR Drafts\n\nNone. Checked against the 3-criteria rubric: KD1 is the only structural decision, and it is trivially reversible, unsurprising once the test slice is known, and not the result of a genuine tradeoff. No decision here meets all three criteria.\n\n## Implementation Strategy\n\nSingle-file edit, then verification. No worktree-spanning work, no code, no schema.\n\n1. Insert `## Phase 6.5: Refactor Coverage Audit` after Phase 6, containing: candidate population rule (KD4), evidence threshold (KD7), the two output groups, the Epic routing rule (KD6), the referral form rule (KD5), and the point-in-time/status rule (KD8). Include a one-line note that the audit is unreachable when Phase 1 short-circuits on no active Epics.\n2. Add one bullet to the Phase 7 report group list, keeping all four existing inventory rows intact.\n3. Add one bullet to the Final Report list, keeping its four existing rows intact.\n4. Run `bin/oc-test targeted -- src/advance-epics-assets.test.ts src/consumer-integration.test.ts` to prove C6.\n5. Re-deploy via `scripts/deploy-local.sh --fix` so the deployed copy stays SHA-identical with the repo copy.\n\nSequencing note: steps 1-3 are one coherent edit to one file and should not be split into separate tasks — they are a single contract change whose parts are meaningless in isolation.\n\n## Design Leverage Scout\n\n**Scout: skipped — rationale.** The opportunity surface for this design was enumerated by the discovery-gate scout roughly thirty minutes earlier against this exact surface, returning five candidates (C1 taxonomy reuse, C2 snapshot/expiry semantics, C3 dry-run pinning, C4 evidence-failure classification, C5 assertion location). Four were adopted and are now approved agreement items that this design implements directly as KD5, KD7, and KD8; the fifth was resolved by user decision. The implementation surface is a single markdown file with no code, no interfaces, no parallelism, and no reusable-component opportunity. A second scout pass would re-derive the same candidates at no marginal value.\n\n## LBP Analysis\n\n**Referral-over-execution is the correct long-term shape.** The alternative — having `/adv-coordinate` perform or trigger the refresh — would duplicate `/adv-refactor`'s drift/obsolescence/conflict scanners, introduce a mutation path into a read-first command, and split refresh authority across two commands. Keeping detection and execution in separate commands means `/adv-refactor` remains the single owner of refresh semantics, and coordination stays a pure read model.\n\nThis matches the precedent already in the codebase: `adv-cleanup.md:131` cross-references `/adv-refactor` with complementary framing (\"cleanup closes abandoned/dead proposals; refactor refreshes stale-but-valid\"). This change follows that established wording style rather than inventing a new referral idiom.\n\n**Rejected alternative — a typed read-only refactor-candidate projection.** It would replace prose-joining with a machine-checkable surface and is genuinely the stronger structural answer (P33). It is rejected here because it introduces a new planning primitive that current Epic-coordination law does not contemplate, and the user explicitly scoped this change to command prose with no new spec law, tool, or test. Recorded as the natural follow-up if refactor coverage later proves load-bearing — and it is also the path that would lift the no-Epics limitation above.\n\n**Rejected alternative — renumbering phases for a clean integer sequence.** Cosmetic gain, real cost: it breaks a positional test assertion and would force edits to a test file the agreement forbids modifying (C6).\n\n**Considered and not adopted — placing the audit before the Phase 1 no-Epics early stop.** This would make refactor coverage reachable in zero-Epic projects, but it contradicts approved Objective 1's placement (after Phase 3 and Phase 6, which produce the evidence the audit classifies), and it would change the meaning of the mandated `No active Epics. No coordination actions.` terminal state. Both the placement and the constraint that forbids touching spec law are approved agreement items, so this path is out of bounds without re-entering discovery.\n\n## Affected Components\n\n| Component | Change | Risk |\n|---|---|---|\n| `.opencode/command/adv-coordinate.md` | Three insertions (new Phase 6.5; one Phase 7 bullet; one Final Report bullet) | The only file modified |\n| `~/.config/opencode/command/adv-coordinate.md` | Re-synced by `deploy-local.sh --fix` | Divergence if the deploy step is skipped |\n| `plugin/src/advance-epics-assets.test.ts` | **Read-only — must not be edited** | Positional assertions must keep passing |\n| `plugin/src/consumer-integration.test.ts` | **Read-only — must not be edited** | Heading-word filter must keep passing |\n| `plugin/src/manifest.ts` | **Unchanged** — declares the command but never parses its body | Scope invariant `creates/modifies/gates = []` stays valid because no mutation is added |\n\n## Design-Derived Criteria\n\nTechnical budgets created by this architecture. These are not user-facing acceptance criteria; they are consequences of editing a test-asserted contract file.\n\n- **DDC1** — Every `^##` heading added must not match `/create|close|archive|delete|mutate/i` (`consumer-integration.test.ts:193-196`).\n- **DDC2** — The literal headings `## Phase 7:` and `## Phase 8:` must remain byte-identical, and the section between them must still contain `Projects scanned`, `Changes by project`, `Epics scanned`, and `entries scanned` (`advance-epics-assets.test.ts:223-231`).\n- **DDC3** — The first occurrence of `adv_change_list` must remain earlier in the file than the first occurrence of `No active Epics` (`advance-epics-assets.test.ts:215-218`).\n- **DDC4** — The `## Final Report` section must retain its four inventory rows (`advance-epics-assets.test.ts:236-242`).\n- **DDC5** — The audit must introduce no new tool invocation; it consumes Phase 1, 3, and 6 outputs only. This preserves the manifest scope invariant and adds no latency to a command that already paginates the full change inventory.\n- **DDC6** — After the edit, the repo and deployed copies of `adv-coordinate.md` must hash identically.\n- **DDC7** — The audit's reachability is bounded by the Phase 1 no-Epics early stop at `:55`; the contract text must state this rather than implying unconditional coverage.\n\n## Risks / Mitigations\n\n| Risk | Likelihood | Mitigation |\n|---|---|---|\n| Renumbering or reformatting breaks a positional test assertion | Medium — the assertions are non-obvious and easy to trip | KD1 + DDC1-DDC4 name every positional invariant with its exact locator; targeted test run in strategy step 4 |\n| **Audit unreachable in zero-Epic projects** (Phase 1 early stop at `:55`, mandated by `rq-epicCoordinateProjectInventory01.3`, unmodifiable under C5) | **Certain in that path** — but bounded: does not bind this project, which has 2 active Epics | Documented as a Known Limitation above and DDC7; contract text states the boundary explicitly; permanent fix belongs to the typed-projection follow-up. No approved AC is violated — all are conditioned on a report being presented |\n| A user follows a referral for a change that went terminal after the report was generated | Medium — reports are read asynchronously | KD8: status recorded at emit time plus an explicit re-validation instruction; KD4 excludes terminal changes at selection |\n| Uncapped output buries Epic findings at scale (58 active changes today) | Medium — accepted by explicit user decision | KD9: dedicated group heading keeps the section scannable and separable; user chose completeness over brevity with the consequence stated |\n| Referral text drifts toward `--execute` in a later edit | Low | KD5 states the prohibition in the contract itself, so the rule is visible at the point of use rather than only in this design |\n| Deployed copy diverges from repo copy | Low | DDC6 + explicit deploy step in the implementation strategy |\n| Contract prose is the only guard — no test asserts the new coverage | Accepted | Direct consequence of the user's \"command contract prose only\" decision; the elevation criterion is recorded in the agreement should coverage later need machine enforcement |\n\n## Validation Result\n\n**Validator: CAUTION** (`validation.status: caution`, zero blockers) — independent `adv-researcher` pass, confidence high, risk medium.\n\nIndependently confirmed:\n- All four positional test invariants are exactly as described; inserting `## Phase 6.5:` before Phase 7 breaks none of them.\n- No code path parses the phase structure of `adv-coordinate.md` (`lgrep` for `\"## Phase 6\"` in `plugin/src` → 0 results); `manifest.ts` is metadata-only.\n- Exactly 6 `adv-backed-fact` occurrences at the cited lines.\n- `/adv-refactor` has no Epic support and no status guard; `--execute` is ungated.\n- No MUST violated across `rq-epicCoordinateCommand01`, `rq-epicCoordinateRepoFreshness01`, `rq-epicCoordinateProjectInventory01`. All 8 ACs map to a key decision; C1-C7 and DONT1-4 honored.\n\nCaution raised: the Phase 1 no-Epics early stop makes Phase 6.5 unreachable in zero-Epic projects, contrary to User Decision 2's stated rationale. Resolved by the validator's recommended lowest-scope path — accept the limitation and record it — now captured in Known Limitation, DDC7, and the risk table above.\n\nResidual unverified (validator-flagged, low-risk, non-load-bearing): the `excludeRecencyBands` schema-absence claim (used only as KD5 rationale; AC5 forbids batch by contract regardless), the `adv-reflect.md:38` contrast citation (illustrative), and the repo-vs-deployed SHA identity (operational, handled by the deploy step).\n\n**Tooling defect noted:** `adv_subagent_report_submit` rejected `agent: \"adv-researcher\"` — its schema accepts only `adv-engineer | adv-reviewer | adv-designer`, and its lifecycle excludes `discovery`/`design`. The validator correctly refused to falsify provenance and returned its judgement in-message. Same defect observed at the discovery gate. Recorded as a follow-up against ADV itself.",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe coordination report now tells you what to do about work it finds out of date, instead of only telling you that it is out of date. You are approving a documentation-only change to one command's instructions — no code, no new tooling, and no change to what the system is allowed to modify on its own.\n\n## Why It Matters\n\nCoordination could already detect that a piece of planned work no longer matched the actual state of the repository, but it stopped short of naming a next step. That left the person running it to work out the follow-up themselves, which is where mistakes get made.\n\nThe change closes that gap and, in doing so, removes a real hazard. The follow-up tool it points at has a mode that rewrites work immediately with no confirmation step and only a manual undo. The new instructions permanently pin the suggestion to the safe preview form and forbid the dangerous one. So the practical effect is both a convenience gain and a reduction in the chance of an accidental overwrite.\n\nIt also refuses to guess. When the evidence is weak or unreadable, the report says so and offers no command at all, rather than suggesting an action it cannot justify.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. **A new \"Refactor Coverage Audit\" step in the coordination command.** For each piece of out-of-date work it sorts findings into three buckets: ones with solid evidence get a concrete, safe next command; stale project-level records get pointed at the existing correction tools that already require your approval; and anything with weak or unreadable evidence is listed for review with no command attached. It reuses evidence the command already gathers, so it adds no extra work at runtime.\n2. **Confirmation that the existing safety checks still hold.** The project's automated checks were re-run against the edited file and all passed, with none of those checks altered to accommodate the change (87 checks across 2 files).\n3. **Confirmation that the update reached the installed copy.** The version installed on this machine was verified to match the edited version exactly, and independently double-checked by a separate reviewer.\n\n## What Was Verified\n\n- Verdict: APPROVED with 0 findings (0 blockers, 0 issues, 0 suggestions, 0 nits)\n- Tests: 87 passed, 2 files, 0 failed — existing checks green with no assertion modified\n- Preview URL: not_applicable — the deliverable is command-instruction text with no screen, page, or visual output a person could open\n- Contract matrix: 22 of 22 required rows passed or respected, 0 failing\n\n## Remaining Concerns\n\nOne known limitation, non-blocking and deliberately recorded rather than hidden: in a project that has no active initiatives (\"Epics\") the coordination command stops early by an existing rule, so this new step will not run there. Lifting it would require changing a governing rule that this change was explicitly scoped not to touch. It does not affect this project, which has 2 active initiatives and 58 pieces of in-flight work covered by the new step.\n\nThree follow-ups noted, none blocking release:\n\n1. A long-standing spelling inconsistency in one internal label remains, left untouched on purpose because correcting it belongs in its own change.\n2. An existing automated deployment step publishes from whichever copy was committed, so the installed version can sit ahead of the main line until this merges. Pre-existing behavior, worth reviewing separately.\n3. An internal reporting tool rejects one category of reviewer, which blocked two automated reports from being filed during this work. Both were correctly surfaced in full instead of being falsified.\n\n## Supporting Evidence\n\nTasks tk-7829f97d60a1 (contract text), tk-b4dc15023ef9 (test verification, run tr_mscg6t7s_05f1144c), tk-4d141d1c68be (installed-copy check, backed by reviewer reports attempt 1 and warning-free attempt 2, verdict READY, typed runs tr_mscgomr2_486b2e9f and tr_mscgrs6m_1a8ef40a). Commits f08fa395 (contract text) and 1c7ecfa2 (harden wording fix), one file changed. Independent design validation returned caution with zero blockers and surfaced the no-Epics limitation now recorded above. Contract review matrix: 22 rows, 0 failing. Harden scanner bundle: addCoordinateRefactorCoverage|change:scanner-bundle:harden|adv-scanner-bundle|1.\n\n## Release Readiness Summary\n\nRelease checks are clean and the change is ready to ship. The hardening pass ran one targeted documentation review — the right one, since the deliverable is instruction text — and it found no contradictions with any other document, no stale references, and no place where the new step misleads a reader.\n\nIt did catch one wording defect worth correcting, which we fixed rather than shipped. The instructions had claimed the follow-up tool \"performs no status check of its own.\" That is slightly stronger than the truth: the tool does read a work item's status when it starts, it simply has no guard that stops it on already-finished work. The text now says exactly that. The user-facing advice is unchanged — check the status is still current before acting on a suggestion — but the stated reason is now accurate rather than merely directionally right.\n\nOne documentation gap was found and deliberately not fixed: the two commands on the receiving end of this new referral do not mention that coordination now points at them. Closing it would mean editing files outside what this change was scoped to touch, and the referral is already fully explained where it is produced. Recorded as a follow-up.\n\nNothing else to clear: no temporary files, no debug leftovers, no environment, migration, service, or deployment changes. The branch merges cleanly into the main line, and the installed copy on this machine matches the branch exactly.\n\n### Approval Consequence Context\n\n| Category | Status | Evidence |\n|---|---|---|\n| Delivered value | delivered | Coordination report carries an evidence-gated follow-up route; contract matrix 22/22, acceptance summary, task implementation summaries |\n| Enabling-only / follow-up dependency | none | Self-contained; no dependent work needed for this to function. No ops_followup or ops_followup_links state on this change |\n| Ops readiness | ready | Harden scanner bundle: no env, migration, external service, CI/CD, or infrastructure surface touched. Cleanup clean (0 temp files, 0 untracked, 0 debug markers). Deployment automatic via post-commit hook, parity re-verified at 0f8e0f57930b66987938d35e16508bebf807a21f0831889b37a6385b05de9ba4 |\n| Migration / data impact | n/a | No schema, storage, state, or data surface. git diff trunk...HEAD lists exactly one markdown file |\n| Frontend / preview impact | not_applicable | visual_surface false; no browser-visible output. Matching contract matrix rationale recorded at acceptance |\n| Collision / release risk | low | Dry-run merge of origin/trunk into the change branch is CLEAN; branch 1 ahead / 0 behind; working tree clean. Discovery enumerated 58/58 active changes with zero collisions. Zero unresolved blocker/issue/high findings |\n| Open follow-ups | 4 non-blocking | Upstream cross-reference in adv-refactor.md / adv-cleanup.md; label vocabulary normalization (deferred per DONT3); post-commit deploy-from-checkout behavior vs deploy-from-trunk rule; adv_subagent_report_submit rejecting adv-researcher. All persisted in the harden scanner bundle. None block release |\n| Next action | ready | `/adv-archive addCoordinateRefactorCoverage` |",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-02T23:55:44.420Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A coordinator reading a single coordination report can tell, for each out-of-date change, what the next safe action is without opening another command. | pass | Phase 6.5 three-group table plus Referral form paragraph give each out-of-date change an explicit next action inside the coordination report; no second command needed. |\n| SC2 | success_criterion | A coordinator is never offered a next action that the target command cannot actually perform. | pass | Epic findings never receive a /adv-refactor target (no Epic mode exists); referral pinned to the bare dry-run form that /adv-refactor actually supports. |\n| SC3 | success_criterion | Weak-evidence findings are visibly separated from actionable ones. | pass | Three-group table separates actionable rows from review/deferred; review/deferred output column reads 'Finding and reason only — no command'. |\n| AC1 | acceptance_criterion | Given an in-flight nonterminal change whose drift is supported by `repo_backed_fact` or `adv-backed-fact` evidence, when the coordination report is presented, then it emits a dry-run `/adv-refactor <change-id>` referral for that change. | pass | Actionable group row requires nonterminal change with drift supported by repo_backed_fact or adv-backed-fact, output = referral command plus status at emit time. |\n| AC2 | acceptance_criterion | Given a finding classified `judgment_call` or `freshness_limited`, when the report is presented, then the finding appears in a review/deferred group carrying no mutation command. | pass | Review/deferred row covers judgment_call, freshness_limited, and unresolved evidence with output 'Finding and reason only — no command'. |\n| AC3 | acceptance_criterion | Given evidence for a candidate cannot be resolved because an artifact is unreadable or a read fails, when the report is presented, then the candidate is classified `freshness_limited` and no referral is emitted. | pass | 'Insufficient evidence never produces a referral' paragraph names unreadable artifact, failed or timed-out read, and missing repository freshness, classifying all as freshness_limited with no referral. |\n| AC4 | acceptance_criterion | Given an Epic with stale narrative, order, or membership, when the report is presented, then the recommendation names the exact stale field and routes to an existing approval-gated Epic action. | pass | Epic paragraph routes stale narrative, order, or membership to adv_epic_update, adv_epic_reorder, or adv_epic_show convergence 'naming the exact stale field', consistent with existing Phase 9 application. |\n| AC5 | acceptance_criterion | Given any refactor-coverage referral, when it is emitted, then it uses the bare dry-run form and never includes `--execute`, `--interactive`, `--force`, or a batch invocation. | pass | Referral form paragraph: 'Emit exactly /adv-refactor <change-id>. That bare form is dry-run. Never emit --execute, --interactive, --force, or a batch invocation from coordination.' |\n| AC6 | acceptance_criterion | Given an Epic candidate, when the report is presented, then no `/adv-refactor` target is offered for it. | pass | Dedicated paragraph 'Epic findings never receive a /adv-refactor target' states /adv-refactor resolves a change ID only and has no Epic mode. |\n| AC7 | acceptance_criterion | Given the report is a point-in-time snapshot, when a referral is emitted, then it records the candidate's status at emit time and advises re-validating status before running it. | pass | 'Point-in-time discipline' paragraph requires recording status as observed at emit time and re-validating before running the referral, because /adv-refactor performs no status check. |\n| AC8 | acceptance_criterion | Given every nonterminal in-flight change is eligible, when the report is presented, then all qualifying candidates are listed uncapped under their own heading. | pass | Candidate population paragraph covers every nonterminal in-flight change 'whether or not it is linked to an Epic', excludes terminal changes, and states 'do not cap the group'; findings carry their own Phase 6.5 heading and dedicated Phase 7 report row. |\n| C1 | constraint | Must not add a new mutation verb, runtime tool, or CLI command. | respected | No new mutation verb, tool, or CLI added. consumer-integration.test.ts AC14 heading filter and read-first assertion pass; diff is 30 added lines in one markdown file with no code or schema change. |\n| C2 | constraint | Must not treat age, heuristic overlap, `judgment_call`, or `freshness_limited` as authority for a refactor or mutation. | respected | Evidence threshold paragraph states 'Age, heuristic overlap ranking, and recency never qualify as authority'; only repo_backed_fact or adv-backed-fact may carry a command. |\n| C3 | constraint | Must not make Epic membership mandatory or Epic order blocking. | respected | Candidate population explicitly includes changes 'whether or not it is linked to an Epic', preserving optional membership. No Epic order semantics were added or made blocking; Phase 5 sequencing text untouched. |\n| C4 | constraint | Must not bypass the existing explicit approval requirement for intent-bearing Epic actions. | respected | Epic findings route to the existing approval-gated actions; Phase 8 approval and Phase 9 apply sections are unmodified in the diff. |\n| C5 | constraint | Must not add a new spec requirement or a new asset test for this coverage. | respected | git diff trunk...HEAD shows exactly one changed file, .opencode/command/adv-coordinate.md, 30 insertions. No spec.json, no docs/specs mirror, no new test file. |\n| C6 | constraint | Must keep existing asset and boundary tests green without modifying their assertions. | respected | bin/oc-test targeted -- src/advance-epics-assets.test.ts src/consumer-integration.test.ts exited 0: 2 files, 87 tests passed, 0 failed. Neither test file appears in the diff, so no assertion was modified. |\n| C7 | constraint | Must use the hyphen form `adv-backed-fact` in new `/adv-coordinate` report text, matching the six existing occurrences in that file. | respected | Hyphen form adv-backed-fact now appears 8 times (6 pre-existing plus 2 added); underscore form adv_backed_fact appears 0 times in the command file. |\n| DONT1 | avoidance | Do not add an Epic mode to `/adv-refactor`. | respected | .opencode/command/adv-refactor.md is not in the diff; no Epic mode was added to it. |\n| DONT2 | avoidance | Do not auto-run `/adv-refactor`, especially with `--execute`. | respected | Contract emits a referral command for the user to run; it never invokes /adv-refactor, and explicitly forbids emitting --execute from coordination. |\n| DONT3 | avoidance | Do not normalize the `adv-backed-fact` / `adv_backed_fact` vocabulary drift in this change. | respected | The six pre-existing adv-backed-fact occurrences are untouched by the diff and no underscore form was introduced; the spec/command vocabulary divergence is left exactly as found. |\n| DONT4 | avoidance | Do not re-declare a fourth copy of the evidence-label taxonomy. | respected | Phase 6.5 references the four evidence labels but declares no definition table; the sole definition remains the Phase 3 table at lines 105-108. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-02T23:04:33.532Z",
+      "contentHash": "04fdb6ffffcc14cc4d803ef4ed03e56e9994cb780ca642c754385940ee7ff870",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-02T20:07:00.595Z",
+      "contentHash": "18ab6fc431764d1b02dc61af2b4393d792fdd7b1e0fe70ac91790a7984826838",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-02T23:21:53.072Z",
+      "contentHash": "b2720105289a7d446e703410ebca3c2c6d11f7e6c2c2baf9307950e851b61ddf",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-02T23:35:07.351Z",
+      "contentHash": "133ee98aca1a522b02aea936c064975ed0572c92bae9befc4aa751b920ab445b",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-03T00:22:32.870Z",
+      "contentHash": "a6421a3ba5ed216493f7b10d307bc1cd33e2be4959dd60abd8abb55f85bc6d26",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_MISSING_ERROR_HANDLING",
+      "severity": "warning",
+      "message": "Proposal describes behavior that could fail but doesn't mention error handling or rollback. What happens when things go wrong?",
+      "recorded_at": "2026-08-02T20:07:54.843Z",
+      "resolved": true,
+      "resolved_at": "2026-08-02T23:28:54.970Z"
+    }
+  ],
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-03T00:29:42.313Z",
+  "origin": {
+    "kind": "adhoc"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "verification_evidence_dispositions": [
+    {
+      "taskId": "tk-4d141d1c68be",
+      "concernKey": "verification",
+      "disposition": "fixed",
+      "evidence": "Typed adv_run_test evidence now proves the claim the reviewer had asserted with untyped shell output. runId tr_mscgomr2_486b2e9f, exitCode 0, classification passed. The executable check asserts all three conditions and exits non-zero on any failure: (1) branch copy .opencode/command/adv-coordinate.md and deployed copy ~/.config/opencode/command/adv-coordinate.md hash identically (both 9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb); (2) that hash differs from the pre-change baseline 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015, proving the new content actually deployed rather than a stale copy matching by coincidence; (3) the deployed file literally contains the '## Phase 6.5: Refactor Coverage Audit' heading. Output: 'PASS: branch==deployed, differs from baseline, deployed contains Phase 6.5'. This closes design-derived criterion DDC6. The four verification_missing warnings on reviewer report addCoordinateRefactorCoverage|tk-4d141d1c68be|adv-reviewer|1 arose because that reviewer verified via direct shell commands without typed run IDs; its verdict READY and its factual findings are unchanged and now independently reproduced under typed evidence.",
+      "dispositionedAt": "2026-08-02T23:59:12.972Z"
+    }
+  ],
+  "release_notes": {
+    "audience": "internal",
+    "category": "added",
+    "headline_internal": "Coordination reports now surface evidence-gated refactor coverage with safe dry-run referrals",
+    "highlights": [
+      "New Phase 6.5 Refactor Coverage Audit in /adv-coordinate classifies out-of-date changes and Epics into actionable, Epic-coverage, and review/deferred groups",
+      "Actionable change candidates get a dry-run /adv-refactor <change-id> referral pinned to the bare form; emitting --execute, --interactive, --force, or batch from coordination is explicitly forbidden",
+      "Epic findings name the exact stale field and route to the existing approval-gated adv_epic_update / adv_epic_reorder / adv_epic_show paths; no Epic target is ever offered to /adv-refactor, which has no Epic mode",
+      "judgment_call, freshness_limited, and unresolved-evidence candidates are listed for review with no mutation command",
+      "Referrals record candidate status at emit time and advise re-validation, since /adv-refactor has no explicit terminal-state guard",
+      "Audit consumes evidence already gathered by Phases 1, 3, and 6 — no new tool call and no new mutation authority",
+      "Known limitation: the audit does not run when Phase 1 short-circuits on no active Epics; stated in the contract text"
+    ],
+    "area": "adv-coordinate",
+    "user_action_required": false
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "This change touches no worker-bundle code. Verified: git diff trunk...HEAD lists exactly one file, .opencode/command/adv-coordinate.md, a markdown command-contract document with 30 added lines and no executable code. Nothing under plugin/src/temporal/ is modified, and the workflow-bundle root plugin/src/temporal/workflows.ts and its static import graph are untouched, so no build_worker or replay_determinism provenance is meaningful. The deliverable is agent-facing instruction text consumed at runtime by the OpenCode slash-command loader and asserted by existing asset tests; it is not compiled into the Temporal worker bundle. Confirmed by design lever citation (plugin/src/manifest.ts:402-416 declares the command but never parses its body; no loader, parser, or generator consumes the phase structure) and by the harden scanner bundle, which found no deployment, CI/CD, migration, or infrastructure surface. Existing asset and boundary tests remain green at 87/87 with no assertion modified.",
+    "confirmed_at": "2026-08-03T00:29:42.313Z"
+  },
+  "creation_request_hash": "0d426670c200735c9100f2c8b18e5a6b1bf344f6f66ea2af38d6bc7caa936946",
+  "projection_revision": 45,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "3fc51ca11fc5d75b55a67cc9aff3849de146da4866d2e105c32a6720c97dbc07:createArtifacts:proposal",
+      "operation_id": "3fc51ca11fc5d75b55a67cc9aff3849de146da4866d2e105c32a6720c97dbc07:createArtifacts:proposal",
+      "payload_hash": "869c4c85901fef17cae91f4fdfa40e1e3d136b6aac5e0ad5c619082aa39ee422",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-02T20:07:01.141Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "3fc51ca11fc5d75b55a67cc9aff3849de146da4866d2e105c32a6720c97dbc07:createArtifacts:problemStatement",
+      "operation_id": "3fc51ca11fc5d75b55a67cc9aff3849de146da4866d2e105c32a6720c97dbc07:createArtifacts:problemStatement",
+      "payload_hash": "d11c67508a1a66fb032745d9cc2228ef78a889ff7f541c1006eb3abd2f969128",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-02T20:07:03.269Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "4d77e2e38f1d40bad922ffe3103a3e6bc6ad5376d3feaa6f5568ad3271ac5217:updateArtifacts:proposal",
+      "operation_id": "4d77e2e38f1d40bad922ffe3103a3e6bc6ad5376d3feaa6f5568ad3271ac5217:updateArtifacts:proposal",
+      "payload_hash": "869c4c85901fef17cae91f4fdfa40e1e3d136b6aac5e0ad5c619082aa39ee422",
+      "state_revision": 3,
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-02T20:08:54.071Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-02T20:11:31.508Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "91e7bd09dc376fb965644492a3605c642a0857fdd0bc830a6381e2287291273e:updateArtifacts:proposal",
+      "operation_id": "91e7bd09dc376fb965644492a3605c642a0857fdd0bc830a6381e2287291273e:updateArtifacts:proposal",
+      "payload_hash": "c875b866195cc641686fcf56eb55c7050693ff3d9b122cadfc4bdb9d7ab13a31",
+      "state_revision": 4,
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-02T23:04:33.730Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "67029b28f136aa17e15488f472b1c5dd112b87a98cc4987ef75ee0de03ffede3:updateArtifacts:agreement",
+      "operation_id": "67029b28f136aa17e15488f472b1c5dd112b87a98cc4987ef75ee0de03ffede3:updateArtifacts:agreement",
+      "payload_hash": "e8c9a7316924e6028b144dd11b0205cecfbf0331eda57dadda45a92b2b37f5dc",
+      "state_revision": 5,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-02T23:21:53.559Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-02T23:22:04.556Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-02T23:22:18.175Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f1d898de2a533fab9cbbfa0a7229bf8765aad64c93a29e7a9b41667517e0d107:updateArtifacts:design",
+      "operation_id": "f1d898de2a533fab9cbbfa0a7229bf8765aad64c93a29e7a9b41667517e0d107:updateArtifacts:design",
+      "payload_hash": "8f9df99c8d166b1e9420c8289751a8d381453e107828b2d76b8335b48136311a",
+      "state_revision": 6,
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-02T23:26:57.718Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "04c8c87d615007b7db8693eb2ee7bc3bbdd987ce52b68188af5a1a9d87121b94:updateArtifacts:design",
+      "operation_id": "04c8c87d615007b7db8693eb2ee7bc3bbdd987ce52b68188af5a1a9d87121b94:updateArtifacts:design",
+      "payload_hash": "1d9bd9ed3395a6e388e1cdf9c2df238872da5e0ddbf272ea794f0068bafbd93a",
+      "state_revision": 7,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-02T23:35:07.552Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-02T23:36:10.294Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-02T23:38:36.533Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-02T23:38:40.439Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-02T23:39:09.922Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-02T23:39:34.777Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-02T23:41:31.976Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-02T23:42:02.035Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "71dec9dfe6d114c4f6a03a14175759cb7b46c5fd485f8ff84259479a5fa557e2:taskUpdated",
+      "operation_id": "71dec9dfe6d114c4f6a03a14175759cb7b46c5fd485f8ff84259479a5fa557e2:taskUpdated",
+      "payload_hash": "f469bafb6bf0fbac006bf7b1b6cef7b5a540a5022e9fd1c5fc21cf909851bcfa",
+      "state_revision": 8,
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-02T23:43:41.332Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-02T23:44:15.625Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-02T23:44:31.288Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-02T23:45:26.063Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-02T23:45:42.079Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-02T23:46:10.873Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-02T23:48:23.897Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-02T23:48:26.407Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-02T23:49:00.087Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-02T23:49:33.156Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785714944498_z5uk7odk",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-02T23:55:44.664Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-02T23:55:44.420Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Phase 6.5 three-group table plus Referral form paragraph give each out-of-date change an explicit next action inside the coordination report; no second command needed.",
+              "notes": "adv-coordinate.md Phase 6.5, commit f08fa395"
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Epic findings never receive a /adv-refactor target (no Epic mode exists); referral pinned to the bare dry-run form that /adv-refactor actually supports.",
+              "notes": "Verified /adv-refactor has zero Epic references and resolves change-id only"
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Three-group table separates actionable rows from review/deferred; review/deferred output column reads 'Finding and reason only — no command'.",
+              "notes": "Mirrors existing Phase 8 fact-vs-heuristic separation"
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Actionable group row requires nonterminal change with drift supported by repo_backed_fact or adv-backed-fact, output = referral command plus status at emit time.",
+              "notes": "adv-coordinate.md Phase 6.5 group table + Referral form"
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Review/deferred row covers judgment_call, freshness_limited, and unresolved evidence with output 'Finding and reason only — no command'.",
+              "notes": "No mutation command emitted for heuristic labels"
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "'Insufficient evidence never produces a referral' paragraph names unreadable artifact, failed or timed-out read, and missing repository freshness, classifying all as freshness_limited with no referral.",
+              "notes": "Closes the CLARIFY_MISSING_ERROR_HANDLING finding raised at proposal"
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Epic paragraph routes stale narrative, order, or membership to adv_epic_update, adv_epic_reorder, or adv_epic_show convergence 'naming the exact stale field', consistent with existing Phase 9 application.",
+              "notes": "Warrant tools verified callable via adv_tool_describe at discovery"
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Referral form paragraph: 'Emit exactly /adv-refactor <change-id>. That bare form is dry-run. Never emit --execute, --interactive, --force, or a batch invocation from coordination.'",
+              "notes": "Rationale stated inline: --execute applies without further approval"
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Dedicated paragraph 'Epic findings never receive a /adv-refactor target' states /adv-refactor resolves a change ID only and has no Epic mode.",
+              "notes": "Prevents offering an unsupported target"
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "'Point-in-time discipline' paragraph requires recording status as observed at emit time and re-validating before running the referral, because /adv-refactor performs no status check.",
+              "notes": "Status carried in the actionable group output column as well"
+            },
+            {
+              "contractId": "AC8",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Candidate population paragraph covers every nonterminal in-flight change 'whether or not it is linked to an Epic', excludes terminal changes, and states 'do not cap the group'; findings carry their own Phase 6.5 heading and dedicated Phase 7 report row.",
+              "notes": "Known limitation: unreachable when Phase 1 short-circuits on no active Epics; stated in contract text"
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "No new mutation verb, tool, or CLI added. consumer-integration.test.ts AC14 heading filter and read-first assertion pass; diff is 30 added lines in one markdown file with no code or schema change.",
+              "notes": "runId tr_mscg6t7s_05f1144c, 87 tests passed"
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Evidence threshold paragraph states 'Age, heuristic overlap ranking, and recency never qualify as authority'; only repo_backed_fact or adv-backed-fact may carry a command.",
+              "notes": "Heuristic labels routed to review/deferred with no command"
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Candidate population explicitly includes changes 'whether or not it is linked to an Epic', preserving optional membership. No Epic order semantics were added or made blocking; Phase 5 sequencing text untouched.",
+              "notes": "Diff touches no ordering language"
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Epic findings route to the existing approval-gated actions; Phase 8 approval and Phase 9 apply sections are unmodified in the diff.",
+              "notes": "No bypass of intent-bearing Epic approval"
+            },
+            {
+              "contractId": "C5",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "git diff trunk...HEAD shows exactly one changed file, .opencode/command/adv-coordinate.md, 30 insertions. No spec.json, no docs/specs mirror, no new test file.",
+              "notes": "Matches the user's command-contract-prose-only decision"
+            },
+            {
+              "contractId": "C6",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "bin/oc-test targeted -- src/advance-epics-assets.test.ts src/consumer-integration.test.ts exited 0: 2 files, 87 tests passed, 0 failed. Neither test file appears in the diff, so no assertion was modified.",
+              "notes": "runId tr_mscg6t7s_05f1144c"
+            },
+            {
+              "contractId": "C7",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Hyphen form adv-backed-fact now appears 8 times (6 pre-existing plus 2 added); underscore form adv_backed_fact appears 0 times in the command file.",
+              "notes": "Keeps the file internally consistent and its assertions green"
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": ".opencode/command/adv-refactor.md is not in the diff; no Epic mode was added to it.",
+              "notes": "Referral only"
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Contract emits a referral command for the user to run; it never invokes /adv-refactor, and explicitly forbids emitting --execute from coordination.",
+              "notes": "No auto-run path introduced"
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "The six pre-existing adv-backed-fact occurrences are untouched by the diff and no underscore form was introduced; the spec/command vocabulary divergence is left exactly as found.",
+              "notes": "Normalization deferred as a separate follow-up"
+            },
+            {
+              "contractId": "DONT4",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "Phase 6.5 references the four evidence labels but declares no definition table; the sole definition remains the Phase 3 table at lines 105-108.",
+              "notes": "No fourth taxonomy copy created"
+            }
+          ]
+        },
+        "updatedAt": "2026-08-02T23:55:44.497Z",
+        "mutationReceiptId": "mrec_1785714944498_z5uk7odk"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-02T23:56:24.410Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-02T23:56:28.279Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "eda40092158ac4ea9c168c3df411dbb9b7a3f6de7f282c96d862c18fa00f4f56:updateArtifacts:executiveSummary",
+      "operation_id": "eda40092158ac4ea9c168c3df411dbb9b7a3f6de7f282c96d862c18fa00f4f56:updateArtifacts:executiveSummary",
+      "payload_hash": "9befb6ee3b75e15b846e34d13544a27c63dca5cab9abbbc74284920df751528e",
+      "state_revision": 9,
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-02T23:57:05.264Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "67d40256e7aad1161d36daec5bbe39982a590d6797516ad61f7a1f398b9cab1e:releaseNotesSet",
+      "operation_id": "67d40256e7aad1161d36daec5bbe39982a590d6797516ad61f7a1f398b9cab1e:releaseNotesSet",
+      "payload_hash": "23c523230d4f4662520fb6246db4126f58de2f49d4f37da953987f66a0e52463",
+      "state_revision": 10,
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-02T23:57:19.179Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-02T23:58:26.606Z"
+    },
+    {
+      "mutation_kind": "verification_evidence_disposition",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785715152980_6s1es0qq",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-02T23:59:13.194Z",
+      "payload": {
+        "taskId": "tk-4d141d1c68be",
+        "concernKey": "verification",
+        "disposition": "fixed",
+        "evidence": "Typed adv_run_test evidence now proves the claim the reviewer had asserted with untyped shell output. runId tr_mscgomr2_486b2e9f, exitCode 0, classification passed. The executable check asserts all three conditions and exits non-zero on any failure: (1) branch copy .opencode/command/adv-coordinate.md and deployed copy ~/.config/opencode/command/adv-coordinate.md hash identically (both 9c227f6cdaccbbf9c51ce0ae255175302fe49bfd172b5c2820ac59eb735e90fb); (2) that hash differs from the pre-change baseline 5661658660885ba7009fb0c7cdf818f1ad3fe8cafa7cb21e0e71607d1ebe4015, proving the new content actually deployed rather than a stale copy matching by coincidence; (3) the deployed file literally contains the '## Phase 6.5: Refactor Coverage Audit' heading. Output: 'PASS: branch==deployed, differs from baseline, deployed contains Phase 6.5'. This closes design-derived criterion DDC6. The four verification_missing warnings on reviewer report addCoordinateRefactorCoverage|tk-4d141d1c68be|adv-reviewer|1 arose because that reviewer verified via direct shell commands without typed run IDs; its verdict READY and its factual findings are unchanged and now independently reproduced under typed evidence.",
+        "dispositionedAt": "2026-08-02T23:59:12.972Z",
+        "mutationReceiptId": "mrec_1785715152980_6s1es0qq"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-02T23:59:33.998Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-03T00:01:44.949Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-03T00:01:47.850Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-03T00:02:31.395Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-03T00:03:10.337Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-03T00:21:45.590Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-03T00:21:49.587Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ac7fe02f9e09d1212050f83549f048c2f51fcf78128e48002e90d64893c3b1f5:updateArtifacts:executiveSummary",
+      "operation_id": "ac7fe02f9e09d1212050f83549f048c2f51fcf78128e48002e90d64893c3b1f5:updateArtifacts:executiveSummary",
+      "payload_hash": "ba95cfc006b2f954fd15bb5d45ed60bb3abc6dbbee75bbe503711636b66e032d",
+      "state_revision": 11,
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-03T00:22:33.242Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "7dd1b2dfa6b8243a2e0b8d260c077fb482d64d97419210241d1d117bf37fcc1a:releaseNotesSet",
+      "operation_id": "7dd1b2dfa6b8243a2e0b8d260c077fb482d64d97419210241d1d117bf37fcc1a:releaseNotesSet",
+      "payload_hash": "c82dcafc0bc2695aae86048a82ac908bd0a8d01cb0e2c0ea371907d415347ad6",
+      "state_revision": 12,
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-03T00:22:49.390Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-03T00:28:24.226Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "addCoordinateRefactorCoverage",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-03T00:29:42.662Z"
+    }
+  ],
+  "state_revision": 12,
+  "_source": "disk"
+}

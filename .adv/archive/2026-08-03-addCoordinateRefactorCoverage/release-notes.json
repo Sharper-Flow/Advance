@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "change_id": "addCoordinateRefactorCoverage",
+  "title": "Add coordinate refactor coverage",
+  "release_notes": {
+    "audience": "internal",
+    "category": "added",
+    "headline_internal": "Coordination reports now surface evidence-gated refactor coverage with safe dry-run referrals",
+    "highlights": [
+      "New Phase 6.5 Refactor Coverage Audit in /adv-coordinate classifies out-of-date changes and Epics into actionable, Epic-coverage, and review/deferred groups",
+      "Actionable change candidates get a dry-run /adv-refactor <change-id> referral pinned to the bare form; emitting --execute, --interactive, --force, or batch from coordination is explicitly forbidden",
+      "Epic findings name the exact stale field and route to the existing approval-gated adv_epic_update / adv_epic_reorder / adv_epic_show paths; no Epic target is ever offered to /adv-refactor, which has no Epic mode",
+      "judgment_call, freshness_limited, and unresolved-evidence candidates are listed for review with no mutation command",
+      "Referrals record candidate status at emit time and advise re-validation, since /adv-refactor has no explicit terminal-state guard",
+      "Audit consumes evidence already gathered by Phases 1, 3, and 6 — no new tool call and no new mutation authority",
+      "Known limitation: the audit does not run when Phase 1 short-circuits on no active Epics; stated in the contract text"
+    ],
+    "area": "adv-coordinate",
+    "user_action_required": false
+  }
+}
