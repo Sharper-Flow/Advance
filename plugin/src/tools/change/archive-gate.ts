@@ -12,10 +12,15 @@ import {
   type GateReadinessBlocker,
   type Phase9FinalizationStatus,
 } from "../../types";
-import { basename, dirname } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { Store } from "../../storage/store";
-import { loadChange } from "../../storage/json";
+import { loadChange, saveChange } from "../../storage/json";
 import { commitChangeProjection } from "../../storage/change-projection-transaction";
+import { findArchiveBundle, bundleJsonStringify } from "../../archive/archive";
+import { withArchiveProjectionLock } from "../../archive/projection-lock";
+import { sha256HexString } from "../../archive/terminal-summary";
+import { atomicWriteFile } from "../../utils/fs";
+import { readFile } from "node:fs/promises";
 import { getProjectId } from "../../utils/project-id";
 import { createLogger } from "../../utils/debug-log";
 import { formatToolOutput } from "../../utils/tool-output";
@@ -494,7 +499,16 @@ export async function reconcileArchivedBundleRetry(input: {
       ok: true;
     }
   >;
-  if (durableProof.ok) {
+  // rq-releaseProjectionDurability01 / fixReleaseGateProjection AC3: a
+  // shipped-finalization proof (e.g. no_remote + skipped push) is structural
+  // evidence the change reached the default branch, but it does NOT prove the
+  // live workflow has already processed the release gate. For a live workflow
+  // we must still signal and poll so phase9_status can be recorded via the
+  // workflow; for a terminal workflow completeReleaseGateAfterFinalization
+  // falls back to the recovery writer and sets recoveryMutation so we skip the
+  // phase9 signal. Store/disk sources mean the gate is already durably done,
+  // so we can safely short-circuit.
+  if (durableProof.ok && durableProof.source !== "shipped-finalization") {
     releaseResult = {
       ok: true,
       gate:
@@ -511,6 +525,7 @@ export async function reconcileArchivedBundleRetry(input: {
       change: input.change,
       changeId: input.changeId,
       finalization,
+      existingBundlePath: input.existingBundlePath,
     });
     if (!completionResult.ok) {
       return formatToolOutput({
@@ -788,7 +803,7 @@ export function verifyReleaseEvidenceFromMain(input: {
       prNumber: reachability.prNumber,
       prUrl: input.change?.phase9_status?.prUrl,
       autoMergeArmed: false,
-      pushStatus: "pushed",
+      pushStatus: route.route === "no_remote" ? "skipped" : "pushed",
       changeTipSha: input.change?.phase9_status?.changeTipSha,
     };
   }
@@ -1368,6 +1383,256 @@ async function reconcileReleaseGateAfterAmbiguousSignal(input: {
     stuckReason: reconciledGate?.stuck_reason,
   };
 }
+
+export type PersistConfirmedReleaseGateResult =
+  | { ok: true }
+  | { ok: false; error: string; retryable: boolean };
+
+async function writeActiveReleaseGateProjection(
+  store: Store,
+  changeId: string,
+  baseChange: Change,
+  gate: GateCompletion,
+  operationId: string,
+  payloadHash: string,
+): Promise<PersistConfirmedReleaseGateResult> {
+  const changesDir = store.paths.changes;
+  const outcome = await commitChangeProjection({
+    changesDir,
+    changeId,
+    operationId,
+    payloadHash,
+    authority: { kind: "temporal", mutationReceiptId: operationId },
+    mutationKind: "poll_confirmed_release_gate_projection",
+    mutateLatest: (latest) => ({
+      ...latest,
+      gates: {
+        ...(latest.gates ?? {}),
+        release: gate,
+      } as Gates,
+    }),
+    verify: ({ readback }) => {
+      const actual = readback.gates?.release;
+      if (!actual) return false;
+      return (
+        actual.status === "done" &&
+        actual.completed_at === gate.completed_at &&
+        actual.completed_by === gate.completed_by &&
+        actual.approval_evidence === gate.approval_evidence
+      );
+    },
+  });
+
+  if (outcome.kind === "committed") {
+    return { ok: true };
+  }
+
+  const isMissing =
+    outcome.kind === "operator_required" &&
+    (outcome.reason?.includes("change not found") ?? false);
+  if (!isMissing) {
+    const retryable =
+      outcome.kind === "stale_revision" ||
+      outcome.kind === "lock_timeout" ||
+      outcome.kind === "write_error";
+    return {
+      ok: false,
+      error: `Active release-gate projection commit failed: ${outcome.kind}${outcome.kind === "operator_required" ? `: ${outcome.reason}` : ""}`,
+      retryable,
+    };
+  }
+
+  const toWrite = {
+    ...baseChange,
+    gates: {
+      ...(baseChange.gates ?? {}),
+      release: gate,
+    } as Gates,
+  };
+  try {
+    await saveChange(changesDir, toWrite);
+  } catch (error) {
+    return {
+      ok: false,
+      error: `Active release-gate projection create failed: ${collectErrorText(error)}`,
+      retryable: true,
+    };
+  }
+
+  const readback = await loadChange(changesDir, changeId);
+  if (!readback.success || !readback.data) {
+    return {
+      ok: false,
+      error: "Active release-gate projection readback failed after create",
+      retryable: true,
+    };
+  }
+  const actual = readback.data.gates?.release;
+  if (
+    !actual ||
+    actual.status !== "done" ||
+    actual.completed_at !== gate.completed_at ||
+    actual.completed_by !== gate.completed_by ||
+    actual.approval_evidence !== gate.approval_evidence
+  ) {
+    return {
+      ok: false,
+      error:
+        "Active release-gate projection gate did not match confirmed readback",
+      retryable: true,
+    };
+  }
+  return { ok: true };
+}
+
+async function writeArchiveBundleReleaseGate(
+  store: Store,
+  changeId: string,
+  baseChange: Change,
+  gate: GateCompletion,
+  existingBundlePath?: string | null,
+): Promise<PersistConfirmedReleaseGateResult> {
+  const archiveDir = store.paths.archive;
+  if (!archiveDir) {
+    return { ok: true };
+  }
+  const bundleDir =
+    existingBundlePath ?? (await findArchiveBundle(archiveDir, changeId));
+  if (!bundleDir) {
+    return { ok: true };
+  }
+
+  return withArchiveProjectionLock(store.paths.root, async () => {
+    const loaded = await loadChange(archiveDir, basename(bundleDir));
+    let latest: Change;
+    if (loaded.success && loaded.data && loaded.data.id === changeId) {
+      latest = loaded.data;
+    } else {
+      latest = baseChange;
+    }
+    const updated = {
+      ...latest,
+      gates: {
+        ...(latest.gates ?? {}),
+        release: gate,
+      } as Gates,
+    };
+    const manifestPath = join(bundleDir, "change.json");
+    try {
+      await atomicWriteFile(manifestPath, bundleJsonStringify(updated));
+    } catch (error) {
+      return {
+        ok: false,
+        error: `Archive bundle release-gate write failed: ${collectErrorText(error)}`,
+        retryable: true,
+      };
+    }
+    const raw = await readFile(manifestPath, "utf-8");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (error) {
+      return {
+        ok: false,
+        error: `Archive bundle release-gate readback is not valid JSON: ${collectErrorText(error)}`,
+        retryable: true,
+      };
+    }
+    const actual = (parsed as { gates?: { release?: GateCompletion } }).gates
+      ?.release;
+    if (
+      !actual ||
+      actual.status !== "done" ||
+      actual.completed_at !== gate.completed_at ||
+      actual.completed_by !== gate.completed_by ||
+      actual.approval_evidence !== gate.approval_evidence
+    ) {
+      return {
+        ok: false,
+        error:
+          "Archive bundle release-gate readback did not match confirmed gate",
+        retryable: true,
+      };
+    }
+    return { ok: true };
+  });
+}
+
+/**
+ * Dual-surface poll-confirmed release-gate projection writer.
+ *
+ * After a live workflow poll confirms `release: done`, persist that exact
+ * completion into the durable projection(s) so the subsequent
+ * `store.gates.get()` proof succeeds without a second workflow query.
+ *
+ * - Writes the active change projection first (creating it if it was retired).
+ * - Writes the archive bundle projection when one exists.
+ * - Invalidates the in-memory cache only after both durable writes are verified.
+ * - Returns a retryable failure; callers MUST NOT run the second durable proof
+ *   or cleanup when this fails.
+ */
+export async function persistConfirmedReleaseGateReadback(input: {
+  store: Store;
+  change: Change;
+  changeId: string;
+  gate: GateCompletion;
+  evidence?: string;
+  existingBundlePath?: string | null;
+}): Promise<PersistConfirmedReleaseGateResult> {
+  if (input.gate.status !== "done") {
+    return {
+      ok: false,
+      error: "Refusing to persist a non-done release gate",
+      retryable: false,
+    };
+  }
+
+  // Preserve the exact polled completion, falling back to the Phase 9
+  // evidence only when the signal readback omitted the approval_evidence
+  // field (defensive: real workflow handlers include it).
+  const gate: GateCompletion = {
+    ...input.gate,
+    approval_evidence: input.gate.approval_evidence ?? input.evidence,
+  };
+
+  if (!gate.completed_at || !gate.completed_by || !gate.approval_evidence) {
+    return {
+      ok: false,
+      error: "Confirmed release gate is missing required proof fields",
+      retryable: false,
+    };
+  }
+
+  const operationId = `poll-confirmed-release-gate:${input.changeId}:${gate.completed_at}`;
+  const payloadHash = sha256HexString(JSON.stringify(gate));
+
+  const active = await writeActiveReleaseGateProjection(
+    input.store,
+    input.changeId,
+    input.change,
+    gate,
+    operationId,
+    payloadHash,
+  );
+  if (!active.ok) {
+    return active;
+  }
+
+  const bundle = await writeArchiveBundleReleaseGate(
+    input.store,
+    input.changeId,
+    input.change,
+    gate,
+    input.existingBundlePath,
+  );
+  if (!bundle.ok) {
+    return bundle;
+  }
+
+  await input.store.changes.invalidate(input.changeId);
+  return { ok: true };
+}
+
 /**
  * Record the release gate after Phase 9 returns shipped evidence and
  * before archive status retires the workflow. Each Temporal interaction can
@@ -1381,6 +1646,7 @@ export async function completeReleaseGateAfterFinalization(input: {
   change: Change;
   changeId: string;
   finalization: GitFinalizeOutcome;
+  existingBundlePath?: string;
 }): Promise<ArchiveReleaseGateResult> {
   if (input.finalization.status !== "shipped") {
     return {
@@ -1512,14 +1778,27 @@ export async function completeReleaseGateAfterFinalization(input: {
     });
   }
   if (postSignalGate?.status === "done") {
-    // #305: after polling confirms the workflow has release=done, drop the
-    // in-memory change cache only. A full refresh readback can still race
-    // with the workflow's signal-processing loop and return a pre-signal
-    // "pending" snapshot that dualWriteAfterMutation classifies as
-    // "confirmed" and re-caches. invalidate avoids re-poisoning the cache;
-    // the subsequent verifyReleaseGateDurableForArchive store.gates.get
-    // misses cache and queries the workflow fresh.
-    await input.store.changes.invalidate(input.changeId);
+    // Persist the poll-confirmed release gate into the durable projection
+    // before the second store.gates.get proof. The writer invalidates the
+    // cache only after the durable readback succeeds; a failure here is
+    // retryable and must not proceed to cleanup.
+    const persistResult = await persistConfirmedReleaseGateReadback({
+      store: input.store,
+      change: input.change,
+      changeId: input.changeId,
+      gate: postSignalGate,
+      evidence,
+      existingBundlePath: input.existingBundlePath,
+    });
+    if (!persistResult.ok) {
+      return {
+        ok: false,
+        error: persistResult.error,
+        workflowGateStatus: postSignalGate?.status,
+        readinessBlockers: postSignalGate?.readiness_blockers,
+        stuckReason: postSignalGate?.stuck_reason,
+      };
+    }
     return { ok: true, gate: postSignalGate, alreadyDone: false };
   }
   return {

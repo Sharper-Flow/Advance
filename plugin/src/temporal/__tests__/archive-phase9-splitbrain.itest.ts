@@ -49,6 +49,7 @@ import {
   parseToolOutput,
 } from "../../__tests__/setup";
 import { withTimeSkippingTestWorkflowEnvironment } from "./with-test-env";
+import { readFile } from "node:fs/promises";
 
 const CHANGE_ID = "splitbrainPhase9Recovery";
 
@@ -94,6 +95,14 @@ async function setupMergedChangeBranchRepo(
   root: string,
   changeId: string,
 ): Promise<void> {
+  // rq-releaseFinalization01: a repo with no `origin` classifies as
+  // `no_remote`, which blocks with NO_REMOTE_RELEASE_AUTHORITY before phase9
+  // can be recorded. The same requirement states a local bare origin is a
+  // valid remote route treated as `direct`, so the split-brain re-run needs
+  // one to reach the phase9 recording step at all.
+  const originPath = join(root, "_origin.git");
+  git(root, ["init", "--bare", "-b", "main", originPath]);
+
   git(root, ["init", "-b", "main"]);
   git(root, ["config", "user.email", "phase9-test@example.com"]);
   git(root, ["config", "user.name", "phase9-test"]);
@@ -106,6 +115,9 @@ async function setupMergedChangeBranchRepo(
   git(root, ["commit", "-m", "change"]);
   git(root, ["checkout", "main"]);
   git(root, ["merge", "--no-ff", `change/${changeId}`, "-m", "merge change"]);
+  git(root, ["remote", "add", "origin", originPath]);
+  git(root, ["push", "origin", "main"]);
+  git(root, ["push", "origin", `change/${changeId}`]);
 }
 
 /**
@@ -180,6 +192,14 @@ function makeSplitBrainChange(changeId: string): Change {
     wisdom: [],
     gates: createDefaultGates(),
     phase9_status: undefined,
+    // rq-workerBundleReleaseProvenance01: release-gate completion refuses an
+    // undeclared worker-bundle impact. This fixture is a config-only
+    // split-brain recovery scenario that touches no worker-bundle code.
+    worker_bundle_impact: {
+      kind: "not_applicable",
+      rationale:
+        "Config-only archive phase9 split-brain fixture; no worker bundle change.",
+    } satisfies WorkerBundleImpact,
   };
 }
 
@@ -262,6 +282,12 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
             noOp?: boolean;
             error?: string;
             releaseGate?: { status?: string };
+            finalization?: {
+              status?: string;
+              route?: string;
+              pushStatus?: string;
+              releasedCommitSha?: string;
+            };
           }>(output);
           // The re-run itself must succeed (reached the phase9 recording step).
           expect(
@@ -270,16 +296,45 @@ describe("AC3 — phase9 split-brain recovery via archive re-run (live Temporal)
           ).toBeUndefined();
           expect(parsed.success).toBe(true);
 
+          // A local bare origin is a valid remote route (rq-releaseFinalization01)
+          // and classifies as `direct`, so finalization ships with a real push
+          // and carries the structural proof shape the durable release-gate
+          // verifier requires.
+          expect(parsed.finalization).toMatchObject({
+            status: "shipped",
+            route: "direct",
+            pushStatus: "pushed",
+            releasedCommitSha: expect.any(String),
+          });
+
           // The release gate reconciled to done through live Temporal.
           const stateAfter: ChangeWorkflowState =
             await handle.query(getChangeStateQuery);
           expect(stateAfter.gates.release?.status).toBe("done");
+
+          // AC1: the poll-confirmed release gate is durably projected into the
+          // active disk snapshot so the store.gates.get proof observes done
+          // without a second workflow query.
+          const gatesAfter = await store.gates.get(CHANGE_ID);
+          expect(gatesAfter?.release?.status).toBe("done");
+          expect(gatesAfter?.release?.approval_evidence).toBeTruthy();
 
           // AC3 core: phase9_status is durably recorded as done via the live
           // Temporal phase9StatusUpdatedSignal. RED against the unfixed guard
           // (unset phase9_status is skipped), GREEN once recorded.
           expect(stateAfter.phase9_status?.status).toBe("done");
           expect(stateAfter.phase9_status?.completedAt).toBeTruthy();
+
+          // Existing-bundle split-brain: the archive bundle manifest must also
+          // carry the poll-confirmed release gate so the disk projection is
+          // consistent with the Temporal signal path.
+          const bundleRaw = await readFile(
+            join(bundleDir, "change.json"),
+            "utf-8",
+          );
+          const bundleManifest = JSON.parse(bundleRaw) as Change;
+          expect(bundleManifest.gates?.release?.status).toBe("done");
+          expect(bundleManifest.gates?.release?.approval_evidence).toBeTruthy();
         } finally {
           await worker.shutdown();
           await closeStsl();
