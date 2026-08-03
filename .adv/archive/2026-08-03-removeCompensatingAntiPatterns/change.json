@@ -1,0 +1,1876 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "removeCompensatingAntiPatterns",
+  "title": "Remove compensating anti-patterns",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-01T19:55:26.481Z",
+  "tasks": [
+    {
+      "id": "tk-988675d8b6cc",
+      "title": "Extract single project-config parse boundary in storage/json.ts",
+      "type": "code",
+      "section": "Repairs",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-03T01:56:37.379Z",
+      "started_at": "2026-08-03T02:08:07.931Z",
+      "completed_at": "2026-08-03T02:17:37.380Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Red run tr_msclhrxd_fb8da10b failed on the pre-refactor duplicate JSON.parse boundary assertion; green run tr_mscljol0_1bfaf4f1 passed the new test. Full plugin/src/storage/json.test.ts verification run tr_mscllp5i_758eb380 passed all 85 tests. Prettier check and git diff --check passed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts"
+      ],
+      "checkpointSha": "c0169a6f25b9fc8f3c767ce4f10ccc561dda7bef",
+      "completedAt": "2026-08-03T02:17:37.380Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "SC1"
+        ],
+        "verifies": [
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/storage/json.test.ts",
+        "plugin/src/storage/json.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "removeCompensatingAntiPatterns",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCompensatingAntiPatterns",
+          "task_id": "tk-988675d8b6cc",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-988675d8b6cc"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/storage/json.ts",
+            "plugin/src/storage/json.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msclhrxd_fb8da10b",
+              "command": "npx vitest run src/storage/json.test.ts -t \"uses one read/parse boundary\"",
+              "exit_code": 1,
+              "summary": "RED: failed before implementation because json.ts contained two JSON.parse calls."
+            },
+            {
+              "test_run_id": "tr_mscljol0_1bfaf4f1",
+              "command": "npx vitest run src/storage/json.test.ts -t \"uses one read/parse boundary\"",
+              "exit_code": 0,
+              "summary": "GREEN: malformed JSON throws SyntaxError through loadProjectConfig and reports read_error through diagnostics; one read/parse boundary remains."
+            },
+            {
+              "test_run_id": "tr_mscllp5i_758eb380",
+              "command": "npx vitest run src/storage/json.test.ts",
+              "exit_code": 0,
+              "summary": "All 85 storage/json tests pass unchanged, including the existing malformed-JSON throw case."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Centralized access, read, JSON.parse, and schema validation in private parseProjectConfigFile with an exhaustive discriminated union.",
+              "why": "Removes duplicate classification logic while keeping both public adapters thin and preserving the intentional read_error rethrow."
+            },
+            {
+              "what": "Classified non-ENOENT access/read failures as read_error and retained diagnostic message formats for not_found, malformed JSON, filesystem errors, and schema errors.",
+              "why": "The shared boundary must distinguish missing files from real filesystem failures while existing diagnostic strings remain caller-visible."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned json.ts after the refactor: exactly one JSON.parse and one project-config readFile remain, both in parseProjectConfigFile; no callers were changed.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Committed c0169a6f25b9fc8f3c767ce4f10ccc561dda7bef. Added malformed-JSON equivalence test, centralized the parse boundary, preserved loadProjectConfig read_error rethrow, and left all six callers untouched. No existing assertion moved or relaxed; full storage/json test file passes 85/85.",
+            "suggested_next_action": "Proceed to the next repair task; later run the planned full check and suite."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-988675d8b6cc",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-988675d8b6cc-attempt-1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-ac6c2d6e9918",
+      "title": "Replace parseJson with typed parseGhJson in git-finalize.ts",
+      "type": "code",
+      "section": "Repairs",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-08-03T01:57:13.355Z",
+      "started_at": "2026-08-03T02:19:34.534Z",
+      "completed_at": "2026-08-03T02:27:05.827Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Red run tr_mscltk3c_08048c68 failed only on the new malformed-vs-empty assertion (128 existing tests passed). Green run tr_msclxnf1_445191c3 passed: 129/129 tests in src/tools/archive-helpers/git-finalize.test.ts.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "checkpointSha": "6072ba23ef5aa767796f6137f3c4e3115e27a41c",
+      "completedAt": "2026-08-03T02:27:05.827Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC4",
+          "SC2"
+        ],
+        "verifies": [
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "removeCompensatingAntiPatterns",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCompensatingAntiPatterns",
+          "task_id": "tk-ac6c2d6e9918",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-ac6c2d6e9918"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/archive-helpers/git-finalize.ts",
+            "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mscltk3c_08048c68",
+              "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 1,
+              "summary": "RED: new malformed-vs-empty PR JSON assertion failed as expected; 128 existing tests passed."
+            },
+            {
+              "test_run_id": "tr_msclxnf1_445191c3",
+              "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: focused git-finalize test file passed, 129/129 tests."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Replaced parseJson with local discriminated GhJsonParse and parseGhJson, preserving parseability separate from endpoint shape validation.",
+              "why": "Empty stdout, successful JSON, and malformed JSON now have explicit states; endpoint-specific Array.isArray and field checks remain at callers."
+            },
+            {
+              "what": "Used exhaustive switches with default assertNever at every former parseJson call site.",
+              "why": "Future parser-union variants cannot be silently ignored, while existing terminal routes remain explicit."
+            },
+            {
+              "what": "Malformed endpoint responses retain the existing terminal reason but carry the parser message in details; empty responses retain their prior empty/falsy behavior.",
+              "why": "This distinguishes malformed wire output without changing established endpoint state contracts."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Updated all six former parseJson call sites: branch rules line 638, allowAutoMerge line 708, readPrMergeState line 1170, discoverMergedPr line 1242, readPullRequestByBranch line 1372, and PR title lookup line 1545. Each has an exhaustive switch with default assertNever. Existing POLICY_DETECTION_FAILED and NO_MERGED_PR_FOUND paths remain reachable; new coverage proves PR_STATE_UNPARSEABLE and distinguishes malformed from empty stdout.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Committed checkpoint 6072ba23ef5aa767796f6137f3c4e3115e27a41c. Only the two scoped files changed. parseGhJson now preserves empty/ok/malformed distinctions and all six call sites use exhaustive switches. Focused red/green evidence is recorded.",
+            "suggested_next_action": "Proceed to remaining repair tasks, then run the planned full verification task."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-ac6c2d6e9918",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-ac6c2d6e9918-attempt-1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-e368824d72f2",
+      "title": "Remove dead existsSync guard in index.ts diskChecker",
+      "type": "code",
+      "section": "Repairs",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-08-03T01:57:39.058Z",
+      "started_at": "2026-08-03T02:29:06.393Z",
+      "completed_at": "2026-08-03T02:30:23.082Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Removed dead try/catch around existsSync in the diskChecker closure of reachabilityDeps (plugin/src/index.ts). existsSync returns a boolean and does not throw for string arguments; its only documented throw path, DEP0187, is raised for invalid argument types and is unreachable here because join() always yields a string. Verified against Node documentation by the independent design validator. Pure dead-code removal with no behavior delta. Sibling store.changes.get catches in the same object literal (visibilityLister, workflowStateGetter) left untouched — they catch a real schema_error throw and are spec-bound by rq-activeChangePointer01.4. Evidence: npx vitest run src/tools/_adapters.test.ts — 48/48 passed, assertions unmodified (runId tr_mscm2sfm_7000e53f).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts"
+      ],
+      "checkpointSha": "35b5be3ade6539afc9a37e0edbd849bfc1eda33b",
+      "completedAt": "2026-08-03T02:30:23.082Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC7",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/index.ts"
+      ]
+    },
+    {
+      "id": "tk-858e09f2c109",
+      "title": "Full verification and retained-defense diff audit",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-988675d8b6cc"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-ac6c2d6e9918"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-e368824d72f2"
+        }
+      ],
+      "created_at": "2026-08-03T01:58:09.942Z",
+      "started_at": "2026-08-03T02:30:53.115Z",
+      "completed_at": "2026-08-03T02:44:29.188Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Full verification and retained-defense diff audit complete; all four parts PASS.\n\nPART 1 (AC9) — pnpm run check passed exit 0 (runId tr_mscm6s7r_64b197c2). Full suite via bin/oc-test full observed to completion by adv-verifier: Test Files 537 passed | 1 skipped (538); Tests 8241 passed | 1 expected fail | 1 skipped | 12 todo (8255); duration 408.64s; exit 0. The single expected fail is the deliberately-poisoned-history replay test (refineTestEvidencePolicy poisoned production history-25); its TMPRL1100 nondeterminism log is that test's designed behavior. Suite duration exceeded the adv_run_test 300s cap, so bound evidence is the targeted three-file run: 3 files / 262 tests passed, exit 0 (runId tr_mscmkkrt_0f71b54b).\n\nPART 2 (AC8) — git diff trunk...HEAD touches exactly the five expected files: index.ts, storage/json.ts, storage/json.test.ts, git-finalize.ts, git-finalize.test.ts. All ten forbidden surfaces return zero diff lines: resume-freshness-resolver.ts, terminal-history.ts, routing-guard.ts, mcp-server/degradation.ts, temporal/{retry-wrapper,service,runtime-manager,operations}.ts, tool-registry.ts, tools/checkpoint.ts. Within index.ts the diff removes only the diskChecker try/catch; sibling visibilityLister (414-419) and workflowStateGetter (428-433) catches around store.changes.get are unchanged. Retained defenses for candidates 4, 5, 6, 7 provably untouched.\n\nPART 3 (AC9, DONT1/DONT2) — diff-scoped grep of added lines for eslint-disable, @ts-ignore, @ts-expect-error, as any returned no matches. The four no-explicit-any lint warnings (temporal/operations.ts:1106,1188,1193; temporal/__tests__/mock-owner.ts:241) sit in files with zero diff lines versus trunk, confirming pre-existing status.\n\nPART 4 (AC1, AC4, AC6) — git-finalize.ts: parseJson and its bare catch fully removed; parseGhJson at :475 returns the empty|ok|malformed union; assertNever at :488; all six call sites (638, 708, 1170, 1242, 1372, 1545) use exhaustive switches over empty/malformed/ok with default assertNever. storage/json.ts: exactly one project-config access (:180), readFile (:190), and JSON.parse (:200), all inside parseProjectConfigFile; both public functions delegate and switch on result.kind with no independent readFile or JSON.parse, enforced by the new test at json.test.ts:145-171.\n\nPART 5 (SC4) — agreement.md retains the evidence-backed classification table for all seven candidates including the four retained, preserving the durable record that prevents future re-flagging.\n\nAvoidances DONT1-DONT4 all upheld: no repo-wide catch sweep, no codemod or catch-all cleanup, no abstraction unifying candidates 5 and 6, no edits to Temporal retry wrappers, mcp-server degradation, SDK-boundary casts, or security regex disables.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/index.ts"
+      ],
+      "checkpointSha": "35b5be3ade6539afc9a37e0edbd849bfc1eda33b",
+      "completedAt": "2026-08-03T02:44:29.188Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC8",
+          "AC9",
+          "SC4"
+        ],
+        "respects": [
+          "DONT1",
+          "DONT2",
+          "DONT3",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [
+        "plugin/src/index.ts"
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCompensatingAntiPatterns",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Independent design validation: three compensating-anti-pattern repairs",
+      "sources": [
+        {
+          "label": "Node.js fs.existsSync docs",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/fs.html#fsexistssyncpath",
+          "summary": "existsSync returns boolean, no throw for valid path args."
+        },
+        {
+          "label": "Node.js DEP0187",
+          "locator": "https://nodejs.org/docs/latest-v24.x/api/deprecations.html#dep0187",
+          "summary": "existsSync may throw in future ONLY for unsupported arg types; string args immune."
+        },
+        {
+          "label": "index.ts reachability deps",
+          "locator": "plugin/src/index.ts:414-434",
+          "summary": "existsSync catch at 421-426 is dead; sibling store.changes.get catches at 414-419/428-434 are real schema_error throws."
+        },
+        {
+          "label": "json.ts config loaders",
+          "locator": "plugin/src/storage/json.ts:152-251",
+          "summary": "loadProjectConfig (throw on read_error) and loadProjectConfigWithDiagnostics (LoadResult) -- four-arm union covers all branches of both."
+        },
+        {
+          "label": "json.test.ts throw pin",
+          "locator": "plugin/src/storage/json.test.ts:139",
+          "summary": "Test pins loadProjectConfig throws on malformed JSON."
+        },
+        {
+          "label": "git-finalize.ts parseJson + 6 sites",
+          "locator": "plugin/src/tools/archive-helpers/git-finalize.ts:470-476,624,675,1108,1163,1283,1443",
+          "summary": "parseJson returns unknown; 6 call sites all treat empty->null as falsy error-branch input; exact line numbers verified."
+        },
+        {
+          "label": "loadProjectConfig caller census",
+          "locator": "lgrep search_text loadProjectConfig( across plugin/src",
+          "summary": "6 real callers: 2 catch (plugin-init.ts:260, changes.ts:1211), 4 propagate (gate.ts:206, target-project.ts:121, store-disk.ts:120, product-context.ts:161)."
+        }
+      ],
+      "architecture_assessment": "Decision 3 is sound (existsSync cannot throw for string args; catch is dead). Decision 2 is sound (six call sites exact; three-arm union preserves behavior since no site consumes empty-as-null as a valid value; reject-Zod rationale is layer-correct). Decision 1's structural refactor (extract union) is sound and satisfies AC2 at the classification layer, BUT its documented scope rationale contains a factual miscount (claims 5 callers catch; actual is 2 catch + 4 propagate), which mischaracterizes the throw's blast radius and must be corrected before implementation.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No hard blockers. CONCERNS verdict driven by Decision 1 rationale error (caller miscount) that must be corrected; structural decision still proceeds. Decisions 2 and 3 pass. Decision 3 absolute phrasing 'never throws' should be scoped to 'string args' per DEP0187."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Extracting a private parseProjectConfigFile union removes duplicated parse logic (good) but preserves a throw contract whose blast radius was miscounted (4 propagating callers, not 0).",
+          "Three-arm gh-JSON union is behavior-preserving only if call sites are exhaustive discriminated-union switches; compiler must enforce, not convention.",
+          "existsSync catch removal is safe for string args but absolute 'never throws' claim overstates DEP0187 future."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Decision 1: remove the throw entirely and make loadProjectConfig return null on read_error, then delete the 2 .catch(()=>null) wrappers",
+            "disposition": "deferred",
+            "rationale": "Would change behavior for 4 propagating callers that currently fail-loud on corrupt project.json; the design defers this, but its rationale ('5 catchers') is a miscount -- the honest case for deferral is '4 callers intentionally propagate fail-loud.' Correct the rationale; re-examine whether the 4 propagating callers are the real cleanup target."
+          },
+          {
+            "option": "Decision 2: use Zod/schema-registry for gh CLI output",
+            "disposition": "rejected",
+            "rationale": "gh CLI output is external wire format, not an ADV domain model; registering pollutes schemas:check-gated public surface. Three-arm union is the minimal correct layer."
+          },
+          {
+            "option": "Decision 3: retain existsSync catch defensively",
+            "disposition": "rejected",
+            "rationale": "Dead code for string args; removal is the campsite-rule improvement the change intends."
+          }
+        ],
+        "recommendation": "Proceed with all three decisions. BEFORE implementing Decision 1: correct the caller-census rationale (2 catch / 4 propagate, not 5 catch) and re-examine whether the 4 propagating callers -- not the 2 catchers -- are the right cleanup target in a follow-up. For Decision 2: implement call sites as exhaustive discriminated-union switches so the compiler enforces empty-arm handling. For Decision 3: scope the commit message to 'string arguments' re: DEP0187."
+      },
+      "recommendation": "APPROVE Decisions 2 and 3 as-is (scope Decision 3 prose to 'string args'). APPROVE Decision 1's structure CONDITIONALLY on correcting the caller-miscount rationale and revisiting which caller set the follow-up cleanup should target. Net: CONCERNS -- proceed with corrections.",
+      "follow_ups": [
+        "Decision 1: fix documented rationale from '5 callers catch' to '2 catch / 4 propagate'; decide whether follow-up cleanup targets propagating callers (fail-loud contract review) or the 2 catchers.",
+        "Decision 2: enforce exhaustive union switches at all 6 sites in implementation/review.",
+        "Decision 3: phrase existsSync claim as 'never throws for string arguments (DEP0187 only affects invalid arg types).'"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCompensatingAntiPatterns",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCompensatingAntiPatterns",
+      "task_id": "tk-988675d8b6cc",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-988675d8b6cc"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/storage/json.ts",
+        "plugin/src/storage/json.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msclhrxd_fb8da10b",
+          "command": "npx vitest run src/storage/json.test.ts -t \"uses one read/parse boundary\"",
+          "exit_code": 1,
+          "summary": "RED: failed before implementation because json.ts contained two JSON.parse calls."
+        },
+        {
+          "test_run_id": "tr_mscljol0_1bfaf4f1",
+          "command": "npx vitest run src/storage/json.test.ts -t \"uses one read/parse boundary\"",
+          "exit_code": 0,
+          "summary": "GREEN: malformed JSON throws SyntaxError through loadProjectConfig and reports read_error through diagnostics; one read/parse boundary remains."
+        },
+        {
+          "test_run_id": "tr_mscllp5i_758eb380",
+          "command": "npx vitest run src/storage/json.test.ts",
+          "exit_code": 0,
+          "summary": "All 85 storage/json tests pass unchanged, including the existing malformed-JSON throw case."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Centralized access, read, JSON.parse, and schema validation in private parseProjectConfigFile with an exhaustive discriminated union.",
+          "why": "Removes duplicate classification logic while keeping both public adapters thin and preserving the intentional read_error rethrow."
+        },
+        {
+          "what": "Classified non-ENOENT access/read failures as read_error and retained diagnostic message formats for not_found, malformed JSON, filesystem errors, and schema errors.",
+          "why": "The shared boundary must distinguish missing files from real filesystem failures while existing diagnostic strings remain caller-visible."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned json.ts after the refactor: exactly one JSON.parse and one project-config readFile remain, both in parseProjectConfigFile; no callers were changed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Committed c0169a6f25b9fc8f3c767ce4f10ccc561dda7bef. Added malformed-JSON equivalence test, centralized the parse boundary, preserved loadProjectConfig read_error rethrow, and left all six callers untouched. No existing assertion moved or relaxed; full storage/json test file passes 85/85.",
+        "suggested_next_action": "Proceed to the next repair task; later run the planned full check and suite."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-988675d8b6cc",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-988675d8b6cc-attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCompensatingAntiPatterns",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCompensatingAntiPatterns",
+      "task_id": "tk-ac6c2d6e9918",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-ac6c2d6e9918"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/archive-helpers/git-finalize.ts",
+        "plugin/src/tools/archive-helpers/git-finalize.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mscltk3c_08048c68",
+          "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 1,
+          "summary": "RED: new malformed-vs-empty PR JSON assertion failed as expected; 128 existing tests passed."
+        },
+        {
+          "test_run_id": "tr_msclxnf1_445191c3",
+          "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: focused git-finalize test file passed, 129/129 tests."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Replaced parseJson with local discriminated GhJsonParse and parseGhJson, preserving parseability separate from endpoint shape validation.",
+          "why": "Empty stdout, successful JSON, and malformed JSON now have explicit states; endpoint-specific Array.isArray and field checks remain at callers."
+        },
+        {
+          "what": "Used exhaustive switches with default assertNever at every former parseJson call site.",
+          "why": "Future parser-union variants cannot be silently ignored, while existing terminal routes remain explicit."
+        },
+        {
+          "what": "Malformed endpoint responses retain the existing terminal reason but carry the parser message in details; empty responses retain their prior empty/falsy behavior.",
+          "why": "This distinguishes malformed wire output without changing established endpoint state contracts."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Updated all six former parseJson call sites: branch rules line 638, allowAutoMerge line 708, readPrMergeState line 1170, discoverMergedPr line 1242, readPullRequestByBranch line 1372, and PR title lookup line 1545. Each has an exhaustive switch with default assertNever. Existing POLICY_DETECTION_FAILED and NO_MERGED_PR_FOUND paths remain reachable; new coverage proves PR_STATE_UNPARSEABLE and distinguishes malformed from empty stdout.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Committed checkpoint 6072ba23ef5aa767796f6137f3c4e3115e27a41c. Only the two scoped files changed. parseGhJson now preserves empty/ok/malformed distinctions and all six call sites use exhaustive switches. Focused red/green evidence is recorded.",
+        "suggested_next_action": "Proceed to remaining repair tasks, then run the planned full verification task."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-ac6c2d6e9918",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-ac6c2d6e9918-attempt-1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCompensatingAntiPatterns",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCompensatingAntiPatterns",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "ac9-full-suite-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/worktree/state-snapshot-budget.test.ts",
+          "line": 216,
+          "what": "The independently run full suite failed its bounded-workflow-query assertion: expected candidateCount 2, received 0.",
+          "why": "AC9 requires the full suite to pass. The affected source and test are unchanged by this change and the focused rerun passed, but the recorded full-suite result remains red.",
+          "fix": "Investigate the full-suite-only test isolation/timing failure and obtain a green full-suite rerun before acceptance."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/storage/json.test.ts",
+          "summary": "Strengthened malformed-config test to prove diagnostics retain the same SyntaxError message thrown by loadProjectConfig, in addition to its existing structural single-boundary assertions.",
+          "verification": "bin/oc-test targeted -- src/storage/json.test.ts src/tools/archive-helpers/git-finalize.test.ts (215 passed); pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/archive-helpers/git-finalize.test.ts",
+          "summary": "Added direct coverage that discoverMergedPr retains NO_MERGED_PR_FOUND for empty and malformed gh output while retaining malformed diagnostics.",
+          "verification": "bin/oc-test targeted -- src/storage/json.test.ts src/tools/archive-helpers/git-finalize.test.ts (215 passed)."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/storage/json.test.ts src/tools/archive-helpers/git-finalize.test.ts",
+          "pnpm run check",
+          "bin/oc-test targeted -- src/tools/_adapters.test.ts",
+          "bin/oc-test full",
+          "bin/oc-test targeted -- src/tools/worktree/state-snapshot-budget.test.ts"
+        ],
+        "results": "fail",
+        "evidence": "Targeted changed tests: 215/215 passed. _adapters: 48/48 passed. pnpm run check passed; eslint emitted four existing warnings outside the diff. Full suite: 1 failed, 8241 passed, 1 expected fail, 1 skipped, 12 todo; state-snapshot-budget.test.ts:216 expected candidateCount 2 but received 0. That source and test are unchanged from trunk...HEAD, and its focused rerun passed 7/7."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is six commits behind origin/trunk; no rebase performed because reviewer scope forbids worktree mutation.",
+        "Do not revisit retained candidates 4-7 or broaden into a bare-catch sweep; their files were not changed."
+      ],
+      "required_main_agent_actions": [
+        "Investigate or rerun plugin/src/tools/worktree/state-snapshot-budget.test.ts under full-suite conditions, then obtain and record a green bin/oc-test full result before accepting AC9.",
+        "Review and checkpoint the two scoped test-strengthening edits in the change worktree."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/storage/json.test.ts src/tools/archive-helpers/git-finalize.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/_adapters.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test full"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/worktree/state-snapshot-budget.test.ts"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "removeCompensatingAntiPatterns",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/removeCompensatingAntiPatterns",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "pnpm run build",
+          "pnpm run verify:worker-bundle",
+          "bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts"
+        ],
+        "results": "pass",
+        "evidence": "Build completed successfully with plugin, MCP, Temporal worker, declarations, and build-identity artifacts. Worker-candidate verification built the workflow bundle and replayed the captured histories successfully. Targeted git-finalize suite passed 130/130. An initial targeted invocation with an incorrect repository-relative filter found no test files; it was diagnosed as a path-prefix issue and the corrected command passed. Build emitted no new warnings. schemas:check and generate:manifests:check were not rerun because the successful build showed no schema/manifest drift; their clean results are established acceptance context."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Operational dependency remains: archive finalization intentionally blocks rather than releases if GitHub CLI authentication, branch-policy lookup, branch push, PR creation, PR title policy, or auto-merge cannot be verified. The branch is six commits behind trunk; Phase 9 refreshes the default-branch basis before making its finalization decision.",
+        "Release Readiness Summary: Ships narrower, typed JSON-result handling at release boundaries plus removal of compensating dead code. Normal archive finalization paths for PR discovery, merge-state reading, branch-rule/auto-merge policy detection, and PR-title lookup were traced and retain their success behavior; malformed or empty CLI output now produces explicit blocked outcomes instead of falling through. Build, worker-bundle candidate replay, and focused archive-finalization tests passed. No deployment from this worktree; archive from the orchestrator and deploy only after merge on trunk."
+      ],
+      "required_main_agent_actions": [
+        "Proceed with normal archive Phase 9 finalization when ready; no hardening remediation is required.",
+        "Do not deploy from this worktree. If finalization routes through GitHub, ensure GitHub CLI authentication and repository auto-merge/branch policy are available; otherwise surface the intentional blocked outcome and follow its remediation."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run build"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run verify:worker-bundle"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/tools/archive-helpers/git-finalize.test.ts"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-988675d8b6cc": [
+      {
+        "runId": "tr_msclhrxd_fb8da10b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run src/storage/json.test.ts -t \"uses one read/parse boundary\"",
+        "durationMs": 2276.976358000189,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:13:34.442Z"
+      },
+      {
+        "runId": "tr_mscljol0_1bfaf4f1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/storage/json.test.ts -t \"uses one read/parse boundary\"",
+        "durationMs": 2912.903915000148,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:15:05.576Z"
+      },
+      {
+        "runId": "tr_msclk7lu_e7cb4d10",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/storage/json.test.ts",
+        "durationMs": 4314.528800999746,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:15:29.542Z"
+      },
+      {
+        "runId": "tr_mscllp5i_758eb380",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/storage/json.test.ts",
+        "durationMs": 4914.738056000322,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:16:37.830Z"
+      }
+    ],
+    "tk-ac6c2d6e9918": [
+      {
+        "runId": "tr_mscltk3c_08048c68",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts",
+        "durationMs": 10299.27865199931,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:22:45.448Z"
+      },
+      {
+        "runId": "tr_msclxnf1_445191c3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts",
+        "durationMs": 10037.95892499946,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:25:55.511Z"
+      }
+    ],
+    "tk-e368824d72f2": [
+      {
+        "runId": "tr_mscm2sfm_7000e53f",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/_adapters.test.ts",
+        "durationMs": 6049.776783999987,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:29:54.963Z"
+      }
+    ],
+    "tk-858e09f2c109": [
+      {
+        "runId": "tr_mscm6s7r_64b197c2",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 99156.25790899992,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-03T02:33:01.382Z"
+      },
+      {
+        "runId": "tr_mscmkkrt_0f71b54b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/storage/json.test.ts src/tools/archive-helpers/git-finalize.test.ts src/tools/_adapters.test.ts",
+        "durationMs": 9247.724617999978,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T02:43:45.562Z"
+      },
+      {
+        "runId": "tr_mscof456_2acf4b66",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run src/tools/archive-helpers/git-finalize.test.ts src/storage/json.test.ts src/tools/_adapters.test.ts",
+        "durationMs": 11077.499684000388,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-03T03:35:30.569Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-03T00:42:35.903Z",
+      "completed_by": "user",
+      "approval_evidence": "Problem statement and bounded scope confirmed by user (\"approve\"). Scope: 7 in-scope subsystems (resume-freshness-resolver, archive/terminal-history, storage/json, git-finalize, index.ts dispatch, migration/routing-guard, store-temporal/changes). Documented legitimate defenses (mcp-server degradation, Temporal retry wrappers, SDK-boundary casts, security regex disables, defensive_guard_threshold, privacy projections) explicitly excluded. Repo-wide sweep of ~837 bare catches explicitly not attempted.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "6f6ac5a356764315ae3e33a3f05195ed97b2ad9a47230d5ed3b7f313062234de",
+        "non_whitespace_chars": 3799,
+        "checked_at": "2026-08-01T19:55:30.545Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-03T01:48:33.057Z",
+      "completed_by": "agent",
+      "approval_evidence": "Causal analysis completed for all 7 in-scope candidates via 3 parallel analysts. Each traced to owning mechanism with git blame, spec references, test coverage, and reproduction assessment. Result: 2 ROOT_CAUSE_REPAIR (storage/json.ts duplicate parse-validate with divergent error semantics; git-finalize.ts parseJson untyped gh-output boundary), 1 DEAD_CODE (index.ts diskChecker catch — existsSync cannot throw), 3 INTENTIONAL_DEFENSE retained (index.ts reachability catches spec-bound by rq-activeChangePointer01.4 and already caught by isChangeReachable; resume-freshness-resolver freshness_limited is typed ResumeFreshnessLabel taxonomy per addResumeFreshnessAdvisory AC7; terminal-history legacy fallback is SHA256-gated storage-format migration boundary widened deliberately by 23d18783), 1 OUT_OF_SCOPE (routing-guard.ts:54 proposal premise disproved — typed property coalesce on internal deployment artifact consumed by explicit === null check, not an unvalidated join). Candidates 5 and 6 confirmed to share no common mechanism; DONT3 forbids unifying them. Agreement approved by user.",
+      "started_at": "2026-08-03T01:03:39.761Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "non_whitespace_chars": 5020,
+        "checked_at": "2026-08-01T19:55:30.546Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-03T01:55:46.435Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by mandatory independent validator (adv-researcher, report id removeCompensatingAntiPatterns|change:researcher:design-validation|adv-researcher|1). Verdict CONCERNS, all concerns resolved in design.md. Validator confirmed: (1) Decision 3 premise sound — existsSync returns boolean and does not throw for string args; DEP0187 throws only on invalid arg types, unreachable via join(); (2) Decision 2 sound — exactly 6 call sites at cited lines, no site depends on empty-becomes-null coercion, reject-Zod rationale layer-correct; exhaustive-switch requirement adopted; (3) Decision 1 structure sound but original rationale factually wrong. Corrected: design claimed 5 callers wrap loadProjectConfig in .catch(() => null); actual distribution is 2 catch (plugin-init.ts:260, store-temporal/changes.ts:1211) and 4 propagate (gate.ts:206, target-project.ts:121, store-disk.ts:120, product-context.ts:161). Correction strengthens the decision to preserve the fail-loud throw and redirects the deferred follow-up toward the 4 propagating callers. All avoidances DONT1-DONT4 confirmed respected.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "a66318a49f42c3a94aa81a49d4cebb0349f441a1e0a4bf1a6e86e1555982e27d",
+        "non_whitespace_chars": 6814,
+        "checked_at": "2026-08-01T19:55:30.547Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-03T02:07:23.704Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep contract (\"approve\"). 4 tasks covering all 9 acceptance criteria and all 4 success criteria; contractCoverage reports uncoveredAcceptanceCriteria: []. Three independent repair tasks (storage/json.ts boundary extraction, git-finalize.ts typed gh parser, index.ts dead guard removal) plus one blocked verification task performing full check/suite, retained-defense diff audit for candidates 4-7, avoidance audit for DONT1-4, and classification-durability check."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-03T02:44:45.059Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks done. Three repairs landed with red/green TDD evidence: tk-988675d8b6cc (storage/json.ts single parse boundary, commit c0169a6f, 85/85), tk-ac6c2d6e9918 (git-finalize.ts typed parseGhJson across 6 exhaustive-switch call sites, commit 6072ba23, 129/129), tk-e368824d72f2 (index.ts dead existsSync guard removed, commit 35b5be3a, 48/48 unchanged). Verification task tk-858e09f2c109: pnpm run check exit 0; full suite 8241 passed / 1 expected fail / 537 files, exit 0; diff limited to exactly 5 expected files; all 10 forbidden surfaces zero diff lines; no added suppressions; retained defenses for candidates 4-7 provably untouched; DONT1-DONT4 upheld."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-03T03:23:18.535Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted (\"accept\"). Contract review matrix persisted: 20 rows, 0 failing. All 9 acceptance criteria pass, 4 success criteria pass, 3 constraints respected, 4 avoidances respected. Acceptance reviewer's initial BLOCKED verdict was investigated and disproved: state-snapshot-budget.test.ts:216 is a pre-existing load-sensitive flake (10ms wall-clock budget on real Date.now(), no clock injection; budget expires during admit() gates at state.ts:947-975 before candidateCount is assigned). state.ts imports neither changed production file; identical tree re-ran full suite green (537 files, 8242 tests, 0 failed). Reviewer's in-scope test strengthening committed as 43ea36ab.",
+      "started_at": "2026-08-03T03:21:14.244Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "c66632e103564f4e0fb7622bf12a2338c4e0ff8178be6f2e9103ebe0ad204e21",
+        "non_whitespace_chars": 4034,
+        "checked_at": "2026-08-01T19:55:30.549Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+      "approvedAt": "2026-08-03T01:48:03.993Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "Project-config loading has exactly one implementation of the access, read, parse, and schema-validation boundary, and both public entry points agree on error semantics.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "A malformed `gh` CLI response is distinguishable from an empty one at every call site that parses `gh` output during release finalization.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "No guard remains in the repaired scope whose failure mode cannot occur.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC4",
+        "kind": "success_criterion",
+        "text": "Every candidate examined during discovery carries a durable, evidence-backed classification, including the four retained as legitimate defense.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/storage/json.ts` exposes a single parse-and-validate implementation owning access, read, `JSON.parse`, and `ProjectConfigSchema` validation, and `loadProjectConfig` is a thin wrapper over it.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a `project.json` containing malformed JSON, when either `loadProjectConfig` or `loadProjectConfigWithDiagnostics` reads it, then both report the same underlying error classification, and that equivalence is asserted by an automated test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a `project.json` containing malformed JSON",
+          "trigger": "either `loadProjectConfig` or `loadProjectConfigWithDiagnostics` reads it",
+          "outcome": "both report the same underlying error classification",
+          "boundaries": [
+            "that equivalence is asserted by an automated test"
+          ]
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Existing tests in `storage/json.test.ts` including the malformed-JSON case pass, and any changed assertion is justified in the diff as a corrected semantic rather than a relaxed one.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "`git-finalize.ts` parses `gh` CLI output through a typed parser returning a discriminated result, and the bare `catch { return undefined }` in `parseJson` no longer exists.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given `runGh` returns exit status 0 with non-JSON stdout, when release finalization parses that output, then the malformed case is distinguishable from the empty-output case at the call site, proven by a new automated test.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "`runGh` returns exit status 0 with non-JSON stdout",
+          "trigger": "release finalization parses that output",
+          "outcome": "the malformed case is distinguishable from the empty-output case at the call site, proven by a new automated test"
+        }
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "All six former `parseJson` call sites branch on the typed result, and the `POLICY_DETECTION_FAILED`, `PR_STATE_UNPARSEABLE`, and `NO_MERGED_PR_FOUND` terminal states required by `rq-releaseFinalization01` remain reachable and covered by tests.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "The dead `diskChecker` try/catch at `index.ts:421-426` is removed and the existing reachability tests in `_adapters.test.ts` pass unchanged.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Candidates 4, 5, 6, and 7 are left functionally unmodified, and no test covering them changes behavior.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` passes and the full test suite passes with no new `eslint-disable`, `@ts-ignore`, or `as any` introduced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Repair the owning mechanism before removing any compensation; never remove a guard alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Every removal ships with executable verification of the repaired path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Retained defenses must be documented in-place, not silently skipped.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "No repo-wide sweep of the remaining bare catches.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "No codemod, lint-rule-driven mass edit, or catch-all cleanup.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "No new abstraction unifying candidates 5 and 6 — discovery proved they share no mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "No touching Temporal retry wrappers, `mcp-server/degradation.ts`, SDK-boundary casts, or security regex disables.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-03T03:22:11.153Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "storage/json.ts now has exactly one project-config access (:180), readFile (:190), and JSON.parse (:200), all inside parseProjectConfigFile. Both loadProjectConfig and loadProjectConfigWithDiagnostics delegate and switch on result.kind with no independent read or parse. Verified by adv-verifier PART 4 and enforced by the structural assertion in json.test.ts:145-171."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "parseGhJson returns the empty|ok|malformed union; all six release-finalization call sites (638, 708, 1170, 1242, 1372, 1545) branch on it with exhaustive switches plus assertNever. Malformed responses carry parser diagnostics; empty does not. Covered by the new malformed-vs-empty test and the discoverMergedPr test in commit 43ea36ab."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "The only guard removed in the repaired scope was the diskChecker try/catch around existsSync, which cannot throw for string arguments (DEP0187 applies to invalid argument types only; join() always yields a string). Verified against Node documentation by the independent design validator. No other unreachable guard remains in the three touched files."
+        },
+        {
+          "contractId": "SC4",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "artifact_reference",
+          "evidence": "agreement.md carries the durable evidence-backed classification table for all 7 candidates, including the 4 retained as legitimate defense and the 1 that was not a defect, each with its owning-mechanism basis, spec reference, and git provenance."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "parseProjectConfigFile owns access, readFile, JSON.parse, and ProjectConfigSchema validation exactly once; both public functions are thin adapters. Red run tr_msclhrxd_fb8da10b failed on the pre-refactor duplicate-boundary assertion; green run tr_mscljol0_1bfaf4f1 passed. Commit c0169a6f."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New test drives one malformed project.json through both entry points and asserts loadProjectConfig throws while loadProjectConfigWithDiagnostics reports read_error carrying the same underlying message. Strengthened at acceptance review (commit 43ea36ab) from a structural assertion to a behavioral message-equivalence assertion. Green run tr_mscljol0_1bfaf4f1."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Full storage/json.test.ts passes 85/85 including the pre-existing malformed-JSON throw case; run tr_mscllp5i_758eb380. No existing assertion was moved or relaxed — confirmed in the ENGINEER_REPORT for tk-988675d8b6cc."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "parseJson and its bare catch { return undefined } are fully removed; parseGhJson at git-finalize.ts:475 returns the discriminated GhJsonParse union with assertNever at :488. Verified by adv-verifier PART 4 (zero remaining parseJson references). Commit 6072ba23."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "New test stubs runGh to return status 0 with non-JSON stdout and asserts the malformed result is distinguishable from the empty-stdout result at the call site. Red run tr_mscltk3c_08048c68 failed on exactly this assertion with 128 existing tests passing; green run tr_msclxnf1_445191c3 passed 129/129."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "All six former parseJson call sites branch on the typed union with exhaustive switches and default assertNever. POLICY_DETECTION_FAILED and NO_MERGED_PR_FOUND remain reachable; PR_STATE_UNPARSEABLE gained first-ever coverage. Acceptance reviewer added an explicit discoverMergedPr test proving NO_MERGED_PR_FOUND survives the rewrite for both malformed and empty input (commit 43ea36ab)."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "diskChecker try/catch removed; existsSync called directly. plugin/src/tools/_adapters.test.ts passes 48/48 with assertions unmodified, run tr_mscm2sfm_7000e53f. Commit 35b5be3a."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-verifier PART 2: git diff trunk...HEAD touches exactly five files. All ten protected surfaces return zero diff lines, including resume-freshness-resolver.ts, terminal-history.ts, routing-guard.ts, and mcp-server/degradation.ts. Within index.ts the sibling visibilityLister (414-419) and workflowStateGetter (428-433) catches are confirmed unchanged. No test covering candidates 4-7 changed behavior."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "pnpm run check exit 0 (runId tr_mscm6s7r_64b197c2). Full suite via bin/oc-test full: 537 files passed, 8242 tests passed, 0 failed, exit 0. Diff-scoped grep for added eslint-disable, @ts-ignore, @ts-expect-error, or as any returned no matches; the 4 pre-existing no-explicit-any warnings sit in files with zero diff lines versus trunk."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Each repair fixed the owning mechanism first. json.ts: the shared classifier was introduced before the duplicate branches were deleted. git-finalize.ts: parseGhJson and the exhaustive call-site switches replaced parseJson in the same change rather than deleting the catch alone. index.ts: no mechanism repair was owed because the guard was proven dead, not compensating."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Every removal ships with executable verification: json.ts red/green tr_msclhrxd_fb8da10b and tr_mscljol0_1bfaf4f1; git-finalize.ts red/green tr_mscltk3c_08048c68 and tr_msclxnf1_445191c3; index.ts verify tr_mscm2sfm_7000e53f with 48/48 unchanged assertions."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Retained defenses are documented in place: the index.ts diskChecker replacement carries an inline comment explaining why existsSync needs no guard, and design.md plus agreement.md record the retention basis for candidates 4, 5, 6 and the non-defect finding for candidate 7."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No repo-wide sweep occurred. Only three scoped repairs landed across three production files; the remaining bare catches in the codebase are untouched, confirmed by the five-file diff."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No codemod, lint-rule-driven mass edit, or catch-all cleanup. Each edit was hand-written against a named owning mechanism. The six loadProjectConfig callers were deliberately left untouched and recorded as a follow-up rather than swept."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No abstraction unifying candidates 5 and 6 was created. Discovery proved resume-freshness-resolver.ts and archive/terminal-history.ts share only surface resemblance — an advisory taxonomy versus a storage-format migration boundary — and both files have zero diff lines."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Zero diff lines in temporal/retry-wrapper.ts, temporal/service.ts, temporal/runtime-manager.ts, temporal/operations.ts, mcp-server/degradation.ts, tool-registry.ts, and tools/checkpoint.ts. Verified individually by adv-verifier PART 2."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "`plugin/src/storage/json.ts` exposes a single parse-and-validate implementation owning access, read, `JSON.parse`, and `ProjectConfigSchema` validation, and `loadProjectConfig` is a thin wrapper over it.",
+    "Given a `project.json` containing malformed JSON, when either `loadProjectConfig` or `loadProjectConfigWithDiagnostics` reads it, then both report the same underlying error classification, and that equivalence is asserted by an automated test.",
+    "Existing tests in `storage/json.test.ts` including the malformed-JSON case pass, and any changed assertion is justified in the diff as a corrected semantic rather than a relaxed one.",
+    "`git-finalize.ts` parses `gh` CLI output through a typed parser returning a discriminated result, and the bare `catch { return undefined }` in `parseJson` no longer exists.",
+    "Given `runGh` returns exit status 0 with non-JSON stdout, when release finalization parses that output, then the malformed case is distinguishable from the empty-output case at the call site, proven by a new automated test.",
+    "All six former `parseJson` call sites branch on the typed result, and the `POLICY_DETECTION_FAILED`, `PR_STATE_UNPARSEABLE`, and `NO_MERGED_PR_FOUND` terminal states required by `rq-releaseFinalization01` remain reachable and covered by tests.",
+    "The dead `diskChecker` try/catch at `index.ts:421-426` is removed and the existing reachability tests in `_adapters.test.ts` pass unchanged.",
+    "Candidates 4, 5, 6, and 7 are left functionally unmodified, and no test covering them changes behavior.",
+    "`pnpm run check` passes and the full test suite passes with no new `eslint-disable`, `@ts-ignore`, or `as any` introduced."
+  ],
+  "documents": {
+    "proposal": "## Cross-Project Origin\n\nThis change was created as a follow-up from **toolbox**.\n\n| Field | Value |\n|-------|-------|\n| Source project | toolbox |\n| Source path | `/home/jon/toolbox` |\n| Source change | addRootCauseRule |\n\n> **Note:** The originating project should be consulted for context on why this change is needed.\n\n## Problem\n\nAdvance may contain pre-existing compensating code that masks unintended behavior instead of repairing its owning cause.\n\n## Root Cause Analysis\n\nStatus: pending discovery. No candidate's causal mechanism is presumed. Discovery must establish a causal path or executable reproduction for every candidate before remediation; candidates that are independently justified defense-in-depth are not defects to remove.\n\nRecon (proposal-phase, bounded) established the population but not the causes:\n\n| Marker | Production count |\n|---|---|\n| `try { … }` blocks | 943 |\n| Bare `catch { … }` (no error binding) | ~837 |\n| `?? <literal>` coalesces | ~686 |\n| `for (let attempt …)` retry loops | 9 |\n| `legacy` / `compat` / `backward-compat` comments | ~40 |\n| `as any` in production | 8 |\n| `@ts-ignore` / `eslint-disable` | 13 |\n\nRoughly 40% of markers in `tools/`, `utils/`, `temporal/`, `storage/` sit inside Temporal retry/deadline wrappers that classify a known transient class — these are structural, not compensating. The raw count is therefore a search population, not a defect count.\n\n## Scope\n\nBounded to the surfaces where the compensating pattern is densest and the owning invariant is identifiable. Remediation depth is per-candidate: repair the owning mechanism first, remove the compensation only when the repair is verified.\n\n### In scope\n\n| Subsystem | Dominant candidate category | Representative anchor |\n|---|---|---|\n| `plugin/src/storage/resume-freshness-resolver.ts` | silent fallback → `freshness_limited` marker | `:113` |\n| `plugin/src/archive/terminal-history.ts` | legacy `change.json` fallback path | `:209` |\n| `plugin/src/storage/json.ts` | duplicate file read/write fallback chain | `:200` |\n| `plugin/src/tools/archive-helpers/git-finalize.ts` | `catch { return undefined }` over `JSON.parse` | `:473` |\n| `plugin/src/index.ts` | sequential `catch { return false }` in tool dispatch | `:417-435` |\n| `plugin/src/migration/routing-guard.ts` | compat routing guard with unvalidated `??` joins | `:54` |\n| `plugin/src/storage/store-temporal/changes.ts` | duplicate rollback validation + retry-on-hash-conflict | `:1277` |\n\n### Out of scope (documented legitimate defense — classify, do not remove)\n\n- `plugin/src/tool-registry.ts` SDK-boundary `as any` cast (AGENTS.md-documented)\n- `plugin/src/mcp-server/degradation.ts` and `mcp-server/**` — Tier-4 degradation is design-by-spec\n- `plugin/src/temporal/{retry-wrapper,service,runtime-manager,operations}.ts` retry loops — wrap known classes via `classifyTemporalError`\n- `plugin/src/tools/checkpoint.ts` git retry — gated by `classifyGitError` → `TRANSIENT`\n- Temporal SDK-boundary `as any` in `temporal/operations.ts`, `search-attributes.ts`, `tools/worktree/detach.ts`\n- Security/branch-safety `no-control-regex` disables in `utils/{workspace-adapter,shell}.ts`, `tools/worktree/index.ts`\n- `types/project.ts` `defensive_guard_threshold` (already codified as QUAL-011)\n- `temporal/contracts.ts` privacy-defensive projections (KD-4 / T3)\n- Bulk `??` guard expressions on optional projection fields in `tools/change.ts`, `tools/status.ts` — structural optionality, not untrusted-input joins\n\n### Explicitly not attempted\n\nRepo-wide sweep of all ~837 bare catches. No catch-all cleanup, no mechanical codemod, no lint-rule-driven mass edit.\n\n## Proposed change\n\nFor each in-scope candidate: trace the compensating branch to the mechanism that should own the invariant, establish a causal path or executable reproduction, repair the owning mechanism, then remove the compensation with focused verification. Candidates that prove to be independent defense-in-depth are documented and retained.\n\n## Success signals\n\n- Every in-scope candidate carries a documented classification: root-cause repair, intentional independent defense, or out of scope.\n- Confirmed anti-patterns are removed only alongside their owning repair and executable verification.\n- No catch-all cleanup or behavior masking is introduced.\n- Out-of-scope legitimate defenses remain untouched and are cited, not silently skipped.\n",
+    "problemStatement": "Advance may contain pre-existing symptom-masking compensating code—fallbacks, retries, duplicate validation, suppression, compatibility shims, or catch-all guards—that was added before the root-cause-first policy. Each candidate must be traced to its owning mechanism and either repaired or shown to be legitimate independent defense-in-depth.",
+    "agreement": "## Objectives\n\nRepair the two confirmed compensating anti-patterns at their owning mechanism, remove one dead guard, and record the evidence-backed classification for every candidate examined — including those retained.\n\nDiscovery narrowed the proposal's 7 candidates to 2 confirmed defects. The proposal's scope was over-broad; this agreement reflects the evidence, not the original estimate.\n\n## Discovery classification (all 7 candidates)\n\n| # | Site | Classification | Basis |\n|---|---|---|---|\n| 1 | `storage/json.ts` `loadProjectConfig` / `loadProjectConfigWithDiagnostics` | **ROOT_CAUSE_REPAIR** | Two implementations of the same access→read→parse→validate cycle with *divergent* error semantics. `loadProjectConfig` re-throws on malformed JSON; the diagnostics twin returns `read_error`. Every caller re-wraps in `.catch(() => null)`. `ProjectConfigSchema` should own the boundary once. |\n| 2 | `tools/archive-helpers/git-finalize.ts:470-476` `parseJson` | **ROOT_CAUSE_REPAIR** | `catch { return undefined }` over `gh` CLI stdout collapses \"empty result\" and \"malformed response\" into one value across 6 call sites. `PR_STATE_UNPARSEABLE` is defined by `rq-releaseFinalization01` but the parse-failure path is untested. No typed parser owns the boundary. |\n| 3 | `index.ts:421-426` `diskChecker` catch | **DEAD CODE** | `existsSync` does not throw per Node docs — it returns `false`. The guard can never fire. P40: defense with no failure mode. |\n| 4 | `index.ts:414-419, 428-434` `store.changes.get` catches | **INTENTIONAL_DEFENSE (redundant)** | Behavior is spec-bound by `rq-activeChangePointer01.4`. `isChangeReachable` (`tools/_adapters.ts:553-584`) already converts these throws to `false`. Redundant, but spec-covered and low-value to disturb. Retained. |\n| 5 | `storage/resume-freshness-resolver.ts:113` | **INTENTIONAL_DEFENSE** | `freshness_limited` is a typed member of the `ResumeFreshnessLabel` taxonomy, not an error sink. `addResumeFreshnessAdvisory` AC7 mandates test coverage of this exact fallback. Retained. |\n| 6 | `archive/terminal-history.ts:209` | **INTENTIONAL_DEFENSE** | Storage-format migration boundary (legacy `change.json` → versioned `summary.v1.json`). Gated by SHA256 `verifyTerminalArchiveSummaryHash`. Commit `23d18783` deliberately *widened* the fallback surface. Retained. |\n| 7 | `migration/routing-guard.ts:54` | **OUT_OF_SCOPE** | The proposal's premise was wrong. This is `resolveOwnBuildIdentity()?.digest ?? null` — a typed property coalesce on an internal deployment artifact, explicitly consumed by `=== null` at `:125` yielding `basis: \"identity_unavailable\"`. No external key set, no silent default, no compensating branch. |\n\nCandidates 5 and 6 were confirmed to share only surface resemblance, not a mechanism — one is an advisory taxonomy, the other a storage-format upgrade path. No shared abstraction will be extracted.\n\n## Success Criteria\n\n- SC1: Project-config loading has exactly one implementation of the access, read, parse, and schema-validation boundary, and both public entry points agree on error semantics.\n- SC2: A malformed `gh` CLI response is distinguishable from an empty one at every call site that parses `gh` output during release finalization.\n- SC3: No guard remains in the repaired scope whose failure mode cannot occur.\n- SC4: Every candidate examined during discovery carries a durable, evidence-backed classification, including the four retained as legitimate defense.\n\n## Acceptance Criteria\n\n- AC1: `plugin/src/storage/json.ts` exposes a single parse-and-validate implementation owning access, read, `JSON.parse`, and `ProjectConfigSchema` validation, and `loadProjectConfig` is a thin wrapper over it.\n- AC2: Given a `project.json` containing malformed JSON, when either `loadProjectConfig` or `loadProjectConfigWithDiagnostics` reads it, then both report the same underlying error classification, and that equivalence is asserted by an automated test.\n- AC3: Existing tests in `storage/json.test.ts` including the malformed-JSON case pass, and any changed assertion is justified in the diff as a corrected semantic rather than a relaxed one.\n- AC4: `git-finalize.ts` parses `gh` CLI output through a typed parser returning a discriminated result, and the bare `catch { return undefined }` in `parseJson` no longer exists.\n- AC5: Given `runGh` returns exit status 0 with non-JSON stdout, when release finalization parses that output, then the malformed case is distinguishable from the empty-output case at the call site, proven by a new automated test.\n- AC6: All six former `parseJson` call sites branch on the typed result, and the `POLICY_DETECTION_FAILED`, `PR_STATE_UNPARSEABLE`, and `NO_MERGED_PR_FOUND` terminal states required by `rq-releaseFinalization01` remain reachable and covered by tests.\n- AC7: The dead `diskChecker` try/catch at `index.ts:421-426` is removed and the existing reachability tests in `_adapters.test.ts` pass unchanged.\n- AC8: Candidates 4, 5, 6, and 7 are left functionally unmodified, and no test covering them changes behavior.\n- AC9: `pnpm run check` passes and the full test suite passes with no new `eslint-disable`, `@ts-ignore`, or `as any` introduced.\n\n## Constraints\n\n- C1: Repair the owning mechanism before removing any compensation; never remove a guard alone.\n- C2: Every removal ships with executable verification of the repaired path.\n- C3: Retained defenses must be documented in-place, not silently skipped.\n\n## Avoidances\n\n- DONT1: No repo-wide sweep of the remaining bare catches.\n- DONT2: No codemod, lint-rule-driven mass edit, or catch-all cleanup.\n- DONT3: No new abstraction unifying candidates 5 and 6 — discovery proved they share no mechanism.\n- DONT4: No touching Temporal retry wrappers, `mcp-server/degradation.ts`, SDK-boundary casts, or security regex disables.\n",
+    "design": "## Architecture\n\nThree independent repairs. No shared abstraction spans them — discovery proved the candidates share no mechanism (DONT3). Each is scoped to its own owning module.\n\n> **Validated** by independent design validator (verdict: CONCERNS, resolved). One factual premise in the first draft was wrong and has been corrected below — see Decision 1, \"Caller reality\".\n\n---\n\n## Decision 1 — `storage/json.ts`: one parser, two adapters\n\n**Problem.** `loadProjectConfig` and `loadProjectConfigWithDiagnostics` each implement access → read → `JSON.parse` → `ProjectConfigSchema.parse`, with divergent error semantics for the same input. Introduced deliberately in `66af62e2` (\"Unlike loadProjectConfig (which silently returns null)…\") but the split duplicated the entire boundary graph rather than the presentation layer.\n\n**Design.** Extract one private owner of the boundary:\n\n```ts\ntype ProjectConfigLoad =\n  | { kind: \"ok\"; config: ProjectConfig }\n  | { kind: \"not_found\" }\n  | { kind: \"read_error\"; error: Error }\n  | { kind: \"schema_error\"; error: ZodError };\n\nasync function parseProjectConfigFile(root: string): Promise<ProjectConfigLoad>\n```\n\nBoth public functions become thin adapters over it:\n\n- `loadProjectConfigWithDiagnostics` maps the union onto its existing `LoadResult` diagnostic shape.\n- `loadProjectConfig` maps `ok` → config, `not_found` → `null`, `schema_error` → warn + `null`, `read_error` → **re-throw** (preserving its current contract).\n\nValidator confirmed the four-arm union covers every branch both functions currently produce; non-ENOENT fs errors (EISDIR, EACCES) classify as `read_error`.\n\n**Why `loadProjectConfig` keeps throwing.** The duplication is the defect; the throw is not. \"Unexpected read failure must not silently proceed with defaults\" is a defensible fail-loud contract, and `storage/json.test.ts:139` pins it. Preserving it satisfies AC3 without relaxing an assertion. AC2 is satisfied at the *classification* layer — both entry points now derive from one classifier and agree on what the failure **is**; they differ only in how they present it, which becomes the sole intentional difference rather than an accidental one.\n\n**Caller reality (corrected).** The first draft of this design claimed five callers wrap `loadProjectConfig` in `.catch(() => null)` and used that to justify deferring their cleanup. **That was wrong.** Verified actual distribution across 6 callers:\n\n| Caller | Behavior |\n|---|---|\n| `plugin-init.ts:260` | catches → `null` |\n| `storage/store-temporal/changes.ts:1211` | catches → `null` |\n| `tools/gate.ts:206` | **propagates** |\n| `tools/target-project.ts:121` | **propagates** |\n| `storage/store-disk.ts:120` | **propagates** |\n| `storage/product-context.ts:161` | **propagates** |\n\nOnly 2 catch; 4 let the throw escape. This *strengthens* the case for keeping the throw — it is a live fail-loud path with real reach, not a formality that every caller already suppresses. It also redirects the follow-up: the question worth asking later is whether the **4 propagating callers** handle a corrupt `project.json` acceptably, not whether the 2 catchers are compensating. Recorded as follow-up; out of scope here under DONT2.\n\n---\n\n## Decision 2 — `git-finalize.ts`: typed `gh` output boundary\n\n**Problem.** `parseJson(value: string): unknown` returns `undefined` on any parse failure. `value.trim() || \"null\"` means empty stdout yields `null`, malformed stdout yields `undefined` — but every call site tests only truthiness or `Array.isArray`, collapsing both into the same branch. `rq-releaseFinalization01` mandates a `PR_STATE_UNPARSEABLE` terminal state whose triggering path has no test.\n\n**Design.** Replace with a discriminated result, local to `git-finalize.ts`:\n\n```ts\ntype GhJsonParse =\n  | { kind: \"empty\" }\n  | { kind: \"ok\"; value: unknown }\n  | { kind: \"malformed\"; message: string };\n\nfunction parseGhJson(value: string): GhJsonParse\n```\n\nValidator confirmed exactly six call sites at the cited lines (624, 675, 1108, 1163, 1283, 1443), and that **no call site depends on the current empty-becomes-`null` coercion** — every site feeds empty into a falsy error branch, so splitting `empty` into its own arm loses no information.\n\nEach call site branches explicitly, and every branch uses an **exhaustive switch** over the union so a future arm cannot be silently ignored (validator requirement). `malformed` carries the underlying parser message so `PR_STATE_UNPARSEABLE` and `POLICY_DETECTION_FAILED` become diagnosable rather than inferred from a falsy value.\n\n**Why not Zod / schema-registry.** `src/schema-registry.ts` is scoped to ADV domain models and its generated artifacts are gated by `pnpm run schemas:check`. `gh` CLI output is an external tool's wire format, not an ADV domain model; registering it would pollute the public schema surface and add generated-artifact maintenance for six local call sites. Validator judged this layer-correct. A local discriminated parser is the proportionate structural fix (P33).\n\n**Shape-checking stays at the call site.** `parseGhJson` owns *parseability*, not *shape*. Existing `Array.isArray` / field checks remain — narrowing `unknown` to the expected shape is the caller's concern and differs per endpoint.\n\n---\n\n## Decision 3 — `index.ts`: delete the dead guard\n\n`fs.existsSync` returns a boolean and does not throw for **string arguments** — validator confirmed against Node documentation. The one documented throw path is `DEP0187`, raised only for invalid argument *types*; the call site builds its path via `join(...)`, which always yields a string, so that path is unreachable here.\n\nThe `try/catch` at `:421-426` therefore guards a failure mode that cannot occur. That is not defense in depth; it is noise implying a hazard that does not exist (P40). Delete it, call `existsSync` directly.\n\nThe sibling `store.changes.get` catches at `:414-419` and `:428-434` are **left alone** — they catch a real throw (`schema_error`, per `store-temporal/changes.ts:1568`), are spec-bound by `rq-activeChangePointer01.4`, and are covered by AC8.\n\n---\n\n## Verification strategy\n\n| AC | Method |\n|---|---|\n| AC1 | Structural — one `parseProjectConfigFile`; both entry points call it and contain no independent `readFile`/`JSON.parse` |\n| AC2 | New test: same malformed fixture through both entry points; assert both classify as read-error (one throws it, one reports it) |\n| AC3 | Existing `storage/json.test.ts` suite green, unchanged |\n| AC4 | Structural — `parseJson` gone; `parseGhJson` returns the union |\n| AC5 | New test: stub `runGh` → `{status: 0, stdout: \"not-json-at-all\"}`; assert malformed ≠ empty at the call site |\n| AC6 | Existing `git-finalize.test.ts` green; the three terminal states remain reachable; exhaustive switches enforced |\n| AC7 | Delete catch; `_adapters.test.ts:872-1135` green unchanged |\n| AC8 | Diff review — candidates 4/5/6/7 untouched |\n| AC9 | `pnpm run check` + full suite via `bin/oc-test` |\n\n## Sequencing\n\nDecisions 1, 2, 3 are independent — no ordering constraint, no shared file. Each lands with its own tests (C2). Per C1, in every case the owning mechanism is repaired first and the compensation removed only after.\n\n## Risk\n\n| Risk | Mitigation |\n|---|---|\n| `index.ts` is the plugin entry point | The edit is inside a closure invoked at tool-execute time, not at load. Load-time risk is zero. |\n| `loadProjectConfig` throw reaches 4 propagating callers | Contract explicitly preserved unchanged; no caller behavior is altered by this change. |\n| Call-site regression in release finalization | `git-finalize.ts` drives archive Phase 9; all 6 sites are test-covered for the success path, AC6 pins the three terminal states, exhaustive switches prevent silent arm drops. |\n\n## Follow-ups (not this change)\n\n- Re-examine how the 4 propagating `loadProjectConfig` callers handle a corrupt `project.json`.\n- The two redundant `store.changes.get` catches in `index.ts` (candidate 4) could collapse into `isChangeReachable`'s existing catch layer.\n",
+    "executiveSummary": "## Outcome\n\nAdvance had accumulated code that quietly worked around problems instead of fixing them. This change found the real ones, fixed those, and — just as importantly — proved which ones were doing legitimate work and should be left alone.\n\nSeven suspect spots were examined. **Two were genuine defects. One was dead code. Four were doing their job correctly** and were kept, with the reasoning written down so nobody has to re-litigate them later.\n\n## Why it matters\n\nThe headline number looked alarming at the start: roughly 837 places in the codebase where an error is caught without inspection. Treated as a to-do list, that is months of churn and a large risk of breaking working safety nets.\n\nInvestigation showed that number was a **search result, not a defect count**. Around 40% of those sit inside machinery that already classifies the specific failure it is handling — they are deliberate engineering, not neglect. Acting on the raw number would have removed protections the system depends on.\n\nWhat shipped instead is small, targeted, and evidence-backed.\n\n## What was fixed\n\n**Project settings could be read two different ways, with two different answers.** Two functions each independently opened, read, and validated the same configuration file — and disagreed about what to do when that file was corrupt. Callers had grown their own workarounds to paper over the inconsistency. There is now one implementation both share, so the answer is the same regardless of the caller.\n\n**Release automation couldn't tell \"no answer\" from \"garbled answer.\"** When Advance talks to GitHub during a release, it reads structured responses. If a response arrived damaged, the code silently treated it identically to no response at all — across six separate places. A release could therefore report a clean, confident result derived from corrupted input. Those two situations are now distinguished, and the damaged case carries diagnostic detail explaining what went wrong. This path had no test coverage at all before; it does now.\n\n**A guard that could never fire was removed.** One safety check wrapped an operation that cannot fail in the way the check anticipated — confirmed against Node.js documentation. It implied a hazard that does not exist.\n\n## What was deliberately left alone\n\nFour candidates were investigated and cleared:\n\n- Two safety nets in the session-pointer logic that catch a real error and are required by spec\n- A \"limited freshness\" fallback that is a legitimate typed status, not a swallowed error\n- A compatibility path that lets Advance still read archives written by older versions — removing it would have broken reading historical data\n\nA fifth turned out not to be a defect at all; the original suspicion about it was simply wrong, and that correction is recorded.\n\nEach verdict is written into the change record with its supporting evidence. This is the durable part: a future cleanup pass will find the reasoning already done rather than re-flagging the same code.\n\n## Verification\n\n- Full test suite green: **8,242 tests passing, 0 failures**\n- All static checks, type checking, linting, and formatting pass\n- Every fix was written test-first — a failing test proving the problem, then the fix\n- The final diff touches exactly five files; every protected area was confirmed untouched by direct inspection\n- No new suppressions, escape hatches, or type overrides were introduced\n\n## Independent scrutiny\n\nThe design was reviewed by an independent validator before any code was written. It **caught a factual error** in the plan: the design claimed five callers were working around the config inconsistency when the real split was two working around it and four letting the error through. That correction changed the reasoning and is reflected in the final approach.\n\nAn acceptance reviewer then flagged a failing test in the full suite. Investigation showed it was a **pre-existing flaky test unrelated to this work** — it asserts against a 10-millisecond stopwatch and loses that race under heavy parallel load. Confirmed by re-running the identical code to a green suite, and by tracing that the failing test shares no code path with anything changed here. That test's fragility is recorded as a separate follow-up rather than being quietly patched.\n\n## Release Readiness Summary\n\n**Verdict: READY.** A separate pre-release hardening pass reviewed this change specifically for shipping risk and returned no findings.\n\n**What ships.** Three small, contained corrections plus the tests proving them. Five files, four commits.\n\n**What could go wrong, and why it probably won't.** The most interesting risk here is self-referential: one of the corrected files is the machinery Advance uses to finalize its own releases. In other words, this change modifies the code that will run when this change itself is shipped. That was singled out for dedicated review — every path that release automation actually executes (finding the pull request, reading its merge state, checking branch policy, reading its title) was traced and confirmed correct for the normal success case. The change makes that machinery strictly more careful than before: situations it previously blurred together are now told apart.\n\n**What was verified.** Full test suite green with zero failures. The production build completes cleanly. Background-processing components were checked and are unaffected by this change; verification of them was run anyway as a precaution and passed. The commit history was reviewed for anything unsuitable for a public repository — no secrets, local paths, machine identifiers, or leftover debugging.\n\n**Operational impact.** None. No configuration changes, no data migration, no user-visible behavior change. Nothing is required of anyone using Advance.\n\n**Deployment note.** Deployment must happen from the merged main branch after this is merged — never directly from the working branch. This is standard practice for this project and is not specific to this change.\n\n**Follow-ups, none blocking release.** Three items recorded for later: making the flaky timing test reliable by giving it a controllable clock, reviewing how four callers respond to a corrupt settings file, and consolidating two duplicate safety nets that overlap with a layer already covering them.\n\n## Risks and follow-ups\n\nNo known risk to shipped behavior. The one edit in the plugin entry point sits inside a function called during normal tool use, not during startup.\n\nFollow-ups recorded, none blocking:\n\n- Harden the flaky timing test by injecting a controllable clock instead of using the real one\n- Review how the four callers that let a config error through actually handle a corrupt settings file\n- Two remaining duplicate safety nets in the session-pointer logic could later be consolidated into the single layer that already covers them\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-03T03:22:11.153Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | Project-config loading has exactly one implementation of the access, read, parse, and schema-validation boundary, and both public entry points agree on error semantics. | pass | storage/json.ts now has exactly one project-config access (:180), readFile (:190), and JSON.parse (:200), all inside parseProjectConfigFile. Both loadProjectConfig and loadProjectConfigWithDiagnostics delegate and switch on result.kind with no independent read or parse. Verified by adv-verifier PART 4 and enforced by the structural assertion in json.test.ts:145-171. |\n| SC2 | success_criterion | A malformed `gh` CLI response is distinguishable from an empty one at every call site that parses `gh` output during release finalization. | pass | parseGhJson returns the empty|ok|malformed union; all six release-finalization call sites (638, 708, 1170, 1242, 1372, 1545) branch on it with exhaustive switches plus assertNever. Malformed responses carry parser diagnostics; empty does not. Covered by the new malformed-vs-empty test and the discoverMergedPr test in commit 43ea36ab. |\n| SC3 | success_criterion | No guard remains in the repaired scope whose failure mode cannot occur. | pass | The only guard removed in the repaired scope was the diskChecker try/catch around existsSync, which cannot throw for string arguments (DEP0187 applies to invalid argument types only; join() always yields a string). Verified against Node documentation by the independent design validator. No other unreachable guard remains in the three touched files. |\n| SC4 | success_criterion | Every candidate examined during discovery carries a durable, evidence-backed classification, including the four retained as legitimate defense. | pass | agreement.md carries the durable evidence-backed classification table for all 7 candidates, including the 4 retained as legitimate defense and the 1 that was not a defect, each with its owning-mechanism basis, spec reference, and git provenance. |\n| AC1 | acceptance_criterion | `plugin/src/storage/json.ts` exposes a single parse-and-validate implementation owning access, read, `JSON.parse`, and `ProjectConfigSchema` validation, and `loadProjectConfig` is a thin wrapper over it. | pass | parseProjectConfigFile owns access, readFile, JSON.parse, and ProjectConfigSchema validation exactly once; both public functions are thin adapters. Red run tr_msclhrxd_fb8da10b failed on the pre-refactor duplicate-boundary assertion; green run tr_mscljol0_1bfaf4f1 passed. Commit c0169a6f. |\n| AC2 | acceptance_criterion | Given a `project.json` containing malformed JSON, when either `loadProjectConfig` or `loadProjectConfigWithDiagnostics` reads it, then both report the same underlying error classification, and that equivalence is asserted by an automated test. | pass | New test drives one malformed project.json through both entry points and asserts loadProjectConfig throws while loadProjectConfigWithDiagnostics reports read_error carrying the same underlying message. Strengthened at acceptance review (commit 43ea36ab) from a structural assertion to a behavioral message-equivalence assertion. Green run tr_mscljol0_1bfaf4f1. |\n| AC3 | acceptance_criterion | Existing tests in `storage/json.test.ts` including the malformed-JSON case pass, and any changed assertion is justified in the diff as a corrected semantic rather than a relaxed one. | pass | Full storage/json.test.ts passes 85/85 including the pre-existing malformed-JSON throw case; run tr_mscllp5i_758eb380. No existing assertion was moved or relaxed — confirmed in the ENGINEER_REPORT for tk-988675d8b6cc. |\n| AC4 | acceptance_criterion | `git-finalize.ts` parses `gh` CLI output through a typed parser returning a discriminated result, and the bare `catch { return undefined }` in `parseJson` no longer exists. | pass | parseJson and its bare catch { return undefined } are fully removed; parseGhJson at git-finalize.ts:475 returns the discriminated GhJsonParse union with assertNever at :488. Verified by adv-verifier PART 4 (zero remaining parseJson references). Commit 6072ba23. |\n| AC5 | acceptance_criterion | Given `runGh` returns exit status 0 with non-JSON stdout, when release finalization parses that output, then the malformed case is distinguishable from the empty-output case at the call site, proven by a new automated test. | pass | New test stubs runGh to return status 0 with non-JSON stdout and asserts the malformed result is distinguishable from the empty-stdout result at the call site. Red run tr_mscltk3c_08048c68 failed on exactly this assertion with 128 existing tests passing; green run tr_msclxnf1_445191c3 passed 129/129. |\n| AC6 | acceptance_criterion | All six former `parseJson` call sites branch on the typed result, and the `POLICY_DETECTION_FAILED`, `PR_STATE_UNPARSEABLE`, and `NO_MERGED_PR_FOUND` terminal states required by `rq-releaseFinalization01` remain reachable and covered by tests. | pass | All six former parseJson call sites branch on the typed union with exhaustive switches and default assertNever. POLICY_DETECTION_FAILED and NO_MERGED_PR_FOUND remain reachable; PR_STATE_UNPARSEABLE gained first-ever coverage. Acceptance reviewer added an explicit discoverMergedPr test proving NO_MERGED_PR_FOUND survives the rewrite for both malformed and empty input (commit 43ea36ab). |\n| AC7 | acceptance_criterion | The dead `diskChecker` try/catch at `index.ts:421-426` is removed and the existing reachability tests in `_adapters.test.ts` pass unchanged. | pass | diskChecker try/catch removed; existsSync called directly. plugin/src/tools/_adapters.test.ts passes 48/48 with assertions unmodified, run tr_mscm2sfm_7000e53f. Commit 35b5be3a. |\n| AC8 | acceptance_criterion | Candidates 4, 5, 6, and 7 are left functionally unmodified, and no test covering them changes behavior. | pass | adv-verifier PART 2: git diff trunk...HEAD touches exactly five files. All ten protected surfaces return zero diff lines, including resume-freshness-resolver.ts, terminal-history.ts, routing-guard.ts, and mcp-server/degradation.ts. Within index.ts the sibling visibilityLister (414-419) and workflowStateGetter (428-433) catches are confirmed unchanged. No test covering candidates 4-7 changed behavior. |\n| AC9 | acceptance_criterion | `pnpm run check` passes and the full test suite passes with no new `eslint-disable`, `@ts-ignore`, or `as any` introduced. | pass | pnpm run check exit 0 (runId tr_mscm6s7r_64b197c2). Full suite via bin/oc-test full: 537 files passed, 8242 tests passed, 0 failed, exit 0. Diff-scoped grep for added eslint-disable, @ts-ignore, @ts-expect-error, or as any returned no matches; the 4 pre-existing no-explicit-any warnings sit in files with zero diff lines versus trunk. |\n| C1 | constraint | Repair the owning mechanism before removing any compensation; never remove a guard alone. | respected | Each repair fixed the owning mechanism first. json.ts: the shared classifier was introduced before the duplicate branches were deleted. git-finalize.ts: parseGhJson and the exhaustive call-site switches replaced parseJson in the same change rather than deleting the catch alone. index.ts: no mechanism repair was owed because the guard was proven dead, not compensating. |\n| C2 | constraint | Every removal ships with executable verification of the repaired path. | respected | Every removal ships with executable verification: json.ts red/green tr_msclhrxd_fb8da10b and tr_mscljol0_1bfaf4f1; git-finalize.ts red/green tr_mscltk3c_08048c68 and tr_msclxnf1_445191c3; index.ts verify tr_mscm2sfm_7000e53f with 48/48 unchanged assertions. |\n| C3 | constraint | Retained defenses must be documented in-place, not silently skipped. | respected | Retained defenses are documented in place: the index.ts diskChecker replacement carries an inline comment explaining why existsSync needs no guard, and design.md plus agreement.md record the retention basis for candidates 4, 5, 6 and the non-defect finding for candidate 7. |\n| DONT1 | avoidance | No repo-wide sweep of the remaining bare catches. | respected | No repo-wide sweep occurred. Only three scoped repairs landed across three production files; the remaining bare catches in the codebase are untouched, confirmed by the five-file diff. |\n| DONT2 | avoidance | No codemod, lint-rule-driven mass edit, or catch-all cleanup. | respected | No codemod, lint-rule-driven mass edit, or catch-all cleanup. Each edit was hand-written against a named owning mechanism. The six loadProjectConfig callers were deliberately left untouched and recorded as a follow-up rather than swept. |\n| DONT3 | avoidance | No new abstraction unifying candidates 5 and 6 — discovery proved they share no mechanism. | respected | No abstraction unifying candidates 5 and 6 was created. Discovery proved resume-freshness-resolver.ts and archive/terminal-history.ts share only surface resemblance — an advisory taxonomy versus a storage-format migration boundary — and both files have zero diff lines. |\n| DONT4 | avoidance | No touching Temporal retry wrappers, `mcp-server/degradation.ts`, SDK-boundary casts, or security regex disables. | respected | Zero diff lines in temporal/retry-wrapper.ts, temporal/service.ts, temporal/runtime-manager.ts, temporal/operations.ts, mcp-server/degradation.ts, tool-registry.ts, and tools/checkpoint.ts. Verified individually by adv-verifier PART 2. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-03T00:40:29.342Z",
+      "contentHash": "6f6ac5a356764315ae3e33a3f05195ed97b2ad9a47230d5ed3b7f313062234de",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-01T19:55:27.744Z",
+      "contentHash": "ef1b228dafcc53641e246e36bc82359e574283f3c4839cff7b089f0b0eaa2ba4",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-03T01:05:43.013Z",
+      "contentHash": "8a73945e09f8ee8626e36bd683074d1c4936559974cd503922c3a8269f0f50da",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-03T01:55:21.999Z",
+      "contentHash": "a66318a49f42c3a94aa81a49d4cebb0349f441a1e0a4bf1a6e86e1555982e27d",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-03T03:29:52.558Z",
+      "contentHash": "1165746325f0c03b7fcca7bde95a3f81993ad11e8dead56855443f3fdb8e9e53",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "clarify_findings": [
+    {
+      "code": "CLARIFY_UNCLEAR_SCOPE",
+      "severity": "warning",
+      "message": "Proposal has no Scope section. What files and modules will be affected?",
+      "recorded_at": "2026-08-02T16:23:10.010Z"
+    }
+  ],
+  "reentry_history": [],
+  "cross_project_origin": {
+    "source_project": "toolbox",
+    "source_path": "/home/jon/toolbox",
+    "source_change_id": "addRootCauseRule",
+    "linked_at": "2026-08-01T19:55:14.285Z"
+  },
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-03T03:45:29.261Z",
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "changed",
+    "headline_internal": "Repair three compensating anti-patterns at their owning mechanism; classify and retain four legitimate defenses",
+    "headline_external": "Internal reliability hardening in configuration loading and release automation",
+    "highlights": [
+      "Project-config loading now has a single access/read/parse/validate boundary; both public entry points derive from one classifier instead of disagreeing about corrupt input",
+      "Release automation distinguishes malformed GitHub CLI output from empty output across six call sites via a typed empty|ok|malformed union with exhaustive switches, giving PR_STATE_UNPARSEABLE its first test coverage",
+      "Removed a dead guard wrapping existsSync, which cannot throw for string arguments",
+      "Recorded durable evidence-backed classifications for all seven candidates examined, including the four retained as legitimate defense and one that proved not to be a defect"
+    ],
+    "area": "plugin/core",
+    "user_action_required": false,
+    "links": {
+      "pr": "pending"
+    }
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "No changed file is reachable from the Temporal worker bundle root (plugin/src/temporal/workflows.ts). The change touches plugin/src/index.ts, plugin/src/storage/json.ts, and plugin/src/tools/archive-helpers/git-finalize.ts (plus their tests); per AGENTS.md the workflow bundle's static import graph must not reach storage/ or tools/ at all, so none of these can enter it. Confirmed by the harden pass (report removeCompensatingAntiPatterns|change:harden:release|adv-reviewer|1), which reported no worker-reachability findings and additionally ran pnpm run build plus worker-bundle and replay-determinism verification as defense in depth — all passed. Declaring not_applicable because bundle reachability is unchanged, not because verification was skipped.",
+    "confirmed_at": "2026-08-03T03:29:16.526Z"
+  },
+  "creation_request_hash": "9c330d6567363f84ef341fe9cb479d8a6900b4a5d57f9c253ada395078fac6f1",
+  "projection_revision": 45,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c2fe3ba13b8aa5486047a6982106606240f312db8cefed183e43c4fba4a9d566:createArtifacts:proposal",
+      "operation_id": "c2fe3ba13b8aa5486047a6982106606240f312db8cefed183e43c4fba4a9d566:createArtifacts:proposal",
+      "payload_hash": "f6ab23209a534af730a3a9bc71de83770b4487cd62eb6ef143de9d7e46a3166d",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-01T19:55:31.384Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c2fe3ba13b8aa5486047a6982106606240f312db8cefed183e43c4fba4a9d566:createArtifacts:problemStatement",
+      "operation_id": "c2fe3ba13b8aa5486047a6982106606240f312db8cefed183e43c4fba4a9d566:createArtifacts:problemStatement",
+      "payload_hash": "5585303daca637d83ad1d84f0b9f9aee50d53045b9291d17108793707b949216",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-01T19:55:31.982Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0567a2d8e706f10c272c5c1e616dc30aaa79a3daefef11d41348beb840acb0a4:updateArtifacts:proposal",
+      "operation_id": "0567a2d8e706f10c272c5c1e616dc30aaa79a3daefef11d41348beb840acb0a4:updateArtifacts:proposal",
+      "payload_hash": "f7d77ab06bb117bda62a794717dc4ec2cc6ea01095824fecd425e1418a3e9bae",
+      "state_revision": 3,
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-03T00:40:29.583Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-03T00:42:36.097Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "b6bcb486c4c330cc6aa141ca1891856d39a7d5d18cc4e00a12ca0bd58e808d7b:updateArtifacts:agreement",
+      "operation_id": "b6bcb486c4c330cc6aa141ca1891856d39a7d5d18cc4e00a12ca0bd58e808d7b:updateArtifacts:agreement",
+      "payload_hash": "d5a214aa470da4ac433b178cc47a9abc4bfeacd6b8ac4e32d9c04bf1ed60ef85",
+      "state_revision": 4,
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-03T01:03:24.550Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-03T01:03:39.929Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "aff86e51beffbad8ed0364857efae0936c157db51d8a1f16495d7ebc128b3f6d:updateArtifacts:agreement",
+      "operation_id": "aff86e51beffbad8ed0364857efae0936c157db51d8a1f16495d7ebc128b3f6d:updateArtifacts:agreement",
+      "payload_hash": "6a1065ff4075a3fcf42f8a19ada703df01967bab1c402b5ef01b07e87da2686b",
+      "state_revision": 5,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-03T01:05:43.232Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-03T01:48:04.561Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-03T01:48:33.290Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "1018701e0ccaddc246efe3136d040bb0091e3eb5e89dea5d5b603418dfab03bf:updateArtifacts:design",
+      "operation_id": "1018701e0ccaddc246efe3136d040bb0091e3eb5e89dea5d5b603418dfab03bf:updateArtifacts:design",
+      "payload_hash": "ac8c138b8cccbc6def9f1a59a57bb9f020afd82a8a0398022f6579ef4f7c69e2",
+      "state_revision": 6,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-03T01:49:47.979Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-03T01:53:59.637Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-03T01:54:04.132Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0863361be8121fe2553c1b214bf3510f9aab396890e5cfe2d298abe26d0f7855:updateArtifacts:design",
+      "operation_id": "0863361be8121fe2553c1b214bf3510f9aab396890e5cfe2d298abe26d0f7855:updateArtifacts:design",
+      "payload_hash": "1c187f859d1096b37f1af322820d645b60b490ecdff56dc50e95e8ee27a53473",
+      "state_revision": 7,
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-03T01:55:22.362Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-03T01:55:46.612Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-03T01:56:31.165Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-03T01:56:37.607Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-03T01:57:13.821Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-03T01:57:39.507Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-03T01:58:10.404Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-03T02:07:23.976Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-03T02:08:13.164Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-03T02:17:37.534Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-03T02:19:04.266Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-03T02:19:08.700Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-03T02:19:39.407Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-03T02:27:05.986Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-03T02:28:21.804Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-03T02:28:26.218Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-03T02:29:15.393Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-03T02:30:23.388Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-03T02:30:58.486Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-03T02:44:29.411Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-03T02:44:45.416Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-03T02:57:29.329Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-03T02:57:32.815Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "45c5e2b5355ad8328167afdc216ade22e6b8ea2e3863469a9548ef501800a73f:updateArtifacts:executiveSummary",
+      "operation_id": "45c5e2b5355ad8328167afdc216ade22e6b8ea2e3863469a9548ef501800a73f:updateArtifacts:executiveSummary",
+      "payload_hash": "044e66dc118b6fce0907c7fe3296beae9f522e172c14162f78f8c1aa29c16d6e",
+      "state_revision": 8,
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-03T03:18:55.261Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-03T03:21:14.366Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785727331273_1iphfmzi",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-03T03:22:11.491Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-03T03:22:11.153Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "storage/json.ts now has exactly one project-config access (:180), readFile (:190), and JSON.parse (:200), all inside parseProjectConfigFile. Both loadProjectConfig and loadProjectConfigWithDiagnostics delegate and switch on result.kind with no independent read or parse. Verified by adv-verifier PART 4 and enforced by the structural assertion in json.test.ts:145-171."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "parseGhJson returns the empty|ok|malformed union; all six release-finalization call sites (638, 708, 1170, 1242, 1372, 1545) branch on it with exhaustive switches plus assertNever. Malformed responses carry parser diagnostics; empty does not. Covered by the new malformed-vs-empty test and the discoverMergedPr test in commit 43ea36ab."
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "The only guard removed in the repaired scope was the diskChecker try/catch around existsSync, which cannot throw for string arguments (DEP0187 applies to invalid argument types only; join() always yields a string). Verified against Node documentation by the independent design validator. No other unreachable guard remains in the three touched files."
+            },
+            {
+              "contractId": "SC4",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "artifact_reference",
+              "evidence": "agreement.md carries the durable evidence-backed classification table for all 7 candidates, including the 4 retained as legitimate defense and the 1 that was not a defect, each with its owning-mechanism basis, spec reference, and git provenance."
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "parseProjectConfigFile owns access, readFile, JSON.parse, and ProjectConfigSchema validation exactly once; both public functions are thin adapters. Red run tr_msclhrxd_fb8da10b failed on the pre-refactor duplicate-boundary assertion; green run tr_mscljol0_1bfaf4f1 passed. Commit c0169a6f."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "New test drives one malformed project.json through both entry points and asserts loadProjectConfig throws while loadProjectConfigWithDiagnostics reports read_error carrying the same underlying message. Strengthened at acceptance review (commit 43ea36ab) from a structural assertion to a behavioral message-equivalence assertion. Green run tr_mscljol0_1bfaf4f1."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Full storage/json.test.ts passes 85/85 including the pre-existing malformed-JSON throw case; run tr_mscllp5i_758eb380. No existing assertion was moved or relaxed — confirmed in the ENGINEER_REPORT for tk-988675d8b6cc."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "parseJson and its bare catch { return undefined } are fully removed; parseGhJson at git-finalize.ts:475 returns the discriminated GhJsonParse union with assertNever at :488. Verified by adv-verifier PART 4 (zero remaining parseJson references). Commit 6072ba23."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "New test stubs runGh to return status 0 with non-JSON stdout and asserts the malformed result is distinguishable from the empty-stdout result at the call site. Red run tr_mscltk3c_08048c68 failed on exactly this assertion with 128 existing tests passing; green run tr_msclxnf1_445191c3 passed 129/129."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "All six former parseJson call sites branch on the typed union with exhaustive switches and default assertNever. POLICY_DETECTION_FAILED and NO_MERGED_PR_FOUND remain reachable; PR_STATE_UNPARSEABLE gained first-ever coverage. Acceptance reviewer added an explicit discoverMergedPr test proving NO_MERGED_PR_FOUND survives the rewrite for both malformed and empty input (commit 43ea36ab)."
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "diskChecker try/catch removed; existsSync called directly. plugin/src/tools/_adapters.test.ts passes 48/48 with assertions unmodified, run tr_mscm2sfm_7000e53f. Commit 35b5be3a."
+            },
+            {
+              "contractId": "AC8",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "adv-verifier PART 2: git diff trunk...HEAD touches exactly five files. All ten protected surfaces return zero diff lines, including resume-freshness-resolver.ts, terminal-history.ts, routing-guard.ts, and mcp-server/degradation.ts. Within index.ts the sibling visibilityLister (414-419) and workflowStateGetter (428-433) catches are confirmed unchanged. No test covering candidates 4-7 changed behavior."
+            },
+            {
+              "contractId": "AC9",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "pnpm run check exit 0 (runId tr_mscm6s7r_64b197c2). Full suite via bin/oc-test full: 537 files passed, 8242 tests passed, 0 failed, exit 0. Diff-scoped grep for added eslint-disable, @ts-ignore, @ts-expect-error, or as any returned no matches; the 4 pre-existing no-explicit-any warnings sit in files with zero diff lines versus trunk."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Each repair fixed the owning mechanism first. json.ts: the shared classifier was introduced before the duplicate branches were deleted. git-finalize.ts: parseGhJson and the exhaustive call-site switches replaced parseJson in the same change rather than deleting the catch alone. index.ts: no mechanism repair was owed because the guard was proven dead, not compensating."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Every removal ships with executable verification: json.ts red/green tr_msclhrxd_fb8da10b and tr_mscljol0_1bfaf4f1; git-finalize.ts red/green tr_mscltk3c_08048c68 and tr_msclxnf1_445191c3; index.ts verify tr_mscm2sfm_7000e53f with 48/48 unchanged assertions."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Retained defenses are documented in place: the index.ts diskChecker replacement carries an inline comment explaining why existsSync needs no guard, and design.md plus agreement.md record the retention basis for candidates 4, 5, 6 and the non-defect finding for candidate 7."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No repo-wide sweep occurred. Only three scoped repairs landed across three production files; the remaining bare catches in the codebase are untouched, confirmed by the five-file diff."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No codemod, lint-rule-driven mass edit, or catch-all cleanup. Each edit was hand-written against a named owning mechanism. The six loadProjectConfig callers were deliberately left untouched and recorded as a follow-up rather than swept."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No abstraction unifying candidates 5 and 6 was created. Discovery proved resume-freshness-resolver.ts and archive/terminal-history.ts share only surface resemblance — an advisory taxonomy versus a storage-format migration boundary — and both files have zero diff lines."
+            },
+            {
+              "contractId": "DONT4",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Zero diff lines in temporal/retry-wrapper.ts, temporal/service.ts, temporal/runtime-manager.ts, temporal/operations.ts, mcp-server/degradation.ts, tool-registry.ts, and tools/checkpoint.ts. Verified individually by adv-verifier PART 2."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-03T03:22:11.272Z",
+        "mutationReceiptId": "mrec_1785727331273_1iphfmzi"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-03T03:22:27.165Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-03T03:23:18.700Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-03T03:28:17.205Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-03T03:28:20.859Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "removeCompensatingAntiPatterns",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-03T03:29:16.945Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "9874f5f01ab9ffefeb0c8888b0ae2261191d21c4707d2d9e7896c6d3061c5e80:updateArtifacts:executiveSummary",
+      "operation_id": "9874f5f01ab9ffefeb0c8888b0ae2261191d21c4707d2d9e7896c6d3061c5e80:updateArtifacts:executiveSummary",
+      "payload_hash": "dd9898c6ef18fd51eb021fa4143e7ca412b397786f28ca43f845fce5e0b7965b",
+      "state_revision": 9,
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-03T03:29:52.941Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "86acfe8d6cf7bce8b736a04415f868439a70cf908de95a18721f627ac152b84e:releaseNotesSet",
+      "operation_id": "86acfe8d6cf7bce8b736a04415f868439a70cf908de95a18721f627ac152b84e:releaseNotesSet",
+      "payload_hash": "fc4779705dd361dcafb15ee24437451ef097b672473d63961ae500e8f26220b0",
+      "state_revision": 10,
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-03T03:45:29.463Z"
+    }
+  ],
+  "state_revision": 10,
+  "_source": "disk"
+}

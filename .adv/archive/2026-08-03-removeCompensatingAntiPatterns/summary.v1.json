@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-03T03:45:49.001Z",
+  "capabilities": [],
+  "change_hash": "a82aefd55a78ab17ea42d3d1e19a140a200df64ba74f50cc41cc85f7bfa2f727",
+  "change_id": "removeCompensatingAntiPatterns",
+  "completed_tasks": 4,
+  "created_at": "2026-08-01T19:55:26.481Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-03T03:23:18.535Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "5ec5e03703c38b253434c95daf0446f5298e318ee1f4b42b9d93b452c6312bcb",
+  "task_count": 4,
+  "title": "Remove compensating anti-patterns",
+  "version": "1"
+}

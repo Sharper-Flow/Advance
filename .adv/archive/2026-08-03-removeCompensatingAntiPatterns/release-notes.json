@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "change_id": "removeCompensatingAntiPatterns",
+  "title": "Remove compensating anti-patterns",
+  "release_notes": {
+    "audience": "internal",
+    "category": "changed",
+    "headline_internal": "Repair three compensating anti-patterns at their owning mechanism; classify and retain four legitimate defenses",
+    "headline_external": "Internal reliability hardening in configuration loading and release automation",
+    "highlights": [
+      "Project-config loading now has a single access/read/parse/validate boundary; both public entry points derive from one classifier instead of disagreeing about corrupt input",
+      "Release automation distinguishes malformed GitHub CLI output from empty output across six call sites via a typed empty|ok|malformed union with exhaustive switches, giving PR_STATE_UNPARSEABLE its first test coverage",
+      "Removed a dead guard wrapping existsSync, which cannot throw for string arguments",
+      "Recorded durable evidence-backed classifications for all seven candidates examined, including the four retained as legitimate defense and one that proved not to be a defect"
+    ],
+    "area": "plugin/core",
+    "user_action_required": false,
+    "links": {
+      "pr": "pending"
+    }
+  }
+}
