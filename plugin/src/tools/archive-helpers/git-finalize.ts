@@ -47,6 +47,8 @@ export interface RunGitResult {
 export interface GitFinalizeDeps {
   runGit?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
   runGh?: (cwd: string, args: string[], timeoutMs?: number) => RunGitResult;
+  /** Persisted change tip used by origin reachability after branch cleanup. */
+  changeTipSha?: string;
   requireCleanWorktree?: boolean;
   /**
    * Optional per-project worktree file-lock used by the remote-first isolated
@@ -802,33 +804,98 @@ export function verifyChangeBranchReachable(
   return { reachable: unmergedCommits.length === 0, unmergedCommits };
 }
 
+/**
+ * Proves the change tip is an ancestor of `origin/<defaultBranch>`.
+ *
+ * Tip resolution is two-tier:
+ *  - persisted `deps.changeTipSha` (preferred; branch-deletion-safe, no network)
+ *  - otherwise a single combined fetch refreshes `refs/remotes/origin/change/<id>`
+ *
+ * SAFETY INVARIANT: the remote-tracking ref is never read unless that refresh
+ * succeeded. A stale `refs/remotes/origin/change/<id>` can read as reachable and
+ * would be a silent release fail-open (rq-releaseFinalization01).
+ *
+ * PRECONDITION: on the persisted-tip path this function performs no fetch, so
+ * `origin/<defaultBranch>` must already be current. `resolveReleaseReachability`
+ * satisfies this by calling `verifyDefaultBranchPushed` immediately beforehand.
+ * A stale default branch can only under-report reachability (fail-closed), never
+ * over-report it.
+ */
 export function verifyChangeBranchReachableFromOrigin(
   repoRoot: string,
   defaultBranch: string,
   changeId: string,
   deps: GitFinalizeDeps = {},
-): { reachable: boolean; unmergedCommits: string[] } {
+): {
+  reachable: boolean;
+  unmergedCommits: string[];
+  refSource?: "persisted" | "refreshed_ref";
+  refUnresolved?: true;
+} {
   const runGit = deps.runGit ?? defaultRunGit;
-  const fetch = runGit(repoRoot, ["fetch", "origin", defaultBranch]);
-  if (fetch.status !== 0) {
-    return {
-      reachable: false,
-      unmergedCommits: splitLines(fetch.stderr || fetch.stdout),
-    };
+
+  let tipRef: string;
+  let refSource: "persisted" | "refreshed_ref";
+  if (deps.changeTipSha?.trim()) {
+    tipRef = deps.changeTipSha.trim();
+    refSource = "persisted";
+  } else {
+    const fetch = runGit(repoRoot, [
+      "fetch",
+      "origin",
+      `refs/heads/${defaultBranch}:refs/remotes/origin/${defaultBranch}`,
+      `+refs/heads/change/${changeId}:refs/remotes/origin/change/${changeId}`,
+    ]);
+    if (fetch.status !== 0) {
+      return {
+        reachable: false,
+        unmergedCommits: [],
+        refUnresolved: true,
+      };
+    }
+
+    const resolvedTip = runGit(repoRoot, [
+      "rev-parse",
+      "--verify",
+      `refs/remotes/origin/change/${changeId}`,
+    ]);
+    if (resolvedTip.status !== 0 || !resolvedTip.stdout.trim()) {
+      return {
+        reachable: false,
+        unmergedCommits: [],
+        refUnresolved: true,
+      };
+    }
+    tipRef = resolvedTip.stdout.trim();
+    refSource = "refreshed_ref";
   }
+
   const result = runGit(repoRoot, [
-    "log",
-    "--oneline",
-    `origin/${defaultBranch}..change/${changeId}`,
+    "merge-base",
+    "--is-ancestor",
+    tipRef,
+    `origin/${defaultBranch}`,
   ]);
-  if (result.status !== 0) {
+  if (result.status === 0) {
     return {
-      reachable: false,
-      unmergedCommits: splitLines(result.stderr || result.stdout),
+      reachable: true,
+      unmergedCommits: [],
+      refSource,
     };
   }
-  const unmergedCommits = splitLines(result.stdout);
-  return { reachable: unmergedCommits.length === 0, unmergedCommits };
+  if (result.status === 1) {
+    return {
+      reachable: false,
+      unmergedCommits: [],
+      refSource,
+    };
+  }
+  return {
+    reachable: false,
+    unmergedCommits: [],
+    refSource,
+    refUnresolved: true,
+  };
 }
 
 export type MergeMethod = "already-reachable" | "ff-only" | "no-ff";
@@ -2323,7 +2390,7 @@ export function resolveReleaseReachability(
       input.repoRoot,
       input.defaultBranch,
       input.changeId,
-      deps,
+      { ...deps, changeTipSha: input.changeTipSha },
     );
     if (originReachability.reachable) {
       return {

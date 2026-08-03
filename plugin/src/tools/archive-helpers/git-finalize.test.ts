@@ -210,7 +210,7 @@ describe("git-finalize helpers", () => {
     });
   });
 
-  it("verifyChangeBranchReachableFromOrigin validates origin/default after fetch", () => {
+  it("verifyChangeBranchReachableFromOrigin refreshes the remote change ref before ancestry", () => {
     const calls: string[][] = [];
     const result = verifyChangeBranchReachableFromOrigin(
       "/repo",
@@ -220,12 +220,17 @@ describe("git-finalize helpers", () => {
         runGit: (_cwd, args) => {
           calls.push(args);
           if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
-          if (args[0] === "log" && args[2] === "origin/trunk..change/example") {
-            return { status: 0, stdout: "abc123 unmerged\n", stderr: "" };
-          }
-          if (args[0] === "log" && args[2] === "trunk..change/example") {
+          if (
+            args[0] === "rev-parse" &&
+            args[2] === "refs/remotes/origin/change/example"
+          )
+            return { status: 0, stdout: "tip-sha\n", stderr: "" };
+          if (
+            args[0] === "merge-base" &&
+            args[2] === "tip-sha" &&
+            args[3] === "origin/trunk"
+          )
             return { status: 0, stdout: "", stderr: "" };
-          }
           return {
             status: 1,
             stdout: "",
@@ -236,15 +241,85 @@ describe("git-finalize helpers", () => {
     );
 
     expect(result).toEqual({
-      reachable: false,
-      unmergedCommits: ["abc123 unmerged"],
+      reachable: true,
+      unmergedCommits: [],
+      refSource: "refreshed_ref",
     });
-    expect(calls).toContainEqual(["fetch", "origin", "trunk"]);
     expect(calls).toContainEqual([
-      "log",
-      "--oneline",
-      "origin/trunk..change/example",
+      "fetch",
+      "origin",
+      "refs/heads/trunk:refs/remotes/origin/trunk",
+      "+refs/heads/change/example:refs/remotes/origin/change/example",
     ]);
+    expect(calls).toContainEqual([
+      "rev-parse",
+      "--verify",
+      "refs/remotes/origin/change/example",
+    ]);
+    expect(calls).toContainEqual([
+      "merge-base",
+      "--is-ancestor",
+      "tip-sha",
+      "origin/trunk",
+    ]);
+  });
+
+  it("verifyChangeBranchReachableFromOrigin uses persisted tip without network", () => {
+    const calls: string[][] = [];
+    const result = verifyChangeBranchReachableFromOrigin(
+      "/repo",
+      "trunk",
+      "example",
+      {
+        changeTipSha: "persisted-tip",
+        runGit: (_cwd, args) => {
+          calls.push(args);
+          if (
+            args[0] === "merge-base" &&
+            args[2] === "persisted-tip" &&
+            args[3] === "origin/trunk"
+          )
+            return { status: 0, stdout: "", stderr: "" };
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      reachable: true,
+      unmergedCommits: [],
+      refSource: "persisted",
+    });
+    expect(calls).toEqual([
+      ["merge-base", "--is-ancestor", "persisted-tip", "origin/trunk"],
+    ]);
+  });
+
+  it("verifyChangeBranchReachableFromOrigin fails closed without commit evidence when the ref is unresolved", () => {
+    const result = verifyChangeBranchReachableFromOrigin(
+      "/repo",
+      "trunk",
+      "example",
+      {
+        runGit: (_cwd, args) => {
+          if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (args[0] === "rev-parse") {
+            return {
+              status: 128,
+              stdout: "",
+              stderr: "fatal: ambiguous argument: missing ref",
+            };
+          }
+          return { status: 1, stdout: "", stderr: "unexpected" };
+        },
+      },
+    );
+
+    expect(result).toEqual({
+      reachable: false,
+      unmergedCommits: [],
+      refUnresolved: true,
+    });
   });
 
   it("classifyFinalizationRoute uses remote and ruleset evidence", () => {
@@ -545,6 +620,11 @@ describe("git-finalize helpers", () => {
       {
         runGit: (_cwd, args) => {
           if (args[0] === "fetch") return { status: 0, stdout: "", stderr: "" };
+          if (
+            args[0] === "rev-parse" &&
+            args[2]?.includes("refs/remotes/origin/change/")
+          )
+            return { status: 0, stdout: "change-tip\n", stderr: "" };
           if (args[0] === "rev-parse")
             return { status: 0, stdout: "abc123\n", stderr: "" };
           if (args[0] === "ls-remote")
@@ -990,9 +1070,8 @@ describe("git-finalize helpers", () => {
               stdout: "abc123\trefs/heads/trunk\n",
               stderr: "",
             };
-          if (args[0] === "log")
+          if (args[0] === "merge-base")
             return {
-              // Empty means change branch IS reachable from origin/trunk
               status: 0,
               stdout: "",
               stderr: "",
