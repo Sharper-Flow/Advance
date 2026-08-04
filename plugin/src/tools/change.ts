@@ -545,6 +545,84 @@ async function convergeTerminalAuthority(input: {
   return { kind: "converged", readback: readback.readback };
 }
 
+type ArchivedNoWorkflowProofResult =
+  | {
+      ok: true;
+      bundleSha256: string;
+      finalization: GitFinalizeOutcome;
+    }
+  | {
+      ok: false;
+      code:
+        | Extract<ShippedTerminalProofResult, { ok: false }>["refusalCode"]
+        | "PROOF_BUNDLE_NOT_ON_DEFAULT_BRANCH";
+      evidence: string;
+    };
+
+/**
+ * Full proof for repairing an already-archived projection whose workflow is
+ * absent. The normal shipped-terminal proof protects the live-workflow
+ * termination path; this stricter variant additionally requires the disk
+ * projection to already be archived and re-verifies release reachability from
+ * the default branch before the convergence write.
+ */
+async function verifyArchivedNoWorkflowProof(input: {
+  store: Store;
+  changeId: string;
+  change: Change;
+  shippedTerminalProof: ShippedTerminalProofResult;
+}): Promise<ArchivedNoWorkflowProofResult> {
+  if (!input.shippedTerminalProof.ok) {
+    return {
+      ok: false,
+      code: input.shippedTerminalProof.refusalCode,
+      evidence: input.shippedTerminalProof.evidence,
+    };
+  }
+  if (input.shippedTerminalProof.diskChange.status !== "archived") {
+    return {
+      ok: false,
+      code: "PROOF_INVALID_DISK_PROJECTION",
+      evidence: `disk projection status: ${input.shippedTerminalProof.diskChange.status}; expected archived`,
+    };
+  }
+
+  const { archiveMode } = detectArchiveMode(input.store.config ?? {});
+  const finalization = verifyReleaseEvidenceFromMain({
+    store: input.store,
+    changeId: input.changeId,
+    archiveMode,
+    change: input.change,
+  });
+  if (finalization.status !== "shipped") {
+    return {
+      ok: false,
+      code: "PROOF_BUNDLE_NOT_ON_DEFAULT_BRANCH",
+      evidence:
+        finalization.blocked?.reason ??
+        `default-branch release proof status: ${finalization.status}`,
+    };
+  }
+
+  try {
+    const bundleText = await readFile(
+      join(input.shippedTerminalProof.bundlePath, "change.json"),
+      "utf8",
+    );
+    return {
+      ok: true,
+      bundleSha256: createHash("sha256").update(bundleText).digest("hex"),
+      finalization,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      code: "PROOF_INVALID_BUNDLE",
+      evidence: `bundle proof receipt could not be read: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /**
  * Format a non-converged result from convergeTerminalAuthority into the
  * operator-facing tool output. Used by both the terminate-then-converge and
@@ -5863,18 +5941,6 @@ export const changeTools = {
       }
       const change = result.data;
 
-      // Archived changes route to adv_archive_purge — the sole archived-change
-      // termination lever. This preserves rq-archivePurge01 semantics exactly.
-      if (change.status === "archived") {
-        return formatToolOutput({
-          success: false,
-          error: `Workflow termination refused: change ${changeId} is archived.`,
-          changeId,
-          currentStatus: change.status,
-          hint: "Use adv_archive_purge for archived changes — it is the sole archived-change workflow termination lever.",
-        });
-      }
-
       const { getService } = await import("../temporal/service");
       const service = getService();
       const projectId = service ? await getProjectId(store.paths.root) : null;
@@ -5889,6 +5955,7 @@ export const changeTools = {
       }
       const { getChangeHandle } = await import("./_adapters");
       const handle = getChangeHandle(service, projectId, changeId);
+      const archivedProjection = change.status === "archived";
 
       // Idempotent completed/not-found handling — reachable here, AFTER
       // approval + existence + archived status eligibility.
@@ -5932,6 +5999,7 @@ export const changeTools = {
 
       let description: unknown;
       let describeThrewCompleted = false;
+      let describeConfirmedAbsent = false;
       try {
         description = await handle.describe();
       } catch (error) {
@@ -5940,9 +6008,12 @@ export const changeTools = {
           // require shipped-terminal proof when this could be a shipped-
           // terminal recovery. Poisoned runs that threw not-found have no
           // description to check, but we still must verify structural proof
-          // before declaring success on a shipped-terminal-shape change.
-          describeThrewCompleted = true;
-          description = null;
+           // before declaring success on a shipped-terminal-shape change.
+           describeThrewCompleted = true;
+           describeConfirmedAbsent =
+             error instanceof Error &&
+             error.name.toLowerCase() === "workflownotfounderror";
+           description = null;
         } else {
           return formatToolOutput({
             success: false,
@@ -5951,6 +6022,20 @@ export const changeTools = {
             workflowTerminated: false,
           });
         }
+      }
+
+      // Archived changes still route to adv_archive_purge while a workflow is
+      // reachable. Only a describe-confirmed absent workflow may use this
+      // repair path; a RUNNING or already-terminal description must preserve
+      // the archived-only purge boundary.
+      if (archivedProjection && !describeConfirmedAbsent) {
+        return formatToolOutput({
+          success: false,
+          error: `Workflow termination refused: change ${changeId} is archived.`,
+          changeId,
+          currentStatus: change.status,
+          hint: "Use adv_archive_purge for archived changes — it is the sole archived-change workflow termination lever.",
+        });
       }
 
       const { runId, statusName } = describeThrewCompleted
@@ -5974,6 +6059,20 @@ export const changeTools = {
           changeId,
         });
       }
+      const archivedNoWorkflowProof =
+        archivedProjection && describeConfirmedAbsent
+          ? await verifyArchivedNoWorkflowProof({
+              store,
+              changeId,
+              change,
+              shippedTerminalProof:
+                shippedTerminalProof ?? {
+                  ok: false,
+                  refusalCode: "PROOF_INVALID_DISK_PROJECTION",
+                  evidence: "shipped-terminal proof was not computed",
+                },
+            })
+          : undefined;
 
       // Already-terminal / describe-not-found idempotent paths.
       if (
@@ -6026,6 +6125,34 @@ export const changeTools = {
               hint: "Idempotent completed/not-found describe requires complete shipped-terminal proof (all 7 disk gates + phase9 done + valid archive bundle). Complete the proof, run adv_doctor to diagnose a wedged projection (status-flip recovery is being internalized per design D4), or use adv_archive_purge if the change is already archived on disk.",
             });
           }
+          if (archivedNoWorkflowProof && !archivedNoWorkflowProof.ok) {
+            return formatToolOutput({
+              success: false,
+              error: `Archived no-workflow repair refused: ${archivedNoWorkflowProof.code}: ${archivedNoWorkflowProof.evidence}`,
+              code: archivedNoWorkflowProof.code,
+              changeId,
+              eligibilityClass: "shipped_terminal",
+              shippedTerminalProof: {
+                ok: true,
+                bundlePath: shippedTerminalProof.bundlePath,
+              },
+            });
+          }
+          if (dryRun && archivedNoWorkflowProof?.ok) {
+            return formatToolOutput({
+              success: true,
+              dryRun: true,
+              wouldConverge: true,
+              changeId,
+              eligibilityClass: "shipped_terminal",
+              shippedTerminalProof: {
+                ok: true,
+                bundlePath: shippedTerminalProof.bundlePath,
+                bundleSha256: archivedNoWorkflowProof.bundleSha256,
+                proofReceipt: archivedNoWorkflowProof.finalization,
+              },
+            });
+          }
           // Proof OK: converge authority (write status+lifecycleState, readback).
           const fromStatus = change.status;
           const converge = await convergeTerminalAuthority({
@@ -6058,8 +6185,28 @@ export const changeTools = {
               shippedTerminalProof: {
                 ok: true,
                 bundlePath: shippedTerminalProof.bundlePath,
+                ...(archivedNoWorkflowProof?.ok
+                  ? {
+                      bundleSha256: archivedNoWorkflowProof.bundleSha256,
+                      proofReceipt: archivedNoWorkflowProof.finalization,
+                    }
+                  : {}),
               },
               readback: converge.readback,
+              ...(archivedNoWorkflowProof?.ok
+                ? {
+                    convergedCount: 1,
+                    convergence: {
+                      changes: [
+                        {
+                          changeId,
+                          bundleSha256: archivedNoWorkflowProof.bundleSha256,
+                          proofReceipt: archivedNoWorkflowProof.finalization,
+                        },
+                      ],
+                    },
+                  }
+                : {}),
               message: `Change ${changeId} workflow run was already gone; converged terminal authority (status+lifecycleState=archived).`,
             });
           }

@@ -5,8 +5,8 @@
  * wedged run of a shipped change's workflow, pinned via describe() runId.
  * NOT a Temporal Reset — termination only, with the disk projection left
  * authoritative. Archive purge semantics (rq-archivePurge01) are untouched:
- * archived changes route to adv_archive_purge, which remains the sole lever
- * for archived-change workflow termination and bundle removal.
+ * reachable archived changes route to adv_archive_purge; an exact
+ * WorkflowNotFoundError may use the shipped-terminal convergence repair.
  *
  * Contract encoded here (RED phase — tool not yet implemented):
  *   - Approval-first: approvedByUser + non-blank approvalEvidence gate any
@@ -42,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   getChangeHandle: vi.fn(),
   describe: vi.fn(),
   terminate: vi.fn(),
+  verifyReleaseEvidenceFromMain: vi.fn(),
 }));
 
 const TERMINATE_EVIDENCE =
@@ -67,6 +68,16 @@ vi.mock("./_adapters", async () => {
   return {
     ...actual,
     getChangeHandle: mocks.getChangeHandle,
+  };
+});
+
+vi.mock("./change/archive-gate", async () => {
+  const actual = await vi.importActual<typeof import("./change/archive-gate")>(
+    "./change/archive-gate",
+  );
+  return {
+    ...actual,
+    verifyReleaseEvidenceFromMain: mocks.verifyReleaseEvidenceFromMain,
   };
 });
 
@@ -206,6 +217,15 @@ describe("adv_change_workflow_terminate", () => {
     });
     mocks.describe.mockResolvedValue(poisonedRunningDescription());
     mocks.terminate.mockResolvedValue(undefined);
+    mocks.verifyReleaseEvidenceFromMain.mockReturnValue({
+      status: "shipped",
+      repoRoot: "/tmp/main",
+      defaultBranch: "trunk",
+      route: "direct",
+      releasedCommitSha: "released-sha",
+      mergeCommitSha: "merge-sha",
+      pushStatus: "pushed",
+    });
   });
 
   test("is registered on the canonical tool list", () => {
@@ -287,8 +307,134 @@ describe("adv_change_workflow_terminate", () => {
     expect(parsed.success).toBe(false);
     expect(parsed.error).toMatch(/archived/i);
     expect(parsed.hint).toMatch(/adv_archive_purge/);
-    expect(mocks.describe).not.toHaveBeenCalled();
+    expect(mocks.describe).toHaveBeenCalledTimes(1);
     expect(mocks.terminate).not.toHaveBeenCalled();
+  });
+
+  test("repairs archived no-workflow population through shipped-terminal convergence", async () => {
+    const change = shippedTerminalChange({
+      status: "archived",
+      lifecycleState: "open",
+    });
+    const tempRoot = await mkdtemp(join(tmpdir(), "adv-wf-terminate-repair-"));
+    try {
+      const store = await createDiskBackedMockStore(change, tempRoot);
+      const bundlePath = join(store.paths.archive, `2026-01-15-${change.id}`);
+      await mkdir(bundlePath, { recursive: true });
+      await writeFile(
+        join(bundlePath, "change.json"),
+        JSON.stringify(change, null, 2),
+      );
+      mocks.describe.mockRejectedValue(notFoundError());
+      (store.changes.get as ReturnType<typeof vi.fn>).mockImplementation(
+        async (id: string) => ({
+          success: true,
+          data:
+            id === change.id
+              ? JSON.parse(
+                  await readFile(
+                    join(store.paths.changes, change.id, "change.json"),
+                    "utf8",
+                  ),
+                )
+              : null,
+        }),
+      );
+      store.changes.list = vi.fn(async (query: unknown) => ({
+        changes: (query as { status?: string } | null)?.status === "archived"
+          ? [
+              JSON.parse(
+                await readFile(
+                  join(store.paths.changes, change.id, "change.json"),
+                  "utf8",
+                ),
+              ),
+            ]
+          : [],
+      })) as unknown as Store["changes"]["list"];
+
+      const result = await tool().execute(
+        {
+          changeId: change.id,
+          approvedByUser: true,
+          approvalEvidence: TERMINATE_EVIDENCE,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(true);
+      expect(parsed.converged).toBe(true);
+      expect(parsed.convergedCount).toBe(1);
+      expect(parsed.convergence.changes[0]).toMatchObject({
+        changeId: change.id,
+        proofReceipt: {
+          defaultBranch: "trunk",
+          releasedCommitSha: "released-sha",
+        },
+      });
+      expect(parsed.convergence.changes[0].bundleSha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(mocks.terminate).not.toHaveBeenCalled();
+
+      const repaired = JSON.parse(
+        await readFile(
+          join(store.paths.changes, change.id, "change.json"),
+          "utf8",
+        ),
+      ) as Change;
+      expect(repaired.status).toBe("archived");
+      expect(repaired.lifecycleState).toBe("archived");
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("refuses archived no-workflow repair when the bundle is not proven on default branch", async () => {
+    const change = shippedTerminalChange({
+      status: "archived",
+      lifecycleState: "open",
+    });
+    const tempRoot = await mkdtemp(join(tmpdir(), "adv-wf-terminate-proof-"));
+    try {
+      const store = await createDiskBackedMockStore(change, tempRoot);
+      const bundlePath = join(store.paths.archive, `2026-01-15-${change.id}`);
+      await mkdir(bundlePath, { recursive: true });
+      await writeFile(
+        join(bundlePath, "change.json"),
+        JSON.stringify(change, null, 2),
+      );
+      mocks.describe.mockRejectedValue(notFoundError());
+      mocks.verifyReleaseEvidenceFromMain.mockReturnValue({
+        status: "blocked",
+        repoRoot: "/tmp/main",
+        defaultBranch: "trunk",
+        route: "direct",
+        pushStatus: "not_attempted",
+        blocked: { reason: "CHANGE_BRANCH_NOT_REACHABLE" },
+      });
+
+      const result = await tool().execute(
+        {
+          changeId: change.id,
+          approvedByUser: true,
+          approvalEvidence: TERMINATE_EVIDENCE,
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      expect(parsed.success).toBe(false);
+      expect(parsed.code).toBe("PROOF_BUNDLE_NOT_ON_DEFAULT_BRANCH");
+      expect(parsed.converged).toBeUndefined();
+      expect(mocks.terminate).not.toHaveBeenCalled();
+      const unchanged = JSON.parse(
+        await readFile(
+          join(store.paths.changes, change.id, "change.json"),
+          "utf8",
+        ),
+      ) as Change;
+      expect(unchanged.lifecycleState).toBe("open");
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
+    }
   });
 
   test("refuses change without shipped acceptance/release gate proof", async () => {
