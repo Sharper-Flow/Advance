@@ -1414,4 +1414,54 @@ describe("advWorktreeTools", () => {
     expect(out).toContain("timed out after");
     expect(out).toContain("effectiveTimeoutMs");
   }, 12_000);
+
+  // Same defect class as the cleanup timeout branch (AC3): these paths race a
+  // setTimeout sentinel, not a rejection, so there is no error object to
+  // classify. rq-worktreePoisonVisibility01 forbids naming poisoned history
+  // without error-class plus structured evidence.
+  it("adv_worktree_delete does not assert a poisoned workflow or refer to adv_doctor on timeout", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDelete.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const out = await advWorktreeTools.adv_worktree_delete.execute(
+      { branch: "change/x", force: false },
+      store,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.timedOut).toBe(true);
+    expect(parsed.error).not.toMatch(/poison/i);
+    expect(parsed.error).not.toContain("adv_doctor");
+    expect(parsed.remediation).not.toMatch(/poison/i);
+    expect(parsed.remediation).not.toContain("adv_doctor");
+  }, 20_000);
+
+  it("adv_worktree_detach does not refer to adv_doctor on timeout", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDetachBatch.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const out = await advWorktreeTools.adv_worktree_detach.execute(
+      { branches: ["change/x"], cutoffMs: 60_000, mode: "dry_run" },
+      store,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.timedOut).toBe(true);
+    expect(parsed.error).not.toMatch(/poison/i);
+    expect(parsed.error).not.toContain("adv_doctor");
+    expect(parsed.remediation).not.toMatch(/poison/i);
+    expect(parsed.remediation).not.toContain("adv_doctor");
+  }, 20_000);
 });

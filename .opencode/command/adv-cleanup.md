@@ -244,3 +244,4 @@ Emit closing summary. Use Gate Handoff Voice spine but omit gate footer; cleanup
 | Discover state leaks | `adv_status` (`view: "hygiene"`) |
 | Delete a worktree | `adv_worktree_delete` |
 | APPLY — delete merged archived branches (Phase 5 only, after typed confirmation) | `adv_worktree_cleanup` (`mode: "archived_branches"`) |
+| RECOVERY — a prior cleanup timed out during discovery | `adv_worktree_cleanup` (`skipDiscovery: true`) — drains already-queued pending deletes without repeating the discovery scan. Worktrees mode only; ignored in `archived_branches`. Drains only entries a prior discovery already validated, so it grants no new deletion authority (`rq-terminalCleanupSafety01`). |

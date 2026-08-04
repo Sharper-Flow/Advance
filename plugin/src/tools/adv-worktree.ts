@@ -285,10 +285,14 @@ async function executeWorktreeDelete(
       formatToolOutput({
         ok: false,
         timedOut: true,
-        error: `adv_worktree_delete timed out after ${effectiveTimeoutMs}ms. Delete likely blocked on a stuck git operation or poisoned workflow signal.`,
+        // No poison claim: this branch resolves a setTimeout sentinel, not a
+        // rejection, so there is no error to classify. rq-worktreePoisonVisibility01
+        // requires error-class plus structured evidence before naming poisoned
+        // history — asserting it here would be a guess.
+        error: `adv_worktree_delete timed out after ${effectiveTimeoutMs}ms. The inner promise was not cancelled; the delete may still resolve.`,
         effectiveTimeoutMs,
         remediation:
-          "Retry the deletion after the underlying operation resolves. Use adv_doctor to check workflow health.",
+          "Re-run the deletion — a completed delete is idempotent, and a still-blocked one returns typed retained state. Run adv_worktree_triage to inspect the worktree's current state first.",
       }),
       context,
     );
@@ -525,10 +529,12 @@ async function executeWorktreeDetach(
       formatToolOutput({
         ok: false,
         timedOut: true,
-        error: `adv_worktree_detach timed out after ${effectiveTimeoutMs}ms. Detach likely blocked on a stuck git operation or workflow signal.`,
+        // No unevidenced cause claim: this branch resolves a setTimeout
+        // sentinel, not a rejection (rq-worktreePoisonVisibility01).
+        error: `adv_worktree_detach timed out after ${effectiveTimeoutMs}ms. The inner promise was not cancelled; the detach batch may still resolve.`,
         effectiveTimeoutMs,
         remediation:
-          "Retry the detach after the underlying operation resolves. Use adv_doctor to check workflow health.",
+          "Re-run the detach in mode:dry_run first to see current eligibility, then re-apply. Run adv_worktree_triage to inspect worktree state.",
       }),
       context,
     );
