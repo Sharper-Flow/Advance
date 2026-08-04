@@ -357,6 +357,16 @@ const planBaseFields = {
   provenance: PhasePlanProvenanceSchema,
 };
 
+export const PhaseDirectiveSchema = z
+  .object({
+    kind: z.literal("phase_directive"),
+    command: z.enum(["adv-review"]),
+    content: z.string().min(1),
+    contentHash: z.string().regex(/^[0-9a-f]{64}$/),
+  })
+  .strict();
+export type PhaseDirective = z.infer<typeof PhaseDirectiveSchema>;
+
 export const ActionablePhasePlanSchema = z
   .object({
     ...planBaseFields,
@@ -368,6 +378,7 @@ export const ActionablePhasePlanSchema = z
     initial: z.boolean(),
     evidence: z.array(z.string().min(1)).max(PHASE_PLAN_MAX_EVIDENCE),
     guidance: z.array(z.string().min(1)).max(PHASE_PLAN_MAX_GUIDANCE),
+    directive: PhaseDirectiveSchema.optional(),
   })
   .strict();
 export type ActionablePhasePlan = z.infer<typeof ActionablePhasePlanSchema>;
