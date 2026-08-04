@@ -1069,7 +1069,8 @@ async function completeGateAndBuildResponse({
   // Temporal-first proposal read per KD-6. Falls back to disk/archive via
   // readArtifact; null result means no proposal content yet — pass empty
   // string downstream (gate-completion success output, not validation).
-  const proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
+  const proposalText =
+    (await readArtifact(store, changeId, "proposal"))?.content ?? "";
 
   // AC5: gate-completion snapshot carries the `Next:` orientation line so the
   // agent knows which gate/command follows the just-completed gate. Best
@@ -1181,7 +1182,7 @@ async function handlePlanningGateCompletion({
   if (clarifyMode !== "off") {
     // Temporal-first proposal read for clarify-readiness validator input.
     const proposalText =
-      (await readArtifact(store, changeId, "proposal")) ?? "";
+      (await readArtifact(store, changeId, "proposal"))?.content ?? "";
     const clarifyResult = runClarifyReadinessChecks(change, proposalText);
 
     if (clarifyResult.findings.length > 0) {

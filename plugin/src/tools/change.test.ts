@@ -1270,6 +1270,116 @@ describe("change tools — signal-driven lifecycle", () => {
       }
     });
 
+    test("serves artifact content from the durable projection when the workflow query is unserved (AC1/AC2)", async () => {
+      // Regression: a change whose originating session ended leaves its
+      // workflow on an unpolled task queue, so the state.documents Query is
+      // never served. The content is still durable in the projection's
+      // `documents` map, so readback must return it rather than reporting the
+      // artifact unreadable. The change.ts subread previously refused to even
+      // invoke the artifact read once the aggregate deadline was spent,
+      // surfacing `_artifactsError` while the content sat on disk.
+      const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
+      const { tmpdir } = await import("os");
+      const { join: pathJoin } = await import("path");
+      const tempRoot = await mkdtemp(pathJoin(tmpdir(), "adv-orphan-wf-"));
+      const changesDir = pathJoin(tempRoot, ".adv/changes");
+      const changeDir = pathJoin(changesDir, "test-change");
+      await mkdir(changeDir, { recursive: true });
+
+      const summary = "# Executive Summary\n\nDurable projection content.\n";
+      await writeFile(
+        pathJoin(changeDir, "change.json"),
+        JSON.stringify({
+          id: "test-change",
+          title: "Test Change",
+          status: "active",
+          documents: { executiveSummary: summary },
+        }),
+        "utf-8",
+      );
+
+      try {
+        const store = createMockStore({
+          artifacts: {
+            executiveSummary: {
+              path: pathJoin(changeDir, "executive-summary.md"),
+              updatedAt: "2026-08-01T22:21:50.378Z",
+              source: "temporal",
+              readable: false,
+            },
+          },
+        });
+        (store.paths as { changes: string }).changes = changesDir;
+        (store.paths as { root: string }).root = tempRoot;
+
+        // Simulate the orphaned-queue condition: every workflow query fails
+        // with the same bounded-read timeout observed in production.
+        const { TemporalQueryTimeoutError } =
+          await import("../temporal/retry-wrapper");
+        // Reproduce the production budget arithmetic: resolving the change
+        // record itself consumed ~7.3s of the 8s aggregate read budget, so the
+        // artifact subread found the deadline already spent. Advance a mocked
+        // clock rather than actually sleeping.
+        const realNow = Date.now.bind(Date);
+        let clockOffsetMs = 0;
+        const nowSpy = vi
+          .spyOn(Date, "now")
+          .mockImplementation(() => realNow() + clockOffsetMs);
+        let call = 0;
+        (
+          store.changes as unknown as { get: (...args: unknown[]) => unknown }
+        ).get = vi.fn(async () => {
+          call += 1;
+          // The first read resolves the change record itself (served from the
+          // disk projection in production); subsequent artifact-content reads
+          // are the ones that hit the unserved workflow query.
+          if (call === 1) {
+            clockOffsetMs += 9_000; // exceeds TEMPORAL_READ_DEADLINE_BUDGET_MS
+            return {
+              success: true,
+              data: {
+                id: "test-change",
+                title: "Test Change",
+                status: "active",
+                tasks: [],
+                deltas: {},
+                wisdom: [],
+                gates: {
+                  proposal: { status: "done" },
+                  discovery: { status: "done" },
+                  design: { status: "done" },
+                  planning: { status: "done" },
+                  execution: { status: "done" },
+                  acceptance: { status: "done" },
+                  release: { status: "pending" },
+                },
+              },
+            };
+          }
+          throw new TemporalQueryTimeoutError(1_500);
+        });
+
+        const result = await changeTools.adv_change_show.execute(
+          {
+            changeId: "test-change",
+            include: { artifactOnly: true, executiveSummary: true },
+          },
+          store,
+        );
+
+        const parsed = JSON.parse(result);
+        nowSpy.mockRestore();
+        expect(parsed._executiveSummary).toBe(summary);
+        expect(parsed._artifactsError).toBeUndefined();
+        expect(parsed._artifactSources?.executiveSummary).toBe(
+          "active_projection",
+        );
+      } finally {
+        vi.restoreAllMocks();
+        await rm(tempRoot, { recursive: true, force: true });
+      }
+    });
+
     test("returns _executiveSummary content when include.executiveSummary is set and file exists", async () => {
       const { mkdtemp, mkdir, writeFile, rm } = await import("fs/promises");
       const { tmpdir } = await import("os");

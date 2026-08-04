@@ -1,0 +1,18 @@
+{
+  "archived_at": "2026-08-04T04:40:28.644Z",
+  "capabilities": [
+    "advance-workflow"
+  ],
+  "change_hash": "a5b74ff5700cadd3130a89da855ac6dba68344014239d0d2114b32b109dd9e5a",
+  "change_id": "fixArtifactReadFallback",
+  "completed_tasks": 4,
+  "created_at": "2026-08-04T01:40:01.899Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-04T04:22:41.901Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "fe28aae89b92bd6401bd864fc809f1680f003dde6d20ce4675f8eabb549d02e2",
+  "task_count": 4,
+  "title": "Fix artifact read fallback",
+  "version": "1"
+}

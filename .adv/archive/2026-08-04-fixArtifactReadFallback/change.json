@@ -1,0 +1,2570 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixArtifactReadFallback",
+  "title": "Fix artifact read fallback",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-04T01:40:01.899Z",
+  "tasks": [
+    {
+      "id": "tk-02ba7a18ed0e",
+      "title": "Add disk-projection documents fallback tier with provenance tagging to artifact readback.",
+      "type": "code",
+      "section": "Artifact read fallback",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-04T01:54:38.265Z",
+      "started_at": "2026-08-04T01:59:51.284Z",
+      "completed_at": "2026-08-04T02:25:38.988Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Inline TDD: RED tr_mse17xsm_c44d32b5 (adv_change_show returned _executiveSummary undefined with the aggregate deadline spent — reproduced the production defect); GREEN tr_mse1anem_1ea6b8d4; VERIFY tr_mse1b6fw_61bf75ef (258 tests across change/artifacts/gate/contract/no-disk-writes) and tr_mse1cnzr_3aaeaac3 (176 tests post-format). pnpm run typecheck clean; eslint clean on all touched source files. Delegated engineer implemented the artifacts.ts tier (workflow → active_projection → disk → archive, provenance-tagged, projection read ungated by the Temporal deadline) and correctly reported a blocker: change.ts subread gating made the tier unreachable. Resolved inline by adding subread.runLocalCapable, which invokes local-capable reads even when the Temporal budget is exhausted, and passing readCtx.deadline into readArtifacts so only its Temporal tier self-gates. Campsite: extracted applyArtifactContentToOutput to replace ~60 lines of duplicated comma-operator assignment across both call sites; fixed an indentation defect in readArtifacts.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/change.read-artifact.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/artifacts.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/status-enrich.ts"
+      ],
+      "checkpointSha": "6bf9a1d4da63e6387c61beeab7b93d53d1ea8a31",
+      "completedAt": "2026-08-04T02:25:38.988Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C5",
+          "DONT2",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/tools/change.read-artifact.test.ts",
+        "plugin/src/tools/change.test.ts",
+        "plugin/src/tools/change.ts",
+        "plugin/src/tools/change/artifacts.ts",
+        "plugin/src/tools/contract.ts",
+        "plugin/src/tools/gate.ts",
+        "plugin/src/tools/status-enrich.ts"
+      ]
+    },
+    {
+      "id": "tk-dec9c6c1e876",
+      "title": "Probe session task queues in adv_doctor with graded serviceability classification.",
+      "type": "code",
+      "section": "Doctor queue diagnostics",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-08-04T01:55:11.024Z",
+      "started_at": "2026-08-04T02:26:07.395Z",
+      "completed_at": "2026-08-04T03:39:17.193Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "../bin/oc-test targeted -- src/tools/doctor.test.ts (30 passed); ../bin/oc-test targeted -- src/temporal/list-orphan-session-queues.test.ts (6 passed); pnpm run check (pass, 4 pre-existing eslint warnings).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/health-probe.ts",
+        "plugin/src/temporal/list-orphan-session-queues.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ],
+      "checkpointSha": "115bb0b6719314015e3028149a17a326a14979d8",
+      "completedAt": "2026-08-04T03:39:17.193Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC6",
+          "AC7",
+          "AC8",
+          "AC9",
+          "AC10"
+        ],
+        "respects": [
+          "C4",
+          "C6",
+          "DONT1",
+          "DONT5"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_preferred"
+      },
+      "touched_files": [
+        "plugin/src/temporal/health-probe.ts",
+        "plugin/src/temporal/list-orphan-session-queues.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArtifactReadFallback",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArtifactReadFallback",
+          "task_id": "tk-dec9c6c1e876",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dec9c6c1e876"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/doctor.ts",
+            "plugin/src/tools/doctor.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mse1n887_ed7c57ee",
+              "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+              "exit_code": 1,
+              "summary": "RED: intentionally failing AC6 assertion confirmed the new session/project queue-row test detects missing graded output."
+            },
+            {
+              "test_run_id": "tr_mse1nqi1_d82db131",
+              "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 26 doctor tests passed."
+            },
+            {
+              "test_run_id": "tr_mse1ov2r_6a6515ee",
+              "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+              "exit_code": 0,
+              "summary": "Verification: 26 doctor tests passed after formatting."
+            },
+            {
+              "test_run_id": "tr_mse1pgzt_024b5bca",
+              "command": "pnpm --dir plugin run typecheck",
+              "exit_code": 0,
+              "summary": "TypeScript typecheck passed."
+            },
+            {
+              "test_run_id": "tr_mse1puo1_30c237f0",
+              "command": "pnpm --dir plugin exec eslint src/tools/doctor.ts",
+              "exit_code": 0,
+              "summary": "ESLint passed for doctor.ts."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Represent per-queue probe results as graded rows in verification.queue_serviceability while retaining verification.queue_serviceable.",
+              "why": "Preserves the existing boolean compatibility field and exposes queue type, status, serviceability, poller count, last poller time, and owning session together."
+            },
+            {
+              "what": "Treat a non-fresh session queue as a finding only when getCurrentSessionId() identifies the current owning session.",
+              "why": "Current-session ownership is the expected-alive signal; absent session identity represents legacy or ended-session context and must not create a false-red diagnosis."
+            },
+            {
+              "what": "Keep session probing bounded to one project queue plus one current-session queue per diagnose/recheck phase.",
+              "why": "Matches the required topology and avoids unbounded DescribeTaskQueue fan-out."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned the doctor queue-probe call sites and mirrored the existing status-health/session-id/task-queue naming pattern; both diagnose and recheck paths now use the same bounded probe helper. No out-of-scope fixes applied.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "adv_doctor now probes project plus current session queues, reports graded fresh/stale/none/unavailable rows with owningSession and preserves queue_serviceable. It adds a session_queue_unserviceable finding only for an identified current session; undefined session ID skips session probing and preserves legacy verification shape. Doctor tests, typecheck, ESLint, and formatting pass.",
+            "suggested_next_action": "Review diff and proceed with the orchestrator's task checkpoint/acceptance flow."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse1n887_ed7c57ee"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse1nqi1_d82db131"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse1ov2r_6a6515ee"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse1pgzt_024b5bca"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse1puo1_30c237f0"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "fixArtifactReadFallback",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArtifactReadFallback",
+          "task_id": "tk-dec9c6c1e876",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-dec9c6c1e876"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/doctor.ts",
+            "plugin/src/tools/doctor.test.ts",
+            "plugin/src/temporal/list-orphan-session-queues.ts",
+            "plugin/src/temporal/health-probe.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mse3rhfo_694063ac",
+              "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+              "exit_code": 1,
+              "summary": "TDD RED: new orphaned-session assertions failed before implementation (2 expected failures)."
+            },
+            {
+              "test_run_id": "tr_mse3uisl_6ceef270",
+              "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 30 doctor tests passed, including informational orphan findings, noise suppression, cap/concurrency, AC9, AC10, and current-session unhealthy behavior."
+            },
+            {
+              "test_run_id": "tr_mse3wnh8_cc70a188",
+              "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: formatted doctor tests pass (30 tests)."
+            },
+            {
+              "test_run_id": "tr_mse3yvqw_5ebdb4c4",
+              "command": "../bin/oc-test targeted -- src/temporal/list-orphan-session-queues.test.ts",
+              "exit_code": 0,
+              "summary": "VERIFY: existing orphan queue enumeration tests pass (6 tests)."
+            },
+            {
+              "test_run_id": "tr_mse3yj6f_561f6a39",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "PASS: schemas, typecheck, manifest/frontmatter/isolation/lockfile checks, lint, and formatting. Four pre-existing eslint warnings remain; zero errors."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Reused listOrphanSessionQueues as the Visibility enumeration path and added opt-in workflowIds details.",
+              "why": "It already lists RUNNING project change workflows, resolves their taskQueue, groups distinct session queues, and excludes queues supplied as already polled; opt-in details preserve existing adopter output shape."
+            },
+            {
+              "what": "Added an informational DoctorFinding class with an embedded extended DoctorQueueProbe.",
+              "why": "Ended-session queue silence is normal; only status none with stranded RUNNING workflows is surfaced, while success and verification.healthy remain true and current-session unhealthy behavior remains unchanged."
+            },
+            {
+              "what": "Capped orphan queue probes at 8 and ran at most 4 probes concurrently.",
+              "why": "Bounds DescribeTaskQueue Visibility pressure while retaining enough diagnostic coverage; omitted queues are reported with an explicit count."
+            },
+            {
+              "what": "Moved doctor queue probes through the existing 30-second poller cache.",
+              "why": "Avoids duplicate DescribeTaskQueue calls across health and doctor surfaces under the newer Temporal Visibility RPS constraint."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned the existing orphan-session enumeration, queue serviceability, health cache, doctor, and related tests. Preserved legacy listOrphanSessionQueues output by making workflow detail collection opt-in; no unrelated queue behavior changed.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "AC8 is closed: doctor enumerates distinct ended-session queues that still own RUNNING change workflows, probes only 8 with max concurrency 4 via the shared 30s cache, and emits informational findings containing queue, session, graded status, stranded count, and ids. Empty ended queues are suppressed; informational findings do not make success or verification.healthy false. Commit 115bb0b6719314015e3028149a17a326a14979d8 is recorded on the task branch.",
+            "suggested_next_action": "Run acceptance review against AC8, then continue the orchestrator-owned gate flow."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-dec9c6c1e876_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "fixArtifactReadFallback|tk-dec9c6c1e876|adv-engineer|1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tk-974743c3e467",
+      "title": "Stage the rq-artifactPathTruth01 spec delta for the projection fallback tier and provenance tagging.",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-02ba7a18ed0e"
+        }
+      ],
+      "created_at": "2026-08-04T01:55:39.388Z",
+      "completed_at": "2026-08-04T02:39:40.656Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Evidence policy artifact_reference (tdd_intent not_applicable — deliverable is a staged spec-delta record, not executable behavior). Staged modify delta dl-ArtPathTruthProj01 against rq-artifactPathTruth01 under capability advance-workflow via adv_delta_modify; archive remains the sole global-spec writer and no .adv/specs file was edited directly. Retrievable proof: adv_delta_list returns the row {id: dl-ArtPathTruthProj01, operation: modify, capability: advance-workflow, target: rq-artifactPathTruth01}. Body extended to require the projection documents tier, explicit precedence (Query, then projection, then legacy disk, then archive), provenance source tagging, and reachability of the local projection read when the Temporal aggregate deadline is exhausted. Scenarios 01.1-01.3 carried forward verbatim so C2 and C3 are preserved (no fake readable paths; legacy disk and archive fallbacks remain supported); new scenarios 01.4 (projection serves reads when the workflow is unreachable) and 01.5 (artifact reads declare provenance) added. No delta staged for the doctor work: rq-isolSessionTaskQueue04.1 already mandates that behavior, so tk-dec9c6c1e876 is conformance to shipped law.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ],
+      "checkpointSha": "27714ae0216e28cfa91621c405c1a6881c94d88c",
+      "completedAt": "2026-08-04T02:39:40.656Z",
+      "contract_refs": {
+        "respects": [
+          "C2",
+          "C3"
+        ],
+        "not_applicable_reason": "Stages durable spec law for the behavior implemented and tested by tk-02ba7a18ed0e; covers no acceptance criterion directly."
+      },
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Deliverable is a staged spec delta record, not executable behavior. Proof is the retrievable staged delta via adv_delta_show; the behavior it governs is separately test-covered by tk-02ba7a18ed0e.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "artifact_reference",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "touched_files": [
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ]
+    },
+    {
+      "id": "tk-ca430b764419",
+      "title": "Verify regression coverage, worker-bundle provenance, and full check for the artifact fallback and doctor diagnostics.",
+      "type": "verification",
+      "section": "Regression verification",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-02ba7a18ed0e"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-dec9c6c1e876"
+        }
+      ],
+      "created_at": "2026-08-04T01:56:05.467Z",
+      "started_at": "2026-08-04T02:39:53.263Z",
+      "completed_at": "2026-08-04T02:50:47.208Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC11 verified. Durable evidence on this task: tr_mse24mny_068af273 (workflow-bundle-boundary + worker-bundle-manifest, 18/18 pass) and tr_mse26s7l_501aea22 (pnpm run check, exit 0). Full suite run via adv-verifier: 541 test files passed / 1 skipped, 8294 tests passed + 1 expected-fail + 12 todo, exit 0, no failures attributable to this change. C1 respected: no-disk-writes-invariant remains green (change is read-only; no artifact-content disk writes introduced). C5 respected: no retry added against fatal TemporalQueryTimeoutError and TEMPORAL_READ_DEADLINE_BUDGET_MS unchanged at 8000. C6 respected: doctor probes at most project queue + current session queue, reusing the existing 30s poller cache, no unbounded DescribeTaskQueue fan-out. Worker-bundle boundary confirmed intact — workflows.ts static import graph does not reach storage/, tools/, tool-registry.ts, plugin-init.ts, or node:*; both edited files live under tools/, so worker_bundle_impact:not_applicable is evidence-backed and no build_worker/replay_determinism provenance is required. Lint: 0 errors, 4 pre-existing no-explicit-any warnings in mock-owner.ts and operations.ts (baseline, untouched). Coverage confirmed for the projection fallback read path including the orphaned-workflow and exhausted-deadline cases, provenance tagging, tier precedence, batched readArtifacts, and doctor session-queue probing with graded classification. Two items carried to review, not silently folded: (1) doctor probes only the current session queue, so an ended peer session's orphaned queue is still unprobed and the specific motivating outage would remain undetected — deliberately not expanded because probing all 36 tracked queues would breach C6; (2) the delegated engineer's five verification rows on tk-dec9c6c1e876 carry verification_missing warnings, so that task rests on the orchestrator's independent re-verification tr_mse1slkh_90edd8cb (32 tests) rather than the worker's own unbacked run ids.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ],
+      "checkpointSha": "27714ae0216e28cfa91621c405c1a6881c94d88c",
+      "completedAt": "2026-08-04T02:50:47.208Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC11"
+        ],
+        "respects": [
+          "C1",
+          "C5",
+          "C6"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "touched_files": [
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/tools/doctor.ts"
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArtifactReadFallback",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:artifact-fallback-and-queue-diagnostics"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate two-part fix: artifact read projection-fallback tier + adv_doctor session-queue probing",
+      "sources": [
+        {
+          "label": "Temporal TS SDK — message-passing (Query problems / no poller)",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "'A Worker must be online and polling the Task Queue to process a Query.' Under 'Problems when sending a Query': 'There is no Workflow Worker polling the Task Queue: You'll receive a client.ServiceError on which the cause.code attribute is gRPC status code 9 FAILED_PRECONDITION.' Contrast Updates: no-poller Update is 'retried by the SDK Client indefinitely' — Queries are NOT."
+        },
+        {
+          "label": "Temporal — Task Queues (Query tasks not persisted, caller retries)",
+          "locator": "https://docs.temporal.io/task-queue",
+          "summary": "'Nexus and Query Tasks are not persisted. Instead, they are sync matched when, and only when, polled by a Worker... The caller is responsible to retry failed operations.' Confirms a Query with no poller is never served; retrying re-burns budget against an unchanging condition."
+        },
+        {
+          "label": "Temporal server PR #5252 — 'no poller seen recently' fast-fail",
+          "locator": "https://github.com/temporalio/temporal/pull/5252",
+          "summary": "Server rejects a Query with 'no poller seen for task queue recently, worker may be down' as DEADLINE_EXCEEDED, waiting 1s less than the timeout. Reviewer notes poller-presence is necessary but not sufficient."
+        },
+        {
+          "label": "Temporal TS SDK — grpc-retry retryable codes",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/grpc-retry.ts",
+          "summary": "SDK auto-retry set = {UNKNOWN, RESOURCE_EXHAUSTED, UNAVAILABLE, ABORTED, DATA_LOSS, OUT_OF_RANGE}. Neither FAILED_PRECONDITION (9) nor DEADLINE_EXCEEDED (4) is in the set -> the SDK does NOT auto-retry the no-poller Query error."
+        },
+        {
+          "label": "Temporal community — DescribeTaskQueue bound to visibility RPS (server >=1.24)",
+          "locator": "https://community.temporal.io/t/ratelimit-issue-in-describetaskqueue-java-sdk-1-25-1-and-temporal-server-1-24-2/13557",
+          "summary": "Maintainer (tihomir): 'In server release 1.24 DescribeTaskQueue api was changed to be bound by visibility rps limits.' RESOURCE_EXHAUSTED under load. Mitigation key: frontend.namespaceRPS.visibility; caching is the documented mitigation."
+        },
+        {
+          "label": "Temporal server PR #6539 — non-reachability DTQ via frontend limiter + caching",
+          "locator": "https://github.com/temporalio/temporal/pull/6539",
+          "summary": "Non-reachability DescribeTaskQueue routed through the (higher) frontend RPS limiter; follow-ups #6572/#6643 add server-side caching of partition responses. Reduces rate-limit concern for poller-only health probes; endorses client-side caching."
+        },
+        {
+          "label": "Temporal CLI — task-queue poller staleness windows",
+          "locator": "https://docs.temporal.io/cli/command-reference/task-queue",
+          "summary": "'A LastAccessTime over one minute may indicate the Worker is at capacity or has shut down. Temporal Workers are removed if 5 minutes have passed since the last poll request.' Canonical thresholds the codebase's 60s fresh-window mirrors."
+        },
+        {
+          "label": "Temporal dynamic-config — frontend RPS limits",
+          "locator": "https://docs.temporal.io/references/dynamic-configuration",
+          "summary": "frontend.rps (default 2400), frontend.namespaceRPS (2400), frontend.namespaceCount. Quantifies headroom a local/dev Temporal has for added DTQ calls."
+        },
+        {
+          "label": "Temporal community — DescribeTaskQueue is THE worker-health mechanism (with caveats)",
+          "locator": "https://community.temporal.io/t/is-there-a-way-to-check-the-health-of-workers/4917",
+          "summary": "'DescribeTaskQueue is still currently the way to get list and count of pollers on the specific task queue.' Caveat: 'Even if the worker is running, the problem is sometimes it doesn't return a result.'"
+        },
+        {
+          "label": "Temporal community — at-capacity workers vanish from DTQ (false-positive risk)",
+          "locator": "https://community.temporal.io/t/help-workers-not-pooling-for-task-task-queue-are-decreasing-in-workers-until-0/18780",
+          "summary": "'When all workflow task slots on worker are occupied, worker stops polling... UI uses DescribeTaskQueue api which is basically a 2 min sliding window.' Core false-alarm vector for Q5."
+        },
+        {
+          "label": "Repo — readArtifact fallback chain (3 tiers, no projection)",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/change/artifacts.ts#L89-L125",
+          "summary": "Current chain: (1) Temporal Query via store.changes.get -> documents[kind]; (2) disk active-dir markdown; (3) archive bundle. No change.json projection tier. Identical gap in batched readArtifacts at L177-L226."
+        },
+        {
+          "label": "Repo — doctor probes ONLY project queue",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/doctor.ts#L268",
+          "summary": "doctor.ts:268 calls getTemporalHealth(projectId) with a bare string; health-probe.ts:173-183 turns a bare string into a single project-queue target. Session queue never probed -> the exact false-green defect."
+        },
+        {
+          "label": "Repo — status-health ALREADY probes session queue (reference impl for Fix 2)",
+          "locator": "file:///home/jon/dev/advance/plugin/src/tools/status-health.ts#L431-L466",
+          "summary": "buildSessionTaskQueue + probeTaskQueuePollers + classifyQueueServiceability, including staleRunningWorkflowCount cross-check. Fix 2 should mirror this proven pattern into doctor."
+        },
+        {
+          "label": "Repo — projection written per-signal (freshness)",
+          "locator": "file:///home/jon/dev/advance/plugin/src/temporal/workflows.ts#L999-L1025",
+          "summary": "projectChangeState() deep-clones current state (incl documents) via writeChangeProjection activity on each signal. Projection reflects last committed signal, not just archive time."
+        },
+        {
+          "label": "Repo — markdown materialized only at archive; no active write path",
+          "locator": "file:///home/jon/dev/advance/CHANGELOG.md#L35",
+          "summary": "'Disk artifact files become a derived view materialized only when building the archive bundle.' lgrep for writeFile/atomicWriteFile of ARTIFACT_FILENAME outside archive returns 0 hits -> for an active change the markdown tier is always empty; projection is the real fallback."
+        },
+        {
+          "label": "Repo — existing source taxonomy + 30s DTQ cache + 60s fresh window",
+          "locator": "file:///home/jon/dev/advance/plugin/src/storage/change-projection-reader.ts#L192-L198",
+          "summary": "LoadResult.source already enumerates workflow|disk|archive|active_projection|retired_projection|read_model — source-tagging infra exists. health-probe.ts:105 POLLER_PROBE_TTL_MS=30s; queue-serviceability.ts:191 DEFAULT_FRESH_POLLER_MS=60s."
+        },
+        {
+          "label": "Repo spec — rq-artifactPathTruth01 + rq-isolSessionTaskQueue04",
+          "locator": "file:///home/jon/dev/advance/docs/specs/advance-workflow.md",
+          "summary": "Both fixes are already spec-mandated: artifact reads must consult projection and source-tag/omit phantom paths; diagnostics must emit per-queue rows with type label + owning session. Design implements existing law."
+        }
+      ],
+      "architecture_assessment": "Both fixes are sound and reuse tested infrastructure. Fix 1 adds a tier to an existing fallback chain; the projection (change.json state.documents) is written per-signal by the writeChangeProjection activity (workflows.ts:999-1025), so it is a durable mirror of committed workflow state — strictly more correct than the legacy markdown tier, which is archive-only (CHANGELOG.md:35; no active write path found via lgrep). Fix 2 ports the session-queue probe already proven in status-health.ts:431-466 into doctor, which today passes a bare projectId (doctor.ts:268) and probes only the project queue. Temporal semantics fully support both decisions: a no-poller Query fails fast with FAILED_PRECONDITION/DEADLINE_EXCEEDED (not SDK-auto-retried; Query tasks are sync-matched and never persisted), so not retrying is correct; reading from an external committed projection when the Query is unavailable is the idiomatic cache-aside pattern (workflow history stays authoritative). Two caution-level refinements: (R1) prefer projection BEFORE markdown in the fallback order to avoid a narrow staleness window for pre-migration leftover markdown; (R2) propagate an explicit source/degradation marker so callers cannot infer workflow liveness from a successful projection read. Neither blocks the defect fix. The doctor session-probe must classify per-queue state (fresh/stale/none/unavailable) plus owning-session rather than collapsing to binary healthy.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No blockers. Design fixes the defect and aligns with Temporal docs + repo spec (rq-artifactPathTruth01, rq-isolSessionTaskQueue04). Two caution-level refinements: (R1) projection-before-markdown ordering — narrow correctness window for pre-migration stale markdown; (R2) explicit source/degradation marker. Apply Fix 1 to BOTH readArtifact (artifacts.ts:89) and readArtifacts batch path (artifacts.ts:177). Doctor session-probe must classify (not binary-collapse) and treat a dead owning-session's absent poller as informational, not red."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Projection-as-fallback serves content at most one committed-signal behind live workflow state; harmless for finalized narrative artifacts but technically stale vs a successful live Query — acceptable because Query is tried first and is authoritative.",
+          "Adding DescribeTaskQueue calls for session queues consumes visibility/frontend RPS budget (server >=1.24 binds DTQ to visibility limits); mitigated by the existing 30s pollerProbeCache and Temporal's own server-side DTQ caching (PR #6572/#6643).",
+          "Markdown-before-projection ordering is safe for active/archived changes but risks serving stale pre-migration leftover markdown; projection-first eliminates that window.",
+          "Source/degradation marker adds a field to the read result type but enables the no-silent-success observability theme and prevents liveness-inference from a fallback read."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Consult projection FIRST, Query second (disk-first hydration flip)",
+            "disposition": "rejected",
+            "rationale": "Explicitly ruled out in OUT_OF_SCOPE. For a live workflow the Query is strictly more current than any disk snapshot; Query-first is correct and the projection is only the fallback. Flipping would serve marginally-staler content on the hot path."
+          },
+          {
+            "option": "Retry the timed-out Query before falling back",
+            "disposition": "rejected",
+            "rationale": "Temporal confirms no-poller Query fails with FAILED_PRECONDITION/DEADLINE_EXCEEDED, which the TS SDK does NOT auto-retry (grpc-retry.ts retryable set excludes both codes); Query tasks are sync-matched and never persisted, so retry re-burns the 8s aggregate read budget against an unchanging condition. The design's fatal-classification of TemporalQueryTimeoutError is correct."
+          },
+          {
+            "option": "Keep proposed markdown-before-projection ordering",
+            "disposition": "deferred",
+            "rationale": "Fixes the defect and is safe for active (markdown absent) and archived (consistent) changes, but projection is the authoritative mirror of workflow state and markdown is archive-only; projection-first is cleaner and closes a narrow pre-migration-stale-markdown window. Defer the proposed order in favor of projection-first."
+          },
+          {
+            "option": "Binary healthy/unhealthy session-queue verdict in doctor",
+            "disposition": "rejected",
+            "rationale": "DescribeTaskQueue poller-absence has documented false-positive vectors (worker at capacity stops polling; 2-min sliding window). Must report fresh/stale/none/unavailable + owning-session (per rq-isolSessionTaskQueue04) and treat a dead session's absent poller as informational, else the fix trades false-green for false-red."
+          }
+        ],
+        "recommendation": "Proceed to implement with two folded-in refinements: (R1) order the new projection tier BEFORE the legacy markdown tier (Query -> projection -> markdown -> archive); (R2) return/source-tag the read with its provenance (workflow | active_projection | retired_projection | disk | archive) so callers can distinguish authoritative-live from fallback. Apply the tier to both readArtifact and the batched readArtifacts. For Fix 2, mirror status-health.ts:431-466 into doctor, emit per-queue rows with type label + owning-session, degrade cleanly when no sessionId, and classify session-queue poller-absence as informational when the owning session is dead vs red only when the session is expected-alive."
+      },
+      "recommendation": "READY with caution. Land both fixes; fold in R1 (projection-before-markdown) and R2 (source marker) since they are cheap and improve correctness/observability. Apply Fix 1 to both readArtifact and readArtifacts. Confirm Temporal dev/local frontend.namespaceRPS.visibility headroom is adequate for the added per-session DTQ call (30s cache bounds steady-state to ~1 DTQ/queue/30s).",
+      "follow_ups": [
+        "If markdown-before-projection is retained, add a regression test: active change with a stale legacy proposal.md AND a fresher projection document -> assert projection content wins.",
+        "Verify the 8s aggregate read budget referenced in the prompt is documented/enforced where the Query is attempted, so the no-retry decision's budget claim is structural rather than prose-only (P38).",
+        "Consider surfacing the read source field through adv_change_show include flags so consumers can observe when reads are degrading to projection (observability for the no-silent-success theme)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArtifactReadFallback",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArtifactReadFallback",
+      "task_id": "tk-dec9c6c1e876",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dec9c6c1e876"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/doctor.ts",
+        "plugin/src/tools/doctor.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mse1n887_ed7c57ee",
+          "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+          "exit_code": 1,
+          "summary": "RED: intentionally failing AC6 assertion confirmed the new session/project queue-row test detects missing graded output."
+        },
+        {
+          "test_run_id": "tr_mse1nqi1_d82db131",
+          "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 26 doctor tests passed."
+        },
+        {
+          "test_run_id": "tr_mse1ov2r_6a6515ee",
+          "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+          "exit_code": 0,
+          "summary": "Verification: 26 doctor tests passed after formatting."
+        },
+        {
+          "test_run_id": "tr_mse1pgzt_024b5bca",
+          "command": "pnpm --dir plugin run typecheck",
+          "exit_code": 0,
+          "summary": "TypeScript typecheck passed."
+        },
+        {
+          "test_run_id": "tr_mse1puo1_30c237f0",
+          "command": "pnpm --dir plugin exec eslint src/tools/doctor.ts",
+          "exit_code": 0,
+          "summary": "ESLint passed for doctor.ts."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Represent per-queue probe results as graded rows in verification.queue_serviceability while retaining verification.queue_serviceable.",
+          "why": "Preserves the existing boolean compatibility field and exposes queue type, status, serviceability, poller count, last poller time, and owning session together."
+        },
+        {
+          "what": "Treat a non-fresh session queue as a finding only when getCurrentSessionId() identifies the current owning session.",
+          "why": "Current-session ownership is the expected-alive signal; absent session identity represents legacy or ended-session context and must not create a false-red diagnosis."
+        },
+        {
+          "what": "Keep session probing bounded to one project queue plus one current-session queue per diagnose/recheck phase.",
+          "why": "Matches the required topology and avoids unbounded DescribeTaskQueue fan-out."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned the doctor queue-probe call sites and mirrored the existing status-health/session-id/task-queue naming pattern; both diagnose and recheck paths now use the same bounded probe helper. No out-of-scope fixes applied.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "adv_doctor now probes project plus current session queues, reports graded fresh/stale/none/unavailable rows with owningSession and preserves queue_serviceable. It adds a session_queue_unserviceable finding only for an identified current session; undefined session ID skips session probing and preserves legacy verification shape. Doctor tests, typecheck, ESLint, and formatting pass.",
+        "suggested_next_action": "Review diff and proceed with the orchestrator's task checkpoint/acceptance flow."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse1n887_ed7c57ee"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse1nqi1_d82db131"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse1ov2r_6a6515ee"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse1pgzt_024b5bca"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse1puo1_30c237f0"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArtifactReadFallback",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArtifactReadFallback",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "doctor-ended-session-queue-1",
+          "label": "blocker",
+          "file": "plugin/src/tools/doctor.ts",
+          "line": 250,
+          "what": "Doctor probes only the project queue and the invoking session queue; it neither discovers nor emits a row for a queue owned by an ended peer session.",
+          "why": "This does not meet AC8's required informational report for an ended owner's queue and leaves the reported production outage invisible when the peer session—not the invoking session—owned the orphaned workflow. The new test at doctor.test.ts:259 only proves that a missing current session omits the session probe.",
+          "fix": "Implement a bounded ended-session queue inventory/report path that renders each known ended-owner queue as informational without classifying it as a health failure; preserve C6's bounded probe cost, then add regression coverage for that peer-session scenario."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A current-session queue probe cannot diagnose a workflow stranded on an ended peer session queue. Distinguish reporting known ended-owner queues informationally from probing every tracked queue, so bounded probe-cost constraints do not erase the outage signal."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "pnpm run check",
+          "../bin/oc-test targeted -- src/tools/change.read-artifact.test.ts src/tools/change.test.ts src/tools/doctor.test.ts",
+          "git diff --check trunk...HEAD"
+        ],
+        "results": "pass",
+        "evidence": "pnpm run check passed (0 errors; 4 existing ESLint warnings). Targeted test run passed: 3 files, 199 tests. git diff --check produced no whitespace errors. Artifact tests cover projection fallback, expired deadline local fallback, workflow precedence, batched provenance, and the change-show orphan/deadline path. Doctor tests genuinely execute and cover current-session/project rows, graded `none`, and absent current-session legacy shape, but do not cover an ended peer owner."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree was one commit behind trunk at review start; per instruction, no rebase was performed.",
+        "Pre-fix deployed bundle's falsely healthy doctor output remains unresolved for ended peer-session queues until blocker remediation is implemented and deployed."
+      ],
+      "required_main_agent_actions": [
+        "Remediate the ended-peer-session queue reporting gap while retaining bounded probe cost (C6), then add a regression test that an ended owner's queue is surfaced informationally and not treated as a health failure.",
+        "Rerun the targeted doctor and artifact test files plus pnpm run check; rerun acceptance review before completing the acceptance gate.",
+        "Leave artifact projection fallback/provenance behavior alone: reviewed tier ordering, no-deadline local fallback, batched parity, and change-show source tags meet AC1–AC5 and AC11 evidence."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: ../bin/oc-test targeted -- src/tools/change.read-artifact.test.ts src/tools/change.test.ts src/tools/doctor.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check trunk...HEAD"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArtifactReadFallback",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArtifactReadFallback",
+      "task_id": "tk-dec9c6c1e876",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-dec9c6c1e876"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/doctor.ts",
+        "plugin/src/tools/doctor.test.ts",
+        "plugin/src/temporal/list-orphan-session-queues.ts",
+        "plugin/src/temporal/health-probe.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mse3rhfo_694063ac",
+          "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+          "exit_code": 1,
+          "summary": "TDD RED: new orphaned-session assertions failed before implementation (2 expected failures)."
+        },
+        {
+          "test_run_id": "tr_mse3uisl_6ceef270",
+          "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 30 doctor tests passed, including informational orphan findings, noise suppression, cap/concurrency, AC9, AC10, and current-session unhealthy behavior."
+        },
+        {
+          "test_run_id": "tr_mse3wnh8_cc70a188",
+          "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: formatted doctor tests pass (30 tests)."
+        },
+        {
+          "test_run_id": "tr_mse3yvqw_5ebdb4c4",
+          "command": "../bin/oc-test targeted -- src/temporal/list-orphan-session-queues.test.ts",
+          "exit_code": 0,
+          "summary": "VERIFY: existing orphan queue enumeration tests pass (6 tests)."
+        },
+        {
+          "test_run_id": "tr_mse3yj6f_561f6a39",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "PASS: schemas, typecheck, manifest/frontmatter/isolation/lockfile checks, lint, and formatting. Four pre-existing eslint warnings remain; zero errors."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Reused listOrphanSessionQueues as the Visibility enumeration path and added opt-in workflowIds details.",
+          "why": "It already lists RUNNING project change workflows, resolves their taskQueue, groups distinct session queues, and excludes queues supplied as already polled; opt-in details preserve existing adopter output shape."
+        },
+        {
+          "what": "Added an informational DoctorFinding class with an embedded extended DoctorQueueProbe.",
+          "why": "Ended-session queue silence is normal; only status none with stranded RUNNING workflows is surfaced, while success and verification.healthy remain true and current-session unhealthy behavior remains unchanged."
+        },
+        {
+          "what": "Capped orphan queue probes at 8 and ran at most 4 probes concurrently.",
+          "why": "Bounds DescribeTaskQueue Visibility pressure while retaining enough diagnostic coverage; omitted queues are reported with an explicit count."
+        },
+        {
+          "what": "Moved doctor queue probes through the existing 30-second poller cache.",
+          "why": "Avoids duplicate DescribeTaskQueue calls across health and doctor surfaces under the newer Temporal Visibility RPS constraint."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned the existing orphan-session enumeration, queue serviceability, health cache, doctor, and related tests. Preserved legacy listOrphanSessionQueues output by making workflow detail collection opt-in; no unrelated queue behavior changed.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "AC8 is closed: doctor enumerates distinct ended-session queues that still own RUNNING change workflows, probes only 8 with max concurrency 4 via the shared 30s cache, and emits informational findings containing queue, session, graded status, stranded count, and ids. Empty ended queues are suppressed; informational findings do not make success or verification.healthy false. Commit 115bb0b6719314015e3028149a17a326a14979d8 is recorded on the task branch.",
+        "suggested_next_action": "Run acceptance review against AC8, then continue the orchestrator-owned gate flow."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-dec9c6c1e876_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "fixArtifactReadFallback|tk-dec9c6c1e876|adv-engineer|1"
+        }
+      }
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArtifactReadFallback",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArtifactReadFallback",
+      "scope": {
+        "kind": "change",
+        "scope_key": "review:acceptance"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": "plugin/src/tools/doctor.ts",
+          "summary": "Published the diagnostic-pass project and current-session queue rows at top-level queue_serviceability, so AC6 does not depend solely on post-fix verification; corrected capped-probe prose to avoid claiming reruns advance to a new slice.",
+          "verification": "../bin/oc-test targeted -- src/tools/doctor.test.ts src/temporal/list-orphan-session-queues.test.ts src/tools/change.read-artifact.test.ts src/temporal/workflow-bundle-boundary.test.ts (57 passed); pnpm run check passed."
+        },
+        {
+          "file": "plugin/src/tools/doctor.test.ts",
+          "summary": "Asserted normal doctor output exposes the diagnostic queue rows and that the no-session legacy shape still omits them.",
+          "verification": "Targeted doctor test included in 57 passing tests."
+        }
+      ],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "../bin/oc-test targeted -- src/tools/doctor.test.ts src/temporal/list-orphan-session-queues.test.ts src/tools/change.read-artifact.test.ts src/temporal/workflow-bundle-boundary.test.ts",
+          "pnpm run check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted suite: 4 files, 57 tests passed. Check passed: schema/type/manifest/frontmatter/isolation/lockfile checks, ESLint, and Prettier. ESLint emitted four unchanged no-explicit-any warnings in mock-owner.ts:241 and operations.ts:1106,1188,1193; git diff 115bb0b6^..115bb0b6 proved those files were untouched, and blame attributes all four lines to 50713b5d5, so commit 115bb0b6 did not introduce them. Source and tests confirm Query -> active projection -> disk -> archive precedence, single-query batched fallback/provenance, no retry after Query failure, 8-queue/4-concurrency orphan probing, shared cache use, AC9/AC10 preservation, staged delta scenarios 01.4/01.5, and passing workflow static-import boundary test."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Worktree is one commit behind origin/trunk per oc-fresh status; review intentionally did not rebase.",
+        "Orphan-session diagnostics are deliberately capped to the oldest eight candidate queues per run; excess candidates are surfaced by an informational omission finding, consistent with the approved C6-bounded policy."
+      ],
+      "required_main_agent_actions": [
+        "Create the required git checkpoint for the two reviewer edits in plugin/src/tools/doctor.ts and plugin/src/tools/doctor.test.ts before advancing acceptance.",
+        "Do not revisit quiet ended-session queues with no non-terminal change workflow; their suppression is the approved AC8 noise-control policy."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: ../bin/oc-test targeted -- src/tools/doctor.test.ts src/temporal/list-orphan-session-queues.test.ts src/tools/change.read-artifact.test.ts src/temporal/workflow-bundle-boundary.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm run check"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixArtifactReadFallback",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixArtifactReadFallback",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "platform-follow-up-a",
+          "label": "suggestion",
+          "file": "ADV orchestration runtime",
+          "line": 1,
+          "what": "Gate stuck state remained after the acceptance review matrix was later persisted.",
+          "why": "Readiness should be re-derived on retry; the current sticky state required compatibility recovery despite the blocker clearing."
+        },
+        {
+          "id": "platform-follow-up-b",
+          "label": "suggestion",
+          "file": "ADV Temporal read diagnostics",
+          "line": 1,
+          "what": "A degraded query was diagnosed as a missing queue poller although direct queue inspection showed fresh live pollers.",
+          "why": "The likely failure mode was query latency on a 435-event history beyond the aggregate read deadline; misleading diagnosis sends operators to the wrong remediation."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Queue serviceability and workflow-query responsiveness are independent. A fresh DescribeTaskQueue result cannot rule out an aggregate workflow-query deadline caused by large workflow history."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "cd plugin && pnpm run check",
+          "cd plugin && ../bin/oc-test targeted -- src/tools/doctor.test.ts src/tools/change.read-artifact.test.ts src/tools/change.test.ts",
+          "cd plugin && ../bin/oc-test targeted -- src/temporal/__tests__/workflow-bundle-imports.test.ts src/temporal/list-orphan-session-queues.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "pnpm run check passed: schemas:check, typecheck, generated-manifest check, frontmatter/isolation/lockfile checks, lint (4 existing warnings; 0 errors), and Prettier. Required targeted suite passed: 3 files, 203 tests. Additional worker-boundary/orphan-list suite passed: 2 files, 7 tests; workflow bundle compiled with no forbidden Node/filesystem imports. git diff --check and status were clean at e83a3411."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Deployment remains manual operational work: merge to trunk, then from merged trunk run pnpm run build and ./scripts/deploy-local.sh --fix, then restart the OpenCode/plugin host; no worktree deployment.",
+        "Doctor queue probing safely degrades: Visibility list outcomes that are non-complete omit orphan diagnostics; each DescribeTaskQueue exception becomes an unavailable row, including mid-batch. The deterministic cap is eight oldest queues at concurrency four; zero-orphan and >8 cases are covered. Artifact projection parsing returns an empty map for absent/malformed documents and continues disk/archive fallback.",
+        "Follow-up A (not a release blocker): acceptance gate stuck status appears sticky after ACCEPTANCE_REVIEW_MATRIX_MISSING clears; retry requires compatibility recovery instead of re-evaluating current readiness.",
+        "Follow-up B (not a release blocker): degraded Temporal reads can misattribute query-history latency as an absent poller; doctor queue-serviceability does not detect this class."
+      ],
+      "required_main_agent_actions": [
+        "Release Readiness Summary: Safe to ship. Artifact reads now fall back through durable projection, disk, and archive tiers with provenance; doctor diagnostics expose current/session queue serviceability while safely bounding orphan checks. Validation and targeted tests are green. After merge, build and deploy from trunk with pnpm run build and ./scripts/deploy-local.sh --fix, then restart the OpenCode host. Residual risk is operational diagnosis: queue serviceability does not prove workflow-query latency is healthy.",
+        "Create a follow-up for A: recompute a stuck gate's readiness on retry after its blocking evidence changes; do not require compatibility recovery for a cleared blocker.",
+        "Create a follow-up for B: distinguish Temporal workflow-query deadline/history-latency failures from queue-poller absence in degraded-read messaging and sub-agent diagnosis.",
+        "Do not revisit settled acceptance decisions or expand orphan probing beyond the bounded diagnostic scope."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: cd plugin && pnpm run check"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: cd plugin && ../bin/oc-test targeted -- src/tools/doctor.test.ts src/tools/change.read-artifact.test.ts src/tools/change.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: cd plugin && ../bin/oc-test targeted -- src/temporal/__tests__/workflow-bundle-imports.test.ts src/temporal/list-orphan-session-queues.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-02ba7a18ed0e": [
+      {
+        "runId": "tr_mse0r0vf_9d08baca",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/change.read-artifact.test.ts",
+        "durationMs": 7857.846712999977,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:08:26.241Z"
+      },
+      {
+        "runId": "tr_mse0xixo_da507e81",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/change.read-artifact.test.ts",
+        "durationMs": 14898.817148000002,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:13:31.291Z"
+      },
+      {
+        "runId": "tr_mse0yqpy_1fbfdcc0",
+        "phase": "verify",
+        "exitCode": 2,
+        "classification": "failed",
+        "command": "pnpm run typecheck",
+        "durationMs": 19764.423244000413,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T02:14:26.623Z"
+      },
+      {
+        "runId": "tr_mse0zr3j_3ab63534",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run typecheck",
+        "durationMs": 15885.628216999583,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T02:15:13.473Z"
+      },
+      {
+        "runId": "tr_mse108uz_9cda6f52",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/storage/store-temporal/no-disk-writes-invariant.test.ts",
+        "durationMs": 2003.771759999916,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:15:35.744Z"
+      },
+      {
+        "runId": "tr_mse16p7g_985054dd",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/change.test.ts -t \"durable projection when the workflow query is unserved\"",
+        "durationMs": 6171.455964999273,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:20:36.966Z"
+      },
+      {
+        "runId": "tr_mse17xsm_c44d32b5",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/change.test.ts -t \"durable projection when the workflow query is unserved\"",
+        "durationMs": 5568.037952999584,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:21:35.149Z"
+      },
+      {
+        "runId": "tr_mse1anem_1ea6b8d4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/change.test.ts -t \"durable projection when the workflow query is unserved\"",
+        "durationMs": 6419.318050000817,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:23:41.721Z"
+      },
+      {
+        "runId": "tr_mse1b6fw_61bf75ef",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/storage/store-temporal/no-disk-writes-invariant.test.ts src/tools/gate.test.ts src/tools/contract.test.ts",
+        "durationMs": 10742.162561999634,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:24:06.521Z"
+      },
+      {
+        "runId": "tr_mse1cnzr_3aaeaac3",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/change.test.ts src/tools/change.read-artifact.test.ts src/storage/store-temporal/no-disk-writes-invariant.test.ts",
+        "durationMs": 10183.155532000586,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:25:15.296Z"
+      }
+    ],
+    "tk-dec9c6c1e876": [
+      {
+        "runId": "tr_mse1jah5_07e56528",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "spawn_error",
+        "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 7.121722999960184,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:30:24.683Z"
+      },
+      {
+        "runId": "tr_mse1jxbp_bf7986af",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "spawn_error",
+        "command": "/usr/bin/bash ../bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 4.069050000049174,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:30:54.479Z"
+      },
+      {
+        "runId": "tr_mse1mi6b_221d2492",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 3275.276289999485,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:32:54.590Z"
+      },
+      {
+        "runId": "tr_mse1n887_ed7c57ee",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 2978.9713179999962,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:33:28.620Z"
+      },
+      {
+        "runId": "tr_mse1nqi1_d82db131",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 3129.308148998767,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:33:53.022Z"
+      },
+      {
+        "runId": "tr_mse1ov2r_6a6515ee",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 3613.3636840004474,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:34:44.124Z"
+      },
+      {
+        "runId": "tr_mse1pgzt_024b5bca",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin run typecheck",
+        "durationMs": 15002.240509999916,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T02:35:12.879Z"
+      },
+      {
+        "runId": "tr_mse1puo1_30c237f0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm --dir plugin exec eslint src/tools/doctor.ts",
+        "durationMs": 5971.034070000052,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T02:35:30.452Z"
+      },
+      {
+        "runId": "tr_mse1slkh_90edd8cb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts src/tools/status-health.session-queue.test.ts",
+        "durationMs": 3891.0245420001447,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:37:39.280Z"
+      },
+      {
+        "runId": "tr_mse3rhfo_694063ac",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 2835.2898659999482,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T03:32:45.638Z"
+      },
+      {
+        "runId": "tr_mse3uisl_6ceef270",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 3051.6774560001213,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T03:35:07.333Z"
+      },
+      {
+        "runId": "tr_mse3wafk_304b0c58",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 70267.16159399995,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T03:36:29.605Z"
+      },
+      {
+        "runId": "tr_mse3wnh8_cc70a188",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/doctor.test.ts",
+        "durationMs": 2599.5074620000087,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T03:36:46.772Z"
+      },
+      {
+        "runId": "tr_mse3yj6f_561f6a39",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 78823.94491299987,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T03:38:14.727Z"
+      },
+      {
+        "runId": "tr_mse3yvqw_5ebdb4c4",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/list-orphan-session-queues.test.ts",
+        "durationMs": 3204.3774019998964,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T03:38:31.207Z"
+      }
+    ],
+    "tk-ca430b764419": [
+      {
+        "runId": "tr_mse24mny_068af273",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/temporal/workflow-bundle-boundary.test.ts src/temporal/worker-bundle-manifest.test.ts",
+        "durationMs": 1800.148680999875,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:46:59.629Z"
+      },
+      {
+        "runId": "tr_mse26s7l_501aea22",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 84333.2468810007,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T02:48:40.463Z"
+      }
+    ]
+  },
+  "deltas": {
+    "advance-workflow": [
+      {
+        "id": "dl-ArtPathTruthProj01",
+        "operation": "modify",
+        "target_id": "rq-artifactPathTruth01",
+        "changes": {
+          "body": "ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal state.documents, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Artifact readback MUST consult the durable disk projection's `documents` map before concluding content is absent, using the precedence Temporal workflow Query, then projection `documents`, then legacy disk artifact, then archive bundle; the projection tier MUST NOT be consulted before the workflow Query. Every resolved artifact read MUST carry a machine-readable source tag identifying which tier served it, so a caller cannot infer workflow queryability from the presence of content. A local projection read MUST remain reachable even when the request-scoped Temporal aggregate read deadline is already exhausted. Legacy disk and archive-bundle fallback reads MUST remain supported.",
+          "scenarios": [
+            {
+              "id": "rq-artifactPathTruth01.1",
+              "title": "Temporal-only artifact content does not expose fake readable path",
+              "given": [
+                "An active change has state.documents.design populated",
+                "No active design.md file exists on disk for the change"
+              ],
+              "when": "adv_change_show is called with include.design true",
+              "then": [
+                "The response includes the design content in _design",
+                "The response does not present artifacts.design.path as a readable existing file",
+                "Artifact metadata is machine-readable enough to distinguish Temporal content from a materialized file"
+              ]
+            },
+            {
+              "id": "rq-artifactPathTruth01.2",
+              "title": "Legacy and archive artifact fallbacks remain readable",
+              "given": [
+                "Artifact content exists only as a legacy active disk artifact or a materialized archive bundle artifact"
+              ],
+              "when": "Artifact readback runs for that change",
+              "then": [
+                "The fallback content is returned",
+                "A filesystem path is exposed only when the file is actually materialized and readable"
+              ]
+            },
+            {
+              "id": "rq-artifactPathTruth01.3",
+              "title": "Recovery and archive evidence keeps verified real paths",
+              "given": [
+                "A recovery or archive path intentionally writes or verifies an artifact file"
+              ],
+              "when": "Gate or archive evidence is emitted",
+              "then": [
+                "The real verified filesystem path may be included in evidence",
+                "The behavior does not reintroduce active artifact-content disk writes as the primary source of truth"
+              ]
+            },
+            {
+              "id": "rq-artifactPathTruth01.4",
+              "title": "Projection documents serve artifact reads when the workflow is unreachable",
+              "given": [
+                "An active change has its artifact content persisted to the disk projection documents map",
+                "The change workflow is RUNNING on a task queue with no live poller because its originating session ended",
+                "The request-scoped Temporal aggregate read deadline is already exhausted"
+              ],
+              "when": "Artifact readback runs for that change",
+              "then": [
+                "The artifact content is returned from the projection documents map",
+                "The response does not report the artifact as unreadable or absent",
+                "No filesystem path is exposed for the projection-sourced content",
+                "The exhausted Temporal deadline does not prevent the local projection tier from running"
+              ]
+            },
+            {
+              "id": "rq-artifactPathTruth01.5",
+              "title": "Artifact reads declare provenance",
+              "given": [
+                "Artifact content is returned from any read tier"
+              ],
+              "when": "The read surface emits the result",
+              "then": [
+                "The result carries a machine-readable source tag distinguishing authoritative live workflow reads from projection, legacy-disk, and archive-bundle fallbacks",
+                "A caller cannot infer workflow queryability from the presence of content alone"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-04T01:40:39.816Z",
+      "completed_by": "agent",
+      "approval_evidence": "Defect-origin fast-track. Proposal carries full Root Cause Analysis: artifact read path (readArtifact, artifacts.ts:89-125) lacks a change.json → documents fallback tier, while the disk projection already carries documents (shared.ts:111, 143-176; change-projection-transaction.ts:367-376). Confirmed empirically — documents returned 17617 chars from _source:disk while artifact hydration failed. Secondary defect: adv_doctor probes only the project queue (doctor.ts:190-205), structurally blind to orphaned session queues.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "60239be65c8a61b99b89606eab5c9ab0fb468d8534393227daa140d09ac69473",
+        "non_whitespace_chars": 6259,
+        "checked_at": "2026-08-04T01:40:02.147Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-04T01:53:13.558Z",
+      "completed_by": "agent",
+      "approval_evidence": "Spec-law impact: MODIFY rq-artifactPathTruth01 (add projection-documents fallback tier + provenance tagging; draft delta obligations with scenarios 01.4 and 01.5 persisted in design). Fix 3 = NO SPEC LAW UPDATE REQUIRED — rq-isolSessionTaskQueue04.1 already mandates per-queue serviceability with type labels and owning session; adv_doctor currently violates it, so this is conformance work. Confirmed no-disk-writes-invariant governs the write API only and is not violated by this read-only change. Contract minted strict: 25 items (11 AC, 6 C, 5 DONT, 3 OOS).",
+      "started_at": "2026-08-04T01:51:07.227Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "non_whitespace_chars": 3917,
+        "checked_at": "2026-08-04T01:40:02.149Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-04T01:53:34.808Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design independently validated by adv-researcher: READY with caution, no conflict. Two refinements adopted: (R1) precedence reordered to Query → projection → legacy markdown → archive, because legacy markdown is archive-era only with no active write path, so markdown-first risks serving stale pre-migration leftovers over the authoritative mirror; (R2) provenance source-tagging on every artifact read, reusing the existing LoadResult.source taxonomy, so fallback content cannot be mistaken for an authoritative live read. Temporal guidance confirmed: no-poller Query returns FAILED_PRECONDITION and is excluded from the SDK grpc-retry set, Query Tasks are not persisted, so not retrying is correct; external projection reads are idiomatic cache-aside. DescribeTaskQueue is the canonical health mechanism but is bound to the visibility RPS limiter on server >=1.24, so the existing 30s poller cache is retained. Doctor classification graded (fresh/stale/none/unavailable) to avoid trading a false-green for a false-red, since pollers legitimately vanish after 1-2 min idle.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "80c5eb47856a8d91f7b2a725d8cc71e084c9c81bce5813a52c958c9a371a6a1f",
+        "non_whitespace_chars": 6908,
+        "checked_at": "2026-08-04T01:40:02.150Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-04T01:56:43.573Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved the ad-hoc fast-track via Quick Contract confirmation (\"Confirmed — execute\") and the directive \"do fixes 3 and 1 now, involve the existing scope but do this now ad-hoc to stop the bleeding\". Four-task graph: (1) tk-02ba7a18ed0e projection fallback tier + provenance tagging in readArtifact/readArtifacts; (2) tk-dec9c6c1e876 doctor session-queue probing with graded classification; (3) tk-974743c3e467 staged rq-artifactPathTruth01 modify delta (blocked by 1); (4) tk-ca430b764419 regression verification (blocked by 1 and 2). Full contract coverage confirmed — uncoveredAcceptanceCriteria empty across AC1-AC11. Worker-bundle impact declared not_applicable: both edits are tool-layer and unreachable from the workflows.ts static import graph."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-04T02:51:21.614Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 4 tasks terminal, none cancelled. Commits 6bf9a1d4 (artifact projection fallback tier + provenance tagging + subread.runLocalCapable) and 27714ae0 (doctor session-queue probing with graded classification), plus staged spec delta dl-ArtPathTruthProj01 in ADV state. Durable evidence: RED tr_mse17xsm_c44d32b5 reproducing the production defect, GREEN tr_mse1anem_1ea6b8d4, verifies tr_mse1b6fw_61bf75ef / tr_mse1cnzr_3aaeaac3 / tr_mse1slkh_90edd8cb, boundary tr_mse24mny_068af273, and pnpm run check tr_mse26s7l_501aea22. Full suite via adv-verifier: 541 files, 8294 tests, exit 0. adv_change_validate passed with 0 errors (10 advisory OVERLAPPING_CAPABILITY warnings at advance-workflow capability level; no other change targets rq-artifactPathTruth01). Worker-bundle boundary confirmed intact, so worker_bundle_impact:not_applicable is evidence-backed. Two items carried to review: (1) doctor probes only the current session queue, so an ended peer session's orphaned queue remains unprobed and the specific motivating outage would still go undetected — not expanded because probing all 36 tracked queues would breach C6; (2) the delegated engineer's five verification rows on tk-dec9c6c1e876 carry verification_missing warnings, so that task rests on independent orchestrator re-verification tr_mse1slkh_90edd8cb rather than the worker's own unbacked run ids."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-04T04:22:41.901Z",
+      "completed_by": "user",
+      "approval_evidence": "Reviewer verdict READY at HEAD e83a3411 after BLOCKED -> remediated (115bb0b6) -> re-reviewed cycle, plus orchestrator fix e83a3411 closing the AC6 gap. Contract review matrix: 25 rows, 0 failing (Temporal event 408). Verification at e83a3411 by adv-verifier: pnpm run check exit 0 with 4 known pre-existing no-explicit-any warnings; bin/oc-test full exit 0 with 541 files / 8298 tests / 0 failures. Executive summary persisted (event 381). Task queue advance-bdf259aa162ae192af5b18899ccdc653b085528d-sess_GOauTZh5 confirmed live-polled with backlog 0, so signals are applying normally.",
+      "started_at": "2026-08-04T04:10:43.973Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "checked_at": "1970-01-01T00:00:00.000Z",
+        "compatibility_reason": "Gate entered stuck state at 04:10:43Z with ACCEPTANCE_REVIEW_MATRIX_MISSING because the contract review matrix had not yet been persisted. The matrix was then persisted successfully — Temporal event 408 adv.change.contractReviewMatrixSet at 04:13:39Z, 25 rows, 0 failing — but the stuck flag was not re-evaluated after its blocking precondition cleared. Retrying completion now that the blocker is provably resolved in workflow history."
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "strict",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+      "approvedAt": "2026-08-04T01:52:59.561Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an active change whose artifact content is present in the disk projection documents map and whose workflow Query is unavailable because no live poller serves its task queue, when artifact readback runs for that change, then the persisted content is returned instead of an absent or unreadable result.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an active change whose artifact content is present in the disk projection documents map and whose workflow Query is unavailable because no live poller serves its task queue",
+          "trigger": "artifact readback runs for that change",
+          "outcome": "the persisted content is returned instead of an absent or unreadable result"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given artifact content resolved from a fallback tier, when the read surface emits the result, then the result carries a machine-readable source tag identifying which tier served it, and a caller cannot infer workflow queryability from the presence of content alone.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "artifact content resolved from a fallback tier",
+          "trigger": "the read surface emits the result",
+          "outcome": "the result carries a machine-readable source tag identifying which tier served it",
+          "boundaries": [
+            "a caller cannot infer workflow queryability from the presence of content alone"
+          ]
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given artifact readback resolves content, when the tiers are consulted, then the precedence is Temporal Query first, then projection documents, then legacy disk artifact, then archive bundle, and the projection tier is never consulted before the Temporal Query.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "artifact readback resolves content",
+          "trigger": "the tiers are consulted",
+          "outcome": "the precedence is Temporal Query first, then projection documents, then legacy disk artifact, then archive bundle",
+          "boundaries": [
+            "the projection tier is never consulted before the Temporal Query"
+          ]
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given the batched readArtifacts path resolves content for multiple kinds, when it runs, then it applies the same projection fallback tier and the same provenance tagging as the single-artifact readArtifact path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the batched readArtifacts path resolves content for multiple kinds",
+          "trigger": "it runs",
+          "outcome": "it applies the same projection fallback tier and the same provenance tagging as the single-artifact readArtifact path"
+        }
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a Temporal Query that already failed with a no-poller or deadline condition, when the fallback tiers run, then no additional retry is issued against that Query.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a Temporal Query that already failed with a no-poller or deadline condition",
+          "trigger": "the fallback tiers run",
+          "outcome": "no additional retry is issued against that Query"
+        }
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given per-session task-queue routing is active with both a session queue and a project queue, when adv_doctor runs, then the output contains a session-typed row and a project-typed row each carrying a serviceability indicator, and the session row identifies its owning session.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "per-session task-queue routing is active with both a session queue and a project queue",
+          "trigger": "adv_doctor runs",
+          "outcome": "the output contains a session-typed row and a project-typed row each carrying a serviceability indicator",
+          "boundaries": [
+            "the session row identifies its owning session"
+          ]
+        }
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Given a probed task queue, when serviceability is reported, then the status is graded as fresh, stale, none, or unavailable rather than collapsed to a binary healthy flag.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a probed task queue",
+          "trigger": "serviceability is reported",
+          "outcome": "the status is graded as fresh, stale, none, or unavailable rather than collapsed to a binary healthy flag"
+        }
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "Given a task queue whose owning session has ended, when its pollers are absent, then the condition is reported as informational rather than as a health failure.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a task queue whose owning session has ended",
+          "trigger": "its pollers are absent",
+          "outcome": "the condition is reported as informational rather than as a health failure"
+        }
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "Given a legacy caller invoking the health probe with a single projectId string, when it is called with that legacy signature, then the existing behavior and output shape are preserved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a legacy caller invoking the health probe with a single projectId string",
+          "trigger": "it is called with that legacy signature",
+          "outcome": "the existing behavior and output shape are preserved"
+        }
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "Given adv_doctor runs with no resolvable current session id, when session probing is attempted, then it skips the session probe and preserves the prior output shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "adv_doctor runs with no resolvable current session id",
+          "trigger": "session probing is attempted",
+          "outcome": "it skips the session probe and preserves the prior output shape"
+        }
+      },
+      {
+        "id": "AC11",
+        "kind": "acceptance_criterion",
+        "text": "Given the change is complete, when the test suite runs, then automated tests cover the projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence, and doctor session-queue probing with graded classification.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the change is complete",
+          "trigger": "the test suite runs",
+          "outcome": "automated tests cover the projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence",
+          "boundaries": [
+            "doctor session-queue probing with graded classification"
+          ]
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Preserve the no-disk-writes invariant so artifact content reaches durable state only through Temporal signals; this change is read-only and must not introduce active artifact-content disk writes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Never expose a nonexistent filesystem path as a readable source of truth, and expose no filesystem path for projection-sourced content.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Keep legacy disk and archive-bundle fallback reads supported.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Preserve existing task-queue topology and re-route no workflow between queues.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Respect the bounded-read deadline model by adding no retries against a fatal-classified TemporalQueryTimeoutError and no increase to the aggregate read budget.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "Keep added diagnostic probe cost bounded by the existing 30s poller cache and introduce no unbounded per-call DescribeTaskQueue fan-out.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not consolidate session-scoped task queues onto the project queue, because it regresses a must-priority spec and strands in-flight workflows that Temporal cannot re-route.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not implement the broader Query-first to disk-first hydration flip for adv_change_show, adv_change_list, adv_gate_status, or adv_wip_state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not undertake the ephemeral-workflow lifecycle rework tracked separately as bl-MsU7dzK0.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not mask genuine failures by returning fallback content that is indistinguishable from an authoritative read.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not replace the current false-green health signal with a false-red one by treating idle-but-healthy queues as failures.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Task-queue topology redesign and workflow re-routing.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "The full bl-HiZJbUuy disk-first hydration flip across change read surfaces.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "The bl-MsU7dzK0 ephemeral workflow and disk-durable record architecture.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-04T04:13:39.507Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Commit 6bf9a1d4 adds the projection-documents fallback tier to readArtifact/readArtifacts in plugin/src/tools/change/artifacts.ts plus subread.runLocalCapable so the local projection tier stays reachable after the Temporal aggregate deadline is exhausted. RED test tr_mse17xsm_c44d32b5 reproduced the production defect before the fix; GREEN tr_mse1anem_1ea6b8d4 after. Covered in plugin/src/tools/change.read-artifact.test.ts. Reviewer attempt 1 confirmed AC1-AC5 met; attempt 2 re-confirmed READY at HEAD e83a3411.",
+          "notes": "Condition reproduced live in-session during this resume: adv_change_show returned _source:disk while the workflow Query was unserviceable."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Provenance source-tagging added in commit 6bf9a1d4 reusing the existing LoadResult.source taxonomy, so every resolved artifact read declares its serving tier. Verified by reviewer attempts 1 and 2 against plugin/src/tools/change/artifacts.ts and plugin/src/tools/change.read-artifact.test.ts. Satisfies staged spec delta dl-ArtPathTruthProj01 scenario rq-artifactPathTruth01.5.",
+          "notes": "Directly enforces DONT4 — fallback content cannot be mistaken for an authoritative live read."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Tier precedence implemented as Temporal Query -> projection documents -> legacy disk artifact -> archive bundle in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4), matching the design-validated ordering (R1: legacy markdown is archive-era only, so markdown-first risked serving stale pre-migration leftovers). Precedence ordering asserted in plugin/src/tools/change.read-artifact.test.ts; verified by reviewer attempts 1 and 2.",
+          "notes": "Projection tier is never consulted before the Query."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "The batched readArtifacts path shares the same fallback tier and provenance tagging as single readArtifact in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4). Batched-path parity asserted in plugin/src/tools/change.read-artifact.test.ts and plugin/src/tools/change.test.ts; confirmed by reviewer attempts 1 and 2.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "No retry is issued against a Query already failed with a no-poller or deadline condition (commit 6bf9a1d4). Design validation confirmed a no-poller Query returns FAILED_PRECONDITION and is excluded from the Temporal SDK grpc-retry set, and Query Tasks are not persisted, so not retrying is correct. No-retry behavior asserted in plugin/src/tools/change.read-artifact.test.ts; verified by reviewer attempts 1 and 2.",
+          "notes": "Also satisfies C5 (no increase to the aggregate read budget)."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Initially a gap: after commit 27714ae0 the queue_serviceability rows were emitted only inside the post-fix recheck verification block, so a normal adv_doctor run exposed no session-typed or project-typed row. Flagged by the orchestrator to reviewer attempt 2, confirmed as a real second gap, and fixed in commit e83a3411 which publishes the diagnostic-pass rows at top level in plugin/src/tools/doctor.ts. Each row carries queueName, queueType (session|project), graded serviceability, and owningSession on the session row. Asserted in plugin/src/tools/doctor.test.ts (assertion updated from parsed.verification.queue_serviceability to parsed.queue_serviceability).",
+          "notes": "Found and closed during acceptance review, not during execution."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Serviceability retains the graded ServerPollerProbeStatus vocabulary (fresh|stale|none|unavailable) from plugin/src/temporal/queue-serviceability rather than collapsing to a boolean; DoctorQueueProbe carries both the graded status and the legacy serviceable boolean for backward compatibility (commits 27714ae0, 115bb0b6). Asserted in plugin/src/tools/doctor.test.ts; verified by reviewer attempts 1 and 2.",
+          "notes": "Graded classification was chosen at design time to avoid trading a false-green for a false-red, since pollers legitimately go quiet after 1-2 min idle."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Reviewer attempt 1 BLOCKED this change because plugin/src/tools/doctor.ts probed only the project queue and the current session queue, leaving ended peer-session queues entirely unprobed — so the motivating outage still reported green. Remediated in commit 115bb0b6: orphaned session queues are enumerated via the existing Visibility path listOrphanSessionQueues, probed with a cap of 8 queues and concurrency 4 reusing the shared 30s poller cache, and reported as INFORMATIONAL findings carrying queue name, owning session, graded status, and the stranded change IDs. Reviewer attempt 2 verified the remediation and returned READY. Covered by new tests in plugin/src/tools/doctor.test.ts including the informational-not-unhealthy assertion and the noise-suppression case.",
+          "notes": "Implemented per an explicit user-approved JOIN reading rather than a literal one: a quiet ended-session queue is reported only when it still owns at least one non-terminal change workflow. A quiet ended-session queue owning no non-terminal work is deliberately NOT reported, because reporting all ~36 tracked queues would be pure noise and would violate DONT5. Reviewer attempt 2 explicitly endorsed leaving those alone."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "The legacy single-projectId health-probe signature retains its behavior and output shape (commits 27714ae0, 115bb0b6). Asserted by a dedicated legacy-signature test in plugin/src/tools/doctor.test.ts; independently re-verified by reviewer attempt 2.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "probeDoctorQueues returns early with only the project probe when getCurrentSessionId() yields no session id, preserving the prior output shape (plugin/src/tools/doctor.ts, commit 27714ae0). Commit e83a3411 keeps this intact — the top-level queue_serviceability block is emitted only when a session probe exists, and the test asserts both parsed.verification.queue_serviceability and parsed.queue_serviceability are undefined on that path. Asserted in plugin/src/tools/doctor.test.ts.",
+          "notes": ""
+        },
+        {
+          "contractId": "AC11",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Automated coverage added across plugin/src/tools/change.read-artifact.test.ts (+166 lines), plugin/src/tools/change.test.ts (+110), and plugin/src/tools/doctor.test.ts covering: projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence, graded doctor session-queue probing, the stranded-queue join, noise suppression, the probe cap, and the AC9/AC10 preservation paths. Final verification by adv-verifier at HEAD e83a3411: bin/oc-test full exit 0, 541 files passed / 1 skipped, 8298 tests passed / 0 failed; pnpm run check exit 0.",
+          "notes": "One transient gate.test.ts flake appeared in an earlier full-suite run, passed in isolation (62/62) and did not reproduce on rerun; classified TRANSIENT, unrelated to this change's code, logged as a non-blocking follow-up."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "The change is read-only across both surfaces. plugin/src/tools/change/artifacts.ts adds read fallback tiers only, and plugin/src/tools/doctor.ts adds diagnostic probes only; no active artifact-content disk write path was introduced. Discovery explicitly confirmed the no-disk-writes invariant governs the write API and is not violated by a read-only change. pnpm run check exit 0 including check-test-isolation; reviewer attempts 1 and 2 both examined the full diff against trunk and raised no write-path finding.",
+          "notes": ""
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Projection-sourced content exposes no filesystem path; artifact metadata carries readable:false and a machine-readable source tag instead of a fabricated path (commit 6bf9a1d4). Matches staged spec delta dl-ArtPathTruthProj01 scenario rq-artifactPathTruth01.4 (\"No filesystem path is exposed for the projection-sourced content\"). Verified by reviewer attempts 1 and 2 and asserted in plugin/src/tools/change.read-artifact.test.ts.",
+          "notes": "Observable live this session: adv_change_show returns artifacts.*.readable=false with source tagging rather than a phantom path."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Legacy disk artifact and archive-bundle tiers are retained as tiers 3 and 4 of the precedence chain in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4); the projection tier was inserted above them, not in place of them. Preserved per spec scenario rq-artifactPathTruth01.2. Verified by reviewer attempts 1 and 2.",
+          "notes": ""
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No task-queue topology change and no workflow re-routing. Both surfaces are read/diagnostic only: doctor.ts probes queues via DescribeTaskQueue and enumerates them via Visibility, and artifacts.ts reads state. No call to a queue-assignment or workflow-reset path exists in the diff. Verified by reviewer attempts 1 and 2 against the full trunk...HEAD diff.",
+          "notes": ""
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "No retry is added against a fatal-classified TemporalQueryTimeoutError (see AC5), and the aggregate read budget is unchanged. The subread.runLocalCapable addition makes the LOCAL projection tier reachable after the Temporal deadline is exhausted; it does not extend or increase the Temporal read budget. Verified by reviewer attempts 1 and 2.",
+          "notes": ""
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "The orphaned-queue probe added in commit 115bb0b6 reuses the existing shared 30s poller cache and is explicitly bounded: a cap of 8 probed queues with an omitted count surfaced when the cap truncates, and concurrency limited to 4. No unbounded per-call DescribeTaskQueue fan-out is introduced. Reviewer attempt 2 independently verified the cap and concurrency values. Commit e83a3411 additionally corrected the capped-probe message, which previously implied a rerun would yield the next slice when the cap deterministically selects the oldest N.",
+          "notes": "Execution had originally declined the orphan probe on C6 grounds; the join keeps the probed set small and actionable, so C6 is satisfied rather than traded away."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No consolidation of session-scoped task queues onto the project queue. Session and project queues remain distinct and are probed as separate typed rows (queueType session vs project) in plugin/src/tools/doctor.ts. The change increases visibility into per-session queues rather than removing them, which reinforces rather than regresses rq-isolSessionTaskQueue04.1. Reviewer attempts 1 and 2 raised no finding.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "The broader Query-first to disk-first hydration flip was not implemented. AC3 preserves Query-first precedence, and the projection tier is a fallback only. adv_change_show, adv_change_list, adv_gate_status, and adv_wip_state hydration ordering is unchanged; only artifact readback gained a fallback tier. Reviewer attempts 1 and 2 confirmed scope containment with no scope_drift finding.",
+          "notes": "The full flip remains tracked as OOS2 / bl-HiZJbUuy."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No ephemeral-workflow lifecycle rework was undertaken. Workflow lifecycle, start, and termination paths are untouched by the diff; the change is confined to read fallback and diagnostics. Reviewer attempts 1 and 2 confirmed no scope drift.",
+          "notes": "Remains tracked separately as OOS3 / bl-MsU7dzK0."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Genuine failures are not masked: every resolved read carries a machine-readable source tag (AC2), so projection, legacy-disk, and archive-bundle fallbacks are distinguishable from an authoritative live workflow read and a caller cannot infer workflow queryability from the presence of content. This was an explicit design-validation refinement (R2) adopted precisely to prevent masking. Reviewer attempt 1 verified it while blocking on an unrelated point; reviewer attempt 2 re-confirmed.",
+          "notes": ""
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "The false-green signal is not replaced with a false-red one. Graded fresh/stale/none/unavailable classification (AC7) avoids treating idle-but-healthy queues as failures, ended-session queue findings are INFORMATIONAL and do not flip the system to unhealthy, and the AC8 join deliberately suppresses quiet ended-session queues that own no non-terminal work. Reviewer attempt 2 explicitly endorsed leaving those queues alone and verified the informational severity classification in plugin/src/tools/doctor.test.ts.",
+          "notes": "This avoidance is the reason the literal reading of AC8 was rejected in favor of the user-approved join."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope contract item. No task-queue topology redesign or workflow re-routing was performed; see C4, verified respected.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope contract item. The full bl-HiZJbUuy disk-first hydration flip was not implemented; see DONT2, verified respected.",
+          "notes": ""
+        },
+        {
+          "contractId": "OOS3",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "not_applicable",
+          "evidence": "Out-of-scope contract item. The bl-MsU7dzK0 ephemeral workflow and disk-durable record architecture was not undertaken; see DONT3, verified respected.",
+          "notes": ""
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given an active change whose artifact content is present in the disk projection documents map and whose workflow Query is unavailable because no live poller serves its task queue, when artifact readback runs for that change, then the persisted content is returned instead of an absent or unreadable result.",
+    "Given artifact content resolved from a fallback tier, when the read surface emits the result, then the result carries a machine-readable source tag identifying which tier served it, and a caller cannot infer workflow queryability from the presence of content alone.",
+    "Given artifact readback resolves content, when the tiers are consulted, then the precedence is Temporal Query first, then projection documents, then legacy disk artifact, then archive bundle, and the projection tier is never consulted before the Temporal Query.",
+    "Given the batched readArtifacts path resolves content for multiple kinds, when it runs, then it applies the same projection fallback tier and the same provenance tagging as the single-artifact readArtifact path.",
+    "Given a Temporal Query that already failed with a no-poller or deadline condition, when the fallback tiers run, then no additional retry is issued against that Query.",
+    "Given per-session task-queue routing is active with both a session queue and a project queue, when adv_doctor runs, then the output contains a session-typed row and a project-typed row each carrying a serviceability indicator, and the session row identifies its owning session.",
+    "Given a probed task queue, when serviceability is reported, then the status is graded as fresh, stale, none, or unavailable rather than collapsed to a binary healthy flag.",
+    "Given a task queue whose owning session has ended, when its pollers are absent, then the condition is reported as informational rather than as a health failure.",
+    "Given a legacy caller invoking the health probe with a single projectId string, when it is called with that legacy signature, then the existing behavior and output shape are preserved.",
+    "Given adv_doctor runs with no resolvable current session id, when session probing is attempted, then it skips the session probe and preserves the prior output shape.",
+    "Given the change is complete, when the test suite runs, then automated tests cover the projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence, and doctor session-queue probing with graded classification."
+  ],
+  "documents": {
+    "proposal": "## Intent\n\nClose two coupled defects that make ADV narrative artifact content unreadable, and make the health surface capable of reporting the condition.\n\n1. `readArtifact` never falls back to the disk projection's `documents` field. When a change's originating session is gone, its workflow sits on an unpolled session task queue, the Temporal Query is never served, and artifact content becomes unreachable — even though the content is intact in `change.json`.\n2. `adv_doctor` probes only the project task queue, so it reports `queue_serviceable: true` during exactly the session-queue orphaning that causes defect 1.\n\n## Root Cause Analysis\n\n### Observed symptom\n\nReading narrative artifacts for change `fixTaskUpdatePersistence` failed repeatedly:\n\n```\nadv_change_show include:{executiveSummary:true, artifactOnly:true}\n→ _artifactsError: \"Temporal operation exceeded 1500ms timeout\"\n→ hydrationStats: { deadlineExceeded: true, omitted: [\"artifacts\"] }\n```\n\nReproduced across ~40 minutes and multiple load conditions. Metadata reads succeeded instantly throughout. The artifact existed and was hash-verified (`b7c454dd…`, 1084 non-whitespace chars, `updatedAt` 2026-08-01T22:21:50Z).\n\n### Causal chain\n\n1. Change workflows run on **session-scoped** task queues, `advance-{projectId}-{sessionId}` (`plugin/src/temporal/client.ts:55-60`), selected at `plugin/src/temporal/operations.ts:1030-1033`.\n2. `fixTaskUpdatePersistence` was created 2026-08-01 by a session that no longer exists. Its workflow remains RUNNING on that dead session's queue. Adoption only adds pollers and never re-routes workflows (spec `advance-workflow.md:6678`), and Temporal task queues have no reclamation.\n3. Artifact content is read via a live Temporal workflow Query — `changeStateQuery` (`plugin/src/temporal/messages.ts:118-122`), issued at `plugin/src/storage/store-temporal/index.ts:765-768`. Temporal documents this as requiring a live worker: *\"A Worker must be online to process the query\"*; with no poller the server returns `FAILED_PRECONDITION` / `DEADLINE_EXCEEDED`.\n4. `TemporalQueryTimeoutError` is deliberately classified `fatal` (`plugin/src/temporal/retry-wrapper.ts:149`), so it is not retried — correct behavior, but it makes the failure terminal for the request.\n5. `readArtifact` (`plugin/src/tools/change/artifacts.ts:89-125`) does have fallbacks, but they are: legacy markdown file (`<changesDir>/<changeId>/proposal.md`), then archive bundle. **Neither consults `change.json` → `documents`.** For an active change that never had legacy markdown written, the fallback yields empty.\n\n### The decisive finding\n\nThe disk projection **already carries artifact content**:\n\n- `mapTemporalChangeStateToChange` returns `documents: safeState.documents` (`plugin/src/storage/store-temporal/shared.ts:111`)\n- `TEMPORAL_OWNED_PROJECTION_FIELDS` includes `documents` and `artifacts` (`shared.ts:143-176`)\n- `projectTemporalStateOntoLatest` merges them (`shared.ts:183-193`)\n- `commitChangeProjection` writes the full value atomically to `change.json` (`plugin/src/storage/change-projection-transaction.ts:367-376`)\n- `context-snapshot-fetch.ts:27` already reads `change.documents?.proposal` successfully\n\nConfirmed empirically: `adv_change_show` returned `documents: \"[truncated: 17617 chars]\"` with `_source: \"disk\"` while the artifact hydration path simultaneously failed. The content was on disk and being returned by the store the whole time; only the artifact read path failed to look there.\n\n**Root cause: the artifact read path has a missing fallback tier, not a data-loss or contention problem.** Contention only explains the fluctuating deadline values (1500ms vs 702ms), which are the per-attempt cap (`retry-wrapper.ts:329-332`) clipped by the 8s aggregate budget (`retry-wrapper.ts:203`) after `loadDiskProjection` consumed ~7.3s. Those are local timer expirations on an unrouted query, not worker saturation — genuine contention would push waits above the cap, not below it.\n\n### Why this was not caught\n\n`adv_doctor` reported `healthy` with `queue_serviceable: true` throughout. Its probe targets only `buildProjectTaskQueue(projectId)` (`plugin/src/tools/doctor.ts:190-205`, called at `:324` and `:731`). Every session co-polls the project queue (`plugin/src/plugin-init.ts:273`), so the probe is green whenever the *current* session's worker is alive. It is structurally incapable of detecting an orphaned session queue.\n\nThe multi-target probe capability already exists — `probeQueues(targets: QueueProbeTarget[])` with `queueType: \"session\" | \"project\"` (`plugin/src/temporal/health-probe.ts:107-158`) — and `status-health.ts:424-466` already uses it correctly. Only the doctor call site fails to pass session targets.\n\n### Contributing design context (not in scope to change here)\n\nStoring document content in workflow state and reading it back solely via Query is a documented Temporal anti-pattern (external-storage offload threshold is 256 KiB; ADV documents run ~200KB). The architectural resolution is tracked as `bl-MsU7dzK0` (ephemeral workflow + disk-durable record). Consolidating task queues is explicitly **not** the fix: `rq-isolSessionTaskQueue01` is priority `must` and exists so a peer session's wedged worker cannot block another session, and Temporal provides no API to change a running workflow's TaskQueue — ~52 in-flight changes would strand.\n\n## LBP Targets\n\n- Fallback ordering for artifact reads: Temporal Query → legacy markdown → `change.json.documents` → archive bundle\n- `rq-artifactPathTruth01` explicitly requires \"legacy disk and archive-bundle fallback reads MUST remain supported\" — confirm an added tier is consistent\n- Confirm Fix 3 closes rather than violates `rq-isolSessionTaskQueue04` (which already mandates per-queue serviceability with type labels)\n- Confirm no violation of the `no-disk-writes-invariant` structural law (it governs the write API, not projection shape)\n\n## Scope\n\n- `plugin/src/tools/change/artifacts.ts` — add disk-projection `documents` fallback tier to `readArtifact` and `readArtifacts`\n- `plugin/src/tools/doctor.ts` — probe session task queues alongside the project queue\n- Tests for both paths\n\nOut of scope: task-queue topology changes; the full `bl-HiZJbUuy` Query-first → disk-first hydration flip; `bl-MsU7dzK0` workflow lifecycle rework.\n\n## User Outcomes\n\n- Artifact reads keep working when a change's originating session is gone — no OpenCode restart, no waiting for contention\n- `adv_doctor` reports unhealthy when a session queue is unpolled, instead of a false green\n- The stalled `fixTaskUpdatePersistence` release unblocks\n\n## Existing Scope Involved\n\n- `bl-HiZJbUuy` (disk-authoritative active-change reads) — this is its first narrow slice; the item stays open for the broader hydration flip\n- `bl-workerQueueReadBlackout` — Fix 3 supplies its missing diagnostics; its claim that the orphan adopter is never constructed in non-lock-owning hosts is **refuted** under default config (`worker_singleton_enforce` defaults false; `plugin-init.ts:721-727` constructs unconditionally)\n- `rq-isolSessionTaskQueue04` — currently violated by the doctor; this change closes the gap\n",
+    "agreement": "## Objectives\n\n1. Make ADV narrative artifact content readable whenever it is durably persisted, regardless of whether the owning change workflow is currently queryable.\n2. Make `adv_doctor` capable of reporting session-queue serviceability, so the failure in (1) is visible instead of masked by a false green.\n\n## Acceptance Criteria\n\n- AC1: Given an active change whose artifact content is present in the disk projection documents map and whose workflow Query is unavailable because no live poller serves its task queue, when artifact readback runs for that change, then the persisted content is returned instead of an absent or unreadable result.\n- AC2: Given artifact content resolved from a fallback tier, when the read surface emits the result, then the result carries a machine-readable source tag identifying which tier served it, and a caller cannot infer workflow queryability from the presence of content alone.\n- AC3: Given artifact readback resolves content, when the tiers are consulted, then the precedence is Temporal Query first, then projection documents, then legacy disk artifact, then archive bundle, and the projection tier is never consulted before the Temporal Query.\n- AC4: Given the batched readArtifacts path resolves content for multiple kinds, when it runs, then it applies the same projection fallback tier and the same provenance tagging as the single-artifact readArtifact path.\n- AC5: Given a Temporal Query that already failed with a no-poller or deadline condition, when the fallback tiers run, then no additional retry is issued against that Query.\n- AC6: Given per-session task-queue routing is active with both a session queue and a project queue, when adv_doctor runs, then the output contains a session-typed row and a project-typed row each carrying a serviceability indicator, and the session row identifies its owning session.\n- AC7: Given a probed task queue, when serviceability is reported, then the status is graded as fresh, stale, none, or unavailable rather than collapsed to a binary healthy flag.\n- AC8: Given a task queue whose owning session has ended, when its pollers are absent, then the condition is reported as informational rather than as a health failure.\n- AC9: Given a legacy caller invoking the health probe with a single projectId string, when it is called with that legacy signature, then the existing behavior and output shape are preserved.\n- AC10: Given adv_doctor runs with no resolvable current session id, when session probing is attempted, then it skips the session probe and preserves the prior output shape.\n- AC11: Given the change is complete, when the test suite runs, then automated tests cover the projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence, and doctor session-queue probing with graded classification.\n\n## Constraints\n\n- C1: Preserve the no-disk-writes invariant so artifact content reaches durable state only through Temporal signals; this change is read-only and must not introduce active artifact-content disk writes.\n- C2: Never expose a nonexistent filesystem path as a readable source of truth, and expose no filesystem path for projection-sourced content.\n- C3: Keep legacy disk and archive-bundle fallback reads supported.\n- C4: Preserve existing task-queue topology and re-route no workflow between queues.\n- C5: Respect the bounded-read deadline model by adding no retries against a fatal-classified TemporalQueryTimeoutError and no increase to the aggregate read budget.\n- C6: Keep added diagnostic probe cost bounded by the existing 30s poller cache and introduce no unbounded per-call DescribeTaskQueue fan-out.\n\n## Avoidances\n\n- DONT1: Do not consolidate session-scoped task queues onto the project queue, because it regresses a must-priority spec and strands in-flight workflows that Temporal cannot re-route.\n- DONT2: Do not implement the broader Query-first to disk-first hydration flip for adv_change_show, adv_change_list, adv_gate_status, or adv_wip_state.\n- DONT3: Do not undertake the ephemeral-workflow lifecycle rework tracked separately as bl-MsU7dzK0.\n- DONT4: Do not mask genuine failures by returning fallback content that is indistinguishable from an authoritative read.\n- DONT5: Do not replace the current false-green health signal with a false-red one by treating idle-but-healthy queues as failures.\n\n## Out of Scope\n\n- OOS1: Task-queue topology redesign and workflow re-routing.\n- OOS2: The full bl-HiZJbUuy disk-first hydration flip across change read surfaces.\n- OOS3: The bl-MsU7dzK0 ephemeral workflow and disk-durable record architecture.\n",
+    "design": "## Spec-Law Impact Assessment\n\n**Outcome: Modify** (one requirement), plus one pure-conformance fix requiring no law change.\n\n### Fix 1 — artifact read fallback → MODIFY `rq-artifactPathTruth01`\n\nCurrent body enumerates supported fallback sources as *\"Legacy disk and archive-bundle fallback reads MUST remain supported.\"* Scenario `rq-artifactPathTruth01.2` covers exactly those two tiers. The disk-projection `documents` tier is **not** covered by existing law, yet it is the tier that makes content readable when a workflow's session queue is orphaned.\n\n**Draft spec-delta obligation:**\n\n- **Capability:** `advance-workflow`\n- **Delta kind:** `modify`\n- **Requirement:** `rq-artifactPathTruth01` (\"Truthful Artifact Path Read Surfaces\")\n- **Change:** Require artifact readback to consult the durable disk projection's `documents` map before concluding content is absent, and to source-tag returned content with its provenance. Ordering: Temporal Query → projection `documents` → legacy disk artifact → archive bundle.\n- **New scenario `rq-artifactPathTruth01.4` — Projection documents serve artifact reads when the workflow is unreachable:**\n  - **Given** an active change whose `state.documents.executiveSummary` was persisted to the disk projection\n  - **And** the change's workflow is RUNNING on a task queue with no live poller (originating session ended)\n  - **When** artifact readback runs for that change\n  - **Then** the executive-summary content is returned from the projection `documents` map\n  - **And** the response does not report the artifact as unreadable or absent\n  - **And** no filesystem path is exposed for the projection-sourced content\n- **New scenario `rq-artifactPathTruth01.5` — Artifact reads declare provenance:**\n  - **Given** artifact content is returned from any tier\n  - **When** the read surface emits the result\n  - **Then** the result carries a machine-readable source tag distinguishing authoritative live workflow reads from projection, legacy-disk, and archive-bundle fallbacks\n  - **And** a caller cannot infer workflow queryability from the mere presence of content\n- **Rationale:** The projection already persists `documents` (`shared.ts:111`, `TEMPORAL_OWNED_PROJECTION_FIELDS` at `shared.ts:143-176`, written by the `writeChangeProjection` activity, `workflows.ts:999-1025`, committed by `change-projection-transaction.ts:367-376`). Law currently permits a read surface to report content unreachable while that content sits durably on disk.\n\n**Compatibility with existing law:**\n- `rq-artifactPathTruth01.2` — preserved; this adds a tier and reorders, removes none.\n- `rq-artifactPathTruth01.1` (no fake readable path) — preserved and strengthened by the provenance tag.\n- `rq-artifactPathTruth01.3` — untouched.\n- `no-disk-writes-invariant` (`plugin/src/storage/store-temporal/no-disk-writes-invariant.test.ts`) — **not violated**. It governs the *write* API (content flows through signals, not `create`/`updateArtifacts` disk writes). This change is read-only.\n\n### Fix 3 — doctor session-queue probing → NO SPEC LAW UPDATE REQUIRED\n\n`rq-isolSessionTaskQueue04` (priority `must`) already mandates the behavior verbatim, including per-queue type labels and owning-session identification (`04.1`). `adv_doctor` currently probes only `buildProjectTaskQueue(projectId)` (`doctor.ts:190-205`, called at `:324` and `:731`) — a live violation of shipped law. This is conformance work. Scenario `04.3` (legacy single-queue API back-compat) must remain green.\n\n## Validated Design (adv-researcher: READY with caution — both refinements adopted)\n\n### R1 — Precedence: Query → projection → markdown → archive\n\nQuery-first is correct: the live workflow is strictly most current. Projection is a durable mirror written per-signal by the `writeChangeProjection` activity (`workflows.ts:999-1025`).\n\n**Refinement adopted:** projection is consulted **before** legacy markdown, not after. Legacy markdown is archive-era only — there are no active write paths to it — so for active changes that tier is always empty, and markdown-first risks serving stale pre-migration leftovers over the authoritative mirror.\n\n**Staleness bound:** one signal's projection-activity round-trip. A stale read is possible only mid-edit, which the gate model excludes for finalized narrative artifacts. Projection MUST NOT be consulted before the Query.\n\n### R2 — Provenance tagging (no silent degradation)\n\nReturning fallback content without a marker would let a caller infer \"content returned ⇒ workflow queryable,\" which is false. Given this codebase's active theme of eliminating silent success, every artifact read carries a machine-readable source tag. The taxonomy already exists — `LoadResult.source` (`change-projection-reader.ts:192-198`): `workflow | disk | archive | active_projection | retired_projection | read_model`.\n\n### Fix 3 classification — avoid trading false-green for false-red\n\nPollers legitimately vanish from `DescribeTaskQueue` after ~1-2 minutes idle, or when a worker is at capacity. Absence is necessary but not sufficient evidence of a problem.\n\n- Report a graded status — `fresh | stale | none | unavailable` — never a binary healthy/unhealthy collapse.\n- Include the owning session per `rq-isolSessionTaskQueue04.1`.\n- An absent poller on a **dead session's** queue is *informational*; escalate to red only when the owning session is expected-alive.\n- Reuse the proven classification at `status-health.ts:431-466`.\n\n### Temporal guidance confirmed\n\n- Not retrying the timed-out Query is correct. No-poller Query returns `FAILED_PRECONDITION` (code 9) — [TS message-passing](https://docs.temporal.io/develop/typescript/workflows/message-passing); the SDK grpc-retry set excludes both `FAILED_PRECONDITION` and `DEADLINE_EXCEEDED`. Query Tasks are not persisted and are sync-matched only when polled ([task-queue docs](https://docs.temporal.io/task-queue)), so retry is futile until a poller returns.\n- Reading workflow-associated application data from an external projection is idiomatic cache-aside; workflow history remains authoritative.\n- `DescribeTaskQueue` is the canonical health mechanism but is bound to the visibility RPS limiter on server ≥1.24. The existing 30s poller cache (`health-probe.ts:101-105`) is adequate and matches Temporal's own caching guidance.\n\n## Implementation Strategy\n\n### Fix 3 — doctor session-queue probing\n\n- Generalize `probeQueue` (`doctor.ts:190-205`) to accept a queue name + type rather than hardcoding `buildProjectTaskQueue`.\n- At the serviceability call sites (`:319-326`, `:730-731`), probe both the project queue and the current session queue via `getCurrentSessionId()` (`utils/session-id.ts:42-58`).\n- Emit per-queue rows with `queueType` and owning session; classify graded, not binary.\n- Degrade cleanly when no session id is available — skip the session probe, preserve existing output shape (`04.3`).\n\n### Fix 1 — artifact read fallback tier\n\n- Insert the projection tier into `readArtifact` (`artifacts.ts:89-125`) immediately after the Temporal Query, before legacy markdown: load via `loadChange` (`change-projection-reader.ts:368`), read `documents[kind]`.\n- Apply the identical tier to the batched `readArtifacts` (`artifacts.ts:177-225`) — same gap, parallel code path.\n- Source-tag every result; expose no filesystem path for projection-sourced content. `normalizeArtifactMetadataForReadback` (`:32-58`) already marks `source === \"temporal\"` as `readable: false`; projection-sourced content must be equally honest.\n- Add no retry against the failed Query.\n- Do not alter write paths.\n\n### Explicitly out of scope\n\n- Task-queue topology changes. `rq-isolSessionTaskQueue01` is priority `must`; Temporal offers no API to change a running workflow's TaskQueue, so ~52 in-flight changes would strand.\n- The full `bl-HiZJbUuy` Query-first → disk-first hydration flip for `adv_change_show`/`list`/`gate_status`/`wip_state`.\n- `bl-MsU7dzK0` ephemeral-workflow lifecycle rework.\n",
+    "executiveSummary": "# Executive Summary — Fix artifact read fallback\n\n## Outcome\n\nADV can now read a change's written record even when the background process that normally serves it has gone away, and its health check now tells you when that has happened instead of reporting all-clear.\n\n## Why it matters\n\nWork in ADV is tracked by a long-running background process, one per working session. When a session ends, its process can be left stranded: still holding real, completed work, but with nobody left listening to answer questions about it. Before this change, that produced a silent, misleading failure.\n\n- **The record looked lost.** Asking ADV for a change's proposal, design, or agreement returned nothing — as though the work had never been done. The content was never actually lost; a durable copy was always on disk. ADV simply never looked there.\n- **The health check said everything was fine.** Running the diagnostic reported \"System healthy; no action needed\" while reads were actively failing, sending anyone investigating in the wrong direction.\n\nThis change was validated against itself. While the work was being finished, this very change hit the exact fault it fixes: its own task list became unreadable, and the diagnostic reported full health. Diagnosing that took a dedicated investigation session — precisely the wasted effort this change eliminates.\n\n## What was delivered\n\n- **Reads fall back to the durable copy.** When the live source cannot answer, ADV now reads the durable on-disk copy instead of reporting the content missing. The fallback works even when the time budget for the live attempt is already spent, which is the common case in this fault.\n- **Every read says where it came from.** Results are tagged with their source, so content served from a fallback can never be mistaken for a confirmed-live read. This preserves the ability to detect the underlying fault rather than hiding it.\n- **No wasted retries.** A live source that has already failed for this reason is not asked again; the fallback is used directly.\n- **The diagnostic now surfaces the real condition.** It reports the serving status of both the session and the project queue, graded as fresh, stale, none, or unavailable rather than a single pass/fail flag.\n- **Stranded work is flagged without noise.** A quiet queue from an ended session is normal and is deliberately not reported on its own. It is reported only when it still holds unfinished work — the genuinely abnormal case, and the one behind the original outage. This is capped at a bounded number of checks so the diagnostic stays cheap.\n\n## Verification\n\n- Full test suite: 541 files, 8298 tests, 0 failures.\n- Static checks, type checks, schema, manifest, and formatting checks: all clean, 0 errors.\n- A test reproducing the original production fault fails before the fix and passes after it.\n- Two independent review passes. The first blocked the change on a real gap: the diagnostic did not cover queues from ended sessions, so the original outage would still have gone undetected. That gap was closed and re-reviewed.\n- A second gap found during re-review — status rows appearing only after a repair ran, not on a normal diagnostic run — was also corrected.\n\n## Risks and follow-ups\n\n- **Deployment required before any benefit is visible.** These are read and diagnostic paths in the plugin. Nothing changes for a running system until the change is merged to the default branch, rebuilt, deployed, and the host restarted.\n- **Diagnostic coverage is intentionally bounded.** It checks the oldest few stranded queues, not all of them, to keep the check cheap. If more are stranded than the cap, the diagnostic says so rather than silently truncating.\n- **One flaky test, unrelated to this work.** A gate test is sensitive to ordering when the full suite runs in parallel. It passes in isolation and on rerun, and does not involve this change's code. Logged as a low-priority follow-up.\n- **No change to how work is written or stored.** This change only affects reading and diagnostics, so it carries no data migration and no impact on recorded history.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-04T04:13:39.507Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given an active change whose artifact content is present in the disk projection documents map and whose workflow Query is unavailable because no live poller serves its task queue, when artifact readback runs for that change, then the persisted content is returned instead of an absent or unreadable result. | pass | Commit 6bf9a1d4 adds the projection-documents fallback tier to readArtifact/readArtifacts in plugin/src/tools/change/artifacts.ts plus subread.runLocalCapable so the local projection tier stays reachable after the Temporal aggregate deadline is exhausted. RED test tr_mse17xsm_c44d32b5 reproduced the production defect before the fix; GREEN tr_mse1anem_1ea6b8d4 after. Covered in plugin/src/tools/change.read-artifact.test.ts. Reviewer attempt 1 confirmed AC1-AC5 met; attempt 2 re-confirmed READY at HEAD e83a3411. |\n| AC2 | acceptance_criterion | Given artifact content resolved from a fallback tier, when the read surface emits the result, then the result carries a machine-readable source tag identifying which tier served it, and a caller cannot infer workflow queryability from the presence of content alone. | pass | Provenance source-tagging added in commit 6bf9a1d4 reusing the existing LoadResult.source taxonomy, so every resolved artifact read declares its serving tier. Verified by reviewer attempts 1 and 2 against plugin/src/tools/change/artifacts.ts and plugin/src/tools/change.read-artifact.test.ts. Satisfies staged spec delta dl-ArtPathTruthProj01 scenario rq-artifactPathTruth01.5. |\n| AC3 | acceptance_criterion | Given artifact readback resolves content, when the tiers are consulted, then the precedence is Temporal Query first, then projection documents, then legacy disk artifact, then archive bundle, and the projection tier is never consulted before the Temporal Query. | pass | Tier precedence implemented as Temporal Query -> projection documents -> legacy disk artifact -> archive bundle in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4), matching the design-validated ordering (R1: legacy markdown is archive-era only, so markdown-first risked serving stale pre-migration leftovers). Precedence ordering asserted in plugin/src/tools/change.read-artifact.test.ts; verified by reviewer attempts 1 and 2. |\n| AC4 | acceptance_criterion | Given the batched readArtifacts path resolves content for multiple kinds, when it runs, then it applies the same projection fallback tier and the same provenance tagging as the single-artifact readArtifact path. | pass | The batched readArtifacts path shares the same fallback tier and provenance tagging as single readArtifact in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4). Batched-path parity asserted in plugin/src/tools/change.read-artifact.test.ts and plugin/src/tools/change.test.ts; confirmed by reviewer attempts 1 and 2. |\n| AC5 | acceptance_criterion | Given a Temporal Query that already failed with a no-poller or deadline condition, when the fallback tiers run, then no additional retry is issued against that Query. | pass | No retry is issued against a Query already failed with a no-poller or deadline condition (commit 6bf9a1d4). Design validation confirmed a no-poller Query returns FAILED_PRECONDITION and is excluded from the Temporal SDK grpc-retry set, and Query Tasks are not persisted, so not retrying is correct. No-retry behavior asserted in plugin/src/tools/change.read-artifact.test.ts; verified by reviewer attempts 1 and 2. |\n| AC6 | acceptance_criterion | Given per-session task-queue routing is active with both a session queue and a project queue, when adv_doctor runs, then the output contains a session-typed row and a project-typed row each carrying a serviceability indicator, and the session row identifies its owning session. | pass | Initially a gap: after commit 27714ae0 the queue_serviceability rows were emitted only inside the post-fix recheck verification block, so a normal adv_doctor run exposed no session-typed or project-typed row. Flagged by the orchestrator to reviewer attempt 2, confirmed as a real second gap, and fixed in commit e83a3411 which publishes the diagnostic-pass rows at top level in plugin/src/tools/doctor.ts. Each row carries queueName, queueType (session|project), graded serviceability, and owningSession on the session row. Asserted in plugin/src/tools/doctor.test.ts (assertion updated from parsed.verification.queue_serviceability to parsed.queue_serviceability). |\n| AC7 | acceptance_criterion | Given a probed task queue, when serviceability is reported, then the status is graded as fresh, stale, none, or unavailable rather than collapsed to a binary healthy flag. | pass | Serviceability retains the graded ServerPollerProbeStatus vocabulary (fresh|stale|none|unavailable) from plugin/src/temporal/queue-serviceability rather than collapsing to a boolean; DoctorQueueProbe carries both the graded status and the legacy serviceable boolean for backward compatibility (commits 27714ae0, 115bb0b6). Asserted in plugin/src/tools/doctor.test.ts; verified by reviewer attempts 1 and 2. |\n| AC8 | acceptance_criterion | Given a task queue whose owning session has ended, when its pollers are absent, then the condition is reported as informational rather than as a health failure. | pass | Reviewer attempt 1 BLOCKED this change because plugin/src/tools/doctor.ts probed only the project queue and the current session queue, leaving ended peer-session queues entirely unprobed — so the motivating outage still reported green. Remediated in commit 115bb0b6: orphaned session queues are enumerated via the existing Visibility path listOrphanSessionQueues, probed with a cap of 8 queues and concurrency 4 reusing the shared 30s poller cache, and reported as INFORMATIONAL findings carrying queue name, owning session, graded status, and the stranded change IDs. Reviewer attempt 2 verified the remediation and returned READY. Covered by new tests in plugin/src/tools/doctor.test.ts including the informational-not-unhealthy assertion and the noise-suppression case. |\n| AC9 | acceptance_criterion | Given a legacy caller invoking the health probe with a single projectId string, when it is called with that legacy signature, then the existing behavior and output shape are preserved. | pass | The legacy single-projectId health-probe signature retains its behavior and output shape (commits 27714ae0, 115bb0b6). Asserted by a dedicated legacy-signature test in plugin/src/tools/doctor.test.ts; independently re-verified by reviewer attempt 2. |\n| AC10 | acceptance_criterion | Given adv_doctor runs with no resolvable current session id, when session probing is attempted, then it skips the session probe and preserves the prior output shape. | pass | probeDoctorQueues returns early with only the project probe when getCurrentSessionId() yields no session id, preserving the prior output shape (plugin/src/tools/doctor.ts, commit 27714ae0). Commit e83a3411 keeps this intact — the top-level queue_serviceability block is emitted only when a session probe exists, and the test asserts both parsed.verification.queue_serviceability and parsed.queue_serviceability are undefined on that path. Asserted in plugin/src/tools/doctor.test.ts. |\n| AC11 | acceptance_criterion | Given the change is complete, when the test suite runs, then automated tests cover the projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence, and doctor session-queue probing with graded classification. | pass | Automated coverage added across plugin/src/tools/change.read-artifact.test.ts (+166 lines), plugin/src/tools/change.test.ts (+110), and plugin/src/tools/doctor.test.ts covering: projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence, graded doctor session-queue probing, the stranded-queue join, noise suppression, the probe cap, and the AC9/AC10 preservation paths. Final verification by adv-verifier at HEAD e83a3411: bin/oc-test full exit 0, 541 files passed / 1 skipped, 8298 tests passed / 0 failed; pnpm run check exit 0. |\n| C1 | constraint | Preserve the no-disk-writes invariant so artifact content reaches durable state only through Temporal signals; this change is read-only and must not introduce active artifact-content disk writes. | respected | The change is read-only across both surfaces. plugin/src/tools/change/artifacts.ts adds read fallback tiers only, and plugin/src/tools/doctor.ts adds diagnostic probes only; no active artifact-content disk write path was introduced. Discovery explicitly confirmed the no-disk-writes invariant governs the write API and is not violated by a read-only change. pnpm run check exit 0 including check-test-isolation; reviewer attempts 1 and 2 both examined the full diff against trunk and raised no write-path finding. |\n| C2 | constraint | Never expose a nonexistent filesystem path as a readable source of truth, and expose no filesystem path for projection-sourced content. | respected | Projection-sourced content exposes no filesystem path; artifact metadata carries readable:false and a machine-readable source tag instead of a fabricated path (commit 6bf9a1d4). Matches staged spec delta dl-ArtPathTruthProj01 scenario rq-artifactPathTruth01.4 (\"No filesystem path is exposed for the projection-sourced content\"). Verified by reviewer attempts 1 and 2 and asserted in plugin/src/tools/change.read-artifact.test.ts. |\n| C3 | constraint | Keep legacy disk and archive-bundle fallback reads supported. | respected | Legacy disk artifact and archive-bundle tiers are retained as tiers 3 and 4 of the precedence chain in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4); the projection tier was inserted above them, not in place of them. Preserved per spec scenario rq-artifactPathTruth01.2. Verified by reviewer attempts 1 and 2. |\n| C4 | constraint | Preserve existing task-queue topology and re-route no workflow between queues. | respected | No task-queue topology change and no workflow re-routing. Both surfaces are read/diagnostic only: doctor.ts probes queues via DescribeTaskQueue and enumerates them via Visibility, and artifacts.ts reads state. No call to a queue-assignment or workflow-reset path exists in the diff. Verified by reviewer attempts 1 and 2 against the full trunk...HEAD diff. |\n| C5 | constraint | Respect the bounded-read deadline model by adding no retries against a fatal-classified TemporalQueryTimeoutError and no increase to the aggregate read budget. | respected | No retry is added against a fatal-classified TemporalQueryTimeoutError (see AC5), and the aggregate read budget is unchanged. The subread.runLocalCapable addition makes the LOCAL projection tier reachable after the Temporal deadline is exhausted; it does not extend or increase the Temporal read budget. Verified by reviewer attempts 1 and 2. |\n| C6 | constraint | Keep added diagnostic probe cost bounded by the existing 30s poller cache and introduce no unbounded per-call DescribeTaskQueue fan-out. | respected | The orphaned-queue probe added in commit 115bb0b6 reuses the existing shared 30s poller cache and is explicitly bounded: a cap of 8 probed queues with an omitted count surfaced when the cap truncates, and concurrency limited to 4. No unbounded per-call DescribeTaskQueue fan-out is introduced. Reviewer attempt 2 independently verified the cap and concurrency values. Commit e83a3411 additionally corrected the capped-probe message, which previously implied a rerun would yield the next slice when the cap deterministically selects the oldest N. |\n| DONT1 | avoidance | Do not consolidate session-scoped task queues onto the project queue, because it regresses a must-priority spec and strands in-flight workflows that Temporal cannot re-route. | respected | No consolidation of session-scoped task queues onto the project queue. Session and project queues remain distinct and are probed as separate typed rows (queueType session vs project) in plugin/src/tools/doctor.ts. The change increases visibility into per-session queues rather than removing them, which reinforces rather than regresses rq-isolSessionTaskQueue04.1. Reviewer attempts 1 and 2 raised no finding. |\n| DONT2 | avoidance | Do not implement the broader Query-first to disk-first hydration flip for adv_change_show, adv_change_list, adv_gate_status, or adv_wip_state. | respected | The broader Query-first to disk-first hydration flip was not implemented. AC3 preserves Query-first precedence, and the projection tier is a fallback only. adv_change_show, adv_change_list, adv_gate_status, and adv_wip_state hydration ordering is unchanged; only artifact readback gained a fallback tier. Reviewer attempts 1 and 2 confirmed scope containment with no scope_drift finding. |\n| DONT3 | avoidance | Do not undertake the ephemeral-workflow lifecycle rework tracked separately as bl-MsU7dzK0. | respected | No ephemeral-workflow lifecycle rework was undertaken. Workflow lifecycle, start, and termination paths are untouched by the diff; the change is confined to read fallback and diagnostics. Reviewer attempts 1 and 2 confirmed no scope drift. |\n| DONT4 | avoidance | Do not mask genuine failures by returning fallback content that is indistinguishable from an authoritative read. | respected | Genuine failures are not masked: every resolved read carries a machine-readable source tag (AC2), so projection, legacy-disk, and archive-bundle fallbacks are distinguishable from an authoritative live workflow read and a caller cannot infer workflow queryability from the presence of content. This was an explicit design-validation refinement (R2) adopted precisely to prevent masking. Reviewer attempt 1 verified it while blocking on an unrelated point; reviewer attempt 2 re-confirmed. |\n| DONT5 | avoidance | Do not replace the current false-green health signal with a false-red one by treating idle-but-healthy queues as failures. | respected | The false-green signal is not replaced with a false-red one. Graded fresh/stale/none/unavailable classification (AC7) avoids treating idle-but-healthy queues as failures, ended-session queue findings are INFORMATIONAL and do not flip the system to unhealthy, and the AC8 join deliberately suppresses quiet ended-session queues that own no non-terminal work. Reviewer attempt 2 explicitly endorsed leaving those queues alone and verified the informational severity classification in plugin/src/tools/doctor.test.ts. |\n| OOS1 | out_of_scope | Task-queue topology redesign and workflow re-routing. | not_applicable | Out-of-scope contract item. No task-queue topology redesign or workflow re-routing was performed; see C4, verified respected. |\n| OOS2 | out_of_scope | The full bl-HiZJbUuy disk-first hydration flip across change read surfaces. | not_applicable | Out-of-scope contract item. The full bl-HiZJbUuy disk-first hydration flip was not implemented; see DONT2, verified respected. |\n| OOS3 | out_of_scope | The bl-MsU7dzK0 ephemeral workflow and disk-durable record architecture. | not_applicable | Out-of-scope contract item. The bl-MsU7dzK0 ephemeral workflow and disk-durable record architecture was not undertaken; see DONT3, verified respected. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-04T01:40:02.679Z",
+      "contentHash": "60239be65c8a61b99b89606eab5c9ab0fb468d8534393227daa140d09ac69473",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-04T01:50:01.232Z",
+      "contentHash": "80c5eb47856a8d91f7b2a725d8cc71e084c9c81bce5813a52c958c9a371a6a1f",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-04T01:52:43.386Z",
+      "contentHash": "d457d8f293f258ae5509658c9cafdf0262a4d1455de9a7b1dfcf83b06722c1cc",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-04T04:05:31.705Z",
+      "contentHash": "c34a21c63127bd229ba860544b04bb37ff43d849c2a770159efdfc204d1c75de",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-04T04:29:40.094Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "bl-HiZJbUuy"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "Both edits are tool-layer surfaces: plugin/src/tools/change/artifacts.ts (artifact readback) and plugin/src/tools/doctor.ts (diagnostics). Neither is reachable from the workflows.ts worker-bundle static import graph, which is explicitly barred from reaching storage/, tools/, tool-registry.ts, plugin-init.ts, and node:*. No workflow code, signal payload schema, or applier is modified, so replay determinism is unaffected. The verification task tk-ca430b764419 re-confirms the import-graph boundary and will escalate to kind=required with build_worker + replay_determinism provenance bound to the final head SHA if any workflow-reachable import is introduced.",
+    "confirmed_at": "2026-08-04T01:56:20.998Z"
+  },
+  "creation_request_hash": "2c2460fa9abbd912ed16c31e80c7a897a2d06ce1aab0631633bfd7bbaed0bd93",
+  "projection_revision": 45,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "b4260952760d84cc67bc3389cd3501178e0ac20486a5fd043275ac859f28a4ed:createArtifacts:proposal",
+      "operation_id": "b4260952760d84cc67bc3389cd3501178e0ac20486a5fd043275ac859f28a4ed:createArtifacts:proposal",
+      "payload_hash": "28f34de6cf5b3cefa70beab42f17d5d71dc2b93e21a0093b8ede8012afaf8981",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-04T01:40:03.081Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-04T01:40:40.089Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "21252bdde8d601750d5104f0feb9d3f2171f7099b46458e4d43475d6d56710a4:updateArtifacts:design",
+      "operation_id": "21252bdde8d601750d5104f0feb9d3f2171f7099b46458e4d43475d6d56710a4:updateArtifacts:design",
+      "payload_hash": "0b70609ae87f53f7e7055980ae31243d0e693c97f0cbb35428a53acc8ceef42a",
+      "state_revision": 2,
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-04T01:42:12.955Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-04T01:48:46.709Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-04T01:48:51.226Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "e1f62e8b4c7367403bee4f7d861b5940b5828cebe9d2a7ac42e0ec54179440c4:updateArtifacts:design",
+      "operation_id": "e1f62e8b4c7367403bee4f7d861b5940b5828cebe9d2a7ac42e0ec54179440c4:updateArtifacts:design",
+      "payload_hash": "ec22c9416ef17d13cca8a5ded91a02a3ba4c42b18feb12616fe2f8a063aa5567",
+      "state_revision": 3,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-04T01:50:01.577Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-04T01:50:18.734Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "b341237153b585a678b3ee44cac9542e36202d6d7bd9c99459a16264fb8d0b65:updateArtifacts:agreement",
+      "operation_id": "b341237153b585a678b3ee44cac9542e36202d6d7bd9c99459a16264fb8d0b65:updateArtifacts:agreement",
+      "payload_hash": "902b2152c54ed11c0aed45d2bebc0096e9f1ea5b1cb3f12460a1bbb5cf38a3b7",
+      "state_revision": 4,
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-04T01:50:52.119Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-04T01:51:07.706Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "5a8280bf8bdf96df41ba3b4b656ad7bfd73fb7afa14873cc8c6db2d48bb0d581:updateArtifacts:agreement",
+      "operation_id": "5a8280bf8bdf96df41ba3b4b656ad7bfd73fb7afa14873cc8c6db2d48bb0d581:updateArtifacts:agreement",
+      "payload_hash": "2d6e0e2820def85c8f3fb615a7169356c38271692d029e75d91bd893e321d0b4",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-04T01:52:43.652Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-04T01:52:59.934Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-04T01:53:13.781Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-04T01:53:35.024Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-04T01:54:33.600Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-04T01:54:38.517Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-04T01:55:11.363Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-04T01:55:39.635Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-04T01:56:05.818Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-04T01:56:21.555Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-04T01:56:44.266Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-04T01:59:54.975Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-04T02:25:39.111Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-04T02:26:10.000Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-04T02:36:23.439Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-04T02:36:26.416Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-04T02:38:02.564Z"
+    },
+    {
+      "mutation_kind": "specDeltaModified",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "5705319b531f5ba4e6391c807325c61afbdc202b58d53ff0d0a1b3cb11354b07:specDeltaModified",
+      "operation_id": "5705319b531f5ba4e6391c807325c61afbdc202b58d53ff0d0a1b3cb11354b07:specDeltaModified",
+      "payload_hash": "fe65a5d0ad2aaec9b0548a6ff128dd20c1e7b0c1601de7a8535e381fd5fc28fc",
+      "state_revision": 6,
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-04T02:39:02.353Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-04T02:39:40.784Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-04T02:39:56.675Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-04T02:50:47.383Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-04T02:51:21.718Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-04T03:16:35.894Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-04T03:16:37.950Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-04T03:39:17.445Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-04T03:40:30.742Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-04T03:40:33.933Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-04T03:50:33.726Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-04T03:50:36.320Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a0badd3364794c76a44581bfa5e46915ec6411174f30da432235119632a076af:updateArtifacts:executiveSummary",
+      "operation_id": "a0badd3364794c76a44581bfa5e46915ec6411174f30da432235119632a076af:updateArtifacts:executiveSummary",
+      "payload_hash": "a7cfdd9966e31ec9a04f3c56b3d5f02904fbf5624a070ca8ece0e0ac7821273b",
+      "state_revision": 7,
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-04T04:05:31.885Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-04T04:10:44.100Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785816819559_gmn47wyu",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-04T04:13:39.694Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-04T04:13:39.507Z",
+          "rows": [
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Commit 6bf9a1d4 adds the projection-documents fallback tier to readArtifact/readArtifacts in plugin/src/tools/change/artifacts.ts plus subread.runLocalCapable so the local projection tier stays reachable after the Temporal aggregate deadline is exhausted. RED test tr_mse17xsm_c44d32b5 reproduced the production defect before the fix; GREEN tr_mse1anem_1ea6b8d4 after. Covered in plugin/src/tools/change.read-artifact.test.ts. Reviewer attempt 1 confirmed AC1-AC5 met; attempt 2 re-confirmed READY at HEAD e83a3411.",
+              "notes": "Condition reproduced live in-session during this resume: adv_change_show returned _source:disk while the workflow Query was unserviceable."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Provenance source-tagging added in commit 6bf9a1d4 reusing the existing LoadResult.source taxonomy, so every resolved artifact read declares its serving tier. Verified by reviewer attempts 1 and 2 against plugin/src/tools/change/artifacts.ts and plugin/src/tools/change.read-artifact.test.ts. Satisfies staged spec delta dl-ArtPathTruthProj01 scenario rq-artifactPathTruth01.5.",
+              "notes": "Directly enforces DONT4 — fallback content cannot be mistaken for an authoritative live read."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Tier precedence implemented as Temporal Query -> projection documents -> legacy disk artifact -> archive bundle in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4), matching the design-validated ordering (R1: legacy markdown is archive-era only, so markdown-first risked serving stale pre-migration leftovers). Precedence ordering asserted in plugin/src/tools/change.read-artifact.test.ts; verified by reviewer attempts 1 and 2.",
+              "notes": "Projection tier is never consulted before the Query."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "The batched readArtifacts path shares the same fallback tier and provenance tagging as single readArtifact in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4). Batched-path parity asserted in plugin/src/tools/change.read-artifact.test.ts and plugin/src/tools/change.test.ts; confirmed by reviewer attempts 1 and 2.",
+              "notes": ""
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "No retry is issued against a Query already failed with a no-poller or deadline condition (commit 6bf9a1d4). Design validation confirmed a no-poller Query returns FAILED_PRECONDITION and is excluded from the Temporal SDK grpc-retry set, and Query Tasks are not persisted, so not retrying is correct. No-retry behavior asserted in plugin/src/tools/change.read-artifact.test.ts; verified by reviewer attempts 1 and 2.",
+              "notes": "Also satisfies C5 (no increase to the aggregate read budget)."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Initially a gap: after commit 27714ae0 the queue_serviceability rows were emitted only inside the post-fix recheck verification block, so a normal adv_doctor run exposed no session-typed or project-typed row. Flagged by the orchestrator to reviewer attempt 2, confirmed as a real second gap, and fixed in commit e83a3411 which publishes the diagnostic-pass rows at top level in plugin/src/tools/doctor.ts. Each row carries queueName, queueType (session|project), graded serviceability, and owningSession on the session row. Asserted in plugin/src/tools/doctor.test.ts (assertion updated from parsed.verification.queue_serviceability to parsed.queue_serviceability).",
+              "notes": "Found and closed during acceptance review, not during execution."
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Serviceability retains the graded ServerPollerProbeStatus vocabulary (fresh|stale|none|unavailable) from plugin/src/temporal/queue-serviceability rather than collapsing to a boolean; DoctorQueueProbe carries both the graded status and the legacy serviceable boolean for backward compatibility (commits 27714ae0, 115bb0b6). Asserted in plugin/src/tools/doctor.test.ts; verified by reviewer attempts 1 and 2.",
+              "notes": "Graded classification was chosen at design time to avoid trading a false-green for a false-red, since pollers legitimately go quiet after 1-2 min idle."
+            },
+            {
+              "contractId": "AC8",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Reviewer attempt 1 BLOCKED this change because plugin/src/tools/doctor.ts probed only the project queue and the current session queue, leaving ended peer-session queues entirely unprobed — so the motivating outage still reported green. Remediated in commit 115bb0b6: orphaned session queues are enumerated via the existing Visibility path listOrphanSessionQueues, probed with a cap of 8 queues and concurrency 4 reusing the shared 30s poller cache, and reported as INFORMATIONAL findings carrying queue name, owning session, graded status, and the stranded change IDs. Reviewer attempt 2 verified the remediation and returned READY. Covered by new tests in plugin/src/tools/doctor.test.ts including the informational-not-unhealthy assertion and the noise-suppression case.",
+              "notes": "Implemented per an explicit user-approved JOIN reading rather than a literal one: a quiet ended-session queue is reported only when it still owns at least one non-terminal change workflow. A quiet ended-session queue owning no non-terminal work is deliberately NOT reported, because reporting all ~36 tracked queues would be pure noise and would violate DONT5. Reviewer attempt 2 explicitly endorsed leaving those alone."
+            },
+            {
+              "contractId": "AC9",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "The legacy single-projectId health-probe signature retains its behavior and output shape (commits 27714ae0, 115bb0b6). Asserted by a dedicated legacy-signature test in plugin/src/tools/doctor.test.ts; independently re-verified by reviewer attempt 2.",
+              "notes": ""
+            },
+            {
+              "contractId": "AC10",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "probeDoctorQueues returns early with only the project probe when getCurrentSessionId() yields no session id, preserving the prior output shape (plugin/src/tools/doctor.ts, commit 27714ae0). Commit e83a3411 keeps this intact — the top-level queue_serviceability block is emitted only when a session probe exists, and the test asserts both parsed.verification.queue_serviceability and parsed.queue_serviceability are undefined on that path. Asserted in plugin/src/tools/doctor.test.ts.",
+              "notes": ""
+            },
+            {
+              "contractId": "AC11",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Automated coverage added across plugin/src/tools/change.read-artifact.test.ts (+166 lines), plugin/src/tools/change.test.ts (+110), and plugin/src/tools/doctor.test.ts covering: projection fallback read path including the orphaned-workflow case, provenance tagging, tier precedence, graded doctor session-queue probing, the stranded-queue join, noise suppression, the probe cap, and the AC9/AC10 preservation paths. Final verification by adv-verifier at HEAD e83a3411: bin/oc-test full exit 0, 541 files passed / 1 skipped, 8298 tests passed / 0 failed; pnpm run check exit 0.",
+              "notes": "One transient gate.test.ts flake appeared in an earlier full-suite run, passed in isolation (62/62) and did not reproduce on rerun; classified TRANSIENT, unrelated to this change's code, logged as a non-blocking follow-up."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "The change is read-only across both surfaces. plugin/src/tools/change/artifacts.ts adds read fallback tiers only, and plugin/src/tools/doctor.ts adds diagnostic probes only; no active artifact-content disk write path was introduced. Discovery explicitly confirmed the no-disk-writes invariant governs the write API and is not violated by a read-only change. pnpm run check exit 0 including check-test-isolation; reviewer attempts 1 and 2 both examined the full diff against trunk and raised no write-path finding.",
+              "notes": ""
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Projection-sourced content exposes no filesystem path; artifact metadata carries readable:false and a machine-readable source tag instead of a fabricated path (commit 6bf9a1d4). Matches staged spec delta dl-ArtPathTruthProj01 scenario rq-artifactPathTruth01.4 (\"No filesystem path is exposed for the projection-sourced content\"). Verified by reviewer attempts 1 and 2 and asserted in plugin/src/tools/change.read-artifact.test.ts.",
+              "notes": "Observable live this session: adv_change_show returns artifacts.*.readable=false with source tagging rather than a phantom path."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Legacy disk artifact and archive-bundle tiers are retained as tiers 3 and 4 of the precedence chain in plugin/src/tools/change/artifacts.ts (commit 6bf9a1d4); the projection tier was inserted above them, not in place of them. Preserved per spec scenario rq-artifactPathTruth01.2. Verified by reviewer attempts 1 and 2.",
+              "notes": ""
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "No task-queue topology change and no workflow re-routing. Both surfaces are read/diagnostic only: doctor.ts probes queues via DescribeTaskQueue and enumerates them via Visibility, and artifacts.ts reads state. No call to a queue-assignment or workflow-reset path exists in the diff. Verified by reviewer attempts 1 and 2 against the full trunk...HEAD diff.",
+              "notes": ""
+            },
+            {
+              "contractId": "C5",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "No retry is added against a fatal-classified TemporalQueryTimeoutError (see AC5), and the aggregate read budget is unchanged. The subread.runLocalCapable addition makes the LOCAL projection tier reachable after the Temporal deadline is exhausted; it does not extend or increase the Temporal read budget. Verified by reviewer attempts 1 and 2.",
+              "notes": ""
+            },
+            {
+              "contractId": "C6",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "The orphaned-queue probe added in commit 115bb0b6 reuses the existing shared 30s poller cache and is explicitly bounded: a cap of 8 probed queues with an omitted count surfaced when the cap truncates, and concurrency limited to 4. No unbounded per-call DescribeTaskQueue fan-out is introduced. Reviewer attempt 2 independently verified the cap and concurrency values. Commit e83a3411 additionally corrected the capped-probe message, which previously implied a rerun would yield the next slice when the cap deterministically selects the oldest N.",
+              "notes": "Execution had originally declined the orphan probe on C6 grounds; the join keeps the probed set small and actionable, so C6 is satisfied rather than traded away."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No consolidation of session-scoped task queues onto the project queue. Session and project queues remain distinct and are probed as separate typed rows (queueType session vs project) in plugin/src/tools/doctor.ts. The change increases visibility into per-session queues rather than removing them, which reinforces rather than regresses rq-isolSessionTaskQueue04.1. Reviewer attempts 1 and 2 raised no finding.",
+              "notes": ""
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "The broader Query-first to disk-first hydration flip was not implemented. AC3 preserves Query-first precedence, and the projection tier is a fallback only. adv_change_show, adv_change_list, adv_gate_status, and adv_wip_state hydration ordering is unchanged; only artifact readback gained a fallback tier. Reviewer attempts 1 and 2 confirmed scope containment with no scope_drift finding.",
+              "notes": "The full flip remains tracked as OOS2 / bl-HiZJbUuy."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No ephemeral-workflow lifecycle rework was undertaken. Workflow lifecycle, start, and termination paths are untouched by the diff; the change is confined to read fallback and diagnostics. Reviewer attempts 1 and 2 confirmed no scope drift.",
+              "notes": "Remains tracked separately as OOS3 / bl-MsU7dzK0."
+            },
+            {
+              "contractId": "DONT4",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Genuine failures are not masked: every resolved read carries a machine-readable source tag (AC2), so projection, legacy-disk, and archive-bundle fallbacks are distinguishable from an authoritative live workflow read and a caller cannot infer workflow queryability from the presence of content. This was an explicit design-validation refinement (R2) adopted precisely to prevent masking. Reviewer attempt 1 verified it while blocking on an unrelated point; reviewer attempt 2 re-confirmed.",
+              "notes": ""
+            },
+            {
+              "contractId": "DONT5",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "The false-green signal is not replaced with a false-red one. Graded fresh/stale/none/unavailable classification (AC7) avoids treating idle-but-healthy queues as failures, ended-session queue findings are INFORMATIONAL and do not flip the system to unhealthy, and the AC8 join deliberately suppresses quiet ended-session queues that own no non-terminal work. Reviewer attempt 2 explicitly endorsed leaving those queues alone and verified the informational severity classification in plugin/src/tools/doctor.test.ts.",
+              "notes": "This avoidance is the reason the literal reading of AC8 was rejected in favor of the user-approved join."
+            },
+            {
+              "contractId": "OOS1",
+              "kind": "out_of_scope",
+              "status": "not_applicable",
+              "evidencePolicy": "not_applicable",
+              "evidence": "Out-of-scope contract item. No task-queue topology redesign or workflow re-routing was performed; see C4, verified respected.",
+              "notes": ""
+            },
+            {
+              "contractId": "OOS2",
+              "kind": "out_of_scope",
+              "status": "not_applicable",
+              "evidencePolicy": "not_applicable",
+              "evidence": "Out-of-scope contract item. The full bl-HiZJbUuy disk-first hydration flip was not implemented; see DONT2, verified respected.",
+              "notes": ""
+            },
+            {
+              "contractId": "OOS3",
+              "kind": "out_of_scope",
+              "status": "not_applicable",
+              "evidencePolicy": "not_applicable",
+              "evidence": "Out-of-scope contract item. The bl-MsU7dzK0 ephemeral workflow and disk-durable record architecture was not undertaken; see DONT3, verified respected.",
+              "notes": ""
+            }
+          ]
+        },
+        "updatedAt": "2026-08-04T04:13:39.558Z",
+        "mutationReceiptId": "mrec_1785816819559_gmn47wyu"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-04T04:13:51.289Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-04T04:22:42.044Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-04T04:29:36.839Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixArtifactReadFallback",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-04T04:29:40.352Z"
+    }
+  ],
+  "state_revision": 7,
+  "_source": "disk"
+}

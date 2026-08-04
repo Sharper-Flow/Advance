@@ -16,6 +16,7 @@ import {
   type ServerPollerProbe,
 } from "./queue-serviceability";
 import { getService } from "./service";
+import type { TemporalOperations } from "./operations";
 
 export interface QueueProbeTarget {
   queueName: string;
@@ -104,6 +105,32 @@ const pollerProbeCache = new Map<
 >();
 const POLLER_PROBE_TTL_MS = 30_000;
 
+/**
+ * Probe one queue through the shared 30s cache. Doctor and the health surface
+ * must not issue duplicate DescribeTaskQueue calls for the same queue during a
+ * diagnostic pass, especially because that RPC consumes the Visibility RPS
+ * budget on newer Temporal servers.
+ */
+export async function probeCachedTaskQueuePollers(input: {
+  owner: TemporalOperations;
+  projectId: string;
+  taskQueue: string;
+}): Promise<ServerPollerProbe> {
+  const now = Date.now();
+  const cached = pollerProbeCache.get(input.taskQueue);
+  if (cached && now - cached.cachedAt < POLLER_PROBE_TTL_MS) {
+    return cached.result;
+  }
+
+  const result = await probeTaskQueuePollers({
+    owner: input.owner,
+    projectId: input.projectId,
+    taskQueue: input.taskQueue,
+  });
+  pollerProbeCache.set(input.taskQueue, { result, cachedAt: now });
+  return result;
+}
+
 async function probeQueues(
   targets: QueueProbeTarget[],
   _signal?: AbortSignal,
@@ -128,7 +155,7 @@ async function probeQueues(
       probe = cached.result;
     } else {
       try {
-        probe = await probeTaskQueuePollers({
+        probe = await probeCachedTaskQueuePollers({
           owner: bundle,
           projectId: target.projectId ?? "",
           taskQueue: target.queueName,

@@ -58,6 +58,7 @@ import {
   normalizeGateArtifactEvidenceForReadback,
   loadProposalForContext,
   readArtifacts,
+  type ArtifactReadResult,
 } from "./change/artifacts";
 import {
   checkActiveDuplicateChange,
@@ -206,6 +207,30 @@ function createChangeShowSubreadRunner(readCtx: TemporalReadContext) {
     }
   }
 
+  /**
+   * Run a sub-read that can satisfy itself from durable local state.
+   *
+   * `run` refuses to invoke its operation once the aggregate Temporal budget
+   * is spent, which is correct for reads that can only be served by a live
+   * workflow query. Artifact content is different: it is mirrored into the
+   * durable disk projection, so an exhausted Temporal budget must not stop
+   * the local tiers from serving it (rq-artifactPathTruth01). The operation
+   * receives the request deadline so its own Temporal tier still self-gates,
+   * and the local tiers remain reachable regardless.
+   */
+  async function runLocalCapable<T>(
+    label: string,
+    op: () => Promise<T>,
+  ): Promise<{ ok: true; value: T } | { ok: false; error: unknown }> {
+    try {
+      return { ok: true, value: await op() };
+    } catch (error) {
+      logger.debug("subread.runLocalCapable error", { label, error });
+      omittedIds.push(label);
+      return { ok: false, error };
+    }
+  }
+
   function getHydrationStats(): HydrationStats | undefined {
     if (omittedIds.length === 0) return undefined;
     return {
@@ -215,7 +240,38 @@ function createChangeShowSubreadRunner(readCtx: TemporalReadContext) {
     };
   }
 
-  return { run, getHydrationStats };
+  return { run, runLocalCapable, getHydrationStats };
+}
+
+/**
+ * Map of artifact kind → the `adv_change_show` output key that carries its
+ * raw content. Provenance for each resolved kind is reported alongside under
+ * `_artifactSources` so a caller can distinguish an authoritative live
+ * workflow read from a projection/disk/archive fallback.
+ */
+const ARTIFACT_OUTPUT_KEYS: Record<string, string> = {
+  proposal: "_proposal",
+  problemStatement: "_problemStatement",
+  agreement: "_agreement",
+  design: "_design",
+  executiveSummary: "_executiveSummary",
+  acceptance: "_acceptance",
+};
+
+function applyArtifactContentToOutput(
+  output: Record<string, unknown>,
+  artifactContent: Partial<Record<ArtifactKind, ArtifactReadResult>>,
+): void {
+  const sources: Record<string, string> = {};
+  for (const [kind, outputKey] of Object.entries(ARTIFACT_OUTPUT_KEYS)) {
+    const entry = artifactContent[kind as ArtifactKind];
+    if (entry === undefined) continue;
+    output[outputKey] = entry.content;
+    sources[kind] = entry.source;
+  }
+  if (Object.keys(sources).length > 0) {
+    output._artifactSources = sources;
+  }
 }
 
 // adv_change_workflow_terminate: shipped proof = acceptance AND release gates
@@ -918,8 +974,8 @@ async function buildBriefingPacketForChange(
       }
     }
   }
-  if (artifacts.acceptance) {
-    for (const line of artifacts.acceptance.split("\n")) {
+  if (artifacts.acceptance?.content) {
+    for (const line of artifacts.acceptance.content.split("\n")) {
       const trimmed = line.trim();
       if (trimmed && !verificationExpectations.includes(trimmed)) {
         verificationExpectations.push(trimmed);
@@ -967,8 +1023,8 @@ async function buildBriefingPacketForChange(
         }
       : undefined,
     scope: {
-      proposal: artifacts.proposal,
-      problem_statement: artifacts.problemStatement,
+      proposal: artifacts.proposal?.content,
+      problem_statement: artifacts.problemStatement?.content,
     },
     contract: contractItems.length ? { items: contractItems } : undefined,
     tasks: change.tasks?.map((task) => ({
@@ -1537,23 +1593,15 @@ export const changeTools = {
             ...(projectContext ? { _projectContext: projectContext } : {}),
           };
           if (requestedKinds.length > 0) {
-            const artifactRead = await subread.run("artifacts", () =>
-              readArtifacts(activeStore, changeId, requestedKinds),
+            const artifactRead = await subread.runLocalCapable(
+              "artifacts",
+              () =>
+                readArtifacts(activeStore, changeId, requestedKinds, {
+                  deadline: readCtx.deadline,
+                }),
             );
             if (artifactRead.ok) {
-              const artifactContent = artifactRead.value;
-              if (artifactContent.proposal !== undefined)
-                output._proposal = artifactContent.proposal;
-              if (artifactContent.problemStatement !== undefined)
-                output._problemStatement = artifactContent.problemStatement;
-              if (artifactContent.agreement !== undefined)
-                output._agreement = artifactContent.agreement;
-              if (artifactContent.design !== undefined)
-                output._design = artifactContent.design;
-              if (artifactContent.executiveSummary !== undefined)
-                output._executiveSummary = artifactContent.executiveSummary;
-              if (artifactContent.acceptance !== undefined)
-                output._acceptance = artifactContent.acceptance;
+              applyArtifactContentToOutput(output, artifactRead.value);
             } else {
               output._artifactsError =
                 artifactRead.error instanceof Error
@@ -1877,23 +1925,15 @@ export const changeTools = {
           // Batched multi-include read per C9 — single store.changes.get()
           // query covers all requested kinds (KD-6 readArtifacts).
           if (requestedKinds.length > 0) {
-            const artifactRead = await subread.run("artifacts", () =>
-              readArtifacts(activeStore, changeId, requestedKinds),
+            const artifactRead = await subread.runLocalCapable(
+              "artifacts",
+              () =>
+                readArtifacts(activeStore, changeId, requestedKinds, {
+                  deadline: readCtx.deadline,
+                }),
             );
             if (artifactRead.ok) {
-              const artifactContent = artifactRead.value;
-              if (artifactContent.proposal !== undefined)
-                output._proposal = artifactContent.proposal;
-              if (artifactContent.problemStatement !== undefined)
-                output._problemStatement = artifactContent.problemStatement;
-              if (artifactContent.agreement !== undefined)
-                output._agreement = artifactContent.agreement;
-              if (artifactContent.design !== undefined)
-                output._design = artifactContent.design;
-              if (artifactContent.executiveSummary !== undefined)
-                output._executiveSummary = artifactContent.executiveSummary;
-              if (artifactContent.acceptance !== undefined)
-                output._acceptance = artifactContent.acceptance;
+              applyArtifactContentToOutput(output, artifactRead.value);
             } else {
               output._artifactsError =
                 artifactRead.error instanceof Error
