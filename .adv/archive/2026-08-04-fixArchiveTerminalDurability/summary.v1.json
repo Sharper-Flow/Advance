@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-04T22:26:45.768Z",
+  "capabilities": [],
+  "change_hash": "327761b4e3d7724eeaa0d2cd1bf7743c066736636efb26068e6e5fbaaa6a5e67",
+  "change_id": "fixArchiveTerminalDurability",
+  "completed_tasks": 11,
+  "created_at": "2026-08-04T02:09:21.609Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-04T21:32:10.739Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "06d64677f219d4c0097f5245f483a606d30cd59bac35dd4e590510ec76c53a10",
+  "task_count": 11,
+  "title": "Fix archive terminal durability",
+  "version": "1"
+}
