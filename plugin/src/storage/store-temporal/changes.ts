@@ -24,6 +24,7 @@ import { createHash } from "crypto";
 import { readFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { extractCandidateIdFromArchiveDir } from "../../archive/terminal-history";
 import { stableStringify } from "../../temporal/digest";
 import {
   acceptanceUpdatedSignal,
@@ -962,6 +963,18 @@ async function readProjectionChangeList(
           deadlineOmissions.push(dir);
           degradedSources.add("archive");
           break;
+        }
+        // rq-activeListFastPath01: routine active views must not parse the
+        // archive corpus. Active-shadow invalidation only needs bundles whose
+        // id is already an active candidate (summary/memo/disk); terminal
+        // reads (wantsTerminalStatuses) still parse the full corpus. Match on
+        // both the date-prefix-stripped id and the raw dir name so plain-named
+        // historical bundle dirs are not missed.
+        if (!wantsTerminalStatuses) {
+          const derivedId = extractCandidateIdFromArchiveDir(dir);
+          if (!candidateIds.has(derivedId) && !candidateIds.has(dir)) {
+            continue;
+          }
         }
         const loaded = await raceWithTemporalDeadline(
           loadChange(legacy.paths.archive, dir),
