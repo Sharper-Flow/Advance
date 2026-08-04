@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "change_id": "addTypedPhaseDirectives",
+  "title": "Add typed phase directives",
+  "release_notes": {
+    "audience": "both",
+    "category": "changed",
+    "headline_internal": "Typed PhaseDirective delivered on ActionablePhasePlan; adv-review.md shrunk to a 142-line launcher with strict-subset inline fallback",
+    "headline_external": "/adv-review phase starts now render as one collapsed tool result instead of a 48KB inline paste",
+    "highlights": [
+      "/adv-review command file: 728 lines (48KB) -> 142-line thin launcher; procedure ships as a typed directive field on the existing phase-plan read projection",
+      "Happy-path-only delivery: instructions for branches the phase never enters no longer enter the session (~38% smaller payload when entered, zero when not)",
+      "Zero new ADV tools or include flags; replay behavior unchanged (no PHASE_PLAN_VERSION bump, no patch marker)",
+      "Inline fallback retained as a mechanically verified strict subset of the directive for version-skew hosts",
+      "Lean-response shaping keeps the 30KB directive intact inside the tool-output budget while preserving explicitly requested companion projections"
+    ],
+    "user_action_required": false
+  }
+}

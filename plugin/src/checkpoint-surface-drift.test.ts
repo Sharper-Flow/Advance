@@ -17,6 +17,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const COMMANDS_DIR = join(REPO_ROOT, ".opencode", "command");
@@ -77,7 +78,10 @@ describe("checkpoint surface drift", () => {
   test.each(checkpointCommands)(
     "$file uses inline approval pattern",
     ({ file, anchorPhrase, oldPattern }) => {
-      const content = readFileSync(join(COMMANDS_DIR, file), "utf8");
+      const content =
+        file === "adv-review.md"
+          ? readCommandSurface("adv-review.md")
+          : readFileSync(join(COMMANDS_DIR, file), "utf8");
 
       // Anchor phrase MUST be present — proves inline pattern adopted
       expect(
@@ -133,7 +137,10 @@ describe("checkpoint surface drift", () => {
     // The "Note for agent" convention is non-checkpoint only.
     // No checkpoint command doc should contain the note convention header.
     for (const { file } of checkpointCommands) {
-      const content = readFileSync(join(COMMANDS_DIR, file), "utf8");
+      const content =
+        file === "adv-review.md"
+          ? readCommandSurface("adv-review.md")
+          : readFileSync(join(COMMANDS_DIR, file), "utf8");
       expect(
         content,
         `${file} must NOT contain note convention header "Note for agent" (checkpoint surface)`,

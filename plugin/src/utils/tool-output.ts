@@ -16,7 +16,7 @@ const ENV_MAX_CHARS = parseInt(process.env.ADV_TOOL_MAX_CHARS || "", 10);
 const ENV_OUTPUT_MODE = process.env.ADV_TOOL_OUTPUT_MODE;
 
 /** Hard character cap. Approximate ~6k tokens at 3.5 chars/token. */
-const DEFAULT_MAX_CHARS = 21000;
+export const DEFAULT_MAX_CHARS = 21000;
 
 /** Use compact JSON unless env says "pretty" */
 const OUTPUT_MODE: "compact" | "pretty" =

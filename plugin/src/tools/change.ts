@@ -140,6 +140,74 @@ import { TemporalQueryTimeoutError } from "../temporal/retry-wrapper";
 
 const logger = createLogger("change");
 
+const LEAN_PHASE_PLAN_FIELDS = new Set([
+  "id",
+  "title",
+  "status",
+  "gates",
+  "acceptanceCriteria",
+  "_phasePlan",
+  "_unavailable",
+]);
+
+const DIRECTIVE_INCLUDE_FIELDS: Record<string, readonly string[]> = {
+  ledger: ["_ledger"],
+  loopLedger: ["_loopLedger"],
+  loopLedgerDetails: ["_loopLedger"],
+  snapshot: ["_contextSnapshot", "_contextSnapshotError"],
+  readyTasks: [
+    "_readyTasks",
+    "_readyTasksMeta",
+    "_todoProjection",
+    "_readyTasksError",
+  ],
+  proposal: ["_proposal"],
+  problemStatement: ["_problemStatement"],
+  agreement: ["_agreement"],
+  design: ["_design"],
+  executiveSummary: ["_executiveSummary"],
+  acceptance: ["_acceptance"],
+  subagentReports: ["_subagentReports", "_subagentReportsMeta"],
+  briefingPacket: ["_briefingPacket", "_briefingPacketError"],
+};
+
+function hasPhaseDirective(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const plan = value as { kind?: unknown; directive?: unknown };
+  return plan.kind === "actionable" && plan.directive !== undefined;
+}
+
+function shapeDirectiveResponse(
+  output: Record<string, unknown>,
+  include: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!hasPhaseDirective(output._phasePlan)) return undefined;
+
+  // The phase-start read requests only the plan. Preserve every explicitly
+  // requested companion projection instead of silently replacing it with an
+  // omission marker, while still suppressing the default heavy payload.
+  const retainedFields = new Set(LEAN_PHASE_PLAN_FIELDS);
+  for (const [includeKey, outputKeys] of Object.entries(
+    DIRECTIVE_INCLUDE_FIELDS,
+  )) {
+    if (include[includeKey] === true) {
+      for (const outputKey of outputKeys) retainedFields.add(outputKey);
+    }
+  }
+
+  const leanOutput: Record<string, unknown> = {};
+  const omittedFields = Object.keys(output)
+    .filter((key) => !retainedFields.has(key) && output[key] !== undefined)
+    .sort();
+
+  for (const key of retainedFields) {
+    if (output[key] !== undefined) leanOutput[key] = output[key];
+  }
+  if (omittedFields.length > 0) leanOutput._omittedFields = omittedFields;
+
+  return leanOutput;
+}
+
 function formatD3Error(error: D3EnforcementError): string {
   switch (error.code) {
     case "INVALID_WORK_NODE_REF": {
@@ -1056,6 +1124,7 @@ import {
   canonicalSha256,
 } from "../archive";
 import {
+  DEFAULT_MAX_CHARS,
   formatToolOutput,
   paginate,
   resolveOutputMode,
@@ -1074,6 +1143,7 @@ import {
 } from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import { degradedPhasePlan, derivePhasePlanSafe } from "../utils/phase-plan";
+import { withPhaseDirective } from "../utils/phase-directive";
 import {
   renderBriefingPacket,
   type BriefingPacketRendererInput,
@@ -1794,9 +1864,8 @@ export const changeTools = {
             if (phasePlanRead.ok) {
               try {
                 const { directiveState } = phasePlanRead.value;
-                output._phasePlan = derivePhasePlanSafe(
-                  directiveState,
-                  Date.now(),
+                output._phasePlan = withPhaseDirective(
+                  derivePhasePlanSafe(directiveState, Date.now()),
                 );
               } catch (e) {
                 output._phasePlan = degradedPhasePlan(
@@ -1946,9 +2015,23 @@ export const changeTools = {
         if (changeShowHydrationStats) {
           output.hydrationStats = changeShowHydrationStats;
         }
-        return formatToolOutput(output, {
-          pretty: resolveOutputMode(outputMode),
-        });
+        const pretty = resolveOutputMode(outputMode);
+        const leanOutput = shapeDirectiveResponse(output, include ?? {});
+        if (leanOutput) {
+          const serializedPhasePlan = JSON.stringify(
+            leanOutput._phasePlan,
+            null,
+            pretty ? 2 : undefined,
+          );
+          return formatToolOutput(leanOutput, {
+            pretty,
+            maxChars: Math.max(
+              DEFAULT_MAX_CHARS,
+              serializedPhasePlan.length + 4096,
+            ),
+          });
+        }
+        return formatToolOutput(output, { pretty });
       };
 
       if (target_path && requestedKinds.length > 0) {

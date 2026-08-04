@@ -15,6 +15,7 @@ import {
   SUBAGENT_REPORT_PACKET_ANCHORS,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
 } from "./types";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
@@ -191,7 +192,12 @@ describe("briefing packet command consumption", () => {
   test.each(COMMANDS_IN_SCOPE)(
     "%s instructs generation of a lane-specific briefing packet",
     (file) => {
-      const content = readCommand(file);
+      // adv-review's briefing-packet instructions moved into the typed directive
+      // (composed surface) per design D6/AC7.
+      const content =
+        file === "adv-review.md"
+          ? readCommandSurface("adv-review.md")
+          : readCommand(file);
       expect(content).toContain("briefingPacket: true");
       expect(content).toContain("_briefingPacket");
     },
@@ -200,7 +206,10 @@ describe("briefing packet command consumption", () => {
   test.each(PACKET_EXPECTATIONS)(
     "$file › $heading consumes generated briefing packet slices",
     ({ file, heading, lane, anchors, warnFirst, bannedManualSections }) => {
-      const content = readCommand(file);
+      const content =
+        file === "adv-review.md"
+          ? readCommandSurface("adv-review.md")
+          : readCommand(file);
       const section = sectionAfterHeading(content, heading);
       expect(section, `missing section: ${heading}`).not.toBe("");
 

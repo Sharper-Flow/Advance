@@ -12,6 +12,7 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const DEPLOY_SCRIPT_PATH = join(REPO_ROOT, "scripts/deploy-local.sh");
@@ -156,7 +157,12 @@ describe("skill-backed command assets", () => {
     marker,
   } of EMBEDDED_METHODOLOGY_COMMANDS) {
     test(`${command} embeds its methodology inline`, () => {
-      const content = readFileSync(commandPath, "utf8");
+      // adv-review's methodology moved into the typed directive; assert via the
+      // composed surface (launcher + directive content) per design D6/AC7.
+      const content =
+        command === "adv-review"
+          ? readCommandSurface("adv-review.md")
+          : readFileSync(commandPath, "utf8");
 
       expect(content).toContain(marker);
       expect(content).toMatch(/Methodology/i);
@@ -569,10 +575,7 @@ describe("thin-command shape enforcement", () => {
   });
 
   test("adv-review preflights contract proof before acceptance checkpoint", () => {
-    const review = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-review.md"),
-      "utf8",
-    );
+    const review = readCommandSurface("adv-review.md");
 
     expect(review).toContain("Pre-Acceptance Contract Preflight");
     expect(review).toContain("change.contract");
@@ -599,10 +602,7 @@ describe("thin-command shape enforcement", () => {
       join(REPO_ROOT, ".opencode/command/adv-discover.md"),
       "utf8",
     );
-    const review = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-review.md"),
-      "utf8",
-    );
+    const review = readCommandSurface("adv-review.md");
     const apply = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-apply.md"),
       "utf8",
@@ -703,10 +703,7 @@ describe("thin-command shape enforcement", () => {
   });
 
   test("review, harden, and archive preserve contract proof flow", () => {
-    const review = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-review.md"),
-      "utf8",
-    );
+    const review = readCommandSurface("adv-review.md");
     const harden = readFileSync(
       join(REPO_ROOT, ".opencode/command/adv-harden.md"),
       "utf8",
@@ -733,10 +730,7 @@ describe("thin-command shape enforcement", () => {
       join(REPO_ROOT, ".opencode/command/adv-prep.md"),
       "utf8",
     );
-    const review = readFileSync(
-      join(REPO_ROOT, ".opencode/command/adv-review.md"),
-      "utf8",
-    );
+    const review = readCommandSurface("adv-review.md");
 
     expect(gatesDoc).toContain(
       "workflow validates proposal.md, agreement.md, design.md, and generated acceptance.md",

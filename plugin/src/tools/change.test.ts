@@ -23,6 +23,9 @@ import type {
   Spec,
 } from "../types";
 import { derivePhasePlanSafe, parsePhasePlan } from "../utils/phase-plan";
+import { sha256Hex } from "../utils/command-payload-hash";
+import { withPhaseDirective } from "../utils/phase-directive";
+import { PHASE_DIRECTIVES } from "../utils/phase-directive-content";
 import {
   PARITY_ROWS,
   toolChangeFor,
@@ -626,6 +629,163 @@ describe("change tools — signal-driven lifecycle", () => {
       const planShowSaves = vi.mocked(store.changes.save).mock.calls.length;
       expect(planShowSaves - plainShowSaves).toBe(plainShowSaves);
       expect(mocks.signalMock).not.toHaveBeenCalled();
+    });
+
+    test("attaches a complete review directive and lean-shapes its response", async () => {
+      const store = createMockStore({
+        acceptanceCriteria: [
+          "Given delivered work, review evidence is complete.",
+        ],
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        documents: { proposal: "large durable proposal" },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { phasePlan: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      const plan = parsePhasePlan(parsed._phasePlan);
+
+      expect(plan).toMatchObject({
+        kind: "actionable",
+        phase: "acceptance",
+        command: "adv-review",
+      });
+      expect(plan).toHaveProperty("directive");
+      expect(sha256Hex(plan.directive!.content)).toBe(
+        plan.directive!.contentHash,
+      );
+      expect(plan.directive!.content).not.toContain("[truncated");
+      expect(parsed).toMatchObject({
+        id: "test-change",
+        title: "Test Change",
+        status: "active",
+        gates: expect.any(Object),
+        acceptanceCriteria: [
+          "Given delivered work, review evidence is complete.",
+        ],
+        _phasePlan: expect.any(Object),
+      });
+      expect(parsed._omittedFields).toContain("documents");
+      expect(parsed._omittedFields).toContain("deltas");
+      expect(parsed._omittedFields).toContain("wisdom");
+      expect(parsed._truncated).toBeUndefined();
+    });
+
+    test("preserves explicitly requested projections alongside a review directive", async () => {
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        documents: { proposal: "explicitly requested proposal" },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "test-change",
+          include: { phasePlan: true, proposal: true },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._phasePlan.directive).toBeDefined();
+      expect(parsed._proposal).toBe("explicitly requested proposal");
+      expect(parsed._omittedFields).toContain("tasks");
+      expect(parsed._omittedFields).not.toContain("_proposal");
+    });
+
+    test("bounds an oversized explicit projection without truncating the directive", async () => {
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        documents: { proposal: "x".repeat(100_000) },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "test-change",
+          include: { phasePlan: true, proposal: true },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._truncated).toBe(true);
+      expect(parsed.data._phasePlan.directive.content).toBe(
+        PHASE_DIRECTIVES["adv-review"].content,
+      );
+      expect(parsed.data._proposal.length).toBeLessThan(100_000);
+    });
+
+    test("keeps degraded phase-plan reads on the normal response path", async () => {
+      const store = createMockStore();
+      vi.mocked(store.gates.get).mockResolvedValue({
+        release: { status: "pending" },
+      } as unknown as Change["gates"]);
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { phasePlan: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      const plan = parsePhasePlan(parsed._phasePlan);
+
+      expect(plan.kind).toBe("degraded");
+      expect(plan).not.toHaveProperty("directive");
+      expect(parsed._omittedFields).toBeUndefined();
+    });
+
+    test("keeps non-review actionable phase plans on the normal response path", async () => {
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "pending" },
+          planning: { status: "pending" },
+          execution: { status: "pending" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        { changeId: "test-change", include: { phasePlan: true } },
+        store,
+      );
+      const parsed = JSON.parse(result);
+      const plan = parsePhasePlan(parsed._phasePlan);
+
+      expect(plan).toMatchObject({
+        kind: "actionable",
+        phase: "design",
+        command: "adv-design",
+      });
+      expect(plan).not.toHaveProperty("directive");
+      expect(parsed._omittedFields).toBeUndefined();
+      expect(parsed.tasks).toEqual([]);
     });
 
     test("omits _phasePlan when include.phasePlan is not set", async () => {
@@ -2245,6 +2405,8 @@ describe("change tools — signal-driven lifecycle", () => {
       }
 
       // The snapshot Next line tracks the same routing the plan reports.
+      // Explicitly requested projections remain available on lean directive
+      // reads, so callers never lose their requested snapshot.
       if (row.expect.snapshotNext) {
         expect(parsed._contextSnapshot).toContain(row.expect.snapshotNext);
       } else {
@@ -2255,13 +2417,15 @@ describe("change tools — signal-driven lifecycle", () => {
       // durable snapshot — consumers never see a second opinion.
       const change = (await store.changes.get("test-change")).data!;
       expect(parsed._phasePlan).toEqual(
-        derivePhasePlanSafe(
-          changeToDirectiveState({
-            projectId: PROJECT_ID,
-            change,
-            gates: row.state.gates,
-          }),
-          Date.now(),
+        withPhaseDirective(
+          derivePhasePlanSafe(
+            changeToDirectiveState({
+              projectId: PROJECT_ID,
+              change,
+              gates: row.state.gates,
+            }),
+            Date.now(),
+          ),
         ),
       );
 
@@ -2864,18 +3028,31 @@ describe("change tools — signal-driven lifecycle", () => {
       );
     });
 
-    test("surfaces briefing packet generation failures without failing change read", async () => {
+    test("preserves explicitly requested briefing failures beside a review directive", async () => {
       const store = createMockStore({
         documents: { proposal: "# Test Change\n" },
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
       });
       (store.paths as { root?: string }).root = undefined;
 
       const result = await changeTools.adv_change_show.execute(
-        { changeId: "test-change", include: { briefingPacket: true } },
+        {
+          changeId: "test-change",
+          include: { phasePlan: true, briefingPacket: true },
+        },
         store,
       );
       const parsed = JSON.parse(result);
 
+      expect(parsed._phasePlan.directive).toBeDefined();
       expect(parsed._briefingPacket).toBeUndefined();
       expect(parsed._briefingPacketError).toEqual(expect.any(String));
       expect(parsed.id).toBe("test-change");

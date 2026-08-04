@@ -14,6 +14,7 @@ import {
   AGENT_TOOL_POLICY,
   SPAWNABLE_SUBAGENT_ROSTER,
 } from "./tool-role-policy";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
@@ -51,7 +52,7 @@ describe("release notes setter — orchestrator tool visibility", () => {
 
 describe("release notes setter — command prompt integration", () => {
   test("adv-review.md instructs composing ReleaseNotesContent at executive summary", () => {
-    const content = readCommand("adv-review.md");
+    const content = readCommandSurface("adv-review.md");
     expect(content).toContain("adv_change_set_release_notes");
     expect(content).toContain("ReleaseNotesContent");
     expect(content).toContain("executive summary");

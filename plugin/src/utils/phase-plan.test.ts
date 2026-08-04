@@ -13,6 +13,7 @@ import {
   parsePhasePlan,
   PHASE_PLAN_MAX_EVIDENCE,
   PHASE_PLAN_MAX_GUIDANCE,
+  PhaseDirectiveSchema,
   type DirectiveContext,
   type PhasePlan,
 } from "./phase-plan";
@@ -427,6 +428,76 @@ describe("parsePhasePlan — strict boundary validation (DDC1)", () => {
   function validActionable(): PhasePlan {
     return derivePhasePlanFromState(stateWithGateInProgress("design"), EPOCH);
   }
+
+  const validDirective = {
+    kind: "phase_directive" as const,
+    command: "adv-review" as const,
+    content: "Review the acceptance evidence.",
+    contentHash:
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  };
+
+  it("parses and round-trips an actionable plan with a valid directive", () => {
+    const plan = validActionable();
+    if (plan.kind !== "actionable") throw new Error("test setup");
+    const withDirective = { ...plan, directive: validDirective };
+
+    expect(parsePhasePlan(withDirective)).toEqual(withDirective);
+  });
+
+  it("keeps the directive optional for actionable plans", () => {
+    const plan = validActionable();
+
+    expect(parsePhasePlan(plan)).toEqual(plan);
+    expect("directive" in plan).toBe(false);
+  });
+
+  it.each([
+    ["wrong kind", { ...validDirective, kind: "directive" }],
+    ["unknown command", { ...validDirective, command: "adv-apply" }],
+    ["empty content", { ...validDirective, content: "" }],
+    [
+      "uppercase hash",
+      {
+        ...validDirective,
+        contentHash: validDirective.contentHash.toUpperCase(),
+      },
+    ],
+    ["short hash", { ...validDirective, contentHash: "0123" }],
+    [
+      "prefixed hash",
+      {
+        ...validDirective,
+        contentHash: `sha256:${validDirective.contentHash}`,
+      },
+    ],
+    ["non-hex hash", { ...validDirective, contentHash: `${"g".repeat(64)}` }],
+  ])("rejects a directive with %s", (_case, directive) => {
+    expect(PhaseDirectiveSchema.safeParse(directive).success).toBe(false);
+  });
+
+  it("excludes directives from every non-actionable plan variant", () => {
+    const variants: PhasePlan[] = [
+      derivePhasePlan(makeCtx({ approvalPending: true })),
+      derivePhasePlan(
+        makeCtx({ blockers: [blocker("ARTIFACT_MISSING", "proposal")] }),
+      ),
+      derivePhasePlan(
+        makeCtx({
+          recovery: { reason: "unknown", description: "audit" },
+        }),
+      ),
+      derivePhasePlan(makeCtx({ isArchived: true })),
+      degradedPhasePlan("change-1", "missing_state", "gone"),
+    ];
+
+    for (const variant of variants) {
+      expect(variant.kind).not.toBe("actionable");
+      const parsed = parsePhasePlan(variant);
+      expect(parsed).toEqual(variant);
+      expect("directive" in parsed).toBe(false);
+    }
+  });
 
   it("rejects an unsupported version", () => {
     const plan = { ...validActionable(), version: 2 };
