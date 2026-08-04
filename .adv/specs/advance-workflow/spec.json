@@ -8041,6 +8041,89 @@
           ]
         }
       ]
+    },
+    {
+      "id": "rq-cleanupHygieneScope01",
+      "title": "Unified hygiene triage scope for /adv-cleanup",
+      "body": "/adv-cleanup MUST triage all four ADV hygiene surfaces in a single run: active-change debt, worktree drift, merged archived change/* branch debt, and archived/closed state leaks. Discovery MUST route through adv_change_list, adv_worktree_triage, adv_worktree_cleanup mode archived_branches dryRun true, and adv_status view hygiene respectively. Dry-run remains the default mode and no surface may be silently omitted when empty. Candidate buckets MUST be classified by reversibility, and irreversible buckets (worktree deletion, branch deletion) MUST require a stronger confirmation than reversible buckets: a count-matched typed reply that rejects the reversible-bucket approve-all token, with no LLM fallback. Deletion MUST delegate to adv_worktree_delete or adv_worktree_cleanup per rq-terminalCleanupSafety01; adv_worktree_triage classification is advisory discovery and selection data and is never sufficient deletion authority. Invocation remains operator-explicit with no background sweeps, daemons, or session-start auto-cleanup.",
+      "priority": "must",
+      "tags": [
+        "cleanup",
+        "hygiene",
+        "approval",
+        "safety"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-cleanupHygieneScope01.1",
+          "title": "Four-surface discovery in one run",
+          "given": [
+            "A project has stale active changes, drifted worktrees, merged archived change/* branches, and archived or closed state leaks"
+          ],
+          "when": "The user runs /adv-cleanup in default dry-run mode",
+          "then": [
+            "The report contains a distinct section for each of the four hygiene surfaces",
+            "Each section is labelled with its reversibility class",
+            "A surface with no candidates renders an explicit empty state rather than being omitted",
+            "No change is closed and no worktree or branch is deleted"
+          ]
+        },
+        {
+          "id": "rq-cleanupHygieneScope01.2",
+          "title": "Reversibility labelling with recovery detail",
+          "given": [
+            "A cleanup report contains both reversible and irreversible candidate buckets"
+          ],
+          "when": "The report is rendered",
+          "then": [
+            "Every candidate bucket carries an explicit reversible or irreversible marker",
+            "Each irreversible bucket states its recovery path",
+            "The branch-deletion bucket states the reflog recovery time bound"
+          ]
+        },
+        {
+          "id": "rq-cleanupHygieneScope01.3",
+          "title": "Typed confirmation for irreversible buckets",
+          "given": [
+            "An irreversible bucket such as worktree deletion or branch deletion is presented for approval"
+          ],
+          "when": "The user replies approve all",
+          "then": [
+            "The reply is rejected and the bucket is re-prompted",
+            "Approval requires a count-matched typed reply whose count equals the exact listed candidate count",
+            "A count mismatch re-prompts",
+            "No LLM fallback is used on any reply"
+          ]
+        },
+        {
+          "id": "rq-cleanupHygieneScope01.4",
+          "title": "Delegated deletion authority",
+          "given": [
+            "An irreversible bucket has been approved with a valid typed confirmation"
+          ],
+          "when": "The command applies the approved bucket",
+          "then": [
+            "Deletion is performed by adv_worktree_delete or adv_worktree_cleanup",
+            "The deletion tool's own safety refusals are honoured and surfaced verbatim in the result lines",
+            "adv_worktree_triage classification alone never authorises removal",
+            "Each bucket remains atomic and a bucket failure does not halt remaining buckets"
+          ]
+        },
+        {
+          "id": "rq-cleanupHygieneScope01.5",
+          "title": "Dry-run default preserved",
+          "given": [
+            "The user runs /adv-cleanup without an execute flag"
+          ],
+          "when": "The command completes its scan and renders the report",
+          "then": [
+            "No change is closed",
+            "No worktree is deleted",
+            "No local branch is deleted",
+            "The footer states how to re-run with execution enabled"
+          ]
+        }
+      ]
     }
   ]
 }
