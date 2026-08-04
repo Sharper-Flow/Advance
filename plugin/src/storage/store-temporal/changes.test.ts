@@ -856,9 +856,9 @@ describe("createChangeOps", () => {
       expect(result.hydrationStats).toMatchObject({
         totalIds: 2,
         fromMemo: 2,
-        fromCache: 0,
         fromHydration: 0,
       });
+      expect(result.hydrationStats).not.toHaveProperty("fromCache");
       expect(result.changes.map((c) => c.id).sort()).toEqual([
         "changeA",
         "changeB",

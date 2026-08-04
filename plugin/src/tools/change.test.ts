@@ -1974,7 +1974,6 @@ describe("change tools — signal-driven lifecycle", () => {
         hydrationStats: {
           totalIds: 1,
           fromMemo: 1,
-          fromCache: 0,
           fromHydration: 0,
         },
       });
@@ -2024,7 +2023,6 @@ describe("change tools — signal-driven lifecycle", () => {
         hydrationStats: {
           totalIds: 1,
           fromMemo: 0,
-          fromCache: 0,
           fromHydration: 1,
         },
       });

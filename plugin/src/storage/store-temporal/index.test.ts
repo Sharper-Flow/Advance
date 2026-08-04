@@ -7,6 +7,7 @@ import { createDefaultGates, type Change, type Task } from "../../types";
 import { createDiskStore } from "../store-disk";
 import { changeToWorkflowState } from "../../temporal/change-state";
 import { createTemporalStoreBackend } from "./index";
+import { changeTools } from "../../tools/change";
 import {
   markPoisonedWorkflowForChange,
   isPoisonedWorkflowForChange,
@@ -597,6 +598,63 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     expect(result.data?.status).toBe("archived");
     expect((result.data as Change & { _source?: string })._source).toBe(
       "archive",
+    );
+  });
+
+  it("keeps adv_change_list from reporting a stale draft that adv_change_show resolves as archived", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const changeId = "status-ladder-change";
+    const staleDiskDir = join(tempDir, ".adv", "changes", changeId);
+    const archiveDir = join(
+      tempDir,
+      ".adv",
+      "archive",
+      `2026-05-07-${changeId}`,
+    );
+    await mkdir(staleDiskDir, { recursive: true });
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(
+      join(staleDiskDir, "change.json"),
+      JSON.stringify({ ...activeChange(changeId), status: "active" }),
+    );
+    await writeFile(
+      join(archiveDir, "change.json"),
+      JSON.stringify(archivedChange(changeId)),
+    );
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw workflowNotFoundError();
+            },
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "0000ec0100000000000000000000000000000000",
+    });
+
+    const listed = JSON.parse(
+      await changeTools.adv_change_list.execute({}, store),
+    ) as { changes: Array<{ id: string; status: string }> };
+    const shown = JSON.parse(
+      await changeTools.adv_change_show.execute({ changeId }, store),
+    ) as { id: string; status: string };
+
+    expect(listed.changes.find((change) => change.id === changeId)).toBe(
+      undefined,
+    );
+    expect(shown).toEqual(
+      expect.objectContaining({ id: changeId, status: "archived" }),
     );
   });
 

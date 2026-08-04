@@ -469,7 +469,6 @@ export async function renderTerminalHistory(
     terminalCandidates,
     terminalFromArchive,
     terminalFromDisk,
-    terminalFromWorkflow: 0,
     omitted,
     ...(deadlineExceeded ? { deadlineExceeded: true } : {}),
   };

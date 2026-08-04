@@ -1000,7 +1000,6 @@ async function readProjectionChangeList(
   // listConflictAuthority, not for routine list/listSummary reads.
 
   const fromMemo = summaryRows.size;
-  const fromCache = 0;
   let fromHydration = 0;
   let terminalCandidates = 0;
   let terminalFromArchive = 0;
@@ -1173,7 +1172,6 @@ async function readProjectionChangeList(
   const hydrationStats = {
     totalIds: allIds.length,
     fromMemo,
-    fromCache,
     fromHydration,
     ...(wantsTerminalStatuses
       ? {
@@ -1622,8 +1620,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           forceSort: "default",
           // list() does not paginate today.
           paginate: false,
-          // Active list output still uses archive bundles to dominate stale
-          // active projections; routine status summaries do not need this.
+          // Archive bundles dominate stale active projections for list parity
+          // with the archive-aware snapshot reader used by change show.
           loadArchiveForActiveShadow: true,
         },
       );
@@ -2095,6 +2093,8 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           paginate: true,
           // Summary API always carries hydration stats.
           includeHydrationStats: true,
+          // Keep listSummary status resolution aligned with list() and get().
+          loadArchiveForActiveShadow: true,
           deadline: filter?.deadline,
           candidateLimit:
             filter?.limit === undefined

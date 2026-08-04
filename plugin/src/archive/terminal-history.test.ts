@@ -136,6 +136,7 @@ describe("renderTerminalHistory", () => {
     expect(row.capabilities).toEqual(["capabilityA"]);
     expect(result.hydrationStats.terminalFromArchive).toBe(1);
     expect(result.hydrationStats.terminalFromDisk).toBe(0);
+    expect(result.hydrationStats).not.toHaveProperty("terminalFromWorkflow");
     expect(result.warnings).toHaveLength(0);
   });
 

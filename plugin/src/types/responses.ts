@@ -67,7 +67,6 @@ export interface TerminalHydrationStats {
 export interface HydrationStats {
   totalIds?: number;
   fromMemo?: number;
-  fromCache?: number;
   fromHydration?: number;
   terminalCandidates?: number;
   terminalFromArchive?: number;
