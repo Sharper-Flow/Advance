@@ -28,6 +28,7 @@ import {
   listSourceRankedCandidates,
   type SourceRankedCandidate,
 } from "../../temporal/list-source-ranked-candidates";
+import { listSummaryChanges } from "../change-summary-shard-reader";
 import { mapWithConcurrency } from "../../utils/concurrency";
 import {
   ChangeSummaryMemo,
@@ -979,53 +980,58 @@ export function createTemporalStoreBackend(
     const memoIds = memoAll.map((s) => s.id);
 
     let visibilityIds: string[] = [];
-    if (!options?.sourceRanked) {
-      try {
-        const owner = getOwner();
-        const listCtx = makeTemporalOperationContext(
-          input.projectId,
-          "visibility-list",
-          "list",
-          "visibilityList",
-          5_000,
-        );
-        const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
-        const query = buildVisibilityQuery({
-          projectId: input.projectId,
-          statuses: wantsTerminalStatuses ? null : undefined,
-        });
-        visibilityIds = await runTemporal(
-          async () => {
-            const ids: string[] = [];
-            const outcome = await owner.list<{ workflowId: string }>(
-              listCtx,
-              query,
-            );
-            if (outcome.kind !== "complete") {
-              throw new TemporalListOutcomeError(outcome);
-            }
-            for (const wf of outcome.value) {
-              const wfid = wf.workflowId;
-              if (!wfid.startsWith(projectPrefix)) continue;
-              const changeId = wfid.slice(projectPrefix.length);
-              if (changeId.length === 0) continue;
-              ids.push(changeId);
-            }
-            return ids;
-          },
-          { deadline: ctx.deadline, timeoutMs: 5_000 },
-        );
-      } catch (err) {
-        const hitDeadline =
-          err instanceof TemporalQueryTimeoutError || expired();
-        logger.warn(
-          `[P2.4] Visibility list ${
-            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-          }; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        degradedSources.add("visibility");
-        if (hitDeadline) markDeadline("visibility");
-      }
+    const visibilityRecords: Array<{
+      id: string;
+      searchAttributes?: Record<string, unknown>;
+    }> = [];
+    try {
+      const owner = getOwner();
+      const listCtx = makeTemporalOperationContext(
+        input.projectId,
+        "visibility-list",
+        "list",
+        "visibilityList",
+        5_000,
+      );
+      const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
+      const query = buildVisibilityQuery({
+        projectId: input.projectId,
+        statuses: wantsTerminalStatuses ? null : undefined,
+      });
+      visibilityIds = await runTemporal(
+        async () => {
+          const ids: string[] = [];
+          const outcome = await owner.list<{
+            workflowId: string;
+            searchAttributes?: Record<string, unknown>;
+          }>(listCtx, query);
+          if (outcome.kind !== "complete") {
+            throw new TemporalListOutcomeError(outcome);
+          }
+          for (const wf of outcome.value) {
+            const wfid = wf.workflowId;
+            if (!wfid.startsWith(projectPrefix)) continue;
+            const changeId = wfid.slice(projectPrefix.length);
+            if (changeId.length === 0) continue;
+            ids.push(changeId);
+            visibilityRecords.push({
+              id: changeId,
+              searchAttributes: wf.searchAttributes,
+            });
+          }
+          return ids;
+        },
+        { deadline: ctx.deadline, timeoutMs: 5_000 },
+      );
+    } catch (err) {
+      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+      logger.warn(
+        `[P2.4] Visibility list ${
+          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+        }; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      degradedSources.add("visibility");
+      if (hitDeadline) markDeadline("visibility");
     }
 
     // Disk enumeration is typically fast local I/O (one readdir per path)
@@ -1095,8 +1101,68 @@ export function createTemporalStoreBackend(
       candidateLimit !== undefined &&
       !wantsTerminalStatuses
     ) {
-      const diskCandidates = await mapWithConcurrency(
-        diskIds,
+      // Visibility already supplies source-backed descriptors for the IDs it
+      // knows about. Do not re-read those IDs from change.json: only disk-only
+      // candidates need disk projection metadata for source ranking.
+      const visibleIdSet = new Set(visibilityIds);
+      const diskOnlyIds = diskIds.filter((id) => !visibleIdSet.has(id));
+
+      // Prefer the durable summary index, whose last_activity_at is the same
+      // source-backed recency signal used by the projection. listSummaryChanges
+      // reads pointer/shard JSON, not change.json, so it can orient an entire
+      // indexed disk corpus without violating the bounded hydration budget.
+      const summaryCandidates: SourceRankedCandidate[] = [];
+      const indexedDiskIds = new Set<string>();
+      try {
+        const summaryResult = await raceWithTemporalDeadline(
+          listSummaryChanges({
+            changesDir: legacy.paths.changes,
+            summariesDir: legacy.paths.summariesDir,
+          }),
+          deadline,
+        );
+        if (summaryResult.kind === "ok") {
+          const diskOnlySet = new Set(diskOnlyIds);
+          for (const summary of summaryResult.summaries) {
+            if (!diskOnlySet.has(summary.id)) continue;
+            indexedDiskIds.add(summary.id);
+            summaryCandidates.push({
+              id: summary.id,
+              source: "disk",
+              lastSignalAt: summary.last_activity_at,
+              createdAt: summary.created_at,
+            });
+          }
+        } else {
+          degradedSources.add("active_disk");
+        }
+      } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
+        degradedSources.add("active_disk");
+        if (hitDeadline) markDeadline("active_disk");
+      }
+
+      // Unindexed disk projections have no source-backed ordering metadata.
+      // Hydrate at most candidateLimit of them as a bounded fallback, and
+      // classify the remainder as omitted rather than claiming global
+      // completeness. This preserves exact ranking whenever the summary index
+      // covers the disk-only corpus, while making the incomplete case visible.
+      const unindexedDiskIds = diskOnlyIds.filter(
+        (id) => !indexedDiskIds.has(id),
+      );
+      const fallbackDiskIds = unindexedDiskIds.slice(0, candidateLimit);
+      for (const id of unindexedDiskIds.slice(candidateLimit)) {
+        candidateResolutions.push({
+          id,
+          terminal: false,
+          omitted: true,
+          omissionReason: "bounded",
+        });
+      }
+
+      const fallbackDiskCandidates = await mapWithConcurrency(
+        fallbackDiskIds,
         4,
         async (id): Promise<SourceRankedCandidate> => {
           if (expired()) return { id, source: "disk" };
@@ -1131,6 +1197,7 @@ export function createTemporalStoreBackend(
           }
         },
       );
+      const diskCandidates = [...summaryCandidates, ...fallbackDiskCandidates];
       try {
         const ranked = await raceWithTemporalDeadline(
           listSourceRankedCandidates(getOwner(), {
@@ -1138,6 +1205,7 @@ export function createTemporalStoreBackend(
             statuses: undefined,
             limit: candidateLimit,
             diskCandidates,
+            visibilityRecords,
           }),
           deadline,
         );
