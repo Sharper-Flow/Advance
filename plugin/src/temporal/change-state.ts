@@ -2038,24 +2038,39 @@ export function applySubagentReportSubmittedToState(
       suffix++;
     }
 
+    // The retry budget is an invariant the read path enforces
+    // (ErrorRecoverySchema rejects attempts.length > max_retries). Writing past
+    // it produces state ADV itself refuses to read, which brick the change on
+    // both the read and write paths — so the accumulator must clamp here.
+    //
+    // This reducer is the only site that can heal an already-bricked change:
+    // Temporal rebuilds workflow state by replaying history through it, so a
+    // clamped reducer re-derives valid state from unchanged poisoned histories.
+    // A guard at the tool boundary or in the schema normalizer cannot do that.
+    const maxRetries = 3;
+    const recordedAttempts = [
+      ...(task.error_recovery?.attempts ?? []),
+      {
+        attempt_number: payload.report.attempt,
+        error: blockers.summary,
+        diagnosis: blockers.diagnosis,
+        fix_tried: "Sub-agent report submission recorded blocker",
+        strategy_label: strategyLabel,
+        outcome: "failed" as const,
+        attempted_at: payload.submittedAt,
+      },
+    ];
+
     task.error_recovery = {
       last_error: blockers.summary,
-      retry_count: payload.report.attempt,
-      max_retries: 3,
+      retry_count: Math.min(payload.report.attempt, maxRetries),
+      max_retries: maxRetries,
       error_class: "SEMANTIC",
       next_strategy: "Resolve sub-agent reported blocker",
-      attempts: [
-        ...(task.error_recovery?.attempts ?? []),
-        {
-          attempt_number: payload.report.attempt,
-          error: blockers.summary,
-          diagnosis: blockers.diagnosis,
-          fix_tried: "Sub-agent report submission recorded blocker",
-          strategy_label: strategyLabel,
-          outcome: "failed",
-          attempted_at: payload.submittedAt,
-        },
-      ],
+      // Retain the most recent entries. Each keeps its true monotonic
+      // attempt_number so an elided window stays visible to an operator
+      // rather than being silently renumbered to 1..n.
+      attempts: recordedAttempts.slice(-maxRetries),
     };
   }
 
