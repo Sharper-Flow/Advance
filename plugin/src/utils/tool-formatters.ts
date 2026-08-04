@@ -13,6 +13,7 @@
  */
 
 import type { WorkerLiveness } from "../temporal/health-probe";
+import { observedAttemptCount } from "../types/tasks";
 
 // =============================================================================
 // Shared Types
@@ -695,9 +696,19 @@ export function formatDoomLoopDiagnostics(
 
   const inDoomLoop = input.retry_count >= input.max_retries;
 
+  // attempts[] is bounded to max_retries, so report what actually happened
+  // rather than the size of the retained window (see observedAttemptCount).
+  const retainedAttempts = input.attempts ?? [];
+  const attemptCount = observedAttemptCount(input);
+  const elidedCount = attemptCount - retainedAttempts.length;
+
   const attemptSummary =
-    input.attempts && input.attempts.length > 0
-      ? `${input.attempts.length} attempts: ${input.attempts.map((a) => a.strategy_label || a.error).join(" → ")}`
+    retainedAttempts.length > 0
+      ? `${attemptCount} attempts${
+          elidedCount > 0
+            ? ` (most recent ${retainedAttempts.length} retained)`
+            : ""
+        }: ${retainedAttempts.map((a) => a.strategy_label || a.error).join(" → ")}`
       : `${input.retry_count}/${input.max_retries} retries used`;
 
   const banner = inDoomLoop

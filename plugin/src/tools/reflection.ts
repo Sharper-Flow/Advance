@@ -18,6 +18,7 @@ import {
 } from "../storage/reflection";
 import { listProjectWisdom } from "../storage/project-wisdom";
 import { GATE_ORDER, type GateId } from "../types";
+import { observedAttemptCount } from "../types/tasks";
 import { atomicWriteFile } from "../utils/fs";
 import { appendDebugLog } from "../utils/debug-log";
 import { getService } from "../temporal/service";
@@ -698,7 +699,9 @@ export const reflectionTools = {
 
       let retryTotal = 0;
       for (const task of tasks) {
-        retryTotal += task.error_recovery?.attempts?.length ?? 0;
+        // attempts[] is bounded to max_retries, so count what occurred rather
+        // than what was retained — otherwise retry friction is understated.
+        retryTotal += observedAttemptCount(task.error_recovery);
       }
       const retryDenominator = Math.max(
         1,
@@ -806,9 +809,10 @@ export const reflectionTools = {
             ? detectProviderSpecific(sanitizedFix)
             : null;
           const retryOutcome = formatRetryOutcome(task.error_recovery.attempts);
+          const attemptCount = observedAttemptCount(task.error_recovery);
           frictionItems.push({
             category: "tool_gap",
-            description: `Task "${task.title}" ${retryOutcome} after ${task.error_recovery.attempts.length} retry attempt${task.error_recovery.attempts.length === 1 ? "" : "s"}`,
+            description: `Task "${task.title}" ${retryOutcome} after ${attemptCount} retry attempt${attemptCount === 1 ? "" : "s"}`,
             workaround: sanitizedFix,
             ...(providerSpecific && {
               provider_specific: providerSpecific,

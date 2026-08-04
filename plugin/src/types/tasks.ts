@@ -290,6 +290,37 @@ export const ErrorRecoverySchema = z
 
 export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
 
+/**
+ * How many attempts actually occurred, as opposed to how many are retained.
+ *
+ * `attempts[]` is bounded to `max_retries` by the accumulator, so its length is
+ * the size of the retained window rather than a count of what happened. Each
+ * retained entry keeps its true monotonic `attempt_number`, so the highest one
+ * is the real total.
+ *
+ * Shared rather than reimplemented per call site: this is the same class of
+ * mistake as the duplicated `max_retries` literal that let a workflow re-emit
+ * its own budget and re-brick a change. Any surface reporting attempt counts to
+ * an operator should use this, or it will understate the situation at exactly
+ * the moment someone is deciding how to intervene.
+ */
+export function observedAttemptCount(
+  // Structural on purpose: this reads only `attempt_number`, so it accepts any
+  // recovery-shaped value carrying attempts. Depending on the full
+  // `ErrorRecovery` shape would reject legitimately wider callers such as
+  // `DoomLoopInput`, whose `outcome` is a plain string.
+  recovery:
+    | { attempts?: ReadonlyArray<{ attempt_number?: number }> }
+    | null
+    | undefined,
+): number {
+  const attempts = recovery?.attempts ?? [];
+  return attempts.reduce(
+    (highest, attempt) => Math.max(highest, attempt.attempt_number ?? 0),
+    attempts.length,
+  );
+}
+
 // =============================================================================
 // Delegation Recovery (AC5 — bounded empty-worker recovery)
 // =============================================================================

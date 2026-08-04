@@ -759,6 +759,59 @@ describe("tool-formatters", () => {
       expect(result.inDoomLoop).toBe(false);
       expect(result.attemptSummary).toBe("");
     });
+
+    // clampDoomLoopAccumulator: the accumulator now bounds attempts[] to
+    // max_retries and clamps retry_count. Escalation must survive that —
+    // capping the stored budget must not silently disable detection, which
+    // would turn a change-destroying bug into a quieter guardrail failure.
+    describe("clamped retry budget", () => {
+      const clampedAtCap = {
+        retry_count: 3,
+        max_retries: 3,
+        last_error: "blocker",
+        error_class: "SEMANTIC" as const,
+        attempts: [10, 11, 12].map((attempt_number) => ({
+          attempt_number,
+          error: `blocker ${attempt_number}`,
+          strategy_label: `adv-reviewer-reported-blocker-${attempt_number}`,
+          outcome: "failed" as const,
+          attempted_at: "2026-08-04T00:00:00Z",
+          diagnosis: "",
+          fix_tried: "",
+        })),
+      };
+
+      it("still escalates when retry_count sits exactly at the cap", () => {
+        const result = formatDoomLoopDiagnostics(clampedAtCap);
+        // The predicate is >=, so clamping to exactly max_retries keeps
+        // escalation firing. A > comparison would silently never fire again.
+        expect(result.inDoomLoop).toBe(true);
+        expect(result.banner).toContain("[ADV:BLOCKED]");
+        expect(result.suggestedAction).toContain("Escalate to user");
+      });
+
+      it("does not understate how many attempts actually occurred", () => {
+        const result = formatDoomLoopDiagnostics(clampedAtCap);
+        // attempts[] retains only the most recent window, so its length is not
+        // the attempt count. Reporting "3 attempts" after 12 would misinform an
+        // operator at exactly the moment they are deciding how to intervene.
+        expect(result.attemptSummary).toContain("12");
+        expect(result.attemptSummary).not.toMatch(/^3 attempts:/);
+      });
+
+      it("reports the true count for an unbounded under-budget history", () => {
+        const result = formatDoomLoopDiagnostics({
+          ...clampedAtCap,
+          retry_count: 2,
+          attempts: clampedAtCap.attempts.slice(0, 2).map((a, i) => ({
+            ...a,
+            attempt_number: i + 1,
+          })),
+        });
+        expect(result.inDoomLoop).toBe(false);
+        expect(result.attemptSummary).toContain("2");
+      });
+    });
   });
 
   describe("formatSmellReport", () => {
