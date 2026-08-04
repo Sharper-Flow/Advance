@@ -36,6 +36,11 @@ export interface ListSourceRankedCandidatesOptions {
   limit?: number;
   /** Durable active projections not currently visible in the running workflow set. */
   diskCandidates?: SourceRankedCandidate[];
+  /** Visibility descriptors already collected by the caller's list pass. */
+  visibilityRecords?: Array<{
+    id: string;
+    searchAttributes?: Record<string, unknown>;
+  }>;
 }
 
 export interface ListSourceRankedCandidatesResult {
@@ -124,14 +129,22 @@ export async function listSourceRankedCandidates(
   );
   const candidates: SourceRankedCandidate[] = [];
   const seenIds = new Set<string>();
-  const result = await owner.list<{
-    workflowId: string;
-    searchAttributes?: Record<string, unknown>;
-  }>(ctx, query, { limit: effectiveLimit * 2 });
-  if (result.kind !== "complete") {
-    throw result.error;
-  }
-  for (const record of result.value) {
+  const visibilityRecords = options.visibilityRecords
+    ? options.visibilityRecords.map((record) => ({
+        workflowId: `${projectPrefix}${record.id}`,
+        searchAttributes: record.searchAttributes,
+      }))
+    : await (async () => {
+        const result = await owner.list<{
+          workflowId: string;
+          searchAttributes?: Record<string, unknown>;
+        }>(ctx, query, { limit: effectiveLimit * 2 });
+        if (result.kind !== "complete") {
+          throw result.error;
+        }
+        return result.value;
+      })();
+  for (const record of visibilityRecords) {
     const wfid = record.workflowId;
     // Defensive prefix filter: Visibility may return workflows that match the
     // search attributes but belong to a different project or workflow type.

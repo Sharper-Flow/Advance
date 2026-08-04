@@ -28,6 +28,7 @@ import {
   listSourceRankedCandidates,
   type SourceRankedCandidate,
 } from "../../temporal/list-source-ranked-candidates";
+import { listSummaryChanges } from "../change-summary-shard-reader";
 import { mapWithConcurrency } from "../../utils/concurrency";
 import {
   ChangeSummaryMemo,
@@ -979,53 +980,58 @@ export function createTemporalStoreBackend(
     const memoIds = memoAll.map((s) => s.id);
 
     let visibilityIds: string[] = [];
-    if (!options?.sourceRanked) {
-      try {
-        const owner = getOwner();
-        const listCtx = makeTemporalOperationContext(
-          input.projectId,
-          "visibility-list",
-          "list",
-          "visibilityList",
-          5_000,
-        );
-        const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
-        const query = buildVisibilityQuery({
-          projectId: input.projectId,
-          statuses: wantsTerminalStatuses ? null : undefined,
-        });
-        visibilityIds = await runTemporal(
-          async () => {
-            const ids: string[] = [];
-            const outcome = await owner.list<{ workflowId: string }>(
-              listCtx,
-              query,
-            );
-            if (outcome.kind !== "complete") {
-              throw new TemporalListOutcomeError(outcome);
-            }
-            for (const wf of outcome.value) {
-              const wfid = wf.workflowId;
-              if (!wfid.startsWith(projectPrefix)) continue;
-              const changeId = wfid.slice(projectPrefix.length);
-              if (changeId.length === 0) continue;
-              ids.push(changeId);
-            }
-            return ids;
-          },
-          { deadline: ctx.deadline, timeoutMs: 5_000 },
-        );
-      } catch (err) {
-        const hitDeadline =
-          err instanceof TemporalQueryTimeoutError || expired();
-        logger.warn(
-          `[P2.4] Visibility list ${
-            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-          }; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        degradedSources.add("visibility");
-        if (hitDeadline) markDeadline("visibility");
-      }
+    const visibilityRecords: Array<{
+      id: string;
+      searchAttributes?: Record<string, unknown>;
+    }> = [];
+    try {
+      const owner = getOwner();
+      const listCtx = makeTemporalOperationContext(
+        input.projectId,
+        "visibility-list",
+        "list",
+        "visibilityList",
+        5_000,
+      );
+      const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${input.projectId}/`;
+      const query = buildVisibilityQuery({
+        projectId: input.projectId,
+        statuses: wantsTerminalStatuses ? null : undefined,
+      });
+      visibilityIds = await runTemporal(
+        async () => {
+          const ids: string[] = [];
+          const outcome = await owner.list<{
+            workflowId: string;
+            searchAttributes?: Record<string, unknown>;
+          }>(listCtx, query);
+          if (outcome.kind !== "complete") {
+            throw new TemporalListOutcomeError(outcome);
+          }
+          for (const wf of outcome.value) {
+            const wfid = wf.workflowId;
+            if (!wfid.startsWith(projectPrefix)) continue;
+            const changeId = wfid.slice(projectPrefix.length);
+            if (changeId.length === 0) continue;
+            ids.push(changeId);
+            visibilityRecords.push({
+              id: changeId,
+              searchAttributes: wf.searchAttributes,
+            });
+          }
+          return ids;
+        },
+        { deadline: ctx.deadline, timeoutMs: 5_000 },
+      );
+    } catch (err) {
+      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+      logger.warn(
+        `[P2.4] Visibility list ${
+          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+        }; falling back to legacy disk scan: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      degradedSources.add("visibility");
+      if (hitDeadline) markDeadline("visibility");
     }
 
     // Disk enumeration is typically fast local I/O (one readdir per path)
@@ -1095,8 +1101,68 @@ export function createTemporalStoreBackend(
       candidateLimit !== undefined &&
       !wantsTerminalStatuses
     ) {
-      const diskCandidates = await mapWithConcurrency(
-        diskIds,
+      // Visibility already supplies source-backed descriptors for the IDs it
+      // knows about. Do not re-read those IDs from change.json: only disk-only
+      // candidates need disk projection metadata for source ranking.
+      const visibleIdSet = new Set(visibilityIds);
+      const diskOnlyIds = diskIds.filter((id) => !visibleIdSet.has(id));
+
+      // Prefer the durable summary index, whose last_activity_at is the same
+      // source-backed recency signal used by the projection. listSummaryChanges
+      // reads pointer/shard JSON, not change.json, so it can orient an entire
+      // indexed disk corpus without violating the bounded hydration budget.
+      const summaryCandidates: SourceRankedCandidate[] = [];
+      const indexedDiskIds = new Set<string>();
+      try {
+        const summaryResult = await raceWithTemporalDeadline(
+          listSummaryChanges({
+            changesDir: legacy.paths.changes,
+            summariesDir: legacy.paths.summariesDir,
+          }),
+          deadline,
+        );
+        if (summaryResult.kind === "ok") {
+          const diskOnlySet = new Set(diskOnlyIds);
+          for (const summary of summaryResult.summaries) {
+            if (!diskOnlySet.has(summary.id)) continue;
+            indexedDiskIds.add(summary.id);
+            summaryCandidates.push({
+              id: summary.id,
+              source: "disk",
+              lastSignalAt: summary.last_activity_at,
+              createdAt: summary.created_at,
+            });
+          }
+        } else {
+          degradedSources.add("active_disk");
+        }
+      } catch (err) {
+        const hitDeadline =
+          err instanceof TemporalQueryTimeoutError || expired();
+        degradedSources.add("active_disk");
+        if (hitDeadline) markDeadline("active_disk");
+      }
+
+      // Unindexed disk projections have no source-backed ordering metadata.
+      // Hydrate at most candidateLimit of them as a bounded fallback, and
+      // classify the remainder as omitted rather than claiming global
+      // completeness. This preserves exact ranking whenever the summary index
+      // covers the disk-only corpus, while making the incomplete case visible.
+      const unindexedDiskIds = diskOnlyIds.filter(
+        (id) => !indexedDiskIds.has(id),
+      );
+      const fallbackDiskIds = unindexedDiskIds.slice(0, candidateLimit);
+      for (const id of unindexedDiskIds.slice(candidateLimit)) {
+        candidateResolutions.push({
+          id,
+          terminal: false,
+          omitted: true,
+          omissionReason: "bounded",
+        });
+      }
+
+      const fallbackDiskCandidates = await mapWithConcurrency(
+        fallbackDiskIds,
         4,
         async (id): Promise<SourceRankedCandidate> => {
           if (expired()) return { id, source: "disk" };
@@ -1131,6 +1197,7 @@ export function createTemporalStoreBackend(
           }
         },
       );
+      const diskCandidates = [...summaryCandidates, ...fallbackDiskCandidates];
       try {
         const ranked = await raceWithTemporalDeadline(
           listSourceRankedCandidates(getOwner(), {
@@ -1138,6 +1205,7 @@ export function createTemporalStoreBackend(
             statuses: undefined,
             limit: candidateLimit,
             diskCandidates,
+            visibilityRecords,
           }),
           deadline,
         );
@@ -1705,10 +1773,9 @@ export function createTemporalStoreBackend(
         );
       }
       const candidateLimit = Math.min(rawLimit, 10);
-      const ctx = createTemporalReadContext(options.deadline?.budgetMs);
       const resolved = await listResolvedChanges(
         { includeArchived: false, includeClosed: false },
-        ctx,
+        options.deadline ?? createTemporalReadContext(),
         { candidateLimit, sourceRanked: true },
       );
 
@@ -1772,24 +1839,28 @@ export function createTemporalStoreBackend(
       };
     }
 
-    // Status needs the full unbounded summary set for accurate counts.
-    // The recent list is sliced afterwards and any truncation is typed.
+    // Summary shards carry lifecycle status, so counts do not require deep
+    // hydration of the full change corpus. The caller-provided recent limit
+    // is applied by listSummary before candidate hydration.
     const summary = await changeOps.listSummary!({
       sort: "recency",
+      ...(options?.recentLimit !== undefined
+        ? { limit: options.recentLimit }
+        : {}),
+      ...(options?.deadline ? { deadline: options.deadline } : {}),
     });
-    const { changes, warnings: summaryWarnings, hydrationStats } = summary;
+    const {
+      changes,
+      warnings: summaryWarnings,
+      hydrationStats,
+      boundedOmittedIds,
+    } = summary;
     const now = new Date();
-    const byStatus: Record<ChangeStatus, number> = {
+    const byStatus: Record<ChangeStatus, number> = summary.statusCounts ?? {
       draft: 0,
       archived: 0,
       closed: 0,
     };
-
-    for (const change of changes) {
-      // Finite-accumulation guard: stay NaN-safe even if a status key is
-      // ever missing from the initializer above (e.g. enum narrowing).
-      byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
-    }
 
     const sortedRecent = changes
       .filter(
@@ -1815,28 +1886,24 @@ export function createTemporalStoreBackend(
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
 
-    const recentLimit = options?.recentLimit;
-    const recent =
-      recentLimit !== undefined
-        ? sortedRecent.slice(0, recentLimit)
-        : sortedRecent;
+    const recent = sortedRecent;
 
     const warnings: import("../../types").TerminalWarning[] = [
       ...(summaryWarnings ?? []),
     ];
     let boundedOmitted = 0;
-    if (recentLimit !== undefined && sortedRecent.length > recentLimit) {
-      boundedOmitted = sortedRecent.length - recentLimit;
-      const omittedIds = sortedRecent
-        .slice(recentLimit)
-        .map((r) => r.id)
-        .slice(0, 20);
+    if (
+      options?.recentLimit !== undefined &&
+      boundedOmittedIds &&
+      boundedOmittedIds.length > 0
+    ) {
+      boundedOmitted = boundedOmittedIds.length;
       warnings.push({
         code: "SOURCE_BOUND_EXCEEDED",
-        source: "workflow_query",
-        message: `Read bound (${recentLimit} candidate(s)) truncated ${boundedOmitted} candidate(s); counts and recency are incomplete.`,
+        source: "active_disk",
+        message: `Read bound (${options.recentLimit} candidate(s)) limited recent change hydration; ${boundedOmitted} recent candidate(s) were omitted while lifecycle counts remained sourced from summary shards.`,
         omittedCount: boundedOmitted,
-        omittedIds,
+        omittedIds: boundedOmittedIds.slice(0, 20),
       });
     }
 
