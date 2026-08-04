@@ -46,6 +46,27 @@ describe("adv-triage portfolio-balance contract", () => {
     expect(command).toContain("Epic order is advisory");
   });
 
+  test("represents unlinked changes structurally and keeps defect hints advisory", () => {
+    expect(command).toContain(
+      "Represent every nonterminal ADV change with no linked GitHub issue in this same section; absence of an issue link MUST NOT exclude it.",
+    );
+    expect(command).toContain(
+      "Build membership structurally from typed change state only: nonterminal state plus typed absence of issue linkage.",
+    );
+    expect(command).toContain(
+      "Each row includes change ID/title, current gate, task progress, last activity, linked issue + priority, optional Epic ID/title/order, and any advisory defect hint rendered with its evidence source (`source:origin_kind` or `source:title_prefix`).",
+    );
+  });
+
+  test("preserves the two advisory defect-hint MUST NOT boundaries", () => {
+    expect(command).toContain(
+      "- × MUST NOT let an advisory defect hint filter, suppress, close, deprioritize, or authorize any mutation",
+    );
+    expect(command).toContain(
+      "- × MUST NOT write any `priority:*` label or parallel priority field to an ADV change; `priority:*` remains GitHub-issue-scoped",
+    );
+  });
+
   test("retires all roadmap write/echo/commit behavior", () => {
     expect(command).not.toContain("Generate ROADMAP.md");
     expect(command).not.toContain("Roadmap Echo");

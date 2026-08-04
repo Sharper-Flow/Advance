@@ -218,6 +218,50 @@ describe("/adv-coordinate project inventory contract", () => {
     expect(noActiveEpicsIndex).toBeGreaterThan(projectInventoryIndex);
   });
 
+  test("/adv-coordinate refactor coverage remains reachable without active Epics", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    expect(content).toContain(
+      "Reachability: this phase runs after the Phase 1 project inventory regardless of whether active Epics exist.",
+    );
+    expect(content).not.toContain("the audit does not run");
+  });
+
+  test("/adv-coordinate scopes the no-active-Epics message to Epic-dependent findings", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    expect(content).toContain(
+      "No active Epics. No Epic-dependent coordination actions.",
+    );
+    expect(content).toContain("for Epic-dependent findings only");
+    expect(content).toContain(
+      "continue change-scoped overlap, sequencing, and refactor-coverage analysis",
+    );
+    expect(content).not.toContain("No active Epics. No coordination actions.");
+  });
+
+  test("/adv-coordinate covers Epic-unlinked changes in overlap and sequencing audits", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    expect(content).toContain(
+      "| Epic-unlinked nonterminal changes | Compare proposal/agreement/design/task summaries to current code, recent commits, and diff evidence on the same terms as linked changes. |",
+    );
+    expect(content).toContain(
+      "Epic-linked and Epic-unlinked nonterminal changes from the Phase 1 inventory",
+    );
+  });
+
+  test("/adv-coordinate follows complete hasMore and resumeHint pagination", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    expect(content).toContain(
+      "Follow each page's `hasMore` and `resumeHint` until the in-flight population is exhausted; a single `adv_change_list` call is not complete inventory.",
+    );
+  });
+
+  test("/adv-coordinate preserves every Command Boundary MUST NOT clause", () => {
+    const content = readRepoFile(".opencode/command/adv-coordinate.md");
+    expect(content).toContain(
+      "**× MUST NOT:** create tasks, complete gates, add CLI mutation verbs, make Epic membership mandatory, auto-enroll changes into Epics, treat Epic order as blocking, add Jira-like assignments/estimates/sprints/boards/ownership workflow, mutate without explicit approval, access ADV external state through filesystem paths, merge, rebase, checkout, reset, clean, stash, or mutate product code.",
+    );
+  });
+
   test("/adv-coordinate Phase 7 report inventory lists all four AC3 rows", () => {
     const content = readRepoFile(".opencode/command/adv-coordinate.md");
     const phase7Index = content.indexOf("## Phase 7:");
