@@ -1773,10 +1773,9 @@ export function createTemporalStoreBackend(
         );
       }
       const candidateLimit = Math.min(rawLimit, 10);
-      const ctx = createTemporalReadContext(options.deadline?.budgetMs);
       const resolved = await listResolvedChanges(
         { includeArchived: false, includeClosed: false },
-        ctx,
+        options.deadline ?? createTemporalReadContext(),
         { candidateLimit, sourceRanked: true },
       );
 

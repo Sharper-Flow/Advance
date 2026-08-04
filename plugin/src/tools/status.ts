@@ -8,6 +8,12 @@
 import { basename } from "path";
 import type { Store } from "../storage/store";
 import type { StatusReadOptions } from "../storage/store-types";
+import {
+  createTemporalReadContext,
+  isTemporalReadExpired,
+  runTemporalRead,
+  type TemporalReadContext,
+} from "../storage/store-temporal/read-context";
 import { getTemporalWorkerRole } from "../plugin-init";
 import {
   classifyTemporalError,
@@ -132,9 +138,43 @@ async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function buildDeadlineDegradedStatus(status?: ProjectStatus): ProjectStatus {
+  const warning = {
+    code: "SOURCE_DEADLINE_EXCEEDED" as const,
+    source: "workflow_query" as const,
+    message:
+      "Aggregate status read deadline exceeded; results are incomplete and must not be treated as complete.",
+  };
+  return {
+    specs: status?.specs ?? { count: 0, capabilities: [] },
+    changes: status?.changes ?? {
+      active: 0,
+      byStatus: { draft: 0, archived: 0, closed: 0 },
+      recent: [],
+    },
+    recommendations: status?.recommendations ?? [],
+    ...(status?.resolvedChanges
+      ? { resolvedChanges: status.resolvedChanges }
+      : {}),
+    warnings: [
+      ...(status?.warnings ?? []).filter(
+        (existing) => existing.code !== warning.code,
+      ),
+      warning,
+    ],
+    hydrationStats: {
+      ...(status?.hydrationStats ?? {}),
+      deadlineExceeded: true,
+      omitted: status?.hydrationStats?.omitted ?? 0,
+      omittedIds: status?.hydrationStats?.omittedIds ?? [],
+    },
+  };
+}
+
 async function loadStatusWithBootstrapRetry(
   store: Store,
   options?: StatusReadOptions,
+  context: TemporalReadContext = createTemporalReadContext(),
 ): Promise<{
   status: ProjectStatus;
   bootstrapDiagnostic?: {
@@ -146,6 +186,17 @@ async function loadStatusWithBootstrapRetry(
   let lastBootstrapError: unknown;
 
   for (let attempt = 1; attempt <= STATUS_BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
+    if (isTemporalReadExpired(context)) {
+      return {
+        status: buildDeadlineDegradedStatus(),
+        bootstrapDiagnostic: {
+          recovered: false,
+          lastErrorClass: "bootstrap_in_progress",
+          error:
+            "Aggregate status read deadline exceeded before the next attempt.",
+        },
+      };
+    }
     try {
       const status = await store.status(options);
       return lastBootstrapError
@@ -164,6 +215,16 @@ async function loadStatusWithBootstrapRetry(
     } catch (error) {
       if (classifyTemporalError(error) !== "fallback") throw error;
       lastBootstrapError = error;
+      if (isTemporalReadExpired(context)) {
+        return {
+          status: buildDeadlineDegradedStatus(),
+          bootstrapDiagnostic: {
+            recovered: false,
+            lastErrorClass: "bootstrap_in_progress",
+            error: error instanceof Error ? error.message : String(error),
+          },
+        };
+      }
       if (attempt < STATUS_BOOTSTRAP_MAX_ATTEMPTS) {
         await delay(STATUS_BOOTSTRAP_RETRY_DELAY_MS);
       }
@@ -328,6 +389,16 @@ export const statusTools = {
         { store, target_path },
         async (activeStore, projectContext) => {
           const plan = buildStatusViewPlan(view);
+          // One aggregate budget owns the entire authoritative status read.
+          // Disk-backed target stores ignore this option, while Temporal-backed
+          // stores use the absolute deadline for every source and hydration
+          // stage rather than minting a fresh budget per view/call.
+          const temporalReadContext = createTemporalReadContext();
+          // Disk stores have no Temporal status path and intentionally retain
+          // their legacy call shape; the deadline is meaningful only when the
+          // Temporal backend exposes its summary projection reader.
+          const supportsTemporalStatusRead =
+            typeof activeStore.changes.listSummary === "function";
           const healthRequest =
             view === "health" ? createHealthRequestContext() : undefined;
           const summaryOmissions: StatusSummaryOmissions = {
@@ -344,15 +415,34 @@ export const statusTools = {
           // reuses request-local resolved documents instead of re-reading them.
           const statusReadOptions: StatusReadOptions | undefined =
             view === "summary"
-              ? { recentLimit: STATUS_SUMMARY_RECENT_LIMIT }
+              ? {
+                  recentLimit: STATUS_SUMMARY_RECENT_LIMIT,
+                  ...(supportsTemporalStatusRead
+                    ? { deadline: temporalReadContext.deadline }
+                    : {}),
+                }
               : view === "health"
-                ? buildHealthStatusReadOptions(healthRequest)
-                : undefined;
-          const { status, bootstrapDiagnostic } = await withRecordedPhase(
-            "adv_status",
-            "statusLoad",
-            () => loadStatusWithBootstrapRetry(activeStore, statusReadOptions),
-          );
+                ? buildHealthStatusReadOptions(
+                    healthRequest,
+                    supportsTemporalStatusRead
+                      ? temporalReadContext.deadline
+                      : undefined,
+                  )
+                : supportsTemporalStatusRead
+                  ? { deadline: temporalReadContext.deadline }
+                  : undefined;
+          const { status: loadedStatus, bootstrapDiagnostic } =
+            await withRecordedPhase("adv_status", "statusLoad", () =>
+              loadStatusWithBootstrapRetry(
+                activeStore,
+                statusReadOptions,
+                temporalReadContext,
+              ),
+            );
+          let status = loadedStatus;
+          if (isTemporalReadExpired(temporalReadContext)) {
+            status = buildDeadlineDegradedStatus(status);
+          }
           // Request-local resolved documents (AC4): extracted for
           // enrichment reuse and stripped before output serialization —
           // the map is transport-only, never response payload.
@@ -391,6 +481,76 @@ export const statusTools = {
               worktree_auto_managed?: boolean;
             }>,
           );
+
+          const buildDegradedResponse = () => {
+            const recommendationSummary = buildStatusRecommendationGroups(
+              (status as StatusRecommendationCarrier).recommendation_items ??
+                [],
+              {
+                perGroup:
+                  view === "summary"
+                    ? STATUS_SUMMARY_RECOMMENDATION_GROUP_LIMIT
+                    : STATUS_DETAILED_RECOMMENDATION_GROUP_LIMIT,
+              },
+            );
+            const formatted = formatStatusOutput({
+              specCount: status.specs.count,
+              requirementCount: 0,
+              activeChanges: status.changes.recent.map((c) => ({
+                id: c.id,
+                title: c.title,
+                minutesSinceActivity: c.minutesSinceActivity,
+                parent_change_id: c.parent_change_id,
+              })),
+              archivedCount: status.changes.byStatus.archived ?? 0,
+              recommendations: status.recommendations,
+              recommendationSummary,
+              temporalAlive: false,
+              temporalDegraded: true,
+              terminalCleanupRetained: { total: 0, classes: {} },
+            });
+            const degradedOutput = {
+              ...status,
+              feature_flags: {},
+              feature_flag_sources: {},
+              auto_managed_changes: autoManagedCensus,
+              worker_role: getTemporalWorkerRole(),
+              _freshness: {},
+              _health_execution: {},
+              temporal_health: undefined,
+              orphan_queue_adoption: null,
+              search_attributes: undefined,
+              worker_processes: undefined,
+              opencode_session_debt: undefined,
+              migration_status: null,
+              project_metadata: undefined,
+              external_state_hygiene: undefined,
+              worktree_census: undefined,
+              terminal_cleanup_retained: { total: 0, classes: {} },
+              snapshot_health: undefined,
+              _healthSnapshot: undefined,
+              archived_branch_hygiene: undefined,
+              status_summary_omissions: summaryOmissions,
+              recommendation_summary: recommendationSummary,
+              recommendation_groups: recommendationSummary.groups,
+              metrics: getMetrics(),
+              plugin_runtime: undefined,
+              formatted,
+              ...(projectContext ? { _projectContext: projectContext } : {}),
+            };
+            return formatToolOutput(applyStatusView(degradedOutput, view), {
+              pretty: resolveOutputMode(outputMode),
+            });
+          };
+
+          // A status read that consumed its aggregate budget is already a
+          // useful typed result. Do not enter view-specific enrichment/probe
+          // stages after expiry: those stages have independent best-effort
+          // work and could outlive the host safety cap while the caller has
+          // already been told the authoritative read is incomplete.
+          if (isTemporalReadExpired(temporalReadContext)) {
+            return buildDegradedResponse();
+          }
 
           if (plan.recentEnrichment) {
             let recentChanges = await withRecordedPhase(
@@ -823,17 +983,36 @@ export const statusTools = {
             }
 
             if (plan.snapshotHealth) {
-              const snapshotHealthProbe = await withRecordedPhase(
-                "adv_status",
-                "snapshotHealth",
-                () => fetchStatusSnapshotHealth(projectId, { forceRefresh }),
+              const snapshotHealthRead = await runTemporalRead(
+                undefined,
+                () =>
+                  withRecordedPhase("adv_status", "snapshotHealth", () =>
+                    fetchStatusSnapshotHealth(projectId, { forceRefresh }),
+                  ),
+                temporalReadContext,
+                { maxAttempts: 1, opType: "status.snapshotHealth" },
               );
+              if (!snapshotHealthRead.complete || !snapshotHealthRead.data) {
+                status = buildDeadlineDegradedStatus(status);
+                return buildDegradedResponse();
+              }
+              const snapshotHealthProbe = snapshotHealthRead.data;
               snapshotHealth = snapshotHealthProbe.value;
               probeFreshness.snapshot_health = snapshotHealthProbe.freshness;
             }
 
             if (plan.specRequirementCount) {
-              const specsList = await activeStore.specs.list();
+              const specsRead = await runTemporalRead(
+                undefined,
+                () => activeStore.specs.list(),
+                temporalReadContext,
+                { maxAttempts: 1, opType: "status.specs" },
+              );
+              if (!specsRead.complete || !specsRead.data) {
+                status = buildDeadlineDegradedStatus(status);
+                return buildDegradedResponse();
+              }
+              const specsList = specsRead.data;
               requirementCount = specsList.specs.reduce(
                 (sum, s) => sum + (s.requirementCount ?? 0),
                 0,

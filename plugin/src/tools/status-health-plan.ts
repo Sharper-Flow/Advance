@@ -11,6 +11,7 @@
 
 import type { Store } from "../storage/store";
 import type { ProbeCacheFreshness } from "./probe-cache";
+import type { TemporalReadDeadline } from "../temporal/retry-wrapper";
 import {
   createHealthProbeCache,
   type HealthProbeCache,
@@ -789,10 +790,9 @@ export async function runHealthStatus(
 
 export function buildHealthStatusDeadline(
   request: HealthRequestContext = createHealthRequestContext(),
-): {
-  budgetMs: number;
-  deadlineAt: number;
-} {
+  sharedDeadline?: TemporalReadDeadline,
+): TemporalReadDeadline {
+  if (sharedDeadline) return sharedDeadline;
   return {
     budgetMs: HEALTH_EXECUTION_CUTOFF_MS,
     deadlineAt: request.cutoffTime,
@@ -801,16 +801,15 @@ export function buildHealthStatusDeadline(
 
 export function buildHealthStatusReadOptions(
   request: HealthRequestContext = createHealthRequestContext(),
-):
-  | {
-      recentLimit: number;
-      deadline: { budgetMs: number; deadlineAt: number };
-      sourceRanked: true;
-    }
-  | undefined {
+  sharedDeadline?: TemporalReadDeadline,
+): {
+  recentLimit: number;
+  deadline: TemporalReadDeadline;
+  sourceRanked: true;
+} {
   return {
     recentLimit: HEALTH_CANDIDATE_LIMIT,
-    deadline: buildHealthStatusDeadline(request),
+    deadline: buildHealthStatusDeadline(request, sharedDeadline),
     sourceRanked: true,
   };
 }

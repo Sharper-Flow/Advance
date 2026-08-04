@@ -195,6 +195,12 @@ export function applyStatusView(
     | undefined;
   const recommendationGroups = full.recommendation_groups;
 
+  // Degradation metadata is view-independent. Keep it at the projection root
+  // so summary/changes/hygiene callers receive the same typed completeness
+  // signal that health callers already see alongside `changes`.
+  if (full.warnings) projection.warnings = full.warnings;
+  if (full.hydrationStats) projection.hydrationStats = full.hydrationStats;
+
   switch (view) {
     case "summary": {
       projection.specs = { count: specs?.count };
