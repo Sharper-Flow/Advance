@@ -15,6 +15,7 @@ import {
   type TemporalReadContext,
 } from "../storage/store-temporal/read-context";
 import { getTemporalWorkerRole } from "../plugin-init";
+import { STATUS_READ_DEADLINE_BUDGET_MS } from "../utils/tool-budgets";
 import {
   classifyTemporalError,
   extractGrpcStatus,
@@ -422,7 +423,12 @@ export const statusTools = {
           // Disk-backed target stores ignore this option, while Temporal-backed
           // stores use the absolute deadline for every source and hydration
           // stage rather than minting a fresh budget per view/call.
-          const temporalReadContext = createTemporalReadContext();
+          // AC5: the status-local budget is derived from the host tool cap
+          // minus a measured serialization headroom (tool-budgets.ts), so
+          // changing either source constant cannot silently erase the margin.
+          const temporalReadContext = createTemporalReadContext(
+            STATUS_READ_DEADLINE_BUDGET_MS,
+          );
           // Disk stores have no Temporal status path and intentionally retain
           // their legacy call shape; the deadline is meaningful only when the
           // Temporal backend exposes its summary projection reader.
