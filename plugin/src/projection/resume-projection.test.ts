@@ -272,7 +272,7 @@ describe("buildResumeProjection — ordered_next", () => {
       epic_membership: { epic_id: "epicA", entry_id: "en-1", order: 0 },
     });
     // Idle + no Epic → trailing finite band, still behind Epic order 0.
-    // See rq-epicAdvisoryRankReachability01 for why this is no longer MAX_RANK.
+    // See rq-epicAdvisoryRankReachability01 for the finite-rank policy.
     const highRank = makeChange("addA");
     const epicA = makeEpic("epicA", [
       {

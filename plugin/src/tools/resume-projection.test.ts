@@ -245,7 +245,7 @@ describe("adv_resume_projection tool", () => {
     // All three changes are unlinked. Under rq-epicAdvisoryRankReachability01
     // an unlinked change ranks from its own strongest signal, so work already
     // in progress resumes ahead of not-yet-started work. Before that
-    // requirement every unlinked change tied at MAX_RANK and this resolved by
+    // requirement every unlinked change tied at the old sentinel rank and this resolved by
     // array order, which was incidental rather than intended.
     expect(result.ordered_next?.node.change_id).toBe("active");
   });
