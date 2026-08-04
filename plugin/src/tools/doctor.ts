@@ -42,14 +42,21 @@ import {
   getTemporalWorkerDiagnostics,
   restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
-import { probeTaskQueuePollers } from "../temporal/queue-serviceability";
+import {
+  probeTaskQueuePollers,
+  type ServerPollerProbeStatus,
+} from "../temporal/queue-serviceability";
 import { evaluateOrphanAdoptionHealth } from "../temporal/orphan-queue-adopter";
 import {
   reconcileTerminalWorkflows,
   type TerminalReconcileResult,
 } from "../temporal/reconcile-terminal-workflows";
 import { buildTerminalReconcileDeps } from "../temporal/reconcile-terminal-deps";
-import { buildProjectTaskQueue } from "../temporal/client";
+import {
+  buildProjectTaskQueue,
+  buildSessionTaskQueue,
+} from "../temporal/client";
+import { getCurrentSessionId } from "../utils/session-id";
 import { basename, join } from "path";
 import { existsSync } from "fs";
 import { formatToolOutput } from "../utils/tool-output";
@@ -118,8 +125,22 @@ interface DoctorVerification {
   server_alive: boolean;
   worker_alive: boolean;
   queue_serviceable: boolean;
+  queue_serviceability?: DoctorQueueProbe[];
   search_attributes_ok: boolean;
   rechecked_at: string;
+}
+
+interface DoctorQueueProbe {
+  queueName: string;
+  queueType: "session" | "project";
+  /** Graded DescribeTaskQueue result, retained alongside the legacy boolean. */
+  serviceability: ServerPollerProbeStatus;
+  /** Alias for consumers that use the probe's native status vocabulary. */
+  status: ServerPollerProbeStatus;
+  serviceable: boolean;
+  pollerCount: number;
+  lastPollerAt: string | null;
+  owningSession?: string;
 }
 
 interface DoctorInput {
@@ -190,18 +211,60 @@ function projectFromStore(store: Store): string | undefined {
 async function probeQueue(
   projectId: string,
   bundle: ReturnType<typeof getService>,
-): Promise<boolean> {
-  if (!bundle) return false;
+  queueName: string,
+  queueType: "session" | "project",
+  owningSession?: string,
+): Promise<DoctorQueueProbe> {
+  const unavailable: DoctorQueueProbe = {
+    queueName,
+    queueType,
+    serviceability: "unavailable",
+    status: "unavailable",
+    serviceable: false,
+    pollerCount: 0,
+    lastPollerAt: null,
+    ...(owningSession ? { owningSession } : {}),
+  };
+  if (!bundle) return unavailable;
   try {
     const probe = await probeTaskQueuePollers({
       owner: bundle,
       projectId,
-      taskQueue: buildProjectTaskQueue(projectId),
+      taskQueue: queueName,
     });
-    return probe.status === "fresh";
+    return {
+      queueName,
+      queueType,
+      serviceability: probe.status,
+      status: probe.status,
+      serviceable: probe.status === "fresh",
+      pollerCount: probe.pollerCount ?? 0,
+      lastPollerAt: probe.lastPollerAt ?? null,
+      ...(owningSession ? { owningSession } : {}),
+    };
   } catch {
-    return false;
+    return unavailable;
   }
+}
+
+async function probeDoctorQueues(
+  projectId: string,
+  bundle: ReturnType<typeof getService>,
+): Promise<{ project: DoctorQueueProbe; session?: DoctorQueueProbe }> {
+  const projectQueue = buildProjectTaskQueue(projectId);
+  const project = await probeQueue(projectId, bundle, projectQueue, "project");
+  const sessionId = getCurrentSessionId();
+  if (!sessionId) return { project };
+
+  const sessionQueue = buildSessionTaskQueue(projectId, sessionId);
+  const session = await probeQueue(
+    projectId,
+    bundle,
+    sessionQueue,
+    "session",
+    sessionId,
+  );
+  return { project, session };
 }
 
 /**
@@ -320,9 +383,20 @@ export const doctorTools = {
       // adv_doctor runs host-side and always resolves a worker role, so the
       // unavailable arm is unreachable at this boundary.
       const workerAlive = isWorkerAffirmativelyAlive(health.worker_alive);
-      const queueServiceable = projectId
-        ? await probeQueue(projectId, bundle)
-        : false;
+      const queueProbes = projectId
+        ? await probeDoctorQueues(projectId, bundle)
+        : undefined;
+      const queueServiceable = queueProbes?.project.serviceable ?? false;
+      // A missing poller is actionable only for the session owned by this
+      // process. Queues belonging to ended sessions are expected to go quiet;
+      // those are not probed here and must not create a false-red finding.
+      if (queueProbes?.session && !queueProbes.session.serviceable) {
+        addNonHealthyFinding(findings, {
+          class: "unhealthy",
+          finding: "session_queue_unserviceable",
+          detail: `Owning session ${queueProbes.session.owningSession} queue ${queueProbes.session.queueName} is ${queueProbes.session.serviceability}; project queue remains ${queueProbes.project.serviceability}`,
+        });
+      }
       if (!workerAlive) {
         if (isSuspectLock(health, workerAlive)) {
           findings.push({
@@ -727,9 +801,10 @@ export const doctorTools = {
       try {
         const recheck = await getTemporalHealth(projectId);
         const recheckBundle = getService();
-        const recheckQueue = projectId
-          ? await probeQueue(projectId, recheckBundle)
-          : false;
+        const recheckQueues = projectId
+          ? await probeDoctorQueues(projectId, recheckBundle)
+          : undefined;
+        const recheckQueue = recheckQueues?.project.serviceable ?? false;
         let recheckSAs = true;
         if (recheckBundle && projectId) {
           try {
@@ -760,6 +835,14 @@ export const doctorTools = {
           queue_serviceable: recheckQueue,
           search_attributes_ok: recheckSAs,
           rechecked_at: new Date().toISOString(),
+          ...(recheckQueues?.session
+            ? {
+                queue_serviceability: [
+                  recheckQueues.project,
+                  recheckQueues.session,
+                ],
+              }
+            : {}),
         };
       } catch {
         verification = {

@@ -29,6 +29,7 @@ const getTemporalWorkerAlivenessMock = vi.hoisted(() => vi.fn());
 const getOrphanQueueAdoptionStatusMock = vi.hoisted(() => vi.fn());
 const probeTaskQueuePollersMock = vi.hoisted(() => vi.fn());
 const getProjectIdMock = vi.hoisted(() => vi.fn());
+const getCurrentSessionIdMock = vi.hoisted(() => vi.fn(() => undefined));
 
 vi.mock("../temporal/service", () => ({
   getService: getServiceMock,
@@ -66,6 +67,10 @@ vi.mock("../temporal/queue-serviceability", () => ({
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: getProjectIdMock,
+}));
+
+vi.mock("../utils/session-id", () => ({
+  getCurrentSessionId: getCurrentSessionIdMock,
 }));
 
 const probeChangePhantomStatusMock = vi.hoisted(() => vi.fn());
@@ -158,6 +163,7 @@ function setHealthy() {
     reconnectFailureCount: 0,
   });
   getProjectIdMock.mockReturnValue(PROJECT_ID);
+  getCurrentSessionIdMock.mockReturnValue(undefined);
   probeTaskQueuePollersMock.mockResolvedValue({
     status: "fresh",
     pollerCount: 2,
@@ -190,6 +196,76 @@ describe("adv_doctor", () => {
     expect(parsed.fixes_applied).toEqual([]);
     expect(parsed.fixes_refused).toEqual([]);
     expect(parsed.verification.healthy).toBe(true);
+  });
+
+  test("AC6: reports session and project queue rows with owning session", async () => {
+    const sessionId = "sess_DoctorQueue1";
+    getCurrentSessionIdMock.mockReturnValue(sessionId);
+
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+    const rows = parsed.verification.queue_serviceability;
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          queueType: "session",
+          queueName: `advance-${PROJECT_ID}-${sessionId}`,
+          owningSession: sessionId,
+          serviceability: "fresh",
+          pollerCount: 2,
+          lastPollerAt: "2026-07-22T00:00:00.000Z",
+        }),
+        expect.objectContaining({
+          queueType: "project",
+          queueName: `advance-${PROJECT_ID}`,
+          serviceability: "fresh",
+          pollerCount: 2,
+          lastPollerAt: "2026-07-22T00:00:00.000Z",
+        }),
+      ]),
+    );
+  });
+
+  test("AC7: a quiet current-session queue is graded and is not reported blanket healthy", async () => {
+    const sessionId = "sess_DoctorQueue2";
+    getCurrentSessionIdMock.mockReturnValue(sessionId);
+    probeTaskQueuePollersMock.mockImplementation(async ({ taskQueue }) =>
+      taskQueue.endsWith(`-${sessionId}`)
+        ? { status: "none", pollerCount: 0, lastPollerAt: null }
+        : {
+            status: "fresh",
+            pollerCount: 2,
+            lastPollerAt: "2026-07-22T00:00:00.000Z",
+          },
+    );
+
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+    const sessionRow = parsed.verification.queue_serviceability.find(
+      (row: { queueType: string }) => row.queueType === "session",
+    );
+
+    expect(sessionRow).toMatchObject({
+      serviceability: "none",
+      status: "none",
+      serviceable: false,
+    });
+    expect(parsed.findings).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ class: "healthy" })]),
+    );
+  });
+
+  test("AC8/AC10: no owning session skips the session probe and preserves legacy verification shape", async () => {
+    const result = await doctorTools.adv_doctor.execute({}, makeStore());
+    const parsed = JSON.parse(result);
+
+    expect(probeTaskQueuePollersMock).toHaveBeenCalledTimes(2);
+    expect(parsed.verification.queue_serviceable).toBe(true);
+    expect(parsed.verification.queue_serviceability).toBeUndefined();
+    expect(parsed.findings).toEqual(
+      expect.arrayContaining([expect.objectContaining({ class: "healthy" })]),
+    );
   });
 
   test("AC4: worker alive but adoption unavailable adds unhealthy finding", async () => {
