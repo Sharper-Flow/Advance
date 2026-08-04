@@ -586,9 +586,16 @@ export const statusTools = {
             });
           };
 
-          const postStatusCutoffAt =
-            statusReadOptions?.deadline?.deadlineAt ??
-            temporalReadContext.deadline.deadlineAt;
+          // The post-status cutoff is the REQUEST-SCOPED AGGREGATE deadline,
+          // never a view-specific sub-budget. `statusReadOptions.deadline` is
+          // not safe here: for the health view on a store without a Temporal
+          // summary reader, `buildHealthStatusDeadline` falls back to health's
+          // own 7.5s execution cutoff. Using that as the outer bound made the
+          // whole response degrade the moment health's INNER budget was spent,
+          // discarding the health payload that `runHealthStatus` had already
+          // legitimately degraded and returned. Inner sub-budgets are owned and
+          // enforced by their own executors.
+          const postStatusCutoffAt = temporalReadContext.deadline.deadlineAt;
           const postStatusBudgetExceeded = () =>
             isTemporalReadExpired(temporalReadContext) ||
             Date.now() >= postStatusCutoffAt;
