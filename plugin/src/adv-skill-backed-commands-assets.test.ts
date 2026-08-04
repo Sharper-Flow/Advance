@@ -157,7 +157,12 @@ describe("skill-backed command assets", () => {
     marker,
   } of EMBEDDED_METHODOLOGY_COMMANDS) {
     test(`${command} embeds its methodology inline`, () => {
-      const content = readFileSync(commandPath, "utf8");
+      // adv-review's methodology moved into the typed directive; assert via the
+      // composed surface (launcher + directive content) per design D6/AC7.
+      const content =
+        command === "adv-review"
+          ? readCommandSurface("adv-review.md")
+          : readFileSync(commandPath, "utf8");
 
       expect(content).toContain(marker);
       expect(content).toMatch(/Methodology/i);
