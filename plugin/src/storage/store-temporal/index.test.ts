@@ -459,6 +459,31 @@ async function createPoisonedSignalStore(root: string, changeId: string) {
   return { store, signalCount: () => signalCount };
 }
 
+async function createDualWriteOutcomeStore(root: string, queryResult: unknown) {
+  const legacy = await createDiskStore(root);
+  const changeId = "dualWriteOutcome";
+  await legacy.changes.save(activeChange(changeId));
+  const handle = { query: async () => queryResult };
+  const temporal = createMockOwnerFromClient({
+    client: {
+      workflow: {
+        getHandle: () => handle,
+        start: async () => handle,
+      },
+    },
+  });
+  const store = createTemporalStoreBackend({
+    legacy,
+    temporal,
+    projectId: "0000ec0100000000000000000000000000000000",
+  });
+  return {
+    store,
+    projectionPath: join(root, ".adv", "changes", changeId, "change.json"),
+    changeId,
+  };
+}
+
 async function createMinimalPoisonedInput(root: string) {
   const legacy = await createDiskStore(root);
   const handle = {
@@ -1814,6 +1839,44 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
 });
 
 describe("createTemporalStoreBackend projection-only read enforcement", () => {
+  let tempDir: string | undefined;
+
+  afterEach(async () => {
+    if (tempDir) await cleanupTempDir(tempDir);
+    tempDir = undefined;
+  });
+
+  it("does not write a projection for a non-confirmed readback outcome", async () => {
+    tempDir = await createTempDir();
+    const { store, projectionPath, changeId } =
+      await createDualWriteOutcomeStore(tempDir, {
+        kind: "degraded",
+        error: new Error("readback unavailable"),
+        diagnostic: { class: "transient" },
+      });
+    const before = await readFile(projectionPath, "utf8");
+
+    await store.changes.refresh(changeId);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(await readFile(projectionPath, "utf8")).toBe(before);
+  });
+
+  it("does not write a projection when confirmed readback has no value", async () => {
+    tempDir = await createTempDir();
+    const { store, projectionPath, changeId } =
+      await createDualWriteOutcomeStore(tempDir, {
+        kind: "complete",
+        value: undefined,
+      });
+    const before = await readFile(projectionPath, "utf8");
+
+    await store.changes.refresh(changeId);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(await readFile(projectionPath, "utf8")).toBe(before);
+  });
+
   it("guards the dual-write projection behind confirmed readback", async () => {
     const source = await readFile(
       new URL("./index.ts", import.meta.url),

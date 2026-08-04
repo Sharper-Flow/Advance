@@ -19,6 +19,7 @@ import { STATUS_READ_DEADLINE_BUDGET_MS } from "../utils/tool-budgets";
 import {
   classifyTemporalError,
   extractGrpcStatus,
+  GRPC_NOT_FOUND,
   getTemporalRetryTelemetry,
 } from "../temporal/retry-wrapper";
 import { isWorkerAffirmativelyAlive } from "../temporal/health-probe";
@@ -135,8 +136,6 @@ async function loadMigrationStatus(_store: Store) {
 
 const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
 const STATUS_BOOTSTRAP_MAX_ATTEMPTS = 3;
-const GRPC_NOT_FOUND = 5;
-
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -175,6 +174,12 @@ function buildDeadlineDegradedStatus(status?: ProjectStatus): ProjectStatus {
 }
 
 function buildDurableAbsenceStatus(): ProjectStatus {
+  const warning = {
+    code: "SOURCE_WORKFLOW_DURABLY_ABSENT" as const,
+    source: "workflow_query" as const,
+    message:
+      "Temporal workflow is durably absent after a retained disk projection; status read stopped without retrying the unreachable workflow.",
+  };
   return {
     specs: { count: 0, capabilities: [] },
     changes: {
@@ -186,9 +191,9 @@ function buildDurableAbsenceStatus(): ProjectStatus {
       },
       recent: [],
     },
-    recommendations: [
-      "⚠️ Temporal workflow is durably absent; status read stopped after the loaded disk projection was retained.",
-    ],
+    recommendations: [],
+    warnings: [warning],
+    hydrationStats: { durableAbsence: true, omitted: 0 },
   };
 }
 
@@ -205,6 +210,11 @@ async function loadStatusWithBootstrapRetry(
   };
 }> {
   let lastBootstrapError: unknown;
+  const projectionState = { loaded: false };
+  const readOptions: StatusReadOptions | undefined =
+    typeof store.hasLoadedDiskProjection === "function"
+      ? { ...(options ?? {}), projectionState }
+      : options;
 
   for (let attempt = 1; attempt <= STATUS_BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
     if (isTemporalReadExpired(context)) {
@@ -219,7 +229,7 @@ async function loadStatusWithBootstrapRetry(
       };
     }
     try {
-      const status = await store.status(options);
+      const status = await store.status(readOptions);
       return lastBootstrapError
         ? {
             status,
@@ -240,7 +250,7 @@ async function loadStatusWithBootstrapRetry(
       // TMPRL1100 has no gRPC status and remains bootstrap-retry eligible.
       if (
         extractGrpcStatus(error) === GRPC_NOT_FOUND &&
-        store.hasLoadedDiskProjection?.() === true
+        store.hasLoadedDiskProjection?.(projectionState) === true
       ) {
         return { status: buildDurableAbsenceStatus() };
       }

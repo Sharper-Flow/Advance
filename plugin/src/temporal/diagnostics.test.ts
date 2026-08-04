@@ -6,7 +6,7 @@ import {
   isWorkflowMutationIneligible,
   type TemporalServiceContext,
 } from "./diagnostics";
-import { TemporalQueryTimeoutError } from "./retry-wrapper";
+import { GRPC_NOT_FOUND, TemporalQueryTimeoutError } from "./retry-wrapper";
 
 /**
  * Build a validated @temporalio/client ServiceError-shaped error: a wrapper
@@ -127,9 +127,11 @@ describe("classifyTemporalWorkflowFailure", () => {
   });
 
   test("extracts nested gRPC cause", () => {
-    const d = classifyTemporalWorkflowFailure(grpcError(5, "workflow absent"));
+    const d = classifyTemporalWorkflowFailure(
+      grpcError(GRPC_NOT_FOUND, "workflow absent"),
+    );
     expect(d.cause).toEqual({
-      code: 5,
+      code: GRPC_NOT_FOUND,
       statusName: "NOT_FOUND",
       details: "workflow absent",
     });

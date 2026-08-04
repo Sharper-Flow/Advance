@@ -30,7 +30,7 @@ import {
 import { reinitStsl } from "../../temporal/service";
 import { createLogger } from "../../utils/debug-log";
 import type { ChangeSummaryMemo, ChangeSummary } from "../store-temporal-memo";
-import type { Store } from "../store-types";
+import type { DiskProjectionReadState, Store } from "../store-types";
 import type { TemporalOperations } from "../../temporal/operations";
 import { makeTemporalOperationContext } from "../../temporal/operations";
 import {
@@ -1002,7 +1002,10 @@ export interface StoreDeps {
   memo: ChangeSummaryMemo;
   taskChangeIndex: Map<string, string>;
   /** Records disk projections observed by projection-only reads. */
-  markLoadedDiskProjection?: (changeId: string) => void;
+  markLoadedDiskProjection?: (
+    changeId: string,
+    state?: DiskProjectionReadState,
+  ) => void;
 
   // Shared helpers (closures over the maps above)
   buildSummary: (state: ChangeWorkflowState) => ChangeSummary;
@@ -1047,12 +1050,14 @@ export interface StoreDeps {
   /** Disk-only authoritative snapshot read for routine ReadStore methods. */
   readChangeSnapshot: (
     changeId: string,
+    state?: DiskProjectionReadState,
   ) => Promise<import("./read-model").ChangeReadSnapshot>;
   getTemporalChange: (
     changeId: string,
     opts?: {
       deadline?: TemporalReadDeadline;
       context?: import("./read-context").TemporalReadContext;
+      projectionState?: DiskProjectionReadState;
     },
   ) => Promise<ReturnType<Store["changes"]["get"]>>;
   listResolvedChanges: (
@@ -1061,6 +1066,11 @@ export interface StoreDeps {
       includeClosed?: boolean;
     },
     deadline?: TemporalReadDeadline,
-    options?: { candidateLimit?: number; hydrationConcurrency?: number },
+    options?: {
+      candidateLimit?: number;
+      hydrationConcurrency?: number;
+      sourceRanked?: boolean;
+      projectionState?: DiskProjectionReadState;
+    },
   ) => Promise<import("../store-types").ResolvedChangeList>;
 }

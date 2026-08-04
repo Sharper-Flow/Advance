@@ -484,9 +484,8 @@ describe("adv_status corpus-pressure mechanisms", () => {
       archiveParseCounts[view] = archiveLoadChangeCalls.length;
     }
 
-    // RED: current production loads every archived change even when terminal
-    // statuses are not requested. The implementation task must make all three
-    // routine status views avoid this work entirely.
+    // Routine active-status views must not parse archived bundles when terminal
+    // statuses are not requested.
     expect(archiveParseCounts).toEqual({ summary: 0, changes: 0, hygiene: 0 });
   }, 20_000);
 
@@ -499,8 +498,8 @@ describe("adv_status corpus-pressure mechanisms", () => {
       sourceRanked: true,
     });
 
-    // RED: current production reads every active disk candidate before applying
-    // candidateLimit. This must remain a mechanism count, not a wall-clock test.
+    // Source ranking must apply candidateLimit before active disk projection
+    // reads; keep this as a mechanism count rather than a wall-clock test.
     expect(sourceRankedProjectionReads.length).toBeLessThanOrEqual(10);
   }, 20_000);
 

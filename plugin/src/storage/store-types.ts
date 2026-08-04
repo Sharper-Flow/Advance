@@ -143,6 +143,12 @@ export interface StatusReadOptions {
   deadline?: import("../temporal/retry-wrapper").TemporalReadDeadline;
   /** Use source-backed global recency before bounded hydration (health view). */
   sourceRanked?: boolean;
+  /** Mutable marker owned by one status request; never shared across calls. */
+  projectionState?: DiskProjectionReadState;
+}
+
+export interface DiskProjectionReadState {
+  loaded: boolean;
 }
 
 export interface ProductOriginTags {
@@ -262,8 +268,8 @@ export type ReadSnapshot<T> =
 interface StoreBase {
   paths: ProjectPaths;
   config: ProjectConfig | null;
-  /** True only when this store has already loaded a durable disk projection. */
-  hasLoadedDiskProjection?: () => boolean;
+  /** Request-scoped when a marker is supplied; no-arg calls retain legacy semantics. */
+  hasLoadedDiskProjection?: (state?: DiskProjectionReadState) => boolean;
   /** Product-link identity context. Omitted for legacy/mock stores. */
   productContext?: ProductContext;
 
@@ -318,6 +324,7 @@ export interface ReadStore extends StoreBase {
       limit?: number;
       offset?: number;
       deadline?: TemporalReadDeadline;
+      projectionState?: DiskProjectionReadState;
     }) => Promise<
       ChangeListResponse & {
         hydrationStats?: import("../types").HydrationStats;

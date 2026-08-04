@@ -22,6 +22,8 @@ import {
 } from "../__tests__/setup";
 import { createLegacyStore } from "../storage/store";
 import type { Store } from "../storage/store";
+import { GRPC_NOT_FOUND } from "../temporal/retry-wrapper";
+import type { StatusReadOptions } from "../storage/store-types";
 import { GATE_ORDER, createDefaultGates } from "../types";
 import {
   initializeToolSchemaTelemetry,
@@ -306,7 +308,11 @@ describe("Status Tools", () => {
 
     test("does not retry a NOT_FOUND status when a disk projection is already loaded", async () => {
       const notFoundError = Object.assign(new Error("service response"), {
-        cause: { code: 5, details: "service response", metadata: {} },
+        cause: {
+          code: GRPC_NOT_FOUND,
+          details: "service response",
+          metadata: {},
+        },
       });
       const statusSpy = vi.fn().mockRejectedValue(notFoundError);
       store.status = statusSpy;
@@ -320,11 +326,27 @@ describe("Status Tools", () => {
       expect(statusSpy).toHaveBeenCalledTimes(1);
       expect(parsed.view).toBe("summary");
       expect(parsed.bootstrap_retry).toBeUndefined();
+      expect(parsed.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "SOURCE_WORKFLOW_DURABLY_ABSENT",
+            source: "workflow_query",
+          }),
+        ]),
+      );
+      expect(parsed.hydrationStats).toMatchObject({
+        durableAbsence: true,
+        omitted: 0,
+      });
     });
 
     test("admits NOT_FOUND retry when no disk projection is loaded", async () => {
       const notFoundError = Object.assign(new Error("service response"), {
-        cause: { code: 5, details: "service response", metadata: {} },
+        cause: {
+          code: GRPC_NOT_FOUND,
+          details: "service response",
+          metadata: {},
+        },
       });
       const originalStatus = store.status.bind(store);
       const statusSpy = vi
@@ -339,6 +361,67 @@ describe("Status Tools", () => {
       expect(statusSpy).toHaveBeenCalledTimes(2);
       expect(parsed.view).toBe("summary");
       expect(parsed.bootstrap_retry).toMatchObject({ recovered: true });
+    });
+
+    test("scopes disk projection admission to one status request", async () => {
+      const notFoundError = Object.assign(new Error("service response"), {
+        cause: {
+          code: GRPC_NOT_FOUND,
+          details: "service response",
+          metadata: {},
+        },
+      });
+      const originalStatus = store.status.bind(store);
+      let statusCalls = 0;
+      let durableProjectionWasLoaded = false;
+      store.status = vi.fn(async (options?: StatusReadOptions) => {
+        statusCalls += 1;
+        if (statusCalls === 1) {
+          durableProjectionWasLoaded = true;
+          if (options?.projectionState) options.projectionState.loaded = true;
+          return originalStatus(options);
+        }
+        throw notFoundError;
+      });
+      (
+        store as Store & {
+          hasLoadedDiskProjection?: (state?: { loaded: boolean }) => boolean;
+        }
+      ).hasLoadedDiskProjection = (state) =>
+        state?.loaded ?? durableProjectionWasLoaded;
+
+      await statusTools.adv_status.execute({}, store);
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusCalls).toBe(4);
+      expect(parsed.bootstrap_retry).toMatchObject({
+        recovered: false,
+        lastErrorClass: "bootstrap_in_progress",
+      });
+    });
+
+    test("does not classify TMPRL1100 as durable absence even with projection signal", async () => {
+      const bootstrapError = new Error(
+        "[TMPRL1100] Nondeterminism error: No command scheduled for event HistoryEvent(id: 231, WorkflowExecutionUpdateAccepted)",
+      );
+      const statusSpy = vi.fn().mockRejectedValue(bootstrapError);
+      store.status = statusSpy;
+      (
+        store as Store & {
+          hasLoadedDiskProjection?: () => boolean;
+        }
+      ).hasLoadedDiskProjection = () => true;
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusSpy).toHaveBeenCalledTimes(3);
+      expect(parsed.bootstrap_retry).toMatchObject({
+        recovered: false,
+        lastErrorClass: "bootstrap_in_progress",
+      });
+      expect(parsed.warnings).toBeUndefined();
     });
 
     test("shows retained terminal cleanup blocker counts without exact paths", async () => {
