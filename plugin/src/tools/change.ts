@@ -140,6 +140,42 @@ import { TemporalQueryTimeoutError } from "../temporal/retry-wrapper";
 
 const logger = createLogger("change");
 
+const LEAN_PHASE_PLAN_FIELDS = new Set([
+  "id",
+  "title",
+  "status",
+  "gates",
+  "acceptanceCriteria",
+  "_phasePlan",
+  "_unavailable",
+]);
+
+function hasPhaseDirective(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) return false;
+  const plan = value as { kind?: unknown; directive?: unknown };
+  return plan.kind === "actionable" && plan.directive !== undefined;
+}
+
+function shapeDirectiveResponse(
+  output: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!hasPhaseDirective(output._phasePlan)) return undefined;
+
+  const leanOutput: Record<string, unknown> = {};
+  const omittedFields = Object.keys(output)
+    .filter(
+      (key) => !LEAN_PHASE_PLAN_FIELDS.has(key) && output[key] !== undefined,
+    )
+    .sort();
+
+  for (const key of LEAN_PHASE_PLAN_FIELDS) {
+    if (output[key] !== undefined) leanOutput[key] = output[key];
+  }
+  if (omittedFields.length > 0) leanOutput._omittedFields = omittedFields;
+
+  return leanOutput;
+}
+
 function formatD3Error(error: D3EnforcementError): string {
   switch (error.code) {
     case "INVALID_WORK_NODE_REF": {
@@ -1056,6 +1092,7 @@ import {
   canonicalSha256,
 } from "../archive";
 import {
+  DEFAULT_MAX_CHARS,
   formatToolOutput,
   paginate,
   resolveOutputMode,
@@ -1074,6 +1111,7 @@ import {
 } from "../temporal/change-state";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import { degradedPhasePlan, derivePhasePlanSafe } from "../utils/phase-plan";
+import { withPhaseDirective } from "../utils/phase-directive";
 import {
   renderBriefingPacket,
   type BriefingPacketRendererInput,
@@ -1794,9 +1832,8 @@ export const changeTools = {
             if (phasePlanRead.ok) {
               try {
                 const { directiveState } = phasePlanRead.value;
-                output._phasePlan = derivePhasePlanSafe(
-                  directiveState,
-                  Date.now(),
+                output._phasePlan = withPhaseDirective(
+                  derivePhasePlanSafe(directiveState, Date.now()),
                 );
               } catch (e) {
                 output._phasePlan = degradedPhasePlan(
@@ -1946,9 +1983,23 @@ export const changeTools = {
         if (changeShowHydrationStats) {
           output.hydrationStats = changeShowHydrationStats;
         }
-        return formatToolOutput(output, {
-          pretty: resolveOutputMode(outputMode),
-        });
+        const pretty = resolveOutputMode(outputMode);
+        const leanOutput = shapeDirectiveResponse(output);
+        if (leanOutput) {
+          const serializedLeanOutput = JSON.stringify(
+            leanOutput,
+            null,
+            pretty ? 2 : undefined,
+          );
+          return formatToolOutput(leanOutput, {
+            pretty,
+            maxChars: Math.max(
+              DEFAULT_MAX_CHARS,
+              serializedLeanOutput.length + 4096,
+            ),
+          });
+        }
+        return formatToolOutput(output, { pretty });
       };
 
       if (target_path && requestedKinds.length > 0) {

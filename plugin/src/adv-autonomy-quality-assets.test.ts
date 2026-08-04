@@ -7,6 +7,7 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
@@ -146,7 +147,7 @@ describe("Validated in-scope remediation policy", () => {
   });
 
   test("adv-review.md forbids future-work deferral and accepted_debt", () => {
-    const content = readAsset(join(COMMAND_DIR, "adv-review.md"));
+    const content = readCommandSurface("adv-review.md");
     expect(content).toMatch(/no future-work deferral/i);
     expect(content).not.toMatch(/accepted_debt/);
     expect(content).not.toMatch(/accepted-debt/i);

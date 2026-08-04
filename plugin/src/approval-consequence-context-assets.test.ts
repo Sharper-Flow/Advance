@@ -1,9 +1,9 @@
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
 import { describe, expect, test } from "vitest";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
-const REVIEW_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-review.md");
 const HARDEN_COMMAND_PATH = join(REPO_ROOT, ".opencode/command/adv-harden.md");
 const ARCHIVE_COMMAND_PATH = join(
   REPO_ROOT,
@@ -24,7 +24,7 @@ const REQUIRED_CATEGORIES = [
 
 describe("approval consequence context command assets", () => {
   test("adv-review wires consequence context before acceptance prompt and executive summary", () => {
-    const review = readFileSync(REVIEW_COMMAND_PATH, "utf8");
+    const review = readCommandSurface("adv-review.md");
 
     expect(review).toContain("Approval Consequence Context");
     expect(review).toContain("buildApprovalConsequenceContext");

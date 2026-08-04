@@ -9,6 +9,7 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 
@@ -41,7 +42,10 @@ describe("scope discovery protocol assets", () => {
 
   for (const { name, path } of COMMAND_FILES) {
     test(`${name} references docs/scope-discovery-protocol.md`, () => {
-      const content = readFileSync(path, "utf8");
+      const content =
+        name === "adv-review"
+          ? readCommandSurface("adv-review.md")
+          : readFileSync(path, "utf8");
       expect(content).toContain("docs/scope-discovery-protocol.md");
     });
   }

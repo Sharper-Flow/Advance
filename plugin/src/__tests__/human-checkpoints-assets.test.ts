@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
+import { readCommandSurface } from "./command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
@@ -44,7 +45,7 @@ describe("rq-autonomy01 human checkpoint assets", () => {
   });
 
   test("acceptance checkpoint preserves accept-before-gate ordering (inline Tier A)", () => {
-    const review = readCommand("adv-review.md");
+    const review = readCommandSurface("adv-review.md");
     // Target the ACTUAL acceptance gate-completion invocation (gateId: acceptance
     // on the same line), not earlier prose mentions of adv_gate_complete (e.g.
     // the poisoned-history recovery note), so the ordering assertion reflects the
@@ -130,7 +131,7 @@ describe("rq-autonomy01 human checkpoint assets", () => {
   });
 
   test("adv-review.md Phase 7 persists executive summary before acceptance gate", () => {
-    const content = readCommand("adv-review.md");
+    const content = readCommandSurface("adv-review.md");
     // Persist Executive Summary section exists
     expect(content).toMatch(/###\s*Persist Executive Summary/);
     // Calls adv_change_update with executiveSummary field

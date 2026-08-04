@@ -7,14 +7,11 @@
  */
 
 import { describe, expect, test } from "vitest";
-import { readFileSync } from "fs";
-import { join, resolve } from "path";
-
-const REPO_ROOT = resolve(__dirname, "../..");
-const REVIEW_PATH = join(REPO_ROOT, ".opencode/command/adv-review.md");
+import { readCommandSurface } from "./__tests__/command-surface";
+import { PHASE_DIRECTIVES } from "./utils/phase-directive-content";
 
 describe("adv-review non-code evidence policy surface", () => {
-  const command = readFileSync(REVIEW_PATH, "utf8");
+  const command = readCommandSurface("adv-review.md");
 
   test("review scanner context packet surfaces task type and evidence policy", () => {
     const idx = command.indexOf("TASK EVIDENCE SUMMARY:");
@@ -81,7 +78,7 @@ describe("adv-review non-code evidence policy surface", () => {
 });
 
 describe("adv-review touched-scope bad-test cleanup", () => {
-  const command = readFileSync(REVIEW_PATH, "utf8");
+  const command = readCommandSurface("adv-review.md");
 
   test("declares a touched-scope bad-test cleanup dimension", () => {
     expect(command).toContain("Touched-Scope Bad-Test Cleanup");
@@ -101,12 +98,13 @@ describe("adv-review touched-scope bad-test cleanup", () => {
 // mandatory scanner behavior. Reintroducing a second full matrix, dropping the
 // OWASP top 10 security scope, or weakening the reference must fail here.
 describe("adv-review 12-dimension framework single-source (AC1)", () => {
-  const command = readFileSync(REVIEW_PATH, "utf8");
+  const command = readCommandSurface("adv-review.md");
+  const content = PHASE_DIRECTIVES["adv-review"].content;
 
   test("exactly one full 12-dimension matrix is defined", () => {
-    expect(command.match(/^\| 1 \| Design \|/gm) ?? []).toHaveLength(1);
-    expect(command.match(/^\| 12 \| Consistency \|/gm) ?? []).toHaveLength(1);
-    expect(command.match(/^\| 9 \| Security \|/gm) ?? []).toHaveLength(1);
+    expect(content.match(/^\| 1 \| Design \|/gm) ?? []).toHaveLength(1);
+    expect(content.match(/^\| 12 \| Consistency \|/gm) ?? []).toHaveLength(1);
+    expect(content.match(/^\| 9 \| Security \|/gm) ?? []).toHaveLength(1);
   });
 
   test("canonical matrix retains OWASP top 10 security scope", () => {
@@ -137,7 +135,7 @@ describe("adv-review 12-dimension framework single-source (AC1)", () => {
 // subagent-report.test.ts (consumeDesignerDesignConcerns), and
 // design-concern.test.ts (adv_design_concern_disposition). See AC11 / DONT8.
 describe("adv-review designer-concern prose points at the structural rail (non-behavioral)", () => {
-  const command = readFileSync(REVIEW_PATH, "utf8");
+  const command = readCommandSurface("adv-review.md");
 
   test("prose references the structural evaluator, not reviewer goodwill", () => {
     expect(command).toContain("Designer Concern Enforcement");
