@@ -31,7 +31,11 @@ import {
   type WarpDeps,
 } from "../utils/workspace-warp";
 import { triageWorktrees } from "./worktree/triage";
-import { initStateDb, type WorktreeStateAccess } from "./worktree/state";
+import {
+  getPendingDeletes,
+  initStateDb,
+  type WorktreeStateAccess,
+} from "./worktree/state";
 import { cleanupArchivedMergedBranches } from "./archive-helpers/archived-branch-cleanup";
 import {
   appendTargetProjectContextOutput,
@@ -348,6 +352,7 @@ async function executeWorktreeCleanup(
   // rq-worktreeBoundedCleanup02 AC2: clamp caller timeout to safe budget
   const { effectiveTimeoutMs, wasClamped } = clampToSafeBudget(args.timeoutMs);
 
+  let currentStage: "discovery" | "drain" | "pre" = "pre";
   const cleanupPromise = advWorktreeCleanup(args.reason, {
     projectRoot,
     database,
@@ -358,6 +363,9 @@ async function executeWorktreeCleanup(
     ...(args.skipDiscovery !== undefined && {
       discover: !args.skipDiscovery,
     }),
+    onStageEnter: (stage) => {
+      currentStage = stage;
+    },
     cleanupItemTimeoutMs: cleanupItemTimeoutForToolBudget(effectiveTimeoutMs),
   });
 
@@ -381,6 +389,9 @@ async function executeWorktreeCleanup(
         success: false,
         timedOut: true,
         effectiveTimeoutMs,
+        stage: currentStage,
+        pendingDeleteCount: (await getPendingDeletes(database).catch(() => []))
+          .length,
         error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote}. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_doctor).`,
         remediation:
           "Pass a larger timeoutMs (clamped to the safe budget) to retry, or run adv_doctor to classify and repair the poisoned workflow first.",

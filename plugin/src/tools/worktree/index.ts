@@ -2876,6 +2876,8 @@ export interface AdvWorktreeCleanupDeps {
   forceAttempts?: boolean;
   /** Startup/session.deleted pass false by calling drainPendingDeletes directly. */
   discover?: boolean;
+  /** Optional stage observer so tool wrappers can report the in-flight phase on timeout. */
+  onStageEnter?: (stage: "discovery" | "drain") => void;
   /** Optional cleanup drain timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
   cleanupItemTimeoutMs?: number;
   /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
@@ -3172,6 +3174,7 @@ export async function advWorktreeCleanup(
     prMergeEvidence: deps.prMergeEvidence,
   };
 
+  deps.onStageEnter?.("discovery");
   if (!deps.dryRun && deps.discover !== false) {
     await discoverTerminalCleanupCandidates(
       reason || "worktree_cleanup",
@@ -3183,6 +3186,7 @@ export async function advWorktreeCleanup(
     appendDebugLog("worktree_cleanup", `retry requested: ${reason.trim()}`);
   }
 
+  deps.onStageEnter?.("drain");
   return drainPendingDeletes("worktree_cleanup", deleteDeps, {
     dryRun: deps.dryRun,
     forceAttempts: deps.forceAttempts ?? true,

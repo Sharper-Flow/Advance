@@ -15,6 +15,7 @@ const worktreeMock = vi.hoisted(() => ({
 
 const stateMock = vi.hoisted(() => ({
   initStateDb: vi.fn(),
+  getPendingDeletes: vi.fn(),
 }));
 
 const triageMock = vi.hoisted(() => ({
@@ -67,6 +68,7 @@ const mockClient = { session: { get: vi.fn() } } as unknown as OpencodeClient;
 describe("advWorktreeTools", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    stateMock.getPendingDeletes.mockResolvedValue([]);
     worktreeMock.loadWorktreeConfig.mockResolvedValue({ mode: "warp" });
     targetProjectMock.withTargetPathStore.mockImplementation(
       async (_input, fn) =>
@@ -936,6 +938,60 @@ describe("advWorktreeTools", () => {
     expect(out).toContain("timedOut");
     expect(out).toContain("timed out after");
     expect(out).toContain("effectiveTimeoutMs");
+  });
+
+  it("reports discovery stage and pending-delete count when cleanup hangs in discovery", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    stateMock.getPendingDeletes.mockResolvedValue([
+      { branch: "change/one" },
+      { branch: "change/two" },
+    ]);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      async (_reason, deps) => {
+        deps.onStageEnter?.("discovery");
+        return new Promise(() => {});
+      },
+    );
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "discovery timeout", timeoutMs: 25 },
+      store,
+    );
+
+    expect(out).toContain('"stage":"discovery"');
+    expect(out).toContain('"pendingDeleteCount":2');
+  });
+
+  it("reports drain stage and pending-delete count when cleanup hangs in drain", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    stateMock.getPendingDeletes.mockResolvedValue([
+      { branch: "change/one" },
+      { branch: "change/two" },
+      { branch: "change/three" },
+    ]);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      async (_reason, deps) => {
+        deps.onStageEnter?.("discovery");
+        deps.onStageEnter?.("drain");
+        return new Promise(() => {});
+      },
+    );
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "drain timeout", timeoutMs: 25 },
+      store,
+    );
+
+    expect(out).toContain('"stage":"drain"');
+    expect(out).toContain('"pendingDeleteCount":3');
   });
 
   // rq-worktreeBoundedCleanup02 AC1: central safe budget constant exported
