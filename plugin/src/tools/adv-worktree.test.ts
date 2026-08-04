@@ -50,6 +50,7 @@ vi.mock("./target-project", () => targetProjectMock);
 
 import {
   advWorktreeTools,
+  discoveryGitBudgetForToolBudget,
   WORKTREE_TOOL_SAFE_TIMEOUT_MS,
 } from "./adv-worktree";
 import type { Store } from "../storage/store-types";
@@ -668,6 +669,50 @@ describe("advWorktreeTools", () => {
     expect(out).toContain('"ok":true');
   });
 
+  // AC6 / C6 regression guard: the cleanup-derived git budget must NOT leak
+  // into the standalone delete path, which shares the same git helpers and
+  // must keep their 30000ms default.
+  it("adv_worktree_delete does not receive the cleanup discovery git budget", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeDelete.mockResolvedValue({
+      ok: true,
+      branch: "change/x",
+    });
+
+    await advWorktreeTools.adv_worktree_delete.execute(
+      { branch: "change/x", force: false },
+      store,
+    );
+
+    const [, , deps] = worktreeMock.advWorktreeDelete.mock.calls.at(-1)!;
+    expect(deps.gitTimeoutMs).toBeUndefined();
+  });
+
+  it("adv_worktree_cleanup forwards a discovery git budget below the safe tool budget", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockResolvedValue({
+      removed: 0,
+      retained: 0,
+    });
+
+    await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "bounded discovery" },
+      store,
+    );
+
+    const [, deps] = worktreeMock.advWorktreeCleanup.mock.calls.at(-1)!;
+    expect(deps.gitTimeoutMs).toBeGreaterThan(0);
+    expect(deps.gitTimeoutMs).toBeLessThan(WORKTREE_TOOL_SAFE_TIMEOUT_MS);
+  });
+
   it("adv_worktree_delete passes dryRun to advWorktreeDelete", async () => {
     const database = {
       projectDir: "/repo",
@@ -995,6 +1040,24 @@ describe("advWorktreeTools", () => {
   });
 
   // rq-worktreeBoundedCleanup02 AC1: central safe budget constant exported
+  it("derives a discovery git budget strictly below the safe tool budget", () => {
+    expect(discoveryGitBudgetForToolBudget(WORKTREE_TOOL_SAFE_TIMEOUT_MS)).toBe(
+      2_000,
+    );
+    expect(
+      discoveryGitBudgetForToolBudget(WORKTREE_TOOL_SAFE_TIMEOUT_MS),
+    ).toBeLessThan(WORKTREE_TOOL_SAFE_TIMEOUT_MS);
+  });
+
+  it("scales the discovery git budget down for smaller caller budgets", () => {
+    expect(discoveryGitBudgetForToolBudget(4_000)).toBe(1_000);
+    expect(discoveryGitBudgetForToolBudget(400)).toBe(100);
+  });
+
+  it("never derives a non-positive discovery git budget", () => {
+    expect(discoveryGitBudgetForToolBudget(1)).toBeGreaterThan(0);
+  });
+
   it("exports WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8000", async () => {
     // Will fail until the constant is exported from adv-worktree
     const mod = await import("./adv-worktree");

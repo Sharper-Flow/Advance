@@ -21,10 +21,17 @@ export interface GitWorkspaceFacts {
   worktrees: GitWorktreeFact[];
 }
 
-async function git(cwd: string, args: string[]): Promise<string> {
+/** Default git subprocess bound for non-cleanup callers of the census scan. */
+const DEFAULT_CENSUS_GIT_TIMEOUT_MS = 10_000;
+
+async function git(
+  cwd: string,
+  args: string[],
+  timeoutMs: number = DEFAULT_CENSUS_GIT_TIMEOUT_MS,
+): Promise<string> {
   const { stdout } = await execFileGitAsync(args, {
     cwd,
-    timeout: 10_000,
+    timeout: timeoutMs,
   });
   return stdout.trim();
 }
@@ -63,19 +70,35 @@ function parseWorktreePorcelain(stdout: string): Array<{
   return out;
 }
 
+/**
+ * @param gitTimeoutMs Optional per-subprocess bound. Cleanup callers pass a
+ *   value strictly below the worktree tool budget so no single hung git
+ *   invocation can consume the whole budget (rq-worktreeBoundedCleanup02).
+ *   Omitting it preserves the {@link DEFAULT_CENSUS_GIT_TIMEOUT_MS} default for
+ *   non-cleanup callers.
+ */
 export async function scanGitWorkspaceFacts(
   repoRoot: string,
   defaultBranch: string,
+  gitTimeoutMs?: number,
 ): Promise<GitWorkspaceFacts> {
   // Git-first workspace reconciliation scan: rq-wl-gitFirstReconcile01.
   const [branchLines, mergedText, worktreeText] = await Promise.all([
-    git(repoRoot, [
-      "for-each-ref",
-      "--format=%(refname:short) %(objectname)",
-      "refs/heads/change",
-    ]).catch(() => ""),
-    git(repoRoot, ["branch", "--merged", defaultBranch]).catch(() => ""),
-    git(repoRoot, ["worktree", "list", "--porcelain"]).catch(() => ""),
+    git(
+      repoRoot,
+      [
+        "for-each-ref",
+        "--format=%(refname:short) %(objectname)",
+        "refs/heads/change",
+      ],
+      gitTimeoutMs,
+    ).catch(() => ""),
+    git(repoRoot, ["branch", "--merged", defaultBranch], gitTimeoutMs).catch(
+      () => "",
+    ),
+    git(repoRoot, ["worktree", "list", "--porcelain"], gitTimeoutMs).catch(
+      () => "",
+    ),
   ]);
 
   const mergedBranches = parseMergedBranches(mergedText);
@@ -91,9 +114,11 @@ export async function scanGitWorkspaceFacts(
   const worktrees: GitWorktreeFact[] = [];
   for (const wt of parseWorktreePorcelain(worktreeText)) {
     if (!wt.branch?.startsWith(CHANGE_BRANCH_PREFIX)) continue;
-    const status = await git(wt.path, ["status", "--porcelain"]).catch(
-      () => "",
-    );
+    const status = await git(
+      wt.path,
+      ["status", "--porcelain"],
+      gitTimeoutMs,
+    ).catch(() => "");
     worktrees.push({
       branch: wt.branch,
       path: wt.path,

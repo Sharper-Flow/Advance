@@ -62,6 +62,34 @@ function cleanupItemTimeoutForToolBudget(effectiveTimeoutMs: number): number {
   return Math.max(1, effectiveTimeoutMs - WORKTREE_TOOL_RETURN_RESERVE_MS);
 }
 
+/** Upper bound for any single git subprocess on the cleanup discovery path. */
+const DISCOVERY_GIT_BUDGET_CEILING_MS = 2_000;
+
+/**
+ * Per-subprocess git bound for cleanup discovery.
+ *
+ * rq-worktreeBoundedCleanup02 requires internal operations to be bounded
+ * *below* the tool budget. The local git helpers default to 30s
+ * (`worktree/index.ts`) and 10s (`worktree/census.ts`) for non-cleanup
+ * callers, so a single slow invocation could otherwise consume an 8s budget
+ * several times over. Bounding each call keeps the failure granular: one hung
+ * subprocess is killed instead of starving the whole pass.
+ *
+ * Aggregate discovery cost across many worktrees remains policed by the outer
+ * race and is reported via the timeout response `stage` field.
+ */
+export function discoveryGitBudgetForToolBudget(
+  effectiveTimeoutMs: number,
+): number {
+  return Math.max(
+    1,
+    Math.min(
+      DISCOVERY_GIT_BUDGET_CEILING_MS,
+      Math.floor(effectiveTimeoutMs / 4),
+    ),
+  );
+}
+
 /**
  * Clamp a caller-supplied timeout to the safe tool budget.
  *
@@ -367,6 +395,7 @@ async function executeWorktreeCleanup(
       currentStage = stage;
     },
     cleanupItemTimeoutMs: cleanupItemTimeoutForToolBudget(effectiveTimeoutMs),
+    gitTimeoutMs: discoveryGitBudgetForToolBudget(effectiveTimeoutMs),
   });
 
   let timeoutHandle: ReturnType<typeof setTimeout> | undefined;

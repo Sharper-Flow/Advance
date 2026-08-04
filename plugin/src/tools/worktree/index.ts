@@ -842,21 +842,30 @@ async function initDb(root: string, log: Logger): Promise<Database> {
 // GIT MODULE
 // =============================================================================
 
+/** Default git subprocess bound for non-cleanup callers of the local helper. */
+const DEFAULT_WORKTREE_GIT_TIMEOUT_MS = 30000;
+
 /**
  * Execute a git command safely using child_process.execFile.
  * Avoids shell interpolation entirely by passing args as array.
  * Node-compatible (used in tests); replaces legacy Bun.spawn.
+ *
+ * `timeoutMs` defaults to {@link DEFAULT_WORKTREE_GIT_TIMEOUT_MS}. Cleanup
+ * discovery callers pass a value strictly below the worktree tool budget so a
+ * single hung invocation cannot consume the whole budget
+ * (rq-worktreeBoundedCleanup02). Non-cleanup callers keep the default.
  */
 async function git(
   args: string[],
   cwd: string,
+  timeoutMs: number = DEFAULT_WORKTREE_GIT_TIMEOUT_MS,
 ): Promise<Result<string, string>> {
   return new Promise((resolve) => {
     execFileGitCb(
       args,
       {
         cwd,
-        timeout: 30000,
+        timeout: timeoutMs,
       },
       (error, stdout, stderr) => {
         if (error) {
@@ -1566,6 +1575,13 @@ export interface AdvWorktreeDeleteDeps {
   operationTimeoutMs?: number;
   /** Optional timeout for live GitHub PR evidence lookup. */
   prEvidenceTimeoutMs?: number;
+  /**
+   * Optional per-subprocess git bound for the cleanup discovery path. Cleanup
+   * callers set this strictly below the worktree tool budget so no single hung
+   * git invocation can exhaust it (rq-worktreeBoundedCleanup02). Omitted by
+   * standalone delete callers, which keep the 30000ms helper default.
+   */
+  gitTimeoutMs?: number;
   worktreePath?: string;
   hooks?: { preDelete: string[] };
   integrationCheck?: typeof verifyBranchIntegration;
@@ -1784,7 +1800,11 @@ async function getPrMergedBranchIntegration(
     return deps.prMergeEvidence(branch, deps.projectRoot);
   }
 
-  const localHead = await git(["rev-parse", branch], deps.projectRoot);
+  const localHead = await git(
+    ["rev-parse", branch],
+    deps.projectRoot,
+    deps.gitTimeoutMs,
+  );
   if (!localHead.ok) {
     return {
       ok: false,
@@ -1872,11 +1892,13 @@ async function getPrMergedBranchIntegration(
     const fetch = await git(
       ["fetch", "origin", `refs/pull/${pr.number}/head`],
       deps.projectRoot,
+      deps.gitTimeoutMs,
     );
     if (!fetch.ok) continue;
     const ancestor = await git(
       ["merge-base", "--is-ancestor", branch, "FETCH_HEAD"],
       deps.projectRoot,
+      deps.gitTimeoutMs,
     );
     if (ancestor.ok) {
       return {
@@ -2880,6 +2902,13 @@ export interface AdvWorktreeCleanupDeps {
   onStageEnter?: (stage: "discovery" | "drain") => void;
   /** Optional cleanup drain timeout. Defaults to {@link DEFAULT_PENDING_DELETE_ITEM_TIMEOUT_MS}. */
   cleanupItemTimeoutMs?: number;
+  /**
+   * Optional per-subprocess git bound for the discovery path, forwarded into
+   * the delete deps. Tool callers derive this from the clamped tool budget so
+   * every git invocation is bounded strictly below it
+   * (rq-worktreeBoundedCleanup02).
+   */
+  gitTimeoutMs?: number;
   /** Injection seam for testing. Defaults to {@link advWorktreeDelete}. */
   deleteWorktree?: typeof advWorktreeDelete;
   /** Injection seam for testing. Defaults to {@link isWorktreeInUse}. */
@@ -2926,7 +2955,11 @@ async function discoverTerminalCleanupCandidates(
     return 0;
   }
 
-  const facts = await scanGitWorkspaceFacts(deps.projectRoot, defaultBranch);
+  const facts = await scanGitWorkspaceFacts(
+    deps.projectRoot,
+    defaultBranch,
+    deps.gitTimeoutMs,
+  );
   let discovered = 0;
 
   for (const worktree of facts.worktrees) {
@@ -3172,6 +3205,7 @@ export async function advWorktreeCleanup(
     warpDeps: deps.warpDeps,
     isWorktreeInUse: deps.isWorktreeInUse,
     prMergeEvidence: deps.prMergeEvidence,
+    gitTimeoutMs: deps.gitTimeoutMs,
   };
 
   deps.onStageEnter?.("discovery");
