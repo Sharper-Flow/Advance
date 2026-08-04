@@ -495,7 +495,7 @@ export const doctorTools = {
           severity: "informational",
           finding: "orphan_session_queue_probe_capped",
           omitted: queueProbes!.orphanedOmitted,
-          detail: `Orphaned session queue probe cap omitted ${queueProbes!.orphanedOmitted} queue(s); rerun adv_doctor for the next bounded slice`,
+          detail: `Orphaned session queue probe cap omitted ${queueProbes!.orphanedOmitted} queue(s); this diagnostic is limited to the oldest ${ORPHAN_QUEUE_PROBE_CAP} queue(s)`,
         });
       }
       if (!workerAlive) {
@@ -981,6 +981,15 @@ export const doctorTools = {
         findings,
         fixes_applied: fixesApplied,
         fixes_refused: fixesRefused,
+        // Publish the diagnostic-pass rows, not just the post-fix recheck.
+        // The initial probe is the observation that drove findings; retaining
+        // it lets callers inspect session and project serviceability even when
+        // a repair changes the state before verification runs.
+        ...(queueProbes?.session
+          ? {
+              queue_serviceability: [queueProbes.project, queueProbes.session],
+            }
+          : {}),
         verification,
         orphan_queue_adoption: orphanQueueAdoptionStatus.enabled
           ? {

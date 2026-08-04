@@ -219,7 +219,7 @@ describe("adv_doctor", () => {
 
     const result = await doctorTools.adv_doctor.execute({}, makeStore());
     const parsed = JSON.parse(result);
-    const rows = parsed.verification.queue_serviceability;
+    const rows = parsed.queue_serviceability;
 
     expect(rows).toEqual(
       expect.arrayContaining([
@@ -423,6 +423,7 @@ describe("adv_doctor", () => {
     expect(probeTaskQueuePollersMock).toHaveBeenCalledTimes(2);
     expect(parsed.verification.queue_serviceable).toBe(true);
     expect(parsed.verification.queue_serviceability).toBeUndefined();
+    expect(parsed.queue_serviceability).toBeUndefined();
     expect(parsed.findings).toEqual(
       expect.arrayContaining([expect.objectContaining({ class: "healthy" })]),
     );
