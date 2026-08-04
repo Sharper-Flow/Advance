@@ -1028,13 +1028,17 @@ function workflowRunPinFromDescription(description: unknown): {
 
 /**
  * Read the handler-written projection envelope for archive-commit evidence.
- * The change workflow's archive handlers roll back unless their
- * projectChangeState Activity returned "written", so a projection document
- * carrying status "archived" is airtight proof the transition committed —
- * unlike describe status (liveness) or search attributes (provisional;
- * published before the fallible Activity and only retracted after rollback).
- * Tolerant of both the Activity envelope ({schemaVersion: 2, state}) and a
- * plain Change document.
+ * The schemaVersion: 2 envelope is attributable: it is produced ONLY by the
+ * workflow Activity (temporal/activities.ts writeChangeProjection). Local
+ * writers — recovery stamps, coordinateChangeMutation commits — persist a
+ * plain Change document instead (change-projection-transaction.ts), so their
+ * archived status is NOT accepted here: a stale plain-JSON archived stamp is
+ * exactly the AC1 poisoned state where the transition was never delivered,
+ * and accepting it would report success without causality to any workflow
+ * commit. The archive handlers roll back unless their projectChangeState
+ * Activity returned "written", so an envelope carrying status "archived" is
+ * airtight proof the transition committed — unlike describe status
+ * (liveness) or search attributes (provisional).
  */
 async function readArchivedProjectionStatus(
   store: Store,
@@ -1049,16 +1053,16 @@ async function readArchivedProjectionStatus(
       return undefined;
     }
     const record = parsed as Record<string, unknown>;
+    if (record.schemaVersion !== 2) return undefined;
     const envelopeState = record.state;
     if (
-      envelopeState &&
-      typeof envelopeState === "object" &&
-      !Array.isArray(envelopeState)
+      !envelopeState ||
+      typeof envelopeState !== "object" ||
+      Array.isArray(envelopeState)
     ) {
-      const status = (envelopeState as Record<string, unknown>).status;
-      if (typeof status === "string") return status;
+      return undefined;
     }
-    const status = record.status;
+    const status = (envelopeState as Record<string, unknown>).status;
     return typeof status === "string" ? status : undefined;
   } catch {
     return undefined;
@@ -1108,10 +1112,14 @@ type ArchiveWorkflowProofResult =
  * handlers publish it before the fallible archive Activity and retract it
  * only after rollback. Proof therefore requires one of two airtight
  * artifacts, checked per poll:
- *   1. the handler-written projection document carrying status "archived"
- *      (the archive handlers roll back unless this write succeeded); or
+ *   1. the workflow-Activity projection envelope (schemaVersion: 2) carrying
+ *      status "archived" — the archive handlers roll back unless this write
+ *      succeeded, and only the Activity produces this shape, so its presence
+ *      is airtight commit evidence attributable to a workflow commit; or
  *   2. a terminal workflow execution status (the patched terminal block
  *      writes the durable projection before completion).
+ * A plain-JSON archived document is NOT proof: local recovery writers can
+ * stamp archived without any workflow transition (the AC1 poisoned state).
  * Visibility/list queries are intentionally not consulted here.
  */
 async function proveArchiveWorkflowTransition(
@@ -4880,6 +4888,7 @@ export const changeTools = {
           });
           const reconciliationPayload = JSON.parse(reconciliationResult) as {
             success?: boolean;
+            _recoveryMutation?: boolean;
           };
           if (!reconciliationPayload.success) {
             return reconciliationResult;
@@ -4895,22 +4904,29 @@ export const changeTools = {
               changeId,
             });
           }
-          const archiveProof = await proveArchiveWorkflowTransition(
-            handle,
-            store,
-            changeId,
-          );
-          if (!archiveProof.ok) {
-            return formatToolOutput({
-              success: false,
-              error: archiveProof.error,
-              code: archiveProof.code,
-              requirement: "rq-archiveTerminalDurability01",
+          // Recovery routes (audited disk proof, terminal/absent workflow)
+          // deliberately do not signal: the recovery authority already
+          // converged the durable projection, so there is no live transition
+          // to prove. The transition proof applies only when a live-workflow
+          // transition was actually requested.
+          if (!reconciliationPayload._recoveryMutation) {
+            const archiveProof = await proveArchiveWorkflowTransition(
+              handle,
+              store,
               changeId,
-              archivePath: existingBundlePath,
-              proofAttempts: archiveProof.attempts,
-              recoveryDecision: archiveProof.recoveryDecision,
-            });
+            );
+            if (!archiveProof.ok) {
+              return formatToolOutput({
+                success: false,
+                error: archiveProof.error,
+                code: archiveProof.code,
+                requirement: "rq-archiveTerminalDurability01",
+                changeId,
+                archivePath: existingBundlePath,
+                proofAttempts: archiveProof.attempts,
+                recoveryDecision: archiveProof.recoveryDecision,
+              });
+            }
           }
           return reconciliationResult;
         }

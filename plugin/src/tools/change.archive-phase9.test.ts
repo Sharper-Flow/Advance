@@ -611,6 +611,37 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(proofDescribeCalls).toBe(2);
   });
 
+  test("does not accept a stale plain-JSON archived projection as proof", async () => {
+    let saveCalled = false;
+    const store = createMockStore();
+    store.changes.save = vi.fn(async () => {
+      saveCalled = true;
+    });
+    // AC1 poison shape: a local recovery writer stamped archived WITHOUT any
+    // workflow transition. Local writers persist a plain Change document, not
+    // the Activity envelope, so the proof must not attribute it to a
+    // workflow commit.
+    await mkdir("/tmp/.adv/changes/example", { recursive: true });
+    await writeFile(
+      "/tmp/.adv/changes/example/change.json",
+      JSON.stringify({ id: "example", status: "archived" }),
+    );
+    mocks.workflow.handle.describe = vi.fn(async () => {
+      if (!saveCalled) return { status: { name: "RUNNING" } };
+      return { status: { name: "RUNNING" } };
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("ARCHIVE_WORKFLOW_PROOF_FAILED");
+    expect(store.changes.save).toHaveBeenCalledTimes(1);
+  });
+
   test("fails closed when neither projection nor terminal status proves the transition", async () => {
     let saveCalled = false;
     const store = createMockStore();
