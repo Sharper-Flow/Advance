@@ -1772,24 +1772,28 @@ export function createTemporalStoreBackend(
       };
     }
 
-    // Status needs the full unbounded summary set for accurate counts.
-    // The recent list is sliced afterwards and any truncation is typed.
+    // Summary shards carry lifecycle status, so counts do not require deep
+    // hydration of the full change corpus. The caller-provided recent limit
+    // is applied by listSummary before candidate hydration.
     const summary = await changeOps.listSummary!({
       sort: "recency",
+      ...(options?.recentLimit !== undefined
+        ? { limit: options.recentLimit }
+        : {}),
+      ...(options?.deadline ? { deadline: options.deadline } : {}),
     });
-    const { changes, warnings: summaryWarnings, hydrationStats } = summary;
+    const {
+      changes,
+      warnings: summaryWarnings,
+      hydrationStats,
+      boundedOmittedIds,
+    } = summary;
     const now = new Date();
-    const byStatus: Record<ChangeStatus, number> = {
+    const byStatus: Record<ChangeStatus, number> = summary.statusCounts ?? {
       draft: 0,
       archived: 0,
       closed: 0,
     };
-
-    for (const change of changes) {
-      // Finite-accumulation guard: stay NaN-safe even if a status key is
-      // ever missing from the initializer above (e.g. enum narrowing).
-      byStatus[change.status] = (byStatus[change.status] ?? 0) + 1;
-    }
 
     const sortedRecent = changes
       .filter(
@@ -1815,28 +1819,24 @@ export function createTemporalStoreBackend(
         return cmp !== 0 ? cmp : a.id.localeCompare(b.id);
       });
 
-    const recentLimit = options?.recentLimit;
-    const recent =
-      recentLimit !== undefined
-        ? sortedRecent.slice(0, recentLimit)
-        : sortedRecent;
+    const recent = sortedRecent;
 
     const warnings: import("../../types").TerminalWarning[] = [
       ...(summaryWarnings ?? []),
     ];
     let boundedOmitted = 0;
-    if (recentLimit !== undefined && sortedRecent.length > recentLimit) {
-      boundedOmitted = sortedRecent.length - recentLimit;
-      const omittedIds = sortedRecent
-        .slice(recentLimit)
-        .map((r) => r.id)
-        .slice(0, 20);
+    if (
+      options?.recentLimit !== undefined &&
+      boundedOmittedIds &&
+      boundedOmittedIds.length > 0
+    ) {
+      boundedOmitted = boundedOmittedIds.length;
       warnings.push({
         code: "SOURCE_BOUND_EXCEEDED",
-        source: "workflow_query",
-        message: `Read bound (${recentLimit} candidate(s)) truncated ${boundedOmitted} candidate(s); counts and recency are incomplete.`,
+        source: "active_disk",
+        message: `Read bound (${options.recentLimit} candidate(s)) limited recent change hydration; ${boundedOmitted} recent candidate(s) were omitted while lifecycle counts remained sourced from summary shards.`,
         omittedCount: boundedOmitted,
-        omittedIds,
+        omittedIds: boundedOmittedIds.slice(0, 20),
       });
     }
 

@@ -315,9 +315,12 @@ export interface ReadStore extends StoreBase {
       sort?: "recency" | "stalest" | "default";
       limit?: number;
       offset?: number;
+      deadline?: TemporalReadDeadline;
     }) => Promise<
       ChangeListResponse & {
         hydrationStats?: import("../types").HydrationStats;
+        statusCounts?: Record<"draft" | "archived" | "closed", number>;
+        boundedOmittedIds?: string[];
       }
     >;
     listConflictAuthority?: (options?: {
@@ -834,9 +837,12 @@ export interface Store extends ReadStore, CommandStore {
       sort?: "recency" | "stalest" | "default";
       limit?: number;
       offset?: number;
+      deadline?: TemporalReadDeadline;
     }) => Promise<
       ChangeListResponse & {
         hydrationStats?: import("../types").HydrationStats;
+        statusCounts?: Record<"draft" | "archived" | "closed", number>;
+        boundedOmittedIds?: string[];
       }
     >;
   };

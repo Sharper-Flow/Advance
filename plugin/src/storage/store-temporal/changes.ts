@@ -114,6 +114,7 @@ import {
   BatchCloseOperationSchema,
 } from "./batch-close-coordinator";
 import { computeCreationRequestHash } from "./creation-hash";
+import type { TemporalReadDeadline } from "../../temporal/retry-wrapper";
 
 // Command outcomes surfaced by the changeCommand primitive:
 // accepted, idempotent_replay, rejected, projection_failure,
@@ -526,12 +527,16 @@ interface ChangeListFilter {
   offset?: number;
   /** Internal caller-specific cap for per-change hydration. */
   validationConcurrency?: number;
+  /** Request-scoped deadline shared with an enclosing status read. */
+  deadline?: TemporalReadDeadline | TemporalReadContext;
 }
 
 interface ListChangeSummariesResult {
   summaries: ChangeSummaryShard[];
   totalIds: number;
   warnings?: TerminalWarning[];
+  statusCounts?: Record<ChangeStatus, number>;
+  boundedOmittedIds?: string[];
 }
 
 /**
@@ -551,6 +556,8 @@ async function listChangeSummaries(
     forceSort?: "recency" | "stalest" | "default";
     /** Enable offset/limit pagination (listSummary); list() currently ignores them. */
     paginate?: boolean;
+    /** Cap rows before downstream hydration while retaining API offset semantics. */
+    candidateLimit?: number;
   } = {},
 ): Promise<ListChangeSummariesResult> {
   const summaryResult = await listSummaryChanges(paths);
@@ -578,6 +585,15 @@ async function listChangeSummaries(
       message: `${warning.kind} summary document at ${warning.path}${warning.error ? `: ${warning.error}` : ""}${warning.actual ? ` (${warning.actual} bytes)` : ""}`,
       omittedCount: 1,
     })) ?? [];
+
+  const statusCounts: Record<ChangeStatus, number> = {
+    draft: 0,
+    archived: 0,
+    closed: 0,
+  };
+  for (const summary of summaryResult.summaries) {
+    statusCounts[summary.status] = (statusCounts[summary.status] ?? 0) + 1;
+  }
 
   const requestedStatus =
     filter?.status === "active" || filter?.status === "pending"
@@ -636,24 +652,37 @@ async function listChangeSummaries(
     );
   });
 
+  const boundedOmittedIds =
+    options.candidateLimit === undefined
+      ? undefined
+      : filtered.slice(options.candidateLimit).map((summary) => summary.id);
+  const boundedFiltered =
+    options.candidateLimit === undefined
+      ? filtered
+      : filtered.slice(0, Math.max(0, options.candidateLimit));
+
   if (options.paginate) {
     const offset = Math.max(0, filter?.offset ?? 0);
     const limit =
       filter?.limit === undefined ? undefined : Math.max(0, filter.limit);
     return {
-      summaries: filtered.slice(
+      summaries: boundedFiltered.slice(
         offset,
         limit === undefined ? undefined : offset + limit,
       ),
       totalIds: summaryResult.summaries.length,
       warnings: baseWarnings.length > 0 ? baseWarnings : undefined,
+      statusCounts,
+      ...(boundedOmittedIds ? { boundedOmittedIds } : {}),
     };
   }
 
   return {
-    summaries: filtered,
+    summaries: boundedFiltered,
     totalIds: summaryResult.summaries.length,
     warnings: baseWarnings.length > 0 ? baseWarnings : undefined,
+    statusCounts,
+    ...(boundedOmittedIds ? { boundedOmittedIds } : {}),
   };
 }
 
@@ -799,14 +828,30 @@ async function readProjectionChangeList(
     forceSort?: "recency" | "stalest" | "default";
     paginate?: boolean;
     includeHydrationStats?: boolean;
+    deadline?: TemporalReadDeadline | TemporalReadContext;
+    candidateLimit?: number;
+    loadArchiveForActiveShadow?: boolean;
   },
 ): Promise<
-  ChangeListResponse & { sourceRankedIds?: string[]; totalIds?: number }
+  ChangeListResponse & {
+    sourceRankedIds?: string[];
+    totalIds?: number;
+    statusCounts?: Record<ChangeStatus, number>;
+    boundedOmittedIds?: string[];
+  }
 > {
   const { input: _input, legacy, memo, getTemporalChange } = deps;
 
-  const deadline = createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS);
-  const ctx = createTemporalReadContext(deadline.budgetMs);
+  const suppliedRead = options.deadline;
+  const ctx = suppliedRead
+    ? "abortController" in suppliedRead
+      ? suppliedRead
+      : createTemporalReadContext(suppliedRead.budgetMs)
+    : createTemporalReadContext(TEMPORAL_READ_DEADLINE_BUDGET_MS);
+  if (suppliedRead && !("abortController" in suppliedRead)) {
+    ctx.deadline = suppliedRead;
+  }
+  const deadline = ctx.deadline;
   const expired = (): boolean => isTemporalReadExpired(ctx);
 
   const requestedStatus =
@@ -827,7 +872,10 @@ async function readProjectionChangeList(
   const summaryResult = await listChangeSummaries(filter, paths, {
     caseInsensitivePrefix: options.caseInsensitivePrefix,
     forceSort: options.forceSort,
+    // Apply API pagination after combining durable sources. Candidate bounds
+    // are applied before hydration without consuming the requested offset.
     paginate: false,
+    candidateLimit: options.candidateLimit,
   });
 
   const summaryRows = new Map<string, ChangeListResponse["changes"][number]>();
@@ -843,10 +891,16 @@ async function readProjectionChangeList(
 
   // Collect candidate IDs from every durable/advisory source.
   const candidateIds = new Set<string>(summaryRows.keys());
-  for (const summary of memo.getAll()) candidateIds.add(summary.id);
+  if (options.candidateLimit === undefined) {
+    for (const summary of memo.getAll()) candidateIds.add(summary.id);
+  }
 
   const addSourceIds = (ids: string[]): void => {
-    for (const id of ids) candidateIds.add(id);
+    const sourceIds =
+      options.candidateLimit === undefined
+        ? ids
+        : ids.slice(0, Math.max(0, options.candidateLimit));
+    for (const id of sourceIds) candidateIds.add(id);
   };
 
   // Disk active projections.
@@ -879,13 +933,23 @@ async function readProjectionChangeList(
     string,
     { dir: string; change: Change }
   >();
-  if (legacy.paths.archive) {
+  if (
+    (wantsTerminalStatuses || options.loadArchiveForActiveShadow) &&
+    legacy.paths.archive
+  ) {
     try {
       const archiveDirs = await raceWithTemporalDeadline(
         listChangeDirs(legacy.paths.archive),
         deadline,
       );
       for (const dir of archiveDirs) {
+        // The race around each load protects the I/O itself. This admission
+        // check prevents an expired request from starting the next candidate.
+        if (expired()) {
+          deadlineOmissions.push(dir);
+          degradedSources.add("archive");
+          break;
+        }
         const loaded = await raceWithTemporalDeadline(
           loadChange(legacy.paths.archive, dir),
           deadline,
@@ -1121,6 +1185,12 @@ async function readProjectionChangeList(
       ? { hydrationStats }
       : {}),
     totalIds: allIds.length,
+    ...(summaryResult.statusCounts
+      ? { statusCounts: summaryResult.statusCounts }
+      : {}),
+    ...(summaryResult.boundedOmittedIds
+      ? { boundedOmittedIds: summaryResult.boundedOmittedIds }
+      : {}),
   };
 }
 
@@ -1538,6 +1608,9 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           forceSort: "default",
           // list() does not paginate today.
           paginate: false,
+          // Active list output still uses archive bundles to dominate stale
+          // active projections; routine status summaries do not need this.
+          loadArchiveForActiveShadow: true,
         },
       );
       const { changes, warnings, hydrationStats } = projection;
@@ -2008,6 +2081,11 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
           paginate: true,
           // Summary API always carries hydration stats.
           includeHydrationStats: true,
+          deadline: filter?.deadline,
+          candidateLimit:
+            filter?.limit === undefined
+              ? undefined
+              : Math.max(0, (filter.offset ?? 0) + filter.limit),
         },
       );
       const { changes, warnings, hydrationStats } = projection;
@@ -2015,6 +2093,12 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
         changes,
         ...(warnings ? { warnings } : {}),
         ...(hydrationStats ? { hydrationStats } : {}),
+        ...(projection.statusCounts
+          ? { statusCounts: projection.statusCounts }
+          : {}),
+        ...(projection.boundedOmittedIds
+          ? { boundedOmittedIds: projection.boundedOmittedIds }
+          : {}),
       };
     },
     /**
