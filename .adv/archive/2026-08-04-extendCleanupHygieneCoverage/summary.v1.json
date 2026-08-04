@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-04T04:41:49.857Z",
+  "capabilities": [],
+  "change_hash": "b7c3cb5261738e2864610036c227b17c1c1432b6b68c2c8a0665f48ca9c82dee",
+  "change_id": "extendCleanupHygieneCoverage",
+  "completed_tasks": 5,
+  "created_at": "2026-08-04T00:10:50.791Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-04T02:22:08.932Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "3b4488afbe47582fb27e21d6cd1cfab5c01d2c079bdf594702884955028fa1ca",
+  "task_count": 5,
+  "title": "Extend cleanup hygiene coverage",
+  "version": "1"
+}

@@ -1,0 +1,43 @@
+# Contract Traceability
+
+**Change ID:** extendCleanupHygieneCoverage
+**Contract Version:** 1
+**Rigor:** standard
+**Reviewed:** 2026-08-04T04:15:48.225Z
+
+## Contract Items
+
+| ID | Kind | Status | Evidence Policy | Evidence |
+| --- | --- | --- | --- | --- |
+| AC1 | acceptance_criterion | pass | test | adv-cleanup-contract-assets.test.ts 66/66 green (post-rebase) asserts four-surface discovery routing through adv_change_list/adv_change_show, adv_worktree_triage, adv_worktree_cleanup mode archived_branches dryRun true, and adv_status view hygiene, plus explicit per-surface empty states. Phase 1 of .opencode/command/adv-cleanup.md issues the four discovery calls with per-surface degradation. |
+| AC2 | acceptance_criterion | pass | test | Contract suite asserts reversible/irreversible markers per bucket, recovery paths on irreversible buckets, and the reflog time bound on the branch-deletion bucket. Phase 3 of the command renders the markers; 66/66 green. |
+| AC3 | acceptance_criterion | pass | test | Contract suite asserts the irreversible parser rejects 'approve all', accepts 'delete all N' only on exact count match, plus 'delete N,M', 'skip', 'stop'/'abort', and re-prompts on mismatch. adv-cleanup.md:174-187 defines the irreversible reply block: 'Allowed replies (trimmed, case-insensitive regex; no LLM fallback)' and 'Anything else -> re-prompt same options. Do NOT invoke LLM fallback.' 66/66 green. |
+| AC4 | acceptance_criterion | pass | test | Contract suite asserts irreversible prompts enumerate each candidate by number with exact worktree path or branch name rather than a count-only summary; assertions are anchored to the owning section via the fence-aware extractSection helper. 66/66 green. |
+| AC5 | acceptance_criterion | pass | test | Contract suite asserts deletion delegates to adv_worktree_delete/adv_worktree_cleanup and that adv_worktree_triage is advisory only. adv-cleanup.md:205 states deletion authority belongs to those tools alone (rq-terminalCleanupSafety01) and that tool refusals are reported verbatim rather than routed around. 66/66 green. |
+| AC6 | acceptance_criterion | pass | test | Contract suite asserts dry-run default: with no execute flag no change is closed, no worktree deleted, no branch deleted, and the footer states how to re-run with execution enabled. 66/66 green. |
+| AC7 | acceptance_criterion | pass | test | Regression guard portion of the contract suite (retained from the pre-change file) asserts active-change bucket precedence, child-lineage guard, hot-recency-band exclusion, the reversible reply parser, per-bucket atomicity, and continue-after-bucket-failure are unchanged. DONT5 separately confirms the reversible parser block (adv-cleanup.md:152) stays distinct from the new irreversible block (:174). 66/66 green. |
+| AC8 | acceptance_criterion | pass | test | Post-rebase validation: .adv/specs/advance-workflow/spec.json parses as valid JSON with 136 requirements; rq-cleanupHygieneScope01 present exactly once with 5 scenarios and priority must; 0 duplicate ids. spec-citation-invariant.test.ts and command-requirement-citations.test.ts pass, so the citation anchor resolves. |
+| AC9 | acceptance_criterion | pass | test | The two report-only-invariant tests were rewritten, not left to pass on the surviving phrase 'drift report'. Proven by a non-mutating discrimination test: the retired-invariant guard evaluates false against base commit d14963c7 content for both command and skill, and true against the new content, so it genuinely distinguishes old contract from new. |
+| AC10 | acceptance_criterion | pass | test | Post-rebase onto origin/trunk (0 behind, 6 ahead, clean tree): pnpm run check exit 0 (schemas, typecheck, manifests, frontmatter across 42 files, test-isolation, lockfile, lint, format all pass; 0 errors) and adv-cleanup-contract-assets.test.ts 66/66. bin/oc-test full is 8351/8366 with the single failure (src/mcp-server/health-field-scope.test.ts:99) proven pre-existing: reverting all 7 changed files to origin/trunk content reproduces the identical failure, and its production path was last modified by trunk commit da0344dd. |
+| C1 | constraint | respected | static_check | grep confirms no direct git deletion is prescribed: the only occurrences of 'git worktree remove'/'git branch -d' are prohibitions at adv-cleanup.md:205 and SKILL.md:277, both citing rq-terminalCleanupSafety01. Delegated tool references (adv_worktree_delete/adv_worktree_cleanup) appear 9x in the command and 8x in the skill. |
+| C2 | constraint | respected | static_check | grep for daemon|background sweep|auto-cleanup|session-start|poll|cron|schedule across command and skill returns exactly one match: SKILL.md:318 'Operator-explicit only; no background sweeps, daemons, or session-start auto-cleanup.' No scheduling or polling construct is introduced, consistent with rq-archiveBranchCleanup01 and P37. |
+| C3 | constraint | respected | static_check | Both reply blocks declare 'trimmed, case-insensitive regex; no LLM fallback' (adv-cleanup.md:152 and :174) and both re-prompt paths state 'Do NOT invoke LLM fallback' (:162 and :187). Skill mirrors at SKILL.md:195 and :223. No fuzzy-matching construct present, per rq-inlineApproval01.3. |
+| C4 | constraint | respected | static_check | adv-cleanup.md:17 retains the skill("adv-cleanup") reference together with its inline fallback phrase ('If unavailable, use fallback below.'), inside the bounded window checked by skill-loading-policy-assets.test.ts lines 231-245. That guard test passes in the post-rebase run. |
+| C5 | constraint | respected | static_check | Citation anchors retained in .opencode/command/adv-cleanup.md: rq-inlineApproval01.3 x1, rq-inlineApproval01.4 x2, rq-autonomy01 x1. command-requirement-citations.test.ts and spec-citation-invariant.test.ts both pass. |
+| C6 | constraint | respected | static_check | SKILL.md:26 declares 'Skill is read-only guidance; command owns ADV tool calls, state mutation, and approval enforcement', reinforced at SKILL.md:313. No imperative tool-call directives were introduced in the skill; all mutation phases (Phase 4b approval, Phase 5 apply) live in the command file. |
+| C7 | constraint | respected | static_check | grep for '^##+ Next' in .opencode/command/adv-cleanup.md returns no match; no '## Next' or '## Next stage' heading and no gate-handoff spine present. commands-spine-assets.test.ts passes in the post-rebase run. |
+| DONT1 | avoidance | respected | review | git diff origin/trunk...HEAD --name-only yields 7 files, none under plugin/src/tools/. No worktree or status tool source was modified: adv_worktree_delete, adv_worktree_cleanup, adv_worktree_triage, and adv_status behavior is untouched. The change is consumer-side orchestration plus the manifest description string only. |
+| DONT2 | avoidance | respected | review | git diff --diff-filter=A origin/trunk...HEAD shows no added file under .opencode/command/. /adv-cleanup remains a single fused report+execute command, matching the design-gate validator finding that the fused shape is the established norm across docker/git/kubectl/npm/cargo/nix/terraform. |
+| DONT3 | avoidance | respected | review | Distinct flags in .opencode/command/adv-cleanup.md are --bucket, --age-threshold, and --execute. Exactly one execute flag exists; escalation for irreversible buckets is handled by typed count-matched confirmation at the prompt (Phase 4b), which is the shape the user selected over a second flag. |
+| DONT4 | avoidance | respected | review | Archived/closed state-leak remediation remains report-only and routes to adv_archive_purge, which owns its own operator approval contract: adv_archive_purge is referenced 3x in the command and 4x in the skill, and the surface is excluded from executable buckets. Asserted by the contract suite (DONT4 routing test). |
+| DONT5 | avoidance | respected | review | The two prompts stay distinct: the reversible reply block at adv-cleanup.md:152 and the new irreversible block at :174 are separate 'Allowed replies' sections with different accepted tokens. The reversible parser was not widened to accept the irreversible tokens, and the irreversible block explicitly rejects the reversible 'approve all' token. |
+
+## Task References
+
+| Task | Implements | Verifies | Respects | N/A Reason |
+| --- | --- | --- | --- | --- |
+| tk-4a8638067257 |  | AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC9 | C4, C5, C7 |  |
+| tk-56a80b1f58f7 | AC8 |  | C1, C2 |  |
+| tk-487b323fcadf | AC1, AC2, AC3, AC4, AC5, AC6 |  | C1, C2, C3, C4, C5, C6, C7 |  |
+| tk-484dece9d8dc | AC2, AC3, AC4, AC5, AC7 |  | C3, C6 |  |
+| tk-4e7528cf60ba | AC10 | AC8, AC10 | C7 |  |

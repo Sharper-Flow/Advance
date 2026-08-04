@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "change_id": "extendCleanupHygieneCoverage",
+  "title": "Extend cleanup hygiene coverage",
+  "release_notes": {
+    "audience": "internal",
+    "category": "added",
+    "headline_internal": "/adv-cleanup covers four hygiene surfaces and can execute worktree and branch cleanup",
+    "highlights": [
+      "Discovery now spans active-change debt, worktree drift, merged archived change/* branches, and archived/closed state leaks in a single run",
+      "Worktree and merged-branch deletion are executable in-command; state leaks stay report-only and route to adv_archive_purge",
+      "Irreversible buckets require count-matched typed confirmation and reject the reversible-bucket approve-all token; no LLM fallback on any reply",
+      "Destructive candidates are listed by exact path or branch name with reversibility marker, recovery path, and deleted SHA in the result line",
+      "Deletion delegates to adv_worktree_delete / adv_worktree_cleanup per rq-terminalCleanupSafety01; adv_worktree_triage output is explicitly advisory, never deletion authority",
+      "Added an OrphanClass to drift-group eligibility mapping so deletion is gated on categories adv_worktree_triage actually emits, with unrecognized classes failing closed",
+      "New spec law rq-cleanupHygieneScope01 with five scenarios; /adv-cleanup scope previously had no governing requirement"
+    ],
+    "area": "adv-cleanup",
+    "user_action_required": false
+  }
+}
