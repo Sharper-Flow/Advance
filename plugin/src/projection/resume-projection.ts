@@ -80,7 +80,21 @@ interface InternalNode {
   source_epic_id?: string;
 }
 
-const MAX_RANK = Number.MAX_SAFE_INTEGER;
+/**
+ * Width of one Epic's advisory-rank band. Epic N occupies
+ * `[N * EPIC_BAND_SPAN, (N + 1) * EPIC_BAND_SPAN)`, indexed by entry order.
+ * Shell entries use the same formula inline, so this span is shared.
+ */
+const EPIC_BAND_SPAN = 10000;
+
+/**
+ * Rank for an unlinked change whose work is already in progress.
+ *
+ * Sits at the tail of the FIRST Epic band: it can surface ahead of
+ * not-yet-started later-Epic work, but never displaces the leading Epic band.
+ * Reachability, not promotion — see rq-epicAdvisoryRankReachability01.
+ */
+const UNLINKED_ACTIVE_RANK = EPIC_BAND_SPAN - 1;
 
 // =============================================================================
 // Kernel
@@ -384,10 +398,36 @@ function computeChangeRank(
   change: ChangeNodeInput,
   epics: ReadonlyArray<EpicNodeInput>,
 ): number {
-  if (!change.epic_membership) return MAX_RANK;
+  if (!change.epic_membership) return unlinkedRank(change, epics);
   const epicIndex = epics.findIndex(
     (e) => e.id === change.epic_membership!.epic_id,
   );
-  if (epicIndex === -1) return MAX_RANK;
-  return epicIndex * 10000 + change.epic_membership.order;
+  if (epicIndex === -1) return unlinkedRank(change, epics);
+  return epicIndex * EPIC_BAND_SPAN + change.epic_membership.order;
+}
+
+/**
+ * Advisory rank for a change carrying no resolvable Epic membership.
+ *
+ * Epic membership is optional (rq-epicOptionalMembership01), so its absence
+ * must not acquire gating authority over next-work visibility. Previously
+ * these changes received `Number.MAX_SAFE_INTEGER`, which meant a single
+ * Epic-linked change made every unlinked change permanently unreachable as
+ * `ordered_next`.
+ *
+ * Rank is now conditional on the change's own strongest available signal —
+ * whether work is already in progress — and is always finite:
+ *
+ * - in progress → tail of the first Epic band, ahead of later-Epic work
+ * - idle        → after every Epic band, but still finite and reachable
+ *
+ * Epic-linked ranks are untouched, so relative order among Epic entries (and
+ * alignment with shell entries, which share the band formula) is preserved.
+ */
+function unlinkedRank(
+  change: ChangeNodeInput,
+  epics: ReadonlyArray<EpicNodeInput>,
+): number {
+  if (change.hasInProgressTasks) return UNLINKED_ACTIVE_RANK;
+  return (epics.length + 1) * EPIC_BAND_SPAN;
 }

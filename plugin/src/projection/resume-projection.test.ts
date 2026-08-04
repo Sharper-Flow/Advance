@@ -271,7 +271,9 @@ describe("buildResumeProjection — ordered_next", () => {
     const lowRank = makeChange("addB", {
       epic_membership: { epic_id: "epicA", entry_id: "en-1", order: 0 },
     });
-    const highRank = makeChange("addA"); // no epic → MAX_RANK
+    // Idle + no Epic → trailing finite band, still behind Epic order 0.
+    // See rq-epicAdvisoryRankReachability01 for why this is no longer MAX_RANK.
+    const highRank = makeChange("addA");
     const epicA = makeEpic("epicA", [
       {
         kind: "change",
@@ -409,5 +411,162 @@ describe("buildResumeProjection — scope filtering", () => {
     });
     expect(result.actionable).toHaveLength(1);
     expect(result.actionable[0].node).toEqual(shellRef("epicA", "sh-a"));
+  });
+});
+
+// ===========================================================================
+// rq-epicAdvisoryRankReachability01 — Epic membership is optional, so its
+// absence must not acquire gating authority over next-work visibility.
+// ===========================================================================
+
+describe("buildResumeProjection — advisory rank reachability (rq-epicAdvisoryRankReachability01)", () => {
+  test("unlinked change never receives an unconditional maximum-rank penalty (.1)", () => {
+    const idle = makeChange("idleUnlinked");
+    const active = makeChange("activeUnlinked", { hasInProgressTasks: true });
+
+    const result = buildResumeProjection([idle, active], [], {
+      project_id: PID,
+    });
+
+    const ranks = [...result.actionable, ...result.active].map(
+      (row) => row.advisory_rank,
+    );
+    expect(ranks).toHaveLength(2);
+    for (const rank of ranks) {
+      expect(rank).toBeLessThan(Number.MAX_SAFE_INTEGER);
+      expect(Number.isFinite(rank)).toBe(true);
+    }
+  });
+
+  test("active unlinked change can win ordered_next over a later-Epic change (.1)", () => {
+    // epicA occupies band 0, epicB occupies band 1. epicA's only entry is
+    // already archived, so band 0 contributes no live node. An unlinked change
+    // with work already in progress is the strongest available own-signal, so
+    // it must surface ahead of not-yet-started later-Epic work.
+    const doneEpicChange = makeChange("addDone", {
+      status: "archived",
+      lifecycleState: "archived",
+      epic_membership: { epic_id: "epicA", entry_id: "en-a", order: 0 },
+    });
+    const epicA = makeEpic("epicA", [
+      {
+        kind: "change",
+        entry_id: "en-a",
+        order: 0,
+        title: "Done",
+        change_id: "addDone",
+      },
+    ]);
+    const laterEpicChange = makeChange("addLater", {
+      epic_membership: { epic_id: "epicB", entry_id: "en-b", order: 0 },
+    });
+    const epicB = makeEpic("epicB", [
+      {
+        kind: "change",
+        entry_id: "en-b",
+        order: 0,
+        title: "Later",
+        change_id: "addLater",
+      },
+    ]);
+    const activeUnlinked = makeChange("resumeMe", {
+      hasInProgressTasks: true,
+    });
+
+    const result = buildResumeProjection(
+      [doneEpicChange, laterEpicChange, activeUnlinked],
+      [epicA, epicB],
+      { project_id: PID },
+    );
+
+    expect(result.ordered_next!.node).toEqual(changeRef("resumeMe"));
+  });
+
+  test("active unlinked change does not displace the leading Epic band (.2)", () => {
+    // Reachability must not invert into promotion: the first Epic's leading
+    // entry still outranks in-progress unlinked work.
+    const leadEpicChange = makeChange("addLead", {
+      epic_membership: { epic_id: "epicA", entry_id: "en-a", order: 0 },
+    });
+    const epicA = makeEpic("epicA", [
+      {
+        kind: "change",
+        entry_id: "en-a",
+        order: 0,
+        title: "Lead",
+        change_id: "addLead",
+      },
+    ]);
+    const activeUnlinked = makeChange("resumeMe", {
+      hasInProgressTasks: true,
+    });
+
+    const result = buildResumeProjection(
+      [activeUnlinked, leadEpicChange],
+      [epicA],
+      { project_id: PID },
+    );
+
+    expect(result.ordered_next!.node).toEqual(changeRef("addLead"));
+  });
+
+  test("relative order among Epic-linked entries is preserved (.2)", () => {
+    const first = makeChange("addFirst", {
+      epic_membership: { epic_id: "epicA", entry_id: "en-1", order: 0 },
+    });
+    const second = makeChange("addSecond", {
+      epic_membership: { epic_id: "epicA", entry_id: "en-2", order: 1 },
+    });
+    const laterEpic = makeChange("addThird", {
+      epic_membership: { epic_id: "epicB", entry_id: "en-3", order: 0 },
+    });
+    const epicA = makeEpic("epicA", [
+      {
+        kind: "change",
+        entry_id: "en-1",
+        order: 0,
+        title: "First",
+        change_id: "addFirst",
+      },
+      {
+        kind: "change",
+        entry_id: "en-2",
+        order: 1,
+        title: "Second",
+        change_id: "addSecond",
+      },
+    ]);
+    const epicB = makeEpic("epicB", [
+      {
+        kind: "change",
+        entry_id: "en-3",
+        order: 0,
+        title: "Third",
+        change_id: "addThird",
+      },
+    ]);
+
+    const result = buildResumeProjection(
+      [laterEpic, second, first],
+      [epicA, epicB],
+      { project_id: PID },
+    );
+
+    expect(result.actionable.map((row) => row.node)).toEqual([
+      changeRef("addFirst"),
+      changeRef("addSecond"),
+      changeRef("addThird"),
+    ]);
+  });
+
+  test("active unlinked work outranks idle unlinked work (.1)", () => {
+    const idle = makeChange("idleOne");
+    const active = makeChange("activeOne", { hasInProgressTasks: true });
+
+    const result = buildResumeProjection([idle, active], [], {
+      project_id: PID,
+    });
+
+    expect(result.ordered_next!.node).toEqual(changeRef("activeOne"));
   });
 });
