@@ -52,7 +52,7 @@ Use typed tools only:
 | Inspect linked changes when needed | `adv_change_show` |
 | Check relevant spec law | `adv_spec` |
 
-Report project-change inventory first. If no active Epics exist, report `No active Epics. No Epic-dependent coordination actions.` for Epic-dependent findings only, then continue change-scoped overlap, sequencing, and refactor-coverage analysis; this condition must not stop the run or suppress change-scoped analysis.
+Report project-change inventory first. If no active Epics exist, report `No active Epics. No Epic-dependent coordination actions.` for Epic-dependent findings only, then continue change-scoped overlap, sequencing, and refactor-coverage analysis; this condition must not stop the run or suppress change-scoped analysis. <!-- rq-epicCoordinateChangeCoverage01 -->
 
 Record:
 

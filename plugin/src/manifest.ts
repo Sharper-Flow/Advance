@@ -402,7 +402,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-coordinate": {
     name: "adv-coordinate",
     description:
-      "Audit project changes, Epic alignment, sequencing, and membership health",
+      "Audit project changes, Epic alignment, sequencing, and membership health; includes Epic-unlinked in-flight changes",
     phase: "advanced",
     requiresChangeId: false,
     prerequisites: [],

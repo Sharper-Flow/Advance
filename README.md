@@ -254,7 +254,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-comp-scan` | Scan competitor capabilities against this project for competitive intelligence                       |
 | `/adv-refactor`  | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
 | `/adv-cleanup`   | Triage stale changes, drifted worktrees, merged branches, and state leaks; delete approved candidates |
-| `/adv-coordinate` | Audit project changes, Epic alignment, sequencing, and membership health                          |
+| `/adv-coordinate` | Audit project changes, Epic alignment, sequencing, and membership health; includes Epic-unlinked in-flight changes                          |
 | `/adv-triage`    | Triage sources, coalesce issue links, assign bug priority, and balance portfolio |
 | `/adv-improve`   | Analyze improvements across existing specs, implementation, and external landscape                    |
 | `/adv-tron`      | Investigate codebase structure, hotspots, risks, and suggest follow-up candidates             |
