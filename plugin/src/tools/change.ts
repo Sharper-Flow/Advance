@@ -1052,7 +1052,9 @@ type ArchiveWorkflowProofResult =
   | {
       ok: false;
       attempts: number;
-      code: "ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS" | "ARCHIVE_WORKFLOW_PROOF_FAILED";
+      code:
+        | "ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS"
+        | "ARCHIVE_WORKFLOW_PROOF_FAILED";
       error: string;
       recoveryDecision: Awaited<
         ReturnType<typeof classifyMutationRecoveryDecision>
@@ -6008,12 +6010,12 @@ export const changeTools = {
           // require shipped-terminal proof when this could be a shipped-
           // terminal recovery. Poisoned runs that threw not-found have no
           // description to check, but we still must verify structural proof
-           // before declaring success on a shipped-terminal-shape change.
-           describeThrewCompleted = true;
-           describeConfirmedAbsent =
-             error instanceof Error &&
-             error.name.toLowerCase() === "workflownotfounderror";
-           description = null;
+          // before declaring success on a shipped-terminal-shape change.
+          describeThrewCompleted = true;
+          describeConfirmedAbsent =
+            error instanceof Error &&
+            error.name.toLowerCase() === "workflownotfounderror";
+          description = null;
         } else {
           return formatToolOutput({
             success: false,
@@ -6065,12 +6067,11 @@ export const changeTools = {
               store,
               changeId,
               change,
-              shippedTerminalProof:
-                shippedTerminalProof ?? {
-                  ok: false,
-                  refusalCode: "PROOF_INVALID_DISK_PROJECTION",
-                  evidence: "shipped-terminal proof was not computed",
-                },
+              shippedTerminalProof: shippedTerminalProof ?? {
+                ok: false,
+                refusalCode: "PROOF_INVALID_DISK_PROJECTION",
+                evidence: "shipped-terminal proof was not computed",
+              },
             })
           : undefined;
 

@@ -341,16 +341,17 @@ describe("adv_change_workflow_terminate", () => {
         }),
       );
       store.changes.list = vi.fn(async (query: unknown) => ({
-        changes: (query as { status?: string } | null)?.status === "archived"
-          ? [
-              JSON.parse(
-                await readFile(
-                  join(store.paths.changes, change.id, "change.json"),
-                  "utf8",
+        changes:
+          (query as { status?: string } | null)?.status === "archived"
+            ? [
+                JSON.parse(
+                  await readFile(
+                    join(store.paths.changes, change.id, "change.json"),
+                    "utf8",
+                  ),
                 ),
-              ),
-            ]
-          : [],
+              ]
+            : [],
       })) as unknown as Store["changes"]["list"];
 
       const result = await tool().execute(
@@ -372,7 +373,9 @@ describe("adv_change_workflow_terminate", () => {
           releasedCommitSha: "released-sha",
         },
       });
-      expect(parsed.convergence.changes[0].bundleSha256).toMatch(/^[a-f0-9]{64}$/);
+      expect(parsed.convergence.changes[0].bundleSha256).toMatch(
+        /^[a-f0-9]{64}$/,
+      );
       expect(mocks.terminate).not.toHaveBeenCalled();
 
       const repaired = JSON.parse(

@@ -76,8 +76,7 @@ const replayFixtures: ReplayFixture[] = [
       "gate-completed-projection-v1",
       "terminal-projection-v1",
     ],
-    coversIncludes:
-      "TERMINAL_PROJECTION_PATCH (terminal-projection-v1)",
+    coversIncludes: "TERMINAL_PROJECTION_PATCH (terminal-projection-v1)",
   },
   {
     // Protects DISCOVERY_CONTRACT_READINESS_PATCH in workflows.ts. Keep this
