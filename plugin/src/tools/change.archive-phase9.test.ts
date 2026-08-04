@@ -507,7 +507,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
     expect(parsed.code).toBe("ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS");
-    expect(parsed.error).toContain("Archive transition is not durably recorded");
+    expect(parsed.error).toContain(
+      "Archive transition is not durably recorded",
+    );
     expect(parsed._recoveryMutation).toBeUndefined();
     expect(store.changes.save).toHaveBeenCalledTimes(1);
   });
@@ -1377,6 +1379,65 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // (4) change was NOT archived/saved (no silent pending/archive transition)
     expect(store.changes.save).not.toHaveBeenCalled();
     expect(mocks.closeLinkedIssue).not.toHaveBeenCalled();
+  });
+
+  test("retries after bundle-first phase9 failure and proves the terminal transition", async () => {
+    // First attempt: archiveChange has already returned the durable bundle path,
+    // then Phase 9 fails. The status transition must not be attempted yet.
+    mocks.findArchiveBundle
+      .mockReset()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue("/tmp/archive/example");
+    mocks.finalizeRelease
+      .mockReset()
+      .mockRejectedValueOnce(
+        new Error("git push failed after archive bundle write"),
+      )
+      .mockResolvedValue({
+        status: "shipped",
+        repoRoot: "/tmp/main",
+        defaultBranch: "trunk",
+        releasedCommitSha: "abc123",
+        mergeCommitSha: "abc123",
+        pushStatus: "pushed",
+        changeTipSha: "tip-abc-123",
+      });
+    const store = createMockStore();
+
+    const first = JSON.parse(
+      await changeTools.adv_change_archive.execute(
+        { changeId: "example", worktreePath: "/tmp/worktree" },
+        store,
+      ),
+    );
+
+    expect(first.success).toBe(false);
+    expect(first.archivePath).toBe("/tmp/archive/example");
+    expect(first.error).toContain("git push failed after archive bundle write");
+    expect(mocks.archiveChange).toHaveBeenCalledTimes(1);
+    expect(store.changes.save).not.toHaveBeenCalled();
+
+    // Recovery attempt: the bundle is now discoverable. The retry must not
+    // re-write it; it must request archiveConverged through save(), then prove
+    // the workflow accepted the transition after the save returns.
+    const second = JSON.parse(
+      await changeTools.adv_change_archive.execute(
+        { changeId: "example" },
+        store,
+      ),
+    );
+
+    expect(second.success).toBe(true);
+    expect(mocks.archiveChange).toHaveBeenCalledTimes(1);
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "archived",
+        phase9_status: expect.objectContaining({ status: "done" }),
+      }),
+    );
+    expect(mocks.workflow.handle.describe).toHaveBeenCalled();
+    expect(second.archivePath).toBe("/tmp/archive/example");
   });
 
   test("keeps change active when finalization is pending auto-merge", async () => {

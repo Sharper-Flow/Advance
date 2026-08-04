@@ -1,5 +1,5 @@
 import { getSharedWorkflowBundle } from "../temporal/__tests__/with-test-env";
-import { readFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
@@ -8,7 +8,11 @@ import type { WorkflowHandle } from "@temporalio/client";
 import { createDefaultGates } from "../types";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import type { ChangeWorkflowInput } from "./contracts";
-import { writeChangeProjection } from "./activities";
+import {
+  writeChangeProjection,
+  type WriteChangeProjectionInput,
+  type WriteChangeProjectionResult,
+} from "./activities";
 import {
   archiveChangeSignal,
   archiveRequestedSignal,
@@ -16,6 +20,10 @@ import {
   gateCompletedSignal,
 } from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
+import { createDiskStore } from "../storage/store-disk";
+import { createTemporalStoreBackend } from "../storage/store-temporal";
+import { createMockOwnerFromClient } from "./__tests__/mock-owner";
+import { changeTools } from "../tools/change";
 
 type ChangeWorkflowHandle = WorkflowHandle<
   typeof import("./workflows").changeWorkflow
@@ -111,6 +119,103 @@ describe("changeWorkflow disk projection", () => {
       await cleanupTempDir(dir);
     }
   }, 30_000);
+
+  it("keeps retention-expired archive reads terminal after workflow completion", async () => {
+    const dir = await createTempDir("retention-terminal-projection-");
+    try {
+      const externalRoot = join(dir, "state");
+      const projectionChangesDir = join(externalRoot, "changes");
+      const changeId = "retention-expired-archive";
+      const projectId = "0000ec00000000f0000000ec0000000000000000";
+
+      await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+        const taskQueue = `retention-terminal-${Date.now()}`;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowBundle: await getSharedWorkflowBundle(),
+          activities: { writeChangeProjection },
+          taskQueue,
+        });
+        const legacy = await createDiskStore(dir, { externalRoot });
+        const store = createTemporalStoreBackend({
+          legacy,
+          temporal: createMockOwnerFromClient({ client: env.client }),
+          projectId,
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `retention-terminal-${Date.now()}`,
+            taskQueue,
+            args: [makeChangeInput(changeId, projectionChangesDir)],
+          });
+
+          await handle.signal(archiveChangeSignal);
+          await expect(handle.result()).resolves.toBeUndefined();
+
+          // The workflow must finish only after its terminal projection Activity
+          // has completed; this is the store-of-record evidence for the
+          // retention-expiry failure mode.
+          const projected = await readProjection(
+            projectionChangesDir,
+            changeId,
+          );
+          expect(projected).toMatchObject({
+            schemaVersion: 2,
+            state: { changeId, status: "archived" },
+          });
+
+          // Retention expiry removes workflow visibility, so the subsequent
+          // read ladder must use the terminal bundle on the default branch.
+          // Seed that field-observed shape from the projection that was proven
+          // durable above; no workflow record is consulted by the reads below.
+          const archiveDir = join(externalRoot, "archive", changeId);
+          await mkdir(archiveDir, { recursive: true });
+          await writeFile(
+            join(archiveDir, "change.json"),
+            `${JSON.stringify(
+              {
+                id: changeId,
+                title: projected.state.title,
+                status: "archived",
+                created_at: projected.state.createdAt,
+                created_by: "retention-test",
+                tasks: projected.state.tasks,
+                deltas: projected.state.deltas,
+                wisdom: projected.state.wisdom,
+                gates: projected.state.gates,
+                reentry_history: projected.state.reentry_history,
+              },
+              null,
+              2,
+            )}\n`,
+          );
+
+          const listed = await store.changes.list({ includeArchived: true });
+          const summarized = await store.changes.listSummary?.({
+            includeArchived: true,
+          });
+          expect(listed.changes).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ id: changeId, status: "archived" }),
+            ]),
+          );
+          expect(summarized?.changes).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ id: changeId, status: "archived" }),
+            ]),
+          );
+
+          const shown = JSON.parse(
+            await changeTools.adv_change_show.execute({ changeId }, store),
+          ) as { id: string; status: string };
+          expect(shown).toMatchObject({ id: changeId, status: "archived" });
+        });
+      });
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 45_000);
 
   it("awaits gate completion projection on the versioned path", async () => {
     const source = await readFile(
