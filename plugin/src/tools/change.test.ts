@@ -5966,7 +5966,10 @@ describe("change tools — signal-driven lifecycle", () => {
           mocks.handleMock as typeof mocks.handleMock & {
             describe: ReturnType<typeof vi.fn>;
           }
-        ).describe = vi.fn(async () => ({ status: "RUNNING" }));
+        ).describe = vi.fn(async () => ({
+          status: "RUNNING",
+          searchAttributes: { AdvChangeStatus: ["archived"] },
+        }));
         mocks.queryMock.mockResolvedValueOnce(allDoneGates);
 
         const result = await changeTools.adv_change_archive.execute(
@@ -6088,6 +6091,7 @@ describe("change tools — signal-driven lifecycle", () => {
         };
         proofHandle.describe = vi.fn(async () => ({
           status: { name: "RUNNING" },
+          searchAttributes: { AdvChangeStatus: ["archived"] },
         }));
 
         const result = await changeTools.adv_change_archive.execute(

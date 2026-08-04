@@ -39,7 +39,13 @@ const mocks = vi.hoisted(() => {
     gates: {} as Gates,
     signalPayloads: [] as Array<Record<string, unknown>>,
     handle: {
-      describe: vi.fn(async () => ({ status: { name: "RUNNING" } })),
+      // Default: archive signal observed as applied — the workflow upserts
+      // AdvChangeStatus=archived from the archive signal handler. Tests for
+      // liveness-only RUNNING describes must override this explicitly.
+      describe: vi.fn(async () => ({
+        status: { name: "RUNNING" },
+        searchAttributes: { AdvChangeStatus: ["archived"] },
+      })),
       signal: vi.fn(
         async (_signal: unknown, payload: Record<string, unknown>) => {
           workflow.signalPayloads.push(payload);
@@ -362,6 +368,14 @@ function makeChildChange(
 describe("adv_change_archive Phase 9 behavior", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
+    // Tests replace handle.describe with per-case fns and clearAllMocks does
+    // not undo property reassignment — restore the healthy default so a
+    // previous test's describe cannot leak into this one. The default models
+    // the archive signal observed as applied (AdvChangeStatus=archived).
+    mocks.workflow.handle.describe = vi.fn(async () => ({
+      status: { name: "RUNNING" },
+      searchAttributes: { AdvChangeStatus: ["archived"] },
+    }));
     // Avoid cross-test pollution from the shared mock changes directory.
     if (existsSync("/tmp/.adv/changes")) {
       await rm("/tmp/.adv/changes", { recursive: true, force: true });
@@ -543,7 +557,10 @@ describe("adv_change_archive Phase 9 behavior", () => {
       if (proofDescribeCalls === 1) {
         throw new Error("Temporal unavailable");
       }
-      return { status: { name: "RUNNING" } };
+      return {
+        status: { name: "RUNNING" },
+        searchAttributes: { AdvChangeStatus: ["archived"] },
+      };
     });
 
     const result = await changeTools.adv_change_archive.execute(
@@ -554,6 +571,33 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(proofDescribeCalls).toBe(2);
+  });
+
+  test("fails closed when the post-save proof sees only liveness without signal application", async () => {
+    let saveCalled = false;
+    const store = createMockStore();
+    store.changes.save = vi.fn(async () => {
+      saveCalled = true;
+    });
+    mocks.workflow.handle.describe = vi.fn(async () => {
+      if (!saveCalled) return { status: { name: "RUNNING" } };
+      // RUNNING proves liveness only. Without an archived search-attribute
+      // marker the archive signal was not observed as applied, so the proof
+      // must not accept this as delivery.
+      return { status: { name: "RUNNING" } };
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("ARCHIVE_WORKFLOW_PROOF_FAILED");
+    expect(parsed.error).toContain("not observed as applied");
+    // The transition was still requested; only the success claim is refused.
+    expect(store.changes.save).toHaveBeenCalledTimes(1);
   });
 
   test("blocks archive when worker-bundle provenance is undeclared for a release-pending change", async () => {
@@ -1885,6 +1929,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
     mocks.workflow.handle.describe = vi.fn(async () => ({
       status: { name: "RUNNING" },
+      searchAttributes: { AdvChangeStatus: ["archived"] },
     }));
     const pendingGate = { status: "pending" };
     mocks.workflow.handle.query.mockImplementation(

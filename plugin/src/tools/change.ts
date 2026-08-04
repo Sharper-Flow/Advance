@@ -1026,6 +1026,37 @@ function workflowRunPinFromDescription(description: unknown): {
   return { runId, statusName };
 }
 
+/**
+ * Extract archive-application evidence from a workflow describe result.
+ * The change workflow upserts AdvChangeStatus / AdvLifecycleState when a
+ * signal handler APPLIES (temporal/search-attributes.ts), so their presence
+ * with value "archived" proves the archive signal was processed — unlike a
+ * bare RUNNING status, which only proves liveness. Tolerant of both decoded
+ * SDK shapes (Record<string, unknown[]>) and single-value shapes.
+ */
+function archivedMarkerFromDescription(description: unknown): boolean {
+  if (typeof description !== "object" || description === null) return false;
+  const record = description as Record<string, unknown>;
+  const searchAttributes = record.searchAttributes;
+  if (typeof searchAttributes !== "object" || searchAttributes === null) {
+    return false;
+  }
+  const saRecord = searchAttributes as Record<string, unknown>;
+  const hasArchived = (key: string): boolean => {
+    const value = saRecord[key];
+    const values = Array.isArray(value)
+      ? value
+      : value === undefined
+        ? []
+        : [value];
+    return values.some(
+      (entry) =>
+        typeof entry === "string" && entry.toLowerCase() === "archived",
+    );
+  };
+  return hasArchived("AdvChangeStatus") || hasArchived("AdvLifecycleState");
+}
+
 async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
   const { getService } = await import("../temporal/service");
   const service = getService();
@@ -1035,9 +1066,9 @@ async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
   return getChangeHandle(service, projectId, changeId);
 }
 
-const ARCHIVE_WORKFLOW_PROOF_BUDGET_MS = 250;
-const ARCHIVE_WORKFLOW_PROOF_BASE_MS = 10;
-const ARCHIVE_WORKFLOW_PROOF_CAP_MS = 40;
+const ARCHIVE_WORKFLOW_PROOF_BUDGET_MS = 2000;
+const ARCHIVE_WORKFLOW_PROOF_BASE_MS = 50;
+const ARCHIVE_WORKFLOW_PROOF_CAP_MS = 250;
 
 type ArchiveWorkflowProofHandle = {
   describe?: () => Promise<unknown>;
@@ -1048,6 +1079,7 @@ type ArchiveWorkflowProofResult =
       ok: true;
       attempts: number;
       statusName: string;
+      proof: "terminal" | "signal-applied";
     }
   | {
       ok: false;
@@ -1065,7 +1097,13 @@ type ArchiveWorkflowProofResult =
  * Prove that the archive transition reached the change workflow after the
  * durable projection request was accepted. Signal acceptance alone is not
  * delivery proof: a completed or retention-expired workflow can accept
- * nothing. Visibility/list queries are intentionally not consulted here.
+ * nothing, and a bare RUNNING status proves only liveness — not that the
+ * archive signal was applied. Proof therefore requires either a terminal
+ * execution status (the patched terminal block writes the durable projection
+ * before completion) or a RUNNING execution whose search attributes show the
+ * archive signal applied (AdvChangeStatus/AdvLifecycleState = archived, which
+ * the workflow upserts from the signal handler). Visibility/list queries are
+ * intentionally not consulted here.
  */
 async function proveArchiveWorkflowTransition(
   handle: ArchiveWorkflowProofHandle | undefined,
@@ -1074,7 +1112,10 @@ async function proveArchiveWorkflowTransition(
   let lastError: unknown = new Error(
     `No workflow handle is available for change ${changeId}`,
   );
-  const proof = await boundedRetry<{ statusName: string }>({
+  const proof = await boundedRetry<{
+    statusName: string;
+    proof: "terminal" | "signal-applied";
+  }>({
     budgetMs: ARCHIVE_WORKFLOW_PROOF_BUDGET_MS,
     baseMs: ARCHIVE_WORKFLOW_PROOF_BASE_MS,
     capMs: ARCHIVE_WORKFLOW_PROOF_CAP_MS,
@@ -1088,14 +1129,30 @@ async function proveArchiveWorkflowTransition(
         const { statusName } = workflowRunPinFromDescription(description);
         const normalizedStatus = statusName?.toUpperCase();
         if (
-          normalizedStatus === "RUNNING" ||
           normalizedStatus === "COMPLETED" ||
           normalizedStatus === "ARCHIVED"
         ) {
           return {
             ok: true as const,
-            value: { statusName: normalizedStatus },
+            value: { statusName: normalizedStatus, proof: "terminal" as const },
           };
+        }
+        if (normalizedStatus === "RUNNING") {
+          if (archivedMarkerFromDescription(description)) {
+            return {
+              ok: true as const,
+              value: {
+                statusName: normalizedStatus,
+                proof: "signal-applied" as const,
+              },
+            };
+          }
+          lastError = new Error(
+            `workflow ${changeId} is RUNNING but the archive signal was not ` +
+              `observed as applied (no archived AdvChangeStatus/AdvLifecycleState ` +
+              `search-attribute marker)`,
+          );
+          return { ok: false as const };
         }
         lastError = new Error(
           `workflow describe returned an unrecognized archive state: ${statusName ?? "missing status"}`,
@@ -1113,6 +1170,7 @@ async function proveArchiveWorkflowTransition(
       ok: true,
       attempts: proof.attempts,
       statusName: proof.value.statusName,
+      proof: proof.value.proof,
     };
   }
 
