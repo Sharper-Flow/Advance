@@ -1,0 +1,2092 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "resolveAdvPersistenceRecovery",
+  "title": "Resolve ADV persistence recovery architecture",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-02T20:24:13.347Z",
+  "tasks": [
+    {
+      "id": "tk-80bead8588f7",
+      "title": "Verify the ADR artifact (design.md) documents all three architectural decisions with rationale, alternatives considered, consequences, and foundation-change provenance.",
+      "type": "verification",
+      "status": "cancelled",
+      "priority": 0,
+      "created_at": "2026-08-04T18:59:55.769Z",
+      "started_at": "2026-08-04T19:01:52.938Z",
+      "completed_at": "2026-08-04T20:44:24.968Z",
+      "assignedTo": "agent",
+      "cancelApproval": "User approved the Decision 2 split ('Split D2 out (Recommended)'), the recovery sequence ('Approve reset + task fast-track (Recommended)'), the contract re-mint ('remint'), and the resulting task graph at the planning gate ('approve') — all of which require this pre-split task to remain retired.",
+      "cancelledAt": "2026-08-04T20:44:24.968Z",
+      "cancellation": {
+        "reason": "Superseded by tk-d51cf17b7c91, which verifies the rescoped D1+D3 ADR against the re-minted 12-item contract. This task was scoped to the pre-split three-decision ADR; its hibernation criteria moved to decideWorkflowHibernation and its remaining criteria were renumbered by the re-mint. It briefly returned to pending when its stale contract_refs were cleared; re-cancelling to restore terminal state.",
+        "approved_by_user": true,
+        "approval_evidence": "User approved the Decision 2 split ('Split D2 out (Recommended)'), the recovery sequence ('Approve reset + task fast-track (Recommended)'), the contract re-mint ('remint'), and the resulting task graph at the planning gate ('approve') — all of which require this pre-split task to remain retired.",
+        "approved_at": "2026-08-04T20:44:24.968Z"
+      },
+      "contract_refs": {
+        "not_applicable_reason": "Superseded by tk-d51cf17b7c91. Refs targeted the pre-split contract (AC4, AC5, C4, C5, C6, DONT4); hibernation items moved to decideWorkflowHibernation and the remainder were renumbered by the re-mint."
+      },
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Decision-only change: the deliverable is the ADR artifact (design.md), not code. Verification is a structural review of the artifact against the minted contract items, not a behavioral test.",
+        "review_evidence_ref": {
+          "report_key": "resolveAdvPersistenceRecovery|tk-80bead8588f7|adv-reviewer|3"
+        },
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "review",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "error_recovery": {
+        "last_error": "plugin/src/temporal/worker-deployment-readiness.ts :96 DDC6 cites evaluateWorkerDeploymentReadiness as closing Case C, but the gate cannot evaluate full host-emitted signal-name parity and is not wired to a hibernation decision.; plugin/src/storage/store-temporal/index.ts :350 Decision 2 says dualWriteAfterMutation has already persisted every accepted mutation, including hibernate, but that helper is explicitly best-effort after an already-succeeded mutation.; plugin/src/tools/change-list.ts :1 The cited change-list source path does not exist.",
+        "retry_count": 3,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "design.md :65 Decision 2's draining-flag barrier does not specify a deterministic, durable handoff for signals arriving while hibernation waits or after its queuedSignals verification.; design.md :50 The three Key Decisions do not each contain an explicit consequences section; Decision 3 has no ADR draft containing one.; design.md :50 Three required source-anchor citations omit the repository path and do not resolve as written.",
+            "diagnosis": "C6 requires safe handling. A Temporal workflow cannot directly write the disk projection; filesystem/network I/O must be an Activity. Further, a handler that merely checks draining and queues cannot prove all queued persistence has completed before workflow completion. Temporal warns that completion may abandon unfinished signal handlers unless allHandlersFinished is awaited. The ADR therefore asserts a critical section without defining the required Activity, idempotency key/ordering, final queue watermark or sealed state, and completion barrier.; SC1 requires every decision to document rationale, alternatives, and consequences. Decision 1 and 2 have consequences only in later advisory ADR drafts; Decision 3 only implies outcomes in prose. The primary decision records should state operational, compatibility, and failure-mode consequences directly.; Preflight found no root-level src paths. Actual anchors are plugin/src/tools/doctor.ts:72-84 and :358, plugin/src/storage/store-temporal/index.ts:364, and plugin/src/utils/tool-budgets.ts:31-32 (derived value 9,801ms). The cited identifiers and line numbers are real, but the ADR paths doctor.ts, store-temporal/index.ts, and tool-budgets.ts are not repository-resolvable.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-08-04T19:19:56.646Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "plugin/src/temporal/workflows.ts :2238 The claimed two-race C6 decomposition is not exhaustive for an accepted signal whose handler is unavailable.; design.md :1 Revised design and agreement artifacts could not be retrieved through the mandated ADV tool.",
+            "diagnosis": "Temporal TS SDK documents that signals buffer indefinitely without a handler. Such a signal is accepted by the server but does not create a running handler for allHandlersFinished to await, and is not rejected as completed. The operation ledger cannot deduplicate or recover it because its handler never executes to record the operation. The current workflow registers its known handlers synchronously before its terminal wait, but the revised ADR was unavailable, so its asserted scope/exception and DDC5 coverage assertion could not be verified.; adv_change_show timed out repeatedly (both direct and invoke dispatch), and adv_status also timed out. Without the exact revised _design and _agreement text, SC1-3, AC1-5, C1-6, DONT1-4 coverage, Decisions 1-3 consequences, ADR-003, new risks/alternatives, validator-result honesty, and every source citation cannot be verified.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker-2",
+            "outcome": "failed",
+            "attempted_at": "2026-08-04T19:27:10.742Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "plugin/src/temporal/worker-deployment-readiness.ts :96 DDC6 cites evaluateWorkerDeploymentReadiness as closing Case C, but the gate cannot evaluate full host-emitted signal-name parity and is not wired to a hibernation decision.; plugin/src/storage/store-temporal/index.ts :350 Decision 2 says dualWriteAfterMutation has already persisted every accepted mutation, including hibernate, but that helper is explicitly best-effort after an already-succeeded mutation.; plugin/src/tools/change-list.ts :1 The cited change-list source path does not exist.",
+            "diagnosis": "The function only checks Worker Deployment topology/capability inputs (lines 25-47, 101-143); it has no deployed-worker signal registry, host-emitted signal registry, parity comparison, or hibernation-specific result. Therefore version skew can still leave a server-accepted signal buffered without a handler and discarded at workflow completion, violating C1/C6.; Lines 350-355 state it skips the dual-write when readback fails and that durability-critical mutations use confirmed durable writers instead. The ADR's claimed hibernation durability therefore does not follow from the cited helper; completing after only a best-effort projection write risks losing the hibernated checkpoint, contrary to C1.; Path preflight found plugin/src/tools/change-list.ts missing. The current projection-only list implementation is under plugin/src/storage/store-temporal/changes.ts (for example line 998), so the ADR does not meet its own repository-relative resolving-citation standard for this anchor.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker-3",
+            "outcome": "failed",
+            "attempted_at": "2026-08-04T19:35:05.619Z"
+          }
+        ]
+      },
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "resolveAdvPersistenceRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/dev/advance",
+          "task_id": "tk-80bead8588f7",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-80bead8588f7"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "c6-drain-barrier-1",
+              "label": "blocker",
+              "file": "design.md",
+              "line": 65,
+              "what": "Decision 2's draining-flag barrier does not specify a deterministic, durable handoff for signals arriving while hibernation waits or after its queuedSignals verification.",
+              "why": "C6 requires safe handling. A Temporal workflow cannot directly write the disk projection; filesystem/network I/O must be an Activity. Further, a handler that merely checks draining and queues cannot prove all queued persistence has completed before workflow completion. Temporal warns that completion may abandon unfinished signal handlers unless allHandlersFinished is awaited. The ADR therefore asserts a critical section without defining the required Activity, idempotency key/ordering, final queue watermark or sealed state, and completion barrier.",
+              "fix": "Revise Decision 2 to define a replay-safe durable drain protocol: workflow-owned sequence/epoch, Activity-backed idempotent projection append, durable acknowledgement for every pre-seal signal, await allHandlersFinished (or explicitly typed rejection), a final sealed/watermark step, and only then completion. State resume ordering from that acknowledged queue."
+            },
+            {
+              "id": "adr-quality-1",
+              "label": "issue",
+              "file": "design.md",
+              "line": 50,
+              "what": "The three Key Decisions do not each contain an explicit consequences section; Decision 3 has no ADR draft containing one.",
+              "why": "SC1 requires every decision to document rationale, alternatives, and consequences. Decision 1 and 2 have consequences only in later advisory ADR drafts; Decision 3 only implies outcomes in prose. The primary decision records should state operational, compatibility, and failure-mode consequences directly.",
+              "fix": "Add a concise Consequences subsection to Decisions 1–3, including D3's degraded-health outcome, probe-cost/bounded-timeout effect, and failure handling."
+            },
+            {
+              "id": "source-anchor-1",
+              "label": "issue",
+              "file": "design.md",
+              "line": 50,
+              "what": "Three required source-anchor citations omit the repository path and do not resolve as written.",
+              "why": "Preflight found no root-level src paths. Actual anchors are plugin/src/tools/doctor.ts:72-84 and :358, plugin/src/storage/store-temporal/index.ts:364, and plugin/src/utils/tool-budgets.ts:31-32 (derived value 9,801ms). The cited identifiers and line numbers are real, but the ADR paths doctor.ts, store-temporal/index.ts, and tool-budgets.ts are not repository-resolvable.",
+              "fix": "Use full repository-relative paths in Decision 1, Decision 3, Affected Components, and DDC3."
+            }
+          ],
+          "nonblocking_findings": [
+            {
+              "id": "ac1-1",
+              "label": "praise",
+              "file": "design.md",
+              "line": 11,
+              "what": "Decision 1 explicitly makes bypass reads disk-only, marks them advisory, and defers limited write.",
+              "why": "Satisfies AC1 and C2 without introducing a parallel write surface."
+            },
+            {
+              "id": "ac2-ac5-1",
+              "label": "praise",
+              "file": "design.md",
+              "line": 48,
+              "what": "Decision 2 specifies automatic OR-combined configurable triggers and default-list visibility with a [hibernated] marker.",
+              "why": "Satisfies AC2, AC5, C5, and DONT4."
+            },
+            {
+              "id": "ac3-1",
+              "label": "praise",
+              "file": "design.md",
+              "line": 99,
+              "what": "Decision 3 requires a bounded adv_status summary probe and maps probe failure to degraded.",
+              "why": "Satisfies AC3 by exercising the user-facing read path rather than only liveness/connectivity."
+            },
+            {
+              "id": "ac4-1",
+              "label": "praise",
+              "file": "design.md",
+              "line": 147,
+              "what": "Foundation provenance names all four required changes.",
+              "why": "Git confirms archive commits for makeReadsDiskAuthoritative (2ac4ceeb), gateMutationSuccessDisk (f0277b29), makeToolReadsWorkerFree (5a2e0d94), and fixMultiSessionTemporalRead (b0294359); commit 1879fb64 is the disk-authoritative implementation commit. adv_change_list independently returned fixMultiSessionTemporalRead at release/draft rather than archived, so its shipped archive commit—not list status—provides the verification."
+            },
+            {
+              "id": "temporal-claims-1",
+              "label": "praise",
+              "file": "design.md",
+              "line": 77,
+              "what": "The Continue-As-New and replay-safety claims are directionally correct.",
+              "why": "Context7 Temporal TypeScript SDK evidence confirms Continue-As-New starts a fresh run to control accumulated history; it does not reduce the number of currently running workflow executions. SDK evidence also requires nondeterministic filesystem/network I/O to move to Activities."
+            },
+            {
+              "id": "dont1-1",
+              "label": "praise",
+              "file": "design.md",
+              "line": 5,
+              "what": "Decision-only boundary is respected in the current change branch.",
+              "why": "git status was clean and git log trunk..change/resolveAdvPersistenceRecovery returned no commits; no implementation edits or commits exist for this change."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "A Temporal hibernation design cannot claim disk-queued signal durability from a workflow handler alone: filesystem/network writes require Activities, and completion must wait for all handler work plus an acknowledged durable queue boundary."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "oc-fresh status --repo \"/home/jon/dev/advance\" --json",
+              "git status --short; git log trunk..change/resolveAdvPersistenceRecovery",
+              "git log --all --oneline --grep=\"Archive (makeReadsDiskAuthoritative|gateMutationSuccessDisk|makeToolReadsWorkerFree|fixMultiSessionTemporalRead)\"; git show --no-patch 1879fb64",
+              "Context7 query: /temporalio/sdk-typescript (continueAsNew, signal handler completion, workflow I/O restrictions)"
+            ],
+            "results": "fail",
+            "evidence": "Fresh repository (trunk, behind=0, clean). No change-branch commits. Archive commits and cited 1879fb64 verified. Source identifiers/line numbers verified under plugin/src; ADR path strings do not resolve. Temporal SDK evidence confirms nondeterministic I/O requires Activities and unfinished signal handlers can be abandoned on workflow completion. Design fails C6 drain-barrier sufficiency."
+          },
+          "scope_drift": null,
+          "risks": [
+            "C6 signal loss or unacknowledged queued signal persistence remains unresolved until the drain protocol is redesigned.",
+            "adv_change_list includeArchived response was deadline-truncated and reports fixMultiSessionTemporalRead as release/draft despite its archive commit; durable change-state classification should be reconciled separately if needed."
+          ],
+          "required_main_agent_actions": [
+            "Revise design.md Decision 2 to supply a replay-safe, Activity-backed, acknowledged signal-drain protocol satisfying C6; do not start implementation until this blocker is resolved.",
+            "Add explicit Consequences subsections to each Key Decision, especially Decision 3.",
+            "Correct the ADR's repository-relative source-anchor paths to plugin/src/tools/doctor.ts, plugin/src/storage/store-temporal/index.ts, and plugin/src/utils/tool-budgets.ts.",
+            "Re-run the structural ADR review after the artifact revision.",
+            "Leave implementation, code, and branch history alone; this decision-only change currently respects DONT1."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "resolveAdvPersistenceRecovery",
+          "attempt": 2,
+          "workdir_used": "/home/jon/dev/advance",
+          "task_id": "tk-80bead8588f7",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-80bead8588f7"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "c6-drain-barrier-1",
+              "label": "blocker",
+              "file": "plugin/src/temporal/workflows.ts",
+              "line": 2238,
+              "what": "The claimed two-race C6 decomposition is not exhaustive for an accepted signal whose handler is unavailable.",
+              "why": "Temporal TS SDK documents that signals buffer indefinitely without a handler. Such a signal is accepted by the server but does not create a running handler for allHandlersFinished to await, and is not rejected as completed. The operation ledger cannot deduplicate or recover it because its handler never executes to record the operation. The current workflow registers its known handlers synchronously before its terminal wait, but the revised ADR was unavailable, so its asserted scope/exception and DDC5 coverage assertion could not be verified.",
+              "fix": "Revise Decision 2 to constrain the claim to the enumerated registered signal set and prove every accepted signal name has a handler before completion, or add a durable protocol for handler-less/unknown signals. Do not assert two races are exhaustive without that qualification and evidence."
+            },
+            {
+              "id": "artifact-readback-1",
+              "label": "blocker",
+              "file": "design.md",
+              "line": 1,
+              "what": "Revised design and agreement artifacts could not be retrieved through the mandated ADV tool.",
+              "why": "adv_change_show timed out repeatedly (both direct and invoke dispatch), and adv_status also timed out. Without the exact revised _design and _agreement text, SC1-3, AC1-5, C1-6, DONT1-4 coverage, Decisions 1-3 consequences, ADR-003, new risks/alternatives, validator-result honesty, and every source citation cannot be verified.",
+              "fix": "Restore ADV read-path responsiveness, then rerun this review against the returned artifact text."
+            }
+          ],
+          "nonblocking_findings": [
+            {
+              "id": "source-anchor-1",
+              "label": "suggestion",
+              "file": "plugin/src/tools/change-list.ts",
+              "line": 1,
+              "what": "The requested source-anchor spot-check path does not exist in this repository.",
+              "why": "Path preflight found plugin/src/tools/change-list.ts missing; repository text search located change-list behavior in plugin/src/storage/store-temporal/changes.ts instead. If the revised ADR still cites the requested path, that citation is non-resolvable.",
+              "fix": "Update the citation to the actual repository-relative source path, after artifact readback confirms the intended claim."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "Temporal TypeScript signals may be server-accepted yet buffered indefinitely when no handler is installed. allHandlersFinished waits active handler executions, not buffered handler-less signals; terminal-drain arguments must state and prove handler coverage or handle this third state."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "oc-fresh status --repo '/home/jon/dev/advance' --json",
+              "git status --short",
+              "git log --oneline trunk..change/resolveAdvPersistenceRecovery",
+              "Context7 Temporal TypeScript SDK signal-handler and allHandlersFinished documentation query"
+            ],
+            "results": "fail",
+            "evidence": "Working tree was clean; git log trunk..change/resolveAdvPersistenceRecovery produced no commits, satisfying the available DONT1 implementation-free check. Source verification confirmed workflows.ts:945 operation-ledger lookup; :673-744 seeds operation_ledger across continue-as-new; :2238 awaits allHandlersFinished; recovery-classification.ts:104-145 classifies completed/not-running/not-found; and store-temporal/index.ts:364-416 performs host-side confirmed readback before best-effort disk write. Context7 SDK documentation states signals buffer indefinitely when no handler is available and client signal resolves on server acceptance, establishing the unresolved third state. Artifact reads timed out, so contract/artifact coverage verification failed."
+          },
+          "scope_drift": null,
+          "risks": [
+            "C6 may silently lose the semantic effect of accepted handler-less signals at terminal completion.",
+            "Artifact-read timeout prevents validating any alleged remediation in the revised ADR, including SC1 consequences and source-anchor cleanup."
+          ],
+          "required_main_agent_actions": [
+            "Restore or diagnose the ADV read path; adv_change_show and adv_status timed out at the host 10-second cap, then rerun the artifact review.",
+            "Revise the C6 completion-boundary claim to address server-accepted signals with no available handler; include explicit handler-set coverage evidence for DDC5 or a durable alternative.",
+            "After artifact access is restored, verify exact AC1-AC5, SC1-SC3, C1-C6, DONT1-DONT4 coverage; Decision 1-3 consequences; ADR-003; new alternatives/risks; validator-result accuracy; and every cited path, especially plugin/src/tools/change-list.ts."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "resolveAdvPersistenceRecovery",
+          "attempt": 3,
+          "workdir_used": "/home/jon/dev/advance",
+          "task_id": "tk-80bead8588f7",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-80bead8588f7"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "c6-ddc6-readiness-1",
+              "label": "blocker",
+              "file": "plugin/src/temporal/worker-deployment-readiness.ts",
+              "line": 96,
+              "what": "DDC6 cites evaluateWorkerDeploymentReadiness as closing Case C, but the gate cannot evaluate full host-emitted signal-name parity and is not wired to a hibernation decision.",
+              "why": "The function only checks Worker Deployment topology/capability inputs (lines 25-47, 101-143); it has no deployed-worker signal registry, host-emitted signal registry, parity comparison, or hibernation-specific result. Therefore version skew can still leave a server-accepted signal buffered without a handler and discarded at workflow completion, violating C1/C6.",
+              "fix": "Replace the DDC6 assertion with a required downstream hibernation precondition: derive and compare the host-emitted signal registry with the deployed worker's registered signal registry for the target build; refuse hibernation on any mismatch; persist typed evidence of that parity check. Either extend the cited readiness gate to express and enforce this input/output, or cite a new real implementation gate rather than the current function."
+            },
+            {
+              "id": "c1-durable-hibernate-2",
+              "label": "blocker",
+              "file": "plugin/src/storage/store-temporal/index.ts",
+              "line": 350,
+              "what": "Decision 2 says dualWriteAfterMutation has already persisted every accepted mutation, including hibernate, but that helper is explicitly best-effort after an already-succeeded mutation.",
+              "why": "Lines 350-355 state it skips the dual-write when readback fails and that durability-critical mutations use confirmed durable writers instead. The ADR's claimed hibernation durability therefore does not follow from the cited helper; completing after only a best-effort projection write risks losing the hibernated checkpoint, contrary to C1.",
+              "fix": "Revise the hibernation protocol and consequences to require a confirmed durable host-side projection write/readback for the hibernate transition before completion is permitted, using the same durability class as gate/task mutations. Do not present dualWriteAfterMutation alone as the proof."
+            },
+            {
+              "id": "source-anchor-change-list-3",
+              "label": "issue",
+              "file": "plugin/src/tools/change-list.ts",
+              "line": 1,
+              "what": "The cited change-list source path does not exist.",
+              "why": "Path preflight found plugin/src/tools/change-list.ts missing. The current projection-only list implementation is under plugin/src/storage/store-temporal/changes.ts (for example line 998), so the ADR does not meet its own repository-relative resolving-citation standard for this anchor.",
+              "fix": "Replace the invalid citation with the actual source file and line range that will own default visibility and the [hibernated] marker."
+            }
+          ],
+          "nonblocking_findings": [
+            {
+              "id": "c6-overturn-explicitness-1",
+              "label": "suggestion",
+              "file": "plugin/src/temporal/workflows.ts",
+              "line": 2221,
+              "what": "The C6 overturn is technically sound and legitimate because the agreement expressly deferred it to design, and the ADR explicitly withdraws the invalid handler-to-disk proposal; add one sentence linking that withdrawal to the agreement's Agent Decision 2.",
+              "why": "A future reader can otherwise mistake the old LBP preference for an unacknowledged contradiction. Suggested text: “This explicitly overturns the deferred Agent Decision 2 preference for handler-persisted queuedSignals[]: direct workflow-handler disk I/O is invalid; durability moves to a confirmed host-side transition before completion.”"
+            },
+            {
+              "id": "signal-update-boundary-2",
+              "label": "suggestion",
+              "file": "plugin/src/temporal/workflows.ts",
+              "line": 2238,
+              "what": "State separately how updates fit the completion boundary.",
+              "why": "Context7 SDK evidence says unhandled signals buffer indefinitely, whereas an unhandled update is rejected at the end of its activation; allHandlersFinished waits for both signals and updates. Case A/B/C is exhaustive only for signals after a real handler-parity precondition. A concise update-specific typed-rejection statement prevents overclaiming."
+            },
+            {
+              "id": "coverage-positive-3",
+              "label": "praise",
+              "file": "plugin/src/temporal/workflows.ts",
+              "line": 2221,
+              "what": "The Case C registration-order premise itself is supported.",
+              "why": "changeWorkflow starts at line 747; handlers are registered synchronously through the final setHandler at lines 2209-2214 before the first top-level await wf.condition at line 2221. The awaits at 1752, 1889/1891, 1938/1945, and 1997/1999 are inside async handler bodies and do not delay registration. Context7 confirms buffered signals dispatch when setHandler registers their name, and allHandlersFinished is the documented completion drain."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "A deployment-readiness predicate is not evidence of signal-schema/version parity unless its typed input includes both registries, its result exposes mismatch, and the hibernation path enforces it. Do not cite a general worker-versioning gate as a Case-C signal safety proof by implication."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "git status --short && git log --oneline trunk..change/resolveAdvPersistenceRecovery",
+              "repository source inspection: plugin/src/temporal/workflows.ts:747-2245; worker-deployment-readiness.ts:25-163; store-temporal/index.ts:350-394; recovery-classification.ts:14-145; doctor.ts:72-84,358-366; Context7 /temporalio/sdk-typescript handler semantics"
+            ],
+            "results": "pass",
+            "evidence": "DONT1 verified: git status was clean and trunk..change/resolveAdvPersistenceRecovery had no commits. All cited paths resolve except plugin/src/tools/change-list.ts. The bounded artifact-only read succeeded but response transport truncated after 20,894 of 34,466 characters; reviewed all supplied Decision 1/2/3 and Case-C content. Context7 confirms signals/updates precede other activation jobs when handlers exist, signals buffer until setHandler, unhandled updates reject at activation end, and allHandlersFinished drains running handlers. Source confirms no top-level await between changeWorkflow entry/handler registrations and line 2221; cited handler-body awaits do not split registration."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Case C remains possible under host/worker version skew because the cited DDC6 evaluator cannot express or enforce host-signal/deployed-handler parity.",
+            "Hibernation checkpoint durability is not established if implementation follows the ADR's current dualWriteAfterMutation wording.",
+            "The artifact response was transport-truncated; unseen tail sections (including Validator Result wording) could not be independently read in this attempt."
+          ],
+          "required_main_agent_actions": [
+            "Revise the ADR before design approval to replace DDC6's current worker-deployment-readiness claim with an enforceable full host-emitted-signal/deployed-worker-handler parity precondition that refuses hibernation on mismatch.",
+            "Revise Decision 2 so hibernate completion requires a confirmed durable host-side disk projection transition, not best-effort dualWriteAfterMutation.",
+            "Correct the invalid plugin/src/tools/change-list.ts citation and add the two non-blocking clarification sentences; rerun /adv-review after the artifact update.",
+            "Leave repository code, task state, gates, worktrees, and implementation untouched for this decision-only change."
+          ]
+        }
+      ],
+      "updatedAt": "2026-08-04T20:27:29.884Z"
+    },
+    {
+      "id": "tk-d51cf17b7c91",
+      "title": "Verify the rescoped ADR (design.md) documents Decision 1 and Decision 3 with rationale, alternatives considered, and consequences, and that foundation-change provenance is verifiable.",
+      "type": "verification",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-08-04T20:23:06.447Z",
+      "started_at": "2026-08-04T20:29:24.393Z",
+      "completed_at": "2026-08-04T20:43:14.295Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Independent adv-reviewer structural review returned READY (attempt 3), persisted as a task-scoped REVIEWER_REPORT per evidence_policy \"review\". Confirmed all 12 contract items (SC1-3, AC1-3, C1-3, DONT1-3); AC3 foundation provenance by archive commits 2ac4ceeb, f0277b29, 5a2e0d94, b0294359 (impl 1879fb64); rescope integrity with no dangling Decision 2 references; all source anchors resolve including the corrected assertDurablePersist at disk-persist.ts:70. Clean tree is the expected and required outcome: DONT1 makes this change decision-only, so there is nothing to commit.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/ARCHIVE_SUMMARY.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/BRIEFING_DIGEST.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/CONTRACT_TRACEABILITY.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/acceptance.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/change.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/executive-summary.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/proposal.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/release-notes.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/spec-projection.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/summary.v1.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/wisdom.json"
+      ],
+      "checkpointSha": "5dfcc433c55ca189d00d1ced71408a11f2d77529",
+      "completedAt": "2026-08-04T20:43:14.295Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "Decision-only change: the deliverable is the ADR artifact, not code. Verification is a structural review of the artifact against the rescoped contract, not a behavioral test.",
+        "review_evidence_ref": {
+          "report_key": "resolveAdvPersistenceRecovery|tk-d51cf17b7c91|adv-reviewer|3"
+        },
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "review",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "error_recovery": {
+        "last_error": "design.md :42 Three Decision 1 citations identify `assertDurablePersist` as `plugin/src/storage/store-temporal/disk-persist.ts:44`, but line 44 declares `DiskProjectionPersistError`; `assertDurablePersist` is at line 70.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "design.md :42 Three Decision 1 citations identify `assertDurablePersist` as `plugin/src/storage/store-temporal/disk-persist.ts:44`, but line 44 declares `DiskProjectionPersistError`; `assertDurablePersist` is at line 70.",
+            "diagnosis": "AC-level ADR source anchors must resolve to the named behavior. This inaccurate durability-gate anchor can mislead the downstream D1 implementation change and violates the requested source-anchor verification.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-08-04T20:32:30.283Z"
+          }
+        ]
+      },
+      "touched_files": [
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/ARCHIVE_SUMMARY.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/BRIEFING_DIGEST.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/CONTRACT_TRACEABILITY.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/acceptance.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/change.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/executive-summary.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/proposal.md",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/release-notes.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/spec-projection.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/summary.v1.json",
+        ".adv/archive/2026-08-04-fixMultiSessionTemporalRead/wisdom.json"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "resolveAdvPersistenceRecovery",
+          "attempt": 1,
+          "workdir_used": "/home/jon/dev/advance",
+          "task_id": "tk-d51cf17b7c91",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d51cf17b7c91"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "source-anchors-1",
+              "label": "blocker",
+              "file": "design.md",
+              "line": 42,
+              "what": "Three Decision 1 citations identify `assertDurablePersist` as `plugin/src/storage/store-temporal/disk-persist.ts:44`, but line 44 declares `DiskProjectionPersistError`; `assertDurablePersist` is at line 70.",
+              "why": "AC-level ADR source anchors must resolve to the named behavior. This inaccurate durability-gate anchor can mislead the downstream D1 implementation change and violates the requested source-anchor verification.",
+              "fix": "Replace `plugin/src/storage/store-temporal/disk-persist.ts:31,44` with `plugin/src/storage/store-temporal/disk-persist.ts:31,70` in the Architecture Overview and Affected Components table, and replace the D1 Lever citation `disk-persist.ts:44` with `disk-persist.ts:70`."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "When an ADR cites multiple adjacent symbols, verify each named symbol's exact line rather than accepting a nearby type or error class as an equivalent anchor."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "test -e plugin/src/storage/store-temporal/index.ts && test -e plugin/src/storage/store-temporal/disk-persist.ts && test -e plugin/src/tools/doctor.ts && test -e plugin/src/utils/tool-budgets.ts && test -e plugin/src/plugin-init.ts && test -e AGENTS.md",
+              "git show -s --format='%H%x09%s' 2ac4ceeb f0277b29 5a2e0d94 b0294359 1879fb64",
+              "git status --short && git log trunk..change/resolveAdvPersistenceRecovery --oneline"
+            ],
+            "results": "fail",
+            "evidence": "All cited paths exist. `index.ts:364,366,399,405,411` confirms D1's best-effort cache-refresh/staleness premise; `doctor.ts:72-84,358`, `tool-budgets.ts:31-32`, `plugin-init.ts:936-949`, and `AGENTS.md:7` resolve to their stated levers or proposed integration location. `disk-persist.ts:31` is DiskPersistOutcome and line 70 is assertDurablePersist; line 44 is DiskProjectionPersistError, so the three `:44` assertDurablePersist anchors fail. Archive commits 2ac4ceeb, f0277b29, 5a2e0d94, b0294359 and implementation commit 1879fb64 all resolve with the claimed changes; archive commits contain .adv/archive bundles. Git worktree is clean and trunk..change/resolveAdvPersistenceRecovery is empty. Contract coverage: SC1/SC2/SC3 met for ADR-001 and ADR-003; AC1 and AC2 substantively met; AC3 provenance verified; C1/C2/C3 and DONT1/DONT3 met. DONT2 is met: moving one independently invalidated architectural decision to a dedicated decision change is a scope correction, not per-symptom deferral. Rescope integrity otherwise passes: D2/DDC/hibernation mentions are explicitly historical or the intentional dependency pointer; the two-write-path table materially supports D1's DDC4 staleness consequence. Incident note honestly reports adv_task_show—not adv_status—as the live timeout, so it is valid supporting evidence for the broader critical-read-path defect rather than self-serving proof of a specific status-view reproduction."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Until the three anchors are corrected, a downstream D1 implementer may inspect DiskProjectionPersistError instead of the durability-gate function.",
+            "No implementation behavior was reviewed or changed; this is decision-only scope."
+          ],
+          "required_main_agent_actions": [
+            "Correct the three `assertDurablePersist` source anchors in the design artifact from line 44 to line 70, then rerun this source-anchor check.",
+            "Do not revisit ADR-002 or hibernation implementation under this change; its remaining references are intentional history/dependency context."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "resolveAdvPersistenceRecovery",
+          "attempt": 2,
+          "workdir_used": "/home/jon/dev/advance",
+          "task_id": "tk-d51cf17b7c91",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d51cf17b7c91"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "NEEDS_WORK",
+          "blocking_findings": [],
+          "nonblocking_findings": [
+            {
+              "id": "review-question-1",
+              "label": "question",
+              "file": "design.md",
+              "line": 1,
+              "what": "The requested artifact-only design read is truncated by the ADV tool transport, so the three corrected citations and wholesale-rewrite retention anchors cannot be independently inspected in this reviewer run.",
+              "why": "`adv_change_show` reported a 21,729-character response exceeding its 21,000-character output budget and returned a truncation placeholder; direct ADV state reads are prohibited."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "Large raw narrative artifacts can exceed adv_change_show transport output limits. A bounded artifact section/range reader is needed for independent review without violating ADV state-access policy."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "source line inspection: plugin/src/storage/store-temporal/disk-persist.ts:31,44,70",
+              "source anchor spot-checks: plugin/src/storage/store-temporal/index.ts:364,366,399,405,411; plugin/src/tools/doctor.ts:72-84,358; plugin/src/utils/tool-budgets.ts:31-32; plugin/src/plugin-init.ts",
+              "git status --short && git log trunk..change/resolveAdvPersistenceRecovery --oneline"
+            ],
+            "results": "pass",
+            "evidence": "disk-persist source confirms DiskPersistOutcome at line 31, DiskProjectionPersistError at line 44, and assertDurablePersist at line 70. All requested source anchors resolve. git status was clean and trunk..change/resolveAdvPersistenceRecovery was empty. Artifact content itself was not returned: adv_change_show artifact-only response was transport-truncated."
+          },
+          "scope_drift": null,
+          "risks": [
+            "The citation correction and retained ADR/validator anchors remain unverified from the raw design artifact because the authorized read surface truncated its response."
+          ],
+          "required_main_agent_actions": [
+            "Retrieve the design artifact through an authorized bounded/range-capable ADV artifact read, then confirm the three citations, retained Decision/ADR/DDC/risk/validator/incident anchors, and the four new-text assertions before acceptance.",
+            "Do not treat this as a code or contract blocker; no repository change is requested."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "resolveAdvPersistenceRecovery",
+          "attempt": 3,
+          "workdir_used": "/home/jon/dev/advance",
+          "task_id": "tk-d51cf17b7c91",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-d51cf17b7c91"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "READY",
+          "blocking_findings": [],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "oc-fresh status --repo \"/home/jon/dev/advance\" --json",
+              "git status --porcelain && git log --oneline trunk..change/resolveAdvPersistenceRecovery && git show -s --format='%H%n%s%n%ad%n' --date=short 2ac4ceeb f0277b29 5a2e0d94 b0294359 1879fb64"
+            ],
+            "results": "pass",
+            "evidence": "Artifact read completed in full. Source confirms DiskPersistOutcome at disk-persist.ts:31, DiskProjectionPersistError at :44, and assertDurablePersist at :70. The ADR's Architecture Overview, D1 Lever, and Affected Components table use those anchors correctly; no remaining assertDurablePersist-to-:44 attribution appeared. D1/D3 each retain substantive rationale, alternatives, and consequences; ADR-001/003, ADR-002 moved pointer, DDC3/DDC4 plus moved-DDC pointer, four risks, rounds 1-6, incident note, strategy, and four archived foundations remain. Git status and trunk..change/resolveAdvPersistenceRecovery were empty; archive/implementation commits resolved to the declared changes."
+          },
+          "scope_drift": null,
+          "risks": [
+            "This decision-only ADR intentionally leaves all described implementation to downstream changes; no implementation behavior was reviewed as shipped."
+          ],
+          "required_main_agent_actions": [
+            "Record this closing review as READY; proceed through the design-gate approval workflow before any implementation begins."
+          ]
+        }
+      ],
+      "updatedAt": "2026-08-04T20:26:32.101Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "resolveAdvPersistenceRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Validate ADR design (disk-authoritative recovery, workflow hibernation, critical-path health probe) against agreement, specs, and external evidence",
+      "sources": [
+        {
+          "label": "Temporal TS SDK docs — signal replay",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts",
+          "summary": "query() requires the worker to replay history to reconstruct state before executing handlers; signals are part of workflow history and replayed deterministically. Confirms hibernate signal is replay-safe (DDC1)."
+        },
+        {
+          "label": "Temporal TS SDK docs — continueAsNew",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/contrib/strands/README.md",
+          "summary": "continueAsNew restarts workflow with carried state to prevent history-limit overflow but the workflow keeps RUNNING (resets history only). Does NOT reduce running workflow count — not a simpler alternative to hibernation for the resource-bounding objective."
+        },
+        {
+          "label": "Codebase — dualWriteAfterMutation",
+          "locator": "plugin/src/storage/store-temporal/index.ts:364",
+          "summary": "Confirmed at cited line. Post-mutation readback + dual-write to disk; classifies stale reads; skips dual-write on ambiguous/poisoned outcomes. Foundation for Decision 1."
+        },
+        {
+          "label": "Codebase — lifecycleState",
+          "locator": "plugin/src/tools/change.ts:306,398,406",
+          "summary": "Confirmed at cited lines. Atomic write of status AND lifecycleState (line 398 'D5'); archived at 406. Foundation for Decision 2 hibernated lifecycle state."
+        },
+        {
+          "label": "Codebase — disk-authoritative read convergence",
+          "locator": "plugin/src/storage/store-temporal/convergent-read-disk-authoritative.test.ts:1-14",
+          "summary": "makeReadsDiskAuthoritative shipped: per-member Temporal query that never resolves no longer hangs; on-disk change.json projection returned as source-of-truth with typed workflow_unresponsive recovery advisory; circuit-breaker trips after K=3. Confirms Decision 1 mechanism and DDC4 marker precedent already exist."
+        },
+        {
+          "label": "Codebase — doctor addNonHealthyFinding (NOT pushFinding)",
+          "locator": "plugin/src/tools/doctor.ts:351-366",
+          "summary": "Design cites 'pushFinding at doctor.ts:352' but actual function is addNonHealthyFinding (line 358); line 352 is its doc comment. Concept correct (supersedes optimistic healthy by splicing it out then pushing new finding); cited name inaccurate. Lines 73-84 are the DoctorFindingClass type union."
+        },
+        {
+          "label": "Codebase — STATUS_READ_DEADLINE_BUDGET_MS",
+          "locator": "plugin/src/utils/tool-budgets.ts:31 and plugin/src/utils/tool-budgets.test.ts:18",
+          "summary": "Constant = 9_801ms, asserted by test. Confirms DDC3 (probe timeout 3s < 9801ms budget) holds numerically."
+        },
+        {
+          "label": "Codebase — gateMutationSuccessDisk invariant",
+          "locator": "plugin/src/storage/store-temporal/disk-persist.ts:4 and index.ts:278",
+          "summary": "Shipped durability invariant. Mitigates the resume-projection-corruption risk cited in the design."
+        },
+        {
+          "label": "Codebase — worker-free reads spec laws",
+          "locator": "plugin/src/tools/cli-bridge-contract.test.ts:303-339 and plugin/src/tools/change.worker-free.test.ts:2",
+          "summary": "Formal spec requirements rq-statusCliWorkerFree01 and rq-dashboardWorkerFree01 exist and are pinned by tests. makeToolReadsWorkerFree shipped. Decision 3's bounded status read is consistent with these worker-free laws."
+        },
+        {
+          "label": "AGENTS.md — no file-backed runtime rule",
+          "locator": "/home/jon/dev/advance/AGENTS.md:7",
+          "summary": "Prose rule: 'do not restore a legacy SQLite/file-backed runtime path'. Scoped to RUNTIME (writes), not reads. Decision 1 read-only bypass does not violate it; design framing is more precise than the prose."
+        },
+        {
+          "label": "ADV status — live Temporal outage",
+          "locator": "adv_status view:summary (this session)",
+          "summary": "Temporal server currently DOWN (temporal_health_ok: false); adv_change_show timing out at 10s during outage. Real-time evidence Decision 1 is needed AND that the adv_change_show heavy-include path may not yet fully bypass — design should verify bypass covers all read tools/include flags."
+        }
+      ],
+      "architecture_assessment": "The common thesis — disk projection is the authoritative read source; Temporal is the write-ahead log — is correct and already materially shipped (makeReadsDiskAuthoritative returns on-disk projection as source-of-truth with a typed workflow_unresponsive advisory; dualWriteAfterMutation writes to both). All three decisions are architecturally sound. (D1) read-only bypass preserves C2 (no second write surface) and does NOT violate the AGENTS.md 'no file-backed runtime' prose because that rule is scoped to RUNTIME/writes, not reads — the design is more precise than the prose. (D2) hibernation via complete-and-recreate is the structurally correct Temporal pattern for bounding running workflow COUNT: continueAsNew only bounds history size not count (Temporal docs), auto-archive is terminal, and a creation-ceiling blocks users. (D3) bounded status probe is consistent with existing worker-free read laws. External evidence confirms signals are replay-safe (query replays history including signal events), so DDC1 is achievable via the existing wf.defineSignal/setHandler infrastructure. Replay-safety and no-simpler-alternative claims hold. Deviations are MINOR: one lever citation name is wrong (pushFinding -> addNonHealthyFinding), three cited rq- requirement IDs do not exist as anchored specs, the C6 in-flight-signal drain sequencing is named as a risk but its mechanism is underspecified, and live outage evidence shows adv_change_show heavy-include reads still time out (bypass coverage should be enumerated).",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No contract compromise, security issue, release blocker, or spec-law violation found. All 5 acceptance criteria are architecturally satisfiable; all 4 AC4 foundation changes confirmed shipped (makeReadsDiskAuthoritative, gateMutationSuccessDisk, makeToolReadsWorkerFree, fixMultiSessionTemporalRead). Caution (not fail) because four refinements should be addressed before/at implementation. (1) Lever citation: doctor.ts:352 cites 'pushFinding' but the real function is addNonHealthyFinding (line 358); line 352 is its doc comment, and lines 73-84 are the DoctorFindingClass type union. (2) Citation hygiene: the design references requirement IDs rq-makeReadsDiskAuthoritative01, rq-noFileBackedRuntime01, rq-temporalReadBudget01 that do NOT exist as anchored spec requirements or code comments (verified via spec search + codebase-wide text search). Replace with real anchors: STATUS_READ_DEADLINE_BUDGET_MS=9801ms (utils/tool-budgets.ts:31), AGENTS.md:7 prose, convergent-read-disk-authoritative test. (3) C6 underspecified: the workflow must reject/queue-on-disk signals received between checkpoint-persist and completion, since a completing Temporal workflow drops in-flight signals; the design names this as a risk but does not specify the drain barrier. (4) Bypass coverage: live outage evidence shows adv_change_show with heavy includes currently times out at 10s — enumerate the exact read tools and include-flag paths covered by the bypass. Spec-law note: the design does NOT contradict any existing spec; the 'no file-backed runtime' rule (AGENTS.md:7) is scoped to RUNTIME/writes and the read-only bypass stays within it; worker-free laws (rq-statusCliWorkerFree01, rq-dashboardWorkerFree01) are consistent with Decision 3."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Hibernation adds a non-terminal lifecycle state and checkpoint/resume machinery vs. relying on Temporal retention alone (which cannot auto-complete condition-waiting workflows).",
+          "Read-only bypass increases read-path branching and advisory-marker surface vs. a single Temporal-sourced read path.",
+          "Complete-and-recreate resume pays workflow-start latency on first post-hibernation mutation vs. a warm always-running workflow.",
+          "Critical-path probe (3s) adds a real read to every health check vs. an optimistic healthy default (mitigated by the timeout being far under the 9801ms budget).",
+          "A new lifecycle state touches adv_change_list visibility, default-list filtering (DONT4), and every consumer of lifecycleState — broader blast radius than a pure read-path change."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "continueAsNew to bound running workflow count",
+            "disposition": "rejected",
+            "rationale": "Temporal docs confirm continueAsNew restarts the workflow with carried state to prevent history-limit overflow but the workflow keeps RUNNING — it bounds history size, not running count. Does not achieve the hibernation objective."
+          },
+          {
+            "option": "Creation-time active-count ceiling with backpressure",
+            "disposition": "rejected",
+            "rationale": "Bounds count but blocks users from creating new changes once the ceiling is hit — strictly worse UX than a non-blocking hibernation that auto-resumes on mutation."
+          },
+          {
+            "option": "Auto-archive stale changes",
+            "disposition": "rejected",
+            "rationale": "Archive is a TERMINAL state; cannot resume. Hibernation exists specifically because a reversible middle state is needed."
+          },
+          {
+            "option": "Lazy/on-demand workflow spawning (spawn changeWorkflow only when a mutation arrives, complete immediately after)",
+            "disposition": "deferred",
+            "rationale": "Would bound running count to currently-mutating changes without a new lifecycle state. Viable and arguably simpler. Tradeoffs: per-mutation workflow-start latency, loss of warm query handlers (reads always fall back to disk-only), and a larger change to the fundamental per-change-workflow model. Hibernation is lower blast-radius; the design should add one paragraph explicitly rejecting lazy-spawn so the simplicity choice is defensible on record."
+          }
+        ],
+        "recommendation": "Proceed to design-gate approval as a CAUTION. The architecture is sound, all AC are satisfiable, all four AC4 foundation changes are confirmed shipped, the replay-safety claim is externally validated, and no spec law is contradicted. Before implementation, address four refinements: (1) correct lever citation doctor.ts:352 pushFinding -> addNonHealthyFinding (line 358); (2) replace the three invented rq- IDs with real anchors; (3) specify the C6 in-flight-signal drain barrier (reject/queue-on-disk signals between checkpoint-persist and completion); (4) enumerate read tools and include-flag paths covered by the bypass, given adv_change_show heavy includes are observed timing out during the current outage. The implementation sequence D3 -> D1 -> D2 is sound."
+      },
+      "recommendation": "Proceed to design-gate approval as a CAUTION (not fail). The architecture is sound: the disk-authoritative thesis is correct and materially shipped, all 5 acceptance criteria are satisfiable, all 4 AC4 foundation changes are confirmed shipped, the replay-safety claim is externally validated by Temporal docs, and no spec law is contradicted (the 'no file-backed runtime' rule is scoped to writes; the read-only bypass stays within it). Before implementation, address four refinements: (1) correct the lever citation doctor.ts:352 pushFinding -> addNonHealthyFinding (line 358); (2) replace the three invented rq- IDs (rq-makeReadsDiskAuthoritative01/rq-noFileBackedRuntime01/rq-temporalReadBudget01) with their real anchors (STATUS_READ_DEADLINE_BUDGET_MS=9801ms, AGENTS.md:7 prose, convergent-read test); (3) specify the C6 in-flight-signal drain barrier — a completing Temporal workflow drops signals received between checkpoint-persist and completion, so the workflow must reject/queue-on-disk in that window; (4) enumerate the exact read tools and include-flag paths covered by the bypass, since live outage evidence shows adv_change_show with heavy includes currently times out at 10s. Additionally add one paragraph to the design explicitly rejecting the lazy/on-demand-workflow-spawn alternative so the simplicity choice is defensible. The implementation sequence D3 -> D1 -> D2 is sound: D3 first gives accurate health diagnosis for the remaining triggers, D1 enables recovery during hibernation and during the current outage, D2 (largest) correctly depends on both.",
+      "follow_ups": [
+        "Advise /adv-clarify: status reports 1 ambiguity finding on this change — confirm it does not overlap with the C6 drain-sequencing concern raised here.",
+        "After design-gate approval, an implementation task should add a regression test asserting adv_change_show (all include-flag variants) returns within budget during a simulated Temporal outage, closing the observed live gap.",
+        "Consider anchoring the 'no file-backed RUNTIME (writes)' vs 'file-backed READS are acceptable' distinction as a formal spec requirement so future agents do not re-conflate it (DONT3)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "resolveAdvPersistenceRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "task_id": "tk-80bead8588f7",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-80bead8588f7"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "c6-drain-barrier-1",
+          "label": "blocker",
+          "file": "design.md",
+          "line": 65,
+          "what": "Decision 2's draining-flag barrier does not specify a deterministic, durable handoff for signals arriving while hibernation waits or after its queuedSignals verification.",
+          "why": "C6 requires safe handling. A Temporal workflow cannot directly write the disk projection; filesystem/network I/O must be an Activity. Further, a handler that merely checks draining and queues cannot prove all queued persistence has completed before workflow completion. Temporal warns that completion may abandon unfinished signal handlers unless allHandlersFinished is awaited. The ADR therefore asserts a critical section without defining the required Activity, idempotency key/ordering, final queue watermark or sealed state, and completion barrier.",
+          "fix": "Revise Decision 2 to define a replay-safe durable drain protocol: workflow-owned sequence/epoch, Activity-backed idempotent projection append, durable acknowledgement for every pre-seal signal, await allHandlersFinished (or explicitly typed rejection), a final sealed/watermark step, and only then completion. State resume ordering from that acknowledged queue."
+        },
+        {
+          "id": "adr-quality-1",
+          "label": "issue",
+          "file": "design.md",
+          "line": 50,
+          "what": "The three Key Decisions do not each contain an explicit consequences section; Decision 3 has no ADR draft containing one.",
+          "why": "SC1 requires every decision to document rationale, alternatives, and consequences. Decision 1 and 2 have consequences only in later advisory ADR drafts; Decision 3 only implies outcomes in prose. The primary decision records should state operational, compatibility, and failure-mode consequences directly.",
+          "fix": "Add a concise Consequences subsection to Decisions 1–3, including D3's degraded-health outcome, probe-cost/bounded-timeout effect, and failure handling."
+        },
+        {
+          "id": "source-anchor-1",
+          "label": "issue",
+          "file": "design.md",
+          "line": 50,
+          "what": "Three required source-anchor citations omit the repository path and do not resolve as written.",
+          "why": "Preflight found no root-level src paths. Actual anchors are plugin/src/tools/doctor.ts:72-84 and :358, plugin/src/storage/store-temporal/index.ts:364, and plugin/src/utils/tool-budgets.ts:31-32 (derived value 9,801ms). The cited identifiers and line numbers are real, but the ADR paths doctor.ts, store-temporal/index.ts, and tool-budgets.ts are not repository-resolvable.",
+          "fix": "Use full repository-relative paths in Decision 1, Decision 3, Affected Components, and DDC3."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "ac1-1",
+          "label": "praise",
+          "file": "design.md",
+          "line": 11,
+          "what": "Decision 1 explicitly makes bypass reads disk-only, marks them advisory, and defers limited write.",
+          "why": "Satisfies AC1 and C2 without introducing a parallel write surface."
+        },
+        {
+          "id": "ac2-ac5-1",
+          "label": "praise",
+          "file": "design.md",
+          "line": 48,
+          "what": "Decision 2 specifies automatic OR-combined configurable triggers and default-list visibility with a [hibernated] marker.",
+          "why": "Satisfies AC2, AC5, C5, and DONT4."
+        },
+        {
+          "id": "ac3-1",
+          "label": "praise",
+          "file": "design.md",
+          "line": 99,
+          "what": "Decision 3 requires a bounded adv_status summary probe and maps probe failure to degraded.",
+          "why": "Satisfies AC3 by exercising the user-facing read path rather than only liveness/connectivity."
+        },
+        {
+          "id": "ac4-1",
+          "label": "praise",
+          "file": "design.md",
+          "line": 147,
+          "what": "Foundation provenance names all four required changes.",
+          "why": "Git confirms archive commits for makeReadsDiskAuthoritative (2ac4ceeb), gateMutationSuccessDisk (f0277b29), makeToolReadsWorkerFree (5a2e0d94), and fixMultiSessionTemporalRead (b0294359); commit 1879fb64 is the disk-authoritative implementation commit. adv_change_list independently returned fixMultiSessionTemporalRead at release/draft rather than archived, so its shipped archive commit—not list status—provides the verification."
+        },
+        {
+          "id": "temporal-claims-1",
+          "label": "praise",
+          "file": "design.md",
+          "line": 77,
+          "what": "The Continue-As-New and replay-safety claims are directionally correct.",
+          "why": "Context7 Temporal TypeScript SDK evidence confirms Continue-As-New starts a fresh run to control accumulated history; it does not reduce the number of currently running workflow executions. SDK evidence also requires nondeterministic filesystem/network I/O to move to Activities."
+        },
+        {
+          "id": "dont1-1",
+          "label": "praise",
+          "file": "design.md",
+          "line": 5,
+          "what": "Decision-only boundary is respected in the current change branch.",
+          "why": "git status was clean and git log trunk..change/resolveAdvPersistenceRecovery returned no commits; no implementation edits or commits exist for this change."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A Temporal hibernation design cannot claim disk-queued signal durability from a workflow handler alone: filesystem/network writes require Activities, and completion must wait for all handler work plus an acknowledged durable queue boundary."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "oc-fresh status --repo \"/home/jon/dev/advance\" --json",
+          "git status --short; git log trunk..change/resolveAdvPersistenceRecovery",
+          "git log --all --oneline --grep=\"Archive (makeReadsDiskAuthoritative|gateMutationSuccessDisk|makeToolReadsWorkerFree|fixMultiSessionTemporalRead)\"; git show --no-patch 1879fb64",
+          "Context7 query: /temporalio/sdk-typescript (continueAsNew, signal handler completion, workflow I/O restrictions)"
+        ],
+        "results": "fail",
+        "evidence": "Fresh repository (trunk, behind=0, clean). No change-branch commits. Archive commits and cited 1879fb64 verified. Source identifiers/line numbers verified under plugin/src; ADR path strings do not resolve. Temporal SDK evidence confirms nondeterministic I/O requires Activities and unfinished signal handlers can be abandoned on workflow completion. Design fails C6 drain-barrier sufficiency."
+      },
+      "scope_drift": null,
+      "risks": [
+        "C6 signal loss or unacknowledged queued signal persistence remains unresolved until the drain protocol is redesigned.",
+        "adv_change_list includeArchived response was deadline-truncated and reports fixMultiSessionTemporalRead as release/draft despite its archive commit; durable change-state classification should be reconciled separately if needed."
+      ],
+      "required_main_agent_actions": [
+        "Revise design.md Decision 2 to supply a replay-safe, Activity-backed, acknowledged signal-drain protocol satisfying C6; do not start implementation until this blocker is resolved.",
+        "Add explicit Consequences subsections to each Key Decision, especially Decision 3.",
+        "Correct the ADR's repository-relative source-anchor paths to plugin/src/tools/doctor.ts, plugin/src/storage/store-temporal/index.ts, and plugin/src/utils/tool-budgets.ts.",
+        "Re-run the structural ADR review after the artifact revision.",
+        "Leave implementation, code, and branch history alone; this decision-only change currently respects DONT1."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "resolveAdvPersistenceRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "task_id": "tk-80bead8588f7",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-80bead8588f7"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "c6-drain-barrier-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 2238,
+          "what": "The claimed two-race C6 decomposition is not exhaustive for an accepted signal whose handler is unavailable.",
+          "why": "Temporal TS SDK documents that signals buffer indefinitely without a handler. Such a signal is accepted by the server but does not create a running handler for allHandlersFinished to await, and is not rejected as completed. The operation ledger cannot deduplicate or recover it because its handler never executes to record the operation. The current workflow registers its known handlers synchronously before its terminal wait, but the revised ADR was unavailable, so its asserted scope/exception and DDC5 coverage assertion could not be verified.",
+          "fix": "Revise Decision 2 to constrain the claim to the enumerated registered signal set and prove every accepted signal name has a handler before completion, or add a durable protocol for handler-less/unknown signals. Do not assert two races are exhaustive without that qualification and evidence."
+        },
+        {
+          "id": "artifact-readback-1",
+          "label": "blocker",
+          "file": "design.md",
+          "line": 1,
+          "what": "Revised design and agreement artifacts could not be retrieved through the mandated ADV tool.",
+          "why": "adv_change_show timed out repeatedly (both direct and invoke dispatch), and adv_status also timed out. Without the exact revised _design and _agreement text, SC1-3, AC1-5, C1-6, DONT1-4 coverage, Decisions 1-3 consequences, ADR-003, new risks/alternatives, validator-result honesty, and every source citation cannot be verified.",
+          "fix": "Restore ADV read-path responsiveness, then rerun this review against the returned artifact text."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "source-anchor-1",
+          "label": "suggestion",
+          "file": "plugin/src/tools/change-list.ts",
+          "line": 1,
+          "what": "The requested source-anchor spot-check path does not exist in this repository.",
+          "why": "Path preflight found plugin/src/tools/change-list.ts missing; repository text search located change-list behavior in plugin/src/storage/store-temporal/changes.ts instead. If the revised ADR still cites the requested path, that citation is non-resolvable.",
+          "fix": "Update the citation to the actual repository-relative source path, after artifact readback confirms the intended claim."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Temporal TypeScript signals may be server-accepted yet buffered indefinitely when no handler is installed. allHandlersFinished waits active handler executions, not buffered handler-less signals; terminal-drain arguments must state and prove handler coverage or handle this third state."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "oc-fresh status --repo '/home/jon/dev/advance' --json",
+          "git status --short",
+          "git log --oneline trunk..change/resolveAdvPersistenceRecovery",
+          "Context7 Temporal TypeScript SDK signal-handler and allHandlersFinished documentation query"
+        ],
+        "results": "fail",
+        "evidence": "Working tree was clean; git log trunk..change/resolveAdvPersistenceRecovery produced no commits, satisfying the available DONT1 implementation-free check. Source verification confirmed workflows.ts:945 operation-ledger lookup; :673-744 seeds operation_ledger across continue-as-new; :2238 awaits allHandlersFinished; recovery-classification.ts:104-145 classifies completed/not-running/not-found; and store-temporal/index.ts:364-416 performs host-side confirmed readback before best-effort disk write. Context7 SDK documentation states signals buffer indefinitely when no handler is available and client signal resolves on server acceptance, establishing the unresolved third state. Artifact reads timed out, so contract/artifact coverage verification failed."
+      },
+      "scope_drift": null,
+      "risks": [
+        "C6 may silently lose the semantic effect of accepted handler-less signals at terminal completion.",
+        "Artifact-read timeout prevents validating any alleged remediation in the revised ADR, including SC1 consequences and source-anchor cleanup."
+      ],
+      "required_main_agent_actions": [
+        "Restore or diagnose the ADV read path; adv_change_show and adv_status timed out at the host 10-second cap, then rerun the artifact review.",
+        "Revise the C6 completion-boundary claim to address server-accepted signals with no available handler; include explicit handler-set coverage evidence for DDC5 or a durable alternative.",
+        "After artifact access is restored, verify exact AC1-AC5, SC1-SC3, C1-C6, DONT1-DONT4 coverage; Decision 1-3 consequences; ADR-003; new alternatives/risks; validator-result accuracy; and every cited path, especially plugin/src/tools/change-list.ts."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "resolveAdvPersistenceRecovery",
+      "attempt": 3,
+      "workdir_used": "/home/jon/dev/advance",
+      "task_id": "tk-80bead8588f7",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-80bead8588f7"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "c6-ddc6-readiness-1",
+          "label": "blocker",
+          "file": "plugin/src/temporal/worker-deployment-readiness.ts",
+          "line": 96,
+          "what": "DDC6 cites evaluateWorkerDeploymentReadiness as closing Case C, but the gate cannot evaluate full host-emitted signal-name parity and is not wired to a hibernation decision.",
+          "why": "The function only checks Worker Deployment topology/capability inputs (lines 25-47, 101-143); it has no deployed-worker signal registry, host-emitted signal registry, parity comparison, or hibernation-specific result. Therefore version skew can still leave a server-accepted signal buffered without a handler and discarded at workflow completion, violating C1/C6.",
+          "fix": "Replace the DDC6 assertion with a required downstream hibernation precondition: derive and compare the host-emitted signal registry with the deployed worker's registered signal registry for the target build; refuse hibernation on any mismatch; persist typed evidence of that parity check. Either extend the cited readiness gate to express and enforce this input/output, or cite a new real implementation gate rather than the current function."
+        },
+        {
+          "id": "c1-durable-hibernate-2",
+          "label": "blocker",
+          "file": "plugin/src/storage/store-temporal/index.ts",
+          "line": 350,
+          "what": "Decision 2 says dualWriteAfterMutation has already persisted every accepted mutation, including hibernate, but that helper is explicitly best-effort after an already-succeeded mutation.",
+          "why": "Lines 350-355 state it skips the dual-write when readback fails and that durability-critical mutations use confirmed durable writers instead. The ADR's claimed hibernation durability therefore does not follow from the cited helper; completing after only a best-effort projection write risks losing the hibernated checkpoint, contrary to C1.",
+          "fix": "Revise the hibernation protocol and consequences to require a confirmed durable host-side projection write/readback for the hibernate transition before completion is permitted, using the same durability class as gate/task mutations. Do not present dualWriteAfterMutation alone as the proof."
+        },
+        {
+          "id": "source-anchor-change-list-3",
+          "label": "issue",
+          "file": "plugin/src/tools/change-list.ts",
+          "line": 1,
+          "what": "The cited change-list source path does not exist.",
+          "why": "Path preflight found plugin/src/tools/change-list.ts missing. The current projection-only list implementation is under plugin/src/storage/store-temporal/changes.ts (for example line 998), so the ADR does not meet its own repository-relative resolving-citation standard for this anchor.",
+          "fix": "Replace the invalid citation with the actual source file and line range that will own default visibility and the [hibernated] marker."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "c6-overturn-explicitness-1",
+          "label": "suggestion",
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 2221,
+          "what": "The C6 overturn is technically sound and legitimate because the agreement expressly deferred it to design, and the ADR explicitly withdraws the invalid handler-to-disk proposal; add one sentence linking that withdrawal to the agreement's Agent Decision 2.",
+          "why": "A future reader can otherwise mistake the old LBP preference for an unacknowledged contradiction. Suggested text: “This explicitly overturns the deferred Agent Decision 2 preference for handler-persisted queuedSignals[]: direct workflow-handler disk I/O is invalid; durability moves to a confirmed host-side transition before completion.”"
+        },
+        {
+          "id": "signal-update-boundary-2",
+          "label": "suggestion",
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 2238,
+          "what": "State separately how updates fit the completion boundary.",
+          "why": "Context7 SDK evidence says unhandled signals buffer indefinitely, whereas an unhandled update is rejected at the end of its activation; allHandlersFinished waits for both signals and updates. Case A/B/C is exhaustive only for signals after a real handler-parity precondition. A concise update-specific typed-rejection statement prevents overclaiming."
+        },
+        {
+          "id": "coverage-positive-3",
+          "label": "praise",
+          "file": "plugin/src/temporal/workflows.ts",
+          "line": 2221,
+          "what": "The Case C registration-order premise itself is supported.",
+          "why": "changeWorkflow starts at line 747; handlers are registered synchronously through the final setHandler at lines 2209-2214 before the first top-level await wf.condition at line 2221. The awaits at 1752, 1889/1891, 1938/1945, and 1997/1999 are inside async handler bodies and do not delay registration. Context7 confirms buffered signals dispatch when setHandler registers their name, and allHandlersFinished is the documented completion drain."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A deployment-readiness predicate is not evidence of signal-schema/version parity unless its typed input includes both registries, its result exposes mismatch, and the hibernation path enforces it. Do not cite a general worker-versioning gate as a Case-C signal safety proof by implication."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "git status --short && git log --oneline trunk..change/resolveAdvPersistenceRecovery",
+          "repository source inspection: plugin/src/temporal/workflows.ts:747-2245; worker-deployment-readiness.ts:25-163; store-temporal/index.ts:350-394; recovery-classification.ts:14-145; doctor.ts:72-84,358-366; Context7 /temporalio/sdk-typescript handler semantics"
+        ],
+        "results": "pass",
+        "evidence": "DONT1 verified: git status was clean and trunk..change/resolveAdvPersistenceRecovery had no commits. All cited paths resolve except plugin/src/tools/change-list.ts. The bounded artifact-only read succeeded but response transport truncated after 20,894 of 34,466 characters; reviewed all supplied Decision 1/2/3 and Case-C content. Context7 confirms signals/updates precede other activation jobs when handlers exist, signals buffer until setHandler, unhandled updates reject at activation end, and allHandlersFinished drains running handlers. Source confirms no top-level await between changeWorkflow entry/handler registrations and line 2221; cited handler-body awaits do not split registration."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Case C remains possible under host/worker version skew because the cited DDC6 evaluator cannot express or enforce host-signal/deployed-handler parity.",
+        "Hibernation checkpoint durability is not established if implementation follows the ADR's current dualWriteAfterMutation wording.",
+        "The artifact response was transport-truncated; unseen tail sections (including Validator Result wording) could not be independently read in this attempt."
+      ],
+      "required_main_agent_actions": [
+        "Revise the ADR before design approval to replace DDC6's current worker-deployment-readiness claim with an enforceable full host-emitted-signal/deployed-worker-handler parity precondition that refuses hibernation on mismatch.",
+        "Revise Decision 2 so hibernate completion requires a confirmed durable host-side disk projection transition, not best-effort dualWriteAfterMutation.",
+        "Correct the invalid plugin/src/tools/change-list.ts citation and add the two non-blocking clarification sentences; rerun /adv-review after the artifact update.",
+        "Leave repository code, task state, gates, worktrees, and implementation untouched for this decision-only change."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "resolveAdvPersistenceRecovery",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "task_id": "tk-d51cf17b7c91",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d51cf17b7c91"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "source-anchors-1",
+          "label": "blocker",
+          "file": "design.md",
+          "line": 42,
+          "what": "Three Decision 1 citations identify `assertDurablePersist` as `plugin/src/storage/store-temporal/disk-persist.ts:44`, but line 44 declares `DiskProjectionPersistError`; `assertDurablePersist` is at line 70.",
+          "why": "AC-level ADR source anchors must resolve to the named behavior. This inaccurate durability-gate anchor can mislead the downstream D1 implementation change and violates the requested source-anchor verification.",
+          "fix": "Replace `plugin/src/storage/store-temporal/disk-persist.ts:31,44` with `plugin/src/storage/store-temporal/disk-persist.ts:31,70` in the Architecture Overview and Affected Components table, and replace the D1 Lever citation `disk-persist.ts:44` with `disk-persist.ts:70`."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When an ADR cites multiple adjacent symbols, verify each named symbol's exact line rather than accepting a nearby type or error class as an equivalent anchor."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "test -e plugin/src/storage/store-temporal/index.ts && test -e plugin/src/storage/store-temporal/disk-persist.ts && test -e plugin/src/tools/doctor.ts && test -e plugin/src/utils/tool-budgets.ts && test -e plugin/src/plugin-init.ts && test -e AGENTS.md",
+          "git show -s --format='%H%x09%s' 2ac4ceeb f0277b29 5a2e0d94 b0294359 1879fb64",
+          "git status --short && git log trunk..change/resolveAdvPersistenceRecovery --oneline"
+        ],
+        "results": "fail",
+        "evidence": "All cited paths exist. `index.ts:364,366,399,405,411` confirms D1's best-effort cache-refresh/staleness premise; `doctor.ts:72-84,358`, `tool-budgets.ts:31-32`, `plugin-init.ts:936-949`, and `AGENTS.md:7` resolve to their stated levers or proposed integration location. `disk-persist.ts:31` is DiskPersistOutcome and line 70 is assertDurablePersist; line 44 is DiskProjectionPersistError, so the three `:44` assertDurablePersist anchors fail. Archive commits 2ac4ceeb, f0277b29, 5a2e0d94, b0294359 and implementation commit 1879fb64 all resolve with the claimed changes; archive commits contain .adv/archive bundles. Git worktree is clean and trunk..change/resolveAdvPersistenceRecovery is empty. Contract coverage: SC1/SC2/SC3 met for ADR-001 and ADR-003; AC1 and AC2 substantively met; AC3 provenance verified; C1/C2/C3 and DONT1/DONT3 met. DONT2 is met: moving one independently invalidated architectural decision to a dedicated decision change is a scope correction, not per-symptom deferral. Rescope integrity otherwise passes: D2/DDC/hibernation mentions are explicitly historical or the intentional dependency pointer; the two-write-path table materially supports D1's DDC4 staleness consequence. Incident note honestly reports adv_task_show—not adv_status—as the live timeout, so it is valid supporting evidence for the broader critical-read-path defect rather than self-serving proof of a specific status-view reproduction."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Until the three anchors are corrected, a downstream D1 implementer may inspect DiskProjectionPersistError instead of the durability-gate function.",
+        "No implementation behavior was reviewed or changed; this is decision-only scope."
+      ],
+      "required_main_agent_actions": [
+        "Correct the three `assertDurablePersist` source anchors in the design artifact from line 44 to line 70, then rerun this source-anchor check.",
+        "Do not revisit ADR-002 or hibernation implementation under this change; its remaining references are intentional history/dependency context."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "resolveAdvPersistenceRecovery",
+      "attempt": 2,
+      "workdir_used": "/home/jon/dev/advance",
+      "task_id": "tk-d51cf17b7c91",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d51cf17b7c91"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "NEEDS_WORK",
+      "blocking_findings": [],
+      "nonblocking_findings": [
+        {
+          "id": "review-question-1",
+          "label": "question",
+          "file": "design.md",
+          "line": 1,
+          "what": "The requested artifact-only design read is truncated by the ADV tool transport, so the three corrected citations and wholesale-rewrite retention anchors cannot be independently inspected in this reviewer run.",
+          "why": "`adv_change_show` reported a 21,729-character response exceeding its 21,000-character output budget and returned a truncation placeholder; direct ADV state reads are prohibited."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "Large raw narrative artifacts can exceed adv_change_show transport output limits. A bounded artifact section/range reader is needed for independent review without violating ADV state-access policy."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "source line inspection: plugin/src/storage/store-temporal/disk-persist.ts:31,44,70",
+          "source anchor spot-checks: plugin/src/storage/store-temporal/index.ts:364,366,399,405,411; plugin/src/tools/doctor.ts:72-84,358; plugin/src/utils/tool-budgets.ts:31-32; plugin/src/plugin-init.ts",
+          "git status --short && git log trunk..change/resolveAdvPersistenceRecovery --oneline"
+        ],
+        "results": "pass",
+        "evidence": "disk-persist source confirms DiskPersistOutcome at line 31, DiskProjectionPersistError at line 44, and assertDurablePersist at line 70. All requested source anchors resolve. git status was clean and trunk..change/resolveAdvPersistenceRecovery was empty. Artifact content itself was not returned: adv_change_show artifact-only response was transport-truncated."
+      },
+      "scope_drift": null,
+      "risks": [
+        "The citation correction and retained ADR/validator anchors remain unverified from the raw design artifact because the authorized read surface truncated its response."
+      ],
+      "required_main_agent_actions": [
+        "Retrieve the design artifact through an authorized bounded/range-capable ADV artifact read, then confirm the three citations, retained Decision/ADR/DDC/risk/validator/incident anchors, and the four new-text assertions before acceptance.",
+        "Do not treat this as a code or contract blocker; no repository change is requested."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "resolveAdvPersistenceRecovery",
+      "attempt": 3,
+      "workdir_used": "/home/jon/dev/advance",
+      "task_id": "tk-d51cf17b7c91",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-d51cf17b7c91"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "READY",
+      "blocking_findings": [],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "oc-fresh status --repo \"/home/jon/dev/advance\" --json",
+          "git status --porcelain && git log --oneline trunk..change/resolveAdvPersistenceRecovery && git show -s --format='%H%n%s%n%ad%n' --date=short 2ac4ceeb f0277b29 5a2e0d94 b0294359 1879fb64"
+        ],
+        "results": "pass",
+        "evidence": "Artifact read completed in full. Source confirms DiskPersistOutcome at disk-persist.ts:31, DiskProjectionPersistError at :44, and assertDurablePersist at :70. The ADR's Architecture Overview, D1 Lever, and Affected Components table use those anchors correctly; no remaining assertDurablePersist-to-:44 attribution appeared. D1/D3 each retain substantive rationale, alternatives, and consequences; ADR-001/003, ADR-002 moved pointer, DDC3/DDC4 plus moved-DDC pointer, four risks, rounds 1-6, incident note, strategy, and four archived foundations remain. Git status and trunk..change/resolveAdvPersistenceRecovery were empty; archive/implementation commits resolved to the declared changes."
+      },
+      "scope_drift": null,
+      "risks": [
+        "This decision-only ADR intentionally leaves all described implementation to downstream changes; no implementation behavior was reviewed as shipped."
+      ],
+      "required_main_agent_actions": [
+        "Record this closing review as READY; proceed through the design-gate approval workflow before any implementation begins."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-04T18:37:19.306Z",
+      "completed_by": "user",
+      "approval_evidence": "Updated with 2026-08-04 operational evidence from the fixMultiSessionTemporalRead ship + bulk cleanup session. Three decision gaps retained: (1) out-of-band recovery bypass, (2) workflow hibernation as the implementation direction for projection-as-primary with Temporal-as-write-ahead, (3) diagnostic trustworthiness. User chose to keep all three gaps and update rather than split. Foundations table documents 5 already-shipped changes that hibernation builds on. The health-view timeout (fixHealthViewTimeoutHealth) is folded into Decision Gap 3 as corroborating evidence. Next: discovery to firm AC/SC for each decision, then design gate for the ADR.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "1ef924cd2a16918419709e8478c1229738ffbfa50e2c455bfc33e3f8ba0f59d2",
+        "non_whitespace_chars": 3481,
+        "checked_at": "2026-08-02T20:24:14.256Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-04T18:45:38.973Z",
+      "completed_by": "user",
+      "approval_evidence": "Discovery completed with 3 user decisions incorporated: (1) bypass is read-only initially with limited write deferred, (2) hibernation is automatic with configurable dual-trigger (staleness days OR active-count ceiling), (3) hibernated changes are visible with a marker. Contract minted: 18 items (SC1-3, AC1-5, C1-6, DONT1-4). Three draft spec deltas identified: rq-workflowHibernation01, rq-outOfBandRecoverySurface01, rq-diagnosticCriticalPath01. Edge cases documented including in-flight signal handling (C6), corrupt projection recovery, and diagnostic probe self-amplification. No blocking ambiguity. Next: design gate produces the ADR artifact.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "a8965ed2e1b4c4dc164d8b750ec1494e8e2c89505a049d31622a4c141c1341c9",
+        "non_whitespace_chars": 4315,
+        "checked_at": "2026-08-02T20:24:14.257Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-04T20:21:37.833Z",
+      "completed_by": "user",
+      "approval_evidence": "Rescoped ADR covering Decision 1 (read-only out-of-band recovery surface) and Decision 3 (critical-path health diagnostics). Decision 2 (workflow hibernation) split to change decideWorkflowHibernation after five independent structural review rounds each found a different D2 foundation assumption that did not survive verification; D1 and D3 passed clean in all five rounds. Scope reduction approved by user (\"Split D2 out (Recommended)\", reaffirmed via \"Approve reset + task fast-track (Recommended)\"). Retained from the D2 review work: the persistence-boundary invariant and the dualWriteAfterMutation (best-effort cache refresh) vs assertDurablePersist (durability gate) distinction, which now underpins D1's staleness reasoning. Both ADR drafts (ADR-001, ADR-003) carry rationale, alternatives, and consequences. DDC3 and DDC4 retained; DDC1/2/5/6/7 moved with D2. AC3 gained live corroborating evidence during this change's own incident recovery: adv_doctor reported healthy across server/worker/queue while adv_task_show timed out at 10s.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "93ad0ce1654c67c797e0b090d6b2d0cc5f917fd049006404adab147fe37fc1f7",
+        "non_whitespace_chars": 16057,
+        "checked_at": "2026-08-02T20:24:14.260Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-04T20:29:04.783Z",
+      "completed_by": "user",
+      "approval_evidence": "Decision-only change, rescoped to Decision 1 (read-only out-of-band recovery surface) and Decision 3 (critical-path health diagnostics) after Decision 2 was split to decideWorkflowHibernation. Contract re-minted from the revised agreement: 12 items (SC1-3, AC1-3, C1-3, DONT1-3), down from 18. Single verification task tk-d51cf17b7c91 covers all 3 ACs, all 3 SCs, all 3 constraints, all 3 avoidances; evidence_policy review, since the deliverable is the ADR artifact rather than code. Superseded task tk-80bead8588f7 cancelled with user approval and its stale pre-split contract refs cleared. adv_change_validate passed with 0 errors and 0 uncovered acceptance criteria; the single NO_DELTAS warning is expected for a decision-only change (the three draft spec deltas identified at discovery belong to the downstream implementation changes). User approved via Tier A inline approval \"approve\" on 2026-08-04."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-04T20:44:49.140Z",
+      "completed_by": "agent",
+      "approval_evidence": "Single verification task tk-d51cf17b7c91 done; superseded pre-split task tk-80bead8588f7 cancelled with user approval. Decision-only change: checkpoint returned status:clean at 5dfcc43 on change/resolveAdvPersistenceRecovery — nothing to commit, which DONT1 requires. Evidence per evidence_policy \"review\": independent adv-reviewer REVIEWER_REPORT, verdict READY (attempt 3), report_key resolveAdvPersistenceRecovery|tk-d51cf17b7c91|adv-reviewer|3. Reviewer independently confirmed all 12 contract items (SC1-3, AC1-3, C1-3, DONT1-3); AC3 foundation provenance via archive commits 2ac4ceeb, f0277b29, 5a2e0d94, b0294359 and implementation commit 1879fb64; DONT1 via clean tree and empty trunk..change log; DONT2 explicitly assessed as a legitimate scope correction rather than per-symptom deferral; rescope integrity with remaining D2 mentions confirmed intentional history or dependency pointers; and all source anchors resolving, including the round-6 correction placing assertDurablePersist at disk-persist.ts:70 rather than :44 (DiskProjectionPersistError). Review sequence: attempt 1 BLOCKED (citation error, fixed), attempt 2 NEEDS_WORK non-blocking (artifact exceeded the 21000-char read budget; condensed from 21.7k to ~19.5k so it now returns in full), attempt 3 READY."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-04T20:49:31.759Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted via Tier A inline approval \"accept\" on 2026-08-04. Decision-only ADR recording Decision 1 (read-only out-of-band recovery surface, limited write deferred) and Decision 3 (critical-path health diagnostics), each with rationale, alternatives, and consequences, plus ADR-001/ADR-003, DDC3/DDC4, and a six-round validator history. Contract review matrix persisted: 12 rows against 12 contract items, 0 failing. Evidence: independent adv-reviewer REVIEWER_REPORT verdict READY (attempt 3). Decision 2 split to decideWorkflowHibernation; reviewer assessed the split as a legitimate scope correction under DONT2. Open follow-ups in executive-summary.md: decideWorkflowHibernation, clampDoomLoopAccumulator, deferred limited-write recovery.",
+      "started_at": "2026-08-04T20:47:07.097Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "fff5568458a279f8fa4928cb5dcc4fcbfd2ce1a7161b8262a314ddbaf71eff08",
+        "non_whitespace_chars": 3452,
+        "checked_at": "2026-08-02T20:24:14.262Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+      "approvedAt": "2026-08-04T18:45:38.973Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "The ADR artifact documents each decision with rationale, alternatives considered, and consequences",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "Each affirmative decision has a clear path to a downstream implementation change",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "The decisions collectively address the regression-spiral root cause, not just symptoms",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given the evidence of ADV becoming non-operational during Temporal outages (2026-08-02, 2026-08-04), when Decision 1 is resolved, then the decision establishes a read-only out-of-band recovery surface, with limited write deferred to an explicit follow-up.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the evidence of ADV becoming non-operational during Temporal outages (2026-08-02, 2026-08-04)",
+          "trigger": "Decision 1 is resolved",
+          "outcome": "the decision establishes a read-only out-of-band recovery surface, with limited write deferred to an explicit follow-up"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given the evidence of `adv_doctor` reporting healthy while `adv_status view:\"health\"` times out (2026-08-04), when Decision 3 is resolved, then the decision requires health probes to exercise the critical read path.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the evidence of `adv_doctor` reporting healthy while `adv_status view:\"health\"` times out (2026-08-04)",
+          "trigger": "Decision 3 is resolved",
+          "outcome": "the decision requires health probes to exercise the critical read path"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Evidence: ADR foundation-change provenance verified by review of archived change records (`makeReadsDiskAuthoritative`, `gateMutationSuccessDisk`, `makeToolReadsWorkerFree`, `fixMultiSessionTemporalRead`).",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "evidence",
+          "subject": "ADR foundation-change provenance verified",
+          "method": "review of archived change records (`makeReadsDiskAuthoritative`, `gateMutationSuccessDisk`, `makeToolReadsWorkerFree`, `fixMultiSessionTemporalRead`)"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must not introduce a second parallel write surface (bypass is read-only initially; limited write is follow-up)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not introduce a second parallel write surface (bypass is read-only initially; limited write is follow-up)"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must preserve Temporal workflow replay safety for any workflow code changes",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must preserve Temporal workflow replay safety",
+          "scope": "any workflow code changes"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "The ADR must be approved at the design gate before implementation begins",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not implement in this change — it is decision-only",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not defer the decisions by creating more per-symptom tickets",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not conflate \"no file-backed runtime\" (legacy prevention) with \"no out-of-band read\" (recovery prevention)",
+        "sourceArtifact": "agreement",
+        "sourceHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-04T20:47:49.788Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY (attempt 3): Decisions 1 and 3 each retain substantive rationale, alternatives considered, and consequences; ADR-001 and ADR-003 present with context/decision/consequences.",
+          "notes": "Consequences sections cover operational, compatibility, correctness, failure-mode, and cost dimensions."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY: Implementation Strategy sequences D3 then D1, both independently shippable with no dependency outside this change; each decision names its affected components and levers.",
+          "notes": "decideWorkflowHibernation dependency is stated as expectation there, not a commitment here."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY: LBP Analysis establishes both decisions move ADV from 'Temporal is the system of record' to 'disk projection is the system of record; Temporal is the write-ahead log' — the shared root cause, not per-symptom patches.",
+          "notes": "DONT2 assessed jointly; the D2 split was judged a scope correction, not symptom deferral."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY: Decision 1 verdict is AFFIRMATIVE for a read-only out-of-band recovery surface, enumerates covered read tools, and defers limited write to an explicit follow-up recorded in agreement.md Deferred Questions and executive-summary.md.",
+          "notes": "Bypass reads carry _advisory.source disk-only-out-of-band per DDC4."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY: Decision 3 requires a bounded adv_status view:summary probe routed through addNonHealthyFinding (doctor.ts:358), superseding the optimistic healthy default when the critical read path fails.",
+          "notes": "Corroborated live during this change's incident recovery: adv_doctor reported healthy across server/worker/queue while adv_task_show timed out at 10s. Reviewer confirmed the note honestly states adv_task_show, not adv_status."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "source_citation",
+          "evidence": "adv-reviewer independently resolved archive commits 2ac4ceeb (makeReadsDiskAuthoritative), f0277b29 (gateMutationSuccessDisk), 5a2e0d94 (makeToolReadsWorkerFree), b0294359 (fixMultiSessionTemporalRead), plus implementation commit 1879fb64, via git show -s; archive commits contain .adv/archive bundles.",
+          "notes": "All four foundation changes confirmed genuinely shipped, not asserted."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY: Decision 1 is read-only; mutations return typed RECOVERY_MODE_READ_ONLY rather than writing. No second parallel write surface is introduced; limited write is explicitly deferred.",
+          "notes": "Architecture Overview separates the best-effort cache-refresh path from the durability gate so the two cannot be conflated."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY: this change contains no workflow code changes at all, so replay safety is trivially preserved. The persistence-boundary invariant additionally records that workflow code may not perform filesystem or network I/O.",
+          "notes": "Vacuously satisfied for D1+D3; the constraint carries substantive weight in decideWorkflowHibernation."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Design gate completed 2026-08-04T20:21:37Z with user-approved scope reduction before any implementation. No implementation exists: git status clean, trunk..change/resolveAdvPersistenceRecovery empty.",
+          "notes": "ADR-001 and ADR-003 both carry Status: Proposed pending design-gate approval."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer verified git status clean and git log trunk..change/resolveAdvPersistenceRecovery empty. adv_task_checkpoint returned status:clean at 5dfcc43 — nothing to commit.",
+          "notes": "Decision-only boundary held across all six review rounds."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer explicitly assessed the Decision 2 split and concluded: moving one independently invalidated architectural decision to a dedicated decision change is a scope correction, not per-symptom deferral. Both retained decisions reached AFFIRMATIVE verdicts rather than being deferred.",
+          "notes": "decideWorkflowHibernation carries the accumulated analysis — six ruled-out mechanisms and two open questions — rather than restarting from zero."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "adv-reviewer READY: Decision 1 explicitly distinguishes the AGENTS.md rule's original intent (blocking legacy SQLite/file-backed mutation paths) from the read-only recovery scope it supersedes, and states no mutation path may bypass Temporal.",
+          "notes": "The amendment scope is quoted verbatim in the artifact so the distinction survives into implementation."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given the evidence of ADV becoming non-operational during Temporal outages (2026-08-02, 2026-08-04), when Decision 1 is resolved, then the decision establishes a read-only out-of-band recovery surface, with limited write deferred to an explicit follow-up.",
+    "Given the evidence of `adv_doctor` reporting healthy while `adv_status view:\"health\"` times out (2026-08-04), when Decision 3 is resolved, then the decision requires health probes to exercise the critical read path.",
+    "Evidence: ADR foundation-change provenance verified by review of archived change records (`makeReadsDiskAuthoritative`, `gateMutationSuccessDisk`, `makeToolReadsWorkerFree`, `fixMultiSessionTemporalRead`)."
+  ],
+  "documents": {
+    "proposal": "# Resolve ADV persistence recovery architecture\n\n## Why\n\nADV's persistence layer (Temporal + disk projection) has become a structural regression generator. Each fix creates the conditions for the next failure. Three architectural decisions — no existing change frames them — will determine whether the layer stabilizes or continues the spiral.\n\nToday's operational evidence (2026-08-04): 128 active changes with 191 running workflows; bulk-closing 74 stale changes reduced the active list but not the running workflow count; `adv_status` health view still times out despite the store/tool/retry bounding shipped in `fixMultiSessionTemporalRead`; `adv_doctor` reports healthy while reads time out.\n\n## What this change must decide (not implement)\n\n### Decision 1 — Out-of-band recovery bypass\n\nAccept a read-only out-of-band recovery surface so ADV can read/diagnose/record when Temporal+disk-projection are down, explicitly superseding the \"no file-backed runtime\" rule's scope. OR formally accept total-layer-outage = total-ADV-outage as a documented design boundary.\n\n### Decision 2 — Workflow hibernation (projection-as-primary with Temporal-as-write-ahead)\n\nAccept hibernation as the implementation direction: stale changes checkpoint to disk and terminate their workflows, freeing Temporal resources. Resume re-creates the workflow from the checkpoint. The foundations are already shipped (`makeReadsDiskAuthoritative`, `gateMutationSuccessDisk`, `makeToolReadsWorkerFree`).\n\n### Decision 3 — Diagnostic trustworthiness\n\nRequire health probes to exercise the critical read path (fail when `adv_status` can't return within budget) rather than report server/worker liveness. OR accept that `adv_doctor` and `adv_status view:\"health\"` measure different things and document the distinction.\n\n## User Outcomes\n\n- [ ] ADV remains operational when the Temporal layer degrades (Decision 1)\n- [ ] Running workflow count stays bounded to recently-active changes; stale changes are reclaimable without data loss (Decision 2)\n- [ ] Health diagnostics accurately reflect whether the system can actually serve reads (Decision 3)\n- [ ] Discovery will firm acceptance criteria and success criteria for each decision\n\n## Affected Code\n\nThis is an ADR-shaped decision change. Implementation is downstream:\n\n- `plugin/src/storage/store-temporal/` — hibernation lifecycle, resume-from-checkpoint\n- `plugin/src/temporal/workflows.ts` — hibernation signal handler, checkpoint emission\n- `plugin/src/tools/` — doctor integration for automatic hibernation, health probe trustworthiness\n- `plugin/src/plugin-init.ts` — out-of-band recovery surface (Decision 1)\n- `AGENTS.md` — supersede \"no file-backed runtime\" rule scope if Decision 1 is affirmative\n\n## Constraints\n\n- No data loss. Hibernation must preserve all change state.\n- No second parallel deadline mechanism (DONT3 from existing constraints).\n- Worker-bundle determinism must not be affected (workflows.ts changes are replay-sensitive).\n- The ADR must be approved at the design gate before implementation begins.\n\n## Impact\n\n- **Decision 1:** Supersedes a standing architectural rule. Enables ADV to self-diagnose during layer outages.\n- **Decision 2:** Adds a lifecycle state (`hibernated`). Changes how `adv_change_list` defaults work. Enables automatic resource reclamation.\n- **Decision 3:** May change what `adv_doctor` reports as \"healthy.\" Makes diagnostics actionable.\n\n## Risks\n\n- Hibernation + resume adds a workflow-recreation path that must be deterministic (Temporal replay safety).\n- Out-of-band bypass creates a second read surface that must stay consistent with Temporal-backed reads.\n- Diagnostic changes may surface latent issues that were previously masked by false-healthy reports.\n\n## Validation Plan\n\n- Decision artifacts reviewed at design gate with user approval\n- Each affirmative decision produces a downstream implementation change with its own TDD validation\n- This change itself produces an ADR-class artifact (design.md) recording the decisions and their rationale",
+    "problemStatement": "## Problem Statement\n\nADV made Temporal-plus-disk-projection the sole persistence path for its own operational state, with no out-of-band recovery bypass. When that layer degrades, ADV cannot even record the defect — observed directly 2026-08-02 when `adv_change_create` to log a read-timeout defect itself timed out. Separately, the persistence/projection layer regenerates regressions faster than they're fixed: `fixMultiSessionConcurrency` (Jul 29) created the per-session worker sprawl that produced today's `fixMultiSessionTemporalRead`. Each fix is a link in a spiral, and no change asks whether the layer is structurally a regression generator.\n\nThis change owns three architectural decisions that no existing change frames. It is an ADR-shaped decision change, not an implementation change. Downstream implementation is gated on these decisions.\n\n### Updated evidence (2026-08-04, post `fixMultiSessionTemporalRead` ship + bulk cleanup)\n\nThe original evidence from 2026-08-02 is now corroborated and enriched by today's operational findings:\n\n- **Workflow accumulation is structural.** This project had 128 active changes and 191 running Temporal workflows across 15 projects. Bulk-closing 74 stale changes reduced the active list to 54 but **did not reduce the running workflow count** — each change's workflow persists independently of its lifecycle status. There is no mechanism to reclaim Temporal resources from stale, non-terminal changes.\n- **The foundations for hibernation already shipped.** `makeReadsDiskAuthoritative` (archived 2026-07-23) made the disk projection the authoritative read source with workflow queries as enrichment-only + circuit-broken. `gateMutationSuccessDisk` made mutations require disk-projection confirmation. `makeToolReadsWorkerFree` made reads not require the Temporal worker. Reads already serve correctly from disk when the workflow is unavailable.\n- **3 of 4 `adv_status` views now return typed degraded output within the host cap** after `fixMultiSessionTemporalRead`. The `health` view still times out — its health executor has an unbounded path that the enrichment-layer fix didn't cover (`fixHealthViewTimeoutHealth` created to investigate). This is itself evidence that per-workflow probing doesn't scale.\n- **The \"no file-backed runtime\" rule now blocks recovery.** When every Temporal-backed tool exceeds the 10s host cap, ADV cannot create a change, close a change, or record the defect. The recovery machinery depends on the thing it recovers.\n\n## Decision gap 1 — No out-of-band recovery bypass\n\n| Layer | Finding |\n|---|---|\n| Architectural rule | `AGENTS.md`: \"Runtime change/task/gate state uses Temporal-only persistence… do not restore a legacy SQLite/file-backed runtime path.\" |\n| Consequence | Every ADV operation — read, write, recover, govern, record-a-defect — round-trips Temporal/disk-projection. |\n| Observed failure | 2026-08-02: all Temporal-backed tools exceeded 10s host cap; `adv_change_create` to log the defect timed out. 2026-08-04: `adv_change_close` on 74 stale changes wrote projections but failed postcondition verification because the Temporal workflow describe timed out. |\n| Coverage check | `enforceTemporalOperation` makes the path safe but keeps Temporal as source of truth. `hardenProjectionHydration` keeps disk projection as the ADV-internal read path, not a recovery escape hatch. Neither adds a bypass. |\n\nThe \"no file-backed runtime\" rule is now the thing making the system unrecoverable under total layer outage. This rule was written to prevent a *specific* legacy regression; it was not written to forbid a read-only out-of-band *recovery* surface. The two are being conflated.\n\n**Decision:** Accept a read-only out-of-band recovery surface (ADV can read/diagnose/record when Temporal+disk-projection are down), explicitly superseding the \"no file-backed runtime\" rule's scope — OR formally accept total-layer-outage = total-ADV-outage as a documented design boundary with the operational consequences made explicit.\n\n## Decision gap 2 — Workflow hibernation: projection-as-primary with Temporal-as-write-ahead\n\nThe persistence/projection layer is a regression generator. Direct evidence (two links of the spiral):\n\n```\nfixMultiSessionConcurrency (2026-07-29, archived)\n  RCA: worker_singleton_enforce declared false but resolved true → peer sessions lacked pollers\n  Fix:  guarantee each session its own worker + queue\n  Side effect (by design): 9 concurrent workers/project\n    ↓\n2026-08-02 saturation: query throughput starves under 9 pollers\n    ↓\nfixMultiSessionTemporalRead (2026-08-02 → 2026-08-04, archived)\n  Bounded store, tool, retry, enrichment layers\n  Fixed 3/4 views; health view still times out\n    ↓\nfixHealthViewTimeoutHealth (2026-08-04, created)\n  Health executor has unbounded path not covered by the read-bounding fix\n```\n\nThe layer that was fixed became the layer that broke. No change asks: is the per-session-worker + per-session-queue + Temporal-query-for-every-read design's regression rate acceptable, or does the layer need simplification?\n\n**Proposed direction: Workflow Hibernation.** Given that the foundations are already shipped (disk-authoritative reads, disk-gated mutations, worker-free reads), the natural next step is a lifecycle policy that uses them:\n\n```\nactive → hibernated → active (resume)\n              ↓\n          archived (terminal)\n```\n\n**Hibernation** (triggered by staleness threshold or workflow-count ceiling):\n1. Verify disk projection is complete and authoritative (already enforced by `gateMutationSuccessDisk`)\n2. Terminate the Temporal workflow (frees resources immediately)\n3. Change lifecycle state → `hibernated`\n4. Active list excludes hibernated changes by default → fast enumeration\n\n**Cold reads** (already supported via `makeReadsDiskAuthoritative`):\n- `adv_change_show` serves from disk projection\n- `adv_change_list` excludes hibernated by default; `status: \"hibernated\"` shows them\n- Default list shows only non-hibernated → bounded workflow enumeration\n\n**Resume** (when a hibernated change is accessed for mutation):\n1. Check disk projection exists and is valid\n2. Re-create the workflow seeded with the checkpointed state\n3. Change lifecycle state → `active`\n4. Mutation proceeds normally\n\n**Automatic hibernation** (doctor integration):\n- `adv_doctor` detects changes with `lastActivityAt > N days ago` that have running workflows\n- Hibernates them (or proposes hibernation if below a safety threshold)\n- Also detects when running workflow count exceeds a ceiling and hibernates the stalest\n\nThis would keep the running workflow count bounded to recently-active changes, make ADV reads fast without per-workflow enumeration, and preserve all change data in durable disk projections.\n\n**Decision:** Accept hibernation as the implementation direction for Decision 2 (projection-as-primary with Temporal-as-write-ahead), and create the implementation change — OR formally reject it and continue per-symptom ticketing.\n\n## Decision gap 3 — Diagnostic trustworthiness\n\nHealth probes report liveness, not critical-path health. Today `adv_doctor` returned `healthy` (server_alive: true, worker_alive: true, queue_serviceable: true) while `adv_status view:\"health\"` timed out at the 10s host cap. The health executor's deep probes hang even though the worker is running and the store read path works.\n\n**Decision:** Health probes must exercise the critical read path (fail when `adv_status` can't return within budget) rather than report server/worker liveness — OR accept that `adv_doctor` and `adv_status view:\"health\"` measure different things and document the distinction.\n\n## Out of scope\n\n- Implementing the bypass (downstream change, post-decision).\n- Implementing hibernation (downstream implementation change, post-decision).\n- The budget/degradation work already owned by `fixMultiSessionTemporalRead` (archived) and `fixHealthViewTimeoutHealth` (created).\n- Per-project stale-workflow cleanup (cross-project ops concern).\n\n## Decision authority\n\nThis change requires design-gate user approval (architectural tradeoff) and should produce an ADR-class artifact superseding the relevant scope of the standing \"no file-backed runtime\" rule if Decisions 1 and/or 2 are affirmative.\n\n## Foundation changes already shipped (provenance for the implementation direction)\n\n| Change | What it shipped | How hibernation uses it |\n|---|---|---|\n| `makeReadsDiskAuthoritative` (archived) | Disk projection = read source of truth; workflow query = enrichment-only + circuit-broken | Cold reads already work when workflow is terminated |\n| `gateMutationSuccessDisk` (closed) | Mutations require disk-projection confirmation | Disk projection is guaranteed authoritative before hibernation |\n| `makeToolReadsWorkerFree` (closed) | Reads don't require the Temporal worker | Hibernated reads need no worker |\n| `fixMultiSessionTemporalRead` (archived) | Bounded store/tool/retry/enrichment read paths | Proves reads return within budget even under load |\n| `addDependencyAwareResume` (archived) | Resume mechanism with dependency tracking | Hibernation resume can leverage this |",
+    "agreement": "# Agreement\n\n> **Scope revision (2026-08-04).** This agreement originally covered three decisions. Decision 2\n> (workflow hibernation) was split to change `decideWorkflowHibernation` after five independent\n> structural review rounds each found a different D2 foundation assumption that did not survive\n> verification; Decisions 1 and 3 passed clean in all five rounds. Split approved by the user.\n>\n> **Items are renumbered sequentially** to match the minted contract, which derives IDs\n> positionally. Mapping from the pre-split agreement:\n>\n> | Pre-split | Now | Item |\n> |---|---|---|\n> | AC1 | **AC1** | read-only out-of-band recovery surface |\n> | AC3 | **AC2** | health probes exercise the critical read path |\n> | AC4 | **AC3** | foundation-change provenance |\n> | C2 | **C1** | no second parallel write surface |\n> | C3 | **C2** | preserve Temporal replay safety |\n> | C4 | **C3** | ADR approved at design gate before implementation |\n> | SC1-3, DONT1-3 | unchanged | — |\n>\n> Moved to `decideWorkflowHibernation`: pre-split **AC2, AC5, C1, C5, C6, DONT4**, and\n> Objective 2.\n\n## Objectives\n\n1. Resolve whether ADV needs an out-of-band read-only recovery surface to remain operational\n   during Temporal layer outages (Decision 1)\n2. Resolve whether health diagnostics must exercise the critical read path rather than report\n   server/worker liveness (Decision 3)\n\n## Success Criteria\n\n1. The ADR artifact documents each decision with rationale, alternatives considered, and consequences\n2. Each affirmative decision has a clear path to a downstream implementation change\n3. The decisions collectively address the regression-spiral root cause, not just symptoms\n\n## Acceptance Criteria\n\n1. Given the evidence of ADV becoming non-operational during Temporal outages (2026-08-02, 2026-08-04), when Decision 1 is resolved, then the decision establishes a read-only out-of-band recovery surface, with limited write deferred to an explicit follow-up.\n2. Given the evidence of `adv_doctor` reporting healthy while `adv_status view:\"health\"` times out (2026-08-04), when Decision 3 is resolved, then the decision requires health probes to exercise the critical read path.\n3. Evidence: ADR foundation-change provenance verified by review of archived change records (`makeReadsDiskAuthoritative`, `gateMutationSuccessDisk`, `makeToolReadsWorkerFree`, `fixMultiSessionTemporalRead`).\n\n## Constraints\n\n1. Must not introduce a second parallel write surface (bypass is read-only initially; limited write is follow-up)\n2. Must preserve Temporal workflow replay safety for any workflow code changes\n3. The ADR must be approved at the design gate before implementation begins\n\n## Avoidances\n\n1. Do not implement in this change — it is decision-only\n2. Do not defer the decisions by creating more per-symptom tickets\n3. Do not conflate \"no file-backed runtime\" (legacy prevention) with \"no out-of-band read\" (recovery prevention)\n\n## Preview Applicability\n\n`visual_surface: false` — internal ADV lifecycle/architecture, no browser-visible surface.\n`preview_expectation`: `exact_route_required: not_applicable`,\n`data_state_expectation: not_applicable`, `viewport_expectation: not_applicable`.\n\n## Decisions\n\n### User Decisions\n\n1. **Bypass scope (D1):** Read-only initially; limited write deferred to an explicit follow-up.\n   Read-only is safe (no dual-write conflicts). Limited write enables self-repair but adds a\n   dual-write surface needing reconciliation — worth doing but not in the first implementation.\n\n2. **Scope split (2026-08-04):** Decision 2 split to its own change. Rationale: five review\n   rounds, five blockers, all in D2. The recurring failure was the design asserting that an\n   existing ADV mechanism already guaranteed a property it did not — three consecutive rounds\n   against three different mechanisms. D2's preconditions were never firmed at discovery, so\n   design kept reaching for whatever looked adjacent. D1 and D3 are decision-ready; D2 is not.\n\n### Agent Decisions (LBP)\n\n1. **Diagnostic critical path (D3):** The doctor's health check should include a bounded\n   `adv_status view:\"summary\"` invocation. If it times out, doctor reports degraded. This\n   directly exercises the read path the user cares about.\n\n2. **Durability vocabulary (carried from the D2 review, retained because D1 depends on it):**\n   `dualWriteAfterMutation` (`plugin/src/storage/store-temporal/index.ts:364`) is a best-effort\n   cache-refresh path and is not a durability guarantee; `assertDurablePersist`\n   (`plugin/src/storage/store-temporal/disk-persist.ts:44`) is the durability gate. Decision 1's\n   staleness marker (DDC4) exists because the former may silently skip.\n\n*(The pre-split Agent Decision 2 — persist queued signals to the disk projection and replay on\nresume — was overturned at design: Temporal workflow code cannot perform filesystem I/O. It moved\nto `decideWorkflowHibernation` as a ruled-out mechanism.)*\n\n## Deferred Questions\n\n1. **Limited write bypass** — deferred to a follow-up change per user decision. The initial\n   implementation is read-only.\n\n## Sign-Off\n\nUser approved the original acceptance criteria via inline approval (Tier A whitelist: \"approve\")\non 2026-08-04. User approved the scope reduction to Decisions 1 and 3 via \"Split D2 out\n(Recommended)\", reaffirmed via \"Approve reset + task fast-track (Recommended)\", and directed the\ncontract re-mint via \"remint\" on 2026-08-04.",
+    "design": "# Design — ADV Persistence Recovery Architecture (ADR)\n\n> **Scope note (2026-08-04):** this ADR originally carried three decisions. Decision 2 (workflow\n> hibernation) was split to `decideWorkflowHibernation` after five structural review rounds each\n> found a different D2 foundation assumption that did not survive verification. Decisions 1 and 3\n> passed clean in all rounds and are the scope of this change.\n\n## Architecture Overview\n\nDecision-only ADR resolving two questions about ADV's persistence layer. No code is written here;\neach affirmative decision produces a downstream implementation change.\n\nShared thesis: **the disk projection is already the authoritative read source; Temporal is the\nwrite-ahead log. The recovery and diagnostic surfaces should reflect this.**\n\n```\n┌──────────────────────────────────────────────────────────────┐\n│  ┌─────────────┐    write     ┌──────────────────────────┐   │\n│  │ ADV Tools   │─────────────▶│ Temporal Workflow (WAL)  │   │\n│  │             │              └──────────┬───────────────┘   │\n│  │             │    read                 │ dual-write         │\n│  │             │◀────────────────────────│                     │\n│  │             │    read (fallback)      ▼                     │\n│  │             │◀────────────────┌──────────────────┐         │\n│  │             │                 │ Disk Projection  │         │\n│  └─────────────┘                 │ (authoritative)  │         │\n│                                  └──────────────────┘         │\n│  D1: disk projection serves reads even when WAL is down      │\n│  D3: doctor exercises the read path, not just WAL liveness   │\n└──────────────────────────────────────────────────────────────┘\n```\n\n**Persistence-boundary invariant:** all durable I/O happens **host-side**, in the store layer,\nnever inside workflow code. Temporal workflow code is deterministic-replay code and may not\nperform filesystem or network I/O directly.\n\n**Two distinct host-side write paths — do not conflate them.** An earlier draft did, producing a\nfalse durability claim. The distinction is retained because D1 depends on it directly: DDC4's\nstaleness marker exists precisely because the first path may silently skip, and D1's Correctness\nconsequence is stated against that fact.\n\n| Path | Anchor | Semantics |\n|---|---|---|\n| `dualWriteAfterMutation` | `plugin/src/storage/store-temporal/index.ts:364` | **Best-effort cache refresh.** Labeled \"Best-effort by design: this is a cache-refresh path\" (`:411`). Skips the disk write when the post-mutation readback is not `confirmed` (`:399`), returns no value (`:405`), or the workflow is known-poisoned (`:366`). A convergence optimization, **not** a durability guarantee. |\n| `assertDurablePersist` / `DiskPersistOutcome` | `plugin/src/storage/store-temporal/disk-persist.ts:70` (gate), `:31` (outcome union), `:44` (typed error) | **The durability gate.** From `gateMutationSuccessDisk`: classifies the atomic `change.json` write as `persisted` / `skipped` / `failed`, and throws `DiskProjectionPersistError` on failure so a mutation cannot report success while absent from every disk-first reader. |\n\n## Decision 1 — Read-only out-of-band recovery surface\n\n**Verdict: AFFIRMATIVE (read-only initially; limited write deferred)**\n\n**Lever:** `makeReadsDiskAuthoritative` (archived; implementation commit `1879fb64`) already made\nthe disk projection the read source of truth, with workflow queries enrichment-only and\ncircuit-broken. The bypass extends this to serve reads when Temporal is completely unreachable —\nnot merely slow. The projection it reads is kept honest by `assertDurablePersist`\n(`plugin/src/storage/store-temporal/disk-persist.ts:70`) on the mutation path, and\nopportunistically refreshed by `dualWriteAfterMutation` (`index.ts:364`).\n\n**Read tools covered:** `adv_change_show` (all include flags — snapshot, ledger, readyTasks,\nsubagentReports, briefingPacket), `adv_change_list`, `adv_status` (all four views),\n`adv_task_show` / `adv_task_list` / `adv_task_ready`, `adv_doctor`.\n\nLive evidence (2026-08-04): heavy `adv_change_show` includes time out at 10s during a Temporal\noutage even with the disk fallback, because the fallback still attempts a Temporal describe\nfirst. The bypass skips that attempt entirely.\n\n**What the bypass means concretely:**\n- When the Temporal client cannot connect (refused, timeout, server down), reads fall back to the\n  disk projection carrying `_advisory.source: \"disk-only-out-of-band\"` (DDC4)\n- Mutations are not attempted — `adv_change_create`, `adv_task_update`, `adv_gate_complete`\n  return typed `RECOVERY_MODE_READ_ONLY` instead of timing out\n- Activates automatically when Temporal health checks fail; deactivates on recovery\n\n**Why read-only, not read+write:**\n- Read-only carries zero dual-write risk — the disk projection is already authoritative for reads\n- Write during outage needs reconciliation (what if Temporal recovers with different state?) —\n  that is the deferred follow-up\n- The \"no file-backed runtime\" rule (`AGENTS.md`, Scope and entry points) is superseded for the\n  read-only recovery scope only; its original intent (blocking legacy SQLite/file-backed\n  *mutation* paths) is preserved\n\n**Alternatives considered:**\n- *Read+write bypass with reconciliation* — enables self-repair but adds a dual-write surface;\n  deferred\n- *Accept total outage as a design boundary* — operationally unacceptable; ADV must stay\n  diagnostic during its own layer's outages\n- *External recovery CLI* — adds operational burden; the bypass should be automatic\n\n**Consequences:**\n- *Operational:* ADV stays readable and diagnosable during a total Temporal outage. Incident\n  response no longer needs Temporal up to answer \"what state is this change in?\"\n- *Compatibility:* Additive. Normal reads unchanged; only the total-unreachable branch is new.\n  Consumers ignoring `_advisory` keep working.\n- *Correctness:* Bypass reads may be stale relative to an in-flight mutation, because\n  `dualWriteAfterMutation` is best-effort and may have skipped the refresh. Every bypass read is\n  therefore marked (DDC4) and must not be treated as authoritative for gate decisions.\n- *Failure mode:* Mutations fail fast and typed rather than hanging to the 10s tool timeout,\n  converting an unclassified timeout into an actionable error.\n- *Cost:* A health-state branch in the read path plus an `AGENTS.md` rule-scope amendment. The\n  deferred write path remains an open, accepted gap.\n\n**AGENTS.md amendment scope:** existing rule — \"Runtime change/task/gate state uses Temporal-only\npersistence… do not restore a legacy SQLite/file-backed runtime path.\" Superseded scope —\n\"…except for a read-only out-of-band recovery surface that serves existing disk projections when\nTemporal is unreachable. No mutation path may bypass Temporal.\"\n\n## Decision 3 — Diagnostic trustworthiness\n\n**Verdict: AFFIRMATIVE (critical-path exercising)**\n\n**Lever:** `plugin/src/tools/doctor.ts:72-84` defines `DoctorFindingClass` (`healthy`,\n`degraded`, `unhealthy`); `addNonHealthyFinding` (`:358`) supersedes the optimistic `healthy`\nfinding when a real issue is detected. The doctor currently checks `server_alive`, `worker_alive`,\n`queue_serviceable` — none of which exercise the critical read path.\n\n**What \"critical-path exercising\" means:**\n- Add a bounded `adv_status view:\"summary\"` probe (3s, per DDC3) to the check sequence\n- Returns within budget → read path healthy\n- Times out or errors → `addNonHealthyFinding` supersedes `healthy` with\n  `degraded: \"critical read path timed out\"`, and the overall verdict follows\n\n**Why not just improve the existing probes:** `server_alive` checks gRPC connectivity and passes\nwhile the query path is saturated; `worker_alive` checks poller presence and passes while queries\ntime out under load; `queue_serviceable` checks task-queue reachability and passes while\nvisibility scans crawl. None touch the user-facing read path.\n\n**Probe overhead (EC7):** one bounded call per doctor run, periodic rather than per-request. Its\n3s timeout is well under `STATUS_READ_DEADLINE_BUDGET_MS` (`plugin/src/utils/tool-budgets.ts:31-32`,\nderived as `DEFAULT_TOOL_TIMEOUT_MS - TOOL_RESPONSE_HEADROOM_MS` = 9801ms), so it fails fast\nbefore contributing meaningfully to saturation.\n\n**Alternatives considered:**\n- *Separate health-check tool* — adds operational burden\n- *Accept that doctor and health-view measure different things* — leaves the false-healthy gap open\n- *Remove the doctor's optimistic default* — broad behavior change; the targeted probe is narrower\n\n**Consequences:**\n- *Operational:* Closes the false-healthy gap. The doctor's verdict becomes trustworthy as a\n  go/no-go signal — which is why D3 ships first.\n- *Compatibility:* Existing findings and classes unchanged; one finding added. Verdicts previously\n  reported `healthy` will now sometimes read `degraded` — the intended change, not a regression.\n- *Correctness:* Measures the real read path rather than a proxy. Cannot report healthy while\n  reads are unusable.\n- *Failure mode:* A probe timeout degrades the verdict; it never fails the doctor run. A degraded\n  verdict on a transiently-slow host is a tolerated false-negative, preferable to today's\n  false-positive.\n- *Cost:* ~31% of a single read budget worst-case, on the periodic doctor path only.\n\n**Reproduced during this change's own recovery (2026-08-04):** while recovering from the\ndoom-loop brick described below, `adv_doctor` reported `healthy: true` with `server_alive`,\n`worker_alive`, and `queue_serviceable` all true, while `adv_task_show` timed out at 10s. The\ndefect D3 addresses demonstrated itself live, against this change. Corroborating evidence from an\nunplanned observation, not a purpose-built demonstration.\n\n## ADR Drafts\n\n**ADR-001: Read-only out-of-band recovery surface.** *Status:* Proposed. *Context:* the \"no\nfile-backed runtime\" rule blocks recovery during Temporal outages; it was written to prevent\nlegacy SQLite mutation paths, not read-only recovery. *Decision:* accept a read-only out-of-band\nrecovery surface; supersede the rule's scope for reads only; no mutation path may bypass Temporal.\n*Consequences:* ADV stays diagnostic during outages; limited write deferred; no dual-write risk;\nbypass reads carry a staleness marker; outage-time mutations fail typed rather than hanging.\n\n**ADR-003: Critical-path health diagnostics.** *Status:* Proposed. *Context:* `adv_doctor`\nreported healthy while `adv_status view:\"health\"` timed out (2026-08-04, reproduced during this\nchange's incident recovery); existing probes measure liveness, never the read path. *Decision:*\nadd a bounded 3s `adv_status view:\"summary\"` probe routed through `addNonHealthyFinding`.\n*Consequences:* verdicts become trustworthy for rollout gating; some previously-healthy verdicts\nbecome `degraded`, as intended; bounded per-run cost, failing fast inside the read budget.\n\n> ADR-002 (workflow hibernation lifecycle) moved to `decideWorkflowHibernation`.\n\n## Implementation Strategy\n\n1. **D3** — no dependencies, smallest scope. Add the critical-path probe. Ship first so health\n   reporting is trustworthy for the remaining work.\n2. **D1** — extend the disk-projection read path to handle total Temporal unavailability.\n\nBoth are independently shippable; neither depends on work outside this change.\n`decideWorkflowHibernation` is expected to build on both, but that sequencing is stated there and\nis not a commitment of this change.\n\n## LBP Analysis\n\nBoth decisions move ADV from \"Temporal is the system of record\" to \"disk projection is the system\nof record; Temporal is the write-ahead log\" — the standard event-sourcing split, where the event\nlog is the write-ahead and the materialized view is the read source.\n\nFoundations already shipped (verified against archive commits and test files):\n- `makeReadsDiskAuthoritative` (archive `2ac4ceeb`; impl `1879fb64`;\n  `convergent-read-disk-authoritative.test.ts`) — disk projection as read source of truth with\n  circuit breaker\n- `gateMutationSuccessDisk` (archive `f0277b29`;\n  `plugin/src/storage/store-temporal/disk-persist.ts`) — mutations require a confirmed disk write\n- `makeToolReadsWorkerFree` (archive `5a2e0d94`; `change.worker-free.test.ts`) — reads do not\n  require the worker\n- `fixMultiSessionTemporalRead` (archive `b0294359`) — reads bounded within host cap\n\n## Affected Components\n\n| Component | Decision | Change type | Lever |\n|---|---|---|---|\n| `plugin/src/storage/store-temporal/index.ts:364` | D1 | Read-path bypass; cache convergence (best-effort — not a durability basis) | `dualWriteAfterMutation` |\n| `plugin/src/storage/store-temporal/disk-persist.ts:70,31,44` | D1 | Durability gate keeping the bypass-read projection honest | `assertDurablePersist` (`:70`), `DiskPersistOutcome` (`:31`), `DiskProjectionPersistError` (`:44`) |\n| `plugin/src/tools/doctor.ts:72-84,358` | D3 | Critical-path probe added to findings | `DoctorFindingClass`, `addNonHealthyFinding` |\n| `plugin/src/utils/tool-budgets.ts:31-32` | D3 | Probe timeout must sit under this budget | `STATUS_READ_DEADLINE_BUDGET_MS` |\n| `AGENTS.md` (Scope and entry points) | D1 | Rule scope superseded for read-only recovery | Prose rule |\n| `plugin/src/plugin-init.ts` | D1 | Bypass activation/deactivation on Temporal health | Init sequence |\n\n## Design-Derived Criteria\n\n- **DDC3:** The critical-path probe timeout (3s) must be shorter than\n  `STATUS_READ_DEADLINE_BUDGET_MS` (9801ms) to avoid contributing to saturation.\n- **DDC4:** The bypass read path must carry `_advisory.source: \"disk-only-out-of-band\"` so\n  consumers can distinguish bypass reads from normal disk-authoritative reads.\n\n> DDC1, DDC2, DDC5, DDC6, DDC7 were hibernation-specific and moved to `decideWorkflowHibernation`.\n\n## Risks / Mitigations\n\n| Risk | Severity | Mitigation |\n|---|---|---|\n| Bypass doesn't cover heavy `adv_change_show` includes (observed 2026-08-04) | Medium | D1 must enumerate and cover ALL read tools and include-flag paths, not just summary reads |\n| Bypass reads serve stale data during active mutation | Low | Staleness marker (DDC4); bypass reads are never gate-authoritative |\n| Critical-path probe amplifies saturation (EC7) | Low | 3s timeout << 9801ms budget; fails fast |\n| Bypass masks a real outage by making things \"look fine\" | Low | D3 ships first; a degraded verdict surfaces the outage even while bypass reads succeed |\n\n## Validator Result\n\nOne architecture validation plus six independent structural reviews. Recorded in full rather than\nsmoothed over, because the pattern is the finding: **every pre-split blocker was in Decision 2**,\neach a foundation assumption that did not survive verification. D1 and D3 passed unchanged\nthroughout. That asymmetry is why D2 was split out.\n\nContract IDs were renumbered by the post-split re-mint (pre-split AC3→AC2, AC4→AC3, C2→C1,\nC3→C2, C4→C3). Rounds below reference **pre-split** IDs.\n\n| Round | Agent | Verdict | Finding |\n|---|---|---|---|\n| 1 | adv-researcher | CAUTION | Architecture sound, AC satisfiable, foundations verified shipped. Fixed `doctor.ts` citation to `addNonHealthyFinding`; replaced invented rq-IDs with real anchors; enumerated bypass read paths. |\n| 2 | adv-reviewer | BLOCKED | (D2) In-workflow `queuedSignals[]` disk write impossible — workflow code cannot do filesystem I/O. Also missing consequences sections (fixed for D1/D3) and non-resolvable source paths (fixed — all citations now `plugin/src/...`). |\n| 3 | adv-reviewer | BLOCKED | (D2) Signal-race decomposition not exhaustive — omitted signals the server accepts but buffers when no handler is registered. |\n| 4 | adv-reviewer | BLOCKED | (D2) Parity gate cited `evaluateWorkerDeploymentReadiness`, which cannot express signal/handler parity. Durability claim rested on `dualWriteAfterMutation`, which is best-effort — that correction is retained above and now underpins D1's staleness reasoning. Invalid `plugin/src/tools/change-list.ts` citation. |\n| 5 | adv-reviewer | BLOCKED | (D2) Parity gate verified the deployed file rather than the running worker; durability precondition wrongly tolerated a `skipped` `DiskPersistOutcome`. |\n| 6 | adv-reviewer | BLOCKED → resolved | Post-split. Confirmed the rescope left no dangling D2 references and all contract items met. One finding: three citations placed `assertDurablePersist` at `disk-persist.ts:44`, which is `DiskProjectionPersistError`; the function begins at `:70`. Corrected in the write-path table, D1's Lever, and Affected Components, each export now cited at its own line. |\n\nAcross rounds the reviewers independently confirmed the recovery-surface criterion, the\ncritical-read-path criterion, foundation provenance (all four changes verified by archive commit),\nand the decision-only avoidance (clean tree, no implementation commits on the change branch).\n\n**Incident note.** During round 5 the accumulated blocked-review count tripped an unrelated ADV\ndefect — an unclamped doom-loop accumulator (`plugin/src/temporal/change-state.ts:2041-2059`)\nwrote an `error_recovery` record that ADV's own read path rejects, temporarily bricking this\nchange. Recovered by an operator Temporal reset to event 216. Root cause tracked in\n`clampDoomLoopAccumulator`; incident record at\n`/tmp/opencode/adv-incident-2026-08-04/INCIDENT.md`. No gate, artifact, or approval data was lost.\n\n## Design Leverage Scout\n\nSkipped — ADR-shaped decision change with no implementation surface to scout.",
+    "executiveSummary": "# Executive Summary — Resolve ADV persistence recovery architecture\n\n## What this delivers\n\nTwo architectural decisions, recorded and justified, about how ADV behaves when its own storage\nlayer is unhealthy. No code ships here — this change exists to decide, so the implementation work\nthat follows is unambiguous.\n\n**Decision 1 — ADV stays readable during a storage outage.** Today, when Temporal is unreachable,\nADV goes dark: you cannot see what state a change is in, precisely when you most need to. The\ndecision accepts a read-only recovery surface that serves the existing on-disk copy when Temporal\nis down. Reads are marked as potentially stale so nobody mistakes them for authoritative. Writes\nare deliberately excluded from this first step — allowing writes during an outage raises\nreconciliation questions that deserve their own change.\n\n**Decision 3 — the health check stops lying.** `adv_doctor` currently reports \"healthy\" by\nchecking that the server is reachable, the worker is alive, and the queue is serviceable. None of\nthose touch the path a user actually reads through. The decision requires the doctor to exercise\nthat real path with a short, bounded probe, and to report `degraded` when it fails.\n\n## Why it matters\n\nThese two together change ADV's failure behavior from \"silently unusable\" to \"visibly degraded\nbut still diagnosable.\" That is the difference between an outage you can reason about and one you\ncannot.\n\nDecision 3 ships first, deliberately: until the health signal is trustworthy, no other rollout in\nthis area can be judged safe.\n\n## How it was verified\n\nAn independent reviewer checked the decision record against the agreed contract and returned\nREADY. All twelve contract items were confirmed, and a contract review matrix records each one\nwith its evidence — twelve rows, none failing. Every source reference in the document was checked\nto resolve to what it claims, and the four prior changes this work builds on were each verified as\ngenuinely shipped by locating their archive commits.\n\nThe document also passed a check that it contains no implementation — this change was agreed to be\ndecision-only, and the branch is clean with no commits.\n\n## What changed along the way\n\nThe change originally carried a third decision, on workflow hibernation. Five independent review\nrounds each found a different assumption in it that did not survive verification — in every case\nthe design claimed an existing ADV mechanism already guaranteed something it did not. Decisions 1\nand 3 passed clean in all five rounds.\n\nRather than force it through, hibernation was split into its own change,\n`decideWorkflowHibernation`, carrying the accumulated analysis: six mechanisms ruled out with\nreasons, and the two open questions its discovery must answer. That is a scope correction, not a\ndeferral — the reviewer assessed it explicitly and agreed.\n\n## Risks and follow-ups\n\nNothing here is user-visible yet; both decisions still require implementation changes.\n\nThree follow-ups are open:\n- **`decideWorkflowHibernation`** — the split-out hibernation decision. ADV still has no way to\n  reclaim Temporal resources from stale changes (191 running workflows observed, unaffected by\n  closing 74 changes). Unresolved.\n- **`clampDoomLoopAccumulator`** — a real ADV defect found during this work. A retry guardrail\n  writes a record that ADV's own reader rejects, which can make a change unreadable and\n  unwritable. Systemic: any task accumulating four blocked reviews can trigger it. This change hit\n  it and was recovered without data loss.\n- **Limited-write recovery** — deliberately deferred from Decision 1.\n\nOne notable detail: while recovering from that defect, `adv_doctor` reported fully healthy while\na routine read timed out. The problem Decision 3 exists to fix demonstrated itself, unprompted,\nduring this change's own incident. It is cited as supporting evidence.\n\n## Release Readiness Summary\n\n**Ready to release. Nothing to deploy.**\n\n| Check | Result |\n|---|---|\n| Code changes | None — decision-only by contract (DONT1) |\n| Commits on `change/resolveAdvPersistenceRecovery` | Zero; branch identical to trunk at `5dfcc43` |\n| Working trees | Clean (trunk and change worktree) |\n| Build / test / lint | Not applicable — no source changed, so no suite is affected |\n| Contract review matrix | 12 rows, 0 failing |\n| Reviewer verdict | READY (independent `adv-reviewer`, attempt 3) |\n| Release blockers | None |\n\nBecause no source file changed, the usual quality gates have nothing to act on. Release here means\nrecording the decisions into the spec history so downstream implementation changes can cite them —\nit does not deploy, rebuild, or alter running behavior. No migration, no data impact, no\nuser-visible change, no rollback plan required.\n\nThe three follow-ups above are non-blocking. `clampDoomLoopAccumulator` is the most time-sensitive:\nit is a live systemic defect affecting any ADV change, not just this one.\n\n## Bottom line\n\nTwo decisions ready to implement, one honestly deferred rather than forced, and one previously\nunknown defect found and documented. The decision record is accurate, independently verified, and\ncarries its full review history — including its own failures — rather than a cleaned-up version.\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-04T20:47:49.788Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | The ADR artifact documents each decision with rationale, alternatives considered, and consequences | pass | adv-reviewer READY (attempt 3): Decisions 1 and 3 each retain substantive rationale, alternatives considered, and consequences; ADR-001 and ADR-003 present with context/decision/consequences. |\n| SC2 | success_criterion | Each affirmative decision has a clear path to a downstream implementation change | pass | adv-reviewer READY: Implementation Strategy sequences D3 then D1, both independently shippable with no dependency outside this change; each decision names its affected components and levers. |\n| SC3 | success_criterion | The decisions collectively address the regression-spiral root cause, not just symptoms | pass | adv-reviewer READY: LBP Analysis establishes both decisions move ADV from 'Temporal is the system of record' to 'disk projection is the system of record; Temporal is the write-ahead log' — the shared root cause, not per-symptom patches. |\n| AC1 | acceptance_criterion | Given the evidence of ADV becoming non-operational during Temporal outages (2026-08-02, 2026-08-04), when Decision 1 is resolved, then the decision establishes a read-only out-of-band recovery surface, with limited write deferred to an explicit follow-up. | pass | adv-reviewer READY: Decision 1 verdict is AFFIRMATIVE for a read-only out-of-band recovery surface, enumerates covered read tools, and defers limited write to an explicit follow-up recorded in agreement.md Deferred Questions and executive-summary.md. |\n| AC2 | acceptance_criterion | Given the evidence of `adv_doctor` reporting healthy while `adv_status view:\"health\"` times out (2026-08-04), when Decision 3 is resolved, then the decision requires health probes to exercise the critical read path. | pass | adv-reviewer READY: Decision 3 requires a bounded adv_status view:summary probe routed through addNonHealthyFinding (doctor.ts:358), superseding the optimistic healthy default when the critical read path fails. |\n| AC3 | acceptance_criterion | Evidence: ADR foundation-change provenance verified by review of archived change records (`makeReadsDiskAuthoritative`, `gateMutationSuccessDisk`, `makeToolReadsWorkerFree`, `fixMultiSessionTemporalRead`). | pass | adv-reviewer independently resolved archive commits 2ac4ceeb (makeReadsDiskAuthoritative), f0277b29 (gateMutationSuccessDisk), 5a2e0d94 (makeToolReadsWorkerFree), b0294359 (fixMultiSessionTemporalRead), plus implementation commit 1879fb64, via git show -s; archive commits contain .adv/archive bundles. |\n| C1 | constraint | Must not introduce a second parallel write surface (bypass is read-only initially; limited write is follow-up) | respected | adv-reviewer READY: Decision 1 is read-only; mutations return typed RECOVERY_MODE_READ_ONLY rather than writing. No second parallel write surface is introduced; limited write is explicitly deferred. |\n| C2 | constraint | Must preserve Temporal workflow replay safety for any workflow code changes | respected | adv-reviewer READY: this change contains no workflow code changes at all, so replay safety is trivially preserved. The persistence-boundary invariant additionally records that workflow code may not perform filesystem or network I/O. |\n| C3 | constraint | The ADR must be approved at the design gate before implementation begins | respected | Design gate completed 2026-08-04T20:21:37Z with user-approved scope reduction before any implementation. No implementation exists: git status clean, trunk..change/resolveAdvPersistenceRecovery empty. |\n| DONT1 | avoidance | Do not implement in this change — it is decision-only | respected | adv-reviewer verified git status clean and git log trunk..change/resolveAdvPersistenceRecovery empty. adv_task_checkpoint returned status:clean at 5dfcc43 — nothing to commit. |\n| DONT2 | avoidance | Do not defer the decisions by creating more per-symptom tickets | respected | adv-reviewer explicitly assessed the Decision 2 split and concluded: moving one independently invalidated architectural decision to a dedicated decision change is a scope correction, not per-symptom deferral. Both retained decisions reached AFFIRMATIVE verdicts rather than being deferred. |\n| DONT3 | avoidance | Do not conflate \"no file-backed runtime\" (legacy prevention) with \"no out-of-band read\" (recovery prevention) | respected | adv-reviewer READY: Decision 1 explicitly distinguishes the AGENTS.md rule's original intent (blocking legacy SQLite/file-backed mutation paths) from the read-only recovery scope it supersedes, and states no mutation path may bypass Temporal. |\n\n"
+  },
+  "artifacts": {
+    "problemStatement": {
+      "updatedAt": "2026-08-04T18:35:08.783Z",
+      "contentHash": "41139266386bf4b8a3bde44e078c7f5e225cfb648623dac72a8d7953a9c8782e",
+      "source": "temporal",
+      "readable": false
+    },
+    "proposal": {
+      "updatedAt": "2026-08-04T18:35:08.783Z",
+      "contentHash": "1ef924cd2a16918419709e8478c1229738ffbfa50e2c455bfc33e3f8ba0f59d2",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-04T20:25:59.954Z",
+      "contentHash": "164a78c3f7ee49a484e5f60cc78e8d6fc8c9ae7ce22b878cf399a98ea2b34000",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-04T20:38:33.505Z",
+      "contentHash": "6853ef74d64b26e2eb96c2411571760d60a93d01e573b8890d10893bab729fb9",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-04T20:50:24.586Z",
+      "contentHash": "5cacf374c67fd4ff92d71595fb9577ec295d0369683d37e2d283f8360fbbd705",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [
+    {
+      "from_gate": "design",
+      "reason": "Scope reduction: Decision 2 (workflow hibernation) split to its own change. Five independent structural review rounds each found a D2 foundation assumption that did not survive verification (in-workflow disk queue impossible; signal-buffer decomposition non-exhaustive; wrong parity gate; false durability basis; deployed-file vs running-worker identity; skipped-outcome hole). D1 and D3 passed clean in all five rounds.",
+      "scope_delta": "REMOVE Decision 2 (workflow hibernation), ADR-002, DDC1/DDC2/DDC5/DDC6/DDC7, and hibernation risk rows. RETAIN Decision 1 and Decision 3, ADR-001, ADR-003, DDC3, DDC4. AC2, AC5, C1, C5, C6 move to the follow-up change.",
+      "reopened_by": "agent",
+      "reopened_at": "2026-08-04T20:18:23.606Z",
+      "gates_reset": [
+        "design",
+        "planning",
+        "execution",
+        "acceptance",
+        "release"
+      ]
+    }
+  ],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-04T20:51:15.059Z",
+  "origin": {
+    "kind": "discovery"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "Decision-only change with zero source modifications. DONT1 makes implementation out of contract scope; adv_task_checkpoint returned status:clean and change/resolveAdvPersistenceRecovery carries no commits (identical to trunk at 5dfcc43). No file under plugin/src/temporal/ or any other path was touched, so the Temporal worker bundle is unchanged and no build_worker or replay_determinism provenance can apply. The decisions recorded here (read-only out-of-band recovery surface; critical-path health diagnostics) will each produce a downstream implementation change, and worker-bundle impact must be declared there on its own merits — in particular decideWorkflowHibernation, which does propose workflow-code changes and will require kind 'required'.",
+    "confirmed_at": "2026-08-04T20:51:15.059Z"
+  },
+  "creation_request_hash": "87af70996e702925fdb84e0495ad94e415d31434134a60435502cd5ecf71e59e",
+  "projection_revision": 69,
+  "projection_commits": [
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-04T19:06:05.201Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-04T19:08:59.426Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-04T19:10:48.346Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-04T19:19:53.123Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-04T19:19:56.833Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "de5829e04780fbf20e4dff2ec8bcb90c904eaebdc7e2070e1a6e5118eaa86689:updateArtifacts:design",
+      "operation_id": "de5829e04780fbf20e4dff2ec8bcb90c904eaebdc7e2070e1a6e5118eaa86689:updateArtifacts:design",
+      "payload_hash": "5353a52501af66fd7990321be2c5e9bdf876c9f31a31d366efa3cd0ec8cc58ff",
+      "state_revision": 8,
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-04T19:23:40.767Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-04T19:27:06.948Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-04T19:27:11.040Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "df1849ab45c1d4fb1395cbc15dd5320aeda4c71fd9c4dc75f47f2544eb1af0c5:updateArtifacts:design",
+      "operation_id": "df1849ab45c1d4fb1395cbc15dd5320aeda4c71fd9c4dc75f47f2544eb1af0c5:updateArtifacts:design",
+      "payload_hash": "efc38f675309d1337f0d834330abdc0fc426e27ffa15d639677e5da413ddd840",
+      "state_revision": 9,
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-04T19:30:20.416Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-04T19:35:01.424Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-04T19:35:06.034Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "889d729486f979d416b3d4889ed2ad38208983714f607096b85a16a0744dc47e:updateArtifacts:design",
+      "operation_id": "889d729486f979d416b3d4889ed2ad38208983714f607096b85a16a0744dc47e:updateArtifacts:design",
+      "payload_hash": "7ba02204428a417d786ccac606dae438e7c439627f3e931d987599d965d3b75d",
+      "state_revision": 10,
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-04T19:43:18.874Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-04T19:46:17.350Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-04T19:46:21.739Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-04T20:04:36.468Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-04T20:17:20.942Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a6defd5ecedd140a2a6419f48f5a9ce4906d127f2efbd7359b6d9547489841ae:updateArtifacts:executiveSummary",
+      "operation_id": "a6defd5ecedd140a2a6419f48f5a9ce4906d127f2efbd7359b6d9547489841ae:updateArtifacts:executiveSummary",
+      "payload_hash": "d556bcb2c51bcc64d3b6c3835257fbc0c25518654e9401ec1da68276f0f73ed6",
+      "state_revision": 11,
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-04T20:17:31.416Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-04T20:18:23.744Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "3d932c53cffa54f06e711caabd98b452c5e4c6e5051388328a2a589e11be1329:updateArtifacts:design",
+      "operation_id": "3d932c53cffa54f06e711caabd98b452c5e4c6e5051388328a2a589e11be1329:updateArtifacts:design",
+      "payload_hash": "4c62fc3f2eaaa13215c1acba36294ce4d5d134710df02a9772ebff1c93b410a9",
+      "state_revision": 12,
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-04T20:21:17.427Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-04T20:21:37.958Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-04T20:22:25.866Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-04T20:23:06.847Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-04T20:23:32.777Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "bcc0cc6f683c2c1a029320ae53eaa74511e46c84122e45ca5aae79635b1cf187:updateArtifacts:agreement",
+      "operation_id": "bcc0cc6f683c2c1a029320ae53eaa74511e46c84122e45ca5aae79635b1cf187:updateArtifacts:agreement",
+      "payload_hash": "542ccc3847a5122a547de24b59edf91a3e0c2ab96fda0c71ffca72c07bcea776",
+      "state_revision": 13,
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-04T20:25:02.096Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ed5885b8c37301ac19d82c61fa8178c93b81d31ee0765f0981bed06712cefac5:updateArtifacts:agreement",
+      "operation_id": "ed5885b8c37301ac19d82c61fa8178c93b81d31ee0765f0981bed06712cefac5:updateArtifacts:agreement",
+      "payload_hash": "314c7a5d147948bf3ff9c5f3d001f7b2115d732dec17f1fd7a194a399cfe64da",
+      "state_revision": 14,
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-04T20:26:00.257Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-04T20:26:17.009Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-04T20:26:35.719Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 46,
+      "new_revision": 47,
+      "committed_at": "2026-08-04T20:27:33.181Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 47,
+      "new_revision": 48,
+      "committed_at": "2026-08-04T20:29:04.966Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 48,
+      "new_revision": 49,
+      "committed_at": "2026-08-04T20:29:32.645Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 49,
+      "new_revision": 50,
+      "committed_at": "2026-08-04T20:32:26.652Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 50,
+      "new_revision": 51,
+      "committed_at": "2026-08-04T20:32:30.408Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8d35235b457669cc8e522a3becdbfa39c8eb29ae0cfc0b8102393bbef3d53f1a:updateArtifacts:design",
+      "operation_id": "8d35235b457669cc8e522a3becdbfa39c8eb29ae0cfc0b8102393bbef3d53f1a:updateArtifacts:design",
+      "payload_hash": "d6bdf80cb2d44dafdbd5ce1dcc6ab6478fb579adc58cf5c1f57d0300798ecebc",
+      "state_revision": 15,
+      "prior_revision": 51,
+      "new_revision": 52,
+      "committed_at": "2026-08-04T20:34:26.190Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 52,
+      "new_revision": 53,
+      "committed_at": "2026-08-04T20:36:31.974Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 53,
+      "new_revision": 54,
+      "committed_at": "2026-08-04T20:36:35.205Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "2ec44c7e8c15cb697a33572144f2e9b4fa15b7a7e7e0888e4c420717c1b45a9a:updateArtifacts:design",
+      "operation_id": "2ec44c7e8c15cb697a33572144f2e9b4fa15b7a7e7e0888e4c420717c1b45a9a:updateArtifacts:design",
+      "payload_hash": "a924c510219148377f16b5180c319b9385e42f5f752b4b8396975014dbeaa0d6",
+      "state_revision": 16,
+      "prior_revision": 54,
+      "new_revision": 55,
+      "committed_at": "2026-08-04T20:38:33.769Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 55,
+      "new_revision": 56,
+      "committed_at": "2026-08-04T20:41:04.164Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 56,
+      "new_revision": 57,
+      "committed_at": "2026-08-04T20:41:08.323Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 57,
+      "new_revision": 58,
+      "committed_at": "2026-08-04T20:43:14.454Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 58,
+      "new_revision": 59,
+      "committed_at": "2026-08-04T20:44:27.941Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 59,
+      "new_revision": 60,
+      "committed_at": "2026-08-04T20:44:49.248Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a7701b00bed11c2b8aabde6a8c564e2f7aee631865ad4580f8274263fa6dc9df:updateArtifacts:executiveSummary",
+      "operation_id": "a7701b00bed11c2b8aabde6a8c564e2f7aee631865ad4580f8274263fa6dc9df:updateArtifacts:executiveSummary",
+      "payload_hash": "635c01c9690765cbdc78100f5a64e63adb0adcef4dc5db7b255fc187c0969d8a",
+      "state_revision": 17,
+      "prior_revision": 60,
+      "new_revision": 61,
+      "committed_at": "2026-08-04T20:45:26.149Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 61,
+      "new_revision": 62,
+      "committed_at": "2026-08-04T20:47:07.235Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785876469833_fcq5tscp",
+      "prior_revision": 62,
+      "new_revision": 63,
+      "committed_at": "2026-08-04T20:47:50.067Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-04T20:47:49.788Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY (attempt 3): Decisions 1 and 3 each retain substantive rationale, alternatives considered, and consequences; ADR-001 and ADR-003 present with context/decision/consequences.",
+              "notes": "Consequences sections cover operational, compatibility, correctness, failure-mode, and cost dimensions."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY: Implementation Strategy sequences D3 then D1, both independently shippable with no dependency outside this change; each decision names its affected components and levers.",
+              "notes": "decideWorkflowHibernation dependency is stated as expectation there, not a commitment here."
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY: LBP Analysis establishes both decisions move ADV from 'Temporal is the system of record' to 'disk projection is the system of record; Temporal is the write-ahead log' — the shared root cause, not per-symptom patches.",
+              "notes": "DONT2 assessed jointly; the D2 split was judged a scope correction, not symptom deferral."
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY: Decision 1 verdict is AFFIRMATIVE for a read-only out-of-band recovery surface, enumerates covered read tools, and defers limited write to an explicit follow-up recorded in agreement.md Deferred Questions and executive-summary.md.",
+              "notes": "Bypass reads carry _advisory.source disk-only-out-of-band per DDC4."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY: Decision 3 requires a bounded adv_status view:summary probe routed through addNonHealthyFinding (doctor.ts:358), superseding the optimistic healthy default when the critical read path fails.",
+              "notes": "Corroborated live during this change's incident recovery: adv_doctor reported healthy across server/worker/queue while adv_task_show timed out at 10s. Reviewer confirmed the note honestly states adv_task_show, not adv_status."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "source_citation",
+              "evidence": "adv-reviewer independently resolved archive commits 2ac4ceeb (makeReadsDiskAuthoritative), f0277b29 (gateMutationSuccessDisk), 5a2e0d94 (makeToolReadsWorkerFree), b0294359 (fixMultiSessionTemporalRead), plus implementation commit 1879fb64, via git show -s; archive commits contain .adv/archive bundles.",
+              "notes": "All four foundation changes confirmed genuinely shipped, not asserted."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY: Decision 1 is read-only; mutations return typed RECOVERY_MODE_READ_ONLY rather than writing. No second parallel write surface is introduced; limited write is explicitly deferred.",
+              "notes": "Architecture Overview separates the best-effort cache-refresh path from the durability gate so the two cannot be conflated."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY: this change contains no workflow code changes at all, so replay safety is trivially preserved. The persistence-boundary invariant additionally records that workflow code may not perform filesystem or network I/O.",
+              "notes": "Vacuously satisfied for D1+D3; the constraint carries substantive weight in decideWorkflowHibernation."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Design gate completed 2026-08-04T20:21:37Z with user-approved scope reduction before any implementation. No implementation exists: git status clean, trunk..change/resolveAdvPersistenceRecovery empty.",
+              "notes": "ADR-001 and ADR-003 both carry Status: Proposed pending design-gate approval."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer verified git status clean and git log trunk..change/resolveAdvPersistenceRecovery empty. adv_task_checkpoint returned status:clean at 5dfcc43 — nothing to commit.",
+              "notes": "Decision-only boundary held across all six review rounds."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer explicitly assessed the Decision 2 split and concluded: moving one independently invalidated architectural decision to a dedicated decision change is a scope correction, not per-symptom deferral. Both retained decisions reached AFFIRMATIVE verdicts rather than being deferred.",
+              "notes": "decideWorkflowHibernation carries the accumulated analysis — six ruled-out mechanisms and two open questions — rather than restarting from zero."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "adv-reviewer READY: Decision 1 explicitly distinguishes the AGENTS.md rule's original intent (blocking legacy SQLite/file-backed mutation paths) from the read-only recovery scope it supersedes, and states no mutation path may bypass Temporal.",
+              "notes": "The amendment scope is quoted verbatim in the artifact so the distinction survives into implementation."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-04T20:47:49.832Z",
+        "mutationReceiptId": "mrec_1785876469833_fcq5tscp"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 63,
+      "new_revision": 64,
+      "committed_at": "2026-08-04T20:48:06.263Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 64,
+      "new_revision": 65,
+      "committed_at": "2026-08-04T20:49:31.961Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "6deb578975911f5e6827ad11b23d33592db64549f31aa5eb558455b15b7034a0:updateArtifacts:executiveSummary",
+      "operation_id": "6deb578975911f5e6827ad11b23d33592db64549f31aa5eb558455b15b7034a0:updateArtifacts:executiveSummary",
+      "payload_hash": "76da8e48a484ee43076bf6e4111c70b14a0c805596e7ba25ebbe181965740a78",
+      "state_revision": 18,
+      "prior_revision": 65,
+      "new_revision": 66,
+      "committed_at": "2026-08-04T20:50:24.762Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 66,
+      "new_revision": 67,
+      "committed_at": "2026-08-04T20:50:56.546Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 67,
+      "new_revision": 68,
+      "committed_at": "2026-08-04T20:51:15.381Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "resolveAdvPersistenceRecovery",
+      "prior_revision": 68,
+      "new_revision": 69,
+      "committed_at": "2026-08-04T20:51:23.665Z"
+    }
+  ],
+  "state_revision": 18,
+  "_source": "disk"
+}

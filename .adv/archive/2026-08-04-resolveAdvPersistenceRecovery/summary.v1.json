@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-04T20:51:46.621Z",
+  "capabilities": [],
+  "change_hash": "832d2adf0da3291a7db554e0d29f3dcd8264db7e6e75b617996ac997daf5f124",
+  "change_id": "resolveAdvPersistenceRecovery",
+  "completed_tasks": 1,
+  "created_at": "2026-08-02T20:24:13.347Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-04T20:49:31.759Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "a11f6c0b174c3baf192dd29028076bfc22d6db02b4f9d2254a8488b9fa12c868",
+  "task_count": 2,
+  "title": "Resolve ADV persistence recovery architecture",
+  "version": "1"
+}
