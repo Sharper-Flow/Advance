@@ -192,7 +192,12 @@ describe("briefing packet command consumption", () => {
   test.each(COMMANDS_IN_SCOPE)(
     "%s instructs generation of a lane-specific briefing packet",
     (file) => {
-      const content = readCommand(file);
+      // adv-review's briefing-packet instructions moved into the typed directive
+      // (composed surface) per design D6/AC7.
+      const content =
+        file === "adv-review.md"
+          ? readCommandSurface("adv-review.md")
+          : readCommand(file);
       expect(content).toContain("briefingPacket: true");
       expect(content).toContain("_briefingPacket");
     },
