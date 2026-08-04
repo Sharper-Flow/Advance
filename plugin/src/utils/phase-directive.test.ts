@@ -91,10 +91,7 @@ describe("withPhaseDirective", () => {
   );
 
   it.each([
-    [
-      "approval-required",
-      parsedPlan(makeContext({ approvalPending: true })),
-    ],
+    ["approval-required", parsedPlan(makeContext({ approvalPending: true }))],
     [
       "blocked",
       parsedPlan({

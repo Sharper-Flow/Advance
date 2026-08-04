@@ -150,6 +150,22 @@ const LEAN_PHASE_PLAN_FIELDS = new Set([
   "_unavailable",
 ]);
 
+const DIRECTIVE_INCLUDE_FIELDS: Record<string, readonly string[]> = {
+  ledger: ["_ledger"],
+  loopLedger: ["_loopLedger"],
+  loopLedgerDetails: ["_loopLedger"],
+  snapshot: ["_contextSnapshot", "_contextSnapshotError"],
+  readyTasks: ["_readyTasks", "_readyTasksMeta", "_todoProjection"],
+  proposal: ["_proposal"],
+  problemStatement: ["_problemStatement"],
+  agreement: ["_agreement"],
+  design: ["_design"],
+  executiveSummary: ["_executiveSummary"],
+  acceptance: ["_acceptance"],
+  subagentReports: ["_subagentReports", "_subagentReportsMeta"],
+  briefingPacket: ["_briefingPacket"],
+};
+
 function hasPhaseDirective(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
   const plan = value as { kind?: unknown; directive?: unknown };
@@ -158,17 +174,28 @@ function hasPhaseDirective(value: unknown): boolean {
 
 function shapeDirectiveResponse(
   output: Record<string, unknown>,
+  include: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   if (!hasPhaseDirective(output._phasePlan)) return undefined;
 
+  // The phase-start read requests only the plan. Preserve every explicitly
+  // requested companion projection instead of silently replacing it with an
+  // omission marker, while still suppressing the default heavy payload.
+  const retainedFields = new Set(LEAN_PHASE_PLAN_FIELDS);
+  for (const [includeKey, outputKeys] of Object.entries(
+    DIRECTIVE_INCLUDE_FIELDS,
+  )) {
+    if (include[includeKey] === true) {
+      for (const outputKey of outputKeys) retainedFields.add(outputKey);
+    }
+  }
+
   const leanOutput: Record<string, unknown> = {};
   const omittedFields = Object.keys(output)
-    .filter(
-      (key) => !LEAN_PHASE_PLAN_FIELDS.has(key) && output[key] !== undefined,
-    )
+    .filter((key) => !retainedFields.has(key) && output[key] !== undefined)
     .sort();
 
-  for (const key of LEAN_PHASE_PLAN_FIELDS) {
+  for (const key of retainedFields) {
     if (output[key] !== undefined) leanOutput[key] = output[key];
   }
   if (omittedFields.length > 0) leanOutput._omittedFields = omittedFields;
@@ -1984,7 +2011,7 @@ export const changeTools = {
           output.hydrationStats = changeShowHydrationStats;
         }
         const pretty = resolveOutputMode(outputMode);
-        const leanOutput = shapeDirectiveResponse(output);
+        const leanOutput = shapeDirectiveResponse(output, include ?? {});
         if (leanOutput) {
           const serializedLeanOutput = JSON.stringify(
             leanOutput,

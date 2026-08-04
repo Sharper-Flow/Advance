@@ -680,6 +680,35 @@ describe("change tools — signal-driven lifecycle", () => {
       expect(parsed._truncated).toBeUndefined();
     });
 
+    test("preserves explicitly requested projections alongside a review directive", async () => {
+      const store = createMockStore({
+        gates: {
+          proposal: { status: "done" },
+          discovery: { status: "done" },
+          design: { status: "done" },
+          planning: { status: "done" },
+          execution: { status: "done" },
+          acceptance: { status: "pending" },
+          release: { status: "pending" },
+        },
+        documents: { proposal: "explicitly requested proposal" },
+      });
+
+      const result = await changeTools.adv_change_show.execute(
+        {
+          changeId: "test-change",
+          include: { phasePlan: true, proposal: true },
+        },
+        store,
+      );
+      const parsed = JSON.parse(result);
+
+      expect(parsed._phasePlan.directive).toBeDefined();
+      expect(parsed._proposal).toBe("explicitly requested proposal");
+      expect(parsed._omittedFields).toContain("tasks");
+      expect(parsed._omittedFields).not.toContain("_proposal");
+    });
+
     test("keeps degraded phase-plan reads on the normal response path", async () => {
       const store = createMockStore();
       vi.mocked(store.gates.get).mockResolvedValue({
@@ -2344,12 +2373,10 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(parsed._phasePlan).not.toHaveProperty("route");
       }
 
-      // The snapshot Next line tracks the same routing the plan reports. A
-      // review directive intentionally uses the lean response shape, which
-      // omits the snapshot while retaining its typed phase-plan payload.
-      if (plan.kind === "actionable" && plan.directive) {
-        expect(parsed._contextSnapshot).toBeUndefined();
-      } else if (row.expect.snapshotNext) {
+      // The snapshot Next line tracks the same routing the plan reports.
+      // Explicitly requested projections remain available on lean directive
+      // reads, so callers never lose their requested snapshot.
+      if (row.expect.snapshotNext) {
         expect(parsed._contextSnapshot).toContain(row.expect.snapshotNext);
       } else {
         expect(parsed._contextSnapshot ?? "").not.toContain("Next:");
