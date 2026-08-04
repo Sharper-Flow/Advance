@@ -70,6 +70,8 @@ For ~17 active changes with half stale, expect ~8 deep inspections. Cap each dis
 
 Surfaces 2–4 run regardless of surface-1 results — worktree, branch, and leak debt outlive their changes.
 
+> **DESTRUCTIVE DEFAULT WARNING:** During Phase 1 discovery, omitting `dryRun: true` from `adv_worktree_cleanup` **DELETES branches instead of listing them**; the tool has no safe default. `dryRun: true` is mandatory for discovery. Apply deletion only in Phase 5 after typed confirmation.
+
 ## Child-Lineage Guard
 
 Before any closure bucket, check unarchived fast-follow children: any active change whose `parent_change_id` equals candidate ID.
@@ -101,6 +103,20 @@ A surface with no candidates renders an explicit empty state rather than being o
 | **needs-investigation** | Classification ambiguous (missing registry entry, stale head, etc.) |
 
 Only the **safe** group is ever offered for deletion.
+The `adv_worktree_triage` classes map to these groups as follows:
+
+| `adv_worktree_triage` class | Drift group | Deletion eligible |
+|---|---|---|
+| `archived_not_cleaned` | safe | yes — owning change archived; delete tool enforces archived+merged+clean |
+| `missing_from_disk` | safe | yes — registry-only record, nothing on disk to lose |
+| `dirty_uncommitted_work` | dirty/in-use | **no** — force-deleting discards staged/modified/untracked work |
+| `missing_from_temporal_unmerged` | dirty/in-use | **no** — has commits ahead of the default branch |
+| `missing_from_temporal` | needs-investigation | no — may still be active; resume or inspect first |
+| `registry_missing_change_id` | needs-investigation | no — repair registry metadata first |
+| `stale_head` | needs-investigation | no — classification ambiguous |
+| `terminal_cleanup_retained` | blocked | no — cleanup already attempted and blocked; resolve the blocker first |
+
+Any unrecognized or new `adv_worktree_triage` class MUST default to `needs-investigation` and is never eligible for deletion (fail-closed for unknown input).
 
 Required snippet:
 
@@ -164,7 +180,7 @@ Total candidates: {sum non-empty actionable buckets}
 
 If `--bucket` was used, prefix report with `Filtered to bucket: <name>`.
 
-Empty states: `Worktree drift: none.` / `Merged archived branches: none.` / `State leaks: none.`
+Empty states: `Active-change debt: none.` / `Worktree drift: none.` / `Merged archived branches: none.` / `State leaks: none.`
 
 If all surfaces empty: `No cleanup candidates. All hygiene surfaces are clean.`
 
@@ -269,9 +285,11 @@ Anything else → re-prompt same options. No LLM fallback.
 Result lines:
 
 - Reversible success: `✓ {Bucket name}: closed {N} change(s) — {reason}`
-- Irreversible success: `✓ {Bucket name}: deleted {N} of {M} — {names}`
+- Irreversible success: `✓ {Bucket name}: deleted {N} of {M} — {name}@{sha}`
 - Refusal: `⊘ {Bucket name}: {name} refused by {tool} — {verbatim refusal}`
 - Failure: `✗ {Bucket name}: failed — {error message}. No changes applied in this bucket.`
+
+Record each deleted branch SHA in the result line so the documented reflog recovery path is actually executable.
 
 ## Anti-Patterns
 
@@ -285,6 +303,7 @@ Result lines:
 | Treat `adv_worktree_triage` safe group as deletion authority | Delegate to `adv_worktree_delete` and let it re-verify |
 | Accept `approve all` for a worktree or branch bucket | Require count-matched `delete all N` |
 | Summarize destructive candidates by count | List every path and branch name |
+| Call adv_worktree_cleanup without dryRun during discovery | `dryRun: true` is mandatory in Phase 1; the tool has no safe default |
 | Omit an empty surface from the report | Render an explicit empty state |
 | Purge state leaks from cleanup | Recommend `adv_archive_purge`, which owns its own approval |
 | Retry around a deletion-tool refusal | Report the refusal verbatim and move on |

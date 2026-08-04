@@ -37,6 +37,8 @@ Four discovery calls, one per hygiene surface. Record scanned counts per surface
 3. **Merged archived branches** — `adv_worktree_cleanup({ mode: "archived_branches", dryRun: true })`. Discovery only; `dryRun: true` is mandatory in this phase.
 4. **State leaks** — `adv_status({ view: "hygiene" })`.
 
+> **DESTRUCTIVE DEFAULT WARNING:** Omitting `dryRun: true` here **DELETES branches instead of listing them**; `adv_worktree_cleanup` has no safe default. Use the discovery call exactly as written. The apply form belongs only in Phase 5 after typed confirmation.
+
 A failing surface degrades that section only; report it as `unavailable: {reason}` and continue with the rest.
 
 If all four surfaces return zero candidates → `No cleanup candidates. All hygiene surfaces are clean.` → stop.
@@ -85,7 +87,20 @@ Classify each worktree into one of four drift groups:
 | **dirty/in-use** | Uncommitted changes or running processes detected; defer to user |
 | **needs-investigation** | Classification ambiguous (missing registry entry, stale head, etc.) |
 
-Only the **safe** group is ever offered for deletion. `blocked`, `dirty/in-use`, and `needs-investigation` are reported and skipped.
+The `adv_worktree_triage` classes map to these groups as follows:
+
+| `adv_worktree_triage` class | Drift group | Deletion eligible |
+|---|---|---|
+| `archived_not_cleaned` | safe | yes — owning change archived; delete tool enforces archived+merged+clean |
+| `missing_from_disk` | safe | yes — registry-only record, nothing on disk to lose |
+| `dirty_uncommitted_work` | dirty/in-use | **no** — force-deleting discards staged/modified/untracked work |
+| `missing_from_temporal_unmerged` | dirty/in-use | **no** — has commits ahead of the default branch |
+| `missing_from_temporal` | needs-investigation | no — may still be active; resume or inspect first |
+| `registry_missing_change_id` | needs-investigation | no — repair registry metadata first |
+| `stale_head` | needs-investigation | no — classification ambiguous |
+| `terminal_cleanup_retained` | blocked | no — cleanup already attempted and blocked; resolve the blocker first |
+
+Any unrecognized or new `adv_worktree_triage` class MUST default to `needs-investigation` and is never eligible for deletion (fail-closed for unknown input).
 
 Required snippet:
 
@@ -114,6 +129,7 @@ A surface with no candidates renders an explicit empty state rather than being o
 Required snippets:
 
 - Ready → `→ Run /adv-archive {id} to ship.`
+- Active-change empty state → `Active-change debt: none.`
 - Worktree empty state → `Worktree drift: none.`
 - Branch empty state → `Merged archived branches: none.`
 - Leak empty state → `State leaks: none.`
@@ -193,9 +209,11 @@ Deletion authority belongs to those tools alone (`rq-terminalCleanupSafety01`). 
 Each bucket atomic. Continue to the next bucket after a failure.
 
 - Reversible success: `✓ {Bucket name}: closed {N} change(s) — {reason}`
-- Irreversible success: `✓ {Bucket name}: deleted {N} of {M} — {names}`
+- Irreversible success: `✓ {Bucket name}: deleted {N} of {M} — {name}@{sha}`
 - Refusal: `⊘ {Bucket name}: {name} refused by {tool} — {verbatim refusal}`
 - Failure: `✗ {Bucket name}: failed — {error message}. No changes applied in this bucket.`
+
+Record each deleted branch SHA in the result line so the documented reflog recovery path is actually executable.
 
 ---
 
@@ -222,7 +240,7 @@ Emit closing summary. Use Gate Handoff Voice spine but omit gate footer; cleanup
 | Inspect gates/tasks | `adv_change_show` |
 | Close bulk candidates | `adv_change_bulk_close` |
 | Discover worktree drift | `adv_worktree_triage` |
-| Discover merged archived branches | `adv_worktree_cleanup` (`mode: "archived_branches"`, `dryRun: true`) |
+| DISCOVERY — merged archived branches (Phase 1; `dryRun: true`) | `adv_worktree_cleanup` (`mode: "archived_branches"`, `dryRun: true`) |
 | Discover state leaks | `adv_status` (`view: "hygiene"`) |
 | Delete a worktree | `adv_worktree_delete` |
-| Delete merged archived branches | `adv_worktree_cleanup` (`mode: "archived_branches"`) |
+| APPLY — delete merged archived branches (Phase 5 only, after typed confirmation) | `adv_worktree_cleanup` (`mode: "archived_branches"`) |

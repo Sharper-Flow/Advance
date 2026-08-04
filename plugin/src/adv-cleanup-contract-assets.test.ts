@@ -72,6 +72,31 @@ describe("adv-cleanup hygiene triage contract", () => {
     ["command", command],
     ["skill", skill],
   ];
+  const triageClasses = [
+    "stale_head",
+    "missing_from_temporal",
+    "missing_from_temporal_unmerged",
+    "missing_from_disk",
+    "registry_missing_change_id",
+    "archived_not_cleaned",
+    "dirty_uncommitted_work",
+    "terminal_cleanup_retained",
+  ] as const;
+
+  const irreversibleHeadingPatterns: Record<string, RegExp> = {
+    command: /^## Phase 4b: Irreversible Bucket Approval\b/m,
+    skill: /^### Irreversible buckets\s*$/m,
+  };
+
+  // `extractSection` intentionally uses first-match semantics; keep these
+  // owning-heading patterns unambiguous so future headings cannot redirect it.
+  const irreversibleSections = files.map(
+    ([name, content]) =>
+      [name, extractSection(content, irreversibleHeadingPatterns[name])] as [
+        string,
+        string,
+      ],
+  );
 
   describe("worktree drift groups (rq-worktreeBoundedCleanup01, retained)", () => {
     test.each(files)("%s references adv_worktree_triage", (_name, content) => {
@@ -86,6 +111,24 @@ describe("adv-cleanup hygiene triage contract", () => {
         expect(lower).toContain("blocked");
         expect(lower).toContain("dirty");
         expect(lower).toContain("needs-investigation");
+      },
+    );
+
+    test.each(files)(
+      "%s maps every adv_worktree_triage class",
+      (_name, content) => {
+        for (const triageClass of triageClasses) {
+          expect(content).toContain(triageClass);
+        }
+      },
+    );
+
+    test.each(files)(
+      "%s fails closed for unrecognized triage classes",
+      (_name, content) => {
+        expect(content).toMatch(
+          /unrecognized or new.*needs-investigation.*never eligible for deletion.*fail-closed for unknown input/i,
+        );
       },
     );
   });
@@ -122,6 +165,13 @@ describe("adv-cleanup hygiene triage contract", () => {
         expect(content).toMatch(/empty state|explicit empty|rather than omit/i);
       },
     );
+
+    test.each(files)(
+      "%s includes the active-change empty state",
+      (_name, content) => {
+        expect(content).toContain("Active-change debt: none.");
+      },
+    );
   });
 
   describe("AC2 — reversibility labelling", () => {
@@ -139,14 +189,19 @@ describe("adv-cleanup hygiene triage contract", () => {
         expect(content).toMatch(/reflog/i);
       },
     );
+
+    test.each(files)(
+      "%s records the deleted branch SHA in irreversible success",
+      (_name, content) => {
+        expect(content).toMatch(/Irreversible success:.*\{name\}@\{sha\}/i);
+        expect(content).toMatch(
+          /deleted branch SHA.*reflog recovery path.*executable/i,
+        );
+      },
+    );
   });
 
   describe("AC3 — typed confirmation for irreversible buckets", () => {
-    const irreversibleSections = files.map(
-      ([name, content]) =>
-        [name, extractSection(content, /irreversible/i)] as [string, string],
-    );
-
     test.each(irreversibleSections)(
       "%s has a dedicated irreversible-bucket approval section",
       (_name, section) => {
@@ -198,10 +253,9 @@ describe("adv-cleanup hygiene triage contract", () => {
   });
 
   describe("AC4 — named candidates, never counts", () => {
-    test.each(files)(
+    test.each(irreversibleSections)(
       "%s requires exact worktree paths and branch names in destructive prompts",
-      (_name, content) => {
-        const section = extractSection(content, /irreversible/i);
+      (_name, section) => {
         expect(section).toMatch(/path/i);
         expect(section).toMatch(/branch name/i);
         expect(section).toMatch(/never a count|not a count|count-only/i);
@@ -254,6 +308,13 @@ describe("adv-cleanup hygiene triage contract", () => {
     test("command tells the user how to re-run with execution enabled", () => {
       expect(command).toContain("--execute");
     });
+
+    test.each(files)(
+      "%s warns that cleanup has no safe dryRun default",
+      (_name, content) => {
+        expect(content).toMatch(/no safe default/i);
+      },
+    );
   });
 
   describe("AC7 / DONT5 — reversible parser unchanged", () => {
