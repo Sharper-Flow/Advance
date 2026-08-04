@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "change_id": "fixCleanupTimeoutRemediation",
+  "delta_set_sha256": "4973b2cadc31a626bc6033cac45dbe2b03a6bd2c3bccedb816bf58f4d45c66bb",
+  "capabilities": [
+    {
+      "capability": "worktree-lifecycle",
+      "base_version": "1.8.0",
+      "target_version": "1.9.0",
+      "spec_sha256": "2b125dcfedbf1a7efaa90781dc9686c2bba9c00780b7e4e0d7bce1643449a9ef",
+      "document_sha256": "621ab36707d07fb1f5651d6fe5dfe64444b2f0ccd69e6ba8ecf2d47750a64b1b",
+      "requirement_sha256": {
+        "rq-wl-branchRegistry01": "a523dc93f906d01d5ffae43924a917d36845ac95e0adcedc63d41f470cc47547",
+        "rq-worktreePoisonVisibility01": "54b8acc72e867b6b11154a4c15eb8900355406e979778b95bbdd112e4181feea",
+        "rq-wl-setupReadiness01": "65e4a8518dcd3554285914ab90bc46af487f07cf9522daa3f68e01328c06f5d1",
+        "rq-wl-gitFirstReconcile01": "ad026d38ea3f4f17f5bf515ffd1d0b3291887ec4dc24ad6bb5840c67420b1db2",
+        "rq-wl-resumeTool01": "c13fecc0030d5700bf4c8c73e7916100c2056cad40efcbccad3b7c687ad395fa",
+        "rq-wl-cleanupEligibility01": "53cedcb925d9e43c5d319f84a9e783d49b2bd01297612a996246b8e42341690e",
+        "rq-terminalCleanupReaper01": "1714c9d3dc3bb71c8a4e44064bec655d06b9cb250adcab20e1ddb2d3b6e7c1ed",
+        "rq-terminalCleanupSafety01": "f60890dd26b999b10494ea896d70527bd83552e82c732f618de6d6ab87000417",
+        "rq-terminalCleanupVisibility01": "be9453d89556657128966964e7ee182022130ab87f7fe4b7e6a0e389c6e0b8d3",
+        "rq-terminalCleanupLifecycle01": "79a67df0e1a3abc853a3c3154d0e017a7a99510d030011d9ea4a48bdf1641e2a",
+        "rq-worktreeMutationGuard01": "953599aaaf5367e27e6c37afad262083370b6bcfa09e67f09502a1427d853d27",
+        "rq-worktreeBoundedCleanup01": "7936aabef912983cfa8318ad9006de0b3fb5dd629887369d93bd8509162d3c96",
+        "rq-worktreeBoundedCleanup02": "0dc4305b6957a9bd77985bfd550be1e9cdbf25892870dc1f7302ee50a12e41d0",
+        "rq-worktreeTargetCleanup01": "a5b6d9e0809f8722a02c52b12bb8a563fbff947e450c591999b1f555db88762a",
+        "rq-worktreeLeaseLiveness01": "9f3da711f96d2acf110bc08483f7b2a4aa22f3476b200091e87c8d0d9a79f516",
+        "rq-worktreeStaleRegistryCleanup01": "ebd0c382df9d634cd452810c66cca69de3a50ed127254f4c8cc6cb248e935d00",
+        "rq-healthReadOnlyWorktree01": "9d80e6b68808d1fa905582aed7de9b4a676144883907bdafaf350692a5176232",
+        "rq-worktreeTimeoutTruthfulness01": "fd8ddb309eb75e24f7632f67c7941076256c4a57669ccf2d204a08926346ceae"
+      },
+      "dispositions": [
+        {
+          "deltaId": "dl-worktreeTimeoutTruthfulness01",
+          "operation": "add",
+          "status": "missing",
+          "targetId": "rq-worktreeTimeoutTruthfulness01"
+        }
+      ]
+    }
+  ]
+}

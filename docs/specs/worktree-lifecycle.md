@@ -1,7 +1,7 @@
 # Worktree Lifecycle — Branch-Aware Registry, Setup Readiness, Git-First Reconciliation
 
-> **Version:** 1.8.0
-> **Updated:** 2026-07-19
+> **Version:** 1.9.0
+> **Updated:** 2026-08-04
 
 ## Purpose
 
@@ -299,7 +299,7 @@ ADV must provide one shared terminal cleanup reaper for terminal ADV worktrees. 
 
 **ID:** `rq-terminalCleanupSafety01` | **Priority:** **[MUST]**
 
-Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority. The local CWD scan (`isWorktreeInUse`) is the sole safety authority for the "no live process CWD" portion of this requirement. The remote OpenCode workspace-list API is advisory: when reachable, it cleans up stale workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.
+Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktreeDelete is the sole deletion authority and must verify durable ADV state, terminal owning change status (archived or closed), branch integration, clean worktree state, and no live process CWD before removal. census.cleanupEligible is advisory discovery/visibility data only and must not be used as sufficient deletion authority. The local CWD scan (isWorktreeInUse) is the sole safety authority for the "no live process CWD" portion of this requirement. The remote OpenCode workspace-list API is advisory: when reachable, it cleans up stale workspace registry entries; when unreachable, deletion proceeds with a logged warning and is not blocked.
 
 **Tags:** `worktree`, `cleanup`, `safety`
 
@@ -329,7 +329,7 @@ Terminal cleanup candidates MUST NOT run git worktree remove directly. advWorktr
 **Remote workspace registry failure is advisory** (`rq-terminalCleanupSafety01.3`)
 
 **Given:**
-- advWorktreeDelete has verified via local `/proc/*/cwd` scan that no live process holds the worktree as CWD
+- advWorktreeDelete has verified via local /proc/*/cwd scan that no live process holds the worktree as CWD
 - The remote OpenCode workspace-list API returns a failure (network, 5xx, malformed response)
 
 **When:** The terminal cleanup evaluates workspace ownership
@@ -769,5 +769,111 @@ adv_worktree_delete MUST safely clear worktree registry entries reported as `mis
 - The read is bounded
 - Exact paths remain privacy-safe and scope-appropriate
 - No deletion is authorized by the diagnostic read
+
+---
+
+### Truthful, Bounded Worktree Timeout Reporting
+
+**ID:** `rq-worktreeTimeoutTruthfulness01` | **Priority:** **[MUST]**
+
+Worktree tool timeout responses must not assert a cause they did not test, and must not advise an action that cannot succeed.
+
+The timeout branches of adv_worktree_cleanup, adv_worktree_delete, and adv_worktree_detach resolve a setTimeout sentinel rather than a rejection, so no error object exists to classify. These responses must therefore not assert a poisoned workflow and must not carry an unconditional adv_doctor referral, unless poison evidence was actually collected on that call (see rq-worktreePoisonVisibility01).
+
+Timeout remediation must name an action that can actually succeed. When the caller's timeoutMs was clamped to the safe budget, the response must not advise passing a larger timeoutMs, must state that the safe budget is a structural ceiling, and must not name an option the current mode ignores.
+
+On timeout, adv_worktree_cleanup must report the stage in flight (discovery or drain), captured synchronously before any post-timeout await, plus either pendingDeleteCount or pendingDeleteCountUnavailable when the pending-delete read fails. An empty queue and an unreadable queue must remain distinguishable.
+
+adv_worktree_cleanup accepts an optional skipDiscovery flag (worktrees mode only) providing drain-only recovery of already-queued pending deletes after a prior cleanup timed out during discovery. Drain-only must not delete worktrees that discovery never validated.
+
+Git subprocesses on the cleanup discovery path must each be bounded strictly below the tool budget, derived per-call as min(2000, floor(effectiveTimeoutMs / 4)). Shared git helpers retain their original defaults when invoked from non-cleanup paths.
+
+**Tags:** `worktree`, `timeout`, `diagnostics`, `truthfulness`, `bounded`, `recovery`
+
+#### Scenarios
+
+**Clamped remediation names a reachable action** (`rq-worktreeTimeoutTruthfulness01.1`)
+
+**Given:**
+- adv_worktree_cleanup is called with timeoutMs above the safe budget
+- The call times out in either worktrees or archived_branches mode
+
+**When:** The typed timeout response is produced
+
+**Then:**
+- remediation does not instruct the caller to pass a larger timeoutMs
+- remediation states the safe budget is a structural ceiling
+- remediation names only actions the current mode supports
+- archived_branches remediation does not name skipDiscovery, which that mode ignores
+
+**Unclamped remediation may still offer a larger timeout** (`rq-worktreeTimeoutTruthfulness01.2`)
+
+**Given:**
+- adv_worktree_cleanup times out with no clamp applied
+
+**When:** The typed timeout response is produced
+
+**Then:**
+- remediation may offer a larger timeoutMs because that action is reachable
+
+**No unevidenced poison claim on any worktree timeout** (`rq-worktreeTimeoutTruthfulness01.3`)
+
+**Given:**
+- adv_worktree_cleanup, adv_worktree_delete, or adv_worktree_detach times out
+- No poison evidence was collected on that call
+
+**When:** The typed timeout response is produced
+
+**Then:**
+- The error contains no assertion that a workflow is poisoned
+- Neither error nor remediation carries an unconditional adv_doctor referral
+
+**Cleanup timeout reports the stage in flight** (`rq-worktreeTimeoutTruthfulness01.4`)
+
+**Given:**
+- adv_worktree_cleanup times out
+
+**When:** The typed timeout response is produced
+
+**Then:**
+- The response includes a stage of discovery or drain
+- The stage is captured synchronously before any post-timeout await so a value advanced by the still-running inner promise is never reported
+- A stage of discovery is reported only when discovery actually ran
+
+**Unreadable pending-delete queue is distinguishable from an empty one** (`rq-worktreeTimeoutTruthfulness01.5`)
+
+**Given:**
+- adv_worktree_cleanup times out
+
+**When:** The pending-delete read succeeds
+
+**Then:**
+- The response includes pendingDeleteCount
+- When the pending-delete read instead fails, the response includes pendingDeleteCountUnavailable true and omits pendingDeleteCount
+
+**Drain-only recovery skips discovery** (`rq-worktreeTimeoutTruthfulness01.6`)
+
+**Given:**
+- A prior cleanup timed out during discovery leaving pending-delete entries queued
+
+**When:** adv_worktree_cleanup is invoked with skipDiscovery true in worktrees mode
+
+**Then:**
+- The discovery scan is skipped
+- The stage observer fires only for drain
+- Queued pending deletes are drained within the same safe budget
+- No worktree that discovery never validated is deleted
+
+**Discovery git subprocesses are bounded below the tool budget** (`rq-worktreeTimeoutTruthfulness01.7`)
+
+**Given:**
+- A git subprocess is invoked on the cleanup discovery path
+
+**When:** That subprocess hangs
+
+**Then:**
+- It is terminated by its own timeout strictly below the tool budget
+- Discovery does not rely on the outer race as its only guard
+- Shared git helpers invoked from non-cleanup paths retain their original defaults
 
 ---

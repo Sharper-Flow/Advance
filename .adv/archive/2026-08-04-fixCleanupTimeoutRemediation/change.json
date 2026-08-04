@@ -1,0 +1,2145 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixCleanupTimeoutRemediation",
+  "title": "Fix cleanup timeout remediation",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-04T05:12:58.787Z",
+  "tasks": [
+    {
+      "id": "tk-7b2d308848b0",
+      "title": "WS3: Add skipDiscovery arg to adv_worktree_cleanup for drain-only recovery",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-04T06:57:04.744Z",
+      "started_at": "2026-08-04T14:17:50.847Z",
+      "completed_at": "2026-08-04T14:27:55.331Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC5 implemented. skipDiscovery added to WorktreeCleanupArgs (adv-worktree.ts:135), inline Zod schema (818-824), and forwarded as `discover: !args.skipDiscovery` in the advWorktreeCleanup deps (358-360). RED tr_mseqxmyu_29060f27, GREEN tr_mseqympl_9188a384, final 37 passed tr_mser06jz_1a236f52. pnpm run schemas:check passed, no regeneration needed. Diff independently verified by orchestrator: three changes present and matching design; no new deletion path added (C5 preserved — drainPendingDeletes still only processes pre-queued rows); archived_branches no-op left unvalidated by design intent.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "checkpointSha": "424061b29d1a7165e53c3db727c6c2652da4bbc6",
+      "completedAt": "2026-08-04T14:27:55.331Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC5"
+        ],
+        "respects": [
+          "C5",
+          "C3",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCleanupTimeoutRemediation",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCleanupTimeoutRemediation",
+          "task_id": "tk-7b2d308848b0",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-7b2d308848b0"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/adv-worktree.ts",
+            "plugin/src/tools/adv-worktree.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mseqxmyu_29060f27",
+              "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+              "exit_code": 1,
+              "summary": "RED confirmed: the two new skipDiscovery tests failed before implementation because the wrapper did not forward discover:false."
+            },
+            {
+              "test_run_id": "tr_mseqympl_9188a384",
+              "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: 37 tests passed after implementing the interface, schema, and forwarding changes."
+            },
+            {
+              "test_run_id": "tr_mser06jz_1a236f52",
+              "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+              "exit_code": 0,
+              "summary": "Final verification passed: 37 tests passed after formatting."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Forward discover:false only when skipDiscovery is explicitly provided.",
+              "why": "Preserves the existing default discovery behavior while enabling drain-only recovery; the archived_branches early route remains an intentional no-op."
+            },
+            {
+              "what": "Kept deletion and drain behavior in the existing advWorktreeCleanup path.",
+              "why": "Preserves C5, C3, and DONT4 by adding no deletion path or parallelism."
+            },
+            {
+              "what": "Schemas check required no regeneration.",
+              "why": "pnpm run schemas:check passed after the Zod argument addition."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Reviewed the cleanup wrapper and underlying discover/drain seam; no additional in-scope forwarding gaps found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Implemented skipDiscovery?: boolean, documented it in the cleanup Zod schema, and forward-mapped it to discover: !skipDiscovery only for the worktrees cleanup path. Added AC5a/AC5b wrapper seam tests. RED run tr_mseqxmyu_29060f27; GREEN run tr_mseqympl_9188a384; final targeted verification tr_mser06jz_1a236f52. pnpm run schemas:check passed with no generated changes.",
+            "suggested_next_action": "Review the two-file diff and proceed with orchestrator-owned task completion."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mseqxmyu_29060f27"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mseqympl_9188a384"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mser06jz_1a236f52"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-2a69e7c2a549",
+      "title": "WS2: Report in-flight stage and pending-delete count on cleanup timeout",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 1,
+      "created_at": "2026-08-04T06:57:47.549Z",
+      "started_at": "2026-08-04T14:28:48.759Z",
+      "completed_at": "2026-08-04T14:47:18.323Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC4 implemented. onStageEnter?: (stage) => void added to AdvWorktreeCleanupDeps (worktree/index.ts:2879-2880); fired at index.ts:3177 before the discovery gate and 3189 before drainPendingDeletes. Tool wrapper tracks via closure cell `currentStage` (adv-worktree.ts:355, 366-368) and reports stage + pendingDeleteCount in the timeout branch (392-394) using the existing getPendingDeletes reader — no invented helper. RED tr_mserbntm_537852f1, GREEN tr_mserlzfm_6a7039a3, pnpm run check tr_mserszzg_b9e8daf6. Orchestrator-verified diff: DONT2 respected (no .then/.catch attached to the timed-out inner promise); DONT5 respected (pendingDeleteCount is a fresh DB read, not a read of in-flight drain locals); archived_branches response untouched; error/remediation text deliberately unchanged and left to WS1.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "9f913258a074010604d89fb25e420f5e2d98c11f",
+      "completedAt": "2026-08-04T14:47:18.323Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT5",
+          "C1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "fixCleanupTimeoutRemediation",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCleanupTimeoutRemediation",
+          "task_id": "tk-2a69e7c2a549",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-2a69e7c2a549"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/tools/worktree/index.ts",
+            "plugin/src/tools/adv-worktree.ts",
+            "plugin/src/tools/adv-worktree.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mserbntm_537852f1",
+              "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+              "exit_code": 1,
+              "summary": "RED confirmed: the two new timeout-stage tests failed because stage and pendingDeleteCount were not yet in the timeout response; 37 existing tests passed."
+            },
+            {
+              "test_run_id": "tr_mserlzfm_6a7039a3",
+              "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+              "exit_code": 0,
+              "summary": "GREEN: targeted adv-worktree suite passed, 39 tests."
+            },
+            {
+              "test_run_id": "tr_mserszzg_b9e8daf6",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Passed schemas check, typecheck, manifest/frontmatter/isolation/lockfile checks, lint with 4 existing warnings and no errors, and format check."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Fire the discovery stage callback outside and immediately before the discovery gate.",
+              "why": "This reports discovery even when discover is skipped, allowing the subsequent drain callback to supersede it exactly as requested."
+            },
+            {
+              "what": "Read pendingDeleteCount from a fresh getPendingDeletes(database) call in the timeout branch.",
+              "why": "The fresh database snapshot is safe while the non-cancelling cleanup promise continues, and avoids reading in-flight drain locals."
+            },
+            {
+              "what": "Keep timeout response text, archived_branches handling, and cleanup promise race unchanged.",
+              "why": "WS1 owns remediation text, archived_branches is out of scope, and DONT2 prohibits late handlers on the timed-out promise."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "Scanned the cleanup wrapper and underlying advWorktreeCleanup stage boundaries; archived_branches remains unchanged and no .then/.catch/late-success handler was attached to cleanupPromise.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "WS2 implemented. advWorktreeCleanup now observes discovery outside its gate and drain before draining; worktrees timeout responses report stage and fresh pendingDeleteCount. Added callback-driven discovery/drain hang tests. RED tr_mserbntm_537852f1; GREEN tr_mserlzfm_6a7039a3; check tr_mserszzg_b9e8daf6. pnpm run check passes. The mandated plugin workdir required ../bin/oc-test because bin/oc-test is at the worktree root; the initial bin/oc-test attempt was recorded as tr_mserard8_d3838659 with exit 127.",
+            "suggested_next_action": "Proceed to orchestrator-owned task checkpoint/completion; WS1 can now consume stage fields without revisiting this scope."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mserbntm_537852f1"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mserlzfm_6a7039a3"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mserszzg_b9e8daf6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tk-b4217ae3eb05",
+      "title": "WS1: Make cleanup timeout remediation truthful and mode-aware; drop unevidenced poison claim",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-2a69e7c2a549"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-7b2d308848b0"
+        }
+      ],
+      "created_at": "2026-08-04T06:58:23.720Z",
+      "completed_at": "2026-08-04T15:05:37.460Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC1/AC2/AC3 implemented — the reported defect. Both timeout branches now branch remediation on wasClamped, and mode-aware: worktrees clamped remediation names skipDiscovery:true + adv_worktree_triage; archived_branches clamped remediation names a narrower changeId filter + adv_worktree_triage and deliberately does NOT name skipDiscovery (that mode routes to cleanupArchivedMergedBranches at line 310 and never forwards discover, so naming it would recreate the AC1 defect — this was the design-validator MUST-FIX). Unclamped remediation in both modes still offers a larger timeoutMs because it is reachable (AC2). Poison assertion and unconditional adv_doctor referral removed from the worktrees error, replaced with the WS2 stage the code actually observed. RED tr_msesfk2w_b0e471dd reproduced both defects verbatim (\"Retry with a larger timeoutMs...\" after clamp; \"Cleanup likely blocked on a poisoned workflow ... (see adv_doctor)\"). GREEN tr_mseshv60_36e9ae4f — 76 passed across 4 files including the pre-existing rq-worktreeBoundedCleanup02 clamp suite. C4/DONT3 respected: no describe() probe added, claim removed rather than reclassified because the branch races a setTimeout sentinel with no error object to classify. DONT1 respected: WORKTREE_TOOL_SAFE_TIMEOUT_MS untouched at 8000.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "checkpointSha": "d6320562a5ed14baac8a4e44368233e1fd59a6cc",
+      "completedAt": "2026-08-04T15:05:37.460Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "respects": [
+          "C4",
+          "DONT3",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ]
+    },
+    {
+      "id": "tk-6d217e1bba98",
+      "title": "WS4: Bound cleanup-path git subprocesses below the tool budget",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "created_at": "2026-08-04T06:59:03.909Z",
+      "completed_at": "2026-08-04T15:00:35.006Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC6 implemented inline. Both cleanup-path git helpers now accept an optional timeoutMs defaulting to their current value (census.ts DEFAULT_CENSUS_GIT_TIMEOUT_MS=10000, index.ts DEFAULT_WORKTREE_GIT_TIMEOUT_MS=30000), preserving C6 for non-cleanup callers. gitTimeoutMs added to AdvWorktreeDeleteDeps and AdvWorktreeCleanupDeps, threaded through all 7 discovery-reachable call sites: scanGitWorkspaceFacts trio + per-worktree status (census.ts), rev-parse/fetch/merge-base (index.ts 1787/1872/1877 equivalents). Tool wrapper derives it via discoveryGitBudgetForToolBudget = min(2000, floor(effectiveTimeoutMs/4)). RED tr_mseryxua_5b81832b (expected 10000 to be 2000 — the exact defect). GREEN tr_mses41w1_7b00697d then tr_mses68r5_4a37fd97 (48 passed across both test files). pnpm run check clean tr_msesbahi_3e4187fd (schemas/typecheck/manifests/frontmatter/test-isolation/lockfile/lint 0 errors/format all pass). C6 regression guard included: adv_worktree_delete asserted to receive gitTimeoutMs undefined, and census asserted to keep 10000 default when the param is omitted. No concurrency introduced (OOS1/DONT4/C2 respected) — discovery remains sequential.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/census.ts",
+        "plugin/src/tools/worktree/cleanup-git-budget.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ],
+      "checkpointSha": "5ce906da0ee0a52327feb9941da9a899888f0305",
+      "completedAt": "2026-08-04T15:00:35.006Z",
+      "contract_refs": {
+        "implements": [
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "OOS1",
+          "DONT4"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "delegation_hint": "inline_required"
+      },
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/worktree/census.ts",
+        "plugin/src/tools/worktree/cleanup-git-budget.test.ts",
+        "plugin/src/tools/worktree/index.ts"
+      ]
+    },
+    {
+      "id": "tk-57abcd25de71",
+      "title": "AC7: Verify clamp invariant and rq-worktreeBoundedCleanup02 suite unregressed",
+      "type": "verification",
+      "section": "Testing",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-7b2d308848b0"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-2a69e7c2a549"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-b4217ae3eb05"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-6d217e1bba98"
+        }
+      ],
+      "created_at": "2026-08-04T06:59:36.413Z",
+      "started_at": "2026-08-04T15:06:18.734Z",
+      "completed_at": "2026-08-04T15:20:19.810Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "AC7 verified. adv-verifier ran bin/oc-test full (exit 1: 4 failed / 8409 passed) and pnpm run check (exit 0, clean). All 5 required checks hold: (1) WORKTREE_TOOL_SAFE_TIMEOUT_MS still 8_000 at adv-worktree.ts:56; (2) clampToSafeBudget still monotone downward — max effective is 8000, only ever caps down; (3) effectiveTimeoutMs present in every cleanup response shape across both modes; (4) the 5 named pre-existing clamp tests were NOT weakened — git diff trunk...HEAD on adv-worktree.test.ts is additions-only with ZERO deletion lines, and adv-worktree.archived-branches.test.ts is untouched entirely; (5) rq-worktreeBoundedCleanup02 .1-.5 all hold — notably .3 (the only .catch is on the separate getPendingDeletes read, not a late-success handler on the timed-out promise; onStageEnter is a synchronous recorder), .4 (gitWorktreeRemove still caps via Math.min(timeoutMs, 5000) and does not accept gitTimeoutMs), .5 (workspace ops still AbortSignal.timeout(3000), HTTP not git).\n\nThe 4 full-suite failures were INDEPENDENTLY CONFIRMED PRE-EXISTING by the orchestrator, not accepted on the verifier's non-dependency reasoning: trunk checkout is at d5632c0b, exactly the branch merge-base, and running the same 4 suites there reproduces all 4 failures identically (manifest-doc-drift, ops-follow-up-assets, spec-citation-invariant, mcp-server/health-field-scope). Not regressions from this change.\n\nAdditional orchestrator sweep tr_mset0lmv_3a38184b: 154 passed across 6 worktree test files including index-delete.test.ts and triage.test.ts, which are the C6 non-cleanup consumers of the shared git helpers — confirming the gitTimeoutMs threading did not disturb them.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "checkpointSha": "d6320562a5ed14baac8a4e44368233e1fd59a6cc",
+      "completedAt": "2026-08-04T15:20:19.810Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "DONT1",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "plugin/src/tools/adv-worktree.test.ts",
+        "plugin/src/tools/adv-worktree.ts"
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCleanupTimeoutRemediation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Independent design validation — fixCleanupTimeoutRemediation (WS1-WS5)",
+      "sources": [
+        {
+          "label": "adv-worktree.ts timeout branches + archived_branches routing",
+          "locator": "plugin/src/tools/adv-worktree.ts:268-406, 801-857",
+          "summary": "executeWorktreeCleanup routes archived_branches (277-336) to cleanupArchivedMergedBranches with NO discover/skipDiscovery forwarding; worktrees branch (338+) calls advWorktreeCleanup (350-358). Both timeout branches (305-320, 371-386) confirmed: archived has unconditional remediation only; worktrees has unconditional remediation + hardcoded poison claim (380)."
+        },
+        {
+          "label": "worktree/index.ts git() helper + discovery call graph",
+          "locator": "plugin/src/tools/worktree/index.ts:850-874, 1728-2023, 2911-3192",
+          "summary": "Private git() helper at 850 uses timeout:30000. discoverTerminalCleanupCandidates (2911-2978) calls getDefaultBranch(2919), scanGitWorkspaceFacts(2927), verifyPrMergedChangeBranchIntegration(2961). Does NOT call verifyNonAdvBranchIntegration or getMergedBranchesForDelete. getPrMergedBranchIntegration git calls at 1787,1872,1877. verifyMissingRegistryChangeBranchIntegration(1964-2023) is delete-path only (called at 2274)."
+        },
+        {
+          "label": "census.ts git() helper + scanGitWorkspaceFacts",
+          "locator": "plugin/src/tools/worktree/census.ts:24-106",
+          "summary": "Private git() at 24 uses timeout:10_000. scanGitWorkspaceFacts(66-106) calls git at 72,77,78 (parallel) + 94 (per-worktree sequential status). scanGitWorkspaceFacts has ONE production caller: discoverTerminalCleanupCandidates (index.ts:2927)."
+        },
+        {
+          "label": "utils/git.ts getDefaultBranch + execGit",
+          "locator": "plugin/src/utils/git.ts:19-108",
+          "summary": "execGit defaults timeoutMs=5000 (below 8s budget, AC6-compliant). getDefaultBranch uses execGit (strategies 1-3), NOT the local worktree git() helpers — already bounded below tool budget, out of WS4 scope."
+        },
+        {
+          "label": "drainPendingDeletes deps spread to advWorktreeDelete",
+          "locator": "plugin/src/tools/worktree/index.ts:3020-3153",
+          "summary": "Line 3096-3107: deleteFn(branch,{force:false},{...deps,worktreePath,operationTimeoutMs}). Spreads deps into advWorktreeDelete — if deleteDeps carries gitTimeoutMs it flows to the cleanup-internal delete path. Standalone adv_worktree_delete constructs its own deps without gitTimeoutMs."
+        },
+        {
+          "label": "triage.ts stage-tracking pattern",
+          "locator": "plugin/src/tools/worktree/triage.ts:236-283",
+          "summary": "enterStage/admit mutate local currentStage/stoppedStage; buildResult reads them synchronously at result-build time. WS2 onStageEnter callback mirrors this local-mutation-read-at-result pattern."
+        },
+        {
+          "label": "status.ts second advWorktreeCleanup caller",
+          "locator": "plugin/src/tools/status.ts:865-894",
+          "summary": "Calls advWorktreeCleanup('status',{...}) WITHOUT onStageEnter/gitTimeoutMs/discover. Validates callback-over-handle: optional deps fields leave this caller untouched; a return-handle would force it to change."
+        },
+        {
+          "label": "AC7 regression-guard tests",
+          "locator": "plugin/src/tools/adv-worktree.test.ts:894-957",
+          "summary": "Use toContain (partial string) + objectContaining, NOT deep-equal. Mock advWorktreeCleanup to resolve instantly (never hit timeout branch). Adding stage/pendingDeleteCount fields to success response will not break them."
+        },
+        {
+          "label": "spec rq-worktreeBoundedCleanup01/02 + lifecycle",
+          "locator": ".adv/specs/worktree-lifecycle/spec.json:408-647",
+          "summary": "rq-worktreeBoundedCleanup02 body: internal ops bounded below tool budget (WS4 target). .3: no late mutation (DONT5). .4: git remove 5s. rq-terminalCleanupLifecycle01: concurrent triggers serialized/idempotent."
+        }
+      ],
+      "architecture_assessment": "The four workstreams are architecturally sound and use proven in-repo patterns. WS1 (conditional remediation + drop poison) is correct given D1 (no error object in the timeout branch — removal, not reclassification). WS2 callback mirrors triage.ts local-mutation-read-at-result (236-283) and is validated by the second caller at status.ts:875 which a return-handle would break. WS3 drain-only correctly reuses the existing discover?:boolean seam (index.ts:2878) with no new deletion path. WS4 optional-param-defaulting-to-current-value is the simplest C6-preserving option for the two non-compliant helpers (index.ts:850 30s, census.ts:24 10s); execGit (utils/git.ts:19, 5s) is already compliant and correctly excluded. One design defect found: WS1's single remediation template references skipDiscovery, which is unsupported in archived_branches mode (adv-worktree.ts:277-336 never forwards discover), creating a new AC1 violation if applied verbatim.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "No architectural blockers. One must-fix (WS1 mode-aware remediation: skipDiscovery is unsupported in archived_branches mode) and several clarifications. See required_changes."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Callback (onStageEnter) vs return-handle: callback chosen — validated by status.ts:875 second caller that a return-handle would force to change; consistent with triage.ts local-mutation pattern",
+          "Fixed 2000ms gitTimeoutMs vs scaling with worktree count: fixed chosen — simpler; aggregate overrun policed by outer race + WS2 stage reporting; per-worktree sequential status loop (census.ts:94) at N=8 worst-case 16s is race-caught, each call independently bounded",
+          "Queue-depth read vs partial removed/retained: queue-depth chosen — DONT5-compliant (fresh DB read, does not touch inner-promise locals); minor staleness inherent to any async snapshot",
+          "gitTimeoutMs on shared AdvWorktreeDeleteDeps flows to cleanup-internal delete via drainPendingDeletes spread (3096-3107): tightening the cleanup-internal delete path is acceptable (safe failure=retention, operationTimeoutMs guards separately) but must be stated explicitly"
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Return {promise, getStage} handle instead of onStageEnter callback",
+            "disposition": "rejected",
+            "rationale": "Changes advWorktreeCleanup return type (currently Promise<PendingDeleteDrainResult>); would force status.ts:875 and index-delete.test.ts callers to change. Callback is opt-in, leaves all callers untouched."
+          },
+          {
+            "option": "InventoryBudget-style aggregate deadline instead of per-call gitTimeoutMs",
+            "disposition": "rejected",
+            "rationale": "Bigger refactor; design correctly notes WS2 stage reporting already makes aggregate overruns visible. Per-call timeout satisfies AC6 wording with minimal mechanics."
+          },
+          {
+            "option": "Lower DEFAULT timeout on local git() helpers below budget",
+            "disposition": "rejected",
+            "rationale": "Violates C6 — non-cleanup callers (create/prune/branchExists at 877,910,1084,1245,1250) rely on 30000ms for potentially slow operations."
+          },
+          {
+            "option": "Make cleanup path bypass local git() helpers and use execGit (5s) directly",
+            "disposition": "rejected",
+            "rationale": "Rewrites scanGitWorkspaceFacts + getPrMergedBranchIntegration error handling (Result vs throw); more invasive than optional-param threading."
+          }
+        ],
+        "recommendation": "CONDITIONAL VALIDATE. Proceed to planning after fixing WS1 mode-awareness (must-fix) and clarifying WS2 getPendingDeleteCount provenance, WS4 C6-boundary intent, and WS4 onStageEnter placement. No redesign needed — all conditions are localized text/scoping fixes."
+      },
+      "recommendation": "CONDITIONAL. Proceed to planning with 1 must-fix + 4 clarifications. (1) MUST-FIX WS1: remediation text must be mode-aware — skipDiscovery is unsupported in archived_branches mode (adv-worktree.ts:277-336 routes to cleanupArchivedMergedBranches, never forwards discover); applying the skipDiscovery remediation verbatim to the archived_branches timeout branch (305-320) creates a NEW AC1 violation ('names an action that can actually succeed'). Provide a distinct archived_branches clamped-case remediation (e.g. 're-scan will re-evaluate merged branches' or point to triage). (2) CLARIFY WS2: getPendingDeleteCount does not exist (only getPendingDeletes, state.ts:479) — either add it to state.ts (add state.ts to WS2 file list) or inline (await getPendingDeletes(database)).length in the wrapper. (3) CLARIFY WS4: gitTimeoutMs on AdvWorktreeDeleteDeps flows to the cleanup-internal delete path via drainPendingDeletes spread (index.ts:3096-3107); state explicitly this is intended and that standalone adv_worktree_delete (own deps, no gitTimeoutMs) preserves C6. (4) CLARIFY WS4 scope: getMergedBranchesForDelete(1736) and verifyMissingRegistryChangeBranchIntegration(1964) are DELETE-path only — NOT discovery-reachable, so out of WS4 scope; do NOT thread gitTimeoutMs there unless tightening cleanup-internal delete is desired. (5) Add WS5 test: C6 regression guard (non-cleanup caller preserves default 30000ms) + skipDiscovery:true with empty pending-delete queue returns cleanly.",
+      "follow_ups": [
+        "WS5 test gap: add C6 regression-guard test asserting a non-cleanup git() caller (e.g. standalone advWorktreeDelete path) receives the default 30000ms, not cleanup gitTimeoutMs",
+        "WS5 test gap: add skipDiscovery:true + empty pending-delete-queue test asserting {removed:0,retained:0} and discovery never invoked",
+        "WS1 precision: the error-string template 'during ${stage}' assumes WS2 stage tracking, which only exists in worktrees mode; archived_branches error text must not reference stage",
+        "WS3 validation: clarify whether skipDiscovery:true + mode:archived_branches should be a Zod rejection or silent no-op (currently ignored, since archived_branches branch never reads it)",
+        "Observability note: removing the poison claim is correct (D1: never validated) and WS2 stage/pendingDeleteCount is strictly better diagnostic info; no telemetry replacement needed"
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCleanupTimeoutRemediation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCleanupTimeoutRemediation",
+      "task_id": "tk-7b2d308848b0",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-7b2d308848b0"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/adv-worktree.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mseqxmyu_29060f27",
+          "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+          "exit_code": 1,
+          "summary": "RED confirmed: the two new skipDiscovery tests failed before implementation because the wrapper did not forward discover:false."
+        },
+        {
+          "test_run_id": "tr_mseqympl_9188a384",
+          "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: 37 tests passed after implementing the interface, schema, and forwarding changes."
+        },
+        {
+          "test_run_id": "tr_mser06jz_1a236f52",
+          "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+          "exit_code": 0,
+          "summary": "Final verification passed: 37 tests passed after formatting."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Forward discover:false only when skipDiscovery is explicitly provided.",
+          "why": "Preserves the existing default discovery behavior while enabling drain-only recovery; the archived_branches early route remains an intentional no-op."
+        },
+        {
+          "what": "Kept deletion and drain behavior in the existing advWorktreeCleanup path.",
+          "why": "Preserves C5, C3, and DONT4 by adding no deletion path or parallelism."
+        },
+        {
+          "what": "Schemas check required no regeneration.",
+          "why": "pnpm run schemas:check passed after the Zod argument addition."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Reviewed the cleanup wrapper and underlying discover/drain seam; no additional in-scope forwarding gaps found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Implemented skipDiscovery?: boolean, documented it in the cleanup Zod schema, and forward-mapped it to discover: !skipDiscovery only for the worktrees cleanup path. Added AC5a/AC5b wrapper seam tests. RED run tr_mseqxmyu_29060f27; GREEN run tr_mseqympl_9188a384; final targeted verification tr_mser06jz_1a236f52. pnpm run schemas:check passed with no generated changes.",
+        "suggested_next_action": "Review the two-file diff and proceed with orchestrator-owned task completion."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mseqxmyu_29060f27"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mseqympl_9188a384"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mser06jz_1a236f52"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "fixCleanupTimeoutRemediation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/fixCleanupTimeoutRemediation",
+      "task_id": "tk-2a69e7c2a549",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-2a69e7c2a549"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/tools/worktree/index.ts",
+        "plugin/src/tools/adv-worktree.ts",
+        "plugin/src/tools/adv-worktree.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mserbntm_537852f1",
+          "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+          "exit_code": 1,
+          "summary": "RED confirmed: the two new timeout-stage tests failed because stage and pendingDeleteCount were not yet in the timeout response; 37 existing tests passed."
+        },
+        {
+          "test_run_id": "tr_mserlzfm_6a7039a3",
+          "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+          "exit_code": 0,
+          "summary": "GREEN: targeted adv-worktree suite passed, 39 tests."
+        },
+        {
+          "test_run_id": "tr_mserszzg_b9e8daf6",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Passed schemas check, typecheck, manifest/frontmatter/isolation/lockfile checks, lint with 4 existing warnings and no errors, and format check."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Fire the discovery stage callback outside and immediately before the discovery gate.",
+          "why": "This reports discovery even when discover is skipped, allowing the subsequent drain callback to supersede it exactly as requested."
+        },
+        {
+          "what": "Read pendingDeleteCount from a fresh getPendingDeletes(database) call in the timeout branch.",
+          "why": "The fresh database snapshot is safe while the non-cancelling cleanup promise continues, and avoids reading in-flight drain locals."
+        },
+        {
+          "what": "Keep timeout response text, archived_branches handling, and cleanup promise race unchanged.",
+          "why": "WS1 owns remediation text, archived_branches is out of scope, and DONT2 prohibits late handlers on the timed-out promise."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "Scanned the cleanup wrapper and underlying advWorktreeCleanup stage boundaries; archived_branches remains unchanged and no .then/.catch/late-success handler was attached to cleanupPromise.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "WS2 implemented. advWorktreeCleanup now observes discovery outside its gate and drain before draining; worktrees timeout responses report stage and fresh pendingDeleteCount. Added callback-driven discovery/drain hang tests. RED tr_mserbntm_537852f1; GREEN tr_mserlzfm_6a7039a3; check tr_mserszzg_b9e8daf6. pnpm run check passes. The mandated plugin workdir required ../bin/oc-test because bin/oc-test is at the worktree root; the initial bin/oc-test attempt was recorded as tr_mserard8_d3838659 with exit 127.",
+        "suggested_next_action": "Proceed to orchestrator-owned task checkpoint/completion; WS1 can now consume stage fields without revisiting this scope."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mserbntm_537852f1"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mserlzfm_6a7039a3"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mserszzg_b9e8daf6"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-7b2d308848b0": [
+      {
+        "runId": "tr_mseqxmyu_29060f27",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 18333.820450000465,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:21:23.952Z"
+      },
+      {
+        "runId": "tr_mseqympl_9188a384",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 18514.475535999984,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:22:12.477Z"
+      },
+      {
+        "runId": "tr_mser06jz_1a236f52",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 18393.20581800118,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:23:24.773Z"
+      }
+    ],
+    "tk-2a69e7c2a549": [
+      {
+        "runId": "tr_mserard8_d3838659",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 3.472858000546694,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:31:37.927Z"
+      },
+      {
+        "runId": "tr_mserbntm_537852f1",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 18599.018321998417,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:32:19.867Z"
+      },
+      {
+        "runId": "tr_mserd9zy_43cdc647",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 18559.48981899768,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:33:34.022Z"
+      },
+      {
+        "runId": "tr_msereh5r_c924d758",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 18494.915546000004,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:34:31.323Z"
+      },
+      {
+        "runId": "tr_mserlzfm_6a7039a3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "../bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 18511.1884220019,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:40:22.423Z"
+      },
+      {
+        "runId": "tr_mserszzg_b9e8daf6",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 105121.05619800091,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T14:45:48.849Z"
+      }
+    ],
+    "tk-6d217e1bba98": [
+      {
+        "runId": "tr_mseryfnu_55e52dd5",
+        "phase": "red",
+        "exitCode": 127,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/cleanup-git-budget.test.ts",
+        "durationMs": 5.0361610017716885,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:50:01.921Z"
+      },
+      {
+        "runId": "tr_mseryxua_5b81832b",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/cleanup-git-budget.test.ts",
+        "durationMs": 3281.658562000841,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:50:26.010Z"
+      },
+      {
+        "runId": "tr_mses41w1_7b00697d",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/cleanup-git-budget.test.ts",
+        "durationMs": 3962.3415740020573,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:54:24.255Z"
+      },
+      {
+        "runId": "tr_mses68r5_4a37fd97",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/cleanup-git-budget.test.ts src/tools/adv-worktree.test.ts",
+        "durationMs": 18291.629172999412,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T14:56:05.973Z"
+      },
+      {
+        "runId": "tr_mses8nkw_ca578601",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 86927.82180700079,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T14:57:59.041Z"
+      },
+      {
+        "runId": "tr_msesbahi_3e4187fd",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 90435.47556000203,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T15:00:01.765Z"
+      }
+    ],
+    "tk-b4217ae3eb05": [
+      {
+        "runId": "tr_msesfk2w_b0e471dd",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts",
+        "durationMs": 23623.05333499983,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T15:03:20.958Z"
+      },
+      {
+        "runId": "tr_mseshv60_36e9ae4f",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/adv-worktree.archived-branches.test.ts src/tools/worktree/cleanup-git-budget.test.ts",
+        "durationMs": 34397.321259997785,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T15:05:08.615Z"
+      }
+    ],
+    "tk-57abcd25de71": [
+      {
+        "runId": "tr_mset0lmv_3a38184b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/worktree/cleanup-git-budget.test.ts src/tools/worktree/index-delete.test.ts src/tools/worktree/triage.test.ts",
+        "durationMs": 34843.7533069998,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T15:19:42.307Z"
+      },
+      {
+        "runId": "tr_mseudrs3_af989cc2",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/cleanup-git-budget.test.ts",
+        "durationMs": 4107.396634995937,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T15:57:56.769Z"
+      },
+      {
+        "runId": "tr_mseuex1g_33fe2ac1",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/worktree/cleanup-git-budget.test.ts",
+        "durationMs": 4900.976723998785,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T15:58:51.109Z"
+      },
+      {
+        "runId": "tr_mseugh3r_78e9dc70",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/worktree/cleanup-git-budget.test.ts src/tools/worktree/index-delete.test.ts src/tools/worktree/triage.test.ts",
+        "durationMs": 35277.16658399999,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T16:00:03.631Z"
+      },
+      {
+        "runId": "tr_mseuiqsn_d36c101a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 88269.70188000053,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T16:01:48.175Z"
+      },
+      {
+        "runId": "tr_msevq0zs_221d31e2",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts",
+        "durationMs": 51078.615627005696,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T16:35:29.155Z"
+      },
+      {
+        "runId": "tr_msevuhep_6aba8ac3",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bin/oc-test targeted -- src/tools/adv-worktree.test.ts src/tools/adv-worktree.archived-branches.test.ts src/tools/adv-worktree.archived-branches-emergency.test.ts src/tools/worktree/cleanup-git-budget.test.ts src/tools/worktree/index-delete.test.ts",
+        "durationMs": 50932.82301200181,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T16:38:56.170Z"
+      },
+      {
+        "runId": "tr_msevwuuu_fc559600",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 91156.44054399431,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T16:40:47.394Z"
+      }
+    ]
+  },
+  "deltas": {
+    "worktree-lifecycle": [
+      {
+        "id": "dl-worktreeTimeoutTruthfulness01",
+        "operation": "add",
+        "requirement": {
+          "id": "rq-worktreeTimeoutTruthfulness01",
+          "title": "Truthful, Bounded Worktree Timeout Reporting",
+          "body": "Worktree tool timeout responses must not assert a cause they did not test, and must not advise an action that cannot succeed.\n\nThe timeout branches of adv_worktree_cleanup, adv_worktree_delete, and adv_worktree_detach resolve a setTimeout sentinel rather than a rejection, so no error object exists to classify. These responses must therefore not assert a poisoned workflow and must not carry an unconditional adv_doctor referral, unless poison evidence was actually collected on that call (see rq-worktreePoisonVisibility01).\n\nTimeout remediation must name an action that can actually succeed. When the caller's timeoutMs was clamped to the safe budget, the response must not advise passing a larger timeoutMs, must state that the safe budget is a structural ceiling, and must not name an option the current mode ignores.\n\nOn timeout, adv_worktree_cleanup must report the stage in flight (discovery or drain), captured synchronously before any post-timeout await, plus either pendingDeleteCount or pendingDeleteCountUnavailable when the pending-delete read fails. An empty queue and an unreadable queue must remain distinguishable.\n\nadv_worktree_cleanup accepts an optional skipDiscovery flag (worktrees mode only) providing drain-only recovery of already-queued pending deletes after a prior cleanup timed out during discovery. Drain-only must not delete worktrees that discovery never validated.\n\nGit subprocesses on the cleanup discovery path must each be bounded strictly below the tool budget, derived per-call as min(2000, floor(effectiveTimeoutMs / 4)). Shared git helpers retain their original defaults when invoked from non-cleanup paths.",
+          "priority": "must",
+          "tags": [
+            "worktree",
+            "timeout",
+            "diagnostics",
+            "truthfulness",
+            "bounded",
+            "recovery"
+          ],
+          "scenarios": [
+            {
+              "id": "rq-worktreeTimeoutTruthfulness01.1",
+              "title": "Clamped remediation names a reachable action",
+              "given": [
+                "adv_worktree_cleanup is called with timeoutMs above the safe budget",
+                "The call times out in either worktrees or archived_branches mode"
+              ],
+              "when": "The typed timeout response is produced",
+              "then": [
+                "remediation does not instruct the caller to pass a larger timeoutMs",
+                "remediation states the safe budget is a structural ceiling",
+                "remediation names only actions the current mode supports",
+                "archived_branches remediation does not name skipDiscovery, which that mode ignores"
+              ]
+            },
+            {
+              "id": "rq-worktreeTimeoutTruthfulness01.2",
+              "title": "Unclamped remediation may still offer a larger timeout",
+              "given": [
+                "adv_worktree_cleanup times out with no clamp applied"
+              ],
+              "when": "The typed timeout response is produced",
+              "then": [
+                "remediation may offer a larger timeoutMs because that action is reachable"
+              ]
+            },
+            {
+              "id": "rq-worktreeTimeoutTruthfulness01.3",
+              "title": "No unevidenced poison claim on any worktree timeout",
+              "given": [
+                "adv_worktree_cleanup, adv_worktree_delete, or adv_worktree_detach times out",
+                "No poison evidence was collected on that call"
+              ],
+              "when": "The typed timeout response is produced",
+              "then": [
+                "The error contains no assertion that a workflow is poisoned",
+                "Neither error nor remediation carries an unconditional adv_doctor referral"
+              ]
+            },
+            {
+              "id": "rq-worktreeTimeoutTruthfulness01.4",
+              "title": "Cleanup timeout reports the stage in flight",
+              "given": [
+                "adv_worktree_cleanup times out"
+              ],
+              "when": "The typed timeout response is produced",
+              "then": [
+                "The response includes a stage of discovery or drain",
+                "The stage is captured synchronously before any post-timeout await so a value advanced by the still-running inner promise is never reported",
+                "A stage of discovery is reported only when discovery actually ran"
+              ]
+            },
+            {
+              "id": "rq-worktreeTimeoutTruthfulness01.5",
+              "title": "Unreadable pending-delete queue is distinguishable from an empty one",
+              "given": [
+                "adv_worktree_cleanup times out"
+              ],
+              "when": "The pending-delete read succeeds",
+              "then": [
+                "The response includes pendingDeleteCount",
+                "When the pending-delete read instead fails, the response includes pendingDeleteCountUnavailable true and omits pendingDeleteCount"
+              ]
+            },
+            {
+              "id": "rq-worktreeTimeoutTruthfulness01.6",
+              "title": "Drain-only recovery skips discovery",
+              "given": [
+                "A prior cleanup timed out during discovery leaving pending-delete entries queued"
+              ],
+              "when": "adv_worktree_cleanup is invoked with skipDiscovery true in worktrees mode",
+              "then": [
+                "The discovery scan is skipped",
+                "The stage observer fires only for drain",
+                "Queued pending deletes are drained within the same safe budget",
+                "No worktree that discovery never validated is deleted"
+              ]
+            },
+            {
+              "id": "rq-worktreeTimeoutTruthfulness01.7",
+              "title": "Discovery git subprocesses are bounded below the tool budget",
+              "given": [
+                "A git subprocess is invoked on the cleanup discovery path"
+              ],
+              "when": "That subprocess hangs",
+              "then": [
+                "It is terminated by its own timeout strictly below the tool budget",
+                "Discovery does not rely on the outer race as its only guard",
+                "Shared git helpers invoked from non-cleanup paths retain their original defaults"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-04T06:19:43.813Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved problem statement. Two defects confirmed against source: unconditional remediation contradicting clamped error text (adv-worktree.ts:306-317, 372-382); poison asserted without detection (line 380). Clamp invariant rq-worktreeBoundedCleanup02 explicitly out of scope.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "37363d3ab69d5a50e1564eaeed57513cf7ebe30d79720284b654f0ff9b6b1719",
+        "non_whitespace_chars": 4595,
+        "checked_at": "2026-08-04T05:12:58.898Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-04T06:34:51.729Z",
+      "completed_by": "user",
+      "approval_evidence": "User signed off agreement including AC6. Contract minted: 19 items (AC1-AC7, C1-C5, DONT1-DONT5, OOS1-OOS2), rigor standard.\n\nDiscovery evidence: (1) timeout branch races a setTimeout sentinel with no error object, so the poison claim must be removed not reclassified; (2) discover?:boolean already exists on AdvWorktreeCleanupDeps:2878, tool wrapper adv-worktree.ts:350-358 never forwards it; (3) unbounded git I/O on discovery path (index.ts:1787, 1872, 1877; census.ts:94) violates rq-worktreeBoundedCleanup02 body; (4) triage partial-result shape (complete/stopReason/stoppedStage/omitted) proven reusable.\n\nNote: agreement was reformatted after verbal approval to satisfy the contract parser — parseObligationLine (contract-mint.ts:135-148) only accepts bullet/numbered lines, so the original bold-heading AC block minted zero acceptance criteria. Semantic content preserved; C5, DONT5, OOS1, OOS2 added to formalize boundaries already stated in prose.",
+      "started_at": "2026-08-04T06:32:16.899Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "non_whitespace_chars": 4780,
+        "checked_at": "2026-08-04T05:12:58.900Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-04T06:54:15.601Z",
+      "completed_by": "agent",
+      "approval_evidence": "Design validated by adv-researcher (report fixCleanupTimeoutRemediation|change:researcher:design-validation|adv-researcher|1), verdict CONDITIONAL. All five conditions incorporated: (1) MUST-FIX WS1 mode-aware remediation — skipDiscovery invalid for archived_branches mode, would have recreated AC1; (2) WS2 use existing getPendingDeletes reader, no new helper; (3) WS4 C6-flow clarification — gitTimeoutMs reaches cleanup-internal delete via drainPendingDeletes spread, standalone adv_worktree_delete preserves default; (4) WS4 scope confirmation — getMergedBranchesForDelete and verifyMissingRegistryChangeBranchIntegration are delete-path-only, out of scope; (5) WS5 added C6 regression guard + skipDiscovery empty-queue tests. No CONFLICT, no user-value tradeoff, no contract-compromise risk. Call-site audit complete: 7 discovery-reachable git() calls identified across census.ts (4) and index.ts (3).",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "f3aae75ddba53a85fdff6bfc40794a844d76c930a620bbb2672bc772c2f2462e",
+        "non_whitespace_chars": 12182,
+        "checked_at": "2026-08-04T05:12:58.901Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-04T14:17:03.190Z",
+      "completed_by": "user",
+      "approval_evidence": "User approved prep contract inline (\"approve\"). 5 tasks, full AC coverage (uncoveredAcceptanceCriteria: []), adv_change_validate strict passed 0 errors. Sequencing: WS3+WS2+WS4 ready in parallel; WS1 blocked by WS2 (needs stage for error text) and WS3 (needs skipDiscovery to exist before naming it); AC7 regression gate blocked by all four. Known non-blocking warning NO_DELTAS surfaced to user — new surface (skipDiscovery arg, stage/pendingDeleteCount fields) may warrant a spec delta at harden/archive; deliberately not invented during prep."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-04T15:21:22.883Z",
+      "completed_by": "agent",
+      "approval_evidence": "All 5 tasks done, full AC coverage. Commits: 424061b (WS3/AC5), 9f91325 (WS2/AC4), 5ce906d (WS4/AC6), d632056 (WS1/AC1-3). AC7 verification-only, no code change.\n\nEvery task followed RED-first with durable adv_run_test evidence. Notable REDs reproduced the defects verbatim: tr_msesfk2w_b0e471dd captured both \"Retry with a larger timeoutMs...\" after clamp AND \"Cleanup likely blocked on a poisoned workflow ... (see adv_doctor)\"; tr_mseryxua_5b81832b captured \"expected 10000 to be 2000\" for the unbounded git budget.\n\nFinal state: pnpm run check exit 0 clean. bin/oc-test full 8409 passed / 4 failed — the 4 failures independently confirmed pre-existing by running the same suites on trunk at d5632c0b, which IS the branch merge-base; they reproduce identically there (manifest-doc-drift, ops-follow-up-assets, spec-citation-invariant, mcp-server/health-field-scope). Follow-up fu-001 recorded for separate trunk triage.\n\nDesign-validator MUST-FIX honored in implementation: WS1 remediation is mode-aware, and archived_branches deliberately does NOT name skipDiscovery because that mode never forwards discover — naming it would have recreated the AC1 defect being fixed.\n\nProcess note: adv-engineer ran tests via bash on WS3/WS2, so those run IDs carry consumer_warnings for missing durable evidence. Orchestrator recorded durable adv_run_test evidence for WS4, WS1, and AC7, and independently verified every diff before checkpointing rather than accepting worker reports."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-04T16:08:54.117Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted inline (\"approve\"). Review APPROVED: 11 findings, 0 blockers, 4 issues all fixed in af4d216. Contract review matrix 19 rows / 0 failing. Executive summary workflow-visible (hash f225f0ee). Release notes set. Preview URL not_applicable. Post-remediation: tr_mseugh3r_78e9dc70 (157 passed), tr_mseuiqsn_d36c101a (check clean).",
+      "started_at": "2026-08-04T16:06:40.318Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "f225f0ee48d624261a4b7c46d0edd10dee51b1f330b0817c41ba34b9ddfe1dac",
+        "non_whitespace_chars": 4545,
+        "checked_at": "2026-08-04T05:12:58.903Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+      "approvedAt": "2026-08-04T06:34:35.578Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_worktree_cleanup` is called with a `timeoutMs` above the safe budget and the call times out in either `worktrees` or `archived_branches` mode, when the typed timeout response is produced, then the `remediation` field does not instruct the caller to pass a larger `timeoutMs` and instead states that the safe budget is a structural ceiling and names an action that can actually succeed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "`adv_worktree_cleanup` is called with a `timeoutMs` above the safe budget and the call times out in either `worktrees` or `archived_branches` mode",
+          "trigger": "the typed timeout response is produced",
+          "outcome": "the `remediation` field does not instruct the caller to pass a larger `timeoutMs` and instead states that the safe budget is a structural ceiling and names an action that can actually succeed"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_worktree_cleanup` times out with no clamp applied because the caller requested no timeout or one at or below the safe budget, when the typed timeout response is produced, then the `remediation` field may still offer a larger `timeoutMs` because that action is reachable.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "`adv_worktree_cleanup` times out with no clamp applied because the caller requested no timeout or one at or below the safe budget",
+          "trigger": "the typed timeout response is produced",
+          "outcome": "the `remediation` field may still offer a larger `timeoutMs` because that action is reachable"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_worktree_cleanup` times out without collecting any poison evidence on that call, when the `error` string is produced, then it contains no assertion that a workflow is poisoned and no unconditional referral to `adv_doctor`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "`adv_worktree_cleanup` times out without collecting any poison evidence on that call",
+          "trigger": "the `error` string is produced",
+          "outcome": "it contains no assertion that a workflow is poisoned and no unconditional referral to `adv_doctor`"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given `adv_worktree_cleanup` times out, when the typed timeout response is produced, then it reports which stage was in flight as discovery or drain and reports any progress counters already accumulated, following the existing triage partial-result shape.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "`adv_worktree_cleanup` times out",
+          "trigger": "the typed timeout response is produced",
+          "outcome": "it reports which stage was in flight as discovery or drain and reports any progress counters already accumulated, following the existing triage partial-result shape"
+        }
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given a prior cleanup timed out during discovery and left pending-delete entries queued, when the caller invokes `adv_worktree_cleanup` requesting drain-only, then discovery is skipped and the queued pending deletes are drained within the same safe budget.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a prior cleanup timed out during discovery and left pending-delete entries queued",
+          "trigger": "the caller invokes `adv_worktree_cleanup` requesting drain-only",
+          "outcome": "discovery is skipped and the queued pending deletes are drained within the same safe budget"
+        }
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given any git subprocess invoked on the cleanup discovery path, when that subprocess hangs, then it is terminated by its own timeout strictly below the tool budget and discovery either continues or self-returns a partial result rather than relying on the outer race as its only guard.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "any git subprocess invoked on the cleanup discovery path",
+          "trigger": "that subprocess hangs",
+          "outcome": "it is terminated by its own timeout strictly below the tool budget and discovery either continues or self-returns a partial result rather than relying on the outer race as its only guard"
+        }
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "`WORKTREE_TOOL_SAFE_TIMEOUT_MS` remains 8000, `clampToSafeBudget` remains monotone downward, `effectiveTimeoutMs` remains reported in every response, and the existing `rq-worktreeBoundedCleanup02` acceptance criteria .1 through .5 remain green.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "`rq-worktreeBoundedCleanup02` — clamp value, typed timeout response, no late background mutation, `effectiveTimeoutMs` reporting.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "`rq-worktreeBoundedCleanup01` — per-item cleanup sequential, max 5 retries, no unbounded parallel deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "`rq-terminalCleanupSafety01` — deletion authority stays with `advWorktreeDelete`; no direct `git worktree remove`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "`rq-worktreePoisonVisibility01` — poison classification requires error-class plus structured evidence, never a guess.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Drain-only mode must not become a way to delete worktrees that discovery never validated; it drains only entries a prior discovery already queued.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Raising `WORKTREE_TOOL_SAFE_TIMEOUT_MS`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Attaching a late-success handler to a timed-out promise, explicitly forbidden by `rq-worktreeBoundedCleanup02.3`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Adding a `handle.describe()` probe to the timeout branch, since it is itself a Temporal round trip that can hang 10s on a poisoned workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Parallelizing deletion.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Reporting progress counters that were mutated after the timeout response was already produced.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "Bounded-concurrency discovery via `mapWithConcurrency`. Deferred, not rejected. It works mechanically, but discovery writes pending-delete state and `rq-worktreeBoundedCleanup01` draws its sequential line around cleanup processing. Bounding the git I/O attacks the same latency with no spec-boundary argument. Revisit as a follow-up with a spec amendment discussion if AC6 proves insufficient.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Changing the poison-detection machinery itself in `state.ts` or `recovery-probe.ts`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "19cd0f39e7ef338e8f2444f73632381c9f4b53836a92ff4e834c031310f04e15",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-04T16:07:30.207Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Mode-aware conditional remediation in both timeout branches. worktrees names skipDiscovery:true + adv_worktree_triage; archived_branches names a narrower changeId filter + triage and deliberately omits skipDiscovery (that mode never forwards discover). Tests in adv-worktree.test.ts and adv-worktree.archived-branches-emergency.test.ts. RED tr_msesfk2w_b0e471dd captured the original string verbatim."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Unclamped branch retains 'Retry with a larger timeoutMs' in both modes because that action is reachable. Covered by one test per mode."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Poison assertion and unconditional adv_doctor referral removed. Tests assert error and remediation match neither /poison/i nor 'adv_doctor', across clamped and unclamped input, in both modes."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Timeout response reports stage plus pendingDeleteCount, with stage snapshotted synchronously before the pending-delete read. Production emission covered by a new test added during review after a scanner showed wrapper tests fired onStageEnter from their own mock."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "skipDiscovery added to args and Zod schema, forwarded as discover:!skipDiscovery against the discover !== false gate. Populated-queue and empty-queue tests both assert discover:false forwarding and no discovery invocation. Spread semantics verified by execution."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "gitTimeoutMs threaded through both cleanup-path helpers and all 7 discovery-reachable sites; wrapper derives min(2000, floor(budget/4)). cleanup-git-budget.test.ts now covers the census helper AND the worktree/index.ts helper. RED tr_mseryxua_5b81832b. Mutation-verified: corrupting the index.ts default now fails the new guard."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "WORKTREE_TOOL_SAFE_TIMEOUT_MS still 8000; clampToSafeBudget still monotone downward; effectiveTimeoutMs reported in every response shape. Pre-existing clamp tests unedited (diff additions-only, zero deletions). Verified tr_mseugh3r_78e9dc70, 157 passed."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "rq-worktreeBoundedCleanup02 upheld: clamp unchanged, typed timeout response retained, effectiveTimeoutMs reported, no late background mutation. No .then/.catch on the timed-out inner promise."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "rq-worktreeBoundedCleanup01 upheld: drain remains a sequential for-of, retry cap still 5, no parallelism introduced. index-delete.test.ts green."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "rq-terminalCleanupSafety01 upheld: deletion authority remains advWorktreeDelete; no direct git worktree remove added."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "rq-worktreePoisonVisibility01 upheld: poison claim removed rather than reclassified, because the branch resolves a setTimeout sentinel with no error object to classify. No describe() probe added."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Drain-only adds no deletion path. drainPendingDeletes processes only rows a prior validated discovery wrote via setPendingDelete."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "WORKTREE_TOOL_SAFE_TIMEOUT_MS unchanged at 8000; asserted directly by the pre-existing constant test."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No late-success handler on the timed-out promise. Scanner grep for cleanupPromise/raced .then/.catch returned zero hits; race consumed by await with timer cleared."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No handle.describe() probe added. Scanner grep across the three touched source files returned zero hits."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No deletion parallelized. The only Promise.all touched is the pre-existing census read-only git trio, now individually bounded."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Strengthened during review: stage is snapshotted synchronously before the pending-delete await so a value advanced by the still-running inner promise cannot be reported. pendingDeleteCount remains a fresh DB read."
+        },
+        {
+          "contractId": "OOS1",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Bounded-concurrency discovery deliberately not implemented; zero mapWithConcurrency references introduced. Discovery remains sequential."
+        },
+        {
+          "contractId": "OOS2",
+          "kind": "out_of_scope",
+          "status": "not_applicable",
+          "evidencePolicy": "review",
+          "evidence": "Poison-detection machinery untouched. No changes to state.ts or recovery-probe.ts; adv-worktree.ts only imports the existing getPendingDeletes reader."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given `adv_worktree_cleanup` is called with a `timeoutMs` above the safe budget and the call times out in either `worktrees` or `archived_branches` mode, when the typed timeout response is produced, then the `remediation` field does not instruct the caller to pass a larger `timeoutMs` and instead states that the safe budget is a structural ceiling and names an action that can actually succeed.",
+    "Given `adv_worktree_cleanup` times out with no clamp applied because the caller requested no timeout or one at or below the safe budget, when the typed timeout response is produced, then the `remediation` field may still offer a larger `timeoutMs` because that action is reachable.",
+    "Given `adv_worktree_cleanup` times out without collecting any poison evidence on that call, when the `error` string is produced, then it contains no assertion that a workflow is poisoned and no unconditional referral to `adv_doctor`.",
+    "Given `adv_worktree_cleanup` times out, when the typed timeout response is produced, then it reports which stage was in flight as discovery or drain and reports any progress counters already accumulated, following the existing triage partial-result shape.",
+    "Given a prior cleanup timed out during discovery and left pending-delete entries queued, when the caller invokes `adv_worktree_cleanup` requesting drain-only, then discovery is skipped and the queued pending deletes are drained within the same safe budget.",
+    "Given any git subprocess invoked on the cleanup discovery path, when that subprocess hangs, then it is terminated by its own timeout strictly below the tool budget and discovery either continues or self-returns a partial result rather than relying on the outer race as its only guard.",
+    "`WORKTREE_TOOL_SAFE_TIMEOUT_MS` remains 8000, `clampToSafeBudget` remains monotone downward, `effectiveTimeoutMs` remains reported in every response, and the existing `rq-worktreeBoundedCleanup02` acceptance criteria .1 through .5 remain green."
+  ],
+  "documents": {
+    "proposal": "# Fix adv_worktree_cleanup timeout remediation and diagnosis\n\n## Root Cause Analysis\n\n**Observed.** While cleaning up after archiving `fixArtifactReadFallback`:\n\n- Call 1, no `timeoutMs`: `{\"success\":false,\"timedOut\":true,\"effectiveTimeoutMs\":8000,\"error\":\"adv_worktree_cleanup timed out after 8000ms. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_doctor).\",\"remediation\":\"Pass a larger timeoutMs (clamped to the safe budget) to retry, or run adv_doctor to classify and repair the poisoned workflow first.\"}`\n- Call 2, `timeoutMs: 30000`: `\"adv_worktree_cleanup timed out after 8000ms (requested 30000ms was clamped to safe budget 8000ms).\"` — accompanied by the identical remediation telling the caller to pass a larger `timeoutMs`.\n\nThe worktree was clean, its branch fully merged to `origin/trunk`, and a manual `git worktree remove` completed instantly. Nothing was stuck.\n\n**The clamp is correct and must not change.** `WORKTREE_TOOL_SAFE_TIMEOUT_MS = 8_000` (`plugin/src/tools/adv-worktree.ts:52`) is a deliberate, spec-anchored invariant under `rq-worktreeBoundedCleanup02` (`.adv/specs/worktree-lifecycle/spec.json:559-583`). It sits below the SDK's 10s `DEFAULT_TOOL_TIMEOUT_MS` so the tool's own `Promise.race` resolves first and returns a typed, actionable response instead of an opaque `ToolExecutionTimeout`. `clampToSafeBudget` (`plugin/src/tools/adv-worktree.ts:69-81`) is monotone downward — no input raises the effective budget.\n\n### Defect 1 — remediation advises a structurally impossible action\n\nThe `remediation` string at `plugin/src/tools/adv-worktree.ts:381-382` is emitted unconditionally. The adjacent `error` text IS conditional on the clamp via `clampedNote` (lines 372-374), but the remediation is a fixed literal. So a caller who has just been told their `30000` was clamped to `8000` is advised, in the next field, to pass a larger `timeoutMs`. Following the advice can never succeed. The `archived_branches` mode carries the same defect at lines 316-317.\n\n### Defect 2 — the poison diagnosis is asserted without evidence\n\n`\"Cleanup likely blocked on a poisoned workflow or stuck I/O\"` (`plugin/src/tools/adv-worktree.ts:380`) is a hardcoded literal inside the timeout branch, fired the moment `_timedOut` is detected at line 371. No poison detection runs anywhere on the cleanup path: neither `advWorktreeCleanup` (`plugin/src/tools/worktree/index.ts:3161-3192`), nor `discoverTerminalCleanupCandidates` (lines 2911-2978), nor `drainPendingDeletes` (lines 3020-3153) calls `describeWorkflowExecution` or inspects an error class. The real poison-detection path (`plugin/src/tools/worktree/state.ts:975-1116`) is never invoked. This contradicts `rq-worktreePoisonVisibility01` (`.adv/specs/worktree-lifecycle/spec.json:46-94`), which requires error class plus structured warnings before classifying poison. The tool points the caller at `adv_doctor` on the strength of a guess it never tested — and in this instance the guess was wrong.\n\n### Contributing factor — sequential discovery is what consumes the budget\n\n`discoverTerminalCleanupCandidates` iterates worktrees sequentially (`plugin/src/tools/worktree/index.ts:2930-2975`). Per worktree it runs `git status --porcelain`, a Temporal `store.changes.get` bounded at 1500ms (`DEFAULT_CHANGE_STATUS_READ_TIMEOUT_MS`, line 141), and for non-terminal changes a `gh pr list` shell-out bounded at 1500ms (line 1811). With the 8 worktrees present, two or three slow Temporal or network reads exhaust the 8s budget before the drain phase begins. Because `withTimeout` is explicitly non-cancelling (`plugin/src/utils/with-timeout.ts:30-31`), a retry re-does the same work against the same budget and fails identically — which matches the two observed calls.\n\n### No recovery path exists\n\n`drainPendingDeletes` records `TIMEOUT` failures and retains the queue entries (lines 3131-3148), so a retry inherits the same expensive discovery phase and the same 8s ceiling. There is no `skipDiscovery` or drain-only mode. Manual `git worktree remove` is the de facto recovery, which is what was used here.\n\n## Proposed direction\n\n1. Make `remediation` conditional on `wasClamped` in both the worktrees and `archived_branches` timeout branches, so a clamped caller is told the 8s budget is a structural ceiling and given an action that can actually succeed.\n2. Stop asserting poison without evidence — either drop the claim or attach the real inner error. Keep the honest signal that the cause is unknown.\n3. Consider bounded-concurrency discovery (the `INVENTORY_INTERNAL_BUDGET_MS` infrastructure already imported at `plugin/src/tools/adv-worktree.ts:12` is used this way by `adv_worktree_triage`), and optionally a drain-only mode so a timed-out cleanup has a structural recovery rather than a manual one.\n\n**Explicitly out of scope:** raising `WORKTREE_TOOL_SAFE_TIMEOUT_MS`. Doing so would violate `rq-worktreeBoundedCleanup02` and forfeit the typed-response guarantee.\n\n## Why it matters\n\nLow severity but high friction. The tool's guidance is self-contradictory, and the unfounded poison claim routes operators to `adv_doctor` for a condition that does not exist — the same class of misdirection tracked separately for Temporal read errors.\n",
+    "agreement": "# Agreement — Fix cleanup timeout remediation and diagnosis\n\n## Objectives\n\n1. Never advise an impossible action. A caller whose `timeoutMs` was clamped must not be told to pass a larger `timeoutMs`.\n2. Never assert a diagnosis the code did not test. The timeout response must not claim a poisoned workflow when no poison detection ran.\n3. Give the operator a recovery path that is not `git worktree remove` by hand.\n4. Close the bounded-I/O gap that makes the 8s budget exhaust in the first place.\n\n## Discovery findings that shape this agreement\n\n| # | Finding | Consequence |\n|---|---|---|\n| D1 | Timeout branch races a `setTimeout` sentinel, not a rejection — there is no error object | Objective 2 is satisfied by removing the claim, not by reclassifying. `classifyWorktreeWorkflowFailure` has nothing to consume here. |\n| D2 | `discover?: boolean` already exists on `AdvWorktreeCleanupDeps` (`worktree/index.ts:2878`); startup drain already uses it. The tool wrapper (`adv-worktree.ts:350-358`) never forwards it | Drain-only recovery is a forwarding gap, not new machinery. |\n| D3 | Git subprocesses on the discovery path are bounded, but bounded ABOVE the tool budget. The local `git()` in `worktree/index.ts:850` uses `timeout: 30000`; the local `git()` in `census.ts:24` uses `timeout: 10_000`. Only `utils/git.ts:19` `execGit` (5000ms default) sits below the 8s ceiling | Violates the `rq-worktreeBoundedCleanup02` body: internal operations must each be bounded below the tool budget. A single slow `git rev-parse` can consume 30s inside an  8s ceiling. This is the real budget-exhaustion cause. Corrected from an initial reconnaissance claim of \"unbounded\", which direct source reading disproved. |\n| D4 | Triage already returns typed partial results — `complete` / `stopReason` / `stoppedStage` / `omitted` (`triage.ts:261-282`, `adv-worktree.ts:931-949`) | Proven in-repo shape to reuse for a partial cleanup timeout response. |\n| D5 | `rq-worktreeBoundedCleanup01` mandates sequential per-item cleanup. Discovery writes pending-delete records via `setPendingDelete` | Bounded-concurrency discovery carries spec-adjacent risk. Deferred. |\n\n## Acceptance criteria\n\n- AC1: Given `adv_worktree_cleanup` is called with a `timeoutMs` above the safe budget and the call times out in either `worktrees` or `archived_branches` mode, when the typed timeout response is produced, then the `remediation` field does not instruct the caller to pass a larger `timeoutMs` and instead states that the safe budget is a structural ceiling and names an action that can actually succeed.\n- AC2: Given `adv_worktree_cleanup` times out with no clamp applied because the caller requested no timeout or one at or below the safe budget, when the typed timeout response is produced, then the `remediation` field may still offer a larger `timeoutMs` because that action is reachable.\n- AC3: Given `adv_worktree_cleanup` times out without collecting any poison evidence on that call, when the `error` string is produced, then it contains no assertion that a workflow is poisoned and no unconditional referral to `adv_doctor`.\n- AC4: Given `adv_worktree_cleanup` times out, when the typed timeout response is produced, then it reports which stage was in flight as discovery or drain and reports any progress counters already accumulated, following the existing triage partial-result shape.\n- AC5: Given a prior cleanup timed out during discovery and left pending-delete entries queued, when the caller invokes `adv_worktree_cleanup` requesting drain-only, then discovery is skipped and the queued pending deletes are drained within the same safe budget.\n- AC6: Given any git subprocess invoked on the cleanup discovery path, when that subprocess hangs, then it is terminated by its own timeout strictly below the tool budget and discovery either continues or self-returns a partial result rather than relying on the outer race as its only guard.\n- AC7: `WORKTREE_TOOL_SAFE_TIMEOUT_MS` remains 8000, `clampToSafeBudget` remains monotone downward, `effectiveTimeoutMs` remains reported in every response, and the existing `rq-worktreeBoundedCleanup02` acceptance criteria .1 through .5 remain green.\n\n## Constraints\n\n- C1: `rq-worktreeBoundedCleanup02` — clamp value, typed timeout response, no late background mutation, `effectiveTimeoutMs` reporting.\n- C2: `rq-worktreeBoundedCleanup01` — per-item cleanup sequential, max 5 retries, no unbounded parallel deletion.\n- C3: `rq-terminalCleanupSafety01` — deletion authority stays with `advWorktreeDelete`; no direct `git worktree remove`.\n- C4: `rq-worktreePoisonVisibility01` — poison classification requires error-class plus structured evidence; never a guess.\n- C5: Drain-only mode must not become a way to delete worktrees that discovery never validated; it drains only entries a prior discovery already queued.\n- C6: Tightening git timeouts on the cleanup discovery path must not change the timeout behaviour of the same shared helpers when called from non-cleanup paths such as delete, triage, and archive.\n\n## Avoidances\n\n- DONT1: Raising `WORKTREE_TOOL_SAFE_TIMEOUT_MS`.\n- DONT2: Attaching a late-success handler to a timed-out promise, explicitly forbidden by `rq-worktreeBoundedCleanup02.3`.\n- DONT3: Adding a `handle.describe()` probe to the timeout branch, since it is itself a Temporal round trip that can hang 10s on a poisoned workflow.\n- DONT4: Parallelizing deletion.\n- DONT5: Reporting progress counters that were mutated after the timeout response was already produced.\n\n## Out of scope\n\n- OOS1: Bounded-concurrency discovery via `mapWithConcurrency`. Deferred, not rejected. It works mechanically, but discovery writes pending-delete state and `rq-worktreeBoundedCleanup01` draws its sequential line around cleanup processing. Bounding the git I/O attacks the same latency with no spec-boundary argument. Revisit as a follow-up with a spec amendment discussion if AC6 proves insufficient.\n- OOS2: Changing the poison-detection machinery itself in `state.ts` or `recovery-probe.ts`.\n",
+    "design": "# Design — Fix cleanup timeout remediation and diagnosis\n\nFour workstreams mapped to acceptance criteria. WS1–WS3 are localised to `adv-worktree.ts` + a thin forwarding seam. WS4 is the most invasive and touches shared git helpers under a C6-preserving default.\n\n**Post-validation revision.** Independent validator (adv-researcher, report `fixCleanupTimeoutRemediation|change:researcher:design-validation|adv-researcher|1`) returned CONDITIONAL. Conditions incorporated: WS1 mode-aware remediation (was recreating AC1 in `archived_branches`), WS2 pending-delete count via existing reader (no new helper), WS4 C6-flow + scope clarifications, WS5 regression tests. Verdict: no redesign required.\n\n## WS1 — Truthful remediation text (AC1, AC2, AC3)\n\n**Files:** `plugin/src/tools/adv-worktree.ts` only.\n\nTwo timeout branches carry the defect:\n\n| Mode | Lines | Current defect |\n|---|---|---|\n| `archived_branches` | 306–320 | unconditional remediation telling caller to pass larger `timeoutMs` |\n| `worktrees` | 371–386 | same + hardcoded \"likely blocked on a poisoned workflow\" |\n\n**Change.** Make `remediation` conditional on `wasClamped`, mirroring the existing `clampedNote` pattern on `error`. Drop the poison assertion from both `error` strings. **Mode-aware clamped-case remediation** — `skipDiscovery` is only honored in `worktrees` mode; `archived_branches` routes to `cleanupArchivedMergedBranches` (line 277) and never forwards `discover`. Naming `skipDiscovery` in the archived_branches clamped case would recreate the AC1 defect class.\n\nFor `worktrees` mode (line 371+):\n```\nremediation = wasClamped\n  ? \"The ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms safe budget is a structural ceiling (rq-worktreeBoundedCleanup02) and cannot be raised. Retry with skipDiscovery:true to drain already-queued deletes, or run adv_worktree_triage to inspect retained candidates.\"\n  : \"Retry with a larger timeoutMs (clamped to the safe budget), or run adv_worktree_triage to inspect retained candidates.\";\n```\n\nFor `archived_branches` mode (line 306+) — `skipDiscovery` invalid, name reachable actions only:\n```\nremediation = wasClamped\n  ? \"The ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms safe budget is a structural ceiling (rq-worktreeBoundedCleanup02) and cannot be raised. Re-run with a narrower changeId filter, or run adv_worktree_triage to inspect merged archived branches individually.\"\n  : \"Retry with a larger timeoutMs (clamped to the safe budget), or investigate a stuck git process / unreachable store.\";\n```\n\n`error` in both modes drops the poison clause. `worktrees` mode becomes (stage from WS2): `\"adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote} during ${stage}. The inner promise was not cancelled; queued deletes may still resolve on a later drain pass.\"` The `during ${stage}` segment requires WS2 and is omitted from `archived_branches` error text (that mode has no stage tracking).\n\n## WS2 — Stage reporting (AC4)\n\n**Files:** `plugin/src/tools/adv-worktree.ts`, `plugin/src/tools/worktree/index.ts`, `plugin/src/tools/worktree/state.ts` (read-only use of existing reader).\n\n**Why callback, not split race or return-handle.** `advWorktreeCleanup` (`worktree/index.ts:3161-3192`) is a single async function with discovery→drain phases. Splitting it into two separately-raced promises would break its current shape and force every caller to change. A return-handle `{ promise, getStage }` is rejected because `status.ts:875` calls `advWorktreeCleanup` with no stage tracking and would be forced to change; the optional callback leaves it untouched. Callback mirrors how `triage.ts:244-251` tracks `stoppedStage` via local mutation read synchronously at `buildResult` (277).\n\n**Change.**\n\n1. Add to `AdvWorktreeCleanupDeps` (`worktree/index.ts:2878`):\n   ```\n   onStageEnter?: (stage: \"discovery\" | \"drain\") => void;\n   ```\n2. `advWorktreeCleanup` calls `deps.onStageEnter?.(\"discovery\")` before line 3175 and `deps.onStageEnter?.(\"drain\")` before line 3186.\n3. Tool wrapper (`adv-worktree.ts:350-358`) creates `let currentStage: \"discovery\" | \"drain\" | \"pre\" = \"pre\"` and passes `onStageEnter: (s) => { currentStage = s; }`.\n4. Timeout branch reads `currentStage` synchronously. Single-threaded JS guarantees the inner promise's microtasks cannot mutate it between the timeout firing and the response being returned.\n\n**Progress counters (AC4, respecting DONT5).** Do NOT read `removed`/`retained` from the still-running inner promise — those locals are at risk of late mutation and there is no synchronous snapshot seam. Use the existing `getPendingDeletes(database)` reader (`state.ts:479`); inline `(await getPendingDeletes(database)).length` at timeout time. **No new helper** — the validator confirmed `getPendingDeleteCount` does not exist and the existing reader suffices.\n\n```\nconst pendingDeleteCount = (await getPendingDeletes(database).catch(() => [])).length;\n```\n\nThis is the count of entries discovery queued (or that a prior run queued) but drain did not yet clear — the actionable number for the operator. Minor staleness (drain may mutate the queue during the async read) is inherent to any snapshot and not a DONT5 violation because we are not attaching a late-success handler. Response shape gains:\n\n```\nstage: currentStage,\npendingDeleteCount: <number>,\n```\n\n`archived_branches` mode already self-returns `partial` / `omissions`; it does not use stage tracking (routes to `cleanupArchivedMergedBranches`, never calls `advWorktreeCleanup`). AC4 is `worktrees`-mode-scoped.\n\n## WS3 — Drain-only recovery (AC5)\n\n**Files:** `plugin/src/tools/adv-worktree.ts` only.\n\n**C5 satisfaction.** Drain-only is not a new deletion path. `drainPendingDeletes` (`worktree/index.ts:3020-3153`) processes only entries already in the pending-delete table — entries that a prior discovery call validated and queued via `setPendingDelete`. `skipDiscovery:true` cannot delete worktrees discovery never approved.\n\n**Change.**\n\n1. Add `skipDiscovery?: boolean` to `WorktreeCleanupArgs` (`adv-worktree.ts:132-138`).\n2. Add to the inline Zod schema (`adv-worktree.ts:804-833`):\n   ```\n   skipDiscovery: z.boolean().optional().describe(\n     \"Skip the discovery scan and drain only already-queued pending deletes. Only honored in mode=worktrees (the default); ignored in mode=archived_branches. Use after a prior cleanup timed out during discovery and left entries queued.\"\n   ),\n   ```\n3. Forward in the tool wrapper (`adv-worktree.ts:350-358`):\n   ```\n   ...(args.skipDiscovery !== undefined && { discover: !args.skipDiscovery }),\n   ```\n   Merging `discover: true` from caller is harmless because `advWorktreeCleanup` already defaults to `discover !== false`.\n\n**Mode interaction.** `skipDiscovery` + `mode:archived_branches` is a documented no-op (schema description states it). The archived-branches path never reads `args.skipDiscovery`. Zod rejection was considered and rejected — a no-op preserves callers that set the flag defensively across mode switches.\n\n## WS4 — Bounded discovery git I/O (AC6)\n\n**Files:** `plugin/src/tools/worktree/index.ts`, `plugin/src/tools/worktree/census.ts`, `plugin/src/tools/adv-worktree.ts`.\n\n**Approach: thread a single `gitTimeoutMs` through the cleanup discovery path.** Not an `InventoryBudget`-style deadline — that would be a bigger refactor and the WS2 stage reporting already makes aggregate overruns visible. A per-call timeout below the tool budget satisfies AC6's wording (\"strictly below the tool budget\") and is mechanically minimal.\n\n**C6 satisfaction — explicit flows.** Every changed helper gains an optional `gitTimeoutMs?: number` parameter that **defaults to its current value**. Non-cleanup callers pass no value and see no change. Two flows to state explicitly:\n\n1. **Cleanup-internal delete:** `gitTimeoutMs` on `AdvWorktreeDeleteDeps` flows into `drainPendingDeletes:3096-3107` which spreads `deps` into `advWorktreeDelete`. So cleanup-triggered deletes also get the tightened timeout. This is safe: failure mode is retention (`recordPendingDeleteFailure`), and the inner `operationTimeoutMs` (`3104`) already bounds the delete operation separately.\n2. **Standalone `adv_worktree_delete`:** constructs its own `AdvWorktreeDeleteDeps` (`adv-worktree.ts:224-248`) without `gitTimeoutMs` → helpers default to 30000ms → C6 holds.\n\n**Scope — complete call-site audit (validator-confirmed).** Discovery-reachable `git()` calls from `discoverTerminalCleanupCandidates` (`index.ts:2911-2978`):\n\n| # | Site | Helper | Current timeout |\n|---|---|---|---|\n| 1 | `census.ts:72` `for-each-ref` | census `git()` | 10_000 |\n| 2 | `census.ts:77` `branch --merged` | census `git()` | 10_000 |\n| 3 | `census.ts:78` `worktree list --porcelain` | census `git()` | 10_000 |\n| 4 | `census.ts:94` `status --porcelain` (per-worktree, sequential) | census `git()` | 10_000 |\n| 5 | `index.ts:1787` `rev-parse` | index `git()` | 30_000 |\n| 6 | `index.ts:1872` `fetch origin` (per merged PR) | index `git()` | 30_000 |\n| 7 | `index.ts:1877` `merge-base --is-ancestor` (per merged PR) | index `git()` | 30_000 |\n\n`getDefaultBranch` (reached at `index.ts:2919` → `utils/git.ts:57`) uses `execGit` at 5000ms default — already AC6-compliant, out of WS4 scope.\n\n**Out of WS4 scope (delete-path only, not discovery-reachable):**\n- `getMergedBranchesForDelete:1728` — called only from `verifyNonAdvBranchIntegration:1934`, itself reached only at `2251, 2306` (inside `advWorktreeDelete`).\n- `verifyMissingRegistryChangeBranchIntegration:1964-2023` — called only at `2274` (delete path).\n\n**Shared-helper C6 risk — none.** `census.ts` `git()` is private with one production caller (`scanGitWorkspaceFacts`). `index.ts` `git()` is private; only `getPrMergedBranchIntegration` forwards `gitTimeoutMs` from cleanup; other callers (`branchExists`, `getMergedBranchesForDelete`, create/prune paths) don't forward it → default preserved.\n\n**Budget math.** `effectiveTimeoutMs = 8000`. Reserve `WORKTREE_TOOL_RETURN_RESERVE_MS = 500` for response formatting. Discovery and drain share the remaining 7500ms. Per-git-call budget for the cleanup path:\n\n```\nconst discoveryGitBudgetMs = Math.min(2_000, Math.floor(effectiveTimeoutMs / 4));\n```\n\n**Fixed 2000ms, not scaling with worktree count.** Worst case N=8: sequential `git status --porcelain` loop at 2000ms each = 16s aggregate, but each call is *independently* killed below budget (AC6's actual requirement) and the aggregate is race-policed + WS2 stage-reported. Normal clean-worktree status ≈ 10–50ms. Scaling (`effectiveTimeoutMs / Math.max(4, worktreeCount)`) was considered and rejected — adds complexity for a pathological case already covered by the outer race.\n\n**Changes.**\n\n1. `worktree/index.ts:850` local `git()` helper — add optional third parameter:\n   ```\n   async function git(args, cwd, timeoutMs = 30_000): Promise<Result<string, string>> { ... timeout: timeoutMs ... }\n   ```\n2. `census.ts:24` local `git()` helper — add optional third parameter:\n   ```\n   async function git(cwd, args, timeoutMs = 10_000): Promise<string> { ... timeout: timeoutMs ... }\n   ```\n3. `scanGitWorkspaceFacts(repoRoot, defaultBranch, gitTimeoutMs?)` — thread `gitTimeoutMs` to all four `git()` calls (lines 72–78 parallel trio + line 94 per-worktree status).\n4. `AdvWorktreeDeleteDeps` — add `gitTimeoutMs?: number`. Thread through every `git()` call site inside `getPrMergedBranchIntegration` (lines 1787, 1872, 1877).\n5. `AdvWorktreeCleanupDeps` — add `gitTimeoutMs?: number`, forwarded to `AdvWorktreeDeleteDeps` inside `advWorktreeCleanup`.\n6. Tool wrapper computes `discoveryGitBudgetMs` from `effectiveTimeoutMs` and forwards as `gitTimeoutMs` in the deps object.\n\n## WS5 — Tests (all ACs)\n\n**Files:** `plugin/src/tools/adv-worktree.test.ts`, `plugin/src/tools/adv-worktree.archived-branches.test.ts`, `plugin/src/tools/worktree/index-delete.test.ts`.\n\n| AC | Test |\n|---|---|\n| AC1a | worktrees clamp + timeout → remediation omits \"pass a larger timeoutMs\", mentions skipDiscovery or triage |\n| AC1b | archived_branches clamp + timeout → remediation omits \"pass a larger timeoutMs\", omits skipDiscovery, names reachable action (changeId filter / triage) |\n| AC2 | no clamp + timeout → remediation may mention larger timeoutMs |\n| AC3 | any timeout → error string contains no \"poison\" / no \"adv_doctor\" |\n| AC4 | timeout during discovery → response has `stage:\"discovery\"`; timeout during drain → `stage:\"drain\"`; both have `pendingDeleteCount` |\n| AC5a | seed pending-delete table, call with skipDiscovery:true → discovery never invoked, queued entries drained |\n| AC5b | empty pending-delete table + skipDiscovery:true → `{removed:0, retained:0}`, discovery never invoked, no spurious deletion |\n| AC6a | stub `git()` to hang past `gitTimeoutMs` → it is killed at the budget, discovery continues or self-returns |\n| AC6b (C6 regression guard) | standalone `adv_worktree_delete` path — assert `git()` helper receives default 30000ms, not cleanup `gitTimeoutMs` |\n| AC7 | existing tests at `adv-worktree.test.ts:894` (clamp+effectiveTimeoutMs), `adv-worktree.test.ts:917` (default budget), `adv-worktree.test.ts:938` (item timeout below budget), and `rq-worktreeBoundedCleanup02` suite stay green unchanged |\n\n## Implementation order\n\nWS1 + WS3 first (independent, low-risk, immediately testable). WS2 next (enables WS1's stage-aware error text). WS4 last (most invasive, benefits from WS2's stage reporting for verification). WS5 interleaved per workstream.\n\n## Resolved open questions\n\n- **Callback vs. return-handle:** Callback. `status.ts:875` is a second caller of `advWorktreeCleanup` with no stage tracking — a handle would force it to change; an optional callback leaves it untouched. Mirrors `triage.ts:244-251` local-mutation pattern.\n- **Fixed 2000ms vs. scaling:** Fixed. Worst case N=8 = 16s aggregate, but each call independently bounded (AC6) and race-policed + stage-reported. Normal status ≈ 10–50ms.\n- **`getPendingDeleteCount`:** Does not exist. Use `(await getPendingDeletes(database).catch(() => [])).length` inline. No new helper.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nWhen worktree maintenance commands run out of time, they now tell the operator the truth about what happened and offer a next step that actually works. You are approving a self-contained correctness fix to internal maintenance tooling — no user-facing product surface changes.\n\n## Why It Matters\n\nThe tool previously gave contradictory guidance: it would tell an operator their requested time limit had been reduced, then in the very next line advise them to request a longer one — advice that could never succeed. It also blamed a specific internal fault (\"poisoned workflow\") that it had never actually checked for, sending operators to a repair tool for a problem that did not exist. In the incident that prompted this change, nothing was stuck at all; the operator fell back to deleting the worktree by hand.\n\nInvestigation and review each widened the fix in a way that mattered. Investigation found a genuine rule violation: the project's own cleanup standard requires every internal step to finish inside the overall time budget, but two internal steps were allowed to run three to four times longer than the whole operation — the real reason the operation ran out of time. Hardening then found the same false-diagnosis defect still live in two neighbouring commands, which are now fixed too.\n\n## Verdict\n\nAPPROVED — release ready\n\n## What Was Built\n\n1. **Truthful guidance when time runs out** — advice is tailored to what actually happened and differs correctly between the tool's two modes, so it never recommends an option that mode does not support.\n2. **Honest reporting instead of guessing** — the unfounded fault diagnosis was removed from three commands, not just the one reported. Each now reports what it actually knows.\n3. **A real recovery path** — operators can ask the tool to skip the slow scan and finish already-approved queued work, instead of resorting to manual deletion.\n4. **Root cause closed** — every internal step now finishes well inside the overall budget, so one slow step can no longer consume the entire allowance.\n5. **Distinguishable failure reporting** — an empty work queue and an unreadable one are no longer both reported as zero.\n6. **Protection against silent regression** — added the guard proving the original time limits still apply to unrelated callers, which review found missing.\n7. **Written standard updated** — the capability spec now describes the shipped behaviour, so future audits can verify it.\n\n## What Was Verified\n\n- Review verdict: APPROVED with 11 findings (0 blockers, 4 issues, 5 suggestions, 2 nits). All 4 issues fixed; 2 findings rejected as incorrect after direct verification; remainder deferred with evidence.\n- Hardening: no blockers, no high findings. 2 medium findings — the neighbouring false-diagnosis sites — were fixed rather than deferred, with your approval.\n- Tests: 142 passed across the affected areas. Full project checks pass clean.\n- Merge compatibility: clean, zero commits behind the mainline.\n- Preview URL: not_applicable — no browser-visible or visual output; this changes command-line tool text and internal timeout values.\n- Contract matrix: 19 of 19 required items passed or respected. Zero failed, violated, or unknown.\n\n## Remaining Concerns\n\nNon-blocking:\n\n1. **Deployment is a separate step.** This is a plugin change; it will not affect the live tool until built, deployed, and the host restarted. Normal for this repo.\n2. **A tighter network timeout could retain more worktrees.** Repository lookups over slow links now have a 2-second limit rather than 30. The failure mode is safe — the worktree is kept, never wrongly deleted — but worth watching after deploy.\n3. **Two deferred test-quality suggestions.** Faster tests using simulated clocks, and one decorative assertion. Neither affects correctness.\n4. **Four unrelated project tests are failing.** Independently confirmed pre-existing — they fail identically on the untouched mainline at this change's starting point. Logged for separate triage.\n\n## Supporting Evidence\n\n- Tasks: tk-7b2d308848b0, tk-2a69e7c2a549, tk-b4217ae3eb05, tk-6d217e1bba98, tk-57abcd25de71\n- Commits: 424061b, 9f91325, 5ce906d, d632056, af4d216, 7bd00e8\n- Verification: tr_msevuhep_6aba8ac3 (142 passed), tr_msevwuuu_fc559600 (project checks clean)\n- Failing-test evidence reproduced every defect word-for-word before its fix: tr_msesfk2w_b0e471dd, tr_mseryxua_5b81832b, tr_msevq0zs_221d31e2\n- Spec delta: rq-worktreeTimeoutTruthfulness01, 7 scenarios\n- Design independently validated; review used three scanners, one of whose claims was disproved by direct execution and rejected\n\n## Release Readiness Summary\n\nRelease-ready. Hardening ran production, deployment, and documentation readiness checks plus inline cleanup and merge-compatibility verification. No blockers, no high findings. The two medium findings were same-defect siblings in the touched file and were fixed under the campsite rule with your explicit approval, rather than deferred.\n\nCleanup is clean: no temporary files, no debug code, no skipped or disabled tests introduced. Merge dry-run against the mainline is conflict-free. The one documentation gap found — operators had no written reference for the new recovery option — was closed in the cleanup command contract.\n\n## Approval Consequence Context\n\n| Category | Status | Evidence |\n|---|---|---|\n| Delivered value | delivered | Reported defect fixed plus two sibling sites; contract matrix 19/19; 142 tests pass |\n| Enabling-only / follow-up dependency | none | Self-contained; no dependent work required |\n| Ops readiness | ready | No env vars, migrations, or external services. Standard plugin sequence required: build, deploy, host restart. Bundle manifest logic unaffected |\n| Migration / data impact | n/a | No schema, storage, or persisted-state change; new argument optional, new response fields additive |\n| Frontend / preview impact | not_applicable | No browser-visible or visual output |\n| Collision / release risk | low | Merge dry-run clean, zero behind mainline; one subsystem; no competing active changes |\n| Open follow-ups | 4 non-blocking | Deploy step; monitor tighter network timeout after deploy; 2 test-quality suggestions; separate triage for 4 pre-existing mainline failures |\n| Next action | archive sign-off | `/adv-archive fixCleanupTimeoutRemediation` |\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-04T16:07:30.207Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | Given `adv_worktree_cleanup` is called with a `timeoutMs` above the safe budget and the call times out in either `worktrees` or `archived_branches` mode, when the typed timeout response is produced, then the `remediation` field does not instruct the caller to pass a larger `timeoutMs` and instead states that the safe budget is a structural ceiling and names an action that can actually succeed. | pass | Mode-aware conditional remediation in both timeout branches. worktrees names skipDiscovery:true + adv_worktree_triage; archived_branches names a narrower changeId filter + triage and deliberately omits skipDiscovery (that mode never forwards discover). Tests in adv-worktree.test.ts and adv-worktree.archived-branches-emergency.test.ts. RED tr_msesfk2w_b0e471dd captured the original string verbatim. |\n| AC2 | acceptance_criterion | Given `adv_worktree_cleanup` times out with no clamp applied because the caller requested no timeout or one at or below the safe budget, when the typed timeout response is produced, then the `remediation` field may still offer a larger `timeoutMs` because that action is reachable. | pass | Unclamped branch retains 'Retry with a larger timeoutMs' in both modes because that action is reachable. Covered by one test per mode. |\n| AC3 | acceptance_criterion | Given `adv_worktree_cleanup` times out without collecting any poison evidence on that call, when the `error` string is produced, then it contains no assertion that a workflow is poisoned and no unconditional referral to `adv_doctor`. | pass | Poison assertion and unconditional adv_doctor referral removed. Tests assert error and remediation match neither /poison/i nor 'adv_doctor', across clamped and unclamped input, in both modes. |\n| AC4 | acceptance_criterion | Given `adv_worktree_cleanup` times out, when the typed timeout response is produced, then it reports which stage was in flight as discovery or drain and reports any progress counters already accumulated, following the existing triage partial-result shape. | pass | Timeout response reports stage plus pendingDeleteCount, with stage snapshotted synchronously before the pending-delete read. Production emission covered by a new test added during review after a scanner showed wrapper tests fired onStageEnter from their own mock. |\n| AC5 | acceptance_criterion | Given a prior cleanup timed out during discovery and left pending-delete entries queued, when the caller invokes `adv_worktree_cleanup` requesting drain-only, then discovery is skipped and the queued pending deletes are drained within the same safe budget. | pass | skipDiscovery added to args and Zod schema, forwarded as discover:!skipDiscovery against the discover !== false gate. Populated-queue and empty-queue tests both assert discover:false forwarding and no discovery invocation. Spread semantics verified by execution. |\n| AC6 | acceptance_criterion | Given any git subprocess invoked on the cleanup discovery path, when that subprocess hangs, then it is terminated by its own timeout strictly below the tool budget and discovery either continues or self-returns a partial result rather than relying on the outer race as its only guard. | pass | gitTimeoutMs threaded through both cleanup-path helpers and all 7 discovery-reachable sites; wrapper derives min(2000, floor(budget/4)). cleanup-git-budget.test.ts now covers the census helper AND the worktree/index.ts helper. RED tr_mseryxua_5b81832b. Mutation-verified: corrupting the index.ts default now fails the new guard. |\n| AC7 | acceptance_criterion | `WORKTREE_TOOL_SAFE_TIMEOUT_MS` remains 8000, `clampToSafeBudget` remains monotone downward, `effectiveTimeoutMs` remains reported in every response, and the existing `rq-worktreeBoundedCleanup02` acceptance criteria .1 through .5 remain green. | pass | WORKTREE_TOOL_SAFE_TIMEOUT_MS still 8000; clampToSafeBudget still monotone downward; effectiveTimeoutMs reported in every response shape. Pre-existing clamp tests unedited (diff additions-only, zero deletions). Verified tr_mseugh3r_78e9dc70, 157 passed. |\n| C1 | constraint | `rq-worktreeBoundedCleanup02` — clamp value, typed timeout response, no late background mutation, `effectiveTimeoutMs` reporting. | respected | rq-worktreeBoundedCleanup02 upheld: clamp unchanged, typed timeout response retained, effectiveTimeoutMs reported, no late background mutation. No .then/.catch on the timed-out inner promise. |\n| C2 | constraint | `rq-worktreeBoundedCleanup01` — per-item cleanup sequential, max 5 retries, no unbounded parallel deletion. | respected | rq-worktreeBoundedCleanup01 upheld: drain remains a sequential for-of, retry cap still 5, no parallelism introduced. index-delete.test.ts green. |\n| C3 | constraint | `rq-terminalCleanupSafety01` — deletion authority stays with `advWorktreeDelete`; no direct `git worktree remove`. | respected | rq-terminalCleanupSafety01 upheld: deletion authority remains advWorktreeDelete; no direct git worktree remove added. |\n| C4 | constraint | `rq-worktreePoisonVisibility01` — poison classification requires error-class plus structured evidence, never a guess. | respected | rq-worktreePoisonVisibility01 upheld: poison claim removed rather than reclassified, because the branch resolves a setTimeout sentinel with no error object to classify. No describe() probe added. |\n| C5 | constraint | Drain-only mode must not become a way to delete worktrees that discovery never validated; it drains only entries a prior discovery already queued. | respected | Drain-only adds no deletion path. drainPendingDeletes processes only rows a prior validated discovery wrote via setPendingDelete. |\n| DONT1 | avoidance | Raising `WORKTREE_TOOL_SAFE_TIMEOUT_MS`. | respected | WORKTREE_TOOL_SAFE_TIMEOUT_MS unchanged at 8000; asserted directly by the pre-existing constant test. |\n| DONT2 | avoidance | Attaching a late-success handler to a timed-out promise, explicitly forbidden by `rq-worktreeBoundedCleanup02.3`. | respected | No late-success handler on the timed-out promise. Scanner grep for cleanupPromise/raced .then/.catch returned zero hits; race consumed by await with timer cleared. |\n| DONT3 | avoidance | Adding a `handle.describe()` probe to the timeout branch, since it is itself a Temporal round trip that can hang 10s on a poisoned workflow. | respected | No handle.describe() probe added. Scanner grep across the three touched source files returned zero hits. |\n| DONT4 | avoidance | Parallelizing deletion. | respected | No deletion parallelized. The only Promise.all touched is the pre-existing census read-only git trio, now individually bounded. |\n| DONT5 | avoidance | Reporting progress counters that were mutated after the timeout response was already produced. | respected | Strengthened during review: stage is snapshotted synchronously before the pending-delete await so a value advanced by the still-running inner promise cannot be reported. pendingDeleteCount remains a fresh DB read. |\n| OOS1 | out_of_scope | Bounded-concurrency discovery via `mapWithConcurrency`. Deferred, not rejected. It works mechanically, but discovery writes pending-delete state and `rq-worktreeBoundedCleanup01` draws its sequential line around cleanup processing. Bounding the git I/O attacks the same latency with no spec-boundary argument. Revisit as a follow-up with a spec amendment discussion if AC6 proves insufficient. | not_applicable | Bounded-concurrency discovery deliberately not implemented; zero mapWithConcurrency references introduced. Discovery remains sequential. |\n| OOS2 | out_of_scope | Changing the poison-detection machinery itself in `state.ts` or `recovery-probe.ts`. | not_applicable | Poison-detection machinery untouched. No changes to state.ts or recovery-probe.ts; adv-worktree.ts only imports the existing getPendingDeletes reader. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-04T05:12:59.133Z",
+      "contentHash": "37363d3ab69d5a50e1564eaeed57513cf7ebe30d79720284b654f0ff9b6b1719",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-04T06:41:19.411Z",
+      "contentHash": "46bfe569dda2b04ae965ce91f6d5236b1b29ebc2414c0449352e937c728ab0fd",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-04T06:53:49.421Z",
+      "contentHash": "f3aae75ddba53a85fdff6bfc40794a844d76c930a620bbb2672bc772c2f2462e",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-04T16:43:59.295Z",
+      "contentHash": "fcd648b0aefe7fa519cfb0ac6dae4d5018228a4ce3a8ad76e024c9ef4e5a0cf5",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-04T17:01:31.524Z",
+  "fast_follow_of": {
+    "parent_change_id": "fixArtifactReadFallback",
+    "linked_at": "2026-08-04T05:12:54.054Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "fixArtifactReadFallback"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Worktree timeout responses are now truthful, actionable, and bounded",
+    "highlights": [
+      "Clamped callers are no longer advised to raise a timeoutMs that was just clamped away; remediation is mode-aware and never names an option the current mode ignores.",
+      "Removed the hardcoded \"poisoned workflow\" diagnosis and unconditional adv_doctor referral from adv_worktree_cleanup, adv_worktree_delete, and adv_worktree_detach — all three race a setTimeout sentinel with no error to classify, so the claim was always a guess.",
+      "Cleanup timeouts now report the stage in flight plus pendingDeleteCount, and distinguish an unreadable pending-delete queue from an empty one.",
+      "Added skipDiscovery for drain-only recovery of already-queued deletes, replacing manual `git worktree remove` as the recovery path. Documented in the /adv-cleanup contract.",
+      "Bounded every git subprocess on the cleanup discovery path below the 8s tool budget, closing a rq-worktreeBoundedCleanup02 conformance gap where two shared helpers ran at 30s and 10s. Non-cleanup callers keep their original defaults.",
+      "Added the missing C6 regression guard: corrupting the worktree/index.ts git default previously passed all 65 tests in the touched suites."
+    ],
+    "area": "worktree lifecycle",
+    "user_action_required": false
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "No changed file is reachable from the Temporal worker-bundle root. All three source files ship under plugin/src/tools/ — adv-worktree.ts, worktree/index.ts, worktree/census.ts — and plugin/src/temporal/workflows.ts is the worker-bundle root whose static import graph must not reach tools/ at all (documented invariant in AGENTS.md, enforced by the workflow-bundle boundary tests). Verified directly rather than assumed: workflows.ts imports resolve only to utils/ (buckets, phase-plan, workflow-directive), ../types, and sibling temporal/ modules (search-attributes, gate-readiness, contracts, change-state, epic-state); grep confirms no reference to adv-worktree, worktree/index, or worktree/census. The change also adds no workflow signals, no defineUpdate handlers, and no determinism-sensitive code. Remaining touched files are three test files plus one command-contract markdown, none of which are bundled. Therefore build_worker and replay_determinism provenance are not applicable to this change.",
+    "confirmed_at": "2026-08-04T17:01:31.524Z"
+  },
+  "creation_request_hash": "509a85b3653c606480669cef73bac18f8821c4a8ea6c8e71579c8d33aa482317",
+  "projection_revision": 46,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "20c0d4c6722cb8c24d729cbeaa9753a4d47f9c3f2bb681e0ac885e701dae7234:createArtifacts:proposal",
+      "operation_id": "20c0d4c6722cb8c24d729cbeaa9753a4d47f9c3f2bb681e0ac885e701dae7234:createArtifacts:proposal",
+      "payload_hash": "50d52240e778a901569aaad02c9e58dfac6d731ba81642f8429cd08fa2146bb6",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-04T05:12:59.333Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-04T06:19:44.279Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-04T06:29:12.520Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f7ee136c6d9b51d5024623613121c610830b7faa7922d75fae780a4921e0c65c:updateArtifacts:agreement",
+      "operation_id": "f7ee136c6d9b51d5024623613121c610830b7faa7922d75fae780a4921e0c65c:updateArtifacts:agreement",
+      "payload_hash": "ff4815102127beb2f97ec98cf3e280e389002b435db3039eb4e9f069106889a5",
+      "state_revision": 2,
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-04T06:29:52.939Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-04T06:32:17.038Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f673ccafd5a27e7eae16e8b4e42aeaa1ccf944ee5408c0e4f7b0748f71d0e5a5:updateArtifacts:agreement",
+      "operation_id": "f673ccafd5a27e7eae16e8b4e42aeaa1ccf944ee5408c0e4f7b0748f71d0e5a5:updateArtifacts:agreement",
+      "payload_hash": "b63d9d81762622713b37ee76cfdefca62bfd9a545aaa95e2e482d4bd0bb12a86",
+      "state_revision": 3,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-04T06:34:04.019Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-04T06:34:35.892Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-04T06:34:51.879Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "bcba246ea23d0919fe89fade7524c30d76dc68debd7a2d9d11b9a75a84539ce4:updateArtifacts:agreement",
+      "operation_id": "bcba246ea23d0919fe89fade7524c30d76dc68debd7a2d9d11b9a75a84539ce4:updateArtifacts:agreement",
+      "payload_hash": "8e6ae2717259c37c59edbcfb25cfd09a55c2aa0c5e597bd2182e9031f2e7ff88",
+      "state_revision": 4,
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-04T06:37:04.783Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "2ac10f87bc488ed3a12afecde52fa0742a9a6fe2118dd95fe816afa29fea8a46:updateArtifacts:agreement",
+      "operation_id": "2ac10f87bc488ed3a12afecde52fa0742a9a6fe2118dd95fe816afa29fea8a46:updateArtifacts:agreement",
+      "payload_hash": "d4ad7c8911376653f165395a2e531f2f481e9a6ccfc2e7be04b0a3d3e8b20275",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-04T06:41:19.709Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "2ac10f87bc488ed3a12afecde52fa0742a9a6fe2118dd95fe816afa29fea8a46:updateArtifacts:design",
+      "operation_id": "2ac10f87bc488ed3a12afecde52fa0742a9a6fe2118dd95fe816afa29fea8a46:updateArtifacts:design",
+      "payload_hash": "e2c5e2b870271f76373f4ba59f0bf15c4b15ebfb9fa3f3664e9266869d8a4e63",
+      "state_revision": 6,
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-04T06:41:20.079Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-04T06:51:57.365Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-04T06:52:01.780Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "b633b5947ea76f377b55b57c7715e292b9ceadd28b7d7f056426c4eb88b27812:updateArtifacts:design",
+      "operation_id": "b633b5947ea76f377b55b57c7715e292b9ceadd28b7d7f056426c4eb88b27812:updateArtifacts:design",
+      "payload_hash": "4afdb11e661bf3543d3273e78f5cea4bcb69762061a5e9127d18b61ed9624b91",
+      "state_revision": 7,
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-04T06:53:49.718Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-04T06:54:15.745Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-04T06:56:58.870Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-04T06:57:04.998Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-04T06:57:47.827Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-04T06:58:23.996Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-04T06:59:04.280Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-04T06:59:36.661Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-04T14:17:03.311Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-04T14:17:56.465Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-04T14:25:25.537Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-04T14:25:29.315Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-04T14:27:55.481Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-04T14:28:54.291Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-04T14:46:11.326Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-04T14:46:15.639Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-04T14:47:18.590Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-04T15:00:35.181Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-04T15:05:37.585Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-04T15:06:21.763Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-04T15:20:20.075Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-04T15:21:23.054Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fc12bc9dc88301965088a0eed402d811a326083f57b4910fb3eaf2814d5aeca2:updateArtifacts:executiveSummary",
+      "operation_id": "fc12bc9dc88301965088a0eed402d811a326083f57b4910fb3eaf2814d5aeca2:updateArtifacts:executiveSummary",
+      "payload_hash": "43e41d05c0091ac40899ec049356ce09b2b98bcd499b030a53d79fd04ec5dad1",
+      "state_revision": 8,
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-04T16:03:55.836Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "4af1dc2e3e375514a9843239718e66c52076586e3c7e9b0d6bda7b4fc70eae3d:releaseNotesSet",
+      "operation_id": "4af1dc2e3e375514a9843239718e66c52076586e3c7e9b0d6bda7b4fc70eae3d:releaseNotesSet",
+      "payload_hash": "1fd83cb4cc6d9d37be644b9db002ed535a12dc1d97fb8f734d6e9d91eec40f8a",
+      "state_revision": 9,
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-04T16:04:14.631Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-04T16:06:40.486Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785859650301_jsfxmfqa",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-04T16:07:30.561Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-04T16:07:30.207Z",
+          "rows": [
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Mode-aware conditional remediation in both timeout branches. worktrees names skipDiscovery:true + adv_worktree_triage; archived_branches names a narrower changeId filter + triage and deliberately omits skipDiscovery (that mode never forwards discover). Tests in adv-worktree.test.ts and adv-worktree.archived-branches-emergency.test.ts. RED tr_msesfk2w_b0e471dd captured the original string verbatim."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Unclamped branch retains 'Retry with a larger timeoutMs' in both modes because that action is reachable. Covered by one test per mode."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Poison assertion and unconditional adv_doctor referral removed. Tests assert error and remediation match neither /poison/i nor 'adv_doctor', across clamped and unclamped input, in both modes."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Timeout response reports stage plus pendingDeleteCount, with stage snapshotted synchronously before the pending-delete read. Production emission covered by a new test added during review after a scanner showed wrapper tests fired onStageEnter from their own mock."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "skipDiscovery added to args and Zod schema, forwarded as discover:!skipDiscovery against the discover !== false gate. Populated-queue and empty-queue tests both assert discover:false forwarding and no discovery invocation. Spread semantics verified by execution."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "gitTimeoutMs threaded through both cleanup-path helpers and all 7 discovery-reachable sites; wrapper derives min(2000, floor(budget/4)). cleanup-git-budget.test.ts now covers the census helper AND the worktree/index.ts helper. RED tr_mseryxua_5b81832b. Mutation-verified: corrupting the index.ts default now fails the new guard."
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "WORKTREE_TOOL_SAFE_TIMEOUT_MS still 8000; clampToSafeBudget still monotone downward; effectiveTimeoutMs reported in every response shape. Pre-existing clamp tests unedited (diff additions-only, zero deletions). Verified tr_mseugh3r_78e9dc70, 157 passed."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "rq-worktreeBoundedCleanup02 upheld: clamp unchanged, typed timeout response retained, effectiveTimeoutMs reported, no late background mutation. No .then/.catch on the timed-out inner promise."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "rq-worktreeBoundedCleanup01 upheld: drain remains a sequential for-of, retry cap still 5, no parallelism introduced. index-delete.test.ts green."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "rq-terminalCleanupSafety01 upheld: deletion authority remains advWorktreeDelete; no direct git worktree remove added."
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "rq-worktreePoisonVisibility01 upheld: poison claim removed rather than reclassified, because the branch resolves a setTimeout sentinel with no error object to classify. No describe() probe added."
+            },
+            {
+              "contractId": "C5",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Drain-only adds no deletion path. drainPendingDeletes processes only rows a prior validated discovery wrote via setPendingDelete."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "WORKTREE_TOOL_SAFE_TIMEOUT_MS unchanged at 8000; asserted directly by the pre-existing constant test."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No late-success handler on the timed-out promise. Scanner grep for cleanupPromise/raced .then/.catch returned zero hits; race consumed by await with timer cleared."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No handle.describe() probe added. Scanner grep across the three touched source files returned zero hits."
+            },
+            {
+              "contractId": "DONT4",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No deletion parallelized. The only Promise.all touched is the pre-existing census read-only git trio, now individually bounded."
+            },
+            {
+              "contractId": "DONT5",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Strengthened during review: stage is snapshotted synchronously before the pending-delete await so a value advanced by the still-running inner promise cannot be reported. pendingDeleteCount remains a fresh DB read."
+            },
+            {
+              "contractId": "OOS1",
+              "kind": "out_of_scope",
+              "status": "not_applicable",
+              "evidencePolicy": "review",
+              "evidence": "Bounded-concurrency discovery deliberately not implemented; zero mapWithConcurrency references introduced. Discovery remains sequential."
+            },
+            {
+              "contractId": "OOS2",
+              "kind": "out_of_scope",
+              "status": "not_applicable",
+              "evidencePolicy": "review",
+              "evidence": "Poison-detection machinery untouched. No changes to state.ts or recovery-probe.ts; adv-worktree.ts only imports the existing getPendingDeletes reader."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-04T16:07:30.300Z",
+        "mutationReceiptId": "mrec_1785859650301_jsfxmfqa"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-04T16:07:50.967Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-04T16:08:54.325Z"
+    },
+    {
+      "mutation_kind": "specDeltaAdded",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0f0d63cd76cb3e5e1dfc583ba4f49c27589312a2cac9e80351bda2b41cc8a405:specDeltaAdded",
+      "operation_id": "0f0d63cd76cb3e5e1dfc583ba4f49c27589312a2cac9e80351bda2b41cc8a405:specDeltaAdded",
+      "payload_hash": "3724c347387e34561031c8a8e33ead7134dc49455880331713aaf517765b5e60",
+      "state_revision": 10,
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-04T16:37:18.585Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "2d9074a9da7dcaae30420665357e14c060ee08e377b12f075bb671546e618929:updateArtifacts:executiveSummary",
+      "operation_id": "2d9074a9da7dcaae30420665357e14c060ee08e377b12f075bb671546e618929:updateArtifacts:executiveSummary",
+      "payload_hash": "ddc7c5fffa8ad1b00c2de8b7e0ea82c9b763eb8c890959e4a078531c2b8d0e27",
+      "state_revision": 11,
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-04T16:43:59.700Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "3b2787a27f054a9cda0398d4e0fec2a92a2f15d3f927544338bc57afc80d3409:releaseNotesSet",
+      "operation_id": "3b2787a27f054a9cda0398d4e0fec2a92a2f15d3f927544338bc57afc80d3409:releaseNotesSet",
+      "payload_hash": "38897f45fdeca601ea2b8a6974db010e9f814b6c504f286922d6184dfa86db59",
+      "state_revision": 12,
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-04T16:44:16.388Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-04T17:00:19.675Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixCleanupTimeoutRemediation",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-04T17:01:31.788Z"
+    }
+  ],
+  "state_revision": 12,
+  "_source": "disk"
+}

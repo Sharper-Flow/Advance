@@ -1,0 +1,22 @@
+{
+  "archived_at": "2026-08-04T17:01:47.440Z",
+  "capabilities": [
+    "worktree-lifecycle"
+  ],
+  "change_hash": "62c94af9fbff0413b8857a18e6c5931c540233a949ef2faaa6a2f98327a6067b",
+  "change_id": "fixCleanupTimeoutRemediation",
+  "completed_tasks": 5,
+  "created_at": "2026-08-04T05:12:58.787Z",
+  "current_gate": "release",
+  "fast_follow_of": {
+    "linked_at": "2026-08-04T05:12:54.054Z",
+    "parent_change_id": "fixArtifactReadFallback"
+  },
+  "last_activity_at": "2026-08-04T16:08:54.117Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "836bac5e8ea809e2e9f7030cb9f74a48b25fa9032cab06608ff595dfcf072c45",
+  "task_count": 5,
+  "title": "Fix cleanup timeout remediation",
+  "version": "1"
+}

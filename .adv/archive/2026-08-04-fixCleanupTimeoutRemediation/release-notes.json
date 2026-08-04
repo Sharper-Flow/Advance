@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixCleanupTimeoutRemediation",
+  "title": "Fix cleanup timeout remediation",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Worktree timeout responses are now truthful, actionable, and bounded",
+    "highlights": [
+      "Clamped callers are no longer advised to raise a timeoutMs that was just clamped away; remediation is mode-aware and never names an option the current mode ignores.",
+      "Removed the hardcoded \"poisoned workflow\" diagnosis and unconditional adv_doctor referral from adv_worktree_cleanup, adv_worktree_delete, and adv_worktree_detach — all three race a setTimeout sentinel with no error to classify, so the claim was always a guess.",
+      "Cleanup timeouts now report the stage in flight plus pendingDeleteCount, and distinguish an unreadable pending-delete queue from an empty one.",
+      "Added skipDiscovery for drain-only recovery of already-queued deletes, replacing manual `git worktree remove` as the recovery path. Documented in the /adv-cleanup contract.",
+      "Bounded every git subprocess on the cleanup discovery path below the 8s tool budget, closing a rq-worktreeBoundedCleanup02 conformance gap where two shared helpers ran at 30s and 10s. Non-cleanup callers keep their original defaults.",
+      "Added the missing C6 regression guard: corrupting the worktree/index.ts git default previously passed all 65 tests in the touched suites."
+    ],
+    "area": "worktree lifecycle",
+    "user_action_required": false
+  }
+}
