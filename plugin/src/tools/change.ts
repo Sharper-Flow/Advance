@@ -155,7 +155,12 @@ const DIRECTIVE_INCLUDE_FIELDS: Record<string, readonly string[]> = {
   loopLedger: ["_loopLedger"],
   loopLedgerDetails: ["_loopLedger"],
   snapshot: ["_contextSnapshot", "_contextSnapshotError"],
-  readyTasks: ["_readyTasks", "_readyTasksMeta", "_todoProjection"],
+  readyTasks: [
+    "_readyTasks",
+    "_readyTasksMeta",
+    "_todoProjection",
+    "_readyTasksError",
+  ],
   proposal: ["_proposal"],
   problemStatement: ["_problemStatement"],
   agreement: ["_agreement"],
@@ -163,7 +168,7 @@ const DIRECTIVE_INCLUDE_FIELDS: Record<string, readonly string[]> = {
   executiveSummary: ["_executiveSummary"],
   acceptance: ["_acceptance"],
   subagentReports: ["_subagentReports", "_subagentReportsMeta"],
-  briefingPacket: ["_briefingPacket"],
+  briefingPacket: ["_briefingPacket", "_briefingPacketError"],
 };
 
 function hasPhaseDirective(value: unknown): boolean {
@@ -2013,8 +2018,8 @@ export const changeTools = {
         const pretty = resolveOutputMode(outputMode);
         const leanOutput = shapeDirectiveResponse(output, include ?? {});
         if (leanOutput) {
-          const serializedLeanOutput = JSON.stringify(
-            leanOutput,
+          const serializedPhasePlan = JSON.stringify(
+            leanOutput._phasePlan,
             null,
             pretty ? 2 : undefined,
           );
@@ -2022,7 +2027,7 @@ export const changeTools = {
             pretty,
             maxChars: Math.max(
               DEFAULT_MAX_CHARS,
-              serializedLeanOutput.length + 4096,
+              serializedPhasePlan.length + 4096,
             ),
           });
         }
