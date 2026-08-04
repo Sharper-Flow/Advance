@@ -9,6 +9,7 @@
  */
 import { randomUUID } from "node:crypto";
 import type { ErrorRecovery, Task, WisdomDraft } from "../types";
+import { observedAttemptCount } from "../types/tasks";
 
 /**
  * Generate a stable WisdomDraft ID: dr-<8hex>.
@@ -53,9 +54,21 @@ export function maybeCreateWisdomDraftFromErrorRecovery(
   if (attempts.length === 0) return null;
   if (hasSuggestedDraft(currentTask)) return null;
 
-  const suggestedContent = attempts
+  // attempts[] is a bounded retention window. Without saying so, a draft
+  // distilled from 3 retained entries reads as the whole story when a dozen
+  // attempts actually contributed — the elided diagnoses are unrecoverable
+  // here, so the draft must at least disclose that they existed.
+  const totalAttempts = observedAttemptCount(errorRecovery);
+  const elidedCount = totalAttempts - attempts.length;
+  const attemptNarrative = attempts
     .map((a) => `${a.diagnosis} → ${a.fix_tried}`)
     .join("; ");
+  const suggestedContent =
+    elidedCount > 0
+      ? `${attemptNarrative} [${elidedCount} earlier attempt${
+          elidedCount === 1 ? "" : "s"
+        } elided from the retained window]`
+      : attemptNarrative;
 
   return {
     id: generateWisdomDraftId(),

@@ -208,8 +208,26 @@ export const ErrorRecoverySchema = z
     ]),
     /** Planned next action if retrying (optional) */
     next_strategy: z.string().optional(),
-    /** Full history of retry attempts for doom-loop auditing */
+    /**
+     * Retained window of retry attempts for doom-loop auditing.
+     *
+     * Bounded to `max_retries` by the accumulator — this is NOT the full
+     * history. Use `total_attempts` (or {@link observedAttemptCount}) whenever
+     * reporting how many attempts occurred.
+     */
     attempts: z.array(AttemptSchema).optional(),
+    /**
+     * How many attempts actually occurred, including those elided from
+     * `attempts` by the retention bound.
+     *
+     * Recorded explicitly rather than derived, because `attempt_number` is a
+     * per-agent counter: two agents reporting on one task can both submit
+     * attempt 1, so the highest retained `attempt_number` can be lower than
+     * the true count. Deriving the number would make an operator-facing figure
+     * depend on a heuristic; this field owns it structurally. Optional for
+     * backward compatibility with records written before it existed.
+     */
+    total_attempts: z.number().int().min(0).optional(),
     /** Typed failure attribution for this recovery state */
     failure_attribution: FailureAttributionSchema.optional(),
   })
@@ -294,30 +312,54 @@ export type ErrorRecovery = z.infer<typeof ErrorRecoverySchema>;
  * How many attempts actually occurred, as opposed to how many are retained.
  *
  * `attempts[]` is bounded to `max_retries` by the accumulator, so its length is
- * the size of the retained window rather than a count of what happened. Each
- * retained entry keeps its true monotonic `attempt_number`, so the highest one
- * is the real total.
+ * the size of the retained window, not a count of what happened.
+ *
+ * Prefers the explicitly recorded `total_attempts`. Falls back to deriving from
+ * the retained window only for legacy records written before that field
+ * existed — and that fallback is a floor, not a guarantee: `attempt_number` is
+ * a per-agent counter, so two agents reporting on one task can both submit
+ * attempt 1 and the highest retained value can sit below the true count.
+ * Structural value first, heuristic only where nothing better survives (P33).
  *
  * Shared rather than reimplemented per call site: this is the same class of
  * mistake as the duplicated `max_retries` literal that let a workflow re-emit
  * its own budget and re-brick a change. Any surface reporting attempt counts to
- * an operator should use this, or it will understate the situation at exactly
- * the moment someone is deciding how to intervene.
+ * an operator must use this, or it will understate the situation at exactly the
+ * moment someone is deciding how to intervene.
  */
 export function observedAttemptCount(
-  // Structural on purpose: this reads only `attempt_number`, so it accepts any
-  // recovery-shaped value carrying attempts. Depending on the full
-  // `ErrorRecovery` shape would reject legitimately wider callers such as
-  // `DoomLoopInput`, whose `outcome` is a plain string.
+  // Deliberately permissive: several call sites hold their own narrowed
+  // recovery shapes (loop-ledger's AttemptLike, tool-formatters' DoomLoopInput,
+  // status.ts's unknown[]). Requiring the full `ErrorRecovery` shape would push
+  // casts onto callers, and a cast at a call site is exactly how a reporting
+  // surface drifts back to the wrong number.
   recovery:
-    | { attempts?: ReadonlyArray<{ attempt_number?: number }> }
+    | {
+        attempts?: readonly unknown[] | null;
+        total_attempts?: number | null;
+        retry_count?: number | null;
+      }
     | null
     | undefined,
 ): number {
-  const attempts = recovery?.attempts ?? [];
-  return attempts.reduce(
-    (highest, attempt) => Math.max(highest, attempt.attempt_number ?? 0),
-    attempts.length,
+  if (!recovery) return 0;
+  const attempts = recovery.attempts ?? [];
+  // Every known signal is a floor; take the strongest. retry_count matters for
+  // legacy records that carry a counter but no attempts array — dropping it
+  // here would silently report zero retries for exactly those records.
+  const derivedFloor = attempts.reduce<number>((highest, attempt) => {
+    const attemptNumber =
+      attempt && typeof attempt === "object" && "attempt_number" in attempt
+        ? (attempt as { attempt_number?: unknown }).attempt_number
+        : undefined;
+    return typeof attemptNumber === "number"
+      ? Math.max(highest, attemptNumber)
+      : highest;
+  }, attempts.length);
+  return Math.max(
+    derivedFloor,
+    typeof recovery.total_attempts === "number" ? recovery.total_attempts : 0,
+    typeof recovery.retry_count === "number" ? recovery.retry_count : 0,
   );
 }
 

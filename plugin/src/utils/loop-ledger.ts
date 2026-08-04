@@ -26,6 +26,7 @@ import type {
   LoopVerdict,
 } from "../types/loop-ledger";
 import { LOOP_LEDGER_SCHEMA_VERSION } from "../types/loop-ledger";
+import { observedAttemptCount } from "../types/tasks";
 import type { SubagentAgent } from "../types/subagent-reports";
 import type { SubagentReportScope } from "../types/subagent-reports";
 import {
@@ -182,7 +183,11 @@ function buildApplyEntry(
 
   const taskAttempts = task.attempts ?? [];
   const errAttempts = task.error_recovery?.attempts ?? [];
-  let attemptCount = taskAttempts.length + errAttempts.length;
+  // error_recovery.attempts is a bounded retention window, so severity must be
+  // counted from what occurred, not what was retained. observedAttemptCount
+  // also covers the legacy retry_count-only case the old fallback handled.
+  let attemptCount =
+    taskAttempts.length + observedAttemptCount(task.error_recovery);
   if (attemptCount === 0 && (task.error_recovery?.retry_count ?? 0) > 0) {
     attemptCount = task.error_recovery!.retry_count!;
   }

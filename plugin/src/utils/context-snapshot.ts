@@ -13,6 +13,7 @@
 // =============================================================================
 
 import { GATE_COMMAND } from "./phase-plan";
+import { observedAttemptCount } from "../types/tasks";
 import type { WorkflowDirective } from "./workflow-directive";
 
 export interface GateInfo {
@@ -79,7 +80,13 @@ type SnapshotTaskLike = {
   title: string;
   status: string;
   touched_files?: string[];
-  error_recovery?: { retry_count?: number };
+  error_recovery?: {
+    retry_count?: number;
+    /** Bounded retention window — not the attempt count. */
+    attempts?: readonly { attempt_number?: number }[];
+    /** True attempt count including entries elided by the retention bound. */
+    total_attempts?: number;
+  };
 };
 
 type SnapshotWisdomLike = {
@@ -153,7 +160,9 @@ export function summarizeTasks(tasks: SnapshotTaskLike[]): {
   const DOOM_LOOP_THRESHOLD = 3;
   let maxRetry = 0;
   for (const t of tasks) {
-    const rc = t.error_recovery?.retry_count ?? 0;
+    // retry_count tracks the bounded retention window, so an operator would
+    // see "3/3" after a dozen attempts. Report what occurred.
+    const rc = observedAttemptCount(t.error_recovery);
     if (rc > maxRetry) maxRetry = rc;
   }
   const errorBudgetProximity =

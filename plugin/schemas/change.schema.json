@@ -7656,6 +7656,11 @@
                 "maximum": 9007199254740991,
                 "minimum": 0,
                 "type": "integer"
+              },
+              "total_attempts": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
               }
             },
             "required": [

@@ -2062,16 +2062,30 @@ export function applySubagentReportSubmittedToState(
       },
     ];
 
+    // Retain the most recent entries. Each keeps its own attempt_number so an
+    // elided window stays visible rather than being renumbered to 1..n.
+    const retainedAttempts = recordedAttempts.slice(-maxRetries);
+    // The true count is recorded, not derived: attempt_number is a per-agent
+    // counter, so the highest retained value can sit below the real total when
+    // agents interleave on one task. Increment from the prior total rather than
+    // measuring recordedAttempts, whose length is already bounded by the
+    // retention window and would plateau at maxRetries + 1.
+    const priorTotal =
+      task.error_recovery?.total_attempts ??
+      task.error_recovery?.attempts?.length ??
+      0;
+    const totalAttempts = priorTotal + 1;
+
     task.error_recovery = {
       last_error: blockers.summary,
-      retry_count: Math.min(payload.report.attempt, maxRetries),
+      // Matches what ErrorRecoverySchema's transform re-derives on read
+      // (attempts.length), so the persisted and parsed values agree.
+      retry_count: retainedAttempts.length,
       max_retries: maxRetries,
       error_class: "SEMANTIC",
       next_strategy: "Resolve sub-agent reported blocker",
-      // Retain the most recent entries. Each keeps its true monotonic
-      // attempt_number so an elided window stays visible to an operator
-      // rather than being silently renumbered to 1..n.
-      attempts: recordedAttempts.slice(-maxRetries),
+      attempts: retainedAttempts,
+      total_attempts: totalAttempts,
     };
   }
 

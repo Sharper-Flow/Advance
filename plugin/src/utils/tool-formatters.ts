@@ -221,6 +221,8 @@ export type DoomLoopInput = {
   max_retries: number;
   last_error: string;
   error_class: string;
+  /** True attempt count including entries elided by the retention bound. */
+  total_attempts?: number;
   attempts?: Array<{
     attempt_number: number;
     error: string;
@@ -712,7 +714,9 @@ export function formatDoomLoopDiagnostics(
       : `${input.retry_count}/${input.max_retries} retries used`;
 
   const banner = inDoomLoop
-    ? `[ADV:BLOCKED] Doom loop detected (${input.retry_count}/${input.max_retries} retries exhausted)`
+    ? `[ADV:BLOCKED] Doom loop detected (${attemptCount} attempt${
+        attemptCount === 1 ? "" : "s"
+      }, ${input.retry_count}/${input.max_retries} retry budget exhausted)`
     : "";
 
   const suggestedAction = inDoomLoop

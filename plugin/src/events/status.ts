@@ -6,6 +6,7 @@
 
 import type { StatusMarker } from "../types";
 import { STATUS_MARKERS } from "../types";
+import { observedAttemptCount } from "../types/tasks";
 import { updateTerminalStatus, cleanupTerminal } from "./terminal";
 import { getCurrentSessionId } from "../utils/session-id";
 
@@ -323,7 +324,10 @@ export const getEffectiveDoomLoopInfo = (
   lastError: string | null;
 } => {
   const live = getDoomLoopInfo(taskId);
-  const persistedAttempts = persisted?.attempts?.length ?? 0;
+  // attempts[] is a bounded retention window, so count what occurred. Without
+  // this, a restart that leaves only persisted state reports at most
+  // max_retries no matter how many attempts really happened.
+  const persistedAttempts = observedAttemptCount(persisted);
   const persistedRetryCount = persisted?.retry_count ?? 0;
   const rawPersistedCount = Math.max(persistedAttempts, persistedRetryCount);
 

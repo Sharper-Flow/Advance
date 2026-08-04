@@ -799,6 +799,29 @@ describe("tool-formatters", () => {
         expect(result.attemptSummary).not.toMatch(/^3 attempts:/);
       });
 
+      it("does not understate the attempt count in the escalation banner", () => {
+        const result = formatDoomLoopDiagnostics(clampedAtCap);
+        // The banner is the loudest operator-facing surface; it must not read
+        // "3/3 retries exhausted" when 12 attempts occurred.
+        expect(result.banner).toContain("[ADV:BLOCKED]");
+        expect(result.banner).toContain("12 attempts");
+        expect(result.banner).not.toMatch(/\(3\/3 retries exhausted\)/);
+      });
+
+      it("prefers the recorded total over the derived floor", () => {
+        // total_attempts is authoritative: per-agent attempt numbers can repeat,
+        // so the highest retained value is only a floor.
+        const result = formatDoomLoopDiagnostics({
+          ...clampedAtCap,
+          total_attempts: 9,
+          attempts: clampedAtCap.attempts.map((a, i) => ({
+            ...a,
+            attempt_number: i + 1,
+          })),
+        });
+        expect(result.attemptSummary).toContain("9");
+      });
+
       it("reports the true count for an unbounded under-budget history", () => {
         const result = formatDoomLoopDiagnostics({
           ...clampedAtCap,

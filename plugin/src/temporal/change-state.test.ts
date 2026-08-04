@@ -30,7 +30,7 @@ import {
 } from "./change-state";
 import { createDefaultGates } from "../types";
 import type { Change, ChangeOrigin } from "../types";
-import { ErrorRecoverySchema } from "../types/tasks";
+import { ErrorRecoverySchema, observedAttemptCount } from "../types/tasks";
 import {
   SUBAGENT_REPORT_MAX_RETRIES,
   subagentReportKey,
@@ -3376,6 +3376,67 @@ describe("error_recovery retry-budget clamp (clampDoomLoopAccumulator)", () => {
       expect(source).not.toMatch(/max_retries:\s*\d/);
       expect(source).toContain("SUBAGENT_REPORT_MAX_RETRIES");
     }
+  });
+
+  it("records the true attempt total, not just the retained window", () => {
+    const state = submitBlockers("clamp-total-attempts", 7);
+    const recovery = state.tasks[0]?.error_recovery;
+
+    expect(recovery?.total_attempts).toBe(7);
+    expect(recovery?.attempts).toHaveLength(SUBAGENT_REPORT_MAX_RETRIES);
+    expect(observedAttemptCount(recovery)).toBe(7);
+  });
+
+  it("counts interleaved per-agent attempts that share attempt numbers", () => {
+    // attempt_number is a per-agent counter: two agents reporting on one task
+    // can both submit attempt 1. Deriving the total from the highest retained
+    // attempt_number would under-report here, which is why it is recorded.
+    const changeId = "clamp-multi-agent";
+    const state = seedBlockedTask(changeId);
+    const engineerBlocker = (attempt: number) => ({
+      ...makeEngineerReport(changeId, "tk-blocked", attempt),
+      blockers: [
+        {
+          summary: `Engineer blocker ${attempt}`,
+          detail: `Engineer could not proceed on attempt ${attempt}`,
+        },
+      ],
+    });
+    const submissions = [
+      engineerBlocker(1),
+      engineerBlocker(2),
+      blockerReport(changeId, 1),
+      blockerReport(changeId, 2),
+      engineerBlocker(3),
+    ];
+    submissions.forEach((report, index) => {
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-blocked",
+        report: report as never,
+        submittedAt: `2026-08-04T00:00:${String(index + 10)}.000Z`,
+      });
+    });
+
+    const recovery = state.tasks[0]?.error_recovery;
+    expect(recovery?.total_attempts).toBe(5);
+    expect(observedAttemptCount(recovery)).toBe(5);
+    // The naive derivation would have said 3 (highest retained attempt_number).
+    expect(observedAttemptCount(recovery)).toBeGreaterThan(
+      Math.max(...(recovery?.attempts ?? []).map((a) => a.attempt_number)),
+    );
+    expect(ErrorRecoverySchema.safeParse(recovery).success).toBe(true);
+  });
+
+  it("keeps persisted retry_count consistent with the parsed value", () => {
+    // ErrorRecoverySchema's transform re-derives retry_count from
+    // attempts.length on read; the persisted value must already agree so the
+    // reducer's record and what consumers see cannot drift.
+    const state = submitBlockers("clamp-retry-count-parity", 6);
+    const recovery = state.tasks[0]?.error_recovery;
+    const parsed = ErrorRecoverySchema.parse(recovery);
+
+    expect(parsed.retry_count).toBe(recovery?.retry_count);
+    expect(parsed.total_attempts).toBe(6);
   });
 
   it("leaves under-budget accumulation untouched", () => {

@@ -8,6 +8,7 @@ import type {
   GateReadinessBlocker,
 } from "../types";
 import { normalizeLegacyChangeStatus } from "../types";
+import { observedAttemptCount } from "../types/tasks";
 import { applyAndUpsertSearchAttributes } from "./search-attributes";
 import {
   ARTIFACT_BACKED_GATES,
@@ -623,10 +624,12 @@ function deriveInvestmentReportFromState(state: ChangeWorkflowState): {
     cancelled: state.tasks.filter((task) => task.status === "cancelled").length,
   };
   const retryCount = state.tasks.reduce((sum, task) => {
+    // error_recovery.attempts is a bounded retention window, so count what
+    // occurred rather than what was retained.
     return (
       sum +
       (task.attempts?.length ?? 0) +
-      (task.error_recovery?.attempts?.length ?? 0)
+      observedAttemptCount(task.error_recovery)
     );
   }, 0);
 
@@ -671,8 +674,7 @@ function deriveTaskRunSummaryFromState(state: ChangeWorkflowState): Array<{
     verification: task.verification,
     checkpointSha: task.checkpointSha,
     attempts:
-      (task.attempts?.length ?? 0) +
-      (task.error_recovery?.attempts?.length ?? 0),
+      (task.attempts?.length ?? 0) + observedAttemptCount(task.error_recovery),
   }));
 }
 

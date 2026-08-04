@@ -164,12 +164,57 @@ describe("projectLoopLedger", () => {
       { details: true },
     );
     const entry = detailed.details!.find((e) => e.kind === "apply_retry")!;
-    // 1 task.attempts + 2 error_recovery.attempts = 3; testRuns NOT counted.
-    expect(entry.attemptCount).toBe(3);
+    // 1 task.attempts + 3 error_recovery attempts = 4; testRuns NOT counted.
+    //
+    // This fixture is a LEGACY record: retry_count says 3 but only 2 attempts
+    // are retained, and there is no total_attempts. error_recovery.attempts is
+    // a bounded retention window, so its length is a floor, not a count —
+    // observedAttemptCount therefore reports 3 here, not 2. Before the
+    // retention bound existed this read 2 and the total was 3.
+    //
+    // Open contract question, pre-dating this change: task.attempts and
+    // error_recovery.attempts are summed additively, yet this fixture places
+    // attempt(1) in both. If those arrays can overlap in production, the sum
+    // double-counts the shared attempt. Left as-is rather than silently
+    // resolved — see follow-up on the loop-ledger composition contract.
+    expect(entry.attemptCount).toBe(4);
     expect(entry.verdict).toBe("fail");
     expect(entry.nextAction).toBe("rewrite-import-path");
     expect(entry.sourceRefs.some((r) => r.kind === "test_run")).toBe(true);
     expect(entry.sourceRefs.some((r) => r.kind === "task")).toBe(true);
+  });
+
+  it("counts attempts elided by the retention bound on a post-reducer record", () => {
+    // Golden path for records written by the clamped accumulator: attempts[] is
+    // capped at max_retries and total_attempts carries the real figure. Without
+    // this the migrated consumer would only ever be exercised against the
+    // legacy retry_count-floor shape above.
+    const detailed = projectLoopLedger(
+      {
+        changeId: "addLoopLedger",
+        tasks: [
+          {
+            id: "tk-clamped",
+            status: "in_progress",
+            attempts: [],
+            error_recovery: {
+              last_error: "blocker",
+              retry_count: 3,
+              max_retries: 3,
+              total_attempts: 9,
+              error_class: "SEMANTIC",
+              next_strategy: "Resolve sub-agent reported blocker",
+              attempts: [attempt(7), attempt(8), attempt(9)],
+            },
+          },
+        ],
+      },
+      { details: true },
+    );
+    const entry = detailed.details!.find((e) => e.kind === "apply_retry")!;
+    // 9 occurred; only the most recent 3 are retained. Reporting 3 would tell
+    // an operator the loop is at budget when it has run three times past it.
+    expect(entry.attemptCount).toBe(9);
   });
 
   it("marks a done task with attempts as verdict pass with a stop reason", () => {
