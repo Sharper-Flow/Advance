@@ -957,9 +957,11 @@ verify_adv_cli_live_json() {
 	esac
 
 	printf '%s' "$output" | grep -q '"source"[[:space:]]*:[[:space:]]*"temporal"' || return 1
-	if printf '%s' "$output" | grep -q '"schema_version"[[:space:]]*:[[:space:]]*1'; then
-		return 1
-	fi
+	# Liveness contract (rq-statusCliWorkerFree01.2): the live-only CLI always
+	# emits source:"temporal" — even its fail-closed payload does — so the
+	# discriminator is "live":true. Do NOT ban schema_version:1 here: the
+	# always-emitted resume_projection_state field carries it legitimately.
+	printf '%s' "$output" | grep -q '"live"[[:space:]]*:[[:space:]]*true' || return 1
 	return 0
 }
 
@@ -1039,8 +1041,8 @@ check_adv_cli_install() {
 		if verify_adv_cli_live_json; then
 			echo "    ✓  status JSON: live Temporal metadata"
 		else
-			echo "    ✗  status JSON: installed adv did not emit live Temporal metadata"
-			echo "       Expected source:\"temporal\" and no disk-only schema_version:1 readiness"
+		echo "    ✗  status JSON: installed adv did not emit live Temporal metadata"
+		echo "       Expected source:\"temporal\" with live:true (rq-statusCliWorkerFree01.2 live-only contract)"
 			((cli_issues++)) || true
 		fi
 	fi

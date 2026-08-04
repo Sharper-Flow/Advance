@@ -137,7 +137,12 @@ describe("deploy-local.sh", () => {
       expect(content).toContain("is_recognized_adv_cli_target");
       expect(content).toContain("PATH shadow");
       expect(content).toContain('"source"[[:space:]]*:[[:space:]]*"temporal"');
-      expect(content).toContain('"schema_version"[[:space:]]*:[[:space:]]*1');
+      // Liveness contract (rq-statusCliWorkerFree01.2): the live-only CLI
+      // always emits source:"temporal"; "live":true distinguishes success
+      // from the fail-closed live:false payload. A blanket schema_version:1
+      // ban false-fails on the always-emitted resume_projection_state field.
+      expect(content).toContain('"live"[[:space:]]*:[[:space:]]*true');
+      expect(content).not.toContain('"schema_version"[[:space:]]*:[[:space:]]*1');
     });
 
     test("removes stale adv commands from global", () => {
