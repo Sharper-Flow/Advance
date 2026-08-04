@@ -1,6 +1,6 @@
 ---
 name: adv-cleanup
-description: Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks
+description: Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; delete approved safe worktrees/branches only with typed confirmation
 ---
 # ADV Cleanup — Hygiene Triage
 
@@ -200,7 +200,7 @@ Before Duplicate apply, `adv_change_show` each `supersededBy` target. Missing ta
 
 ### Irreversible buckets
 
-Worktree deletion → `adv_worktree_delete` per approved branch. Branch deletion → `adv_worktree_cleanup({ mode: "archived_branches" })` without `dryRun`.
+Worktree deletion → `adv_worktree_delete` per approved branch. Branch deletion → `adv_worktree_cleanup({ mode: "archived_branches", changeId: <approved candidate change ID> })` without `dryRun`, once per approved candidate. Never issue an unscoped merged-branch cleanup apply: it would delete every currently eligible branch and bypass a subset approval.
 
 Deletion authority belongs to those tools alone (`rq-terminalCleanupSafety01`). Never call `git worktree remove` or `git branch -d` directly. When a tool refuses, report the refusal verbatim and move on — a refusal is evidence the candidate was misclassified, not an obstacle to route around.
 

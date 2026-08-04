@@ -273,7 +273,7 @@ Anything else → re-prompt same options. No LLM fallback.
 ### Irreversible buckets
 
 - Worktree deletion → `adv_worktree_delete` per approved branch.
-- Branch deletion → `adv_worktree_cleanup mode: "archived_branches"` without `dryRun`.
+- Branch deletion → `adv_worktree_cleanup mode: "archived_branches" changeId: <approved candidate change ID>` without `dryRun`, once per approved candidate. Never issue an unscoped merged-branch cleanup apply: it would delete every currently eligible branch and bypass a subset approval.
 - Never call `git worktree remove` or `git branch -d` directly (`rq-terminalCleanupSafety01`).
 - A tool refusal is evidence the candidate was misclassified, not an obstacle to route around. Report it verbatim and move on.
 

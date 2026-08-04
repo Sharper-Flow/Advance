@@ -174,6 +174,21 @@ describe("adv-cleanup hygiene triage contract", () => {
     );
   });
 
+  describe("user-facing command description", () => {
+    test("manifest, command frontmatter, README, and instructions stay synced", () => {
+      const description =
+        "Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; delete approved safe worktrees/branches only with typed confirmation";
+      const manifest = readRepoFile("plugin/src/manifest.ts");
+      const readme = readRepoFile("README.md");
+      const instructions = readRepoFile("ADV_INSTRUCTIONS.md");
+
+      expect(command).toContain(`description: ${description}`);
+      expect(manifest).toContain(`"${description}"`);
+      expect(readme).toContain(description);
+      expect(instructions).toContain(description);
+    });
+  });
+
   describe("AC2 — reversibility labelling", () => {
     test.each(files)(
       "%s marks buckets as reversible or irreversible",
@@ -285,6 +300,18 @@ describe("adv-cleanup hygiene triage contract", () => {
       "%s surfaces tool safety refusals verbatim",
       (_name, content) => {
         expect(content).toMatch(/refusal/i);
+      },
+    );
+
+    test.each(files)(
+      "%s scopes archived-branch deletion to each approved candidate",
+      (_name, content) => {
+        expect(content).toMatch(
+          /Branch deletion.*archived_branches.*changeId.*once per approved candidate/i,
+        );
+        expect(content).toMatch(
+          /Never issue an unscoped merged-branch cleanup apply/i,
+        );
       },
     );
 

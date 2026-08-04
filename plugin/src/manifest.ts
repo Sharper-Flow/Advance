@@ -392,7 +392,7 @@ export const COMMAND_MANIFEST: Record<string, CommandDef> = {
   "adv-cleanup": {
     name: "adv-cleanup",
     description:
-      "Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks",
+      "Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; delete approved safe worktrees/branches only with typed confirmation",
     phase: "advanced",
     requiresChangeId: false,
     prerequisites: [],
