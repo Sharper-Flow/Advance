@@ -147,9 +147,12 @@ describe("adv-cleanup hygiene triage contract", () => {
     test.each(irreversibleSections)(
       "%s accepts subset, skip, and halt replies",
       (_name, section) => {
-        expect(section).toContain("^delete ([\\d,\\s]+)$");
-        expect(section).toContain("^skip$");
-        expect(section).toContain("^(stop|abort)$");
+        // Markdown tables require escaping `|` as `\|`, so compare against a
+        // pipe-normalized view rather than the raw source.
+        const normalized = section.replace(/\\\|/g, "|");
+        expect(normalized).toContain("^delete ([\\d,\\s]+)$");
+        expect(normalized).toContain("^skip$");
+        expect(normalized).toContain("^(stop|abort)$");
       },
     );
 
