@@ -221,7 +221,9 @@ describe("adv-cleanup hygiene triage contract", () => {
     test.each(files)(
       "%s states triage classification is not deletion authority",
       (_name, content) => {
-        expect(content).toMatch(/never deletion authority|not deletion authority/i);
+        expect(content).toMatch(
+          /never deletion authority|not deletion authority/i,
+        );
       },
     );
 
