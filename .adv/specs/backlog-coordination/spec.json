@@ -3,8 +3,8 @@
   "name": "backlog-coordination",
   "title": "Backlog Coordination",
   "purpose": "Multi-agent backlog and WIP coordination via per-change Temporal workflows + cross-entity search attributes. Eliminates drift between agent view and user view in single-developer-multi-agent workflows. Bug priority labels act as the source of truth for issue ordering; the change workflow itself acts as the durable claim record (no separate claim primitive, no project-level shared workflow).",
-  "version": "1.5.1",
-  "updated_at": "2026-07-20T22:15:50.874Z",
+  "version": "1.6.0",
+  "updated_at": "2026-08-04T00:50:00.000Z",
   "requirements": [
     {
       "id": "rq-backlogCoord01",
@@ -462,6 +462,70 @@
           "then": [
             "The legacy agenda item is completed rather than silently deleted",
             "The completion note references the survivor/source"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-backlogCoord10",
+      "title": "Triage Portfolio Balance Represents Unlinked Nonterminal Changes",
+      "body": "`/adv-triage` portfolio-balance reporting MUST represent nonterminal ADV changes that carry no linked GitHub issue, so defect work tracked only as an ADV change remains visible. Membership in that set MUST be determined structurally from typed change state and MUST NOT be decided by title similarity, title prefix inference, or agent inference. A defect ranking hint MAY influence ordering within the set, MUST render its evidence source, and MUST NOT filter, suppress, close, deprioritize, or authorize any mutation. `origin.kind` is the primary hint source; title prefix is secondary and weak. Existing constraints remain in force: `priority:*` labels stay GitHub-issue-scoped and MUST NOT be written to an ADV change, and the bounded Visibility lookup rules of rq-backlogCoord05 continue to apply.",
+      "priority": "must",
+      "tags": [
+        "triage",
+        "backlog",
+        "portfolio",
+        "p33",
+        "structural-membership"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-backlogCoord10.1",
+          "title": "Unlinked changes are represented",
+          "given": [
+            "Nonterminal ADV changes exist with no linked GitHub issue"
+          ],
+          "when": "`/adv-triage` renders portfolio balance",
+          "then": [
+            "Those changes appear in the report",
+            "They are not excluded by the absence of an issue link"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord10.2",
+          "title": "Membership is structural",
+          "given": [
+            "The unlinked-change pool is assembled"
+          ],
+          "when": "Membership is determined",
+          "then": [
+            "Eligibility derives from typed change state only",
+            "No title similarity, title prefix, or agent inference decides whether a change appears"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord10.3",
+          "title": "Defect hint is advisory and sourced",
+          "given": [
+            "A change carries a defect ranking hint"
+          ],
+          "when": "The row renders",
+          "then": [
+            "The hint displays its evidence source",
+            "The hint affects ordering only",
+            "The hint does not filter, suppress, close, deprioritize, or authorize a mutation"
+          ]
+        },
+        {
+          "id": "rq-backlogCoord10.4",
+          "title": "Priority label scope unchanged",
+          "given": [
+            "Unlinked changes appear in the portfolio report"
+          ],
+          "when": "The bug priority loop runs",
+          "then": [
+            "priority:* labels are written only to GitHub bug issues",
+            "No priority:* label or parallel priority field is written to an ADV change"
           ]
         }
       ]

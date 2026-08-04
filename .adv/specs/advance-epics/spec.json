@@ -3,8 +3,8 @@
   "name": "advance-epics",
   "title": "Advance Epics",
   "purpose": "Capability: Epic entity and workflow contracts for ADV initiative planning. Epics are durable containers that group related ADV changes and lightweight shell entries, replacing project-level ROADMAP.md as the primary ADV planning surface for initiative-level work while keeping Epic membership optional, order advisory, retrofit-capable, and product-scope aware.",
-  "version": "1.13.0",
-  "updated_at": "2026-07-22T23:12:57.005Z",
+  "version": "1.14.0",
+  "updated_at": "2026-08-04T00:50:00.000Z",
   "requirements": [
     {
       "id": "rq-epicEntity01",
@@ -360,6 +360,72 @@
       ]
     },
     {
+      "id": "rq-epicCoordinateChangeCoverage01",
+      "title": "Epic Coordination Analyzes All Nonterminal Changes Regardless of Epic Membership",
+      "body": "The `/adv-coordinate` command MUST analyze every nonterminal in-flight change from its project inventory regardless of Epic membership. Change-scoped analysis — including repository-overlap comparison, advisory sequencing, and refactor-coverage classification — MUST NOT be gated on the presence of active Epics. Epic-dependent phases MAY still short-circuit when no active Epics exist, but that short-circuit MUST NOT suppress change-scoped analysis. Inventory reads MUST follow `hasMore` and `resumeHint` until the in-flight population is exhausted; a single `adv_change_list` call MUST NOT be treated as complete. Existing coordination boundaries MUST be preserved: no task creation, no gate completion, no Epic auto-enrollment, advisory Epic order, approval-gated durable Epic actions, and change closure remaining routed to `/adv-cleanup`.",
+      "priority": "must",
+      "tags": [
+        "epics",
+        "command",
+        "coordination",
+        "change-coverage",
+        "p33"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-epicCoordinateChangeCoverage01.1",
+          "title": "Change analysis runs without active Epics",
+          "given": [
+            "A project has nonterminal in-flight changes",
+            "The project has zero active Epics"
+          ],
+          "when": "`/adv-coordinate` runs",
+          "then": [
+            "The refactor coverage audit executes",
+            "Evidence-backed drift candidates are reported with their dry-run referral",
+            "The no-active-Epics message applies only to Epic-dependent findings"
+          ]
+        },
+        {
+          "id": "rq-epicCoordinateChangeCoverage01.2",
+          "title": "Unlinked changes receive the same scrutiny",
+          "given": [
+            "A project contains both Epic-linked and Epic-unlinked nonterminal changes"
+          ],
+          "when": "Repository-overlap and sequencing analysis run",
+          "then": [
+            "Epic-unlinked changes are compared against current repository evidence on the same terms as linked changes",
+            "Findings carry the same repo_backed_fact, adv_backed_fact, judgment_call, or freshness_limited labels"
+          ]
+        },
+        {
+          "id": "rq-epicCoordinateChangeCoverage01.3",
+          "title": "Existing boundaries preserved",
+          "given": [
+            "Coordination analyzes Epic-unlinked changes"
+          ],
+          "when": "The coordination report is produced",
+          "then": [
+            "No task is created and no gate is completed",
+            "No change is auto-enrolled into an Epic",
+            "Change closure remains routed to /adv-cleanup"
+          ]
+        },
+        {
+          "id": "rq-epicCoordinateChangeCoverage01.4",
+          "title": "Inventory pagination is honoured",
+          "given": [
+            "The in-flight change population exceeds one page"
+          ],
+          "when": "Coordination builds its project inventory",
+          "then": [
+            "hasMore and resumeHint are followed until the population is exhausted",
+            "A single adv_change_list call is not treated as complete"
+          ]
+        }
+      ]
+    },
+    {
       "id": "rq-epicPromotion01",
       "title": "Shell Promotion Replaces the Shell Row with Exactly One Linked Change",
       "body": "Promoting a shell entry MUST create or link exactly one ADV change, then replace the shell row in the Epic with a `change` row. The new change row MUST carry promotion provenance that preserves the original shell title and success hint. Promotion MUST be idempotent: retrying promotion of the same shell MUST return the already-linked change without creating duplicate rows.",
@@ -422,6 +488,46 @@
             "The start or resume succeeds",
             "A warning about earlier incomplete work MAY be surfaced",
             "No hard gate or task blockage is introduced solely due to order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-epicAdvisoryRankReachability01",
+      "title": "Advisory Rank Must Not Render Epic-Unlinked Changes Unreachable",
+      "body": "Advisory rank MUST NOT render an Epic-unlinked change unreachable as recommended next work. A change lacking Epic membership MUST NOT receive an unconditional maximum-rank penalty that places it behind every Epic-linked change irrespective of its own signals. Relative order among Epic-linked entries MUST be preserved. Rank remains advisory and MUST NOT block gates, tasks, promotion, or change progress. This requirement preserves optional Epic membership under rq-epicOptionalMembership01 by preventing membership absence from acquiring gating authority over visibility.",
+      "priority": "must",
+      "tags": [
+        "epics",
+        "next-work",
+        "advisory-order",
+        "projection",
+        "optional-membership"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-epicAdvisoryRankReachability01.1",
+          "title": "Unlinked change is reachable alongside linked work",
+          "given": [
+            "A project has at least one Epic-linked nonterminal change",
+            "The same project has at least one Epic-unlinked nonterminal change"
+          ],
+          "when": "The resume projection is built",
+          "then": [
+            "The Epic-unlinked change can appear in ordered_next on its own signals",
+            "The Epic-unlinked change is not assigned an unconditional maximum-rank penalty"
+          ]
+        },
+        {
+          "id": "rq-epicAdvisoryRankReachability01.2",
+          "title": "Epic order stays advisory",
+          "given": [
+            "Epic-linked entries carry an explicit order"
+          ],
+          "when": "Advisory rank is computed",
+          "then": [
+            "Relative order among Epic-linked entries is preserved",
+            "No gate, task, promotion, or change progress is blocked by rank"
           ]
         }
       ]
