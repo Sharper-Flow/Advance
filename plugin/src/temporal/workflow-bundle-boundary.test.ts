@@ -151,6 +151,14 @@ describe("workflow bundle transitive boundary", () => {
     expect(reachable).not.toContain("utils/command-payload-hash.ts");
   });
 
+  // C3 (addTypedPhaseDirectives): authored phase-directive content is host-only
+  // and must never become reachable from the worker bundle's static graph.
+  it("does not reach the phase directive content module", () => {
+    const parents = reachableFrom(workflowRoot);
+    const reachable = [...parents.keys()].map((filePath) => rel(filePath));
+    expect(reachable).not.toContain("utils/phase-directive-content.ts");
+  });
+
   it("exports epicWorkflow from the workflow bundle root", () => {
     const source = readFileSync(workflowRoot, "utf8");
     expect(source).toMatch(/export\s+async\s+function\s+epicWorkflow\b/);
