@@ -17,6 +17,8 @@ import {
   runReacquiringChangeQuery,
   verifyReleaseGateDurableForArchive,
   waitForArchiveReleaseGateCompletion,
+  reconcileArchivedBundleRetry,
+  commitArchiveReleaseGateProjection,
   type ArchiveGateState,
   persistConfirmedReleaseGateReadback,
 } from "./archive-gate";
@@ -2046,5 +2048,122 @@ describe("persistConfirmedReleaseGateReadback", () => {
     } finally {
       await cleanupTempDir(tempDir);
     }
+  });
+});
+
+describe("archive release projection verification", () => {
+  beforeEach(() => {
+    vi.mocked(getProjectId).mockResolvedValue(
+      "0000000000000000000000000000000000000000",
+    );
+    diskLoadMocks.loadChange.mockReset();
+    diskLoadMocks.loadChange.mockImplementation((changesDir, changeId) =>
+      actualJsonRef.value!.loadChange(changesDir, changeId),
+    );
+    vi.spyOn(gitFinalize, "detectDefaultBranch").mockReturnValue({
+      branch: "trunk",
+      source: "test",
+    });
+    vi.spyOn(gitFinalize, "classifyFinalizationRoute").mockReturnValue({
+      route: "direct",
+      repo: "Sharper-Flow/Advance",
+    });
+    vi.spyOn(gitFinalize, "resolveReleaseReachability").mockReturnValue({
+      reachable: true,
+      proof: "origin_default",
+      releasedCommitSha: "release-sha",
+    });
+  });
+
+  it("fails closed when the projection commit is committed but unverified", async () => {
+    const tempDir = await createTempDir("archive-release-projection-");
+    const bundleDir = join(tempDir, "bundle");
+    await mkdir(bundleDir, { recursive: true });
+    await writeFile(
+      join(bundleDir, "change.json"),
+      JSON.stringify(createChange({})),
+    );
+
+    const doneGate: GateCompletion = {
+      status: "done",
+      completed_at: "2026-01-01T00:00:00Z",
+      completed_by: "adv-archive",
+      approval_evidence: "Phase 9 finalization shipped",
+    };
+    const handle = {
+      query: vi
+        .fn()
+        .mockResolvedValueOnce({ status: "pending" })
+        .mockResolvedValueOnce(doneGate),
+      signal: vi.fn(async () => undefined),
+    };
+    vi.mocked(getService).mockReturnValue(fakeOwnerWithHandle(handle));
+    commitProjectionMock
+      .mockResolvedValueOnce({
+        kind: "committed",
+        value: {} as unknown as Change,
+        revision: 1,
+        readback: {} as unknown as Change,
+        audit: {} as never,
+      })
+      .mockResolvedValueOnce({
+        kind: "committed_unverified",
+        value: {} as unknown as Change,
+        revision: 2,
+        readback: {} as unknown as Change,
+        audit: { operationId: "projection-op" } as never,
+        postconditionError: "release gate readback was not observable",
+      });
+
+    const store = {
+      ...createStore(tempDir),
+      paths: {
+        root: tempDir,
+        changes: join(tempDir, "changes"),
+        archive: tempDir,
+      },
+      changes: { invalidate: vi.fn(async () => undefined) },
+      gates: { get: vi.fn(async () => ({ release: { status: "pending" } })) },
+    } as unknown as Store;
+
+    try {
+      const result = await reconcileArchivedBundleRetry({
+        store,
+        change: createChange({}),
+        changeId: "fixArchiveProjection",
+        archiveMode: "direct",
+        existingBundlePath: bundleDir,
+        openOpsObligationsPayload: {},
+        validationWarnings: [],
+      });
+      const output = JSON.parse(result) as Record<string, unknown>;
+
+      expect(output.success).toBe(false);
+      expect(output.code).toBe("RELEASE_GATE_PROJECTION_COMMITTED_UNVERIFIED");
+      expect(output.commitEvidence).toEqual(
+        expect.objectContaining({ operationId: "projection-op" }),
+      );
+      expect(output.remediation).toContain("Re-run archive");
+      expect(output.releaseGate).toBeUndefined();
+      expect(store.changes.invalidate).toHaveBeenCalledTimes(1);
+    } finally {
+      await cleanupTempDir(tempDir);
+    }
+  });
+
+  it("maps a verified projection commit to the existing success kind", async () => {
+    const result = await commitArchiveReleaseGateProjection({
+      store: createStore("/repo"),
+      changeId: "fixArchiveProjection",
+      gate: {
+        status: "done",
+        completed_at: "2026-01-01T00:00:00Z",
+        completed_by: "adv-archive",
+        approval_evidence: "Phase 9 finalization shipped",
+      },
+      evidence: "Phase 9 finalization shipped",
+    });
+
+    expect(result.kind).toBe("recovered_verified");
   });
 });

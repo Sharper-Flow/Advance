@@ -11,11 +11,15 @@ import {
   type Change,
   type GateReadinessBlocker,
   type Phase9FinalizationStatus,
+  type ProjectionCommitAuditEntry,
 } from "../../types";
 import { basename, dirname, join } from "node:path";
 import type { Store } from "../../storage/store";
 import { loadChange, saveChange } from "../../storage/json";
-import { commitChangeProjection } from "../../storage/change-projection-transaction";
+import {
+  commitChangeProjection,
+  type ProjectionCommitOutcome,
+} from "../../storage/change-projection-transaction";
 import { findArchiveBundle, bundleJsonStringify } from "../../archive/archive";
 import { withArchiveProjectionLock } from "../../archive/projection-lock";
 import { sha256HexString } from "../../archive/terminal-summary";
@@ -551,13 +555,31 @@ export async function reconcileArchivedBundleRetry(input: {
     // Recovery mutations already wrote the disk projection, so skip the
     // redundant live writeback to avoid failing on a missing bundle path.
     if (!completionResult.recoveryMutation) {
-      await commitArchiveReleaseGateProjection({
+      const projectionResult = await commitArchiveReleaseGateProjection({
         store: input.store,
         changeId: input.changeId,
         gate: completionResult.gate,
         evidence: releaseEvidence,
         bundlePath: input.existingBundlePath,
       });
+      if (projectionResult.kind === "recovered_unverified") {
+        return formatToolOutput({
+          success: false,
+          code: "RELEASE_GATE_PROJECTION_COMMITTED_UNVERIFIED",
+          error: `Release-gate projection commit was written but could not be verified: ${projectionResult.reason}`,
+          requirement: "rq-releaseProjectionDurability01",
+          commitEvidence: projectionResult.recoveryAudit,
+          remediation:
+            "Re-run archive after inspecting the projection readback; do not mark the release gate done locally until durable verification succeeds.",
+          ...commonPayload,
+          finalization,
+          continueFrom: {
+            path: finalization.repoRoot,
+            branch: finalization.defaultBranch,
+          },
+          workflowGateStatus: completionResult.gate.status,
+        });
+      }
     }
     durableProof = await verifyReleaseGateDurableForArchive({
       store: input.store,
@@ -1082,7 +1104,7 @@ export async function commitArchiveReleaseGateProjection(input: {
   gate: GateCompletion;
   evidence: string;
   bundlePath?: string;
-}): Promise<void> {
+}): Promise<ArchiveProjectionCommitResult> {
   const changesDir = input.bundlePath
     ? dirname(input.bundlePath)
     : input.store.paths.changes;
@@ -1111,27 +1133,93 @@ export async function commitArchiveReleaseGateProjection(input: {
   }
 
   const operationId = `live-release-gate-complete:${input.changeId}:${input.gate.completed_at ?? new Date().toISOString()}`;
-  const result = await commitChangeProjection({
-    changesDir,
-    changeId,
-    operationId,
-    stateRevision,
-    authority: { kind: "temporal", mutationReceiptId: operationId },
-    mutationKind: "gate_completion",
-    mutateLatest: (latest) => ({
-      ...latest,
-      gates: {
-        ...(latest.gates ?? {}),
-        release: input.gate,
-      } as Gates,
+  const result = mapCommitOutcome(
+    await commitChangeProjection({
+      changesDir,
+      changeId,
+      operationId,
+      stateRevision,
+      authority: { kind: "temporal", mutationReceiptId: operationId },
+      mutationKind: "gate_completion",
+      mutateLatest: (latest) => ({
+        ...latest,
+        gates: {
+          ...(latest.gates ?? {}),
+          release: input.gate,
+        } as Gates,
+      }),
+      verify: ({ readback }) => readback.gates?.release?.status === "done",
     }),
-    verify: ({ readback }) => readback.gates?.release?.status === "done",
-  });
+  );
 
-  if (result.kind !== "committed") {
+  if (result.kind !== "recovered_verified") {
     logger.warn(
       `commitArchiveReleaseGateProjection: projection commit did not land for ${input.changeId}: ${result.kind}`,
     );
+  }
+  return result;
+}
+
+type ArchiveProjectionCommitResult =
+  | {
+      kind: "recovered_verified";
+      value: Change;
+      revision: number;
+      recoveryAudit: ProjectionCommitAuditEntry;
+    }
+  | {
+      kind: "recovered_unverified";
+      reason: string;
+      recoveryAudit: ProjectionCommitAuditEntry;
+    }
+  | { kind: "stale_revision"; expected: number; actual: number }
+  | { kind: "operator_required"; reason: string };
+
+function mapCommitOutcome(
+  commit: ProjectionCommitOutcome,
+): ArchiveProjectionCommitResult {
+  switch (commit.kind) {
+    case "committed":
+      return {
+        kind: "recovered_verified",
+        value: commit.readback,
+        revision: commit.revision,
+        recoveryAudit: commit.audit,
+      };
+    case "committed_unverified":
+      return {
+        kind: "recovered_unverified",
+        reason: commit.postconditionError,
+        recoveryAudit: commit.audit,
+      };
+    case "stale_revision":
+      return {
+        kind: "stale_revision",
+        expected: commit.expected,
+        actual: commit.actual,
+      };
+    case "lock_timeout":
+      return {
+        kind: "operator_required",
+        reason: `Projection lock timeout at ${commit.lockPath} (${commit.timeoutMs}ms).`,
+      };
+    case "schema_error":
+      return {
+        kind: "operator_required",
+        reason: `Projection schema error: ${commit.error}`,
+      };
+    case "write_error":
+      return {
+        kind: "operator_required",
+        reason: `Projection write error: ${commit.error}`,
+      };
+    case "operator_required":
+      return { kind: "operator_required", reason: commit.reason };
+    default:
+      return {
+        kind: "operator_required",
+        reason: `Projection commit returned unhandled outcome kind ${(commit as { kind: string }).kind}.`,
+      };
   }
 }
 
