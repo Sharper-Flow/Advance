@@ -137,7 +137,7 @@ async function readAgreement(store: Store, change: Change): Promise<string> {
   // fallback. readArtifact already encodes the full fallback chain, so we
   // delegate to it. change.ts does not import from contract.ts, so this is a
   // one-directional dependency with no import cycle.
-  const content = await readArtifact(store, change.id, "agreement");
+  const content = (await readArtifact(store, change.id, "agreement"))?.content;
   if (content?.trim()) return content;
   throw new Error(`Agreement artifact is empty: ${change.id}`);
 }

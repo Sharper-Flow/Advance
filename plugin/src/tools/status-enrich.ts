@@ -188,7 +188,8 @@ export async function enrichRecentChangeStatus(
     // Temporal-first proposal read per KD-6. Falls back to disk/archive
     // via readArtifact; null result means no proposal content — use
     // empty string for snapshot rendering (status output is read-only).
-    proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
+    proposalText =
+      (await readArtifact(store, changeId, "proposal"))?.content ?? "";
   }
 
   const gates = changeData.gates ?? createDefaultGates();
@@ -677,7 +678,8 @@ export async function buildCandidateEnrichmentPatch(
         return notAdmittedPatch(changeId, rank, start, "change not found");
       }
       changeData = changeResult.data;
-      proposalText = (await readArtifact(store, changeId, "proposal")) ?? "";
+      proposalText =
+        (await readArtifact(store, changeId, "proposal"))?.content ?? "";
       if (signal?.aborted || Date.now() >= cutoffAt) {
         return notAdmittedPatch(changeId, rank, start, "execution cutoff");
       }
