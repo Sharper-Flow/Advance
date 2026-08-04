@@ -14,6 +14,25 @@ import { WisdomTypeSchema } from "./wisdom";
 export const SUBAGENT_REPORT_SCHEMA_VERSION = "1.0";
 
 /**
+ * Retry budget applied when a blocked sub-agent report is mapped into a task's
+ * `error_recovery`.
+ *
+ * Single source of truth by necessity, not just tidiness. This value is also
+ * the ceiling `ErrorRecoverySchema` enforces on read (`attempts.length` must
+ * not exceed `max_retries`), so a writer using a different literal than the
+ * reader produces state ADV refuses to load. It previously lived as a bare `3`
+ * at both write sites; during a 2026-08-04 incident an operator raised the
+ * budget on the disk projection to unbrick a change and the workflow
+ * immediately re-emitted its own hardcoded `3`, re-bricking it. Divergent
+ * literals defeat repair.
+ *
+ * Declared here (types/) rather than in tools/ because the Temporal workflow
+ * bundle root reaches change-state.ts and must not statically import from
+ * storage/, tools/, tool-registry.ts, plugin-init.ts, or node:*.
+ */
+export const SUBAGENT_REPORT_MAX_RETRIES = 3;
+
+/**
  * Recovery audit shape persisted on sub-agent reports when a poisoned or
  * completed-workflow recovery write lands on the disk projection via
  * saveRecoveredSubagentReport. Mirrors GateRecoveryAuditSchema with the

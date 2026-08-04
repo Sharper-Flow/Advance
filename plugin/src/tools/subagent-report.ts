@@ -6,6 +6,7 @@ import {
   taskUpdatedSignal,
 } from "../temporal/messages";
 import {
+  SUBAGENT_REPORT_MAX_RETRIES,
   formatApplyContextBindingHint,
   subagentReportImplementationCycleId,
   subagentReportKey,
@@ -415,8 +416,12 @@ function submitFailureRecovery(input: {
   const agent = input.identity.agent ?? "unknown-agent";
   return {
     last_error: input.message.slice(0, 200),
-    retry_count: input.identity.attempt,
-    max_retries: 3,
+    // Clamp for the same reason the reducer does: retry_count is bounded by
+    // max_retries on read. This site records a single attempt so it cannot
+    // breach the attempts-length ceiling, but an unclamped counter is still
+    // wrong and would trip the invariant if attempts were ever absent.
+    retry_count: Math.min(input.identity.attempt, SUBAGENT_REPORT_MAX_RETRIES),
+    max_retries: SUBAGENT_REPORT_MAX_RETRIES,
     error_class: "SEMANTIC",
     next_strategy:
       "Fix sub-agent report payload or Temporal submission path and retry",

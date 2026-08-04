@@ -88,6 +88,7 @@ import {
   normalizeLegacyChangeStatus,
 } from "../types";
 import {
+  SUBAGENT_REPORT_MAX_RETRIES,
   formatApplyContextBindingHint,
   subagentReportImplementationCycleId,
   subagentReportKey,
@@ -2047,7 +2048,7 @@ export function applySubagentReportSubmittedToState(
     // Temporal rebuilds workflow state by replaying history through it, so a
     // clamped reducer re-derives valid state from unchanged poisoned histories.
     // A guard at the tool boundary or in the schema normalizer cannot do that.
-    const maxRetries = 3;
+    const maxRetries = SUBAGENT_REPORT_MAX_RETRIES;
     const recordedAttempts = [
       ...(task.error_recovery?.attempts ?? []),
       {

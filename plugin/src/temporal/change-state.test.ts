@@ -31,7 +31,10 @@ import {
 import { createDefaultGates } from "../types";
 import type { Change, ChangeOrigin } from "../types";
 import { ErrorRecoverySchema } from "../types/tasks";
-import { subagentReportKey } from "../types/subagent-reports";
+import {
+  SUBAGENT_REPORT_MAX_RETRIES,
+  subagentReportKey,
+} from "../types/subagent-reports";
 import type { ChangeWorkflowInput } from "./contracts";
 
 const sourcePath = fileURLToPath(new URL("./change-state.ts", import.meta.url));
@@ -3351,6 +3354,28 @@ describe("error_recovery retry-budget clamp (clampDoomLoopAccumulator)", () => {
 
     expect(recovery?.attempts).toHaveLength(recovery?.max_retries ?? 0);
     expect(ErrorRecoverySchema.safeParse(recovery).success).toBe(true);
+  });
+
+  it("resolves the retry budget from the shared constant at both write sites", () => {
+    const state = submitBlockers("clamp-shared-constant", 4);
+
+    expect(state.tasks[0]?.error_recovery?.max_retries).toBe(
+      SUBAGENT_REPORT_MAX_RETRIES,
+    );
+
+    // Guard against the literal creeping back in. A writer using a different
+    // number than ErrorRecoverySchema enforces on read produces state ADV
+    // refuses to load, and it defeats operator repair: raising the budget on
+    // the disk projection is pointless if the workflow re-emits its own value.
+    const changeStateSource = readFileSync(sourcePath, "utf8");
+    const subagentReportSource = readFileSync(
+      fileURLToPath(new URL("../tools/subagent-report.ts", import.meta.url)),
+      "utf8",
+    );
+    for (const source of [changeStateSource, subagentReportSource]) {
+      expect(source).not.toMatch(/max_retries:\s*\d/);
+      expect(source).toContain("SUBAGENT_REPORT_MAX_RETRIES");
+    }
   });
 
   it("leaves under-budget accumulation untouched", () => {
