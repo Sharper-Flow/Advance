@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-04T21:28:28.340Z",
+  "capabilities": [],
+  "change_hash": "f7242b8653d0403b4999649ea819aa11e76a2a35be9b13ed3ac16024c9b0ca4b",
+  "change_id": "addTypedPhaseDirectives",
+  "completed_tasks": 6,
+  "created_at": "2026-08-04T16:27:08.063Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-04T21:09:28.525Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "ae34ee2c0cc0b43a172a7bc21e89fa3d3bb3e23dbd19127439267c9fdca50472",
+  "task_count": 7,
+  "title": "Add typed phase directives",
+  "version": "1"
+}
