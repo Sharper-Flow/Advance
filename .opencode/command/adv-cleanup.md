@@ -1,6 +1,6 @@
 ---
 name: adv-cleanup
-description: Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; delete approved safe worktrees/branches only with typed confirmation
+description: Triage stale changes, drifted worktrees, merged branches, and state leaks; delete approved candidates
 ---
 # ADV Cleanup — Hygiene Triage
 

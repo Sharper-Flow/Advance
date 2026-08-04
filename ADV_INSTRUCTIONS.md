@@ -158,7 +158,7 @@ Each workflow command has a defined phase goal. Canonical in `manifest.ts` (`pha
 | --------------------------- | ---------------------------------------------------------------------------------------------------- |
 | `/adv-task`                 | Fast-track small changes: assess spec-law impact, prep, and hand off                                 |
 | `/adv-refactor [change-id]` | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
-| `/adv-cleanup`              | Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; delete approved safe worktrees/branches only with typed confirmation |
+| `/adv-cleanup`              | Triage stale changes, drifted worktrees, merged branches, and state leaks; delete approved candidates |
 | `/adv-coordinate`           | Audit project changes, Epic alignment, sequencing, and membership health                             |
 | `/adv-triage`               | Triage sources, coalesce issue links, assign bug priority, and balance portfolio |
 | `/adv-improve`              | Analyze improvements across existing specs, implementation, and external landscape                    |

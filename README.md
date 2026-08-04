@@ -253,7 +253,7 @@ This also enables model comparison: run the same change on two models and compar
 | `/adv-arch-scan` | Scan architecture stack packs, coverage, and heuristic fallbacks                                     |
 | `/adv-comp-scan` | Scan competitor capabilities against this project for competitive intelligence                       |
 | `/adv-refactor`  | Refresh a stale proposal or batch-refresh the oldest 30% of active changes                           |
-| `/adv-cleanup`   | Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; delete approved safe worktrees/branches only with typed confirmation |
+| `/adv-cleanup`   | Triage stale changes, drifted worktrees, merged branches, and state leaks; delete approved candidates |
 | `/adv-coordinate` | Audit project changes, Epic alignment, sequencing, and membership health                          |
 | `/adv-triage`    | Triage sources, coalesce issue links, assign bug priority, and balance portfolio |
 | `/adv-improve`   | Analyze improvements across existing specs, implementation, and external landscape                    |
