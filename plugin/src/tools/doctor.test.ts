@@ -28,6 +28,8 @@ const getTemporalWorkerDiagnosticsMock = vi.hoisted(() => vi.fn());
 const getTemporalWorkerAlivenessMock = vi.hoisted(() => vi.fn());
 const getOrphanQueueAdoptionStatusMock = vi.hoisted(() => vi.fn());
 const probeTaskQueuePollersMock = vi.hoisted(() => vi.fn());
+const probeCachedTaskQueuePollersMock = vi.hoisted(() => vi.fn());
+const listOrphanSessionQueuesMock = vi.hoisted(() => vi.fn());
 const getProjectIdMock = vi.hoisted(() => vi.fn());
 const getCurrentSessionIdMock = vi.hoisted(() => vi.fn(() => undefined));
 
@@ -39,6 +41,7 @@ vi.mock("../temporal/service", () => ({
 
 vi.mock("../temporal/health-probe", () => ({
   getTemporalHealth: getTemporalHealthMock,
+  probeCachedTaskQueuePollers: probeCachedTaskQueuePollersMock,
   isWorkerAffirmativelyAlive: (worker: {
     status: "available" | "unavailable";
     value?: boolean;
@@ -63,6 +66,10 @@ vi.mock("../plugin-init", () => ({
 vi.mock("../temporal/queue-serviceability", () => ({
   classifyQueueServiceability: vi.fn(),
   probeTaskQueuePollers: probeTaskQueuePollersMock,
+}));
+
+vi.mock("../temporal/list-orphan-session-queues", () => ({
+  listOrphanSessionQueues: listOrphanSessionQueuesMock,
 }));
 
 vi.mock("../utils/project-id", () => ({
@@ -169,6 +176,14 @@ function setHealthy() {
     pollerCount: 2,
     lastPollerAt: "2026-07-22T00:00:00.000Z",
   });
+  probeCachedTaskQueuePollersMock.mockImplementation((input) =>
+    probeTaskQueuePollersMock(input),
+  );
+  listOrphanSessionQueuesMock.mockResolvedValue({
+    kind: "complete",
+    value: [],
+    truncated: false,
+  });
 }
 
 beforeEach(() => {
@@ -254,6 +269,151 @@ describe("adv_doctor", () => {
     expect(parsed.findings).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ class: "healthy" })]),
     );
+    expect(parsed.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          class: "unhealthy",
+          finding: "session_queue_unserviceable",
+        }),
+      ]),
+    );
+  });
+
+  test("AC8: a quiet ended-session queue with non-terminal work is informational", async () => {
+    const currentSessionId = "sess_Current";
+    const endedSessionId = "sess_Ended";
+    getCurrentSessionIdMock.mockReturnValue(currentSessionId);
+    listOrphanSessionQueuesMock.mockResolvedValue({
+      kind: "complete",
+      value: [
+        {
+          queue: `advance-${PROJECT_ID}-${endedSessionId}`,
+          oldestStartTime: new Date("2026-07-22T00:00:00.000Z"),
+          workflowIds: [
+            `adv/change/${PROJECT_ID}/change-one`,
+            `adv/change/${PROJECT_ID}/change-two`,
+          ],
+        },
+      ],
+      truncated: false,
+    });
+    probeTaskQueuePollersMock.mockImplementation(async ({ taskQueue }) =>
+      taskQueue.endsWith(`-${endedSessionId}`)
+        ? { status: "none", pollerCount: 0, lastPollerAt: null }
+        : {
+            status: "fresh",
+            pollerCount: 2,
+            lastPollerAt: "2026-07-22T00:00:00.000Z",
+          },
+    );
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore()),
+    );
+    const finding = parsed.findings.find(
+      (item: { finding?: string }) =>
+        item.finding === "orphan_session_queue_unserviceable",
+    );
+
+    expect(finding).toMatchObject({
+      class: "informational",
+      severity: "informational",
+      queue: {
+        queueName: `advance-${PROJECT_ID}-${endedSessionId}`,
+        queueType: "session",
+        owningSession: endedSessionId,
+        serviceability: "none",
+        status: "none",
+        serviceable: false,
+        strandedChangeCount: 2,
+        strandedChangeIds: ["change-one", "change-two"],
+      },
+    });
+    expect(parsed.success).toBe(true);
+    expect(parsed.verification.healthy).toBe(true);
+    expect(parsed.findings).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ class: "unhealthy" })]),
+    );
+  });
+
+  test("AC8: ended-session queues without non-terminal work are suppressed", async () => {
+    const currentSessionId = "sess_Current";
+    getCurrentSessionIdMock.mockReturnValue(currentSessionId);
+    listOrphanSessionQueuesMock.mockResolvedValue({
+      kind: "complete",
+      value: [],
+      truncated: false,
+    });
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore()),
+    );
+
+    expect(parsed.findings).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          finding: "orphan_session_queue_unserviceable",
+        }),
+      ]),
+    );
+    expect(
+      probeTaskQueuePollersMock.mock.calls.map(
+        ([input]: [{ taskQueue: string }]) => input.taskQueue,
+      ),
+    ).not.toContain(`advance-${PROJECT_ID}-sess_Ended`);
+  });
+
+  test("AC8/C6: orphan queue probes are capped and bounded concurrently", async () => {
+    const currentSessionId = "sess_Current";
+    getCurrentSessionIdMock.mockReturnValue(currentSessionId);
+    const candidates = Array.from({ length: 10 }, (_, index) => ({
+      queue: `advance-${PROJECT_ID}-sess_Ended${index}`,
+      oldestStartTime: new Date(2026, 6, 22, 0, index),
+      workflowIds: [`adv/change/${PROJECT_ID}/change-${index}`],
+    }));
+    listOrphanSessionQueuesMock.mockResolvedValue({
+      kind: "complete",
+      value: candidates,
+      truncated: false,
+    });
+    let active = 0;
+    let maxActive = 0;
+    probeTaskQueuePollersMock.mockImplementation(async () => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      await Promise.resolve();
+      active--;
+      return { status: "none", pollerCount: 0, lastPollerAt: null };
+    });
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore()),
+    );
+    const finding = parsed.findings.find(
+      (item: { finding?: string }) =>
+        item.finding === "orphan_session_queue_probe_capped",
+    );
+
+    expect(finding).toMatchObject({
+      class: "informational",
+      severity: "informational",
+      omitted: 2,
+    });
+    expect(maxActive).toBeLessThanOrEqual(4);
+    expect(
+      probeTaskQueuePollersMock.mock.calls.filter(
+        ([input]: [{ taskQueue: string }]) =>
+          input.taskQueue.includes("-sess_Ended"),
+      ),
+    ).toHaveLength(8);
+  });
+
+  test("AC9: doctor keeps the legacy single-project health-probe signature", async () => {
+    await doctorTools.adv_doctor.execute({}, makeStore());
+
+    expect(getTemporalHealthMock).toHaveBeenCalledTimes(2);
+    expect(getTemporalHealthMock).toHaveBeenNthCalledWith(1, PROJECT_ID);
+    expect(getTemporalHealthMock).toHaveBeenNthCalledWith(2, PROJECT_ID);
   });
 
   test("AC8/AC10: no owning session skips the session probe and preserves legacy verification shape", async () => {

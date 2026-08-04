@@ -36,6 +36,8 @@ export interface OrphanSessionQueue {
   queue: string;
   /** Oldest workflow startTime on this queue (for FIFO sort). */
   oldestStartTime: Date;
+  /** Non-terminal workflow ids currently stranded on this queue. */
+  workflowIds?: string[];
 }
 
 /**
@@ -102,6 +104,8 @@ export interface ListOrphanSessionQueuesOptions {
   deadlineMs?: number;
   /** Injectable clock for deterministic tests. */
   now?: () => number;
+  /** Include workflow ids for bounded diagnostic reporting. */
+  includeWorkflowDetails?: boolean;
 }
 
 function buildSessionQueuePrefix(projectId: string): string {
@@ -121,7 +125,12 @@ export async function listOrphanSessionQueues(
   polledQueues: readonly string[],
   options: ListOrphanSessionQueuesOptions = {},
 ): Promise<TemporalListOutcome<OrphanSessionQueue[]>> {
-  const { signal, deadlineMs, now = () => Date.now() } = options;
+  const {
+    signal,
+    deadlineMs,
+    now = () => Date.now(),
+    includeWorkflowDetails = false,
+  } = options;
   const startedAt = now();
 
   const safeProjectId = escapeVisibilityValue(projectId);
@@ -133,7 +142,10 @@ export async function listOrphanSessionQueues(
   const placeholderWorkflowId = `${projectPrefix}orphan-session-queues`;
 
   // Collect per-queue oldest startTime
-  const queueOldestStart = new Map<string, Date>();
+  const queueDetails = new Map<
+    string,
+    { oldestStartTime: Date; workflowIds: string[] }
+  >();
   let inspected = 0;
 
   const ctx = makeTemporalOperationContext(
@@ -172,19 +184,26 @@ export async function listOrphanSessionQueues(
     if (polled.has(wf.taskQueue)) continue;
 
     // Keep the oldest startTime per queue (for deterministic FIFO sort)
-    const existing = queueOldestStart.get(wf.taskQueue);
-    if (!existing || wf.startTime < existing) {
-      queueOldestStart.set(wf.taskQueue, wf.startTime);
+    const existing = queueDetails.get(wf.taskQueue);
+    if (!existing) {
+      queueDetails.set(wf.taskQueue, {
+        oldestStartTime: wf.startTime,
+        workflowIds: includeWorkflowDetails ? [wf.workflowId] : [],
+      });
+    } else {
+      if (wf.startTime < existing.oldestStartTime) {
+        existing.oldestStartTime = wf.startTime;
+      }
+      if (includeWorkflowDetails) existing.workflowIds.push(wf.workflowId);
     }
   }
 
   // Sort by oldest startTime ascending (FIFO — oldest orphans first)
-  const orphans = [...queueOldestStart.entries()].map(
-    ([queue, oldestStartTime]) => ({
-      queue,
-      oldestStartTime,
-    }),
-  );
+  const orphans = [...queueDetails.entries()].map(([queue, details]) => ({
+    queue,
+    oldestStartTime: details.oldestStartTime,
+    ...(includeWorkflowDetails ? { workflowIds: details.workflowIds } : {}),
+  }));
   orphans.sort(
     (a, b) => a.oldestStartTime.getTime() - b.oldestStartTime.getTime(),
   );

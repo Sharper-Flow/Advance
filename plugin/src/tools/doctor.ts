@@ -32,6 +32,7 @@ import { getService, getStslStats, reinitStsl } from "../temporal/service";
 import {
   getTemporalHealth,
   isWorkerAffirmativelyAlive,
+  probeCachedTaskQueuePollers,
   type TemporalHealth,
 } from "../temporal/health-probe";
 import { makeTemporalLifecycleContext } from "../temporal/operations";
@@ -42,16 +43,14 @@ import {
   getTemporalWorkerDiagnostics,
   restartCurrentProjectTemporalWorker,
 } from "../plugin-init";
-import {
-  probeTaskQueuePollers,
-  type ServerPollerProbeStatus,
-} from "../temporal/queue-serviceability";
+import { type ServerPollerProbeStatus } from "../temporal/queue-serviceability";
 import { evaluateOrphanAdoptionHealth } from "../temporal/orphan-queue-adopter";
 import {
   reconcileTerminalWorkflows,
   type TerminalReconcileResult,
 } from "../temporal/reconcile-terminal-workflows";
 import { buildTerminalReconcileDeps } from "../temporal/reconcile-terminal-deps";
+import { listOrphanSessionQueues } from "../temporal/list-orphan-session-queues";
 import {
   buildProjectTaskQueue,
   buildSessionTaskQueue,
@@ -81,6 +80,7 @@ export type DoctorFindingClass =
   | "phantom_pointer"
   | "orphan_queue_adoption_degraded"
   | "leaked_terminal_workflow"
+  | "informational"
   | "unhealthy";
 
 /**
@@ -118,6 +118,9 @@ export interface DoctorFinding {
   class: DoctorFindingClass;
   detail: string;
   finding?: string;
+  severity?: "informational" | "error";
+  queue?: DoctorQueueProbe;
+  omitted?: number;
 }
 
 interface DoctorVerification {
@@ -141,6 +144,8 @@ interface DoctorQueueProbe {
   pollerCount: number;
   lastPollerAt: string | null;
   owningSession?: string;
+  strandedChangeCount?: number;
+  strandedChangeIds?: string[];
 }
 
 interface DoctorInput {
@@ -148,6 +153,9 @@ interface DoctorInput {
   target_confirmed?: true;
   confirmationEvidence?: string;
 }
+
+const ORPHAN_QUEUE_PROBE_CAP = 8;
+const ORPHAN_QUEUE_PROBE_CONCURRENCY = 4;
 
 // rq-doctorConsolidation01 option B: phantom-pointer safe-fix.
 // rq-doctorPhantomPointer01: module-level provider interface for clearing the active-change session pointer.
@@ -227,7 +235,7 @@ async function probeQueue(
   };
   if (!bundle) return unavailable;
   try {
-    const probe = await probeTaskQueuePollers({
+    const probe = await probeCachedTaskQueuePollers({
       owner: bundle,
       projectId,
       taskQueue: queueName,
@@ -250,7 +258,13 @@ async function probeQueue(
 async function probeDoctorQueues(
   projectId: string,
   bundle: ReturnType<typeof getService>,
-): Promise<{ project: DoctorQueueProbe; session?: DoctorQueueProbe }> {
+  options: { includeOrphaned?: boolean } = {},
+): Promise<{
+  project: DoctorQueueProbe;
+  session?: DoctorQueueProbe;
+  orphaned?: DoctorQueueProbe[];
+  orphanedOmitted?: number;
+}> {
   const projectQueue = buildProjectTaskQueue(projectId);
   const project = await probeQueue(projectId, bundle, projectQueue, "project");
   const sessionId = getCurrentSessionId();
@@ -264,7 +278,74 @@ async function probeDoctorQueues(
     "session",
     sessionId,
   );
-  return { project, session };
+
+  if (!options.includeOrphaned || !bundle) return { project, session };
+
+  const outcome = await listOrphanSessionQueues(
+    bundle,
+    projectId,
+    [projectQueue, sessionQueue],
+    { includeWorkflowDetails: true },
+  );
+  if (outcome.kind !== "complete") return { project, session };
+
+  const candidates = outcome.value;
+  const omitted = Math.max(0, candidates.length - ORPHAN_QUEUE_PROBE_CAP);
+  const boundedCandidates = candidates.slice(0, ORPHAN_QUEUE_PROBE_CAP);
+  const probed = await mapWithConcurrency(
+    boundedCandidates,
+    ORPHAN_QUEUE_PROBE_CONCURRENCY,
+    async (candidate) => {
+      const owningSession = candidate.queue.startsWith(`${projectQueue}-`)
+        ? candidate.queue.slice(`${projectQueue}-`.length)
+        : undefined;
+      const row = await probeQueue(
+        projectId,
+        bundle,
+        candidate.queue,
+        "session",
+        owningSession,
+      );
+      const strandedChangeIds = (candidate.workflowIds ?? [])
+        .map((workflowId) => workflowId.slice(workflowId.lastIndexOf("/") + 1))
+        .filter((changeId) => changeId.length > 0);
+      return {
+        ...row,
+        strandedChangeCount: strandedChangeIds.length,
+        strandedChangeIds,
+      };
+    },
+  );
+
+  return {
+    project,
+    session,
+    orphaned: probed,
+    orphanedOmitted: omitted,
+  };
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  map: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      results[index] = await map(items[index]!);
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(Math.max(1, concurrency), items.length) },
+      () => worker(),
+    ),
+  );
+  return results;
 }
 
 /**
@@ -384,17 +465,37 @@ export const doctorTools = {
       // unavailable arm is unreachable at this boundary.
       const workerAlive = isWorkerAffirmativelyAlive(health.worker_alive);
       const queueProbes = projectId
-        ? await probeDoctorQueues(projectId, bundle)
+        ? await probeDoctorQueues(projectId, bundle, { includeOrphaned: true })
         : undefined;
       const queueServiceable = queueProbes?.project.serviceable ?? false;
-      // A missing poller is actionable only for the session owned by this
-      // process. Queues belonging to ended sessions are expected to go quiet;
-      // those are not probed here and must not create a false-red finding.
+      // A missing poller is actionable as a health failure only for the session
+      // owned by this process. Ended-session queues are normally quiet; probe
+      // only queues that still own RUNNING change workflows and report those
+      // hits informationally so normal queue retirement is not a false red.
       if (queueProbes?.session && !queueProbes.session.serviceable) {
         addNonHealthyFinding(findings, {
           class: "unhealthy",
           finding: "session_queue_unserviceable",
           detail: `Owning session ${queueProbes.session.owningSession} queue ${queueProbes.session.queueName} is ${queueProbes.session.serviceability}; project queue remains ${queueProbes.project.serviceability}`,
+        });
+      }
+      for (const orphaned of queueProbes?.orphaned ?? []) {
+        if (orphaned.serviceability !== "none") continue;
+        findings.push({
+          class: "informational",
+          severity: "informational",
+          finding: "orphan_session_queue_unserviceable",
+          queue: orphaned,
+          detail: `Ended-session queue ${orphaned.queueName} owned by ${orphaned.owningSession ?? "unknown"} has no live pollers while ${orphaned.strandedChangeCount ?? 0} non-terminal change workflow(s) remain stranded`,
+        });
+      }
+      if ((queueProbes?.orphanedOmitted ?? 0) > 0) {
+        findings.push({
+          class: "informational",
+          severity: "informational",
+          finding: "orphan_session_queue_probe_capped",
+          omitted: queueProbes!.orphanedOmitted,
+          detail: `Orphaned session queue probe cap omitted ${queueProbes!.orphanedOmitted} queue(s); rerun adv_doctor for the next bounded slice`,
         });
       }
       if (!workerAlive) {
@@ -791,6 +892,10 @@ export const doctorTools = {
           case "healthy":
             // Nothing to fix.
             break;
+          case "informational":
+            // Informational orphan-queue diagnostics never trigger a fix or a
+            // health failure.
+            break;
         }
       }
 
@@ -802,7 +907,9 @@ export const doctorTools = {
         const recheck = await getTemporalHealth(projectId);
         const recheckBundle = getService();
         const recheckQueues = projectId
-          ? await probeDoctorQueues(projectId, recheckBundle)
+          ? await probeDoctorQueues(projectId, recheckBundle, {
+              includeOrphaned: false,
+            })
           : undefined;
         const recheckQueue = recheckQueues?.project.serviceable ?? false;
         let recheckSAs = true;
@@ -866,7 +973,10 @@ export const doctorTools = {
       return formatToolOutput({
         success:
           appliedCount > 0 ||
-          (findings.every((f) => f.class === "healthy") && refusedCount === 0),
+          (findings.every(
+            (f) => f.class === "healthy" || f.class === "informational",
+          ) &&
+            refusedCount === 0),
         started_at: startedAt,
         findings,
         fixes_applied: fixesApplied,
