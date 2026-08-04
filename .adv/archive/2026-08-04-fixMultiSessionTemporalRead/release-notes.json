@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixMultiSessionTemporalRead",
+  "title": "Fix multi-session Temporal read saturation",
+  "release_notes": {
+    "audience": "both",
+    "category": "fixed",
+    "headline_internal": "Bound every unbounded path in the adv_status read so the host cap can never fire unclassified",
+    "headline_external": "adv_status no longer fails with an unexplained timeout",
+    "highlights": [
+      "adv_status now always returns a complete result or a clearly-labelled partial result within its time limit, instead of an unexplained timeout",
+      "Partial results name what was unavailable and why, so no restart or log inspection is needed",
+      "Bounded the post-load enrichment step that ran with no time limit — the cause that survived the previous deploy of this fix",
+      "Stopped futile retries against a permanently-missing workflow, using a structural error code plus request-scoped state rather than error-text matching",
+      "The internal read budget is now derived from the host tool cap with a measured safety reserve and a CI-enforced invariant, so the two can no longer drift apart silently"
+    ],
+    "area": "adv_status",
+    "user_action_required": false
+  }
+}

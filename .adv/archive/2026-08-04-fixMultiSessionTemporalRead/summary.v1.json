@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-04T17:37:27.508Z",
+  "capabilities": [],
+  "change_hash": "d9d2be2befb3cb93c99b90b640dba1dd0da1d5047ca0948c24795e323634a45e",
+  "change_id": "fixMultiSessionTemporalRead",
+  "completed_tasks": 8,
+  "created_at": "2026-08-02T20:12:34.430Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-04T17:04:17.728Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "f39ba80b731897e791d4adfe1427adb1dc3b66abe658c5bdcf8699249157bebf",
+  "task_count": 8,
+  "title": "Fix multi-session Temporal read saturation",
+  "version": "1"
+}
