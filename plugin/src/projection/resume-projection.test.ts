@@ -559,6 +559,38 @@ describe("buildResumeProjection — advisory rank reachability (rq-epicAdvisoryR
     ]);
   });
 
+  test("active unlinked rank cannot tie an Epic entry at the band boundary (.2)", () => {
+    // Epic-derived ranks are always integers. An unlinked active change must
+    // not collide with the last integer order of the first Epic band, or the
+    // two would tie and sort ambiguously.
+    const boundaryEpicChange = makeChange("addBoundary", {
+      epic_membership: { epic_id: "epicA", entry_id: "en-x", order: 9999 },
+    });
+    const epicA = makeEpic("epicA", [
+      {
+        kind: "change",
+        entry_id: "en-x",
+        order: 9999,
+        title: "Boundary",
+        change_id: "addBoundary",
+      },
+    ]);
+    const activeUnlinked = makeChange("resumeMe", { hasInProgressTasks: true });
+
+    const result = buildResumeProjection(
+      [boundaryEpicChange, activeUnlinked],
+      [epicA],
+      { project_id: PID },
+    );
+
+    const ranks = [...result.actionable, ...result.active].map(
+      (row) => row.advisory_rank,
+    );
+    expect(new Set(ranks).size).toBe(ranks.length);
+    // The Epic entry still wins: reachability must not become promotion.
+    expect(result.ordered_next!.node).toEqual(changeRef("addBoundary"));
+  });
+
   test("active unlinked work outranks idle unlinked work (.1)", () => {
     const idle = makeChange("idleOne");
     const active = makeChange("activeOne", { hasInProgressTasks: true });

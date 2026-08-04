@@ -84,6 +84,11 @@ interface InternalNode {
  * Width of one Epic's advisory-rank band. Epic N occupies
  * `[N * EPIC_BAND_SPAN, (N + 1) * EPIC_BAND_SPAN)`, indexed by entry order.
  * Shell entries use the same formula inline, so this span is shared.
+ *
+ * Invariant: an Epic entry's `order` must be `< EPIC_BAND_SPAN`. Orders are
+ * small sequence indices, so this holds in practice; an order at or beyond the
+ * span would bleed one Epic's band into the next. That property predates
+ * rq-epicAdvisoryRankReachability01 and is not introduced by unlinked ranking.
  */
 const EPIC_BAND_SPAN = 10000;
 
@@ -93,8 +98,13 @@ const EPIC_BAND_SPAN = 10000;
  * Sits at the tail of the FIRST Epic band: it can surface ahead of
  * not-yet-started later-Epic work, but never displaces the leading Epic band.
  * Reachability, not promotion — see rq-epicAdvisoryRankReachability01.
+ *
+ * Deliberately fractional. Epic-derived ranks are always integers, so a
+ * half-step cannot tie with any Epic entry — including an Epic-0 entry at the
+ * band's last integer order. It still sorts strictly after every band-0 entry
+ * and strictly before band 1.
  */
-const UNLINKED_ACTIVE_RANK = EPIC_BAND_SPAN - 1;
+const UNLINKED_ACTIVE_RANK = EPIC_BAND_SPAN - 0.5;
 
 // =============================================================================
 // Kernel
