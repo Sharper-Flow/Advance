@@ -30,6 +30,7 @@ import {
 } from "./change-state";
 import { createDefaultGates } from "../types";
 import type { Change, ChangeOrigin } from "../types";
+import { ErrorRecoverySchema } from "../types/tasks";
 import { subagentReportKey } from "../types/subagent-reports";
 import type { ChangeWorkflowInput } from "./contracts";
 
@@ -3220,5 +3221,147 @@ describe("error_recovery strategy_label deduplication (issue #349)", () => {
     expect(labels[0]).toBe("adv-reviewer-reported-blocker");
     expect(labels[1]).toBe("adv-reviewer-reported-blocker-2");
     expect(new Set(labels).size).toBe(2); // distinct
+  });
+});
+
+describe("error_recovery retry-budget clamp (clampDoomLoopAccumulator)", () => {
+  /**
+   * Regression: the doom-loop accumulator wrote `retry_count` straight from the
+   * monotonic report attempt and appended to `attempts[]` without bound, while
+   * `max_retries` was hardcoded to 3. The read-path schema rejects
+   * `attempts.length > max_retries` (types/tasks.ts superRefine), so a fourth
+   * blocked sub-agent report produced state that ADV itself refuses to read —
+   * bricking the change on both the read and write paths.
+   *
+   * The reducer is the only self-heal site: Temporal rebuilds workflow state by
+   * replaying history through it, so a clamped reducer re-derives valid state
+   * from unchanged poisoned histories.
+   */
+  function seedBlockedTask(changeId: string) {
+    const state = createChangeWorkflowState({
+      changeId,
+      title: "Clamp accumulator",
+      createdAt: "2026-08-04T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-blocked",
+        title: "Blocked task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-08-04T00:00:01.000Z",
+      },
+      addedAt: "2026-08-04T00:00:01.000Z",
+    });
+    return state;
+  }
+
+  function blockerReport(changeId: string, attempt: number) {
+    return {
+      schema_version: "1.0" as const,
+      change_id: changeId,
+      scope: { kind: "task" as const, task_id: "tk-blocked" },
+      attempt,
+      agent: "adv-reviewer" as const,
+      status: "complete" as const,
+      evidence_binding_version: "typed-v1" as const,
+      files_touched: [],
+      verification: [{ command: "pnpm test", exit_code: 0, summary: "pass" }],
+      decisions: [],
+      blocking_findings: [
+        {
+          finding: `Blocking finding ${attempt}`,
+          contract_ids: ["AC1"],
+          scope: "in_scope" as const,
+          in_scope_remediation: `Fix finding ${attempt}`,
+          source: {
+            label: "test",
+            locator: `test.ts:${attempt}`,
+            summary: "fail",
+          },
+        },
+      ],
+      changes_made: [],
+      scope_drift: null,
+      follow_ups: [],
+      required_main_agent_actions: [],
+      related_scan: "",
+      context_update_for_adv: {
+        what_ads_needs_to_know: "",
+        suggested_next_action: "",
+      },
+    };
+  }
+
+  function submitBlockers(changeId: string, count: number) {
+    const state = seedBlockedTask(changeId);
+    for (let attempt = 1; attempt <= count; attempt++) {
+      applySubagentReportSubmittedToState(state, {
+        taskId: "tk-blocked",
+        report: blockerReport(changeId, attempt),
+        submittedAt: `2026-08-04T00:00:${String(attempt + 1).padStart(2, "0")}.000Z`,
+      });
+    }
+    return state;
+  }
+
+  it("bounds attempts[] to max_retries once the budget is exceeded", () => {
+    const state = submitBlockers("clamp-bounds-attempts", 4);
+    const recovery = state.tasks[0]?.error_recovery;
+
+    expect(recovery).toBeDefined();
+    expect(recovery?.attempts).toHaveLength(recovery?.max_retries ?? 0);
+  });
+
+  it("retains the most recent attempts and preserves their true attempt_number", () => {
+    const state = submitBlockers("clamp-retains-recent", 5);
+    const recovery = state.tasks[0]?.error_recovery;
+    const numbers = (recovery?.attempts ?? []).map((a) => a.attempt_number);
+
+    // Most recent max_retries entries survive; earlier ones are elided.
+    expect(numbers).toEqual([3, 4, 5]);
+    // Bounding the window must never renumber history into 1..n — an operator
+    // must be able to see that attempts 1 and 2 happened and were dropped.
+    expect(numbers).not.toEqual([1, 2, 3]);
+  });
+
+  it("clamps retry_count to max_retries rather than the raw report attempt", () => {
+    const state = submitBlockers("clamp-retry-count", 6);
+    const recovery = state.tasks[0]?.error_recovery;
+
+    expect(recovery?.retry_count).toBe(recovery?.max_retries);
+    expect(recovery?.retry_count).not.toBe(6);
+  });
+
+  it("keeps error_recovery readable by the read-path schema after 4+ blocked reports", () => {
+    const state = submitBlockers("clamp-schema-valid", 4);
+    const recovery = state.tasks[0]?.error_recovery;
+
+    // This is the assertion that matters: before the clamp this failed with
+    // "retry_count must not exceed max_retries", which is exactly the state
+    // that made a whole change unreadable and unwritable.
+    const parsed = ErrorRecoverySchema.safeParse(recovery);
+    expect(parsed.success).toBe(true);
+  });
+
+  it("stays within budget for report counts far beyond max_retries", () => {
+    const state = submitBlockers("clamp-far-beyond", 12);
+    const recovery = state.tasks[0]?.error_recovery;
+
+    expect(recovery?.attempts).toHaveLength(recovery?.max_retries ?? 0);
+    expect(ErrorRecoverySchema.safeParse(recovery).success).toBe(true);
+  });
+
+  it("leaves under-budget accumulation untouched", () => {
+    const state = submitBlockers("clamp-under-budget", 2);
+    const recovery = state.tasks[0]?.error_recovery;
+
+    expect(recovery?.attempts).toHaveLength(2);
+    expect(recovery?.retry_count).toBe(2);
+    expect((recovery?.attempts ?? []).map((a) => a.attempt_number)).toEqual([
+      1, 2,
+    ]);
+    expect(ErrorRecoverySchema.safeParse(recovery).success).toBe(true);
   });
 });
