@@ -847,7 +847,7 @@ describe("task tools — signal/query adapters", () => {
       // learning moments on blocked tasks were lost. Verify the
       // taskBlockedSignal now carries wisdom_drafts atomically.
       const store = createMockStore();
-      mocks.querySignal.mockResolvedValue({
+      const blockedTask = {
         id: "tk-blocked",
         status: "blocked",
         notes: "Hit a wall",
@@ -867,6 +867,16 @@ describe("task tools — signal/query adapters", () => {
             },
           ],
         },
+      };
+      // Faithful read-back: the blocked applier persists the signal's
+      // top-level wisdom_drafts onto the task (change-state.ts
+      // rq-wisdomAutoSurfacing01.3 branch), so post-signal reads observe
+      // exactly the drafts that were sent. Pre-signal reads see none.
+      mocks.querySignal.mockImplementation(async () => {
+        const firedPayload = mocks.fireSignalAndRefresh.mock.calls[0]?.[4];
+        return firedPayload?.wisdom_drafts
+          ? { ...blockedTask, wisdom_drafts: firedPayload.wisdom_drafts }
+          : blockedTask;
       });
 
       const result = await taskTools.adv_task_update.execute(
@@ -917,6 +927,65 @@ describe("task tools — signal/query adapters", () => {
           }),
         ],
       });
+    });
+
+    test("blocked refuses silent wisdom_drafts loss when read-back drops them (AC3)", async () => {
+      // Guards the silent-success class this change exists to eliminate:
+      // drafts are sent on the signal but absent from authoritative
+      // read-back, so the response must refuse rather than report success.
+      const store = createMockStore();
+      mocks.querySignal.mockResolvedValue({
+        id: "tk-blocked-drop",
+        status: "blocked",
+        notes: "Hit a wall",
+        error_recovery: {
+          last_error: "TypeError",
+          retry_count: 1,
+          max_retries: 3,
+          error_class: "SEMANTIC",
+          attempts: [
+            {
+              attempt_number: 1,
+              error: "TypeError",
+              diagnosis: "missing null check",
+              fix_tried: "added guard",
+              outcome: "failed",
+              attempted_at: "2026-07-21T17:00:00.000Z",
+            },
+          ],
+        },
+        // wisdom_drafts intentionally absent from read-back.
+      });
+
+      const result = await taskTools.adv_task_update.execute(
+        {
+          taskId: "tk-blocked-drop",
+          status: "blocked",
+          notes: "Hit a wall",
+          error_recovery: {
+            last_error: "TypeError",
+            retry_count: 1,
+            max_retries: 3,
+            error_class: "SEMANTIC",
+            attempts: [
+              {
+                attempt_number: 1,
+                error: "TypeError",
+                diagnosis: "missing null check",
+                fix_tried: "added guard",
+                outcome: "failed",
+                attempted_at: "2026-07-21T17:00:00.000Z",
+              },
+            ],
+          },
+        },
+        store,
+      );
+
+      const parsed = JSON.parse(result);
+      expect(parsed.code).toBe("TASK_PERSISTENCE_DISAGREEMENT");
+      expect(parsed.field).toBe("wisdom_drafts");
+      expect(parsed.success).not.toBe(true);
     });
 
     test("blocked without SEMANTIC error_recovery omits wisdom_drafts (DDC6 backward-compat)", async () => {

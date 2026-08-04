@@ -235,6 +235,7 @@ function detectTransitionPersistenceDisagreement(
     error_recovery?: ErrorRecovery;
     contract_refs?: TaskContractRefs;
     delegation_recovery?: DelegationRecovery;
+    wisdom_drafts?: WisdomDraft[];
   },
   task: Task | null,
 ): { code: string; field: string; message: string } | undefined {
@@ -282,6 +283,12 @@ function detectTransitionPersistenceDisagreement(
       field: "delegation_recovery",
       present: () =>
         isDeepStrictEqual(task.delegation_recovery, args.delegation_recovery),
+    });
+  }
+  if (args.wisdom_drafts !== undefined) {
+    checks.push({
+      field: "wisdom_drafts",
+      present: () => isDeepStrictEqual(task.wisdom_drafts, args.wisdom_drafts),
     });
   }
   for (const { field, present } of checks) {
@@ -1196,6 +1203,7 @@ export const taskTools = {
           });
         }
 
+        let acceptedPartial: TaskAcceptedPartial | undefined;
         if (!recoveredViaPoisoned) {
           try {
             if (args.status === "in_progress") {
@@ -1212,7 +1220,7 @@ export const taskTools = {
                         : ("initial" as const),
                     }
                   : undefined;
-              const acceptedPartial = buildTaskAcceptedPartial({
+              acceptedPartial = buildTaskAcceptedPartial({
                 notes: args.notes,
                 implementation_summary: args.implementation_summary,
                 error_recovery: args.error_recovery,
@@ -1247,7 +1255,7 @@ export const taskTools = {
                     now,
                   )
                 : null;
-              const acceptedPartial = buildTaskAcceptedPartial({
+              acceptedPartial = buildTaskAcceptedPartial({
                 notes: args.notes,
                 implementation_summary: args.implementation_summary,
                 error_recovery: args.error_recovery,
@@ -1284,7 +1292,7 @@ export const taskTools = {
                 existingTaskReports.length > 0
                   ? null
                   : extractStructuredOutput(combinedText);
-              const acceptedPartial = buildTaskAcceptedPartial({
+              acceptedPartial = buildTaskAcceptedPartial({
                 notes: args.notes,
                 implementation_summary: args.implementation_summary,
                 error_recovery: args.error_recovery,
@@ -1413,7 +1421,13 @@ export const taskTools = {
             args.status === "blocked" ||
             args.status === "done") &&
           !recoveredViaPoisoned
-            ? detectTransitionPersistenceDisagreement(args, task)
+            ? detectTransitionPersistenceDisagreement(
+                {
+                  ...args,
+                  wisdom_drafts: acceptedPartial?.wisdom_drafts,
+                },
+                task,
+              )
             : undefined;
         if (disagreement) {
           return formatToolOutput({
