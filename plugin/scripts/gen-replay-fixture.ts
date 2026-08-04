@@ -33,6 +33,8 @@
  *   acceptance-readiness-fence   -> ACCEPTANCE_READINESS_FENCE_PATCH (acceptance gate)
  *   acceptance-readiness-fence-legacy -> ACCEPTANCE_READINESS_FENCE_PATCH (legacy acceptance gate)
  *   worker-bundle-freshness-legacy -> WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH (legacy release gate)
+ *   terminal-archive              -> GATE_COMPLETED_PROJECTION_PATCH + TERMINAL_PROJECTION_PATCH
+ *   terminal-archive-legacy       -> terminal archive path before both projection patches
  */
 
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -46,6 +48,7 @@ import {
 import { NativeConnection, Worker } from "@temporalio/worker";
 
 import {
+  archiveChangeSignal,
   gateCompletedSignal,
   getChangeStateQuery,
 } from "../src/temporal/messages";
@@ -72,11 +75,14 @@ type BranchId =
   | "acceptance-executive-summary"
   | "acceptance-readiness-fence"
   | "acceptance-readiness-fence-legacy"
-  | "worker-bundle-freshness-legacy";
+  | "worker-bundle-freshness-legacy"
+  | "terminal-archive"
+  | "terminal-archive-legacy";
 
 interface BranchConfig {
-  gateId: "proposal" | "discovery" | "design" | "acceptance";
-  patchMarker: string;
+  gateId: "proposal" | "discovery" | "design" | "acceptance" | "release";
+  patchMarker?: string;
+  patchMarkers?: string[];
   label: string;
   /** Stable changeId (doubles as the fixture workflowId suffix). */
   changeId: string;
@@ -125,6 +131,22 @@ const BRANCHES: Record<BranchId, BranchConfig> = {
     patchMarker: "worker-bundle-freshness-v1",
     label: "WORKER_BUNDLE_FRESHNESS_PROVENANCE_PATCH (legacy)",
     changeId: "replayFixtureWorkerBundleFreshnessLegacy",
+    needsProjection: false,
+  },
+  "terminal-archive": {
+    gateId: "release",
+    patchMarkers: ["gate-completed-projection-v1", "terminal-projection-v1"],
+    label: "TERMINAL_PROJECTION_PATCH + GATE_COMPLETED_PROJECTION_PATCH",
+    changeId: "replayFixtureTerminalArchive",
+    needsProjection: true,
+  },
+  "terminal-archive-legacy": {
+    gateId: "release",
+    label:
+      "TERMINAL_PROJECTION_PATCH + GATE_COMPLETED_PROJECTION_PATCH (legacy)",
+    changeId: "replayFixtureTerminalArchiveLegacy",
+    // Isolate the pre-patch terminal command sequence from fire-and-forget
+    // projection activity; the patched branch below exercises awaited writes.
     needsProjection: false,
   },
 };
@@ -232,6 +254,10 @@ function buildInput(
     }
     gates.release = { status: "in_progress" };
     baseSeed.gates = gates;
+    baseSeed.worker_bundle_impact = {
+      kind: "not_applicable",
+      rationale: "Controlled terminal archive replay fixture.",
+    };
   } else {
     gates[config.gateId] = { status: "in_progress" };
     baseSeed.gates = gates;
@@ -316,6 +342,31 @@ async function buildLegacyWorkerBundleVariant(): Promise<string> {
   return variantPath;
 }
 
+async function buildLegacyTerminalVariant(): Promise<string> {
+  const src = await readFile(workflowsPath, "utf8");
+  const markers = [
+    "wf.patched(GATE_COMPLETED_PROJECTION_PATCH)",
+    "wf.patched(TERMINAL_PROJECTION_PATCH)",
+  ];
+  if (markers.some((marker) => !src.includes(marker))) {
+    throw new Error(
+      "Variant surgery failed: terminal projection patch call not found",
+    );
+  }
+  const variant = markers.reduce(
+    (current, marker) => current.replace(marker, "false"),
+    src,
+  );
+  const variantPath = fileURLToPath(
+    new URL(
+      "../src/temporal/workflows.gen-legacy-terminal.ts",
+      import.meta.url,
+    ),
+  );
+  await writeFile(variantPath, variant, "utf8");
+  return variantPath;
+}
+
 async function main(): Promise<void> {
   const { branch } = parseArgs();
   const config = BRANCHES[branch];
@@ -353,6 +404,9 @@ async function main(): Promise<void> {
   } else if (branch === "worker-bundle-freshness-legacy") {
     variantPath = await buildLegacyWorkerBundleVariant();
     activeWorkflowsPath = variantPath;
+  } else if (branch === "terminal-archive-legacy") {
+    variantPath = await buildLegacyTerminalVariant();
+    activeWorkflowsPath = variantPath;
   }
 
   const owner = await createTemporalScriptFacade({
@@ -364,10 +418,7 @@ async function main(): Promise<void> {
 
   // Terminate any in-flight execution of the same workflowId for repeatability.
   try {
-    await owner.terminateWorkflow(
-      workflowId,
-      "replay-fixture regeneration",
-    );
+    await owner.terminateWorkflow(workflowId, "replay-fixture regeneration");
   } catch {
     // No prior execution; ignore.
   }
@@ -402,16 +453,39 @@ async function main(): Promise<void> {
       });
 
       const deadline = Date.now() + 30_000;
+      if (
+        branch === "terminal-archive" ||
+        branch === "terminal-archive-legacy"
+      ) {
+        while (Date.now() < deadline) {
+          const state = (await owner.queryWorkflow(
+            workflowId,
+            getChangeStateQuery,
+          )) as {
+            gates: Record<string, { status: string }>;
+          };
+          if (state.gates[config.gateId]?.status === "done") break;
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        await owner.signalWorkflow(workflowId, archiveChangeSignal);
+      }
       while (Date.now() < deadline) {
         const state = (await owner.queryWorkflow(
           workflowId,
           getChangeStateQuery,
         )) as {
+          status: string;
           gates: Record<string, { status: string; artifactEvidence?: unknown }>;
         };
         const gate = state.gates[config.gateId];
-        if (gate?.status === "done" || gate?.status === "stuck") {
-          finalStatus = gate.status;
+        const terminalArchive =
+          branch === "terminal-archive" || branch === "terminal-archive-legacy";
+        if (
+          (terminalArchive && state.status === "archived") ||
+          (!terminalArchive &&
+            (gate?.status === "done" || gate?.status === "stuck"))
+        ) {
+          finalStatus = terminalArchive ? state.status : gate.status;
           gateEvidence = gate.artifactEvidence ?? null;
           break;
         }
@@ -436,6 +510,7 @@ async function main(): Promise<void> {
         label: config.label,
         gateId: config.gateId,
         patchMarker: config.patchMarker,
+        patchMarkers: config.patchMarkers,
         workflowId,
         changeId: config.changeId,
         projectionChangesDir: projectionChangesDir ?? null,
@@ -448,7 +523,12 @@ async function main(): Promise<void> {
     ),
   );
 
-  if (finalStatus !== "done") {
+  const terminalArchive =
+    branch === "terminal-archive" || branch === "terminal-archive-legacy";
+  if (
+    finalStatus !== "done" &&
+    !(terminalArchive && finalStatus === "archived")
+  ) {
     throw new Error(
       `Gate did not complete (status=${finalStatus}); refusing to emit a non-target history.`,
     );
@@ -463,7 +543,10 @@ main().catch((err) => {
           error: "Temporal script outcome",
           kind: err.kind,
           message: err.message,
-          cause: err.causeError instanceof Error ? err.causeError.message : String(err.causeError),
+          cause:
+            err.causeError instanceof Error
+              ? err.causeError.message
+              : String(err.causeError),
         },
         null,
         2,

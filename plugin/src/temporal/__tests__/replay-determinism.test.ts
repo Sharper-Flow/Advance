@@ -24,6 +24,8 @@ interface ReplayFixtureMetadata {
   incidentEventType: string;
   /** Patch marker id (core_patch VersionMarker) the history records, when any. */
   patchMarker?: string;
+  /** Patch marker ids when a fixture covers multiple workflow patches. */
+  patchMarkers?: string[];
 }
 
 interface ReplayFixture {
@@ -36,11 +38,47 @@ interface ReplayFixture {
    * the current patched code replays a history that predates the marker).
    */
   patchMarker?: string;
+  patchMarkers?: string[];
+  absentPatchMarkers?: string[];
   /** Substring the metadata `covers[]` must include (branch-specific coverage). */
   coversIncludes?: string;
 }
 
 const replayFixtures: ReplayFixture[] = [
+  {
+    // TERMINAL_PROJECTION_PATCH + GATE_COMPLETED_PROJECTION_PATCH:
+    // a current history completes a release gate, receives archiveChange, and
+    // records both projection markers before the awaited projections.
+    metadataUrl: new URL(
+      "./replay/histories/fixArchiveTerminalDurability.terminal-archive.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/fixArchiveTerminalDurability.terminal-archive.history.json",
+      import.meta.url,
+    ),
+    patchMarkers: ["gate-completed-projection-v1", "terminal-projection-v1"],
+    coversIncludes: "TERMINAL_PROJECTION_PATCH",
+  },
+  {
+    // Pre-patch terminal archive history: the same gate and archive signals
+    // execute without either projection marker, preserving the legacy
+    // fire-and-forget projection command sequence during replay.
+    metadataUrl: new URL(
+      "./replay/histories/fixArchiveTerminalDurability.terminal-archive-legacy.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/fixArchiveTerminalDurability.terminal-archive-legacy.history.json",
+      import.meta.url,
+    ),
+    absentPatchMarkers: [
+      "gate-completed-projection-v1",
+      "terminal-projection-v1",
+    ],
+    coversIncludes:
+      "TERMINAL_PROJECTION_PATCH (terminal-projection-v1)",
+  },
   {
     // Protects DISCOVERY_CONTRACT_READINESS_PATCH in workflows.ts. Keep this
     // fixture while pre-contract discovery histories can still replay through
@@ -266,6 +304,8 @@ describe("changeWorkflow replay determinism", () => {
       historyUrl,
       classificationUrl,
       patchMarker,
+      patchMarkers,
+      absentPatchMarkers,
       coversIncludes,
     }) => {
       const metadata = await readJson<ReplayFixtureMetadata>(metadataUrl);
@@ -292,6 +332,22 @@ describe("changeWorkflow replay determinism", () => {
           .filter((e) => e.eventType === "EVENT_TYPE_MARKER_RECORDED")
           .map(markerPatchId);
         expect(recordedMarkers).toContain(patchMarker);
+      }
+      if (patchMarkers) {
+        const recordedMarkers = history.events
+          .filter((e) => e.eventType === "EVENT_TYPE_MARKER_RECORDED")
+          .map(markerPatchId);
+        for (const marker of patchMarkers) {
+          expect(recordedMarkers).toContain(marker);
+        }
+      }
+      if (absentPatchMarkers) {
+        const recordedMarkers = history.events
+          .filter((e) => e.eventType === "EVENT_TYPE_MARKER_RECORDED")
+          .map(markerPatchId);
+        for (const marker of absentPatchMarkers) {
+          expect(recordedMarkers).not.toContain(marker);
+        }
       }
 
       const replay = () =>
