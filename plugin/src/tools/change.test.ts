@@ -6102,7 +6102,9 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(mocks.execGh).not.toHaveBeenCalled();
         expect(mocks.execGit).not.toHaveBeenCalled();
         const saveMock = store.changes.save as ReturnType<typeof vi.fn>;
-        expect(saveMock).not.toHaveBeenCalled();
+        expect(saveMock).toHaveBeenCalledWith(
+          expect.objectContaining({ status: "archived" }),
+        );
       } finally {
         await cleanupTempDir(tempDir);
       }

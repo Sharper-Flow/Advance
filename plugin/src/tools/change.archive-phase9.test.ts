@@ -1849,7 +1849,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
     expect(second.archivePath).toBe("/tmp/archive/example");
     expect(mocks.resolveReleaseReachability).toHaveBeenCalledTimes(2);
-    expect(store.changes.save).toHaveBeenCalledTimes(1);
+    expect(store.changes.save).toHaveBeenCalledTimes(2);
     // After archiveConvergedSignal: phase9 done is materialized on the local
     // change passed to store.changes.save, not fired as a separate signal.
     const saveCallsWithDone = store.changes.save.mock.calls.filter(
@@ -1857,7 +1857,42 @@ describe("adv_change_archive Phase 9 behavior", () => {
         (call[0] as { phase9_status?: { status?: string } })?.phase9_status
           ?.status === "done",
     );
-    expect(saveCallsWithDone).toHaveLength(1); // idempotent: second run is noOp
+    expect(saveCallsWithDone).toHaveLength(2); // both runs request the safe terminal transition
+  });
+
+  test("stale archived projection requests transition without duplicate archive side effects", async () => {
+    mocks.findArchiveBundle.mockResolvedValue("/tmp/archive/example");
+    mocks.classifyFinalizationRoute.mockReturnValue({
+      route: "no_remote",
+      reason: "origin remote not configured",
+    });
+    mocks.resolveReleaseReachability.mockReturnValue({
+      reachable: true,
+      proof: "local_merge",
+      releasedCommitSha: "local-trunk-sha",
+    });
+    mocks.workflow.handle.describe.mockResolvedValueOnce({
+      status: { name: "COMPLETED" },
+    });
+    const deleteBranchSpy = vi
+      .spyOn(gitFinalize, "deleteChangeBranch")
+      .mockReturnValue({ localDeleted: true, remoteDeleted: true });
+    const store = createMockStore({ status: "archived" });
+
+    const result = JSON.parse(
+      await changeTools.adv_change_archive.execute(
+        { changeId: "example" },
+        store,
+      ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
+    expect(mocks.archiveChange).not.toHaveBeenCalled();
+    expect(deleteBranchSpy).not.toHaveBeenCalled();
+    deleteBranchSpy.mockRestore();
   });
 
   test("classifies failed phase9 without marking archived when recovery proof is missing", async () => {
@@ -1972,7 +2007,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
       }),
     );
     expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
-    expect(store.changes.save).not.toHaveBeenCalled();
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
   });
 
   test("treats an audited disk proof as recovery and never signals the terminated workflow", async () => {
@@ -2032,7 +2069,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
       expect(parsed._recoveryMutation).toBe(true);
       expect(mocks.saveRecoveredGateCompletion).not.toHaveBeenCalled();
       expect(mocks.workflow.handle.signal).not.toHaveBeenCalled();
-      expect(store.changes.save).not.toHaveBeenCalled();
+      expect(store.changes.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "archived" }),
+      );
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }
@@ -2309,8 +2348,10 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // Finalization should verify evidence from main (no worktree needed)
     expect(mocks.classifyFinalizationRoute).toHaveBeenCalled();
     expect(mocks.resolveReleaseReachability).toHaveBeenCalled();
-    // Status should remain archived (no redundant save)
-    expect(store.changes.save).not.toHaveBeenCalled();
+    // The existing bundle is reused, but the terminal transition is requested.
+    expect(store.changes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "archived" }),
+    );
   });
 
   test("AC1: direct archived retry proves matching projection at the verified default-branch SHA", async () => {

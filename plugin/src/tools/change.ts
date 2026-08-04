@@ -4615,7 +4615,7 @@ export const changeTools = {
               });
             }
           }
-          return reconcileArchivedBundleRetry({
+          const reconciliationResult = await reconcileArchivedBundleRetry({
             store,
             change,
             changeId,
@@ -4625,6 +4625,24 @@ export const changeTools = {
             openOpsObligationsPayload,
             validationWarnings: validationResult.warnings,
           });
+          const reconciliationPayload = JSON.parse(reconciliationResult) as {
+            success?: boolean;
+          };
+          if (!reconciliationPayload.success) {
+            return reconciliationResult;
+          }
+          try {
+            await store.changes.save(change);
+          } catch (saveError) {
+            const saveErrorText = collectErrorText(saveError);
+            return formatToolOutput({
+              success: false,
+              error: `Failed to request archive transition: ${saveErrorText}`,
+              archivePath: existingBundlePath,
+              changeId,
+            });
+          }
+          return reconciliationResult;
         }
         // rq-archiveOrdering01: Archive State Transition Must Be Resilient
         // to Failed Disk Bundle Write. Idempotent retry: if the bundle already
@@ -4957,203 +4975,200 @@ export const changeTools = {
         // proof → archive status → cleanup. Changing this order breaks AC1.
         // Update change status in store (unless dry run)
         if (!dryRun && archiveResult.success) {
-          const statusAlreadyArchived = change.status === "archived";
-          if (!statusAlreadyArchived) {
-            const archivedAt = new Date().toISOString();
-            change.status = "archived";
-            // Materialize the confirmed release gate and Phase 9 done state
-            // on the local change so store.changes.save can fire the atomic
-            // archiveConvergedSignal instead of three separate signals.
-            if (releaseGateCompletion) {
-              change.gates = {
-                ...(change.gates ?? {}),
-                release: releaseGateCompletion.gate,
-              };
-              change.phase9_status = preservePhase9Evidence(
-                change.phase9_status,
-                {
-                  status: "done",
-                  startedAt: change.phase9_status?.startedAt ?? archivedAt,
-                  completedAt: archivedAt,
-                  changeTipSha: finalization?.changeTipSha,
-                },
+          const archivedAt = new Date().toISOString();
+          change.status = "archived";
+          // Materialize the confirmed release gate and Phase 9 done state
+          // on the local change so store.changes.save can fire the atomic
+          // archiveConvergedSignal instead of three separate signals.
+          if (releaseGateCompletion) {
+            change.gates = {
+              ...(change.gates ?? {}),
+              release: releaseGateCompletion.gate,
+            };
+            change.phase9_status = preservePhase9Evidence(
+              change.phase9_status,
+              {
+                status: "done",
+                startedAt: change.phase9_status?.startedAt ?? archivedAt,
+                completedAt: archivedAt,
+                changeTipSha: finalization?.changeTipSha,
+              },
+            );
+          }
+          try {
+            await store.changes.save(change);
+            const epicProjection = await projectEpicTerminalSummaryAfterArchive(
+              {
+                store,
+                change,
+                completedAt: archivedAt,
+              },
+            );
+            if (epicProjection.status === "warning") {
+              archiveResult.errors.push(
+                `Epic terminal projection warning: failed to update ${epicProjection.epicId}/${epicProjection.entryId}: ${epicProjection.error}`,
               );
             }
-            try {
-              await store.changes.save(change);
-              const epicProjection =
-                await projectEpicTerminalSummaryAfterArchive({
-                  store,
-                  change,
-                  completedAt: archivedAt,
-                });
-              if (epicProjection.status === "warning") {
-                archiveResult.errors.push(
-                  `Epic terminal projection warning: failed to update ${epicProjection.epicId}/${epicProjection.entryId}: ${epicProjection.error}`,
-                );
-              }
-            } catch (saveError) {
-              const saveErrorText = collectErrorText(saveError);
-              const contextMismatch = extractContextMismatch(saveError);
-              if (contextMismatch) {
-                return formatToolOutput({
-                  success: false,
-                  error: `Failed to update change status to archived: ${saveErrorText}`,
-                  archivePath: archiveResult.archivePath,
-                  ...contextMismatch,
-                });
-              }
-              // rq-extend-poisoned-recovery AC5: poisoned-workflow / completed-
-              // workflow disk fallback for final status. Bundle is already written;
-              // only the workflow signal that flips the status field fails.
-              // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
-              // signal-error recovery is classified internally from the signal
-              // error + describe() evidence via the unified classifier — no
-              // operator-supplied recoveryMode/evidence.
-              const decision = await classifyMutationRecoveryDecision({
-                signalError: saveError,
-                handle,
-              });
-              if (decision.kind === "recover_via_disk") {
-                const { RECOVERY_RECONCILIATION_WARNING } =
-                  await import("../temporal/recovery-classification");
-                // AC4/AC6: when the archive flow detected a dead workflow and the
-                // change carries shipped proof, converge all four fields in a single
-                // disk write instead of only flipping status.
-                if (finalization?.status === "shipped") {
-                  const converge = await saveRecoveredArchiveConvergence({
-                    store,
-                    change,
-                    changeId,
-                    authorization: {
-                      reason: decision.reason,
-                      evidence: decision.evidence,
-                    },
-                    finalization,
-                    releaseGate: releaseGateCompletion?.gate,
-                    archivedAt,
-                  });
-                  if (converge.kind === "converged") {
-                    return formatToolOutput({
-                      success: true,
-                      archivePath: archiveResult.archivePath,
-                      ...(finalization ? { finalization } : {}),
-                      ...(finalization
-                        ? {
-                            continueFrom: {
-                              path: finalization.repoRoot,
-                              branch: finalization.defaultBranch,
-                            },
-                          }
-                        : {}),
-                      ...(releaseGateCompletion
-                        ? {
-                            releaseGate: releaseGateCompletion.gate,
-                            releaseGateAlreadyDone:
-                              releaseGateCompletion.alreadyDone,
-                          }
-                        : {}),
-                      specsUpdated: archiveResult.specsUpdated.map((s) => ({
-                        capability: s.capability,
-                        version: `${s.originalVersion} → ${s.newVersion}`,
-                        deltas: s.deltaResults.length,
-                      })),
-                      ...openOpsObligationsPayload,
-                      _recoveryMutation: true,
-                      reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                      message: `Archived change ${changeId} via disk-projection convergence after workflow completed; release, phase9, status, and lifecycleState are converged.`,
-                    });
-                  }
-                  return formatToolOutput({
-                    success: false,
-                    error: `Archive convergence recovery failed: ${converge.kind === "refused" ? `${converge.refusalCode}: ${converge.evidence}` : converge.error}`,
-                    requirement: "rq-archiveConvergenceRecovery",
-                    changeId,
-                    archivePath: archiveResult.archivePath,
-                    ...(converge.kind === "refused"
-                      ? { refusalCode: converge.refusalCode }
-                      : {}),
-                    ...(converge.kind === "readbackFailed"
-                      ? { readback: converge.readback }
-                      : {}),
-                    ...(converge.kind === "state_unknown"
-                      ? { recoveryState: converge.kind }
-                      : {}),
-                  });
-                }
-                const { saveRecoveredChangeStatus } =
-                  await import("./_recovery-writers");
-                await saveRecoveredChangeStatus({
-                  store,
-                  change,
-                  authorization: {
-                    reason: decision.reason,
-                    evidence: decision.evidence,
-                  },
-                  status: "archived",
-                });
-                return formatToolOutput({
-                  success: true,
-                  archivePath: archiveResult.archivePath,
-                  ...(finalization ? { finalization } : {}),
-                  ...(finalization
-                    ? {
-                        continueFrom: {
-                          path: finalization.repoRoot,
-                          branch: finalization.defaultBranch,
-                        },
-                      }
-                    : {}),
-                  ...(releaseGateCompletion
-                    ? {
-                        releaseGate: releaseGateCompletion.gate,
-                        releaseGateAlreadyDone:
-                          releaseGateCompletion.alreadyDone,
-                      }
-                    : {}),
-                  specsUpdated: archiveResult.specsUpdated.map((s) => ({
-                    capability: s.capability,
-                    version: `${s.originalVersion} → ${s.newVersion}`,
-                    deltas: s.deltaResults.length,
-                  })),
-                  ...openOpsObligationsPayload,
-                  _recoveryMutation: true,
-                  reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-                });
-              }
-              if (decision.kind === "operator_required") {
-                return formatToolOutput({
-                  success: false,
-                  error: `Failed to update change status to archived: ${saveErrorText}`,
-                  archivePath: archiveResult.archivePath,
-                  code: "ARCHIVE_MUTATION_OPERATOR_REQUIRED",
-                  cause: decision.cause,
-                  changeId,
-                  hint: `Archive status transition is unsafe: ${decision.detail}. Run adv_doctor to diagnose the wedged projection.`,
-                });
-              }
-              const searchAttributeRecovery = isSearchAttributeArchiveFailure(
-                saveErrorText,
-              )
-                ? {
-                    recoveryHint: ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
-                    retrySafe: true,
-                  }
-                : {};
-              // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
-              // the real reason) so the caller can diagnose the failure.
+          } catch (saveError) {
+            const saveErrorText = collectErrorText(saveError);
+            const contextMismatch = extractContextMismatch(saveError);
+            if (contextMismatch) {
               return formatToolOutput({
                 success: false,
                 error: `Failed to update change status to archived: ${saveErrorText}`,
                 archivePath: archiveResult.archivePath,
-                ...searchAttributeRecovery,
+                ...contextMismatch,
+              });
+            }
+            // rq-extend-poisoned-recovery AC5: poisoned-workflow / completed-
+            // workflow disk fallback for final status. Bundle is already written;
+            // only the workflow signal that flips the status field fails.
+            // D4 internal classification (rq-internalMonotonicRecovery01 / AC5):
+            // signal-error recovery is classified internally from the signal
+            // error + describe() evidence via the unified classifier — no
+            // operator-supplied recoveryMode/evidence.
+            const decision = await classifyMutationRecoveryDecision({
+              signalError: saveError,
+              handle,
+            });
+            if (decision.kind === "recover_via_disk") {
+              const { RECOVERY_RECONCILIATION_WARNING } =
+                await import("../temporal/recovery-classification");
+              // AC4/AC6: when the archive flow detected a dead workflow and the
+              // change carries shipped proof, converge all four fields in a single
+              // disk write instead of only flipping status.
+              if (finalization?.status === "shipped") {
+                const converge = await saveRecoveredArchiveConvergence({
+                  store,
+                  change,
+                  changeId,
+                  authorization: {
+                    reason: decision.reason,
+                    evidence: decision.evidence,
+                  },
+                  finalization,
+                  releaseGate: releaseGateCompletion?.gate,
+                  archivedAt,
+                });
+                if (converge.kind === "converged") {
+                  return formatToolOutput({
+                    success: true,
+                    archivePath: archiveResult.archivePath,
+                    ...(finalization ? { finalization } : {}),
+                    ...(finalization
+                      ? {
+                          continueFrom: {
+                            path: finalization.repoRoot,
+                            branch: finalization.defaultBranch,
+                          },
+                        }
+                      : {}),
+                    ...(releaseGateCompletion
+                      ? {
+                          releaseGate: releaseGateCompletion.gate,
+                          releaseGateAlreadyDone:
+                            releaseGateCompletion.alreadyDone,
+                        }
+                      : {}),
+                    specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                      capability: s.capability,
+                      version: `${s.originalVersion} → ${s.newVersion}`,
+                      deltas: s.deltaResults.length,
+                    })),
+                    ...openOpsObligationsPayload,
+                    _recoveryMutation: true,
+                    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
+                    message: `Archived change ${changeId} via disk-projection convergence after workflow completed; release, phase9, status, and lifecycleState are converged.`,
+                  });
+                }
+                return formatToolOutput({
+                  success: false,
+                  error: `Archive convergence recovery failed: ${converge.kind === "refused" ? `${converge.refusalCode}: ${converge.evidence}` : converge.error}`,
+                  requirement: "rq-archiveConvergenceRecovery",
+                  changeId,
+                  archivePath: archiveResult.archivePath,
+                  ...(converge.kind === "refused"
+                    ? { refusalCode: converge.refusalCode }
+                    : {}),
+                  ...(converge.kind === "readbackFailed"
+                    ? { readback: converge.readback }
+                    : {}),
+                  ...(converge.kind === "state_unknown"
+                    ? { recoveryState: converge.kind }
+                    : {}),
+                });
+              }
+              const { saveRecoveredChangeStatus } =
+                await import("./_recovery-writers");
+              await saveRecoveredChangeStatus({
+                store,
+                change,
+                authorization: {
+                  reason: decision.reason,
+                  evidence: decision.evidence,
+                },
+                status: "archived",
+              });
+              return formatToolOutput({
+                success: true,
+                archivePath: archiveResult.archivePath,
+                ...(finalization ? { finalization } : {}),
+                ...(finalization
+                  ? {
+                      continueFrom: {
+                        path: finalization.repoRoot,
+                        branch: finalization.defaultBranch,
+                      },
+                    }
+                  : {}),
+                ...(releaseGateCompletion
+                  ? {
+                      releaseGate: releaseGateCompletion.gate,
+                      releaseGateAlreadyDone: releaseGateCompletion.alreadyDone,
+                    }
+                  : {}),
                 specsUpdated: archiveResult.specsUpdated.map((s) => ({
                   capability: s.capability,
                   version: `${s.originalVersion} → ${s.newVersion}`,
                   deltas: s.deltaResults.length,
                 })),
+                ...openOpsObligationsPayload,
+                _recoveryMutation: true,
+                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
               });
             }
+            if (decision.kind === "operator_required") {
+              return formatToolOutput({
+                success: false,
+                error: `Failed to update change status to archived: ${saveErrorText}`,
+                archivePath: archiveResult.archivePath,
+                code: "ARCHIVE_MUTATION_OPERATOR_REQUIRED",
+                cause: decision.cause,
+                changeId,
+                hint: `Archive status transition is unsafe: ${decision.detail}. Run adv_doctor to diagnose the wedged projection.`,
+              });
+            }
+            const searchAttributeRecovery = isSearchAttributeArchiveFailure(
+              saveErrorText,
+            )
+              ? {
+                  recoveryHint: ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
+                  retrySafe: true,
+                }
+              : {};
+            // Surface the full cause chain (e.g. WorkflowUpdateFailedError →
+            // the real reason) so the caller can diagnose the failure.
+            return formatToolOutput({
+              success: false,
+              error: `Failed to update change status to archived: ${saveErrorText}`,
+              archivePath: archiveResult.archivePath,
+              ...searchAttributeRecovery,
+              specsUpdated: archiveResult.specsUpdated.map((s) => ({
+                capability: s.capability,
+                version: `${s.originalVersion} → ${s.newVersion}`,
+                deltas: s.deltaResults.length,
+              })),
+            });
           }
           // rq-archiveRetirement01: final source cleanup happens AFTER the archived status transition.
           // Cleanup ordering is structural: durable archive + status saved → targeted
