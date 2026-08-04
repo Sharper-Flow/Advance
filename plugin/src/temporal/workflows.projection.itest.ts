@@ -8,11 +8,7 @@ import type { WorkflowHandle } from "@temporalio/client";
 import { createDefaultGates } from "../types";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import type { ChangeWorkflowInput } from "./contracts";
-import {
-  writeChangeProjection,
-  type WriteChangeProjectionInput,
-  type WriteChangeProjectionResult,
-} from "./activities";
+import { writeChangeProjection } from "./activities";
 import {
   archiveChangeSignal,
   archiveRequestedSignal,
@@ -115,6 +111,21 @@ describe("changeWorkflow disk projection", () => {
       await cleanupTempDir(dir);
     }
   }, 30_000);
+
+  it("awaits gate completion projection on the versioned path", async () => {
+    const source = await readFile(
+      new URL("./workflows.ts", import.meta.url),
+      "utf8",
+    );
+    const gateStart = source.indexOf("wf.setHandler(\n    gateCompletedSignal");
+    const gateEnd = source.indexOf("gateReenteredSignal", gateStart);
+    const gateHandler = source.slice(gateStart, gateEnd);
+
+    expect(gateHandler).toMatch(
+      /wf\.patched\(GATE_COMPLETED_PROJECTION_PATCH\)/,
+    );
+    expect(gateHandler).toMatch(/await projectChangeState\("gateCompleted"\)/);
+  });
 
   it.each([
     [

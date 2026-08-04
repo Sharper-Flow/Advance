@@ -484,6 +484,10 @@ export const ARCHIVE_PROJECTION_RECONCILER_PATCH =
 // terminal command sequence during replay; the replay fixture is tracked by
 // the follow-up terminal durability task.
 export const TERMINAL_PROJECTION_PATCH = "terminal-projection-v1";
+// Patch rationale: gate completion now awaits its state projection so an
+// accepted gate transition cannot outrun disk durability. Existing histories
+// retain the fire-and-forget projection command sequence during replay.
+export const GATE_COMPLETED_PROJECTION_PATCH = "gate-completed-projection-v1";
 const phase9StatusUpdatedSignal = wf.defineSignal<
   [import("../types").Phase9StatusUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);
@@ -1767,7 +1771,17 @@ export async function changeWorkflow(
         );
         await gateCompletionChain;
         upsertSignalSearchAttributes("gateCompleted");
-        scheduleChangeProjection("gateCompleted");
+        if (wf.patched(GATE_COMPLETED_PROJECTION_PATCH)) {
+          const projected = await projectChangeState("gateCompleted");
+          if (projected !== "written") {
+            wf.log.warn("gate-completed-projection-unverified", {
+              changeId: state.changeId,
+              outcome: projected,
+            });
+          }
+        } else {
+          scheduleChangeProjection("gateCompleted");
+        }
       },
       { afterSuccess: false },
     ),
