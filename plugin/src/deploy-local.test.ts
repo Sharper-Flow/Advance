@@ -142,7 +142,9 @@ describe("deploy-local.sh", () => {
       // from the fail-closed live:false payload. A blanket schema_version:1
       // ban false-fails on the always-emitted resume_projection_state field.
       expect(content).toContain('"live"[[:space:]]*:[[:space:]]*true');
-      expect(content).not.toContain('"schema_version"[[:space:]]*:[[:space:]]*1');
+      expect(content).not.toContain(
+        '"schema_version"[[:space:]]*:[[:space:]]*1',
+      );
     });
 
     test("removes stale adv commands from global", () => {
