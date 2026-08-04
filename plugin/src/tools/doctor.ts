@@ -585,7 +585,8 @@ export const doctorTools = {
       // session queue alive in the orphan enumeration permanently. It cannot be
       // settled passively — nothing touches an archived change again — so an
       // active sweep is required. Idempotent, and gated on positive archive
-      // evidence plus an active-change veto.
+      // evidence; stale non-terminal disk projections are reported as vetoes
+      // only when no matching bundle evidence exists.
       let terminalReconcile: TerminalReconcileResult | null = null;
       if (bundle && projectId) {
         try {
@@ -1032,7 +1033,7 @@ export const doctorTools = {
               terminal_reconciliation: {
                 inspected: terminalReconcile.inspected,
                 reconciled: terminalReconcile.reconciled.length,
-                skipped: terminalReconcile.skipped.length,
+                skipped: terminalReconcile.skipped,
                 failed: terminalReconcile.failed.length,
                 capped: terminalReconcile.capped,
               },

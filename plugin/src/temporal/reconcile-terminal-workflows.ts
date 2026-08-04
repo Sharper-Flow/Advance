@@ -26,8 +26,10 @@
  * SAFETY. Completing a workflow is irreversible, so reconciliation demands
  * POSITIVE terminal evidence and never infers it from absence:
  *   1. the change must have an archive bundle on disk, AND
- *   2. it must NOT be present as an active change.
- * Anything ambiguous is skipped, and the sweep is bounded and dry-runnable.
+ *   2. a non-terminal disk projection may veto only when that bundle evidence
+ *      is absent, because the projection can lag a merged archive bundle.
+ * Anything without positive bundle evidence is skipped, and the sweep is
+ * bounded and dry-runnable.
  */
 
 import { CHANGE_WORKFLOW_PREFIX } from "./contracts";
@@ -48,9 +50,9 @@ export interface TerminalReconcileDeps {
    */
   listArchivedChangeIds(): Promise<ReadonlySet<string>>;
   /**
-   * Change ids still present as active changes. A hit here is an absolute veto,
-   * even when an archive bundle also exists (a re-opened or re-created change
-   * must never be completed out from under the user).
+   * Change ids whose disk projection is still non-terminal. This stale
+   * projection veto applies only when the archive bundle has no matching
+   * evidence; the bundle is authoritative when the two sources disagree.
    */
   listActiveChangeIds(): Promise<ReadonlySet<string>>;
   /**
@@ -122,10 +124,6 @@ export async function reconcileTerminalWorkflows(
     deps.listActiveChangeIds(),
   ]);
 
-  // No archive bundles means no positive evidence for anything; skip the
-  // Visibility round-trip entirely.
-  if (archived.size === 0) return result;
-
   const safeProjectId = escapeVisibilityValue(projectId);
   const query = `AdvAffectedProjects = "${safeProjectId}"`;
   const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
@@ -158,13 +156,14 @@ export async function reconcileTerminalWorkflows(
     const changeId = wf.workflowId.slice(projectPrefix.length);
     if (changeId.length === 0 || changeId.includes("/")) continue;
 
-    // Veto: an active change is never completed, even with a bundle present.
-    if (active.has(changeId)) {
-      result.skipped.push({ changeId, reason: "still_active" });
-      continue;
-    }
-    // Require positive terminal evidence; absence is not evidence.
+    // Archive-bundle evidence is authoritative over a stale disk projection.
+    // Only apply the disk veto when the candidate has no positive evidence.
     if (!archived.has(changeId)) {
+      if (active.has(changeId)) {
+        result.skipped.push({ changeId, reason: "still_active" });
+        continue;
+      }
+      // Require positive terminal evidence; absence is not evidence.
       result.skipped.push({ changeId, reason: "no_archive_evidence" });
       continue;
     }

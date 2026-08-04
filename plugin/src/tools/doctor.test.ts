@@ -32,6 +32,7 @@ const probeCachedTaskQueuePollersMock = vi.hoisted(() => vi.fn());
 const listOrphanSessionQueuesMock = vi.hoisted(() => vi.fn());
 const getProjectIdMock = vi.hoisted(() => vi.fn());
 const getCurrentSessionIdMock = vi.hoisted(() => vi.fn(() => undefined));
+const reconcileTerminalWorkflowsMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../temporal/service", () => ({
   getService: getServiceMock,
@@ -70,6 +71,10 @@ vi.mock("../temporal/queue-serviceability", () => ({
 
 vi.mock("../temporal/list-orphan-session-queues", () => ({
   listOrphanSessionQueues: listOrphanSessionQueuesMock,
+}));
+
+vi.mock("../temporal/reconcile-terminal-workflows", () => ({
+  reconcileTerminalWorkflows: reconcileTerminalWorkflowsMock,
 }));
 
 vi.mock("../utils/project-id", () => ({
@@ -183,6 +188,14 @@ function setHealthy() {
     kind: "complete",
     value: [],
     truncated: false,
+  });
+  reconcileTerminalWorkflowsMock.mockResolvedValue({
+    inspected: 0,
+    reconciled: [],
+    skipped: [],
+    failed: [],
+    capped: false,
+    dryRun: false,
   });
 }
 
@@ -414,6 +427,26 @@ describe("adv_doctor", () => {
     expect(getTemporalHealthMock).toHaveBeenCalledTimes(2);
     expect(getTemporalHealthMock).toHaveBeenNthCalledWith(1, PROJECT_ID);
     expect(getTemporalHealthMock).toHaveBeenNthCalledWith(2, PROJECT_ID);
+  });
+
+  test("AC9: exposes terminal reconciliation skip reasons", async () => {
+    reconcileTerminalWorkflowsMock.mockResolvedValueOnce({
+      inspected: 1,
+      reconciled: [],
+      skipped: [{ changeId: "staleDraft", reason: "still_active" }],
+      failed: [],
+      capped: false,
+      dryRun: false,
+    });
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore()),
+    );
+
+    expect(parsed.terminal_reconciliation).toMatchObject({
+      inspected: 1,
+      skipped: [{ changeId: "staleDraft", reason: "still_active" }],
+    });
   });
 
   test("AC8/AC10: no owning session skips the session probe and preserves legacy verification shape", async () => {

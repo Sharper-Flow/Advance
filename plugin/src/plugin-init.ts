@@ -646,7 +646,7 @@ const TERMINAL_RECONCILE_MAX_PER_SWEEP = 25;
 let terminalReconcileTimer: ReturnType<typeof setTimeout> | null = null;
 let lastTerminalReconcile: TerminalReconcileResult | null = null;
 
-/** Result of the most recent auto sweep, for diagnostics. */
+/** Result of the most recent auto sweep, including typed skip reasons. */
 export function getLastTerminalReconcile(): TerminalReconcileResult | null {
   return lastTerminalReconcile;
 }
@@ -655,7 +655,7 @@ export function getLastTerminalReconcile(): TerminalReconcileResult | null {
  * Schedule the one-shot terminal-workflow reconciliation sweep.
  *
  * Idempotent and safe to call on every init: the sweep itself requires
- * positive archive evidence and vetoes any change that is still active, and
+ * positive archive evidence and reports stale-disk vetoes with typed reasons;
  * the terminal signal is a reducer-only status flip.
  */
 export function scheduleTerminalReconcileSweep(input: {

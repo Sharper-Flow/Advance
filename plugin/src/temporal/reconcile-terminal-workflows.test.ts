@@ -7,8 +7,8 @@
  * terminal signal.
  *
  * Completing a workflow is irreversible, so the safety vetoes below are the
- * most important assertions in this file — a false positive would complete an
- * ACTIVE change out from under the user.
+ * most important assertions in this file — a false positive without bundle
+ * evidence would complete a non-terminal change out from under the user.
  */
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -79,15 +79,32 @@ describe("reconcileTerminalWorkflows", () => {
     expect(result.failed).toEqual([]);
   });
 
-  it("NEVER completes a change that is still active, even with an archive bundle", async () => {
+  it("lets archive evidence outrank a stale non-terminal disk projection", async () => {
     const fireTerminal = vi.fn(async () => {});
     const result = await reconcileTerminalWorkflows(
       client([{ workflowId: WF("reopened") }]),
       PROJECT,
       deps({
-        // Both signals present: a re-created/re-opened change. Active wins.
+        // The disk projection can lag the merged archive bundle. Bundle
+        // evidence is authoritative for this reconciliation path.
         listArchivedChangeIds: async () => new Set(["reopened"]),
         listActiveChangeIds: async () => new Set(["reopened"]),
+        fireTerminal,
+      }),
+    );
+
+    expect(fireTerminal).toHaveBeenCalledWith("reopened");
+    expect(result.reconciled).toEqual(["reopened"]);
+    expect(result.skipped).toEqual([]);
+  });
+
+  it("vetoes a stale non-terminal disk projection when no archive evidence exists", async () => {
+    const fireTerminal = vi.fn(async () => {});
+    const result = await reconcileTerminalWorkflows(
+      client([{ workflowId: WF("stillDrafting") }]),
+      PROJECT,
+      deps({
+        listActiveChangeIds: async () => new Set(["stillDrafting"]),
         fireTerminal,
       }),
     );
@@ -95,7 +112,7 @@ describe("reconcileTerminalWorkflows", () => {
     expect(fireTerminal).not.toHaveBeenCalled();
     expect(result.reconciled).toEqual([]);
     expect(result.skipped).toEqual([
-      { changeId: "reopened", reason: "still_active" },
+      { changeId: "stillDrafting", reason: "still_active" },
     ]);
   });
 
@@ -218,7 +235,7 @@ describe("reconcileTerminalWorkflows", () => {
     ]);
   });
 
-  it("skips the Visibility round-trip entirely when nothing is archived", async () => {
+  it("records no archive evidence when no bundle exists", async () => {
     const list = vi.fn(() =>
       (async function* () {
         yield { workflowId: WF("a"), status: { name: "RUNNING" } };
@@ -232,8 +249,11 @@ describe("reconcileTerminalWorkflows", () => {
       deps({ listArchivedChangeIds: async () => new Set<string>() }),
     );
 
-    expect(list).not.toHaveBeenCalled();
-    expect(result.inspected).toBe(0);
+    expect(list).toHaveBeenCalled();
+    expect(result.inspected).toBe(1);
+    expect(result.skipped).toEqual([
+      { changeId: "a", reason: "no_archive_evidence" },
+    ]);
   });
 
   it("only matches archive evidence EXACTLY, never by near-miss", async () => {
