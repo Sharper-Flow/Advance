@@ -448,6 +448,9 @@ async function executeWorktreeCleanup(
         ...(pendingDeletes.ok
           ? { pendingDeleteCount: pendingDeletes.count }
           : { pendingDeleteCountUnavailable: true }),
+        // rq-worktreeTimeoutTruthfulness01: a timeout response must not assert
+        // a cause it never tested, nor advise an action that cannot succeed.
+        //
         // No poison claim: this branch resolves a setTimeout sentinel, not a
         // rejection, so there is no error to classify. rq-worktreePoisonVisibility01
         // requires error-class plus structured evidence before naming poisoned
