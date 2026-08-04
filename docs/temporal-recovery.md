@@ -126,14 +126,14 @@ missing. Missing sidecar files are not proof of lost ADV state.
    fields or from an inline worker packet.
 
 4. Use `adv_doctor` for phantom-pointer cleanup when the session active pointer
-    is confirmed absent. The tool clears it automatically when safe; it is
-    in-memory session recovery only and does not close, archive, delete, or
-    repair persistent change state.
+   is confirmed absent. The tool clears it automatically when safe; it is
+   in-memory session recovery only and does not close, archive, delete, or
+   repair persistent change state.
 
 5. If `adv_change_show` / `adv_gate_status` cannot reach the workflow, run
-    `adv_doctor` and follow its structured next action. Approval-gated repairs
-    such as wrong-type search-attribute correction or suspect worker-lock
-    reclaim still require explicit approval evidence.
+   `adv_doctor` and follow its structured next action. Approval-gated repairs
+   such as wrong-type search-attribute correction or suspect worker-lock
+   reclaim still require explicit approval evidence.
 
 ### Restart boundary
 
@@ -295,12 +295,12 @@ After upgrade, verify:
 object. `adv_doctor` also renders a compact `worker_lock` string when
 the lock exists.
 
-| Field                           | Meaning                                                    | Operator interpretation                                                                                                              |
-| ------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `worker_lock.holder_pid`        | PID that currently owns `{project-state-dir}/worker.lock`  | Use to correlate with the OpenCode/plugin process. An alive PID alone is not sufficient proof that a worker is polling.              |
-| `worker_lock.schema_version`    | Lock format version (`1` legacy, `2` heartbeat-aware)      | `1` means PID-only fallback; `2` includes heartbeat freshness and can be reclaimed when stale.                                       |
-| `worker_lock.last_heartbeat_at` | Last successful heartbeat write from the lock holder       | Fresh values mean the holder is actively renewing ownership. `null` means legacy or unreadable heartbeat state.                      |
-| `worker_lock.heartbeat_age_ms`  | Age of the latest heartbeat at probe time                  | Values above `STALE_HEARTBEAT_MS` (`60000` ms by default) indicate normal stale-lock reclaim should happen on the next peer startup. |
+| Field                           | Meaning                                                    | Operator interpretation                                                                                                                                                                                                                                                                         |
+| ------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `worker_lock.holder_pid`        | PID that currently owns `{project-state-dir}/worker.lock`  | Use to correlate with the OpenCode/plugin process. An alive PID alone is not sufficient proof that a worker is polling.                                                                                                                                                                         |
+| `worker_lock.schema_version`    | Lock format version (`1` legacy, `2` heartbeat-aware)      | `1` means PID-only fallback; `2` includes heartbeat freshness and can be reclaimed when stale.                                                                                                                                                                                                  |
+| `worker_lock.last_heartbeat_at` | Last successful heartbeat write from the lock holder       | Fresh values mean the holder is actively renewing ownership. `null` means legacy or unreadable heartbeat state.                                                                                                                                                                                 |
+| `worker_lock.heartbeat_age_ms`  | Age of the latest heartbeat at probe time                  | Values above `STALE_HEARTBEAT_MS` (`60000` ms by default) indicate normal stale-lock reclaim should happen on the next peer startup.                                                                                                                                                            |
 | `last_worker_run_error`         | Last observed `Worker.run()` or restart-exhaustion failure | Use with the status-aware `worker_alive` / `worker_process_alive` fields to distinguish a crashed poller from a missing server/STSL issue. `{ status: "available", value: false }` means the querying process observed it as not alive; `unavailable` means it could not make that observation. |
 
 If `worker_lock` or `last_worker_run_error` is `null`, formatted output omits the
@@ -574,13 +574,13 @@ retry loops.
 
 Reload paths are intentionally separate:
 
-| Changed or failed surface                                                             | Correct reload / recovery                                                                                                                                              |
-| ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin/src/tools/*.ts` tool code                                                     | Run `pnpm run build` in `plugin/`, then restart OpenCode. `adv_doctor` does not reload host-loaded tool modules.                                      |
-| `plugin/src/temporal/*` workflow, activity, or worker harness code                    | Run `pnpm run build:worker` in `plugin/`, then run `adv_doctor`. The worker loads from `dist/temporal/`.                                              |
-| Wedged/exhausted Temporal worker process with unchanged source                        | Run `adv_doctor`, then verify with `adv_status` or by re-running `adv_doctor`.                                                                           |
+| Changed or failed surface                                                             | Correct reload / recovery                                                                                                                                                 |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plugin/src/tools/*.ts` tool code                                                     | Run `pnpm run build` in `plugin/`, then restart OpenCode. `adv_doctor` does not reload host-loaded tool modules.                                                          |
+| `plugin/src/temporal/*` workflow, activity, or worker harness code                    | Run `pnpm run build:worker` in `plugin/`, then run `adv_doctor`. The worker loads from `dist/temporal/`.                                                                  |
+| Wedged/exhausted Temporal worker process with unchanged source                        | Run `adv_doctor`, then verify with `adv_status` or by re-running `adv_doctor`.                                                                                            |
 | Suspect live legacy v1 `worker.lock` (alive PID, no heartbeat, queue not serviceable) | Restart the owning OpenCode session (preferred), or provide explicit approval evidence and follow the recovery proposal surfaced by `adv_doctor`. Never reclaim silently. |
-| Diagnose unchanged after worker restart                                               | Stop repeating restart; inspect stale worker lock, stale queues, and change workflow state.                                                                            |
+| Diagnose unchanged after worker restart                                               | Stop repeating restart; inspect stale worker lock, stale queues, and change workflow state.                                                                               |
 
 ## Failed migration recovery
 
@@ -590,20 +590,20 @@ Use this when a project's import ledger is not `done`.
    - `migration_status.status`
    - `migration_status.detail`
    - `temporal_health.server_alive`
-    - `temporal_health.worker_process_alive` (interpret its `status` before its `value`)
+   - `temporal_health.worker_process_alive` (interpret its `status` before its `value`)
    - `search_attributes.ok`
    - `recommendedNextAction`
 2. Classify the failure:
    - `server_alive: false` → Temporal runtime/server problem first
    - `search_attributes.ok: false` → register missing ADV search attributes with user approval
-    - `worker_process_alive: { status: "available", value: false }` with `server_alive: true` → worker crash / restart exhaustion
+   - `worker_process_alive: { status: "available", value: false }` with `server_alive: true` → worker crash / restart exhaustion
    - `migration_status.status: failed` with detail → workflow reached a terminal failure state
    - `migration_status.status: empty|unknown|null` → no usable import ledger yet; treat as incomplete bootstrap / recovery state
 3. Recover in order:
-    - Run `adv_doctor`; it will register missing search attributes, reinitialize a stale STSL connection, or restart an owned worker automatically when diagnosed safe
-    - If worker code under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first
-    - Re-check `adv_status`
-    - If worker/STSL/search attributes are healthy but change workflow state is still wrong, investigate the specific change with `adv_change_show` and `adv_doctor`
+   - Run `adv_doctor`; it will register missing search attributes, reinitialize a stale STSL connection, or restart an owned worker automatically when diagnosed safe
+   - If worker code under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first
+   - Re-check `adv_status`
+   - If worker/STSL/search attributes are healthy but change workflow state is still wrong, investigate the specific change with `adv_change_show` and `adv_doctor`
 4. Re-verify with `adv_status` until `migration_status.status` returns to `done`.
 
 ### Expected ledger meanings
@@ -633,21 +633,21 @@ alive, matching `isWorkerAffirmativelyAlive`.
 
 ### Common cases
 
-| Health shape                                                                                                            | Likely cause                                                                            | Fix                                                                                                                                                                                                         |
-| ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server_alive=false`                                                                                                    | Temporal dev server unreachable                                                         | Start / restore Temporal runtime first                                                                                                                                                                      |
-| `server_alive=true`, `search_attributes.ok=false`                                                                        | Required ADV search attributes missing or wrong type                                    | Run `adv_doctor`; missing attributes are registered automatically. Wrong-type attributes must be fixed manually on the server.                                                                                                               |
-| `server_alive=true`, `worker_alive: { status: "available", value: true }`, service errors persist                     | Stale STSL connection/client                                                            | Run `adv_doctor`; it will reinitialize the STSL connection and re-verify.                                                                                                                                                  |
-| `server_alive=true`, `worker_alive: { status: "available", value: false }`, `worker_lock.heartbeat_age_ms > 60000`    | Stale heartbeat; peer worker spawn/reclaim is pending                                   | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out                                                                  |
-| `worker_alive: { status: "available", value: true }`, `worker_process_alive: { status: "available", value: false }` | OOP child crashed and exhausted restart budget                                          | Run `adv_doctor`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first.                                    |
-| Either worker field is `{ status: "unavailable", reason: "not_host_capable" }`                                       | The querying process does not host workers (for example, the Vision-managed MCP server) | You are querying a process that does not host workers (e.g. the Vision-managed MCP server) — re-check from the host plugin via `adv_doctor`.                                                               |
-| Either worker field is `{ status: "unavailable", reason: "probe_failed" }` or `{ status: "unavailable", reason: "probe_timeout" }` | The liveness probe could not produce an observation                                     | Run `adv_doctor` from the host plugin; inspect the reported probe error before retrying.                                                                                                                |
+| Health shape                                                                                                                                             | Likely cause                                                                            | Fix                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server_alive=false`                                                                                                                                     | Temporal dev server unreachable                                                         | Start / restore Temporal runtime first                                                                                                                                                                                      |
+| `server_alive=true`, `search_attributes.ok=false`                                                                                                        | Required ADV search attributes missing or wrong type                                    | Run `adv_doctor`; missing attributes are registered automatically. Wrong-type attributes must be fixed manually on the server.                                                                                              |
+| `server_alive=true`, `worker_alive: { status: "available", value: true }`, service errors persist                                                        | Stale STSL connection/client                                                            | Run `adv_doctor`; it will reinitialize the STSL connection and re-verify.                                                                                                                                                   |
+| `server_alive=true`, `worker_alive: { status: "available", value: false }`, `worker_lock.heartbeat_age_ms > 60000`                                       | Stale heartbeat; peer worker spawn/reclaim is pending                                   | Treat `normal recovery — peer worker spawn pending` as informational; start a fresh peer/session and re-check only if tools still time out                                                                                  |
+| `worker_alive: { status: "available", value: true }`, `worker_process_alive: { status: "available", value: false }`                                      | OOP child crashed and exhausted restart budget                                          | Run `adv_doctor`; inspect `last_error` and `last_worker_run_error`. If source under `plugin/src/temporal/*` changed, run `pnpm run build:worker` first.                                                                     |
+| Either worker field is `{ status: "unavailable", reason: "not_host_capable" }`                                                                           | The querying process does not host workers (for example, the Vision-managed MCP server) | You are querying a process that does not host workers (e.g. the Vision-managed MCP server) — re-check from the host plugin via `adv_doctor`.                                                                                |
+| Either worker field is `{ status: "unavailable", reason: "probe_failed" }` or `{ status: "unavailable", reason: "probe_timeout" }`                       | The liveness probe could not produce an observation                                     | Run `adv_doctor` from the host plugin; inspect the reported probe error before retrying.                                                                                                                                    |
 | `worker_alive: { status: "available", value: false }`, `worker_lock.schema_version=1`, alive `holder_pid`, no `last_heartbeat_at`, queue not serviceable | Suspect live legacy v1 worker.lock — wedged owner OR peer that genuinely owns the queue | `adv_doctor` returns `approvalRequired: true`. Either restart the owning OpenCode session, or provide explicit approval evidence and follow the recovery proposal surfaced by `adv_doctor`. Do not run blind restart loops. |
-| `worker_alive: { status: "available", value: false }`, `worker_lock.schema_version=2`, fresh heartbeat, queue not serviceable | Suspect live v2 worker.lock — holder is alive but not serving expected queue            | `adv_doctor` returns `approvalRequired: true`. Restart the owning session or provide explicit approval evidence. Do not run blind restart loops.                     |
-| `worker_alive: { status: "available", value: false }`, `last_worker_run_error` populated                              | Worker.run failure or restart exhaustion already observed                               | Inspect the run-error message; fix the root cause before repeated restarts                                                                                                                                  |
-| `worker_alive: { status: "available", value: false }`                                                                 | No worker registered (init failure or early bootstrap abort)                            | Check init logs, Node availability, and Temporal server reachability                                                                                                                                        |
-| Bun host + init error about Node                                                                                        | Node binary not found                                                                   | Install Node or set `ADV_NODE_PATH`                                                                                                                                                                         |
-| Error about worker bundle not found                                                                                     | Dist worker missing for OOP path                                                        | Run `pnpm run build:worker` in `plugin/`                                                                                                                                                                    |
+| `worker_alive: { status: "available", value: false }`, `worker_lock.schema_version=2`, fresh heartbeat, queue not serviceable                            | Suspect live v2 worker.lock — holder is alive but not serving expected queue            | `adv_doctor` returns `approvalRequired: true`. Restart the owning session or provide explicit approval evidence. Do not run blind restart loops.                                                                            |
+| `worker_alive: { status: "available", value: false }`, `last_worker_run_error` populated                                                                 | Worker.run failure or restart exhaustion already observed                               | Inspect the run-error message; fix the root cause before repeated restarts                                                                                                                                                  |
+| `worker_alive: { status: "available", value: false }`                                                                                                    | No worker registered (init failure or early bootstrap abort)                            | Check init logs, Node availability, and Temporal server reachability                                                                                                                                                        |
+| Bun host + init error about Node                                                                                                                         | Node binary not found                                                                   | Install Node or set `ADV_NODE_PATH`                                                                                                                                                                                         |
+| Error about worker bundle not found                                                                                                                      | Dist worker missing for OOP path                                                        | Run `pnpm run build:worker` in `plugin/`                                                                                                                                                                                    |
 
 ### OOP runtime hardening and tuning
 
@@ -761,6 +761,70 @@ temporal workflow count --query 'ExecutionStatus="Running"'
 - **`improveAdvPostCrashTemporal`** — added diagnose-first recovery, search-attribute remediation, STSL reconnect guidance, repair/orphan-sweep sequencing, and the external restart boundary.
 - **`fixStuckTemporalWorkerRecovery`** (this change) — replaced fire-and-forget worker restart with a verified 10 s-budget recovery, added approval-gated suspect live legacy v1 lock reclaim (rq-workerSingleton01.6), added queue-serviceability classification (rq-workerHealth01) using local-owner + server-poller-probe evidence, added the bounded `recovery: "once"` seam at `getBoundedProjectWorkflowAccess` for `adv_worktree_create`, and clarified that poller rows are freshness evidence — not durable worker records.
 - **`terminatechangeworkflowonarchi`** — made `changeWorkflow` Complete when archive/close sets terminal status, added the `allHandlersFinished` drain before return, rejected re-entry for archived/closed changes with a domain error, and prevented disk re-seeding for terminal archived/closed changes. New `Running` terminal change workflows are no longer expected; cleanup should target only pre-existing zombies.
+
+## Archive terminal-durability failure codes
+
+Archive now proves the terminal transition durably committed before reporting
+success (rq-archiveTerminalDurability01). When proof cannot be established the
+archive fails closed with one of these typed codes. None of them deletes or
+rolls back the archive bundle; all are safe to re-run.
+
+### `ARCHIVE_WORKFLOW_PROOF_FAILED`
+
+**Meaning:** after the transition request, neither airtight commit artifact
+appeared within the proof budget: the workflow-Activity projection envelope
+(`{changesDir}/{changeId}.json` with `schemaVersion: 2` and
+`state.status === "archived"`) was not written, and the workflow did not reach
+a terminal execution status. The archive signal may not have been applied, or
+the handler rolled back after a failed archive Activity / projection write.
+
+**Diagnose:**
+
+```bash
+# Is the workflow still running, and did it record the signals?
+temporal workflow show --workflow-id adv/change/{projectId}/{changeId}
+# Does the handler-written projection envelope exist and carry archived?
+cat {projectState}/changes/{changeId}.json | jq '.state.status, .schemaVersion'
+```
+
+A plain-JSON `change.json` (no `schemaVersion: 2` envelope) with
+`status: "archived"` is a local recovery-writer stamp, NOT workflow-commit
+evidence — the proof deliberately refuses it.
+
+**Remediate:** check worker health and projection-writer Activity failures,
+then re-run archive. If the workflow is gone, the repair path
+(`adv_change_workflow_terminate` dryRun first) converges the change under a
+full default-branch bundle proof.
+
+### `ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS`
+
+**Meaning:** the workflow handle describe returned `WorkflowNotFoundError`.
+Completed and retention-expired executions are indistinguishable from the
+server, so the tool cannot tell whether the transition committed before the
+execution vanished.
+
+**Remediate:** if the projection envelope carries `status: "archived"`, the
+transition committed durably and re-running archive will succeed on the
+projection artifact. Otherwise run the repair path (dry-run first); it
+requires the archive bundle reachable from the default branch plus an archived
+disk projection, and converges via the single mutation authority.
+
+### `RELEASE_GATE_PROJECTION_COMMITTED_UNVERIFIED`
+
+**Meaning:** the release-gate projection commit was written but the post-commit
+readback could not verify it. The release gate is NOT materialized as done
+locally; archive stops before any retirement side effects.
+
+**Remediate:** inspect the projection readback (the payload includes the commit
+evidence), then re-run archive. Do not hand-mark the release gate done; the
+durable verification must succeed on its own.
+
+### Operator notes
+
+- Visibility (`temporal workflow list`) is never proof of any of the above;
+  the proof path uses describe + the Activity-written projection only.
+- Terminal reconciliation skip reasons (`still_active`, `no_archive_evidence`)
+  are visible in `adv doctor` output under the terminal-reconcile section.
 
 ## Disk-full / OOM surfaces
 

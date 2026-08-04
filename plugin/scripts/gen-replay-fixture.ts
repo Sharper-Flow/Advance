@@ -49,6 +49,7 @@ import { NativeConnection, Worker } from "@temporalio/worker";
 
 import {
   archiveChangeSignal,
+  archiveConvergedSignal,
   gateCompletedSignal,
   getChangeStateQuery,
 } from "../src/temporal/messages";
@@ -77,7 +78,8 @@ type BranchId =
   | "acceptance-readiness-fence-legacy"
   | "worker-bundle-freshness-legacy"
   | "terminal-archive"
-  | "terminal-archive-legacy";
+  | "terminal-archive-legacy"
+  | "terminal-archive-converged-legacy";
 
 interface BranchConfig {
   gateId: "proposal" | "discovery" | "design" | "acceptance" | "release";
@@ -147,6 +149,16 @@ const BRANCHES: Record<BranchId, BranchConfig> = {
     changeId: "replayFixtureTerminalArchiveLegacy",
     // Isolate the pre-patch terminal command sequence from fire-and-forget
     // projection activity; the patched branch below exercises awaited writes.
+    needsProjection: false,
+  },
+  "terminal-archive-converged-legacy": {
+    gateId: "release",
+    label:
+      "TERMINAL_PROJECTION_PATCH + GATE_COMPLETED_PROJECTION_PATCH (archiveConverged legacy)",
+    changeId: "replayFixtureTerminalArchiveConvergedLegacy",
+    // Same pre-patch terminal command sequence, but the terminal path is
+    // entered via the atomic archiveConverged signal rather than the legacy
+    // archiveChange signal, so in-flight converged executions are covered.
     needsProjection: false,
   },
 };
@@ -404,7 +416,10 @@ async function main(): Promise<void> {
   } else if (branch === "worker-bundle-freshness-legacy") {
     variantPath = await buildLegacyWorkerBundleVariant();
     activeWorkflowsPath = variantPath;
-  } else if (branch === "terminal-archive-legacy") {
+  } else if (
+    branch === "terminal-archive-legacy" ||
+    branch === "terminal-archive-converged-legacy"
+  ) {
     variantPath = await buildLegacyTerminalVariant();
     activeWorkflowsPath = variantPath;
   }
@@ -455,7 +470,8 @@ async function main(): Promise<void> {
       const deadline = Date.now() + 30_000;
       if (
         branch === "terminal-archive" ||
-        branch === "terminal-archive-legacy"
+        branch === "terminal-archive-legacy" ||
+        branch === "terminal-archive-converged-legacy"
       ) {
         while (Date.now() < deadline) {
           const state = (await owner.queryWorkflow(
@@ -467,7 +483,29 @@ async function main(): Promise<void> {
           if (state.gates[config.gateId]?.status === "done") break;
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
-        await owner.signalWorkflow(workflowId, archiveChangeSignal);
+        if (branch === "terminal-archive-converged-legacy") {
+          // Atomic converged signal: enters the terminal path through the
+          // archiveConverged handler (mutations + Activity + projection in one
+          // handler) rather than the legacy single-signal archiveChange path.
+          await owner.signalWorkflow(workflowId, archiveConvergedSignal, {
+            requestedAt: "2026-07-13T00:00:02.000Z",
+            requestedBy: "replay-fixture-generator",
+            approvalEvidence:
+              "replay fixture archiveConverged in-flight history",
+            releaseCompletion: {
+              gateId: config.gateId,
+              completedBy: "replay-fixture-generator",
+              completedAt: "2026-07-13T00:00:01.000Z",
+            },
+            phase9Status: {
+              status: "done",
+              startedAt: "2026-07-13T00:00:01.500Z",
+              completedAt: "2026-07-13T00:00:02.000Z",
+            },
+          });
+        } else {
+          await owner.signalWorkflow(workflowId, archiveChangeSignal);
+        }
       }
       while (Date.now() < deadline) {
         const state = (await owner.queryWorkflow(
@@ -479,7 +517,9 @@ async function main(): Promise<void> {
         };
         const gate = state.gates[config.gateId];
         const terminalArchive =
-          branch === "terminal-archive" || branch === "terminal-archive-legacy";
+          branch === "terminal-archive" ||
+          branch === "terminal-archive-legacy" ||
+          branch === "terminal-archive-converged-legacy";
         if (
           (terminalArchive && state.status === "archived") ||
           (!terminalArchive &&
@@ -524,7 +564,9 @@ async function main(): Promise<void> {
   );
 
   const terminalArchive =
-    branch === "terminal-archive" || branch === "terminal-archive-legacy";
+    branch === "terminal-archive" ||
+    branch === "terminal-archive-legacy" ||
+    branch === "terminal-archive-converged-legacy";
   if (
     finalStatus !== "done" &&
     !(terminalArchive && finalStatus === "archived")

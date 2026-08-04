@@ -79,6 +79,25 @@ const replayFixtures: ReplayFixture[] = [
     coversIncludes: "TERMINAL_PROJECTION_PATCH (terminal-projection-v1)",
   },
   {
+    // Pre-patch archiveConverged in-flight history: the terminal path is
+    // entered via the atomic converged signal (handler mutations + Activity +
+    // projection in one handler) without either new projection marker, so
+    // in-flight converged executions replay through the legacy branches.
+    metadataUrl: new URL(
+      "./replay/histories/fixArchiveTerminalDurability.terminal-archive-converged-legacy.metadata.json",
+      import.meta.url,
+    ),
+    historyUrl: new URL(
+      "./replay/histories/fixArchiveTerminalDurability.terminal-archive-converged-legacy.history.json",
+      import.meta.url,
+    ),
+    absentPatchMarkers: [
+      "gate-completed-projection-v1",
+      "terminal-projection-v1",
+    ],
+    coversIncludes: "archiveConverged legacy",
+  },
+  {
     // Protects DISCOVERY_CONTRACT_READINESS_PATCH in workflows.ts. Keep this
     // fixture while pre-contract discovery histories can still replay through
     // the legacy branch; removing it should coincide with patch deprecation.
