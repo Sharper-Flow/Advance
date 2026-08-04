@@ -139,6 +139,8 @@ type WriteChangeProjectionActivityResult =
   | { ok: true; path: string }
   | { ok: false; error: string; path?: undefined };
 
+type ChangeProjectionOutcome = "written" | "unavailable" | "failed";
+
 interface ChangeProjectionActivities {
   writeChangeProjection(input: {
     projectionChangesDir: string;
@@ -477,6 +479,11 @@ const archiveConvergedSignal = wf.defineSignal<
 // the legacy archive activity are terminal and removed from replay coverage.
 export const ARCHIVE_PROJECTION_RECONCILER_PATCH =
   "archive-projection-reconciler-v1";
+// Patch rationale: terminal workflows now await their final projection before
+// draining handlers and completing. Existing histories must retain the old
+// terminal command sequence during replay; the replay fixture is tracked by
+// the follow-up terminal durability task.
+export const TERMINAL_PROJECTION_PATCH = "terminal-projection-v1";
 const phase9StatusUpdatedSignal = wf.defineSignal<
   [import("../types").Phase9StatusUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);
@@ -996,8 +1003,17 @@ export async function changeWorkflow(
     }
   };
 
-  const projectChangeState = async (signalName: string): Promise<boolean> => {
-    if (!projectionChangesDir) return true;
+  const projectChangeState = async (
+    signalName: string,
+  ): Promise<ChangeProjectionOutcome> => {
+    if (!projectionChangesDir) {
+      wf.log.warn("change-projection-unavailable", {
+        op: `${signalName}Signal`,
+        changeId: state.changeId,
+        reason: "projection_changes_dir_unset",
+      });
+      return "unavailable";
+    }
     let result: WriteChangeProjectionActivityResult;
     try {
       result = await writeChangeProjection({
@@ -1011,7 +1027,7 @@ export async function changeWorkflow(
         changeId: state.changeId,
         error: err instanceof Error ? err.message : String(err),
       });
-      return false;
+      return "failed";
     }
     if (!result.ok) {
       wf.log.warn("change-projection-failed", {
@@ -1019,9 +1035,9 @@ export async function changeWorkflow(
         changeId: state.changeId,
         error: result.error,
       });
-      return false;
+      return "failed";
     }
-    return true;
+    return "written";
   };
 
   const scheduleChangeProjection = (signalName: string): void => {
@@ -1889,8 +1905,8 @@ export async function changeWorkflow(
         const archived = await runArchiveActivity(payload);
         const projected = archived
           ? await projectChangeState("archiveRequested")
-          : false;
-        if (!projected || !archived) {
+          : "failed";
+        if (projected === "failed" || !archived) {
           state.status = previousStatus;
           state.lifecycleState = previousLifecycleState;
           if (typeof previousTerminated === "undefined")
@@ -1943,8 +1959,8 @@ export async function changeWorkflow(
         });
         const projected = archived
           ? await projectChangeState("archiveConverged")
-          : false;
-        if (!projected || !archived) {
+          : "failed";
+        if (projected === "failed" || !archived) {
           // Rollback all in-task mutations so a half-converged state cannot
           // persist if the workflow dies here.
           state.status = previousStatus;
@@ -1997,8 +2013,8 @@ export async function changeWorkflow(
         const archived = await runCancelArchiveActivity(payload);
         const projected = archived
           ? await projectChangeState("changeCancelled")
-          : false;
-        if (!projected || !archived) {
+          : "failed";
+        if (projected === "failed" || !archived) {
           state.status = previousStatus;
           state.lifecycleState = previousLifecycleState;
           if (typeof previousTerminated === "undefined")
@@ -2233,6 +2249,19 @@ export async function changeWorkflow(
       status: state.status,
       reason: "terminal_status_detected",
     });
+    // Project before draining handlers. Signals arriving during this Activity
+    // round-trip are then observed by the drain rather than abandoned when the
+    // workflow returns.
+    if (wf.patched(TERMINAL_PROJECTION_PATCH)) {
+      const projected = await projectChangeState("terminal");
+      if (projected !== "written") {
+        wf.log.warn("terminal-projection-unverified", {
+          changeId: state.changeId,
+          status: state.status,
+          outcome: projected,
+        });
+      }
+    }
     // Drain any in-flight update/signal handlers before returning so we
     // do not interrupt e.g. a concurrent applyChangeSummary handler.
     await wf.condition(wf.allHandlersFinished);

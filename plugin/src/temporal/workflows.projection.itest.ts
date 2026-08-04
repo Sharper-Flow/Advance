@@ -3,13 +3,27 @@ import { readFile } from "fs/promises";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import { Worker } from "@temporalio/worker";
+import type { WorkflowHandle } from "@temporalio/client";
 
 import { createDefaultGates } from "../types";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import type { ChangeWorkflowInput } from "./contracts";
-import { writeChangeProjection } from "./activities";
-import { archiveRequestedSignal, gateCompletedSignal } from "./messages";
+import {
+  writeChangeProjection,
+  type WriteChangeProjectionInput,
+  type WriteChangeProjectionResult,
+} from "./activities";
+import {
+  archiveChangeSignal,
+  archiveRequestedSignal,
+  closeChangeSignal,
+  gateCompletedSignal,
+} from "./messages";
 import { withTimeSkippingTestWorkflowEnvironment } from "./__tests__/with-test-env";
+
+type ChangeWorkflowHandle = WorkflowHandle<
+  typeof import("./workflows").changeWorkflow
+>;
 
 function makeChangeInput(
   changeId: string,
@@ -101,4 +115,73 @@ describe("changeWorkflow disk projection", () => {
       await cleanupTempDir(dir);
     }
   }, 30_000);
+
+  it.each([
+    [
+      "archived",
+      async (handle: ChangeWorkflowHandle) =>
+        handle.signal(archiveChangeSignal),
+    ],
+    [
+      "closed",
+      async (handle: ChangeWorkflowHandle) =>
+        handle.signal(closeChangeSignal, {
+          reason: "cancelled",
+          approved_by_user: true,
+          approval_evidence: "close projection test",
+          approved_at: "2026-05-05T00:00:03.000Z",
+        }),
+    ],
+  ])(
+    "awaits the terminal projection Activity before completing (%s)",
+    async (status, trigger) => {
+      const dir = await createTempDir();
+      try {
+        await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+          const taskQueue = `terminal-projection-${status}-${Date.now()}`;
+          const events: string[] = [];
+          const trackedProjection = async (
+            input: WriteChangeProjectionInput,
+          ): Promise<WriteChangeProjectionResult> => {
+            const result = await writeChangeProjection(input);
+            events.push("projection-completed");
+            return result;
+          };
+          const worker = await Worker.create({
+            connection: env.nativeConnection,
+            workflowBundle: await getSharedWorkflowBundle(),
+            activities: { writeChangeProjection: trackedProjection },
+            taskQueue,
+          });
+
+          await worker.runUntil(async () => {
+            const changeId = `terminal-${status}`;
+            const handle = await env.client.workflow.start("changeWorkflow", {
+              workflowId: `terminal-projection-${status}-${Date.now()}`,
+              taskQueue,
+              args: [makeChangeInput(changeId, join(dir, "changes"))],
+            });
+
+            await trigger(handle);
+            await handle.result();
+            events.push("workflow-completed");
+
+            expect(events).toEqual([
+              "projection-completed",
+              "workflow-completed",
+            ]);
+            await expect(
+              readProjection(join(dir, "changes"), changeId),
+            ).resolves.toMatchObject({
+              schemaVersion: 2,
+              state: { status },
+            });
+          });
+        });
+      } finally {
+        await cleanupTempDir(dir);
+      }
+    },
+    30_000,
+  );
 });
