@@ -3,8 +3,8 @@
   "name": "advance-workflow",
   "title": "Advance Workflow",
   "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.43.1",
-  "updated_at": "2026-08-03T02:20:56.170Z",
+  "version": "1.43.2",
+  "updated_at": "2026-08-04T04:40:28.644Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -4848,7 +4848,7 @@
     {
       "id": "rq-artifactPathTruth01",
       "title": "Truthful Artifact Path Read Surfaces",
-      "body": "ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal state.documents, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Legacy disk and archive-bundle fallback reads MUST remain supported.",
+      "body": "ADV read surfaces MUST NOT expose nonexistent active artifact filesystem paths as readable source-of-truth. When artifact content lives in Temporal state.documents, tools MUST expose content via ADV read/include fields and either omit filesystem paths or mark them machine-readably non-readable/source-tagged. Artifact readback MUST consult the durable disk projection's `documents` map before concluding content is absent, using the precedence Temporal workflow Query, then projection `documents`, then legacy disk artifact, then archive bundle; the projection tier MUST NOT be consulted before the workflow Query. Every resolved artifact read MUST carry a machine-readable source tag identifying which tier served it, so a caller cannot infer workflow queryability from the presence of content. A local projection read MUST remain reachable even when the request-scoped Temporal aggregate read deadline is already exhausted. Legacy disk and archive-bundle fallback reads MUST remain supported.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -4893,6 +4893,34 @@
           "then": [
             "The real verified filesystem path may be included in evidence",
             "The behavior does not reintroduce active artifact-content disk writes as the primary source of truth"
+          ]
+        },
+        {
+          "id": "rq-artifactPathTruth01.4",
+          "title": "Projection documents serve artifact reads when the workflow is unreachable",
+          "given": [
+            "An active change has its artifact content persisted to the disk projection documents map",
+            "The change workflow is RUNNING on a task queue with no live poller because its originating session ended",
+            "The request-scoped Temporal aggregate read deadline is already exhausted"
+          ],
+          "when": "Artifact readback runs for that change",
+          "then": [
+            "The artifact content is returned from the projection documents map",
+            "The response does not report the artifact as unreadable or absent",
+            "No filesystem path is exposed for the projection-sourced content",
+            "The exhausted Temporal deadline does not prevent the local projection tier from running"
+          ]
+        },
+        {
+          "id": "rq-artifactPathTruth01.5",
+          "title": "Artifact reads declare provenance",
+          "given": [
+            "Artifact content is returned from any read tier"
+          ],
+          "when": "The read surface emits the result",
+          "then": [
+            "The result carries a machine-readable source tag distinguishing authoritative live workflow reads from projection, legacy-disk, and archive-bundle fallbacks",
+            "A caller cannot infer workflow queryability from the presence of content alone"
           ]
         }
       ]
