@@ -6083,6 +6083,12 @@ describe("change tools — signal-driven lifecycle", () => {
             error: "WORKTREE_NOT_FOUND",
             branch: "change/test-change",
           });
+        const proofHandle = mocks.handleMock as typeof mocks.handleMock & {
+          describe?: () => Promise<unknown>;
+        };
+        proofHandle.describe = vi.fn(async () => ({
+          status: { name: "RUNNING" },
+        }));
 
         const result = await changeTools.adv_change_archive.execute(
           { changeId: "test-change" },
@@ -6103,6 +6109,7 @@ describe("change tools — signal-driven lifecycle", () => {
         expect(saveMock).toHaveBeenCalledWith(
           expect.objectContaining({ status: "archived" }),
         );
+        delete proofHandle.describe;
       } finally {
         await cleanupTempDir(tempDir);
       }

@@ -957,6 +957,106 @@ async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
   return getChangeHandle(service, projectId, changeId);
 }
 
+const ARCHIVE_WORKFLOW_PROOF_BUDGET_MS = 250;
+const ARCHIVE_WORKFLOW_PROOF_BASE_MS = 10;
+const ARCHIVE_WORKFLOW_PROOF_CAP_MS = 40;
+
+type ArchiveWorkflowProofHandle = {
+  describe?: () => Promise<unknown>;
+};
+
+type ArchiveWorkflowProofResult =
+  | {
+      ok: true;
+      attempts: number;
+      statusName: string;
+    }
+  | {
+      ok: false;
+      attempts: number;
+      code: "ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS" | "ARCHIVE_WORKFLOW_PROOF_FAILED";
+      error: string;
+      recoveryDecision: Awaited<
+        ReturnType<typeof classifyMutationRecoveryDecision>
+      >;
+    };
+
+/**
+ * Prove that the archive transition reached the change workflow after the
+ * durable projection request was accepted. Signal acceptance alone is not
+ * delivery proof: a completed or retention-expired workflow can accept
+ * nothing. Visibility/list queries are intentionally not consulted here.
+ */
+async function proveArchiveWorkflowTransition(
+  handle: ArchiveWorkflowProofHandle | undefined,
+  changeId: string,
+): Promise<ArchiveWorkflowProofResult> {
+  let lastError: unknown = new Error(
+    `No workflow handle is available for change ${changeId}`,
+  );
+  const proof = await boundedRetry<{ statusName: string }>({
+    budgetMs: ARCHIVE_WORKFLOW_PROOF_BUDGET_MS,
+    baseMs: ARCHIVE_WORKFLOW_PROOF_BASE_MS,
+    capMs: ARCHIVE_WORKFLOW_PROOF_CAP_MS,
+    jitter: 0,
+    attempt: async () => {
+      if (!handle || typeof handle.describe !== "function") {
+        return { ok: false as const };
+      }
+      try {
+        const description = await handle.describe();
+        const { statusName } = workflowRunPinFromDescription(description);
+        const normalizedStatus = statusName?.toUpperCase();
+        if (
+          normalizedStatus === "RUNNING" ||
+          normalizedStatus === "COMPLETED" ||
+          normalizedStatus === "ARCHIVED"
+        ) {
+          return {
+            ok: true as const,
+            value: { statusName: normalizedStatus },
+          };
+        }
+        lastError = new Error(
+          `workflow describe returned an unrecognized archive state: ${statusName ?? "missing status"}`,
+        );
+        return { ok: false as const };
+      } catch (error) {
+        lastError = error;
+        return { ok: false as const };
+      }
+    },
+  });
+
+  if (proof.ok && proof.value) {
+    return {
+      ok: true,
+      attempts: proof.attempts,
+      statusName: proof.value.statusName,
+    };
+  }
+
+  const recoveryDecision = await classifyMutationRecoveryDecision({
+    signalError: lastError,
+    handle,
+  });
+  const ambiguous = isWorkflowAbsentByExactName(lastError);
+  const detail = collectErrorText(lastError);
+  return {
+    ok: false,
+    attempts: proof.attempts,
+    code: ambiguous
+      ? "ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS"
+      : "ARCHIVE_WORKFLOW_PROOF_FAILED",
+    error:
+      `Archive transition is not durably recorded: post-save workflow proof ` +
+      `failed after ${proof.attempts} describe attempt(s) for ${changeId}. ` +
+      `${ambiguous ? "The workflow may be completed or retention-expired. " : "Workflow state is unavailable. "}` +
+      `Re-run archive after confirming workflow and projection state. Cause: ${detail}`,
+    recoveryDecision,
+  };
+}
+
 function subagentReportTaskId(
   report: ScopedSubagentReport,
 ): string | undefined {
@@ -1153,6 +1253,8 @@ import { resolveChangeSelection } from "../storage/change-selection";
 import { sweepClosedChangesFromDisk } from "../storage/disk-sweep";
 import { BulkCloseSelectorSchema } from "../types";
 import { collectErrorText } from "../temporal/retry-wrapper";
+import { boundedRetry } from "../utils/fs";
+import { isWorkflowAbsentByExactName } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
   type TargetProjectContext,
@@ -4642,6 +4744,22 @@ export const changeTools = {
               changeId,
             });
           }
+          const archiveProof = await proveArchiveWorkflowTransition(
+            handle,
+            changeId,
+          );
+          if (!archiveProof.ok) {
+            return formatToolOutput({
+              success: false,
+              error: archiveProof.error,
+              code: archiveProof.code,
+              requirement: "rq-archiveTerminalDurability01",
+              changeId,
+              archivePath: existingBundlePath,
+              proofAttempts: archiveProof.attempts,
+              recoveryDecision: archiveProof.recoveryDecision,
+            });
+          }
           return reconciliationResult;
         }
         // rq-archiveOrdering01: Archive State Transition Must Be Resilient
@@ -4997,6 +5115,22 @@ export const changeTools = {
           }
           try {
             await store.changes.save(change);
+            const archiveProof = await proveArchiveWorkflowTransition(
+              handle,
+              changeId,
+            );
+            if (!archiveProof.ok) {
+              return formatToolOutput({
+                success: false,
+                error: archiveProof.error,
+                code: archiveProof.code,
+                requirement: "rq-archiveTerminalDurability01",
+                changeId,
+                archivePath: archiveResult.archivePath,
+                proofAttempts: archiveProof.attempts,
+                recoveryDecision: archiveProof.recoveryDecision,
+              });
+            }
             const epicProjection = await projectEpicTerminalSummaryAfterArchive(
               {
                 store,

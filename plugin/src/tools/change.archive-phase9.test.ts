@@ -486,6 +486,74 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(parsed.continueFrom).toEqual({ path: "/tmp/main", branch: "trunk" });
   });
 
+  test("fails closed when the post-save archive proof cannot find the workflow", async () => {
+    let saveCalled = false;
+    const store = createMockStore();
+    store.changes.save = vi.fn(async () => {
+      saveCalled = true;
+    });
+    mocks.workflow.handle.describe = vi.fn(async () => {
+      if (!saveCalled) return { status: { name: "RUNNING" } };
+      throw Object.assign(new Error("workflow execution not found"), {
+        name: "WorkflowNotFoundError",
+      });
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS");
+    expect(parsed.error).toContain("Archive transition is not durably recorded");
+    expect(parsed._recoveryMutation).toBeUndefined();
+    expect(store.changes.save).toHaveBeenCalledTimes(1);
+  });
+
+  test("accepts a terminal workflow state from the post-save archive proof", async () => {
+    mocks.workflow.handle.describe = vi.fn(async () => ({
+      status: { name: "COMPLETED" },
+    }));
+    const store = createMockStore();
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(mocks.workflow.handle.describe).toHaveBeenCalledTimes(3);
+  });
+
+  test("retries a transient post-save archive proof failure before succeeding", async () => {
+    let saveCalled = false;
+    let proofDescribeCalls = 0;
+    const store = createMockStore();
+    store.changes.save = vi.fn(async () => {
+      saveCalled = true;
+    });
+    mocks.workflow.handle.describe = vi.fn(async () => {
+      if (!saveCalled) return { status: { name: "RUNNING" } };
+      proofDescribeCalls += 1;
+      if (proofDescribeCalls === 1) {
+        throw new Error("Temporal unavailable");
+      }
+      return { status: { name: "RUNNING" } };
+    });
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(proofDescribeCalls).toBe(2);
+  });
+
   test("blocks archive when worker-bundle provenance is undeclared for a release-pending change", async () => {
     const store = createMockStore();
     const changeWithoutProvenance: Change = {
@@ -2559,7 +2627,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(mocks.finalizeRelease).not.toHaveBeenCalled();
   });
 
-  test("poisoned_history recovery bypasses Temporal read and archives from disk projection", async () => {
+  test("poisoned_history recovery bypasses Temporal read but refuses unproven archive delivery", async () => {
     const store = createMockStore();
     mocks.findArchiveBundle.mockResolvedValue(null);
     const change = (await store.changes.get("example")).data as Change;
@@ -2599,8 +2667,10 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     const parsed = JSON.parse(result);
-    // Success proves the pre-bundle read skipped store.changes.get.
-    expect(parsed.success).toBe(true);
+    // The pre-bundle read still skips store.changes.get, but a poisoned
+    // describe cannot prove that the post-save archive transition was applied.
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("ARCHIVE_WORKFLOW_PROOF_FAILED");
     expect(loadChangeSpy).toHaveBeenCalledWith(store.paths.changes, "example");
     expect(mocks.archiveChange).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -2615,7 +2685,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     delete (mocks.workflow.handle as { describe?: unknown }).describe;
   });
 
-  test("absent workflow recovers from a complete disk projection and archives", async () => {
+  test("absent workflow fails closed after the archive transition request", async () => {
     const store = createMockStore();
     mocks.findArchiveBundle.mockResolvedValue(null);
     const change = (await store.changes.get("example")).data as Change;
@@ -2647,7 +2717,8 @@ describe("adv_change_archive Phase 9 behavior", () => {
     );
 
     const parsed = JSON.parse(result);
-    expect(parsed.success).toBe(true);
+    expect(parsed.success).toBe(false);
+    expect(parsed.code).toBe("ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS");
     expect(loadChangeSpy).toHaveBeenCalledWith(store.paths.changes, "example");
     expect(mocks.archiveChange).toHaveBeenCalledWith(
       expect.objectContaining({
