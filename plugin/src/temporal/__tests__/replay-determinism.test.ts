@@ -8,6 +8,13 @@ import {
   PoisonedHistoryClassificationSchema,
   assertCompletePoisonedHistoryClassifications,
 } from "../replay-history-classification";
+import {
+  applySubagentReportSubmittedToState,
+  applyTaskAddedToState,
+  createChangeWorkflowState,
+} from "../change-state";
+import { ErrorRecoverySchema } from "../../types/tasks";
+import { SUBAGENT_REPORT_MAX_RETRIES } from "../../types/subagent-reports";
 
 // rq-workflowVersioning01 — committed workflow histories must replay in CI.
 const workflowsPath = fileURLToPath(
@@ -278,6 +285,132 @@ describe("changeWorkflow replay determinism", () => {
         requireTerminal: true,
       }),
     ).toHaveLength(AFFECTED_POISONED_CHANGE_IDS.length);
+  });
+
+  // clampDoomLoopAccumulator: self-heal proof for the unclamped doom-loop
+  // accumulator. Requires TWO assertions. Worker.runReplayHistory validates the
+  // command/event sequence only — it never inspects derived in-memory state, and
+  // the schema rejection that actually bricks a change lives in the tool layer,
+  // outside replay. A green replay alone would prove nothing about the heal.
+  describe("retry-budget overflow self-heals", () => {
+    /**
+     * Committed production histories that already record more
+     * subagentReportSubmitted signals than the retry budget allows. Their
+     * pre-clamp derived state carried attempts[] past max_retries, which is the
+     * condition that made a change unreadable and unwritable.
+     */
+    const OVERFLOW_HISTORIES = [
+      "addArchiveScaleRegression",
+      "fixArchiveDeltaReconciliation",
+      "fixHealthViewTimeouts",
+      "makeLegacyDesignValidation",
+      "refineTestEvidencePolicy",
+    ] as const;
+
+    it("assertion 1 — unchanged over-budget histories still replay cleanly (command-safety)", async () => {
+      // These fixtures are replayed by the parametrized suite above against the
+      // clamped reducer. This case pins WHY they matter here: each one exceeds
+      // the retry budget, so together they are the evidence that changing
+      // state-derivation logic did not disturb the command/event sequence.
+      let maxSignals = 0;
+      for (const changeId of OVERFLOW_HISTORIES) {
+        const history = await readJson<{ events: ReplayHistoryEvent[] }>(
+          new URL(
+            `./replay/histories/${changeId}.poisoned-production.history.json`,
+            import.meta.url,
+          ),
+        );
+        const reportSignals = history.events.filter(
+          (event) =>
+            (
+              event as unknown as {
+                workflowExecutionSignaledEventAttributes?: {
+                  signalName?: string;
+                };
+              }
+            ).workflowExecutionSignaledEventAttributes?.signalName ===
+            "adv.change.subagentReportSubmitted",
+        );
+        expect(reportSignals.length).toBeGreaterThan(
+          SUBAGENT_REPORT_MAX_RETRIES,
+        );
+        maxSignals = Math.max(maxSignals, reportSignals.length);
+        expect(auditSanitizedHistory(history)).toMatchObject({ safe: true });
+      }
+      // Guard the guard: if fixtures were ever trimmed to the budget this suite
+      // would silently stop covering overflow.
+      expect(maxSignals).toBeGreaterThanOrEqual(7);
+    });
+
+    it("assertion 2 — re-derives error_recovery that satisfies the read-path schema (the heal)", () => {
+      // Drive the reducer directly with more blocked reports than the budget,
+      // mirroring what the fixture history replays. This is the assertion that
+      // replay cannot make: it exercises the read-path schema that rejected the
+      // pre-clamp state and made the change unreadable and unwritable.
+      const state = createChangeWorkflowState({
+        changeId: "resolveAdvPersistenceRecovery",
+        title: "Retry budget overflow",
+        createdAt: "2026-08-04T00:00:00.000Z",
+      });
+      applyTaskAddedToState(state, {
+        task: {
+          id: "tk-80bead8588f7",
+          title: "Verify the ADR artifact",
+          type: "code",
+          status: "pending",
+          priority: 0,
+          created_at: "2026-08-04T00:00:01.000Z",
+        },
+        addedAt: "2026-08-04T00:00:01.000Z",
+      });
+
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        applySubagentReportSubmittedToState(state, {
+          taskId: "tk-80bead8588f7",
+          report: {
+            schema_version: "1.0",
+            change_id: "resolveAdvPersistenceRecovery",
+            scope: { kind: "task", task_id: "tk-80bead8588f7" },
+            attempt,
+            agent: "adv-reviewer",
+            status: "complete",
+            evidence_binding_version: "typed-v1",
+            files_touched: [],
+            verification: [
+              { command: "pnpm test", exit_code: 0, summary: "pass" },
+            ],
+            decisions: [],
+            blocking_findings: [
+              {
+                finding: `Blocking finding ${attempt}`,
+                contract_ids: ["AC1"],
+                scope: "in_scope",
+                in_scope_remediation: `Fix ${attempt}`,
+                source: {
+                  label: "design.md",
+                  locator: `design.md:${attempt}`,
+                  summary: "blocker",
+                },
+              },
+            ],
+            changes_made: [],
+            scope_drift: null,
+            follow_ups: [],
+            required_main_agent_actions: [],
+            related_scan: "",
+            context_update_for_adv: {
+              what_ads_needs_to_know: "",
+              suggested_next_action: "",
+            },
+          },
+          submittedAt: `2026-08-04T00:0${attempt}:00.000Z`,
+        });
+      }
+
+      const recovery = state.tasks[0]?.error_recovery;
+      expect(recovery?.attempts).toHaveLength(SUBAGENT_REPORT_MAX_RETRIES);
+      expect(ErrorRecoverySchema.safeParse(recovery).success).toBe(true);
+    });
   });
 
   it("makeLegacyDesignValidation poisoned production history is self-healed and replays cleanly", async () => {
