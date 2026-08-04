@@ -132,6 +132,7 @@ interface WorktreeResumeArgs extends TargetWorktreeMutationArgs {
 interface WorktreeCleanupArgs extends TargetWorktreeMutationArgs {
   reason: string;
   dryRun?: boolean;
+  skipDiscovery?: boolean;
   timeoutMs?: number;
   mode?: "worktrees" | "archived_branches";
   changeId?: string;
@@ -354,6 +355,9 @@ async function executeWorktreeCleanup(
     dryRun: args.dryRun,
     store,
     warpDeps,
+    ...(args.skipDiscovery !== undefined && {
+      discover: !args.skipDiscovery,
+    }),
     cleanupItemTimeoutMs: cleanupItemTimeoutForToolBudget(effectiveTimeoutMs),
   });
 
@@ -810,6 +814,12 @@ export const advWorktreeTools = {
         .optional()
         .describe(
           "Preview cleanup without deleting queued worktrees or merged branches",
+        ),
+      skipDiscovery: z
+        .boolean()
+        .optional()
+        .describe(
+          "Skip the discovery scan and drain only already-queued pending deletes. Only honored in mode=worktrees (the default); ignored in mode=archived_branches. Use after a prior cleanup timed out during discovery and left entries queued.",
         ),
       timeoutMs: z
         .number()

@@ -813,6 +813,61 @@ describe("advWorktreeTools", () => {
     expect(out).toContain('"dryRun":true');
   });
 
+  it("adv_worktree_cleanup drains queued entries without discovery when skipDiscovery is true", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    const discoverTerminalCleanupCandidates = vi.fn();
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      async (_reason, deps) => {
+        if (deps.discover !== false) discoverTerminalCleanupCandidates();
+        return { removed: 1, retained: 0 };
+      },
+    );
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "drain timed-out cleanup", skipDiscovery: true },
+      store,
+    );
+
+    expect(worktreeMock.advWorktreeCleanup).toHaveBeenCalledWith(
+      "drain timed-out cleanup",
+      expect.objectContaining({ discover: false }),
+    );
+    expect(discoverTerminalCleanupCandidates).not.toHaveBeenCalled();
+    expect(out).toContain('"removed":1');
+  });
+
+  it("adv_worktree_cleanup returns zeroes without discovery when the queue is empty", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    const discoverTerminalCleanupCandidates = vi.fn();
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      async (_reason, deps) => {
+        if (deps.discover !== false) discoverTerminalCleanupCandidates();
+        return { removed: 0, retained: 0 };
+      },
+    );
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "drain empty queue", skipDiscovery: true },
+      store,
+    );
+
+    expect(worktreeMock.advWorktreeCleanup).toHaveBeenCalledWith(
+      "drain empty queue",
+      expect.objectContaining({ discover: false }),
+    );
+    expect(discoverTerminalCleanupCandidates).not.toHaveBeenCalled();
+    expect(out).toContain('"removed":0');
+    expect(out).toContain('"retained":0');
+  });
+
   it("adv_worktree_cleanup routes target_path mutations through target store", async () => {
     const database = {
       projectDir: "/target",
