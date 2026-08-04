@@ -488,7 +488,7 @@ export const statusTools = {
           if (isTemporalReadExpired(temporalReadContext)) {
             status = buildDeadlineDegradedStatus(status);
           }
-          // Request-local resolved documents (AC4): extracted for
+          // Request-local resolved documents: extracted for
           // enrichment reuse and stripped before output serialization —
           // the map is transport-only, never response payload.
           const resolvedChanges = status.resolvedChanges;
@@ -509,7 +509,10 @@ export const statusTools = {
               message: `⚠️ Status read incomplete — ${warning.message}`,
             });
           }
-          let migrationStatus: unknown = null;
+          let migrationStatus:
+            | Awaited<ReturnType<typeof loadMigrationStatus>>
+            | null
+            | undefined = null;
 
           const projectId = activeStore.paths.external
             ? basename(activeStore.paths.external)
@@ -679,7 +682,6 @@ export const statusTools = {
               "recentChangeEnrichment",
               async () => {
                 let primaryAssigned = false;
-                let deadlineExceeded = false;
                 if (view === "health") {
                   const cutoffAt =
                     statusReadOptions?.deadline?.deadlineAt ??
@@ -688,7 +690,6 @@ export const statusTools = {
                   let rank = 0;
                   for (const rc of recentChanges) {
                     if (postStatusBudgetExceeded()) {
-                      deadlineExceeded = true;
                       break;
                     }
                     const isPrimary = !primaryAssigned && rc.status === "draft";
@@ -716,7 +717,6 @@ export const statusTools = {
                 } else {
                   for (const rc of recentChanges) {
                     if (postStatusBudgetExceeded()) {
-                      deadlineExceeded = true;
                       break;
                     }
                     const isPrimary = !primaryAssigned && rc.status === "draft";
@@ -743,13 +743,10 @@ export const statusTools = {
                       !enrichmentRead.complete ||
                       postStatusBudgetExceeded()
                     ) {
-                      deadlineExceeded = true;
                       break;
                     }
                   }
                 }
-                if (postStatusBudgetExceeded()) deadlineExceeded = true;
-                return deadlineExceeded;
               },
             );
             if (postStatusBudgetExceeded()) {
@@ -1212,7 +1209,11 @@ export const statusTools = {
                 temporalReadContext,
                 { maxAttempts: 1, opType: "status.snapshotHealth" },
               );
-              if (!snapshotHealthRead.complete || !snapshotHealthRead.data) {
+              if (
+                !snapshotHealthRead.complete ||
+                !snapshotHealthRead.data ||
+                postStatusBudgetExceeded()
+              ) {
                 status = buildDeadlineDegradedStatus(status);
                 return buildDegradedResponse();
               }
@@ -1228,7 +1229,11 @@ export const statusTools = {
                 temporalReadContext,
                 { maxAttempts: 1, opType: "status.specs" },
               );
-              if (!specsRead.complete || !specsRead.data) {
+              if (
+                !specsRead.complete ||
+                !specsRead.data ||
+                postStatusBudgetExceeded()
+              ) {
                 status = buildDeadlineDegradedStatus(status);
                 return buildDegradedResponse();
               }

@@ -515,6 +515,50 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     clearPoisonedWorkflowCache();
   });
 
+  it("does not mark a successful Temporal read as a disk projection", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const change = activeChange("temporalOnlyRead");
+    await mkdir(join(legacy.paths.changes, change.id), { recursive: true });
+    const temporal = createMockOwnerFromClient({
+      client: {
+        workflow: {
+          list: async function* () {
+            yield { workflowId: "adv/change/project-1/temporalOnlyRead" };
+          },
+          getHandle: () => ({
+            query: async () =>
+              changeToWorkflowState({
+                projectId: "0000ec0100000000000000000000000000000000",
+                change,
+              }),
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    });
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "0000ec0100000000000000000000000000000000",
+    });
+    const projectionState = { loaded: false };
+
+    const result = await store.status({
+      sourceRanked: true,
+      recentLimit: 1,
+      projectionState,
+    });
+
+    expect(result.changes.recent.map((entry) => entry.id)).toContain(
+      "temporalOnlyRead",
+    );
+    expect(projectionState.loaded).toBe(false);
+    expect(store.hasLoadedDiskProjection?.(projectionState)).toBe(false);
+  });
+
   it("returns a terminal disk projection when workflow history is poisoned", async () => {
     tempDir = await createTempDir();
     const legacy = await createDiskStore(tempDir);

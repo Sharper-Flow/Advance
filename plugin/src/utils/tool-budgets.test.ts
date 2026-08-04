@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { HEALTH_EXECUTION_CUTOFF_MS } from "../tools/status-health-plan";
 import {
   DEFAULT_TOOL_TIMEOUT_MS,
   STATUS_READ_DEADLINE_BUDGET_MS,
@@ -27,5 +28,14 @@ describe("status read/tool timeout budget contract", () => {
     // Headroom must be strictly positive — a zero/negative margin means
     // the degraded response has no time to serialize.
     expect(TOOL_RESPONSE_HEADROOM_MS).toBeGreaterThan(0);
+  });
+
+  test("health execution cutoff stays inside the status read budget", () => {
+    // The health executor has its own provider cutoff, but the outer status
+    // deadline is authoritative. Keep the inner cutoff strictly below it so
+    // the health guard can never outlive the remaining status-read budget.
+    expect(HEALTH_EXECUTION_CUTOFF_MS).toBeLessThan(
+      STATUS_READ_DEADLINE_BUDGET_MS,
+    );
   });
 });
