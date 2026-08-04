@@ -1044,7 +1044,7 @@ async function readArchivedProjectionStatus(
   store: Store,
   changeId: string,
 ): Promise<string | undefined> {
-  const projectionFile = join(store.paths.changes, changeId, "change.json");
+  const projectionFile = join(store.paths.changes, `${changeId}.json`);
   const outcome = await readBoundedProjectionDocument(projectionFile);
   if (outcome.kind !== "ok") return undefined;
   try {

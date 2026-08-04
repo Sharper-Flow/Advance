@@ -309,9 +309,9 @@ function createMockStore(
       // archive proof reads it as commit evidence, so the default save
       // simulates the Activity write. Failure-path tests override save.
       save: vi.fn(async (saved: Change) => {
-        await mkdir(`/tmp/.adv/changes/${saved.id}`, { recursive: true });
+        await mkdir("/tmp/.adv/changes", { recursive: true });
         await writeFile(
-          `/tmp/.adv/changes/${saved.id}/change.json`,
+          `/tmp/.adv/changes/${saved.id}.json`,
           JSON.stringify({
             schemaVersion: 2,
             projectId: PROJECT_ID,
@@ -621,9 +621,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
     // workflow transition. Local writers persist a plain Change document, not
     // the Activity envelope, so the proof must not attribute it to a
     // workflow commit.
-    await mkdir("/tmp/.adv/changes/example", { recursive: true });
+    await mkdir("/tmp/.adv/changes", { recursive: true });
     await writeFile(
-      "/tmp/.adv/changes/example/change.json",
+      "/tmp/.adv/changes/example.json",
       JSON.stringify({ id: "example", status: "archived" }),
     );
     mocks.workflow.handle.describe = vi.fn(async () => {

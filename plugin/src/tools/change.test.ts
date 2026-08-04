@@ -6069,9 +6069,9 @@ describe("change tools — signal-driven lifecycle", () => {
         store.paths.archive = archiveDir;
         // Already-archived no-op: the durable projection carries the archived
         // status (written when the transition originally committed).
-        await mkdir(`${tempDir}/.adv/changes/test-change`, { recursive: true });
+        await mkdir(`${tempDir}/.adv/changes`, { recursive: true });
         await writeFile(
-          `${tempDir}/.adv/changes/test-change/change.json`,
+          `${tempDir}/.adv/changes/test-change.json`,
           JSON.stringify({
             schemaVersion: 2,
             projectId: "test",
