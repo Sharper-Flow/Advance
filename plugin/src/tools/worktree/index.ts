@@ -3208,8 +3208,11 @@ export async function advWorktreeCleanup(
     gitTimeoutMs: deps.gitTimeoutMs,
   };
 
-  deps.onStageEnter?.("discovery");
+  // Fired inside the gate so a reported stage of "discovery" means discovery
+  // actually ran. Firing it unconditionally would claim discovery for dryRun
+  // and skipDiscovery passes that never scanned anything.
   if (!deps.dryRun && deps.discover !== false) {
+    deps.onStageEnter?.("discovery");
     await discoverTerminalCleanupCandidates(
       reason || "worktree_cleanup",
       deleteDeps,

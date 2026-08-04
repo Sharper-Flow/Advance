@@ -81,12 +81,14 @@ const DISCOVERY_GIT_BUDGET_CEILING_MS = 2_000;
 export function discoveryGitBudgetForToolBudget(
   effectiveTimeoutMs: number,
 ): number {
+  // Non-finite input would propagate NaN through Math.max into
+  // execFile({ timeout: NaN }), which is undefined behaviour. Zod rejects NaN
+  // at the tool boundary, but this helper is exported and must not depend on
+  // its callers for safety.
+  const budget = Number.isFinite(effectiveTimeoutMs) ? effectiveTimeoutMs : 0;
   return Math.max(
     1,
-    Math.min(
-      DISCOVERY_GIT_BUDGET_CEILING_MS,
-      Math.floor(effectiveTimeoutMs / 4),
-    ),
+    Math.min(DISCOVERY_GIT_BUDGET_CEILING_MS, Math.floor(budget / 4)),
   );
 }
 
@@ -416,23 +418,38 @@ async function executeWorktreeCleanup(
   if (timeoutHandle) clearTimeout(timeoutHandle);
 
   if ("_timedOut" in result && result._timedOut) {
+    // Snapshot the stage synchronously, before any await. The inner promise is
+    // still running (withTimeout is non-cancelling), so awaiting first would
+    // yield the event loop and let it advance the stage — reporting a
+    // post-timeout value instead of the one in flight when the budget expired
+    // (DONT5).
+    const stageAtTimeout = currentStage;
     const clampedNote = wasClamped
       ? ` (requested ${args.timeoutMs}ms was clamped to safe budget ${effectiveTimeoutMs}ms)`
       : "";
+    // Distinguish "queue is empty" from "queue could not be read". Collapsing
+    // both to 0 would tell the operator that a drain-only retry has nothing to
+    // do when in fact the state DB is unreachable — the same class of
+    // misleading guidance this change exists to remove.
+    const pendingDeletes = await getPendingDeletes(database).then(
+      (rows) => ({ ok: true as const, count: rows.length }),
+      () => ({ ok: false as const }),
+    );
     return formatMaybeTargetOutput(
       formatToolOutput({
         success: false,
         timedOut: true,
         effectiveTimeoutMs,
-        stage: currentStage,
-        pendingDeleteCount: (await getPendingDeletes(database).catch(() => []))
-          .length,
+        stage: stageAtTimeout,
+        ...(pendingDeletes.ok
+          ? { pendingDeleteCount: pendingDeletes.count }
+          : { pendingDeleteCountUnavailable: true }),
         // No poison claim: this branch resolves a setTimeout sentinel, not a
         // rejection, so there is no error to classify. rq-worktreePoisonVisibility01
         // requires error-class plus structured evidence before naming poisoned
         // history — asserting it here would be a guess. Report the stage that
         // was actually in flight instead.
-        error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote} during ${currentStage}. The inner promise was not cancelled; queued deletes may still resolve on a later drain pass.`,
+        error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote} during ${stageAtTimeout}. The inner promise was not cancelled; queued deletes may still resolve on a later drain pass.`,
         // rq-worktreeBoundedCleanup02: the safe budget is a structural ceiling,
         // so a clamped caller must be given an action that can actually succeed.
         remediation: wasClamped
