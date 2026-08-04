@@ -34,13 +34,30 @@ function readRepoFile(path: string): string {
  */
 function extractSection(md: string, headingPattern: RegExp): string {
   const lines = md.split("\n");
+
+  // Headings inside fenced code blocks are template content, not document
+  // structure. Report-shape templates legitimately contain `### ...` lines.
+  const inFence: boolean[] = [];
+  let fenced = false;
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) {
+      inFence.push(true);
+      fenced = !fenced;
+      continue;
+    }
+    inFence.push(fenced);
+  }
+
+  const isHeading = (index: number): RegExpMatchArray | null =>
+    inFence[index] ? null : lines[index].match(/^(#{2,4})\s/);
+
   const start = lines.findIndex(
-    (line) => /^#{2,4}\s/.test(line) && headingPattern.test(line),
+    (line, index) => isHeading(index) !== null && headingPattern.test(line),
   );
   if (start === -1) return "";
-  const level = lines[start].match(/^(#{2,4})/)?.[1].length ?? 2;
+  const level = isHeading(start)?.[1].length ?? 2;
   for (let i = start + 1; i < lines.length; i++) {
-    const heading = lines[i].match(/^(#{2,4})\s/);
+    const heading = isHeading(i);
     if (heading && heading[1].length <= level) {
       return lines.slice(start, i).join("\n");
     }
