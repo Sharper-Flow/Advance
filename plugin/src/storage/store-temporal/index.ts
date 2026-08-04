@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { Store } from "../store-types";
+import type { DiskProjectionReadState, Store } from "../store-types";
 import type { Change } from "../../types";
 import { createLogger } from "../../utils/debug-log";
 import { hasArchiveBundle } from "../json";
@@ -95,6 +95,14 @@ export function createTemporalStoreBackend(
   const changeCache = new Map<string, Change>();
   const changeOverlayCache = new Map<string, Partial<Change>>();
   const memo = new ChangeSummaryMemo();
+  const loadedDiskProjectionIds = new Set<string>();
+  const markLoadedDiskProjection = (
+    changeId: string,
+    state?: DiskProjectionReadState,
+  ): void => {
+    loadedDiskProjectionIds.add(changeId);
+    if (state) state.loaded = true;
+  };
 
   // Reverse-lookup cache populated from any Temporal-observed tasks so
   // taskId-only methods can resolve the owning change without requiring the
@@ -192,7 +200,10 @@ export function createTemporalStoreBackend(
   // Routine reads are disk/read-model authoritative. This closure has no
   // Temporal dependency and only populates advisory caches after validating a
   // fresh projection read.
-  const readProjectionSnapshot = async (changeId: string) => {
+  const readProjectionSnapshot = async (
+    changeId: string,
+    projectionState?: DiskProjectionReadState,
+  ) => {
     const readArchiveBundle = async (
       changeId: string,
     ): Promise<ChangeReadSnapshot | undefined> => {
@@ -234,11 +245,13 @@ export function createTemporalStoreBackend(
         ...archiveSnapshot.snapshot,
         status: "archived" as const,
       };
+      markLoadedDiskProjection(changeId, projectionState);
       setCachedProjection(archived);
       return { ...archiveSnapshot, snapshot: archived };
     }
 
     if (diskSnapshot.found) {
+      markLoadedDiskProjection(changeId, projectionState);
       setCachedProjection(diskSnapshot.snapshot);
       return diskSnapshot;
     }
@@ -658,7 +671,11 @@ export function createTemporalStoreBackend(
 
   const getTemporalChange = async (
     changeId: string,
-    opts?: { deadline?: TemporalReadDeadline; context?: TemporalReadContext },
+    opts?: {
+      deadline?: TemporalReadDeadline;
+      context?: TemporalReadContext;
+      projectionState?: DiskProjectionReadState;
+    },
   ): Promise<ReturnType<Store["changes"]["get"]>> => {
     const ctx =
       opts?.context ??
@@ -703,7 +720,10 @@ export function createTemporalStoreBackend(
     // and annotate the result so callers (e.g. adv_change_show) can surface the
     // poisoned state without paying a timeout.
     if (isPoisonedWorkflowForChange(input.projectId, changeId)) {
-      const snapshot = await readProjectionSnapshot(changeId);
+      const snapshot = await readProjectionSnapshot(
+        changeId,
+        opts?.projectionState,
+      );
       const result = snapshotToLoadResult(snapshot);
       if (result.success && result.data) {
         (result.data as Change & { _poisoned?: true })._poisoned = true;
@@ -910,6 +930,7 @@ export function createTemporalStoreBackend(
       candidateLimit?: number;
       hydrationConcurrency?: number;
       sourceRanked?: boolean;
+      projectionState?: DiskProjectionReadState;
     },
   ): Promise<import("../store-types").ResolvedChangeList> => {
     const ctx =
@@ -1421,7 +1442,10 @@ export function createTemporalStoreBackend(
 
       try {
         const result = await raceWithTemporalDeadline(
-          getTemporalChange(changeId, { context: ctx }),
+          getTemporalChange(changeId, {
+            context: ctx,
+            projectionState: options?.projectionState,
+          }),
           deadline,
         );
         if (isSchemaError(result)) {
@@ -1776,7 +1800,11 @@ export function createTemporalStoreBackend(
       const resolved = await listResolvedChanges(
         { includeArchived: false, includeClosed: false },
         options.deadline ?? createTemporalReadContext(),
-        { candidateLimit, sourceRanked: true },
+        {
+          candidateLimit,
+          sourceRanked: true,
+          projectionState: options.projectionState,
+        },
       );
 
       const changesById = new Map(
@@ -1848,6 +1876,9 @@ export function createTemporalStoreBackend(
         ? { limit: options.recentLimit }
         : {}),
       ...(options?.deadline ? { deadline: options.deadline } : {}),
+      ...(options?.projectionState
+        ? { projectionState: options.projectionState }
+        : {}),
     });
     const {
       changes,
@@ -2022,6 +2053,7 @@ export function createTemporalStoreBackend(
     changeOverlayCache,
     memo,
     taskChangeIndex,
+    markLoadedDiskProjection,
     buildSummary,
     setCachedChange,
     invalidateChange,
@@ -2043,6 +2075,8 @@ export function createTemporalStoreBackend(
 
   const store: Store = {
     ...legacy,
+    hasLoadedDiskProjection: (state) =>
+      state?.loaded ?? loadedDiskProjectionIds.size > 0,
     specs: buildSpecsSurface(),
     changes: changeOps,
     tasks: createTaskOps(deps),

@@ -38,6 +38,7 @@ export type TerminalWarningCode =
   | "TERMINAL_SOURCE_DEGRADED"
   | "TERMINAL_CANDIDATE_OMITTED"
   | "SOURCE_DEADLINE_EXCEEDED"
+  | "SOURCE_WORKFLOW_DURABLY_ABSENT"
   | "SOURCE_BOUND_EXCEEDED"
   | "SOURCE_RANKING_DEGRADED";
 
@@ -87,6 +88,8 @@ export interface HydrationStats {
    * explicitly incomplete.
    */
   boundedOmitted?: number;
+  /** True when the workflow source is durably absent after a disk projection read. */
+  durableAbsence?: boolean;
   /**
    * Specific candidate IDs omitted because the aggregate read deadline
    * expired or the circuit breaker tripped. Present when callers need to

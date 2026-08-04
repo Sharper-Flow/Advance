@@ -143,6 +143,19 @@ export interface StatusResolvedChangeContext {
   resolvedChanges?: ReadonlyMap<string, Change>;
 }
 
+export interface StatusEnrichmentOptions {
+  /** Absolute request cutoff shared by all non-health enrichment reads. */
+  cutoffAt?: number;
+  signal?: AbortSignal;
+}
+
+function enrichmentWithinBudget(options?: StatusEnrichmentOptions): boolean {
+  return (
+    !options?.signal?.aborted &&
+    (options?.cutoffAt === undefined || Date.now() < options?.cutoffAt)
+  );
+}
+
 export async function getFastFollowParentContext(
   store: Store,
   parentChangeId: string,
@@ -171,7 +184,9 @@ export async function enrichRecentChangeStatus(
   clarifyMode: string,
   isPrimary: boolean,
   resolved?: StatusResolvedChangeContext,
+  options?: StatusEnrichmentOptions,
 ): Promise<void> {
+  if (!enrichmentWithinBudget(options)) return;
   const changeId = String(rc.id);
   let changeData: Change;
   let proposalText: string;
@@ -183,6 +198,9 @@ export async function enrichRecentChangeStatus(
     proposalText = resolved.change.documents?.proposal ?? "";
   } else {
     const changeResult = await store.changes.get(changeId);
+    if (!enrichmentWithinBudget(options)) {
+      return;
+    }
     if (!changeResult.success || !changeResult.data) return;
     changeData = changeResult.data;
     // Temporal-first proposal read per KD-6. Falls back to disk/archive
@@ -190,6 +208,7 @@ export async function enrichRecentChangeStatus(
     // empty string for snapshot rendering (status output is read-only).
     proposalText =
       (await readArtifact(store, changeId, "proposal"))?.content ?? "";
+    if (!enrichmentWithinBudget(options)) return;
   }
 
   const gates = changeData.gates ?? createDefaultGates();
@@ -249,6 +268,7 @@ export async function enrichRecentChangeStatus(
     | undefined;
   if (isPrimary) {
     try {
+      if (!enrichmentWithinBudget(options)) return;
       // Prefer rc.lastActivityAt (already-enriched recency field); fall back to
       // changeData.lastActivityAt. If neither present, treat as fresh (no resolver).
       const lastActivityAt =
@@ -263,6 +283,7 @@ export async function enrichRecentChangeStatus(
             lastActivityAgeMinutes,
             lastActivityAt,
           });
+          if (!enrichmentWithinBudget(options)) return;
           resumeFreshnessInput = {
             findings: result.findings,
             skipped: result.skipped,
@@ -302,9 +323,11 @@ export async function enrichRecentChangeStatus(
     ...(failClosedPlan ? { _phasePlan: failClosedPlan } : {}),
   });
 
+  if (!enrichmentWithinBudget(options)) return;
   const dependencyStatus = await buildExternalDependencyStatus(
     changeData.external_dependencies,
   );
+  if (!enrichmentWithinBudget(options)) return;
   if (dependencyStatus) {
     (rc as unknown as Record<string, unknown>)._externalDependencyStatus =
       dependencyStatus.summary;
@@ -316,6 +339,7 @@ export async function enrichRecentChangeStatus(
       ? undefined
       : fallbackNextGate;
   if (directive && nextGate) {
+    if (!enrichmentWithinBudget(options)) return;
     const parentContext = changeData.fast_follow_of
       ? await getFastFollowParentContext(
           store,
@@ -323,6 +347,7 @@ export async function enrichRecentChangeStatus(
           resolved?.resolvedChanges,
         )
       : undefined;
+    if (!enrichmentWithinBudget(options)) return;
     const item = buildNextGateRecommendationFromDirective({
       directive,
       changeId,
@@ -742,6 +767,14 @@ export async function buildCandidateEnrichmentPatch(
               lastActivityAgeMinutes,
               lastActivityAt,
             });
+            if (signal?.aborted || Date.now() >= cutoffAt) {
+              return notAdmittedPatch(
+                changeId,
+                rank,
+                start,
+                "execution cutoff",
+              );
+            }
             candidateResumeFreshness = {
               findings: result.findings,
               skipped: result.skipped,
@@ -782,6 +815,9 @@ export async function buildCandidateEnrichmentPatch(
     const dependencyStatus = await buildExternalDependencyStatus(
       changeData.external_dependencies,
     );
+    if (signal?.aborted || Date.now() >= cutoffAt) {
+      return notAdmittedPatch(changeId, rank, start, "execution cutoff");
+    }
     if (dependencyStatus) {
       candidate._externalDependencyStatus = dependencyStatus.summary;
     }
@@ -814,6 +850,9 @@ export async function buildCandidateEnrichmentPatch(
             resolved?.resolvedChanges,
           )
         : undefined;
+      if (signal?.aborted || Date.now() >= cutoffAt) {
+        return notAdmittedPatch(changeId, rank, start, "execution cutoff");
+      }
       const item = buildNextGateRecommendationFromDirective({
         directive,
         changeId,

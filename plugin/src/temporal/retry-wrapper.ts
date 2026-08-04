@@ -47,7 +47,7 @@ export const temporalOpLatency = {
 // classification. The Temporal client nests a raw @grpc/grpc-js ServiceError
 // as `ServiceError.cause`, where the numeric `code` lives.
 const GRPC_DEADLINE_EXCEEDED = 4;
-const GRPC_NOT_FOUND = 5;
+export const GRPC_NOT_FOUND = 5;
 const GRPC_ALREADY_EXISTS = 6;
 const GRPC_RESOURCE_EXHAUSTED = 8;
 const GRPC_ABORTED = 10;

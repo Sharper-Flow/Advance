@@ -15,8 +15,11 @@ import {
   type TemporalReadContext,
 } from "../storage/store-temporal/read-context";
 import { getTemporalWorkerRole } from "../plugin-init";
+import { STATUS_READ_DEADLINE_BUDGET_MS } from "../utils/tool-budgets";
 import {
   classifyTemporalError,
+  extractGrpcStatus,
+  GRPC_NOT_FOUND,
   getTemporalRetryTelemetry,
 } from "../temporal/retry-wrapper";
 import { isWorkerAffirmativelyAlive } from "../temporal/health-probe";
@@ -133,7 +136,6 @@ async function loadMigrationStatus(_store: Store) {
 
 const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
 const STATUS_BOOTSTRAP_MAX_ATTEMPTS = 3;
-
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -171,6 +173,30 @@ function buildDeadlineDegradedStatus(status?: ProjectStatus): ProjectStatus {
   };
 }
 
+function buildDurableAbsenceStatus(): ProjectStatus {
+  const warning = {
+    code: "SOURCE_WORKFLOW_DURABLY_ABSENT" as const,
+    source: "workflow_query" as const,
+    message:
+      "Temporal workflow is durably absent after a retained disk projection; status read stopped without retrying the unreachable workflow.",
+  };
+  return {
+    specs: { count: 0, capabilities: [] },
+    changes: {
+      active: 0,
+      byStatus: {
+        draft: 0,
+        archived: 0,
+        closed: 0,
+      },
+      recent: [],
+    },
+    recommendations: [],
+    warnings: [warning],
+    hydrationStats: { durableAbsence: true, omitted: 0 },
+  };
+}
+
 async function loadStatusWithBootstrapRetry(
   store: Store,
   options?: StatusReadOptions,
@@ -184,6 +210,11 @@ async function loadStatusWithBootstrapRetry(
   };
 }> {
   let lastBootstrapError: unknown;
+  const projectionState = { loaded: false };
+  const readOptions: StatusReadOptions | undefined =
+    typeof store.hasLoadedDiskProjection === "function"
+      ? { ...(options ?? {}), projectionState }
+      : options;
 
   for (let attempt = 1; attempt <= STATUS_BOOTSTRAP_MAX_ATTEMPTS; attempt++) {
     if (isTemporalReadExpired(context)) {
@@ -198,7 +229,7 @@ async function loadStatusWithBootstrapRetry(
       };
     }
     try {
-      const status = await store.status(options);
+      const status = await store.status(readOptions);
       return lastBootstrapError
         ? {
             status,
@@ -214,6 +245,15 @@ async function loadStatusWithBootstrapRetry(
         : { status };
     } catch (error) {
       if (classifyTemporalError(error) !== "fallback") throw error;
+      // A structurally identified gRPC NOT_FOUND is terminal once this store
+      // has already loaded a durable disk projection. Do not use error text:
+      // TMPRL1100 has no gRPC status and remains bootstrap-retry eligible.
+      if (
+        extractGrpcStatus(error) === GRPC_NOT_FOUND &&
+        store.hasLoadedDiskProjection?.(projectionState) === true
+      ) {
+        return { status: buildDurableAbsenceStatus() };
+      }
       lastBootstrapError = error;
       if (isTemporalReadExpired(context)) {
         return {
@@ -393,7 +433,12 @@ export const statusTools = {
           // Disk-backed target stores ignore this option, while Temporal-backed
           // stores use the absolute deadline for every source and hydration
           // stage rather than minting a fresh budget per view/call.
-          const temporalReadContext = createTemporalReadContext();
+          // AC5: the status-local budget is derived from the host tool cap
+          // minus a measured serialization headroom (tool-budgets.ts), so
+          // changing either source constant cannot silently erase the margin.
+          const temporalReadContext = createTemporalReadContext(
+            STATUS_READ_DEADLINE_BUDGET_MS,
+          );
           // Disk stores have no Temporal status path and intentionally retain
           // their legacy call shape; the deadline is meaningful only when the
           // Temporal backend exposes its summary projection reader.
@@ -443,7 +488,7 @@ export const statusTools = {
           if (isTemporalReadExpired(temporalReadContext)) {
             status = buildDeadlineDegradedStatus(status);
           }
-          // Request-local resolved documents (AC4): extracted for
+          // Request-local resolved documents: extracted for
           // enrichment reuse and stripped before output serialization —
           // the map is transport-only, never response payload.
           const resolvedChanges = status.resolvedChanges;
@@ -464,12 +509,10 @@ export const statusTools = {
               message: `⚠️ Status read incomplete — ${warning.message}`,
             });
           }
-          const migrationStatus =
-            view === "hygiene"
-              ? await withRecordedPhase("adv_status", "migrationStatus", () =>
-                  loadMigrationStatus(activeStore),
-                )
-              : null;
+          let migrationStatus:
+            | Awaited<ReturnType<typeof loadMigrationStatus>>
+            | null
+            | undefined = null;
 
           const projectId = activeStore.paths.external
             ? basename(activeStore.paths.external)
@@ -543,13 +586,70 @@ export const statusTools = {
             });
           };
 
+          // The post-status cutoff is the REQUEST-SCOPED AGGREGATE deadline,
+          // never a view-specific sub-budget. `statusReadOptions.deadline` is
+          // not safe here: for the health view on a store without a Temporal
+          // summary reader, `buildHealthStatusDeadline` falls back to health's
+          // own 7.5s execution cutoff. Using that as the outer bound made the
+          // whole response degrade the moment health's INNER budget was spent,
+          // discarding the health payload that `runHealthStatus` had already
+          // legitimately degraded and returned. Inner sub-budgets are owned and
+          // enforced by their own executors.
+          const postStatusCutoffAt = temporalReadContext.deadline.deadlineAt;
+          const postStatusBudgetExceeded = () =>
+            isTemporalReadExpired(temporalReadContext) ||
+            Date.now() >= postStatusCutoffAt;
+          const degradeForDeadline = () => {
+            status = buildDeadlineDegradedStatus(status);
+            return buildDegradedResponse();
+          };
+          const runBoundedStatusPhase = async <T>(
+            opType: string,
+            operation: () => Promise<T>,
+          ): Promise<
+            | { kind: "complete"; data: T }
+            | { kind: "deadline" }
+            | { kind: "error"; error: unknown }
+          > => {
+            if (postStatusBudgetExceeded()) return { kind: "deadline" };
+            const phaseRead = await runTemporalRead(
+              undefined,
+              operation,
+              temporalReadContext,
+              { maxAttempts: 1, opType },
+            );
+            if (!phaseRead.complete) {
+              return postStatusBudgetExceeded()
+                ? { kind: "deadline" }
+                : { kind: "error", error: phaseRead.error };
+            }
+            if (postStatusBudgetExceeded()) return { kind: "deadline" };
+            return { kind: "complete", data: phaseRead.data as T };
+          };
+
+          if (view === "hygiene") {
+            const migrationRead = await runTemporalRead(
+              undefined,
+              () =>
+                withRecordedPhase("adv_status", "migrationStatus", () =>
+                  loadMigrationStatus(activeStore),
+                ),
+              temporalReadContext,
+              { maxAttempts: 1, opType: "status.migrationStatus" },
+            );
+            if (!migrationRead.complete || postStatusBudgetExceeded()) {
+              return degradeForDeadline();
+            }
+            migrationStatus = migrationRead.data;
+          }
+
           // A status read that consumed its aggregate budget is already a
           // useful typed result. Do not enter view-specific enrichment/probe
           // stages after expiry: those stages have independent best-effort
           // work and could outlive the host safety cap while the caller has
           // already been told the authoritative read is incomplete.
           if (isTemporalReadExpired(temporalReadContext)) {
-            return buildDegradedResponse();
+            return degradeForDeadline();
           }
 
           if (plan.recentEnrichment) {
@@ -564,6 +664,9 @@ export const statusTools = {
                   resolvedChanges,
                 ),
             );
+            if (postStatusBudgetExceeded()) {
+              return degradeForDeadline();
+            }
             if (
               view === "summary" &&
               recentChanges.length > STATUS_SUMMARY_RECENT_LIMIT
@@ -593,6 +696,9 @@ export const statusTools = {
                   const patches: CandidateEnrichmentPatch[] = [];
                   let rank = 0;
                   for (const rc of recentChanges) {
+                    if (postStatusBudgetExceeded()) {
+                      break;
+                    }
                     const isPrimary = !primaryAssigned && rc.status === "draft";
                     if (isPrimary) primaryAssigned = true;
                     const patch = await buildCandidateEnrichmentPatch({
@@ -617,32 +723,60 @@ export const statusTools = {
                   });
                 } else {
                   for (const rc of recentChanges) {
+                    if (postStatusBudgetExceeded()) {
+                      break;
+                    }
                     const isPrimary = !primaryAssigned && rc.status === "draft";
                     if (isPrimary) primaryAssigned = true;
-                    await enrichRecentChangeStatus(
-                      rc,
-                      status,
-                      activeStore,
-                      clarifyMode,
-                      isPrimary,
-                      {
-                        change: resolvedChanges?.get(String(rc.id)),
-                        resolvedChanges,
-                      },
+                    const enrichmentRead = await runTemporalRead(
+                      undefined,
+                      () =>
+                        enrichRecentChangeStatus(
+                          rc,
+                          status,
+                          activeStore,
+                          clarifyMode,
+                          isPrimary,
+                          {
+                            change: resolvedChanges?.get(String(rc.id)),
+                            resolvedChanges,
+                          },
+                          { cutoffAt: postStatusCutoffAt },
+                        ),
+                      temporalReadContext,
+                      { maxAttempts: 1, opType: "status.recentEnrichment" },
                     );
+                    if (
+                      !enrichmentRead.complete ||
+                      postStatusBudgetExceeded()
+                    ) {
+                      break;
+                    }
                   }
                 }
               },
             );
+            if (postStatusBudgetExceeded()) {
+              return degradeForDeadline();
+            }
           }
 
           if (plan.resumeProjection) {
-            await withRecordedPhase("adv_status", "resumeProjection", () =>
-              appendResumeProjectionRecommendations(activeStore, status, {
-                projectId,
-                limit: 3,
-              }),
+            const resumeRead = await runTemporalRead(
+              undefined,
+              () =>
+                withRecordedPhase("adv_status", "resumeProjection", () =>
+                  appendResumeProjectionRecommendations(activeStore, status, {
+                    projectId,
+                    limit: 3,
+                  }),
+                ),
+              temporalReadContext,
+              { maxAttempts: 1, opType: "status.resumeProjection" },
             );
+            if (!resumeRead.complete || postStatusBudgetExceeded()) {
+              return degradeForDeadline();
+            }
           }
 
           let probeFreshness: Record<string, ProbeCacheFreshness> = {};
@@ -707,12 +841,20 @@ export const statusTools = {
           if (view !== "health") {
             if (plan.temporalHealth) {
               try {
-                const temporalProbe = await fetchStatusTemporalHealth(
-                  projectId,
-                  {
-                    forceRefresh,
-                  },
+                const temporalProbeRead = await runBoundedStatusPhase(
+                  "status.temporalHealth",
+                  () =>
+                    fetchStatusTemporalHealth(projectId, {
+                      forceRefresh,
+                    }),
                 );
+                if (temporalProbeRead.kind === "deadline") {
+                  return degradeForDeadline();
+                }
+                if (temporalProbeRead.kind === "error") {
+                  throw temporalProbeRead.error;
+                }
+                const temporalProbe = temporalProbeRead.data;
                 temporalHealth = temporalProbe.value;
                 probeFreshness.temporal_health = temporalProbe.freshness;
               } catch (err) {
@@ -731,14 +873,24 @@ export const statusTools = {
             }
 
             if (plan.queueServiceability && temporalHealth) {
-              const queueServiceabilityProbe =
-                await fetchStatusQueueServiceability(
-                  {
-                    projectId,
-                    health: temporalHealth,
-                  },
-                  { forceRefresh },
-                );
+              const queueServiceabilityRead = await runBoundedStatusPhase(
+                "status.queueServiceability",
+                () =>
+                  fetchStatusQueueServiceability(
+                    {
+                      projectId,
+                      health: temporalHealth!,
+                    },
+                    { forceRefresh },
+                  ),
+              );
+              if (queueServiceabilityRead.kind === "deadline") {
+                return degradeForDeadline();
+              }
+              if (queueServiceabilityRead.kind === "error") {
+                throw queueServiceabilityRead.error;
+              }
+              const queueServiceabilityProbe = queueServiceabilityRead.data;
               queueServiceability = queueServiceabilityProbe.value;
               probeFreshness.queue_serviceability =
                 queueServiceabilityProbe.freshness;
@@ -752,9 +904,17 @@ export const statusTools = {
 
             if (plan.workerProcesses) {
               try {
-                const workerProcessesProbe = await fetchStatusWorkerProcesses({
-                  forceRefresh,
-                });
+                const workerProcessesRead = await runBoundedStatusPhase(
+                  "status.workerProcesses",
+                  () => fetchStatusWorkerProcesses({ forceRefresh }),
+                );
+                if (workerProcessesRead.kind === "deadline") {
+                  return degradeForDeadline();
+                }
+                if (workerProcessesRead.kind === "error") {
+                  throw workerProcessesRead.error;
+                }
+                const workerProcessesProbe = workerProcessesRead.data;
                 workerProcesses = workerProcessesProbe.value;
                 probeFreshness.worker_processes =
                   workerProcessesProbe.freshness;
@@ -791,11 +951,21 @@ export const statusTools = {
             }
 
             if (plan.searchAttributes) {
-              const searchAttributesProbe =
-                await statusSearchAttributesProbeCache.fetch(
-                  projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
-                  { forceRefresh },
-                );
+              const searchAttributesRead = await runBoundedStatusPhase(
+                "status.searchAttributes",
+                () =>
+                  statusSearchAttributesProbeCache.fetch(
+                    projectId ?? MISSING_PROJECT_ID_CACHE_KEY,
+                    { forceRefresh },
+                  ),
+              );
+              if (searchAttributesRead.kind === "deadline") {
+                return degradeForDeadline();
+              }
+              if (searchAttributesRead.kind === "error") {
+                throw searchAttributesRead.error;
+              }
+              const searchAttributesProbe = searchAttributesRead.data;
               searchAttributes = searchAttributesProbe.value;
               probeFreshness.search_attributes =
                 searchAttributesProbe.freshness;
@@ -818,9 +988,13 @@ export const statusTools = {
             }
 
             if (plan.projectConfig) {
-              const configResult = await loadProjectConfigWithDiagnostics(
-                activeStore.paths.root,
+              const configRead = await runBoundedStatusPhase(
+                "status.projectConfig",
+                () => loadProjectConfigWithDiagnostics(activeStore.paths.root),
               );
+              if (configRead.kind === "deadline") return degradeForDeadline();
+              if (configRead.kind === "error") throw configRead.error;
+              const configResult = configRead.data;
 
               if (!activeStore.paths.external) {
                 status.recommendations.unshift(
@@ -864,52 +1038,76 @@ export const statusTools = {
             }
 
             if (plan.worktreeCleanup) {
-              await withRecordedPhase(
-                "adv_status",
-                "worktreeCleanup",
-                async () => {
-                  try {
-                    const worktreeAccess = await initWorktreeStateDb(
-                      activeStore.paths.root,
-                    );
-                    await advWorktreeCleanup("status", {
-                      projectRoot: activeStore.paths.root,
-                      database: worktreeAccess,
-                      log: {
-                        debug: () => undefined,
-                        info: () => undefined,
-                        warn: () => undefined,
-                        error: () => undefined,
-                      },
-                      store: activeStore,
-                      forceAttempts: false,
-                    });
-                    terminalCleanupRetained = summarizePendingDeletes(
-                      await getPendingDeletes(worktreeAccess),
-                    );
-                  } catch {
-                    // Status cleanup discovery is best-effort; status itself must remain available.
-                  }
-                },
+              const cleanupRead = await runBoundedStatusPhase(
+                "status.worktreeCleanup",
+                () =>
+                  withRecordedPhase(
+                    "adv_status",
+                    "worktreeCleanup",
+                    async () => {
+                      try {
+                        const worktreeAccess = await initWorktreeStateDb(
+                          activeStore.paths.root,
+                        );
+                        await advWorktreeCleanup("status", {
+                          projectRoot: activeStore.paths.root,
+                          database: worktreeAccess,
+                          log: {
+                            debug: () => undefined,
+                            info: () => undefined,
+                            warn: () => undefined,
+                            error: () => undefined,
+                          },
+                          store: activeStore,
+                          forceAttempts: false,
+                        });
+                        terminalCleanupRetained = summarizePendingDeletes(
+                          await getPendingDeletes(worktreeAccess),
+                        );
+                      } catch {
+                        // Status cleanup discovery is best-effort; status itself must remain available.
+                      }
+                    },
+                  ),
               );
+              if (cleanupRead.kind === "deadline") return degradeForDeadline();
+              if (cleanupRead.kind === "error") throw cleanupRead.error;
             }
 
             if (plan.worktreeCensus) {
-              const worktreeCensusProbe =
-                await statusWorktreeCensusProbeCache.fetch(
-                  activeStore.paths.root,
-                  { forceRefresh },
-                );
+              const worktreeCensusRead = await runBoundedStatusPhase(
+                "status.worktreeCensus",
+                () =>
+                  statusWorktreeCensusProbeCache.fetch(activeStore.paths.root, {
+                    forceRefresh,
+                  }),
+              );
+              if (worktreeCensusRead.kind === "deadline") {
+                return degradeForDeadline();
+              }
+              if (worktreeCensusRead.kind === "error") {
+                throw worktreeCensusRead.error;
+              }
+              const worktreeCensusProbe = worktreeCensusRead.data;
               worktreeCensus = worktreeCensusProbe.value;
               probeFreshness.worktree_census = worktreeCensusProbe.freshness;
             }
 
             if (plan.sessionDebt) {
-              opencodeSessionDebt = await withRecordedPhase(
-                "adv_status",
-                "sessionDebtScan",
-                () => scanOpenCodeSessionDebt(),
+              const sessionDebtRead = await runBoundedStatusPhase(
+                "status.sessionDebt",
+                () =>
+                  withRecordedPhase("adv_status", "sessionDebtScan", () =>
+                    scanOpenCodeSessionDebt(),
+                  ),
               );
+              if (sessionDebtRead.kind === "deadline") {
+                return degradeForDeadline();
+              }
+              if (sessionDebtRead.kind === "error") {
+                throw sessionDebtRead.error;
+              }
+              opencodeSessionDebt = sessionDebtRead.data;
               opencodeDebtCounts =
                 deriveOpencodeDebtCounts(opencodeSessionDebt);
               if (
@@ -933,11 +1131,20 @@ export const statusTools = {
             }
 
             if (plan.healthSnapshot) {
-              healthSnapshot = await withRecordedPhase(
-                "adv_status",
-                "healthSnapshot",
-                () => computeHealthSnapshot(activeStore),
+              const healthSnapshotRead = await runBoundedStatusPhase(
+                "status.healthSnapshot",
+                () =>
+                  withRecordedPhase("adv_status", "healthSnapshot", () =>
+                    computeHealthSnapshot(activeStore),
+                  ),
               );
+              if (healthSnapshotRead.kind === "deadline") {
+                return degradeForDeadline();
+              }
+              if (healthSnapshotRead.kind === "error") {
+                throw healthSnapshotRead.error;
+              }
+              healthSnapshot = healthSnapshotRead.data;
               if (healthSnapshot.closed_to_active_ratio > 5) {
                 const ratio = healthSnapshot.closed_to_active_ratio;
                 const message = `⚠️  Closed-change disk leak detected (ratio ${ratio}:1). Run \`adv_cleanup\` to inspect stale changes.`;
@@ -953,9 +1160,19 @@ export const statusTools = {
               }
             }
 
-            externalStateHygiene = plan.externalStateHygiene
-              ? await computeExternalStateHygiene(activeStore)
-              : undefined;
+            if (plan.externalStateHygiene) {
+              const externalStateRead = await runBoundedStatusPhase(
+                "status.externalStateHygiene",
+                () => computeExternalStateHygiene(activeStore),
+              );
+              if (externalStateRead.kind === "deadline") {
+                return degradeForDeadline();
+              }
+              if (externalStateRead.kind === "error") {
+                throw externalStateRead.error;
+              }
+              externalStateHygiene = externalStateRead.data;
+            }
 
             if (plan.archivedBranchHygiene) {
               try {
@@ -967,11 +1184,18 @@ export const statusTools = {
                   recommendation_items: (status as StatusRecommendationCarrier)
                     .recommendation_items,
                 };
-                await appendArchivedBranchHygieneRecommendations(
-                  hygieneStatus,
-                  activeStore,
-                  repoRoot,
+                const archivedHygieneRead = await runBoundedStatusPhase(
+                  "status.archivedBranchHygiene",
+                  () =>
+                    appendArchivedBranchHygieneRecommendations(
+                      hygieneStatus,
+                      activeStore,
+                      repoRoot,
+                    ),
                 );
+                if (archivedHygieneRead.kind === "deadline") {
+                  return degradeForDeadline();
+                }
                 status.recommendations = hygieneStatus.recommendations;
                 (status as StatusRecommendationCarrier).recommendation_items =
                   hygieneStatus.recommendation_items;
@@ -992,7 +1216,11 @@ export const statusTools = {
                 temporalReadContext,
                 { maxAttempts: 1, opType: "status.snapshotHealth" },
               );
-              if (!snapshotHealthRead.complete || !snapshotHealthRead.data) {
+              if (
+                !snapshotHealthRead.complete ||
+                !snapshotHealthRead.data ||
+                postStatusBudgetExceeded()
+              ) {
                 status = buildDeadlineDegradedStatus(status);
                 return buildDegradedResponse();
               }
@@ -1008,7 +1236,11 @@ export const statusTools = {
                 temporalReadContext,
                 { maxAttempts: 1, opType: "status.specs" },
               );
-              if (!specsRead.complete || !specsRead.data) {
+              if (
+                !specsRead.complete ||
+                !specsRead.data ||
+                postStatusBudgetExceeded()
+              ) {
                 status = buildDeadlineDegradedStatus(status);
                 return buildDegradedResponse();
               }
@@ -1021,9 +1253,18 @@ export const statusTools = {
 
             if (plan.peerSessions) {
               try {
-                const peerResult = await listPeerSessions({
-                  projectRoot: activeStore.paths.root,
-                });
+                const peerRead = await runBoundedStatusPhase(
+                  "status.peerSessions",
+                  () =>
+                    listPeerSessions({
+                      projectRoot: activeStore.paths.root,
+                    }),
+                );
+                if (peerRead.kind === "deadline") {
+                  return degradeForDeadline();
+                }
+                if (peerRead.kind === "error") throw peerRead.error;
+                const peerResult = peerRead.data;
                 if (peerResult.unavailable) {
                   peerSessions = { unavailable: true };
                 } else {
@@ -1034,18 +1275,37 @@ export const statusTools = {
               }
             }
 
-            pluginRuntimeInfo = plan.pluginRuntime
-              ? await getPluginRuntimeInfo()
-              : undefined;
+            if (plan.pluginRuntime) {
+              const pluginRuntimeRead = await runBoundedStatusPhase(
+                "status.pluginRuntime",
+                () => getPluginRuntimeInfo(),
+              );
+              if (pluginRuntimeRead.kind === "deadline") {
+                return degradeForDeadline();
+              }
+              if (pluginRuntimeRead.kind === "error") {
+                throw pluginRuntimeRead.error;
+              }
+              pluginRuntimeInfo = pluginRuntimeRead.data;
+            }
           } else {
-            const healthResult = await runHealthStatus({
-              store: activeStore,
-              projectId,
-              forceRefresh,
-              autoManagedCensus,
-              request: healthRequest!,
-              loadMigrationStatus: () => loadMigrationStatus(activeStore),
-            });
+            const healthRead = await runBoundedStatusPhase(
+              "status.health",
+              () =>
+                runHealthStatus({
+                  store: activeStore,
+                  projectId,
+                  forceRefresh,
+                  autoManagedCensus,
+                  request: healthRequest!,
+                  loadMigrationStatus: () => loadMigrationStatus(activeStore),
+                }),
+            );
+            if (healthRead.kind === "deadline") {
+              return degradeForDeadline();
+            }
+            if (healthRead.kind === "error") throw healthRead.error;
+            const healthResult = healthRead.data;
 
             temporalHealth = healthResult.temporal_health;
             queueServiceability = healthResult.temporal_queue_serviceability
@@ -1239,19 +1499,40 @@ export const statusTools = {
             formatted.sessionDebtSection = "";
           }
 
-          const projectMetadata = plan.projectMetadata
-            ? await readProjectMetadata(
-                activeStore.paths.root,
-                activeStore.paths.projectMetadata,
-              )
-            : undefined;
+          let projectMetadata:
+            | Awaited<ReturnType<typeof readProjectMetadata>>
+            | undefined;
+          if (plan.projectMetadata) {
+            const projectMetadataRead = await runBoundedStatusPhase(
+              "status.projectMetadata",
+              () =>
+                readProjectMetadata(
+                  activeStore.paths.root,
+                  activeStore.paths.projectMetadata,
+                ),
+            );
+            if (projectMetadataRead.kind === "deadline") {
+              return degradeForDeadline();
+            }
+            if (projectMetadataRead.kind === "error") {
+              throw projectMetadataRead.error;
+            }
+            projectMetadata = projectMetadataRead.data;
+          }
 
           if (plan.futureWork) {
-            futureWorkProjection = await withRecordedPhase(
-              "adv_status",
-              "futureWorkProjection",
-              () => buildFutureWorkProjection(activeStore),
+            const futureWorkRead = await runBoundedStatusPhase(
+              "status.futureWorkProjection",
+              () =>
+                withRecordedPhase("adv_status", "futureWorkProjection", () =>
+                  buildFutureWorkProjection(activeStore),
+                ),
             );
+            if (futureWorkRead.kind === "deadline") {
+              return degradeForDeadline();
+            }
+            if (futureWorkRead.kind === "error") throw futureWorkRead.error;
+            futureWorkProjection = futureWorkRead.data;
           }
 
           // T4: tool-context telemetry is only required for the health view.

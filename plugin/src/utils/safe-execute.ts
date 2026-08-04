@@ -22,6 +22,7 @@ import {
   isAdvSessionNotReady,
   ADV_SESSION_NOT_READY_KIND,
 } from "../temporal/readiness-types";
+import { DEFAULT_TOOL_TIMEOUT_MS } from "./tool-budgets";
 
 /**
  * Optional enrichment context. All fields are additive — no existing
@@ -243,23 +244,6 @@ export function formatErrorResponse(
 // =============================================================================
 
 const DEFAULT_TRUNCATION_LIMIT = 30000;
-
-/**
- * Default safety-net timeout for a single tool execute() call, in
- * milliseconds. Tools that exceed this budget are interrupted and an
- * agent-visible `ToolExecutionTimeout` error is returned.
- *
- * Rationale: covers SDK-side Zod parse hangs on missing required args
- * (the root cause of the zero-args `adv_change_update` hang reproduced
- * during /adv-design of completeTemporalOnlyMigration — see wisdom
- * ws-3550c245 and design.md KD-8), as well as any deadlocked workflow
- * Update / signal path where `runTemporal` itself has no timeout.
- *
- * 10s is deliberately more forgiving than the Temporal query timeout
- * (5s, P1.3.8) because legitimate tool bodies may invoke multiple
- * backend operations in sequence.
- */
-const DEFAULT_TOOL_TIMEOUT_MS = 10_000;
 
 /**
  * Optional safety-net timeout override. Accepted by `safeExecute` and

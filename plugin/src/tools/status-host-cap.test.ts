@@ -484,9 +484,8 @@ describe("adv_status corpus-pressure mechanisms", () => {
       archiveParseCounts[view] = archiveLoadChangeCalls.length;
     }
 
-    // RED: current production loads every archived change even when terminal
-    // statuses are not requested. The implementation task must make all three
-    // routine status views avoid this work entirely.
+    // Routine active-status views must not parse archived bundles when terminal
+    // statuses are not requested.
     expect(archiveParseCounts).toEqual({ summary: 0, changes: 0, hygiene: 0 });
   }, 20_000);
 
@@ -499,8 +498,64 @@ describe("adv_status corpus-pressure mechanisms", () => {
       sourceRanked: true,
     });
 
-    // RED: current production reads every active disk candidate before applying
-    // candidateLimit. This must remain a mechanism count, not a wall-clock test.
+    // Source ranking must apply candidateLimit before active disk projection
+    // reads; keep this as a mechanism count rather than a wall-clock test.
     expect(sourceRankedProjectionReads.length).toBeLessThanOrEqual(10);
+  }, 20_000);
+
+  test("bounds cost injected inside the non-health enrichment loop", async () => {
+    store = await setupCorpusStore(tempDir);
+    const initialStatus = await store.status();
+    let delayedGets = 0;
+    let enrichmentStarted = false;
+    store.changes.get = async (changeId) => {
+      if (enrichmentStarted && delayedGets < 10) {
+        delayedGets += 1;
+        await sleep(1_200);
+      }
+      return {
+        success: true,
+        data: { ...SAMPLE_CHANGE, id: changeId, status: "draft" },
+      };
+    };
+
+    store.status = async () => {
+      const recent = Array.from({ length: 10 }, (_, index) => ({
+        ...(initialStatus.changes.recent[index] ??
+          initialStatus.changes.recent[0]),
+        id: `enrichment-${index}`,
+        status: "draft" as const,
+      }));
+      // Force the actual per-change fallback path after status loading. The
+      // seeded recent rows are synthetic only to isolate loop cost from the
+      // upstream resolver.
+      const result = {
+        ...initialStatus,
+        changes: { ...initialStatus.changes, recent },
+        resolvedChanges: new Map(),
+      };
+      enrichmentStarted = true;
+      return result;
+    };
+
+    const toolMap = createToolMap(store, tempDir, store.paths.agenda) as {
+      adv_status: {
+        execute: (args: Record<string, unknown>) => Promise<unknown>;
+      };
+    };
+    const parsed = parseBoundToolResult(
+      await toolMap.adv_status.execute({
+        view: "changes",
+        forceRefresh: true,
+      }),
+    );
+
+    expect(parsed.errorClass).not.toBe("ToolExecutionTimeout");
+    expect(
+      parsed.warnings?.some(
+        (warning: { code?: string }) =>
+          warning.code === "SOURCE_DEADLINE_EXCEEDED",
+      ),
+    ).toBe(true);
   }, 20_000);
 });

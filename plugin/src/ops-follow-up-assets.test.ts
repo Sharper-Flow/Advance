@@ -163,7 +163,7 @@ describe("ops-follow-up spec versions bumped", () => {
 
   test("backlog-coordination version is at least 1.5.0", () => {
     const spec = loadSpec("backlog-coordination");
-    expect(spec.version).toBe("1.5.1");
+    expectVersionAtLeast(spec.version, "1.5.0");
   });
 });
 

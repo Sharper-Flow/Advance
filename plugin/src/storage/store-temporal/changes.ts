@@ -2,6 +2,7 @@ import type {
   Store,
   ChangeConflictAuthority,
   AuthorityDiagnostics,
+  DiskProjectionReadState,
 } from "../store-types";
 import { snapshotToLoadResult } from "./read-model";
 import {
@@ -529,6 +530,8 @@ interface ChangeListFilter {
   validationConcurrency?: number;
   /** Request-scoped deadline shared with an enclosing status read. */
   deadline?: TemporalReadDeadline | TemporalReadContext;
+  /** Request-scoped durable-projection marker owned by the status read. */
+  projectionState?: DiskProjectionReadState;
 }
 
 interface ListChangeSummariesResult {
@@ -558,6 +561,7 @@ async function listChangeSummaries(
     paginate?: boolean;
     /** Cap rows before downstream hydration while retaining API offset semantics. */
     candidateLimit?: number;
+    projectionState?: DiskProjectionReadState;
   } = {},
 ): Promise<ListChangeSummariesResult> {
   const summaryResult = await listSummaryChanges(paths);
@@ -831,6 +835,7 @@ async function readProjectionChangeList(
     deadline?: TemporalReadDeadline | TemporalReadContext;
     candidateLimit?: number;
     loadArchiveForActiveShadow?: boolean;
+    projectionState?: DiskProjectionReadState;
   },
 ): Promise<
   ChangeListResponse & {
@@ -840,7 +845,13 @@ async function readProjectionChangeList(
     boundedOmittedIds?: string[];
   }
 > {
-  const { input: _input, legacy, memo, getTemporalChange } = deps;
+  const {
+    input: _input,
+    legacy,
+    memo,
+    getTemporalChange,
+    markLoadedDiskProjection,
+  } = deps;
 
   const suppliedRead = options.deadline;
   const ctx = suppliedRead
@@ -876,11 +887,13 @@ async function readProjectionChangeList(
     // are applied before hydration without consuming the requested offset.
     paginate: false,
     candidateLimit: options.candidateLimit,
+    projectionState: options.projectionState,
   });
 
   const summaryRows = new Map<string, ChangeListResponse["changes"][number]>();
   if (summaryResult.summaries.length > 0) {
     for (const summary of summaryResult.summaries) {
+      markLoadedDiskProjection?.(summary.id, options.projectionState);
       summaryRows.set(summary.id, summaryToListRow(summary));
     }
   }
@@ -1040,6 +1053,7 @@ async function readProjectionChangeList(
     }
 
     if (diskResult?.success && diskResult.data) {
+      markLoadedDiskProjection?.(diskResult.data.id, options.projectionState);
       let change = diskResult.data;
       const terminalOnDisk =
         change.status === "archived" || change.status === "closed";
@@ -2066,7 +2080,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
     // never the primary list/status truth source for lifecycle/gate/task
     // state; warm rows served after deadline expiry stay degraded, and
     // completeness is never inferred from cache warmth or row count.
-    listSummary: async (filter) => {
+    listSummary: async (filter: ChangeListFilter | undefined) => {
       const projection = await readProjectionChangeList(
         filter,
         {
@@ -2086,6 +2100,7 @@ export function createChangeOps(deps: StoreDeps): Store["changes"] {
             filter?.limit === undefined
               ? undefined
               : Math.max(0, (filter.offset ?? 0) + filter.limit),
+          projectionState: filter?.projectionState,
         },
       );
       const { changes, warnings, hydrationStats } = projection;

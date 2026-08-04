@@ -46,7 +46,14 @@ vi.mock("../temporal/service", () => ({
   getService: () => mockGetService(),
 }));
 
-vi.mock("../temporal/retry-wrapper", () => ({
+// Partial mock: the status read path consumes a growing surface of this module
+// (deadline construction, retry classification, gRPC status extraction). Listing
+// exports individually made this mock silently rot — a newly-imported export
+// threw "No <name> export is defined on the mock" at call time, which surfaced
+// as an error envelope instead of a status payload. Spread the real module and
+// override only the telemetry accessors this test actually stubs.
+vi.mock("../temporal/retry-wrapper", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../temporal/retry-wrapper")>()),
   getTemporalRetryTelemetry: () => mockGetTemporalRetryTelemetry(),
   getTemporalOpTelemetry: () => mockGetTemporalOpTelemetry(),
   getLastWorkerRunError: () => mockGetLastWorkerRunError(),

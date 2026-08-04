@@ -1,17 +1,14 @@
 /**
  * status-health-integration-blockers.test.ts
  *
- * TDD RED only — acceptance-level end-to-end tests that prove the three
- * remaining integration blockers for `adv_status view:"health"`:
+ * GREEN regression suite — acceptance-level end-to-end tests that protect the
+ * integrated `adv_status view:"health"` deadline and source-ranking path:
  *
- *   A) status load → enrichment → specs read sit OUTSIDE a single request-
+ *   A) status load → enrichment → specs read stay inside the single request-
  *      owned 8s / 7.5s non-composition budget;
- *   B) `listSourceRankedCandidates` has no production caller — ranking
- *      still happens after per-change hydration;
- *   C) `createHealthProbeCache` has no production caller — the bounded
- *      plan still wraps the legacy coalesced `createProbeCache`, so
- *      concurrent same-key forceRefreshes are deduplicated and late /
- *      aborted older publications can clobber newer ones.
+ *   B) source-backed ranking stays bounded before per-change hydration;
+ *   C) health probe caches preserve request-local publication ordering under
+ *      concurrent same-key forceRefreshes.
  *
  * Tests use real production composition: real `createTemporalStoreBackend`,
  * real `store.status({ recentLimit, deadline })`, real `runHealthStatus`.
