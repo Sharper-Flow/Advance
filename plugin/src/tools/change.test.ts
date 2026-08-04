@@ -6067,6 +6067,19 @@ describe("change tools — signal-driven lifecycle", () => {
         store.paths.root = tempDir;
         store.paths.changes = `${tempDir}/.adv/changes`;
         store.paths.archive = archiveDir;
+        // Already-archived no-op: the durable projection carries the archived
+        // status (written when the transition originally committed).
+        await mkdir(`${tempDir}/.adv/changes/test-change`, { recursive: true });
+        await writeFile(
+          `${tempDir}/.adv/changes/test-change/change.json`,
+          JSON.stringify({
+            schemaVersion: 2,
+            projectId: "test",
+            changeId: "test-change",
+            projectedAt: "2026-01-01T00:00:00Z",
+            state: { id: "test-change", status: "archived" },
+          }),
+        );
 
         const finalizeSpy = vi
           .spyOn(gitFinalize, "finalizeRelease")

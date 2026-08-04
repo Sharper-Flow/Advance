@@ -1027,34 +1027,42 @@ function workflowRunPinFromDescription(description: unknown): {
 }
 
 /**
- * Extract archive-application evidence from a workflow describe result.
- * The change workflow upserts AdvChangeStatus / AdvLifecycleState when a
- * signal handler APPLIES (temporal/search-attributes.ts), so their presence
- * with value "archived" proves the archive signal was processed — unlike a
- * bare RUNNING status, which only proves liveness. Tolerant of both decoded
- * SDK shapes (Record<string, unknown[]>) and single-value shapes.
+ * Read the handler-written projection envelope for archive-commit evidence.
+ * The change workflow's archive handlers roll back unless their
+ * projectChangeState Activity returned "written", so a projection document
+ * carrying status "archived" is airtight proof the transition committed —
+ * unlike describe status (liveness) or search attributes (provisional;
+ * published before the fallible Activity and only retracted after rollback).
+ * Tolerant of both the Activity envelope ({schemaVersion: 2, state}) and a
+ * plain Change document.
  */
-function archivedMarkerFromDescription(description: unknown): boolean {
-  if (typeof description !== "object" || description === null) return false;
-  const record = description as Record<string, unknown>;
-  const searchAttributes = record.searchAttributes;
-  if (typeof searchAttributes !== "object" || searchAttributes === null) {
-    return false;
+async function readArchivedProjectionStatus(
+  store: Store,
+  changeId: string,
+): Promise<string | undefined> {
+  const projectionFile = join(store.paths.changes, changeId, "change.json");
+  const outcome = await readBoundedProjectionDocument(projectionFile);
+  if (outcome.kind !== "ok") return undefined;
+  try {
+    const parsed: unknown = JSON.parse(outcome.content);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    const record = parsed as Record<string, unknown>;
+    const envelopeState = record.state;
+    if (
+      envelopeState &&
+      typeof envelopeState === "object" &&
+      !Array.isArray(envelopeState)
+    ) {
+      const status = (envelopeState as Record<string, unknown>).status;
+      if (typeof status === "string") return status;
+    }
+    const status = record.status;
+    return typeof status === "string" ? status : undefined;
+  } catch {
+    return undefined;
   }
-  const saRecord = searchAttributes as Record<string, unknown>;
-  const hasArchived = (key: string): boolean => {
-    const value = saRecord[key];
-    const values = Array.isArray(value)
-      ? value
-      : value === undefined
-        ? []
-        : [value];
-    return values.some(
-      (entry) =>
-        typeof entry === "string" && entry.toLowerCase() === "archived",
-    );
-  };
-  return hasArchived("AdvChangeStatus") || hasArchived("AdvLifecycleState");
 }
 
 async function getChangeWorkflowHandleForStore(store: Store, changeId: string) {
@@ -1078,8 +1086,8 @@ type ArchiveWorkflowProofResult =
   | {
       ok: true;
       attempts: number;
-      statusName: string;
-      proof: "terminal" | "signal-applied";
+      proof: "terminal" | "projection";
+      detail: string;
     }
   | {
       ok: false;
@@ -1094,33 +1102,48 @@ type ArchiveWorkflowProofResult =
     };
 
 /**
- * Prove that the archive transition reached the change workflow after the
- * durable projection request was accepted. Signal acceptance alone is not
- * delivery proof: a completed or retention-expired workflow can accept
- * nothing, and a bare RUNNING status proves only liveness — not that the
- * archive signal was applied. Proof therefore requires either a terminal
- * execution status (the patched terminal block writes the durable projection
- * before completion) or a RUNNING execution whose search attributes show the
- * archive signal applied (AdvChangeStatus/AdvLifecycleState = archived, which
- * the workflow upserts from the signal handler). Visibility/list queries are
- * intentionally not consulted here.
+ * Prove that the archive transition committed durably after the transition
+ * request was accepted. Neither signal acceptance nor workflow liveness is
+ * proof, and the archived search-attribute marker is provisional — the
+ * handlers publish it before the fallible archive Activity and retract it
+ * only after rollback. Proof therefore requires one of two airtight
+ * artifacts, checked per poll:
+ *   1. the handler-written projection document carrying status "archived"
+ *      (the archive handlers roll back unless this write succeeded); or
+ *   2. a terminal workflow execution status (the patched terminal block
+ *      writes the durable projection before completion).
+ * Visibility/list queries are intentionally not consulted here.
  */
 async function proveArchiveWorkflowTransition(
   handle: ArchiveWorkflowProofHandle | undefined,
+  store: Store,
   changeId: string,
 ): Promise<ArchiveWorkflowProofResult> {
   let lastError: unknown = new Error(
     `No workflow handle is available for change ${changeId}`,
   );
   const proof = await boundedRetry<{
-    statusName: string;
-    proof: "terminal" | "signal-applied";
+    proof: "terminal" | "projection";
+    detail: string;
   }>({
     budgetMs: ARCHIVE_WORKFLOW_PROOF_BUDGET_MS,
     baseMs: ARCHIVE_WORKFLOW_PROOF_BASE_MS,
     capMs: ARCHIVE_WORKFLOW_PROOF_CAP_MS,
     jitter: 0,
     attempt: async () => {
+      const projectedStatus = await readArchivedProjectionStatus(
+        store,
+        changeId,
+      );
+      if (projectedStatus === "archived") {
+        return {
+          ok: true as const,
+          value: {
+            proof: "projection" as const,
+            detail: "handler-written projection carries status archived",
+          },
+        };
+      }
       if (!handle || typeof handle.describe !== "function") {
         return { ok: false as const };
       }
@@ -1134,28 +1157,17 @@ async function proveArchiveWorkflowTransition(
         ) {
           return {
             ok: true as const,
-            value: { statusName: normalizedStatus, proof: "terminal" as const },
+            value: {
+              proof: "terminal" as const,
+              detail: `workflow reached terminal status ${normalizedStatus}`,
+            },
           };
         }
-        if (normalizedStatus === "RUNNING") {
-          if (archivedMarkerFromDescription(description)) {
-            return {
-              ok: true as const,
-              value: {
-                statusName: normalizedStatus,
-                proof: "signal-applied" as const,
-              },
-            };
-          }
-          lastError = new Error(
-            `workflow ${changeId} is RUNNING but the archive signal was not ` +
-              `observed as applied (no archived AdvChangeStatus/AdvLifecycleState ` +
-              `search-attribute marker)`,
-          );
-          return { ok: false as const };
-        }
         lastError = new Error(
-          `workflow describe returned an unrecognized archive state: ${statusName ?? "missing status"}`,
+          `archive transition is not yet durable for ${changeId}: ` +
+            `projection does not carry status archived` +
+            (projectedStatus ? ` (found ${projectedStatus})` : "") +
+            ` and workflow status is ${normalizedStatus ?? "unknown"}`,
         );
         return { ok: false as const };
       } catch (error) {
@@ -1169,8 +1181,8 @@ async function proveArchiveWorkflowTransition(
     return {
       ok: true,
       attempts: proof.attempts,
-      statusName: proof.value.statusName,
       proof: proof.value.proof,
+      detail: proof.value.detail,
     };
   }
 
@@ -1188,8 +1200,8 @@ async function proveArchiveWorkflowTransition(
       : "ARCHIVE_WORKFLOW_PROOF_FAILED",
     error:
       `Archive transition is not durably recorded: post-save workflow proof ` +
-      `failed after ${proof.attempts} describe attempt(s) for ${changeId}. ` +
-      `${ambiguous ? "The workflow may be completed or retention-expired. " : "Workflow state is unavailable. "}` +
+      `failed after ${proof.attempts} proof attempt(s) for ${changeId}. ` +
+      `${ambiguous ? "The workflow may be completed or retention-expired. " : "Neither the handler-written projection nor a terminal workflow status proves the transition. "}` +
       `Re-run archive after confirming workflow and projection state. Cause: ${detail}`,
     recoveryDecision,
   };
@@ -1392,6 +1404,7 @@ import { sweepClosedChangesFromDisk } from "../storage/disk-sweep";
 import { BulkCloseSelectorSchema } from "../types";
 import { collectErrorText } from "../temporal/retry-wrapper";
 import { boundedRetry } from "../utils/fs";
+import { readBoundedProjectionDocument } from "../storage/change-projection-reader";
 import { isWorkflowAbsentByExactName } from "../temporal/recovery-classification";
 import {
   formatTargetProjectContext,
@@ -4884,6 +4897,7 @@ export const changeTools = {
           }
           const archiveProof = await proveArchiveWorkflowTransition(
             handle,
+            store,
             changeId,
           );
           if (!archiveProof.ok) {
@@ -5255,6 +5269,7 @@ export const changeTools = {
             await store.changes.save(change);
             const archiveProof = await proveArchiveWorkflowTransition(
               handle,
+              store,
               changeId,
             );
             if (!archiveProof.ok) {

@@ -304,7 +304,23 @@ function createMockStore(
         return { success: true, data: options.children?.[id] ?? null };
       }),
       create: vi.fn(),
-      save: vi.fn(),
+      // Faithful post-save world: the real store signals the workflow, whose
+      // archive handlers commit by writing this projection envelope. The
+      // archive proof reads it as commit evidence, so the default save
+      // simulates the Activity write. Failure-path tests override save.
+      save: vi.fn(async (saved: Change) => {
+        await mkdir(`/tmp/.adv/changes/${saved.id}`, { recursive: true });
+        await writeFile(
+          `/tmp/.adv/changes/${saved.id}/change.json`,
+          JSON.stringify({
+            schemaVersion: 2,
+            projectId: PROJECT_ID,
+            changeId: saved.id,
+            projectedAt: "2026-01-01T00:00:00Z",
+            state: saved,
+          }),
+        );
+      }),
       updateArtifacts: vi.fn(),
       close: vi.fn(),
       closeBatch: vi.fn(),
@@ -533,6 +549,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
       status: { name: "COMPLETED" },
     }));
     const store = createMockStore();
+    // No projection write behind this save: the proof must take the terminal
+    // describe path rather than the projection path.
+    store.changes.save = vi.fn(async () => {});
 
     const result = await changeTools.adv_change_archive.execute(
       { changeId: "example", worktreePath: "/tmp/worktree" },
@@ -542,6 +561,26 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(true);
     expect(mocks.workflow.handle.describe).toHaveBeenCalledTimes(3);
+  });
+
+  test("accepts the handler-written projection as post-save archive proof", async () => {
+    // The default save simulates the workflow Activity writing the archived
+    // projection envelope; the describe stays RUNNING forever, so success
+    // here is attributable to the projection proof path alone.
+    const store = createMockStore();
+    mocks.workflow.handle.describe = vi.fn(async () => ({
+      status: { name: "RUNNING" },
+    }));
+    const storeSaveSpy = vi.mocked(store.changes.save);
+
+    const result = await changeTools.adv_change_archive.execute(
+      { changeId: "example", worktreePath: "/tmp/worktree" },
+      store,
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.success).toBe(true);
+    expect(storeSaveSpy).toHaveBeenCalled();
   });
 
   test("retries a transient post-save archive proof failure before succeeding", async () => {
@@ -557,10 +596,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
       if (proofDescribeCalls === 1) {
         throw new Error("Temporal unavailable");
       }
-      return {
-        status: { name: "RUNNING" },
-        searchAttributes: { AdvChangeStatus: ["archived"] },
-      };
+      // Custom save writes no projection, so proof falls to the describe
+      // path: a terminal execution status is accepted as commit evidence.
+      return { status: { name: "COMPLETED" } };
     });
 
     const result = await changeTools.adv_change_archive.execute(
@@ -573,7 +611,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     expect(proofDescribeCalls).toBe(2);
   });
 
-  test("fails closed when the post-save proof sees only liveness without signal application", async () => {
+  test("fails closed when neither projection nor terminal status proves the transition", async () => {
     let saveCalled = false;
     const store = createMockStore();
     store.changes.save = vi.fn(async () => {
@@ -581,9 +619,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
     });
     mocks.workflow.handle.describe = vi.fn(async () => {
       if (!saveCalled) return { status: { name: "RUNNING" } };
-      // RUNNING proves liveness only. Without an archived search-attribute
-      // marker the archive signal was not observed as applied, so the proof
-      // must not accept this as delivery.
+      // RUNNING proves liveness only and the handler-written projection
+      // never appears (custom save writes nothing), so no airtight commit
+      // artifact exists and the proof must refuse the success claim.
       return { status: { name: "RUNNING" } };
     });
 
@@ -595,7 +633,7 @@ describe("adv_change_archive Phase 9 behavior", () => {
     const parsed = JSON.parse(result);
     expect(parsed.success).toBe(false);
     expect(parsed.code).toBe("ARCHIVE_WORKFLOW_PROOF_FAILED");
-    expect(parsed.error).toContain("not observed as applied");
+    expect(parsed.error).toContain("not durably recorded");
     // The transition was still requested; only the success claim is refused.
     expect(store.changes.save).toHaveBeenCalledTimes(1);
   });
@@ -2735,6 +2773,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
   test("poisoned_history recovery bypasses Temporal read but refuses unproven archive delivery", async () => {
     const store = createMockStore();
+    // No projection write behind this save: a poisoned describe cannot prove
+    // the transition, and no handler-written envelope exists to prove it either.
+    store.changes.save = vi.fn(async () => {});
     mocks.findArchiveBundle.mockResolvedValue(null);
     const change = (await store.changes.get("example")).data as Change;
     // If the pre-bundle Temporal read is still used, the first handler call to
@@ -2793,6 +2834,9 @@ describe("adv_change_archive Phase 9 behavior", () => {
 
   test("absent workflow fails closed after the archive transition request", async () => {
     const store = createMockStore();
+    // No projection write behind this save: with the workflow absent and no
+    // handler-written envelope, the proof must fail closed ambiguous.
+    store.changes.save = vi.fn(async () => {});
     mocks.findArchiveBundle.mockResolvedValue(null);
     const change = (await store.changes.get("example")).data as Change;
     const loadChangeSpy = vi
