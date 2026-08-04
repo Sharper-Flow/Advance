@@ -1,11 +1,11 @@
 ---
 name: adv-coordinate
-description: Audit project changes, Epic alignment, sequencing, and membership health
+description: Audit project changes, Epic alignment, sequencing, and membership health; includes Epic-unlinked in-flight changes
 ---
 
-# ADV Coordinate — Project Change and Epic Alignment Audit
+# ADV Coordinate — Project Changes and Epic Coordination Audit
 
-Run a read-first coordination pass across each participating project's in-flight changes, active Epics, and current repository evidence. Produce a repository freshness, project-change inventory, overlap, alignment, sequencing, dependency, and membership-health report; apply durable Epic actions only after explicit approval through typed Epic tools.
+Run a read-first coordination pass across each participating project's in-flight changes, active Epics, and current repository evidence. Produce a repository freshness, project-change inventory, overlap, alignment, sequencing, dependency, and membership-health report for change-scoped and Epic-scoped findings; apply durable Epic actions only after explicit approval through typed Epic tools.
 
 <UserRequest>
   $ARGUMENTS
@@ -24,15 +24,15 @@ Run a read-first coordination pass across each participating project's in-flight
 | Command | Relationship |
 |---|---|
 | `/adv-epic` | Creates or updates one Epic after goal-first confirmation. |
-| `/adv-coordinate` | Audits each participating project's in-flight changes plus active Epics as a set and proposes coordination actions. |
-| `/adv-cleanup` | Triages active changes; does not mutate Epic roadmap structure. |
+| `/adv-coordinate` | Audits each participating project's in-flight changes, including Epic-unlinked changes, plus active Epics as a set and proposes coordination actions. |
+| `/adv-cleanup` | Retains change closure and triages active changes; does not mutate Epic roadmap structure. |
 | `bin/adv epic list --json` | Read-only CLI list; no CLI mutation verbs. |
 
 Epic membership remains optional; order stays advisory — may guide display/next-work but must not block gates, tasks, promotion, or change progress.
 
 ## Parse Arguments
 
-- Default: all active Epics in the current project.
+- Default: all in-flight changes and all active Epics in the current project.
 - Optional future filters may narrow by Epic ID or repo scope, but v1 must not require filters to run safely.
 - Reject unknown flags with a short example; do not infer hidden mutation intent from arguments.
 
@@ -40,7 +40,7 @@ Epic membership remains optional; order stays advisory — may guide display/nex
 
 ## Phase 1: Project and Epic Inventory (Read-First)
 
-Inventory every participating project's in-flight changes using typed `adv_change_list` with complete pagination before Epic-dependent alignment. Describe typed `scope: "product"` and explicit `target_path`; do not infer target paths. When expected product context is unavailable, cross-project conclusions must be `freshness_limited` or `judgment_call`, never `adv-backed-fact`.
+Inventory every participating project's in-flight changes using typed `adv_change_list` with complete pagination before Epic-dependent alignment. Follow each page's `hasMore` and `resumeHint` until the in-flight population is exhausted; a single `adv_change_list` call is not complete inventory. Describe typed `scope: "product"` and explicit `target_path`; do not infer target paths. When expected product context is unavailable, cross-project conclusions must be `freshness_limited` or `judgment_call`, never `adv-backed-fact`.
 
 Use typed tools only:
 
@@ -52,7 +52,7 @@ Use typed tools only:
 | Inspect linked changes when needed | `adv_change_show` |
 | Check relevant spec law | `adv_spec` |
 
-If no active Epics exist, report project inventory first, then `No active Epics. No coordination actions.` and stop.
+Report project-change inventory first. If no active Epics exist, report `No active Epics. No Epic-dependent coordination actions.` for Epic-dependent findings only, then continue change-scoped overlap, sequencing, and refactor-coverage analysis; this condition must not stop the run or suppress change-scoped analysis.
 
 Record:
 
@@ -90,12 +90,13 @@ If repository freshness cannot be established, report `freshness_limited`, cite 
 
 ## Phase 3: Current Repository Overlap Audit
 
-Compare active Epic entries and linked change artifacts against current repository evidence before proposing durable actions.
+Compare active Epic entries and all in-flight change artifacts, including Epic-unlinked nonterminal changes, against current repository evidence before proposing durable actions.
 
 | Planned work | Current repository comparison |
 |---|---|
 | Shell entries | Compare title and success hint to recent commits, changed files, and nearby code evidence. |
 | Linked changes | Compare proposal/agreement/design/task summaries to current code, recent commits, and diff evidence. |
+| Epic-unlinked nonterminal changes | Compare proposal/agreement/design/task summaries to current code, recent commits, and diff evidence on the same terms as linked changes. |
 | Terminal entries/history | Use terminal summaries and current code evidence to decide whether remaining work is still valid. |
 
 Classify every finding with one of these stable labels:
@@ -139,6 +140,7 @@ Build an advisory dependency view from:
 
 - entry success hints;
 - existing change titles/proposals when available;
+- Epic-linked and Epic-unlinked nonterminal changes from the Phase 1 inventory;
 - explicit cross-Epic prerequisite notes;
 - terminal summaries.
 - current repository overlap and freshness findings.
@@ -172,7 +174,7 @@ Do not silently mutate. Repairs require `evidence`; target-routed repairs follow
 
 Classify follow-up coverage for out-of-date work using evidence already gathered in Phases 1, 3, and 6. Add no new tool call; this phase reads nothing the earlier phases did not already collect.
 
-Reachability: this phase runs only when coordination proceeds past Phase 1. When Phase 1 short-circuits on no active Epics, the audit does not run and no referral is emitted.
+Reachability: this phase runs after the Phase 1 project inventory regardless of whether active Epics exist. When there are no active Epics, Epic-dependent findings may short-circuit, but this audit still executes for every qualifying in-flight change and may emit evidence-backed referrals.
 
 **Candidate population.** Every nonterminal in-flight change from the Phase 1 project inventory, whether or not it is linked to an Epic. Exclude terminal (archived or closed) changes at selection time. List all qualifying candidates; do not cap the group.
 
@@ -200,11 +202,11 @@ Group findings as follows:
 
 Emit grouped report:
 
-- Inventory summary: Projects scanned, Changes by project, Epics scanned, entries scanned, health counts.
+- Inventory summary: Projects scanned, all in-flight Changes by project (including Epic-linked and Epic-unlinked changes), Epics scanned, entries scanned, health counts.
 - Repository freshness summary: current branch, HEAD SHA, default/upstream relation, remote freshness, ahead/behind state, and dirty work risk where available.
-- Current repository overlap findings: `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, and `freshness_limited` counts and evidence.
+- Current repository overlap findings: Epic-linked and Epic-unlinked change findings, with `repo_backed_fact`, `adv-backed-fact`, `judgment_call`, and `freshness_limited` counts and evidence.
 - Alignment findings: clear-cut vs judgment calls.
-- Sequencing findings: inversions, capstone placement, proposed `entry_ids` order.
+- Sequencing findings: inversions and capstone placement across Epic-linked and Epic-unlinked changes, plus proposed `entry_ids` order where applicable.
 - Health findings: status, evidence, suggested repair mode.
 - Refactor coverage findings: actionable change candidates with their dry-run `/adv-refactor <change-id>` referral and status at emit time, Epic coverage findings with their named stale field and typed action, and review/deferred candidates with no command.
 - Proposed durable actions: narrative updates, reorders, membership repairs.

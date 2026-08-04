@@ -33,7 +33,7 @@ GitHub Projects v2 owns issue/project membership. Temporal-backed ADV changes an
 5. **Confirm issue creation** — Tier B approval for cleanup-surviving unrepresented items. Create only approved issues; tag later promotion with `origin_kind:'triage'`.
 6. **Bug priority loop** — the agent assigns `priority:*` autonomously after bounded context gathering (max 2 questions per bug); default medium + `context_insufficient` when unresolved.
 7. **Coalesce** — exclude existing links, classify remaining issue↔change pairs as structural or heuristic, show bounded evidence, and link only displayed user-approved pairs with `adv_change_update_issues`.
-8. **Portfolio balance** — emit exactly Important to complete, Cleanup needed, and Open issues worth solving. Include Epic ID/title/order as advisory context.
+8. **Portfolio balance** — emit exactly Important to complete, Cleanup needed, and Open issues worth solving. Important to complete includes every nonterminal ADV change with no linked GitHub issue, selected by typed change state rather than title or agent inference. Keep structural membership separate from the advisory `defectHint`: `origin.kind` yields source `origin_kind` and is primary, a `fix` title prefix yields source `title_prefix` and is secondary and weak, and any rendered hint includes its evidence source and affects ordering only. Include Epic ID/title/order as advisory context.
 9. **Report** — include source counts, cleanup outcomes, created/prioritized issues, pair link outcomes, active Epics inspected, and three balance counts.
 
 ## Structural Rules
@@ -46,6 +46,9 @@ GitHub Projects v2 owns issue/project membership. Temporal-backed ADV changes an
 - Bugs use `priority:*` labels only; no scoring-field writes.
 - User questions gather bug context only; the agent owns priority choice.
 - Epic order is advisory and never blocks work by itself.
+- Unlinked-change membership is structural: typed nonterminal state plus typed absence of issue linkage; title similarity, title prefix, and agent inference never decide visibility.
+- `defectHint` is advisory ranking only. `origin.kind` yields source `origin_kind` and is the primary source; a `fix` title prefix yields source `title_prefix` and is secondary and weak. Render the hint's evidence source, and keep its ordering weight strictly between `priority:low` and `priority:medium`.
+- A defect hint must not filter, suppress, close, deprioritize, or authorize a mutation. `priority:*` labels and any parallel priority field remain GitHub-issue-scoped and are never written to an ADV change.
 
 ## Required Outputs
 

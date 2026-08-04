@@ -44,7 +44,9 @@ Any failure → `[ADV:BLOCKED]` + cause, stop. Resolve project handle, ensure cu
 
 ## Phase 2: Gather Sources
 
-Inline parallel reads (I/O bound, no sub-agents). 7 sources: open GH issues, GH Projects items, active ADV changes, active ADV Epics, wisdom, cross-session notes, TODO/FIXMEs. Cap each 100; overflow → recency sort + `(N more not shown)`. Build inventory records with stable refs, linkage fields, optional Epic membership, and advisory `kind_hint`. Use `adv_change_list status:'in-flight'`, `adv_epic_list`, and bounded `adv_epic_show` only for plausible relevant Epics. See skill § Phase 1.
+Inline parallel reads (I/O bound, no sub-agents). 7 sources: open GH issues, GH Projects items, active ADV changes, active ADV Epics, wisdom, cross-session notes, TODO/FIXMEs. Cap each 100; overflow → recency sort + `(N more not shown)`. Build inventory records with stable refs, linkage fields, optional Epic membership, and advisory `kind_hint`. `kind_hint` (`bug | feature | unknown`) classifies a **source item being promoted to a GitHub issue**; its consumers are the Phase 4a `reclassify N as bug|feature` reply, the `ADV Type` field set at issue creation, and the Phase 4c bug priority loop. It is advisory and never authorizes persistence.
+
+`kind_hint` is distinct from `defectHint`: `kind_hint` classifies a source item on its way to becoming an issue, while `defectHint` ranks an existing ADV change already tracked in ADV. For active changes, derive the optional advisory `defectHint` with `deriveDefectHint({ originKind, title })`: typed `origin.kind === 'triage'` yields source `origin_kind` and is the PRIMARY source; a `/^\s*fix\b/i` title prefix yields source `title_prefix` and is SECONDARY and weak. The hint always carries its evidence source and affects ordering only; it does not decide membership or authorize a mutation. Use `adv_change_list status:'in-flight'`, `adv_epic_list`, and bounded `adv_epic_show` only for plausible relevant Epics. See skill § Phase 1.
 
 ---
 
@@ -146,12 +148,15 @@ Emit exactly three sections. Cap each section at 10 rows and append `(N more not
 
 ### Important to complete
 
-Rank active changes by existing signals only:
-1. linked issue priority (`critical` → `high` → `medium` → `low` → none),
-2. gate proximity to release (release/acceptance/execution before earlier gates),
-3. recent activity as deterministic tie-breaker.
+Represent every nonterminal ADV change with no linked GitHub issue in this same section; absence of an issue link MUST NOT exclude it. Build membership structurally from typed change state only: nonterminal state plus typed absence of issue linkage. Title similarity, title prefix inference, and agent inference MUST NOT decide whether an unlinked change appears. Keep this membership decision separate from ranking.
 
-Each row includes change ID/title, current gate, task progress, last activity, linked issue + priority, and optional Epic ID/title/order. Epic order is advisory: warn when earlier entries remain incomplete, never block work solely due to order. Resume pointer: `→ /adv-apply {change-id}`.
+Rank the resulting changes by existing structural signals plus the bounded advisory hint:
+1. linked issue priority (`critical` → `high` → `medium` → `low` → none),
+2. for an unlinked change only, optional `defectHint` ordering weight strictly between `priority:low` and `priority:medium`; it may lift defect work above the weakest structural triage signal but never above a deliberate medium-or-higher human triage decision,
+3. gate proximity to release (release/acceptance/execution before earlier gates),
+4. recent activity as deterministic tie-breaker.
+
+Each row includes change ID/title, current gate, task progress, last activity, linked issue + priority, optional Epic ID/title/order, and any advisory defect hint rendered with its evidence source (`source:origin_kind` or `source:title_prefix`). Epic order is advisory: warn when earlier entries remain incomplete, never block work solely due to order. Resume pointer: `→ /adv-apply {change-id}`.
 
 ### Cleanup needed
 
@@ -180,6 +185,8 @@ Emit: sources scanned, issues created, priorities assigned, coalesce pairs propo
 - × MUST NOT own change closure or Epic repair from the portfolio report; delegate to typed paths
 - × MUST NOT write feature scoring fields from this command
 - × MUST NOT write `priority:*` labels to non-bug issues
+- × MUST NOT let an advisory defect hint filter, suppress, close, deprioritize, or authorize any mutation
+- × MUST NOT write any `priority:*` label or parallel priority field to an ADV change; `priority:*` remains GitHub-issue-scoped
 - × MUST NOT generate, echo, stage, commit, or push ROADMAP.md or `.adv/roadmap-snapshot.json`
 - × MUST NOT post priority rationale as issue comments
 - × MUST NOT use `question` to confirm priority choice — only gather bounded context
