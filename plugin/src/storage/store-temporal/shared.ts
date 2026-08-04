@@ -1001,6 +1001,8 @@ export interface StoreDeps {
   changeOverlayCache: Map<string, Partial<Change>>;
   memo: ChangeSummaryMemo;
   taskChangeIndex: Map<string, string>;
+  /** Records disk projections observed by projection-only reads. */
+  markLoadedDiskProjection?: (changeId: string) => void;
 
   // Shared helpers (closures over the maps above)
   buildSummary: (state: ChangeWorkflowState) => ChangeSummary;

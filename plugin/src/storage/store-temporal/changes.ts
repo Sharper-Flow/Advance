@@ -840,7 +840,13 @@ async function readProjectionChangeList(
     boundedOmittedIds?: string[];
   }
 > {
-  const { input: _input, legacy, memo, getTemporalChange } = deps;
+  const {
+    input: _input,
+    legacy,
+    memo,
+    getTemporalChange,
+    markLoadedDiskProjection,
+  } = deps;
 
   const suppliedRead = options.deadline;
   const ctx = suppliedRead
@@ -881,6 +887,7 @@ async function readProjectionChangeList(
   const summaryRows = new Map<string, ChangeListResponse["changes"][number]>();
   if (summaryResult.summaries.length > 0) {
     for (const summary of summaryResult.summaries) {
+      markLoadedDiskProjection?.(summary.id);
       summaryRows.set(summary.id, summaryToListRow(summary));
     }
   }
@@ -1040,6 +1047,7 @@ async function readProjectionChangeList(
     }
 
     if (diskResult?.success && diskResult.data) {
+      markLoadedDiskProjection?.(diskResult.data.id);
       let change = diskResult.data;
       const terminalOnDisk =
         change.status === "archived" || change.status === "closed";

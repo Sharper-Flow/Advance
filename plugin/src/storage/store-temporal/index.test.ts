@@ -496,12 +496,14 @@ describe("createTemporalStoreBackend change projection fallback", () => {
     await legacy.changes.save(archivedChange("poisonedDisk"));
 
     const store = await createPoisonedStore(tempDir);
+    expect(store.hasLoadedDiskProjection?.()).toBe(false);
     const result = await store.changes.get("poisonedDisk");
 
     expect(result.success).toBe(true);
     expect(result.data?.id).toBe("poisonedDisk");
     expect(result.data?.status).toBe("archived");
     expect((result.data as Change & { _source?: string })._source).toBe("disk");
+    expect(store.hasLoadedDiskProjection?.()).toBe(true);
   });
 
   it("returns an archive bundle projection when source disk snapshot is absent", async () => {
@@ -1812,6 +1814,25 @@ describe("terminal aggregate degraded metadata (rq-terminalAggregateRead01)", ()
 });
 
 describe("createTemporalStoreBackend projection-only read enforcement", () => {
+  it("guards the dual-write projection behind confirmed readback", async () => {
+    const source = await readFile(
+      new URL("./index.ts", import.meta.url),
+      "utf8",
+    );
+    const body = source.match(
+      /const dualWriteAfterMutation = async \([\s\S]*?\n\s{2}};\n\n\s{2}\/\*\*/,
+    )?.[0];
+    expect(body).toBeDefined();
+
+    const confirmedGuard = body!.indexOf('if (typed.outcome !== "confirmed")');
+    const valueGuard = body!.indexOf("if (!readbackValue)");
+    const projectionWrite = body!.indexOf("voidPersist(changeId, state)");
+
+    expect(confirmedGuard).toBeGreaterThanOrEqual(0);
+    expect(valueGuard).toBeGreaterThan(confirmedGuard);
+    expect(projectionWrite).toBeGreaterThan(valueGuard);
+  });
+
   it("getTemporalChange source never starts, signals, reseeds, or writes recovery state", async () => {
     const source = await readFile(
       new URL("./index.ts", import.meta.url),

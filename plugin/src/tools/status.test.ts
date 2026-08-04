@@ -304,6 +304,43 @@ describe("Status Tools", () => {
       );
     });
 
+    test("does not retry a NOT_FOUND status when a disk projection is already loaded", async () => {
+      const notFoundError = Object.assign(new Error("service response"), {
+        cause: { code: 5, details: "service response", metadata: {} },
+      });
+      const statusSpy = vi.fn().mockRejectedValue(notFoundError);
+      store.status = statusSpy;
+      (
+        store as Store & { hasLoadedDiskProjection?: () => boolean }
+      ).hasLoadedDiskProjection = () => true;
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusSpy).toHaveBeenCalledTimes(1);
+      expect(parsed.view).toBe("summary");
+      expect(parsed.bootstrap_retry).toBeUndefined();
+    });
+
+    test("admits NOT_FOUND retry when no disk projection is loaded", async () => {
+      const notFoundError = Object.assign(new Error("service response"), {
+        cause: { code: 5, details: "service response", metadata: {} },
+      });
+      const originalStatus = store.status.bind(store);
+      const statusSpy = vi
+        .fn()
+        .mockRejectedValueOnce(notFoundError)
+        .mockImplementation(() => originalStatus());
+      store.status = statusSpy;
+
+      const result = await statusTools.adv_status.execute({}, store);
+      const parsed = parseToolOutput(result);
+
+      expect(statusSpy).toHaveBeenCalledTimes(2);
+      expect(parsed.view).toBe("summary");
+      expect(parsed.bootstrap_retry).toMatchObject({ recovered: true });
+    });
+
     test("shows retained terminal cleanup blocker counts without exact paths", async () => {
       const access = await initWorktreeStateDb(tempDir);
       const retainedPath = join(tempDir, "status-retained");

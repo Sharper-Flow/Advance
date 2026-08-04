@@ -95,6 +95,10 @@ export function createTemporalStoreBackend(
   const changeCache = new Map<string, Change>();
   const changeOverlayCache = new Map<string, Partial<Change>>();
   const memo = new ChangeSummaryMemo();
+  const loadedDiskProjectionIds = new Set<string>();
+  const markLoadedDiskProjection = (changeId: string): void => {
+    loadedDiskProjectionIds.add(changeId);
+  };
 
   // Reverse-lookup cache populated from any Temporal-observed tasks so
   // taskId-only methods can resolve the owning change without requiring the
@@ -234,11 +238,13 @@ export function createTemporalStoreBackend(
         ...archiveSnapshot.snapshot,
         status: "archived" as const,
       };
+      markLoadedDiskProjection(changeId);
       setCachedProjection(archived);
       return { ...archiveSnapshot, snapshot: archived };
     }
 
     if (diskSnapshot.found) {
+      markLoadedDiskProjection(changeId);
       setCachedProjection(diskSnapshot.snapshot);
       return diskSnapshot;
     }
@@ -2022,6 +2028,7 @@ export function createTemporalStoreBackend(
     changeOverlayCache,
     memo,
     taskChangeIndex,
+    markLoadedDiskProjection,
     buildSummary,
     setCachedChange,
     invalidateChange,
@@ -2043,6 +2050,7 @@ export function createTemporalStoreBackend(
 
   const store: Store = {
     ...legacy,
+    hasLoadedDiskProjection: () => loadedDiskProjectionIds.size > 0,
     specs: buildSpecsSurface(),
     changes: changeOps,
     tasks: createTaskOps(deps),

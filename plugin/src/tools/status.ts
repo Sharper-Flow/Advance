@@ -17,6 +17,7 @@ import {
 import { getTemporalWorkerRole } from "../plugin-init";
 import {
   classifyTemporalError,
+  extractGrpcStatus,
   getTemporalRetryTelemetry,
 } from "../temporal/retry-wrapper";
 import { isWorkerAffirmativelyAlive } from "../temporal/health-probe";
@@ -133,6 +134,7 @@ async function loadMigrationStatus(_store: Store) {
 
 const STATUS_BOOTSTRAP_RETRY_DELAY_MS = 50;
 const STATUS_BOOTSTRAP_MAX_ATTEMPTS = 3;
+const GRPC_NOT_FOUND = 5;
 
 async function delay(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -168,6 +170,24 @@ function buildDeadlineDegradedStatus(status?: ProjectStatus): ProjectStatus {
       omitted: status?.hydrationStats?.omitted ?? 0,
       omittedIds: status?.hydrationStats?.omittedIds ?? [],
     },
+  };
+}
+
+function buildDurableAbsenceStatus(): ProjectStatus {
+  return {
+    specs: { count: 0, capabilities: [] },
+    changes: {
+      active: 0,
+      byStatus: {
+        draft: 0,
+        archived: 0,
+        closed: 0,
+      },
+      recent: [],
+    },
+    recommendations: [
+      "⚠️ Temporal workflow is durably absent; status read stopped after the loaded disk projection was retained.",
+    ],
   };
 }
 
@@ -214,6 +234,15 @@ async function loadStatusWithBootstrapRetry(
         : { status };
     } catch (error) {
       if (classifyTemporalError(error) !== "fallback") throw error;
+      // A structurally identified gRPC NOT_FOUND is terminal once this store
+      // has already loaded a durable disk projection. Do not use error text:
+      // TMPRL1100 has no gRPC status and remains bootstrap-retry eligible.
+      if (
+        extractGrpcStatus(error) === GRPC_NOT_FOUND &&
+        store.hasLoadedDiskProjection?.() === true
+      ) {
+        return { status: buildDurableAbsenceStatus() };
+      }
       lastBootstrapError = error;
       if (isTemporalReadExpired(context)) {
         return {

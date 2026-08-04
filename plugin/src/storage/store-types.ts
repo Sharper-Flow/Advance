@@ -262,6 +262,8 @@ export type ReadSnapshot<T> =
 interface StoreBase {
   paths: ProjectPaths;
   config: ProjectConfig | null;
+  /** True only when this store has already loaded a durable disk projection. */
+  hasLoadedDiskProjection?: () => boolean;
   /** Product-link identity context. Omitted for legacy/mock stores. */
   productContext?: ProductContext;
 
