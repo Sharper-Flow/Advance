@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "change_id": "broadenCoordinateTriage",
+  "title": "Broaden coordinate triage coverage",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Coordination and triage now cover every open change, not just Epic-linked and issue-linked work",
+    "highlights": [
+      "/adv-coordinate refactor-coverage, repository-overlap, and sequencing analysis now run for every nonterminal in-flight change regardless of Epic membership, and no longer stop entirely when a project has no active Epics",
+      "Advisory rank no longer assigns Number.MAX_SAFE_INTEGER to Epic-unlinked changes, so a single Epic-linked change can no longer make all unlinked work permanently unreachable as ordered_next",
+      "/adv-triage portfolio balance represents nonterminal ADV changes carrying no linked GitHub issue inside the existing Important to complete section; the three-section contract is unchanged",
+      "Membership in the unlinked-change set is structural (typed change state only); an advisory defect hint sourced from origin.kind (primary) or a fix title prefix (secondary) influences ordering only and renders its evidence source",
+      "Defect hint ordering weight sits strictly between priority:low and priority:medium, so it can lift bugfix work above the weakest structural triage signal but never above a deliberate medium-or-higher human triage decision",
+      "priority:* labels remain GitHub-issue-scoped; no priority label or parallel priority field is written to an ADV change",
+      "/adv-coordinate now states explicitly that inventory reads must follow hasMore and resumeHint until the in-flight population is exhausted",
+      "New spec law: rq-epicCoordinateChangeCoverage01 and rq-epicAdvisoryRankReachability01 (advance-epics v1.14.0), rq-backlogCoord10 (backlog-coordination v1.6.0)"
+    ],
+    "area": "adv-coordinate / adv-triage",
+    "user_action_required": false
+  }
+}
