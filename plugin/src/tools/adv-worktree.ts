@@ -346,8 +346,14 @@ async function executeWorktreeCleanup(
           mode: "archived_branches",
           effectiveTimeoutMs,
           error: `adv_worktree_cleanup archived_branches exceeded the ${effectiveTimeoutMs}ms safe budget${clampedNote}. This is an emergency guard; the helper normally self-returns partial results, so this indicates stuck git or store I/O.`,
-          remediation:
-            "Retry with a larger timeoutMs (clamped to the safe budget), or investigate a stuck git process / unreachable store.",
+          // rq-worktreeBoundedCleanup02: once the request has been clamped,
+          // advising a larger timeoutMs is unreachable — the safe budget is a
+          // structural ceiling. `skipDiscovery` is deliberately NOT offered
+          // here: this mode routes to cleanupArchivedMergedBranches and never
+          // forwards `discover`, so naming it would advise a no-op.
+          remediation: wasClamped
+            ? `The ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms safe budget is a structural ceiling (rq-worktreeBoundedCleanup02) and cannot be raised. Re-run with a narrower changeId filter, or run adv_worktree_triage to inspect merged archived branches individually.`
+            : "Retry with a larger timeoutMs (clamped to the safe budget), or investigate a stuck git process / unreachable store.",
         }),
         context,
       );
@@ -421,9 +427,17 @@ async function executeWorktreeCleanup(
         stage: currentStage,
         pendingDeleteCount: (await getPendingDeletes(database).catch(() => []))
           .length,
-        error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote}. Cleanup likely blocked on a poisoned workflow or stuck I/O. Retry after the underlying workflow is resolved (see adv_doctor).`,
-        remediation:
-          "Pass a larger timeoutMs (clamped to the safe budget) to retry, or run adv_doctor to classify and repair the poisoned workflow first.",
+        // No poison claim: this branch resolves a setTimeout sentinel, not a
+        // rejection, so there is no error to classify. rq-worktreePoisonVisibility01
+        // requires error-class plus structured evidence before naming poisoned
+        // history — asserting it here would be a guess. Report the stage that
+        // was actually in flight instead.
+        error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote} during ${currentStage}. The inner promise was not cancelled; queued deletes may still resolve on a later drain pass.`,
+        // rq-worktreeBoundedCleanup02: the safe budget is a structural ceiling,
+        // so a clamped caller must be given an action that can actually succeed.
+        remediation: wasClamped
+          ? `The ${WORKTREE_TOOL_SAFE_TIMEOUT_MS}ms safe budget is a structural ceiling (rq-worktreeBoundedCleanup02) and cannot be raised. Retry with skipDiscovery:true to drain already-queued deletes, or run adv_worktree_triage to inspect retained candidates.`
+          : "Retry with a larger timeoutMs (clamped to the safe budget), or run adv_worktree_triage to inspect retained candidates.",
       }),
       context,
     );

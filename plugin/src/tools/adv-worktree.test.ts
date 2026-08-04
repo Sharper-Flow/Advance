@@ -985,6 +985,75 @@ describe("advWorktreeTools", () => {
     expect(out).toContain("effectiveTimeoutMs");
   });
 
+  // AC1 — a clamped caller must not be told to raise a value that was just
+  // clamped away. The safe budget is a structural ceiling.
+  it("does not advise a larger timeoutMs when the request was clamped (worktrees)", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "clamped cleanup", timeoutMs: 30_000 },
+      store,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.timedOut).toBe(true);
+    expect(parsed.remediation).not.toContain("larger timeoutMs");
+    expect(parsed.remediation).toMatch(/skipDiscovery|adv_worktree_triage/);
+  }, 20_000);
+
+  // AC2 — with no clamp, offering a larger timeoutMs is still reachable.
+  it("may still advise a larger timeoutMs when no clamp was applied (worktrees)", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+      { reason: "unclamped cleanup", timeoutMs: 25 },
+      store,
+    );
+
+    const parsed = JSON.parse(out);
+    expect(parsed.timedOut).toBe(true);
+    expect(parsed.remediation).toContain("larger timeoutMs");
+  });
+
+  // AC3 — no poison assertion and no unconditional adv_doctor referral,
+  // because no poison detection runs anywhere on the cleanup path.
+  it("asserts no poisoned workflow and does not refer to adv_doctor on timeout", async () => {
+    const database = {
+      projectDir: "/repo",
+      projectId: "0000000000000000000000000000000000000000",
+    };
+    stateMock.initStateDb.mockResolvedValue(database);
+    worktreeMock.advWorktreeCleanup.mockImplementation(
+      () => new Promise(() => {}),
+    );
+
+    for (const timeoutMs of [25, 30_000]) {
+      const out = await advWorktreeTools.adv_worktree_cleanup.execute(
+        { reason: "no poison guess", timeoutMs },
+        store,
+      );
+      const parsed = JSON.parse(out);
+      expect(parsed.error).not.toMatch(/poison/i);
+      expect(parsed.error).not.toContain("adv_doctor");
+      expect(parsed.remediation).not.toMatch(/poison/i);
+      expect(parsed.remediation).not.toContain("adv_doctor");
+    }
+  }, 20_000);
+
   it("reports discovery stage and pending-delete count when cleanup hangs in discovery", async () => {
     const database = {
       projectDir: "/repo",

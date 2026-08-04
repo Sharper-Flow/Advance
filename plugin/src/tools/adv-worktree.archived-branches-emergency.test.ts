@@ -52,4 +52,62 @@ describe("adv_worktree_cleanup archived_branches emergency guard", () => {
     expect(parsed.mode).toBe("archived_branches");
     expect(parsed.effectiveTimeoutMs).toBe(60);
   }, 10_000);
+
+  // AC1 (archived_branches variant). The clamped remediation must not name
+  // skipDiscovery: this mode routes to cleanupArchivedMergedBranches and never
+  // forwards `discover`, so the flag is a no-op here. Naming it would recreate
+  // the very defect AC1 forbids — advising an action that cannot succeed.
+  test("clamped remediation names a reachable action and never skipDiscovery", async () => {
+    const result = await advWorktreeTools.adv_worktree_cleanup.execute(
+      {
+        reason: "archived branch cleanup",
+        mode: "archived_branches",
+        dryRun: true,
+        timeoutMs: 30_000,
+      },
+      mockStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.timedOut).toBe(true);
+    expect(parsed.remediation).not.toContain("larger timeoutMs");
+    expect(parsed.remediation).not.toContain("skipDiscovery");
+    expect(parsed.remediation).toMatch(/changeId|adv_worktree_triage/);
+  }, 20_000);
+
+  // AC2 (archived_branches variant): unclamped may still offer a larger value.
+  test("unclamped remediation may still offer a larger timeoutMs", async () => {
+    const result = await advWorktreeTools.adv_worktree_cleanup.execute(
+      {
+        reason: "archived branch cleanup",
+        mode: "archived_branches",
+        dryRun: true,
+        timeoutMs: 60,
+      },
+      mockStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.timedOut).toBe(true);
+    expect(parsed.remediation).toContain("larger timeoutMs");
+  }, 10_000);
+
+  // AC3 (archived_branches variant).
+  test("does not assert a poisoned workflow or refer to adv_doctor", async () => {
+    const result = await advWorktreeTools.adv_worktree_cleanup.execute(
+      {
+        reason: "archived branch cleanup",
+        mode: "archived_branches",
+        dryRun: true,
+        timeoutMs: 60,
+      },
+      mockStore(),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.error).not.toMatch(/poison/i);
+    expect(parsed.error).not.toContain("adv_doctor");
+    expect(parsed.remediation).not.toMatch(/poison/i);
+    expect(parsed.remediation).not.toContain("adv_doctor");
+  }, 10_000);
 });
