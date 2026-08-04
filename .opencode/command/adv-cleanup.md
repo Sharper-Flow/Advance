@@ -1,12 +1,12 @@
 ---
 name: adv-cleanup
-description: Triage stale, abandoned, duplicate, and ready-to-archive active changes
+description: Triage stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; delete approved safe worktrees/branches only with typed confirmation
 ---
-# ADV Cleanup — Active State Triage
+# ADV Cleanup — Hygiene Triage
 
-Dry-run by default: scan active ADV changes, bucket candidates, report actions. `--execute` applies only after per-bucket Tier B approval. Runs inline; no sub-agents.
+Dry-run by default: scan all four ADV hygiene surfaces, bucket candidates, report actions. `--execute` applies only after per-bucket approval. Runs inline; no sub-agents.
 
-> **CHECKLIST**: Default dry-run. Closures require Tier B per-bucket approval (`rq-inlineApproval01.4`). Never auto-archive; recommend `/adv-archive {id}` to preserve per-change Tier B sign-off (`rq-inlineApproval01.3`).
+> **CHECKLIST**: Default dry-run. Reversible closures require Tier B per-bucket approval (`rq-inlineApproval01.4`). Irreversible buckets require count-matched typed confirmation and reject `approve all` (`rq-cleanupHygieneScope01`). Deletion always delegates to `adv_worktree_delete` / `adv_worktree_cleanup` (`rq-terminalCleanupSafety01`). Never auto-archive; recommend `/adv-archive {id}` to preserve per-change Tier B sign-off (`rq-inlineApproval01.3`).
 
 <UserRequest>
   $ARGUMENTS
@@ -30,9 +30,20 @@ Validate bucket and duration before scan; reject malformed values with example.
 
 ## Phase 1: Scan
 
-Call `adv_change_list({ sort: "stalest", excludeRecencyBands: ["hot"] })`. Record scanned count + hot-excluded count.
+Four discovery calls, one per hygiene surface. Record scanned counts per surface.
 
-If 0 active changes → `No cleanup candidates. No active changes.` → stop.
+1. **Active changes** — `adv_change_list({ sort: "stalest", excludeRecencyBands: ["hot"] })`. Record scanned count + hot-excluded count.
+2. **Worktree drift** — `adv_worktree_triage`.
+3. **Merged archived branches** — `adv_worktree_cleanup({ mode: "archived_branches", dryRun: true })`. Discovery only; `dryRun: true` is mandatory in this phase.
+4. **State leaks** — `adv_status({ view: "hygiene" })`.
+
+> **DESTRUCTIVE DEFAULT WARNING:** Omitting `dryRun: true` here **DELETES branches instead of listing them**; `adv_worktree_cleanup` has no safe default. Use the discovery call exactly as written. The apply form belongs only in Phase 5 after typed confirmation.
+
+A failing surface degrades that section only; report it as `unavailable: {reason}` and continue with the rest.
+
+If all four surfaces return zero candidates → `No cleanup candidates. All hygiene surfaces are clean.` → stop.
+
+If surface 1 returns 0 active changes, still run surfaces 2–4 — worktree, branch, and leak debt outlive their changes.
 
 ---
 
@@ -48,11 +59,24 @@ Use skill bucket precedence; most-specific wins:
 
 Inspect cheaply: duplicate pass over active+archived list; if hot/non-stale and not duplicate → Healthy; otherwise one `adv_change_show` per stale change. Before closure buckets, check unarchived `fast_follow_of` children; move matches to blocked sub-bucket. If `--bucket`, retain only that bucket.
 
+This precedence orders **changes only**. Worktree, branch, and leak candidates are different entity kinds and are classified independently — a change and its worktree may legitimately appear in two sections at once. State the relationship; never suppress either.
+
 ---
 
-## Phase 2.5: Worktree Drift Report (report-only)
+## Phase 2.5: Hygiene Surfaces
 
-Call `adv_worktree_triage` to produce a separate worktree drift report. This section is always report-only; even `--execute` does not delete worktrees here.
+Four surfaces, two reversibility classes (`rq-cleanupHygieneScope01`):
+
+| # | Surface | Discovery | Class | Executable |
+|---|---|---|---|---|
+| 1 | Active-change debt | `adv_change_list` + `adv_change_show` | reversible | yes |
+| 2 | Worktree drift | `adv_worktree_triage` | **irreversible** | yes |
+| 3 | Merged archived `change/*` branches | `adv_worktree_cleanup mode: "archived_branches"` | **irreversible** | yes |
+| 4 | Archived/closed state leaks | `adv_status view: "hygiene"` | report-only | no |
+
+Surface 4 stays report-only: leak remediation routes to `adv_archive_purge`, an operator-only recovery tool that owns its own approval contract. Cleanup surfaces the leak and names the tool; it never purges.
+
+### Surface 2 — worktree drift groups
 
 Classify each worktree into one of four drift groups:
 
@@ -63,29 +87,61 @@ Classify each worktree into one of four drift groups:
 | **dirty/in-use** | Uncommitted changes or running processes detected; defer to user |
 | **needs-investigation** | Classification ambiguous (missing registry entry, stale head, etc.) |
 
+The `adv_worktree_triage` classes map to these groups as follows:
+
+| `adv_worktree_triage` class | Drift group | Deletion eligible |
+|---|---|---|
+| `archived_not_cleaned` | safe | yes — owning change archived; delete tool enforces archived+merged+clean |
+| `missing_from_disk` | safe | yes — registry-only record, nothing on disk to lose |
+| `dirty_uncommitted_work` | dirty/in-use | **no** — force-deleting discards staged/modified/untracked work |
+| `missing_from_temporal_unmerged` | dirty/in-use | **no** — has commits ahead of the default branch |
+| `missing_from_temporal` | needs-investigation | no — may still be active; resume or inspect first |
+| `registry_missing_change_id` | needs-investigation | no — repair registry metadata first |
+| `stale_head` | needs-investigation | no — classification ambiguous |
+| `terminal_cleanup_retained` | blocked | no — cleanup already attempted and blocked; resolve the blocker first |
+
+Any unrecognized or new `adv_worktree_triage` class MUST default to `needs-investigation` and is never eligible for deletion (fail-closed for unknown input).
+
 Required snippet:
 
-- Worktree drift → `Worktree drift report (report-only): {safe} safe, {blocked} blocked, {dirty/in-use} dirty/in-use, {needs-investigation} needs-investigation.`
+- Worktree drift → `Worktree drift: {safe} safe, {blocked} blocked, {dirty/in-use} dirty/in-use, {needs-investigation} needs-investigation.`
 
-Actual worktree deletion remains owned by `adv_worktree_delete` and `adv_worktree_cleanup`; `/adv-cleanup` never deletes worktrees.
+### Deletion authority
+
+`adv_worktree_triage` output is advisory discovery and selection data — **never deletion authority** (`rq-terminalCleanupSafety01`). Every approved deletion is executed by `adv_worktree_delete` or `adv_worktree_cleanup`, which independently re-verify terminal owning-change status, branch integration, clean worktree state, no live process CWD, and squash-merge-safe tree-SHA equivalence. Their refusals are final: surface each refusal verbatim, never retry around it.
 
 ---
 
 ## Phase 3: Present Findings
 
-Emit grouped inline report; skip Healthy. Include mode, scanned, hot excluded, age threshold, bucket counts, reasons, total candidates, and filtered bucket note when applicable.
+Emit grouped inline report; skip Healthy. Include mode, per-surface scanned counts, hot excluded, age threshold, bucket counts, reasons, total candidates, and filtered bucket note when applicable.
+
+Every candidate bucket carries an explicit **reversible** or **irreversible** marker. Irreversible buckets state their recovery path inline so the cost is visible before approval, not after.
+
+| Bucket | Marker | Recovery |
+|---|---|---|
+| Duplicate / Stuck / Abandoned | reversible | Re-open the change; full history retained |
+| Worktree deletion | irreversible | `git worktree add {path} {branch}` — branch and commits survive |
+| Branch deletion | irreversible | `git reflog` → `git branch {name} {sha}` — **time-bounded ~30–90d** (`gc.reflogExpireUnreachable` 30d, `gc.reflogExpire` 90d) |
+
+A surface with no candidates renders an explicit empty state rather than being omitted — silence is indistinguishable from a failed scan.
 
 Required snippets:
 
 - Ready → `→ Run /adv-archive {id} to ship.`
-- Dry-run → `Re-run with --execute to apply per-bucket actions (each bucket requires Tier B approval).`
-- Empty → `No cleanup candidates. All active changes are healthy or hot.`
+- Active-change empty state → `Active-change debt: none.`
+- Worktree empty state → `Worktree drift: none.`
+- Branch empty state → `Merged archived branches: none.`
+- Leak empty state → `State leaks: none.`
+- Leak present → `→ Run adv_archive_purge for {id} (operator-only; owns its own approval).`
+- Dry-run → `Re-run with --execute to apply per-bucket actions (reversible buckets need Tier B approval; irreversible buckets need typed confirmation).`
+- Empty → `No cleanup candidates. All hygiene surfaces are clean.`
 
-If `--execute`, continue to Phase 4 for Duplicate, Stuck, Abandoned only. Skip Ready-to-archive and Blocked.
+If `--execute`, continue to Phase 4 for Duplicate, Stuck, Abandoned (reversible) and Phase 4b for safe worktrees and merged branches (irreversible). Skip Ready-to-archive, Blocked, and state leaks.
 
 ---
 
-## Phase 4: Per-Bucket Approval (`--execute` only — Tier B inline)
+## Phase 4: Reversible Bucket Approval (`--execute` only — Tier B inline)
 
 For each non-empty closure bucket, emit separate Tier B inline prompt (cancellation approval, `rq-autonomy01` checkpoint #7, `rq-inlineApproval01.4`).
 
@@ -107,13 +163,57 @@ Anything else → re-prompt same options. **× Do NOT** invoke LLM fallback. **�
 
 ---
 
+## Phase 4b: Irreversible Bucket Approval (`--execute` only — typed confirmation)
+
+Worktree deletion and branch deletion are irreversible. They use a **distinct, stronger prompt** than Phase 4 (`rq-cleanupHygieneScope01`). The two prompts never merge and the reversible parser is never weakened to accommodate this one.
+
+Prompt MUST list every candidate numbered with its **exact worktree path or branch name** — never a count-only summary, never an abbreviated path. The user cannot consent to something they cannot see.
+
+Prompt MUST state the irreversible marker and the recovery path, including the reflog time bound for branch deletion.
+
+Allowed replies (trimmed, case-insensitive regex; no LLM fallback):
+
+| Pattern | Action |
+|---|---|
+| `^delete all (\d+)$` | delete all listed — **only if `\d+` equals the exact listed candidate count** |
+| `^delete ([\d,\s]+)$` | delete only the listed numbers |
+| `^skip$` | skip bucket; delete nothing |
+| `^(stop\|abort)$` | halt cleanup; delete nothing else |
+
+`approve all` is **rejected** in this phase → re-prompt. It is the reversible-bucket token and MUST NOT carry destructive authority.
+
+Count mismatch on `delete all N` → **re-prompt** with the same options and the correct count. Never infer intent from a near-miss.
+
+Anything else → re-prompt same options. **× Do NOT** invoke LLM fallback. **× Do NOT** advance.
+
+> Rationale: the count-match is the `terraform destroy` property — the confirmation cannot be produced from muscle memory, because the user must read the report to type it.
+
+---
+
 ## Phase 5: Apply
+
+### Reversible buckets
 
 For each approved bucket, call `adv_change_bulk_close` with `approvedByUser: true`, `approvalEvidence`, selector, reason, and `supersededBy` for Duplicate. Duplicate bucket MUST use explicit IDs; filter-based `reason: "superseded"` is rejected.
 
 Before Duplicate apply, `adv_change_show` each `supersededBy` target. Missing target → skip only those candidates and report `skipped: missing supersededBy target`.
 
-Each bucket atomic. Success: `✓ {Bucket name}: closed {N} change(s) — {reason}`. Failure: `✗ {Bucket name}: failed — {error message}. No changes closed in this bucket.` Continue next bucket.
+### Irreversible buckets
+
+Worktree deletion → `adv_worktree_delete` per approved branch. Branch deletion → `adv_worktree_cleanup({ mode: "archived_branches", changeId: <approved candidate change ID> })` without `dryRun`, once per approved candidate. Never issue an unscoped merged-branch cleanup apply: it would delete every currently eligible branch and bypass a subset approval.
+
+Deletion authority belongs to those tools alone (`rq-terminalCleanupSafety01`). Never call `git worktree remove` or `git branch -d` directly. When a tool refuses, report the refusal verbatim and move on — a refusal is evidence the candidate was misclassified, not an obstacle to route around.
+
+### Result lines
+
+Each bucket atomic. Continue to the next bucket after a failure.
+
+- Reversible success: `✓ {Bucket name}: closed {N} change(s) — {reason}`
+- Irreversible success: `✓ {Bucket name}: deleted {N} of {M} — {name}@{sha}`
+- Refusal: `⊘ {Bucket name}: {name} refused by {tool} — {verbatim refusal}`
+- Failure: `✗ {Bucket name}: failed — {error message}. No changes applied in this bucket.`
+
+Record each deleted branch SHA in the result line so the documented reflog recovery path is actually executable.
 
 ---
 
@@ -130,6 +230,7 @@ Emit closing summary. Use Gate Handoff Voice spine but omit gate footer; cleanup
 | `/adv-status` | Read-only overview; cleanup is actionable counterpart |
 | `/adv-refactor` | Refreshes stale proposal content; cleanup closes abandoned/dead proposals |
 | `/adv-archive` | Cleanup recommends only; archive owns Tier B sign-off |
+| `adv_archive_purge` | Cleanup reports state leaks only; purge owns its own operator approval |
 
 ## Key Tools
 
@@ -138,3 +239,8 @@ Emit closing summary. Use Gate Handoff Voice spine but omit gate footer; cleanup
 | Scan active changes | `adv_change_list` |
 | Inspect gates/tasks | `adv_change_show` |
 | Close bulk candidates | `adv_change_bulk_close` |
+| Discover worktree drift | `adv_worktree_triage` |
+| DISCOVERY — merged archived branches (Phase 1; `dryRun: true`) | `adv_worktree_cleanup` (`mode: "archived_branches"`, `dryRun: true`) |
+| Discover state leaks | `adv_status` (`view: "hygiene"`) |
+| Delete a worktree | `adv_worktree_delete` |
+| APPLY — delete merged archived branches (Phase 5 only, after typed confirmation) | `adv_worktree_cleanup` (`mode: "archived_branches"`) |

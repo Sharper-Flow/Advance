@@ -1,0 +1,2389 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "extendCleanupHygieneCoverage",
+  "title": "Extend cleanup hygiene coverage",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-04T00:10:50.791Z",
+  "tasks": [
+    {
+      "id": "tk-4a8638067257",
+      "title": "RED: rewrite adv-cleanup contract asset tests for four-surface extended contract",
+      "type": "code",
+      "section": "Testing",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-04T00:34:16.344Z",
+      "started_at": "2026-08-04T00:45:30.994Z",
+      "completed_at": "2026-08-04T00:47:51.962Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED established. Rewrote plugin/src/adv-cleanup-contract-assets.test.ts (63 -> 340 lines, 6 -> 56 tests). Run tr_msdxunk7_7d1d0532: 35 failed | 21 passed, exit 1. Failing set covers AC1 four-surface discovery, AC2 reversibility+reflog, AC3 typed count-matched confirmation, AC4 named candidates, AC5 delegated authority incl. the AC9 false-green guard asserting \"never deletes worktrees\" is GONE, AC8 spec citations, DONT4 archive_purge routing. Passing set is the intended regression guard: retained four drift groups, dry-run default, reversible parser tokens, existing change buckets, C4 skill-load fallback window, C7 no retired headings/spine. Added structural extractSection() helper so irreversible-bucket rules are asserted against the section that owns them rather than whole-file substring matching.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ],
+      "checkpointSha": "ecf452f3dfddf99970c7abf7d5a6ad7f4dcb74e9",
+      "completedAt": "2026-08-04T00:47:51.962Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "verifies": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7",
+          "AC9"
+        ],
+        "respects": [
+          "C4",
+          "C5",
+          "C7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ]
+    },
+    {
+      "id": "tk-56a80b1f58f7",
+      "title": "Add rq-cleanupHygieneScope01 to advance-workflow spec",
+      "type": "docs",
+      "section": "Spec law",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-4a8638067257"
+        }
+      ],
+      "created_at": "2026-08-04T00:34:51.811Z",
+      "started_at": "2026-08-04T00:48:07.745Z",
+      "completed_at": "2026-08-04T00:49:55.121Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Added rq-cleanupHygieneScope01 to .adv/specs/advance-workflow/spec.json (135 -> 136 requirements, +84/-1 lines, no reformat of existing entries). Run tr_msdxxg5w_c8658ac0 exit 0: jq structural assertion confirms exactly one matching requirement with 5 scenarios and priority must; spec-citation-invariant.test.ts and command-requirement-citations.test.ts both pass (5 tests). Body encodes all four constraints identified in discovery: four-surface routing, dry-run default with no silent empty-surface omission, reversibility classification with stronger irreversible confirmation and no LLM fallback, delegated deletion authority per rq-terminalCleanupSafety01 with triage explicitly non-authoritative, and operator-explicit invocation per rq-archiveBranchCleanup01/P37. Note: the planned transient citation-invariant failure did not occur — task 1's test file already anchors the new ID since plugin/src is a citation search root. PRESERVED_IDS untouched, its length-45 assertion still green.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/specs/advance-workflow/spec.json"
+      ],
+      "checkpointSha": "7bab54a0fb0a66a7c045e5e1db257f51b7debba1",
+      "completedAt": "2026-08-04T00:49:55.121Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC8"
+        ],
+        "respects": [
+          "C1",
+          "C2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Spec.json is a declarative data artifact, not behavior-bearing code. Correctness is structural: JSON validity, schema conformance, and the spec-citation-invariant test finding an anchor. Behavior is proven by the asset tests in tk-4a8638067257 and the command/skill tasks, which carry test evidence.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "touched_files": [
+        ".adv/specs/advance-workflow/spec.json"
+      ]
+    },
+    {
+      "id": "tk-487b323fcadf",
+      "title": "GREEN: extend adv-cleanup command to four surfaces with typed destructive confirmation",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-56a80b1f58f7"
+        }
+      ],
+      "created_at": "2026-08-04T00:35:32.003Z",
+      "completed_at": "2026-08-04T00:54:23.700Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Extended .opencode/command/adv-cleanup.md (141 -> 229 lines), committed as 30136336. Phase 1 runs four discovery calls with per-surface degradation. Phase 2.5 renamed to Hygiene Surfaces: four-surface/two-class table, retained four drift groups, safe-group-only deletion eligibility, explicit deletion-authority block citing rq-terminalCleanupSafety01. Phase 3 adds reversibility markers with recovery paths including the reflog time bound, plus per-surface empty states. New Phase 4b adds the irreversible typed-confirmation prompt with count-matched delete-all, subset, skip and halt replies, explicit approve-all rejection, and re-prompt on count mismatch. Phase 5 splits reversible and irreversible apply with delegated deletion and a verbatim-refusal result line. Evidence: run tr_msdxzs61_8e71f1d5 moved the contract suite from 21 to 40 passing, then 41 after a test-expression fix; command-side failures are now 0 of 56 with the 15 remaining owned by tk-484dece9d8dc. Guard suite run tr_msdy1gu2_a9dd5000 exit 0, 67 of 67 green across skill-loading-policy, commands-spine, tool-name-assets, manifest and spec-citation-invariant. Fixed one genuine defect in the task-1 test found at green: markdown tables must escape the pipe character, so the halt-reply literal cannot appear raw in a table cell; the assertion now normalizes pipe escapes before comparing. Test-expression fix, not a contract relaxation.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".opencode/command/adv-cleanup.md",
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ],
+      "checkpointSha": "301363363638fe6ff25754d58a6a92a5b032d52e",
+      "completedAt": "2026-08-04T00:54:23.700Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "C5",
+          "C6",
+          "C7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        ".opencode/command/adv-cleanup.md",
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-08-04T00:53:31.469Z"
+    },
+    {
+      "id": "tk-484dece9d8dc",
+      "title": "GREEN: mirror extended contract into adv-cleanup skill",
+      "type": "code",
+      "section": "Implementation",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-487b323fcadf"
+        }
+      ],
+      "created_at": "2026-08-04T00:36:03.021Z",
+      "completed_at": "2026-08-04T00:58:37.937Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Mirrored extended contract into skills/adv-cleanup/SKILL.md, committed as 8dd3517c. Contract suite run tr_msdy74jd_a439c764 exit 0, 56 of 56 green. Guard run tr_msdy7hnr_ffdd9bce exit 0, 62 of 62 green. Two defects found and fixed: contextual edit dropped four methodology sections (restored and verified), and the extractSection helper matched headings inside fenced code blocks (now fence-aware).",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-cleanup-contract-assets.test.ts",
+        "skills/adv-cleanup/SKILL.md"
+      ],
+      "checkpointSha": "8dd3517c2c96b0bc53f7dc2ed30d59625aa862e6",
+      "completedAt": "2026-08-04T00:58:37.937Z",
+      "contract_refs": {
+        "implements": [
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC7"
+        ],
+        "respects": [
+          "C3",
+          "C6"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/adv-cleanup-contract-assets.test.ts",
+        "skills/adv-cleanup/SKILL.md"
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 0,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL"
+      },
+      "updatedAt": "2026-08-04T00:58:10.391Z"
+    },
+    {
+      "id": "tk-4e7528cf60ba",
+      "title": "VERIFY: full suite green and deploy dry-run clean",
+      "type": "verification",
+      "section": "Verification",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-484dece9d8dc"
+        }
+      ],
+      "created_at": "2026-08-04T00:36:28.925Z",
+      "completed_at": "2026-08-04T01:12:33.284Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Full verification complete, delegated across two sub-agents. adv-verifier ran the sweep and found exactly one blocker: prettier format:check on plugin/src/adv-cleanup-contract-assets.test.ts, one over-width expect() call, classified SEMANTIC and introduced by this change. adv-engineer applied the formatting fix to that file only, with no assertion altered. Final run tr_msdypxiu_eb3a669a exit 0: pnpm run check fully green including prettier \"All matched files use Prettier code style\". Verifier evidence: 182 of 182 targeted asset tests pass across 8 files (contract-assets, skill-loading-policy, commands-spine, tool-name-assets, manifest, skill-backed-commands, command-requirement-citations, spec-citation-invariant); spec JSON valid at 136 requirements with rq-cleanupHygieneScope01 present exactly once; deploy dry-run exit 0 with both adv-cleanup.md and skills/adv-cleanup/SKILL.md in the planned sync and frontmatter validation passing across 42 files; cross-file consistency confirmed with all four irreversible-bucket regex rows identical between command and skill and both stating approve all is rejected. AC9 no-false-green proven by a non-mutating discrimination test: the retired-invariant guard evaluates false against base commit d14963c7 content for both files and true against the new content, so it genuinely distinguishes the old contract from the new one rather than passing on the surviving phrase \"drift report\". Residual non-blockers, both pre-existing and untouched by this change: 4 eslint no-explicit-any warnings in temporal/mock-owner.ts and temporal/operations.ts, and a JSONC drift notice for opencode.jsonc.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ],
+      "checkpointSha": "a5efabaf769a5d8742013eea90db0710e3b263cf",
+      "completedAt": "2026-08-04T01:12:33.284Z",
+      "contract_refs": {
+        "implements": [
+          "AC10"
+        ],
+        "verifies": [
+          "AC8",
+          "AC10"
+        ],
+        "respects": [
+          "C7"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "separate_verification"
+      },
+      "error_recovery": {
+        "last_error": "plugin/src/manifest.ts :395 Full suite remains red on manifest-doc-drift.test.ts because the command frontmatter description does not equal the manifest description.",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "plugin/src/manifest.ts :395 Full suite remains red on manifest-doc-drift.test.ts because the command frontmatter description does not equal the manifest description.",
+            "diagnosis": "This mismatch predates the current edits at the task baseline. Correct repair requires changing the manifest source or reverting the command description, while the task hard boundary limits edits to the three specified files.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-engineer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-08-04T02:02:38.596Z"
+          }
+        ]
+      },
+      "touched_files": [
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ],
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "extendCleanupHygieneCoverage",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/extendCleanupHygieneCoverage",
+          "task_id": "tk-4e7528cf60ba",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4e7528cf60ba"
+          },
+          "agent": "adv-engineer",
+          "status": "complete",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            "plugin/src/adv-cleanup-contract-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_msdyl23j_d83ebf12",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Full plugin check passed; schema, typecheck, manifests, isolation, lockfile, lint, and format checks all green. Four pre-existing eslint warnings remain, with 0 errors."
+            },
+            {
+              "test_run_id": "tr_msdylfkb_6216b3a0",
+              "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Affected contract asset test file passed 56/56 tests."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Applied only Prettier's required multiline wrapping to the existing expect() call.",
+              "why": "The sole check failure was formatting width; preserving the regex and assertion logic satisfies the locked scope."
+            }
+          ],
+          "blockers": [],
+          "scope_drift": null,
+          "follow_ups": [],
+          "required_main_agent_actions": [],
+          "related_scan": "none; formatting-only fix in the specified test file",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "Formatted plugin/src/adv-cleanup-contract-assets.test.ts only. pnpm run check exits 0 and the affected unit test passes 56/56; no logic or assertion changed. No deploy was run.",
+            "suggested_next_action": "Review the one-file diff and proceed with the orchestrator's task checkpoint."
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdyl23j_d83ebf12"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_msdylfkb_6216b3a0"
+            }
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "extendCleanupHygieneCoverage",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/extendCleanupHygieneCoverage",
+          "task_id": "tk-4e7528cf60ba",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-4e7528cf60ba"
+          },
+          "agent": "adv-engineer",
+          "status": "error",
+          "evidence_binding_version": "typed-v1",
+          "files_touched": [
+            ".opencode/command/adv-cleanup.md",
+            "skills/adv-cleanup/SKILL.md",
+            "plugin/src/adv-cleanup-contract-assets.test.ts"
+          ],
+          "verification": [
+            {
+              "test_run_id": "tr_mse08yyg_a2f235ca",
+              "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+              "exit_code": 0,
+              "summary": "Affected cleanup contract suite passes 66/66 tests, exceeding the prior 56 assertions."
+            },
+            {
+              "test_run_id": "tr_mse08kcs_0b5c9df7",
+              "command": "pnpm run check",
+              "exit_code": 0,
+              "summary": "Plugin check passes: schemas, typecheck, manifests, isolation, lockfile, lint, and Prettier checks all green; four pre-existing lint warnings remain with zero errors."
+            },
+            {
+              "test_run_id": "tr_mse0f0wk_2c04d989",
+              "command": "bin/oc-test full",
+              "exit_code": 1,
+              "summary": "Full suite has one failure in manifest-doc-drift.test.ts: command frontmatter description differs from plugin/src/manifest.ts; mismatch was present at the task baseline and is outside the exact three-file scope."
+            }
+          ],
+          "decisions": [
+            {
+              "what": "Mapped all eight adv_worktree_triage classes explicitly to the four drift groups and made unknown classes fail closed.",
+              "why": "Deletion eligibility must consume real triage vocabulary and never infer safety from an unrecognized class."
+            },
+            {
+              "what": "Added an explicit Phase 1 dryRun hazard warning and separated DISCOVERY versus APPLY tool rows.",
+              "why": "adv_worktree_cleanup has no safe default; omission of dryRun is destructive."
+            },
+            {
+              "what": "Anchored irreversible section extraction to each file's owning heading while preserving intentional first-match semantics.",
+              "why": "A generic irreversible heading scan could silently target a future unrelated section."
+            }
+          ],
+          "blockers": [
+            {
+              "file": "plugin/src/manifest.ts",
+              "line": 395,
+              "what": "Full suite remains red on manifest-doc-drift.test.ts because the command frontmatter description does not equal the manifest description.",
+              "diagnosis": "This mismatch predates the current edits at the task baseline. Correct repair requires changing the manifest source or reverting the command description, while the task hard boundary limits edits to the three specified files."
+            }
+          ],
+          "scope_drift": {
+            "items": [
+              "plugin/src/manifest.ts:395 manifest description mismatch discovered by full-suite verification"
+            ],
+            "details": "Full-suite verification found a pre-existing command/manifest description drift. It was not changed because plugin/src/manifest.ts is outside the exact three-file scope and changing the command description would make the four-surface command summary inaccurate.",
+            "recommendation": "finish_owned_scope_then_report"
+          },
+          "follow_ups": [
+            "Reconcile the adv-cleanup command frontmatter description with plugin/src/manifest.ts in a separately authorized scope, then rerun bin/oc-test full."
+          ],
+          "required_main_agent_actions": [
+            "Resolve the pre-existing plugin/src/manifest.ts:395 versus .opencode/command/adv-cleanup.md:3 description drift in an authorized follow-up before claiming full-suite green."
+          ],
+          "related_scan": "Scanned both cleanup contract assets and the guard test; all eight triage classes, unknown-input handling, dryRun warning, SHA result contract, surface-1 empty state, and precise irreversible-heading anchors are covered with no additional in-scope instances found.",
+          "context_update_for_adv": {
+            "what_ads_needs_to_know": "All five requested findings are fixed in the three locked files. Targeted guard tests pass 66/66 and pnpm run check passes. bin/oc-test full found one baseline manifest/frontmatter description mismatch at plugin/src/manifest.ts:395, outside scope; no out-of-scope file was changed.",
+            "suggested_next_action": "Review the three-file diff; authorize a separate manifest-description reconciliation before requiring full-suite green."
+          },
+          "apply_context": {
+            "implementation_cycle_id": "ic_tk-4e7528cf60ba_1",
+            "implementation_provenance": {
+              "kind": "engineer_report",
+              "report_key": "tk-4e7528cf60ba-attempt-1"
+            }
+          },
+          "consumer_warnings": [
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse08yyg_a2f235ca"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse08kcs_0b5c9df7"
+            },
+            {
+              "kind": "verification_missing",
+              "message": "No durable adv_run_test evidence found for run_id: tr_mse0f0wk_2c04d989"
+            }
+          ]
+        }
+      ],
+      "errorRecovery": {
+        "last_error": "",
+        "retry_count": 1,
+        "max_retries": 3,
+        "error_class": "ENVIRONMENTAL",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "plugin/src/manifest.ts :395 Full suite remains red on manifest-doc-drift.test.ts because the command frontmatter description does not equal the manifest description.",
+            "diagnosis": "This mismatch predates the current edits at the task baseline. Correct repair requires changing the manifest source or reverting the command description, while the task hard boundary limits edits to the three specified files.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-engineer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-08-04T02:02:38.596Z"
+          }
+        ]
+      },
+      "updatedAt": "2026-08-04T02:17:49.095Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "extendCleanupHygieneCoverage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:architecture-validation-destructive-triage-command"
+      },
+      "agent": "adv-researcher",
+      "topic": "Destructive triage command architecture validation — fusing report + executable destruction into /adv-cleanup under one shared approval tier",
+      "sources": [
+        {
+          "label": "clig.dev — Command Line Interface Guidelines (Confirm before doing anything dangerous; -n/--dry-run; -f/--force)",
+          "locator": "https://clig.dev/#robustness-guidelines",
+          "summary": "Canonical CLI design guidance. Tiered danger model: Mild (delete a file, maybe prompt), Moderate (delete a directory / remote resource / bulk mod that can't be easily undone — prompt + offer dry-run), Severe (delete entire app/server — make hard to confirm by accident, type name-of-thing, --confirm flag). Explicitly flags implicit bulk deletion (config 10->1 deletes 9 things) as severe risk that must be hard to do by accident. Endorses y/yes + -f/--force convention; -n/--dry-run is a standard flag."
+        },
+        {
+          "label": "The CLI Spec (clispec.dev) — Principles 4 & 5",
+          "locator": "https://clispec.dev/",
+          "summary": "'Reserve new confirmation gates for genuinely destructive or irreversible operations, and introduce them as deliberate design decisions.' Non-TTY must refuse with confirmation_required error naming bypass flag, never proceed silently. Endorses --dry-run with structured output for destructive ops."
+        },
+        {
+          "label": "peterc — A compact contract for CLIs for agents and dev tools (2026-06-06 gist)",
+          "locator": "https://gist.github.com/peterc/bef25ee122d233c53a851b9ace29efef",
+          "summary": "Sharpest direct guidance on risk asymmetry: 'Classify danger by decision tests... More danger tests matched => stronger guard. Low-risk reversible local changes may skip confirmation; bulk/remote/irreversible changes get confirmation plus --dry-run; high-impact named targets require typed target or --confirm=<name>.' Dry-run plan schema includes per-resource reversible:false field and per-plan risks:['remote_state','irreversible']."
+        },
+        {
+          "label": "Docker — docker system prune reference",
+          "locator": "https://docs.docker.com/reference/cli/docker/system/prune/",
+          "summary": "FUSED report+execute. Single command discovers AND deletes unused containers/networks/images/cache. Defaults to interactive [y/N]; -f/--force skips. --volumes escalates scope. No separate plan command."
+        },
+        {
+          "label": "Kubernetes — kubectl delete --dry-run=none|client|server",
+          "locator": "https://kubernetes.io/docs/reference/kubectl/generated/kubectl_delete/",
+          "summary": "FUSED. --dry-run tri-state: none (real delete), client (print only), server (validate admission, do not persist). --force 'may result in inconsistency or data loss and requires confirmation'."
+        },
+        {
+          "label": "Git — git-prune(1)",
+          "locator": "https://git-scm.com/docs/git-prune",
+          "summary": "FUSED. -n/--dry-run reports what it would remove. git gc wraps git prune. Both are single-command discover+destroy."
+        },
+        {
+          "label": "Git — git-branch(1) (-d vs -D)",
+          "locator": "https://git-scm.com/docs/git-branch",
+          "summary": "-d/--delete: branch must be fully merged in upstream/HEAD; refuses unmerged. 'If the branch currently has a reflog then the reflog will also be deleted.' -D = --delete --force. --merged/--no-merged filters for safe-delete candidates."
+        },
+        {
+          "label": "Git — git-reflog(1) (recoverability window)",
+          "locator": "https://git-scm.com/docs/git-reflog",
+          "summary": "HEAD reflog records all branch updates. gc.reflogExpire defaults 90d (reachable), gc.reflogExpireUnreachable 30d. Branch deleted via -d recoverable via HEAD reflog SHA lookup for ~30-90d before gc prunes. Time-bounded recovery."
+        },
+        {
+          "label": "Git — git-worktree (remove safety)",
+          "locator": "https://git-scm.com/docs/git-worktree",
+          "summary": "git worktree remove refuses modified/untracked tracked files unless --force. Confirms ADV tool's 'refuses dirty/unmerged' claim is consistent with git defaults. Worktree removal deletes working dir but branch + commits remain intact."
+        },
+        {
+          "label": "Terraform — terraform apply / destroy",
+          "locator": "https://developer.hashicorp.com/terraform/cli/commands/apply",
+          "summary": "HYBRID. plan and apply are SEPARATE commands, BUT 'terraform apply without a saved plan automatically creates a plan, prompts, and performs operations' — fused automatic-plan is the default. Saved-plan two-step exists for CI/automation reproducibility. terraform destroy is a convenience alias for apply -destroy."
+        },
+        {
+          "label": "Terraform — destroy typed confirmation",
+          "locator": "https://github.com/hashicorp/terraform/issues/26867",
+          "summary": "terraform destroy requires typing literal 'yes' (not y): 'Only yes will be accepted to confirm. There is no undo.' Confirms Severe-tier typed-confirmation convention for irreversible infra destruction."
+        },
+        {
+          "label": "GitHub — Deleting a repository (typed name confirmation)",
+          "locator": "https://docs.github.com/en/repositories/creating-and-managing-repositories/deleting-a-repository",
+          "summary": "Multi-step + TYPED name confirmation: click Delete -> 'I want to delete' -> 'I have read and understand' -> TYPE THE REPO NAME -> Delete. 'permanently delete team permissions. cannot be undone.' 90-day restore window for some repos."
+        },
+        {
+          "label": "AWS CLI — ec2 terminate-instances",
+          "locator": "https://docs.aws.amazon.com/cli/latest/reference/ec2/terminate-instances.html",
+          "summary": "WARNING: 'Terminating an instance is permanent and irreversible.' --dry-run checks PERMISSIONS ONLY, does not preview deletion. NO interactive CLI prompt — protection delegated to API-layer termination-protection. Demonstrates irreversible-op protection can live at a different layer than the CLI prompt."
+        },
+        {
+          "label": "npm — npm prune",
+          "locator": "https://docs.npmjs.com/cli/v11/commands/npm-prune/",
+          "summary": "FUSED. --dry-run makes no changes. --json prints what was/would-be removed. No separate plan command; no confirmation prompt by default (Mild)."
+        },
+        {
+          "label": "cargo-sweep",
+          "locator": "https://docs.rs/crate/cargo-sweep/latest",
+          "summary": "FUSED. --dry-run 'recommended as a first step'. --recursive for bulk. No confirmation prompt (build-artifact deletion = Mild/recoverable by rebuild)."
+        },
+        {
+          "label": "nix-collect-garbage (source)",
+          "locator": "https://github.com/NixOS/nix/blob/master/src/nix-collect-garbage/nix-collect-garbage.cc",
+          "summary": "FUSED. --dry-run prints what would be freed; without it, deletes. --delete-old/-d escalates to remove old profile generations (comment: 'makes rollbacks to before this point impossible'). Explicit acknowledgment that -d crosses into irreversible territory."
+        },
+        {
+          "label": "Arcjet — Designing a CLI for AI agents (confirmation envelope)",
+          "locator": "https://blog.arcjet.com/designing-a-cli-for-ai-agents/",
+          "summary": "Non-interactive confirmation protocol: mutation without --confirm returns exit 4 + JSON envelope. 'No fuzzy suggestions means a typo stays a typo. Structured confirmations mean a human cannot just hammer through a prompt.' Validates whitelist-only (no fuzzy) prompt design."
+        },
+        {
+          "label": "anc.dev/p5 — CLI principles for agents",
+          "locator": "https://anc.dev/p5",
+          "summary": "Every write op MUST support --dry-run. 'Destructive operations require explicit --force or --yes. Without it, the tool refuses or enters dry-run. It MUST NOT mutate silently.' Read-vs-write distinction must be visible from name and --help."
+        }
+      ],
+      "architecture_assessment": "The FUSED report+execute pattern is well-established and correct for a hygiene/prune command (docker system prune, git prune/gc, kubectl delete --dry-run, npm prune, cargo sweep, nix-collect-garbage all fuse; even terraform's separated plan/apply has a fused automatic-plan default). ADV /adv-cleanup fits this category and should NOT be split into separate commands. The dry-run-default + whitelist-only-regex approval design is also canonical (clig.dev endorses y/yes + -f; clig.dev/Arcjet explicitly endorse NO fuzzy matching). HOWEVER, putting REVERSIBLE (ADV change close, metadata) and IRREVERSIBLE (worktree dir delete, branch -d) operations behind the SAME --execute flag and SAME 'approve all' prompt is in tension with three independent authoritative sources: clig.dev's Severe-tier guidance (line 820-826), clispec.dev Principle 4 ('reserve confirmation gates for genuinely destructive or irreversible operations'), and peterc's compact contract ('More danger tests matched => stronger guard... irreversible changes get confirmation plus --dry-run'). The recoverability analysis partially mitigates severity (worktree delete is actually LOW risk because branch+commits survive; branch -d is MODERATE because time-bounded reflog recovery ~30-90d; only the directory removal and ref+reflog are truly gone), but it does NOT collapse the asymmetry: change-close is zero-effort reversible, while branch -d requires reflog archaeology under a time deadline. One shared tier is therefore defensible only if each irreversible bucket receives a distinct, name-listing sub-prompt; a single bulk 'approve all' covering reversible+irreversible together is the clig.dev line-826 'easy to do by accident' anti-pattern.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Pattern (fused report+execute) = Confirmed. Approval-mechanism shape (whitelist regex, no fuzzy) = Confirmed adequate. Risk-tiering (single shared tier for reversible + irreversible) = Caution. No hard blocker because (a) recoverability is real and reduces blast radius, (b) no single canonical source names the exact 'do not combine tiers' anti-pattern, (c) underlying git tools already enforce their own safety refusals. But three independent authoritative CLI-design sources converge on 'stronger guard for irreversible' and the design as described does not implement that stronger guard for the destructive buckets."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Fused command = better UX/discoverability (one command, --execute escalates), matches docker/git/kubectl norm; cost = one flag controls mixed-severity actions.",
+          "Whitelist-only regex prompt = deterministic, scriptable, typo-safe (Arcjet/clig.dev endorse); cost = no fuzzy forgiveness, which is correct not a deficiency.",
+          "Shared tier for reversible+irreversible = simpler implementation, one code path; cost = a user who routinely types 'approve all' for harmless hygiene closure can accidentally destroy worktrees/branches — the precise clig.dev line-826 'implicit bulk deletion' footgun.",
+          "Recoverability reduces blast radius (worktree dir trivially recreatable; branch -d recoverable via HEAD reflog ~30-90d); cost = recovery is not zero-effort and is time-bounded, so it cannot be classified as the same tier as metadata-only change-close."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Fully fused single-tier (proposed design as described)",
+            "disposition": "deferred",
+            "rationale": "Fused command pattern is correct; single shared approval tier for reversible+irreversible is in tension with clig.dev Severe-tier, clispec.dev P4, and peterc compact-contract guidance. Modify, do not reject."
+          },
+          {
+            "option": "Split into separate commands (/adv-cleanup-report vs /adv-cleanup-destroy)",
+            "disposition": "rejected",
+            "rationale": "No canonical precedent for prune/hygiene tools. docker system prune, git prune/gc, kubectl delete, npm prune, cargo sweep, nix-collect-garbage ALL fuse. terraform's plan/apply split exists for infra-provisioning reproducibility in CI, not because fused is unsafe. Splitting violates the established pattern and adds UX friction without safety benefit."
+          },
+          {
+            "option": "Fused command + tiered confirmation (separate escalation flag/prompt for irreversible buckets)",
+            "disposition": "preferred",
+            "rationale": "Preserves the established fused pattern. Adds a second escalation gate (e.g. --execute-destructive, or --execute --include=worktrees,branches) AND a per-bucket name-listing prompt for each irreversible bucket. Matches clig.dev Severe-tier 'make it hard to confirm by accident' + peterc per-resource reversible:false field. Two-stage escalation is the minimal change that resolves the asymmetry."
+          },
+          {
+            "option": "Typed confirmation (type resource name/count) for ALL buckets including reversible change-close",
+            "disposition": "rejected",
+            "rationale": "Overkill for reversible metadata change-close (clig.dev Mild tier: 'you might want to prompt, you might not'). Typed confirmation reserved for Severe/irreversible/named-target ops. Universal application adds friction without proportional safety gain."
+          }
+        ],
+        "recommendation": "VERDICT: Caution. Proceed with fused report+execute in /adv-cleanup (Confirmed pattern). BUT add a distinct second-tier confirmation for the two irreversible buckets (worktree delete + branch delete). Concrete shape: (1) keep --execute enabling only reversible change-closure; (2) introduce a separate escalation flag (e.g. --execute-destructive, or --execute --include=worktrees,branches) that must ALSO be set for irreversible buckets to be eligible; (3) each irreversible bucket gets its OWN per-bucket prompt listing exact resource names/paths being destroyed (not a bulk 'approve all' that mixes reversible+irreversible); (4) surface per-bucket reversible:false in the dry-run report (matches peterc compact-contract dry-run schema). Keep the whitelist-only regex parser; do NOT add fuzzy matching (Arcjet/clig.dev: typos should stay typos). Do NOT split into separate commands."
+      },
+      "recommendation": "See architecture_judgement.recommendation. Summary: Caution verdict. Fused command = keep. Shared single-tier approval for reversible+irreversible = adjust to two-stage escalation + per-bucket name-listing prompts for irreversible buckets. Whitelist regex parser = keep as-is (no fuzzy).",
+      "follow_ups": [
+        "Could not read the actual current /adv-cleanup implementation to confirm the exact approval-prompt shape and whether 'approve all' today truly spans all buckets in one prompt or is already per-bucket — relied on task description. Verify against plugin/src/tools or the command packet before implementing the tier split.",
+        "Could not find a single canonical source that explicitly names 'combining reversible and irreversible behind one confirmation flag' as a named anti-pattern; the guidance is convergent-but-implicit across clig.dev (tiered danger), clispec.dev (reserve gates for destructive/irreversible), and peterc compact-contract (per-resource reversible field + stronger guard for irreversible). Verdict rests on convergence of three sources, not a single normative citation.",
+        "Did not verify the ADV underlying worktree-deletion tool's specific safety refusals beyond confirming git worktree remove's default refuses dirty trees without --force. If the ADV tool goes beyond git's defaults (e.g. refuses unpushed branches, process-CWD worktrees), document those as defense-in-depth in the bucket prompt so the user sees the safety net.",
+        "Branch -d recoverability window (~30-90d via HEAD reflog before gc.reflogExpireUnreachable prunes) should be surfaced in the destructive-bucket prompt so the user understands recovery is time-bounded, not indefinite."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "extendCleanupHygieneCoverage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/extendCleanupHygieneCoverage",
+      "task_id": "tk-4e7528cf60ba",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4e7528cf60ba"
+      },
+      "agent": "adv-engineer",
+      "status": "complete",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_msdyl23j_d83ebf12",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Full plugin check passed; schema, typecheck, manifests, isolation, lockfile, lint, and format checks all green. Four pre-existing eslint warnings remain, with 0 errors."
+        },
+        {
+          "test_run_id": "tr_msdylfkb_6216b3a0",
+          "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Affected contract asset test file passed 56/56 tests."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Applied only Prettier's required multiline wrapping to the existing expect() call.",
+          "why": "The sole check failure was formatting width; preserving the regex and assertion logic satisfies the locked scope."
+        }
+      ],
+      "blockers": [],
+      "scope_drift": null,
+      "follow_ups": [],
+      "required_main_agent_actions": [],
+      "related_scan": "none; formatting-only fix in the specified test file",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "Formatted plugin/src/adv-cleanup-contract-assets.test.ts only. pnpm run check exits 0 and the affected unit test passes 56/56; no logic or assertion changed. No deploy was run.",
+        "suggested_next_action": "Review the one-file diff and proceed with the orchestrator's task checkpoint."
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdyl23j_d83ebf12"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_msdylfkb_6216b3a0"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "extendCleanupHygieneCoverage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/extendCleanupHygieneCoverage",
+      "task_id": "tk-4e7528cf60ba",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-4e7528cf60ba"
+      },
+      "agent": "adv-engineer",
+      "status": "error",
+      "evidence_binding_version": "typed-v1",
+      "files_touched": [
+        ".opencode/command/adv-cleanup.md",
+        "skills/adv-cleanup/SKILL.md",
+        "plugin/src/adv-cleanup-contract-assets.test.ts"
+      ],
+      "verification": [
+        {
+          "test_run_id": "tr_mse08yyg_a2f235ca",
+          "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+          "exit_code": 0,
+          "summary": "Affected cleanup contract suite passes 66/66 tests, exceeding the prior 56 assertions."
+        },
+        {
+          "test_run_id": "tr_mse08kcs_0b5c9df7",
+          "command": "pnpm run check",
+          "exit_code": 0,
+          "summary": "Plugin check passes: schemas, typecheck, manifests, isolation, lockfile, lint, and Prettier checks all green; four pre-existing lint warnings remain with zero errors."
+        },
+        {
+          "test_run_id": "tr_mse0f0wk_2c04d989",
+          "command": "bin/oc-test full",
+          "exit_code": 1,
+          "summary": "Full suite has one failure in manifest-doc-drift.test.ts: command frontmatter description differs from plugin/src/manifest.ts; mismatch was present at the task baseline and is outside the exact three-file scope."
+        }
+      ],
+      "decisions": [
+        {
+          "what": "Mapped all eight adv_worktree_triage classes explicitly to the four drift groups and made unknown classes fail closed.",
+          "why": "Deletion eligibility must consume real triage vocabulary and never infer safety from an unrecognized class."
+        },
+        {
+          "what": "Added an explicit Phase 1 dryRun hazard warning and separated DISCOVERY versus APPLY tool rows.",
+          "why": "adv_worktree_cleanup has no safe default; omission of dryRun is destructive."
+        },
+        {
+          "what": "Anchored irreversible section extraction to each file's owning heading while preserving intentional first-match semantics.",
+          "why": "A generic irreversible heading scan could silently target a future unrelated section."
+        }
+      ],
+      "blockers": [
+        {
+          "file": "plugin/src/manifest.ts",
+          "line": 395,
+          "what": "Full suite remains red on manifest-doc-drift.test.ts because the command frontmatter description does not equal the manifest description.",
+          "diagnosis": "This mismatch predates the current edits at the task baseline. Correct repair requires changing the manifest source or reverting the command description, while the task hard boundary limits edits to the three specified files."
+        }
+      ],
+      "scope_drift": {
+        "items": [
+          "plugin/src/manifest.ts:395 manifest description mismatch discovered by full-suite verification"
+        ],
+        "details": "Full-suite verification found a pre-existing command/manifest description drift. It was not changed because plugin/src/manifest.ts is outside the exact three-file scope and changing the command description would make the four-surface command summary inaccurate.",
+        "recommendation": "finish_owned_scope_then_report"
+      },
+      "follow_ups": [
+        "Reconcile the adv-cleanup command frontmatter description with plugin/src/manifest.ts in a separately authorized scope, then rerun bin/oc-test full."
+      ],
+      "required_main_agent_actions": [
+        "Resolve the pre-existing plugin/src/manifest.ts:395 versus .opencode/command/adv-cleanup.md:3 description drift in an authorized follow-up before claiming full-suite green."
+      ],
+      "related_scan": "Scanned both cleanup contract assets and the guard test; all eight triage classes, unknown-input handling, dryRun warning, SHA result contract, surface-1 empty state, and precise irreversible-heading anchors are covered with no additional in-scope instances found.",
+      "context_update_for_adv": {
+        "what_ads_needs_to_know": "All five requested findings are fixed in the three locked files. Targeted guard tests pass 66/66 and pnpm run check passes. bin/oc-test full found one baseline manifest/frontmatter description mismatch at plugin/src/manifest.ts:395, outside scope; no out-of-scope file was changed.",
+        "suggested_next_action": "Review the three-file diff; authorize a separate manifest-description reconciliation before requiring full-suite green."
+      },
+      "apply_context": {
+        "implementation_cycle_id": "ic_tk-4e7528cf60ba_1",
+        "implementation_provenance": {
+          "kind": "engineer_report",
+          "report_key": "tk-4e7528cf60ba-attempt-1"
+        }
+      },
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse08yyg_a2f235ca"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse08kcs_0b5c9df7"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "No durable adv_run_test evidence found for run_id: tr_mse0f0wk_2c04d989"
+        }
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "extendCleanupHygieneCoverage",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/extendCleanupHygieneCoverage",
+      "scope": {
+        "kind": "change",
+        "scope_key": "harden:release"
+      },
+      "agent": "adv-reviewer",
+      "phase": "harden",
+      "verdict": "READY",
+      "blocking_findings": [
+        {
+          "id": "deployment-readiness-1",
+          "label": "issue",
+          "file": ".opencode/command/adv-cleanup.md",
+          "line": 203,
+          "what": "A subset approval for archived branches previously invoked unscoped archived-branch cleanup.",
+          "why": "The cleanup tool deletes every currently eligible archived branch when called without changeId, so `delete 1` could exceed the typed approval.",
+          "fix": "applied"
+        },
+        {
+          "id": "docs-readiness-1",
+          "label": "issue",
+          "file": "README.md",
+          "line": 256,
+          "what": "Public command descriptions named four hygiene surfaces but did not disclose the new typed-confirmed destructive capability.",
+          "why": "Users need visible destructive-operation semantics before choosing `/adv-cleanup --execute`.",
+          "fix": "applied"
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [
+        {
+          "file": ".opencode/command/adv-cleanup.md",
+          "summary": "Synced public description and scope-limited merged-branch apply calls to one approved candidate changeId; forbids unscoped apply.",
+          "verification": "Targeted contract suite passed (69 tests)."
+        },
+        {
+          "file": "skills/adv-cleanup/SKILL.md",
+          "summary": "Mirrored the per-approved-candidate archived-branch apply rule and unscoped-apply prohibition.",
+          "verification": "Targeted contract suite passed (69 tests)."
+        },
+        {
+          "file": "plugin/src/adv-cleanup-contract-assets.test.ts",
+          "summary": "Added regression assertions for description synchronization and candidate-scoped archived-branch deletion.",
+          "verification": "bin/oc-test targeted -- src/adv-cleanup-contract-assets.test.ts: 69/69 passed."
+        },
+        {
+          "file": "plugin/src/manifest.ts",
+          "summary": "Synced the user-facing adv-cleanup description with typed-confirmation capability.",
+          "verification": "Targeted contract suite verifies manifest/command/README/instructions exact description parity."
+        },
+        {
+          "file": "README.md",
+          "summary": "Disclosed that only approved safe worktrees/branches can be deleted with typed confirmation.",
+          "verification": "Targeted contract suite verifies exact description parity."
+        },
+        {
+          "file": "ADV_INSTRUCTIONS.md",
+          "summary": "Disclosed the same typed-confirmed deletion behavior in the advanced-command reference.",
+          "verification": "Targeted contract suite verifies exact description parity."
+        }
+      ],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "When a command accepts subset approval for destructive candidates, its delegated mutation must carry an exact candidate selector. An unscoped batch cleanup call can silently exceed `delete N` authorization even when the confirmation parser is strict."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "bin/oc-test targeted -- src/adv-cleanup-contract-assets.test.ts",
+          "pnpm exec prettier --check src/manifest.ts src/adv-cleanup-contract-assets.test.ts",
+          "git diff --check"
+        ],
+        "results": "pass",
+        "evidence": "Targeted contract suite passed 69/69. Prettier passed for both changed TypeScript files. git diff --check passed. An initial target used the wrong path prefix and found no files; corrected plugin-relative target passed. Full suite was not rerun per packet."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Accepted deviation: rq-cleanupHygieneScope01 is a direct branch-local spec edit (NO_DELTAS); record at release.",
+        "Accepted deviation: trunk commit da0344dd leaves inherited health-field-scope CI red; user explicitly approved shipping with this noted.",
+        "Assets are not live until merged-trunk build/deploy/restart; no deploy script was run.",
+        "Branch is intentionally left with six scoped uncommitted remediation files; no commit was created per packet constraint."
+      ],
+      "required_main_agent_actions": [
+        "Review and persist the six scoped remediation files before archive; do not create a commit through the known hanging post-commit deploy hook without a safe operator-controlled path.",
+        "After merge, from the default-branch trunk checkout only: run `pnpm run build`, then `./scripts/deploy-local.sh --fix`, then restart OpenCode/plugin host so mirrored command/skill and compiled manifest become live. Do not deploy from this worktree.",
+        "Record both accepted deviations in release notes: NO_DELTAS direct spec edit and inherited red CI from da0344dd / health-field-scope.test.ts."
+      ],
+      "consumer_warnings": [
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: bin/oc-test targeted -- src/adv-cleanup-contract-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: pnpm exec prettier --check src/manifest.ts src/adv-cleanup-contract-assets.test.ts"
+        },
+        {
+          "kind": "verification_missing",
+          "message": "Reviewer aggregate evidence is non-authoritative; no typed adv_run_test run ID proves command: git diff --check"
+        }
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-4a8638067257": [
+      {
+        "runId": "tr_msdxu5ki_bb52e5bc",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts --reporter=basic 2>&1 | tail -60",
+        "durationMs": 1079.4638799997047,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:46:54.599Z"
+      },
+      {
+        "runId": "tr_msdxunk7_7d1d0532",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts 2>&1 | tail -50",
+        "durationMs": 1544.3725700001232,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:47:16.572Z"
+      }
+    ],
+    "tk-56a80b1f58f7": [
+      {
+        "runId": "tr_msdxwxyp_bcf437fb",
+        "phase": "red",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/__tests__/spec-citation-invariant.test.ts src/command-requirement-citations.test.ts 2>&1 | tail -25",
+        "durationMs": 1320.1536069996655,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:49:03.850Z"
+      },
+      {
+        "runId": "tr_msdxxg5w_c8658ac0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "jq -e '.requirements | map(select(.id==\"rq-cleanupHygieneScope01\")) | length == 1 and (.[0].scenarios | length == 5) and (.[0].priority == \"must\")' .adv/specs/advance-workflow/spec.json && npx --prefix plugin vitest run --root plugin --project unit src/__tests__/spec-citation-invariant.test.ts src/command-requirement-citations.test.ts 2>&1 | tail -8",
+        "durationMs": 1509.9011909998953,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:49:27.447Z"
+      }
+    ],
+    "tk-487b323fcadf": [
+      {
+        "runId": "tr_msdxzs61_8e71f1d5",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts 2>&1 | tail -45",
+        "durationMs": 1330.9705150001682,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:51:16.158Z"
+      },
+      {
+        "runId": "tr_msdy1gu2_a9dd5000",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/skill-loading-policy-assets.test.ts src/commands-spine-assets.test.ts src/tool-name-assets.test.ts src/manifest.test.ts src/__tests__/spec-citation-invariant.test.ts 2>&1 | tail -12",
+        "durationMs": 11608.052802000195,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:52:34.533Z"
+      }
+    ],
+    "tk-484dece9d8dc": [
+      {
+        "runId": "tr_msdy64ph_d339ba11",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts 2>&1 | tail -20",
+        "durationMs": 1101.3531599999405,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:56:12.391Z"
+      },
+      {
+        "runId": "tr_msdy74jd_a439c764",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts 2>&1 | tail -20",
+        "durationMs": 1155.5066970000044,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:56:58.434Z"
+      },
+      {
+        "runId": "tr_msdy7hnr_ffdd9bce",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "grep -c \"Bucket Precedence\\|Normalization\\|Inspection Sequence\\|Child-Lineage Guard\" skills/adv-cleanup/SKILL.md && npx --prefix plugin vitest run --root plugin --project unit src/skill-loading-policy-assets.test.ts src/adv-skill-backed-commands-assets.test.ts 2>&1 | tail -8",
+        "durationMs": 1386.4879329996184,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T00:57:15.749Z"
+      }
+    ],
+    "tk-4e7528cf60ba": [
+      {
+        "runId": "tr_msdyl23j_d83ebf12",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 80386.96321299998,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T01:07:48.699Z"
+      },
+      {
+        "runId": "tr_msdylfkb_6216b3a0",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+        "durationMs": 1378.578059999738,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T01:08:06.828Z"
+      },
+      {
+        "runId": "tr_msdypxiu_eb3a669a",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run check 2>&1 | tail -12",
+        "durationMs": 83767.38048100006,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T01:11:36.562Z"
+      },
+      {
+        "runId": "tr_mse01uqt_b71fd0fa",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+        "durationMs": 1441.2634039996192,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T01:48:51.428Z"
+      },
+      {
+        "runId": "tr_mse02p25_d7af29fe",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+        "durationMs": 1307.6063600005582,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T01:49:31.367Z"
+      },
+      {
+        "runId": "tr_mse058kh_8930663c",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "pnpm run check",
+        "durationMs": 97649.19943100028,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T01:51:31.357Z"
+      },
+      {
+        "runId": "tr_mse08kcs_0b5c9df7",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 99248.65646500047,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T01:54:06.546Z"
+      },
+      {
+        "runId": "tr_mse08yyg_a2f235ca",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+        "durationMs": 1555.9496940001845,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T01:54:24.199Z"
+      },
+      {
+        "runId": "tr_mse0f0wk_2c04d989",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bin/oc-test full",
+        "durationMs": 259322.06003100052,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T01:59:06.041Z"
+      },
+      {
+        "runId": "tr_mse0z1mf_6590a14d",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit 2>&1 | tail -8",
+        "durationMs": 129065.15024000034,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:14:40.688Z"
+      },
+      {
+        "runId": "tr_mse119qe_919cdfe9",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "cd plugin && pnpm run check 2>&1 | tail -4",
+        "durationMs": 86987.61508299969,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T02:16:24.250Z"
+      },
+      {
+        "runId": "tr_mse5obxj_d1f4fb24",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/adv-cleanup-contract-assets.test.ts",
+        "durationMs": 1376.6972500002012,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T04:26:18.487Z"
+      },
+      {
+        "runId": "tr_mse5qhju_c450dccb",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run check",
+        "durationMs": 89860.0269220001,
+        "evidence_kind": "other",
+        "recordedAt": "2026-08-04T04:27:58.692Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-04T00:11:34.328Z",
+      "completed_by": "agent",
+      "approval_evidence": "Fast-track /adv-task. Non-defect origin (extend/add). Contract confirmed by user; scope shape \"report + executable worktrees and branches\" selected from three offered options.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "b7833c1ac2616f24ed7c0ec382bd61772ec622ea0290864e11f3220113e0559b",
+        "non_whitespace_chars": 4189,
+        "checked_at": "2026-08-04T00:10:50.890Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-04T00:33:16.805Z",
+      "completed_by": "agent",
+      "approval_evidence": "Spec-law impact: Add — rq-cleanupHygieneScope01 in advance-workflow, 5 Given/When/Then scenarios in design.md. No existing spec governs /adv-cleanup scope. Adjacent law reviewed compatible: rq-terminalCleanupSafety01 (sole deletion authority, load-bearing), rq-terminalCleanupReaper01, rq-archiveBranchCleanup01 (operator-explicit), rq-inlineApproval01 (extended not modified). Contract minted: 22 items (AC1-10, C1-7, DONT1-5).",
+      "started_at": "2026-08-04T00:31:19.175Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "non_whitespace_chars": 3845,
+        "checked_at": "2026-08-04T00:10:50.892Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-04T00:33:33.966Z",
+      "completed_by": "agent",
+      "approval_evidence": "Independent validator (adv-researcher) verdict: Caution. Fused report+execute command shape Confirmed against docker/git/kubectl/npm/cargo/nix/terraform precedent — split rejected. Dry-run default + whitelist-only parser Confirmed against clig.dev. Caution on shared approval tier for reversible+irreversible: clig.dev tiered danger model, clispec.dev, peterc compact-contract converge on stronger guard for irreversible. Adjustment adopted via user selection: single --execute flag retained, typed count-matched confirmation for irreversible buckets rejects bare 'approve all'.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "0e694b3d8d40b762ada115a4d7ca99a302b5751e26c372fd9dd2eb93917715a4",
+        "non_whitespace_chars": 10570,
+        "checked_at": "2026-08-04T00:10:50.893Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-04T00:36:52.954Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track /adv-task prep approval. User confirmed the Quick Contract explicitly (\"Confirmed — execute\") authorizing the proposal→discovery→design→planning pipeline, then made two further binding design decisions: scope shape \"report + executable worktrees and branches\", and destructive-gating shape \"one flag, typed confirmation for destructive buckets\" (chosen conditional on simple implementation, confirmed simple). Task graph: 5 tasks, strictly sequential, contract coverage complete with zero uncovered acceptance criteria."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-04T01:13:16.118Z",
+      "completed_by": "agent",
+      "approval_evidence": "5/5 tasks done, no cancellations. Full check green (tr_msdypxiu_eb3a669a exit 0); 182/182 targeted asset tests; contract suite 56/56. adv_change_validate passed with one NO_DELTAS warning — rq-cleanupHygieneScope01 was written directly into the branch-local .adv/specs/advance-workflow/spec.json and committed on the change branch rather than registered as a typed spec delta. Spec law is persisted and verified (136 requirements, ID present exactly once, citation anchors resolve), but the delta audit trail is absent; flagged for review."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-04T02:22:08.932Z",
+      "completed_by": "user",
+      "approval_evidence": "User replied \"approve\" at the acceptance checkpoint (Tier A whitelist match). Review verdict APPROVED: 9 findings (2 blockers, 3 issues, 4 suggestions), all blockers and issues fixed and re-verified, 0 unresolved. Contract matrix persisted with 22 rows, 0 failing. Full unit suite tr_mse0z1mf_6590a14d exit 0 (8346 passed, 0 failures, 541 files); pnpm run check tr_mse119qe_919cdfe9 exit 0. Preview URL not_applicable — no user-facing visual surface. Executive summary persisted (contentHash c507b0af9ca8948abae4cacc4b7757cfbf23a16601823455ce288cf867313178) with all 8 Consequence Context categories. One non-blocking caveat carried to release: spec law written directly into branch spec.json rather than as a typed delta (NO_DELTAS).",
+      "started_at": "2026-08-04T02:20:57.391Z",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "c507b0af9ca8948abae4cacc4b7757cfbf23a16601823455ce288cf867313178",
+        "non_whitespace_chars": 4977,
+        "checked_at": "2026-08-04T00:10:50.894Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+      "approvedAt": "2026-08-04T00:33:04.051Z"
+    },
+    "items": [
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "`/adv-cleanup` in default dry-run mode renders a report with a distinct section for each of the four hygiene surfaces, routing discovery through `adv_change_list`/`adv_change_show`, `adv_worktree_triage`, `adv_worktree_cleanup mode archived_branches dryRun true`, and `adv_status view hygiene`; empty surfaces render an explicit empty state rather than being omitted.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Every candidate bucket in the report carries an explicit reversible or irreversible marker, irreversible buckets state their recovery path, and the branch-deletion bucket states the reflog recovery time bound.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "An irreversible bucket rejects the reply `approve all` and re-prompts; it accepts `delete all N` only when N equals the exact listed candidate count, plus `delete N,M`, `skip`, and `stop`/`abort`; a count mismatch re-prompts and no reply path uses LLM fallback.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Irreversible bucket prompts list each candidate by number with its exact worktree path or branch name, never a count-only summary.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Approved deletions are executed by `adv_worktree_delete` or `adv_worktree_cleanup`, `adv_worktree_triage` classification is never used as deletion authority, and tool safety refusals are surfaced verbatim in result lines rather than retried or bypassed.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "With no execute flag, no change is closed, no worktree is deleted, and no branch is deleted, and the footer states how to re-run with execution enabled.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Active-change bucket precedence, the child-lineage guard, hot-recency-band exclusion, the reversible-bucket reply parser, per-bucket atomicity, and continue-after-bucket-failure all behave exactly as before.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC8",
+        "kind": "acceptance_criterion",
+        "text": "`rq-cleanupHygieneScope01` exists in `.adv/specs/advance-workflow/spec.json` with the five scenarios from design.md and is cited from the command or skill so `spec-citation-invariant.test.ts` finds an anchor.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC9",
+        "kind": "acceptance_criterion",
+        "text": "`plugin/src/adv-cleanup-contract-assets.test.ts` asserts the new contract, with the two report-only-invariant tests rewritten rather than left to pass falsely on the surviving phrase \"drift report\".",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "AC10",
+        "kind": "acceptance_criterion",
+        "text": "`pnpm run check` passes and the affected asset tests pass.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved"
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Deletion delegates to `adv_worktree_delete` or `adv_worktree_cleanup`; never `git worktree remove` or `git branch -d` directly, per `rq-terminalCleanupSafety01`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "No background sweeps, daemons, or session-start auto-cleanup; operator-explicit invocation only, per `rq-archiveBranchCleanup01` and P37.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Whitelist and regex reply parsing only, with no LLM fallback and no fuzzy matching on any bucket, per `rq-inlineApproval01.3`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "The `skill(\"adv-cleanup\")` reference and its inline fallback phrase must survive within the bounded window checked by `skill-loading-policy-assets.test.ts` lines 231-245.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C5",
+        "kind": "constraint",
+        "text": "Spec citations `rq-inlineApproval01.3`, `rq-inlineApproval01.4`, and `rq-autonomy01` must retain an anchor in the command file or be re-cited elsewhere.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C6",
+        "kind": "constraint",
+        "text": "The skill stays read-only guidance while the command owns all tool calls and mutation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "C7",
+        "kind": "constraint",
+        "text": "No `## Next` or `## Next stage` heading and no gate-handoff spine in this command, per `commands-spine-assets.test.ts`.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not modify `adv_worktree_delete`, `adv_worktree_cleanup`, `adv_worktree_triage`, or `adv_status` tool behavior; this is consumer-side orchestration only.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not split `/adv-cleanup` into separate discover and destroy commands, since the fused shape is validated as the established norm.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not add a second execute flag, because the user selected typed confirmation at the prompt over flag escalation.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not fold archived or closed state-leak remediation into an executable bucket, since it routes to `adv_archive_purge` which owns its own operator approval contract.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT5",
+        "kind": "avoidance",
+        "text": "Do not weaken the reversible-bucket parser to accommodate the new irreversible one; the two prompts stay distinct.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-04T04:15:48.225Z",
+      "rows": [
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "adv-cleanup-contract-assets.test.ts 66/66 green (post-rebase) asserts four-surface discovery routing through adv_change_list/adv_change_show, adv_worktree_triage, adv_worktree_cleanup mode archived_branches dryRun true, and adv_status view hygiene, plus explicit per-surface empty states. Phase 1 of .opencode/command/adv-cleanup.md issues the four discovery calls with per-surface degradation."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Contract suite asserts reversible/irreversible markers per bucket, recovery paths on irreversible buckets, and the reflog time bound on the branch-deletion bucket. Phase 3 of the command renders the markers; 66/66 green."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Contract suite asserts the irreversible parser rejects 'approve all', accepts 'delete all N' only on exact count match, plus 'delete N,M', 'skip', 'stop'/'abort', and re-prompts on mismatch. adv-cleanup.md:174-187 defines the irreversible reply block: 'Allowed replies (trimmed, case-insensitive regex; no LLM fallback)' and 'Anything else -> re-prompt same options. Do NOT invoke LLM fallback.' 66/66 green."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Contract suite asserts irreversible prompts enumerate each candidate by number with exact worktree path or branch name rather than a count-only summary; assertions are anchored to the owning section via the fence-aware extractSection helper. 66/66 green."
+        },
+        {
+          "contractId": "AC5",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Contract suite asserts deletion delegates to adv_worktree_delete/adv_worktree_cleanup and that adv_worktree_triage is advisory only. adv-cleanup.md:205 states deletion authority belongs to those tools alone (rq-terminalCleanupSafety01) and that tool refusals are reported verbatim rather than routed around. 66/66 green."
+        },
+        {
+          "contractId": "AC6",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Contract suite asserts dry-run default: with no execute flag no change is closed, no worktree deleted, no branch deleted, and the footer states how to re-run with execution enabled. 66/66 green."
+        },
+        {
+          "contractId": "AC7",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Regression guard portion of the contract suite (retained from the pre-change file) asserts active-change bucket precedence, child-lineage guard, hot-recency-band exclusion, the reversible reply parser, per-bucket atomicity, and continue-after-bucket-failure are unchanged. DONT5 separately confirms the reversible parser block (adv-cleanup.md:152) stays distinct from the new irreversible block (:174). 66/66 green."
+        },
+        {
+          "contractId": "AC8",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Post-rebase validation: .adv/specs/advance-workflow/spec.json parses as valid JSON with 136 requirements; rq-cleanupHygieneScope01 present exactly once with 5 scenarios and priority must; 0 duplicate ids. spec-citation-invariant.test.ts and command-requirement-citations.test.ts pass, so the citation anchor resolves."
+        },
+        {
+          "contractId": "AC9",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "The two report-only-invariant tests were rewritten, not left to pass on the surviving phrase 'drift report'. Proven by a non-mutating discrimination test: the retired-invariant guard evaluates false against base commit d14963c7 content for both command and skill, and true against the new content, so it genuinely distinguishes old contract from new."
+        },
+        {
+          "contractId": "AC10",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Post-rebase onto origin/trunk (0 behind, 6 ahead, clean tree): pnpm run check exit 0 (schemas, typecheck, manifests, frontmatter across 42 files, test-isolation, lockfile, lint, format all pass; 0 errors) and adv-cleanup-contract-assets.test.ts 66/66. bin/oc-test full is 8351/8366 with the single failure (src/mcp-server/health-field-scope.test.ts:99) proven pre-existing: reverting all 7 changed files to origin/trunk content reproduces the identical failure, and its production path was last modified by trunk commit da0344dd."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "grep confirms no direct git deletion is prescribed: the only occurrences of 'git worktree remove'/'git branch -d' are prohibitions at adv-cleanup.md:205 and SKILL.md:277, both citing rq-terminalCleanupSafety01. Delegated tool references (adv_worktree_delete/adv_worktree_cleanup) appear 9x in the command and 8x in the skill."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "grep for daemon|background sweep|auto-cleanup|session-start|poll|cron|schedule across command and skill returns exactly one match: SKILL.md:318 'Operator-explicit only; no background sweeps, daemons, or session-start auto-cleanup.' No scheduling or polling construct is introduced, consistent with rq-archiveBranchCleanup01 and P37."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Both reply blocks declare 'trimmed, case-insensitive regex; no LLM fallback' (adv-cleanup.md:152 and :174) and both re-prompt paths state 'Do NOT invoke LLM fallback' (:162 and :187). Skill mirrors at SKILL.md:195 and :223. No fuzzy-matching construct present, per rq-inlineApproval01.3."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "adv-cleanup.md:17 retains the skill(\"adv-cleanup\") reference together with its inline fallback phrase ('If unavailable, use fallback below.'), inside the bounded window checked by skill-loading-policy-assets.test.ts lines 231-245. That guard test passes in the post-rebase run."
+        },
+        {
+          "contractId": "C5",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "Citation anchors retained in .opencode/command/adv-cleanup.md: rq-inlineApproval01.3 x1, rq-inlineApproval01.4 x2, rq-autonomy01 x1. command-requirement-citations.test.ts and spec-citation-invariant.test.ts both pass."
+        },
+        {
+          "contractId": "C6",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "SKILL.md:26 declares 'Skill is read-only guidance; command owns ADV tool calls, state mutation, and approval enforcement', reinforced at SKILL.md:313. No imperative tool-call directives were introduced in the skill; all mutation phases (Phase 4b approval, Phase 5 apply) live in the command file."
+        },
+        {
+          "contractId": "C7",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "grep for '^##+ Next' in .opencode/command/adv-cleanup.md returns no match; no '## Next' or '## Next stage' heading and no gate-handoff spine present. commands-spine-assets.test.ts passes in the post-rebase run."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "git diff origin/trunk...HEAD --name-only yields 7 files, none under plugin/src/tools/. No worktree or status tool source was modified: adv_worktree_delete, adv_worktree_cleanup, adv_worktree_triage, and adv_status behavior is untouched. The change is consumer-side orchestration plus the manifest description string only."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "git diff --diff-filter=A origin/trunk...HEAD shows no added file under .opencode/command/. /adv-cleanup remains a single fused report+execute command, matching the design-gate validator finding that the fused shape is the established norm across docker/git/kubectl/npm/cargo/nix/terraform."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Distinct flags in .opencode/command/adv-cleanup.md are --bucket, --age-threshold, and --execute. Exactly one execute flag exists; escalation for irreversible buckets is handled by typed count-matched confirmation at the prompt (Phase 4b), which is the shape the user selected over a second flag."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Archived/closed state-leak remediation remains report-only and routes to adv_archive_purge, which owns its own operator approval contract: adv_archive_purge is referenced 3x in the command and 4x in the skill, and the surface is excluded from executable buckets. Asserted by the contract suite (DONT4 routing test)."
+        },
+        {
+          "contractId": "DONT5",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "The two prompts stay distinct: the reversible reply block at adv-cleanup.md:152 and the new irreversible block at :174 are separate 'Allowed replies' sections with different accepted tokens. The reversible parser was not widened to accept the irreversible tokens, and the irreversible block explicitly rejects the reversible 'approve all' token."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "`/adv-cleanup` in default dry-run mode renders a report with a distinct section for each of the four hygiene surfaces, routing discovery through `adv_change_list`/`adv_change_show`, `adv_worktree_triage`, `adv_worktree_cleanup mode archived_branches dryRun true`, and `adv_status view hygiene`; empty surfaces render an explicit empty state rather than being omitted.",
+    "Every candidate bucket in the report carries an explicit reversible or irreversible marker, irreversible buckets state their recovery path, and the branch-deletion bucket states the reflog recovery time bound.",
+    "An irreversible bucket rejects the reply `approve all` and re-prompts; it accepts `delete all N` only when N equals the exact listed candidate count, plus `delete N,M`, `skip`, and `stop`/`abort`; a count mismatch re-prompts and no reply path uses LLM fallback.",
+    "Irreversible bucket prompts list each candidate by number with its exact worktree path or branch name, never a count-only summary.",
+    "Approved deletions are executed by `adv_worktree_delete` or `adv_worktree_cleanup`, `adv_worktree_triage` classification is never used as deletion authority, and tool safety refusals are surfaced verbatim in result lines rather than retried or bypassed.",
+    "With no execute flag, no change is closed, no worktree is deleted, and no branch is deleted, and the footer states how to re-run with execution enabled.",
+    "Active-change bucket precedence, the child-lineage guard, hot-recency-band exclusion, the reversible-bucket reply parser, per-bucket atomicity, and continue-after-bucket-failure all behave exactly as before.",
+    "`rq-cleanupHygieneScope01` exists in `.adv/specs/advance-workflow/spec.json` with the five scenarios from design.md and is cited from the command or skill so `spec-citation-invariant.test.ts` finds an anchor.",
+    "`plugin/src/adv-cleanup-contract-assets.test.ts` asserts the new contract, with the two report-only-invariant tests rewritten rather than left to pass falsely on the surviving phrase \"drift report\".",
+    "`pnpm run check` passes and the affected asset tests pass."
+  ],
+  "documents": {
+    "proposal": "## Intent\n\n`/adv-cleanup` today triages only one hygiene surface — active ADV changes — and buckets them as duplicate, stuck-at-proposal, abandoned-mid-flight, or ready-to-archive. It also emits a single report-only worktree drift line sourced from `adv_worktree_triage`, then explicitly disowns deletion: \"`/adv-cleanup` never deletes worktrees.\"\n\nTwo further hygiene surfaces are entirely invisible to the command:\n\n1. **Archived-branch debt** — local `change/*` branches tied to archived ADV changes that are fully merged and safe to delete. Discovery and deletion live in `adv_worktree_cleanup mode: \"archived_branches\"`, which `/adv-cleanup` never calls.\n2. **Archived/closed state leaks** — leak detection and recommendations exposed by `adv_status view: \"hygiene\"`, which `/adv-cleanup` never calls.\n\nThe result is that a user who runs the cleanup command believes they have seen their cleanup debt, but has seen roughly half of it, and cannot act on any of the worktree/branch half without hand-running separate tools.\n\nThis change extends `/adv-cleanup` into a complete hygiene triage surface: it discovers and reports all four surfaces, and it gains executable closure buckets for safe worktree deletion and merged archived-branch deletion under the same per-bucket Tier B approval protocol that already governs change closure.\n\n## Root Cause Analysis\n\nNot applicable — non-defect origin. `/adv-cleanup` behaves exactly as its command contract and skill specify. The gap is incomplete scope coverage in the specification itself, not a divergence between specified and actual behavior.\n\n## Chosen direction\n\nUser selected the widest of three offered shapes: **report + executable worktrees and branches**.\n\nRejected alternatives:\n\n- *Report-only discovery* — would surface the debt but still force the user into `adv_worktree_cleanup` and `adv_status view: \"hygiene\"` by hand, preserving the exact split-surface problem this change exists to remove.\n- *Report + executable branch bucket only* — deletes merged branches but leaves worktree deletion split off, an inconsistent boundary that is harder to explain than either extreme.\n\nThe current \"never deletes worktrees\" invariant is intentionally removed. Its safety value is replaced, not discarded: destructive worktree and branch actions are gated by the existing per-bucket Tier B whitelist-only approval parser, default dry-run mode, and the underlying tools' own safety refusals (`adv_worktree_delete` checks uncommitted work and integration requirements; `adv_worktree_cleanup` skips process-CWD worktrees, preserves dirty/unmerged worktrees, and only deletes fully-merged squash-safe branches).\n\n## LBP Targets\n\n- **Destructive-action boundary** — validate that promoting worktree/branch deletion into approval-gated closure buckets is consistent with the existing Tier B cancellation-approval contract (`rq-inlineApproval01.4`) rather than requiring a distinct approval tier.\n- **Tool routing** — confirm `adv_worktree_cleanup mode: \"archived_branches\" dryRun: true` is the correct discovery call for merged-branch debt, and `adv_status view: \"hygiene\"` for archived/closed leak detection.\n- **Bucket precedence interaction** — the existing precedence table is most-specific-wins over changes. New worktree/branch/leak buckets operate on different entity kinds and must not silently reorder or shadow change classification.\n- **Atomicity and failure isolation** — existing rule is \"each bucket is atomic; continue to next bucket after one bucket failure.\" Confirm this holds for partially-successful multi-worktree deletion.\n\n## Scope\n\n- `.opencode/command/adv-cleanup.md` — new discovery calls, report sections, approval prompts, apply rules; remove the never-deletes-worktrees disclaimer\n- `skills/adv-cleanup/SKILL.md` — mirror the methodology (skill stays read-only guidance; command owns tool calls and mutation)\n- `.adv/specs/` — spec-law delta for the cleanup capability, kind determined in discovery\n- Command/skill asset symmetry and manifest tests\n- Deployed copies refreshed via `scripts/deploy-local.sh`\n\nExplicitly out of scope: changing `adv_worktree_delete`, `adv_worktree_cleanup`, `adv_worktree_triage`, or `adv_status` tool behavior. This change is a consumer-side orchestration extension only.\n\n## User Outcomes\n\n- Running `/adv-cleanup` once surfaces every hygiene surface — stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks — in a single report.\n- The user can act on worktree and branch debt from inside the same command, under explicit per-bucket approval, instead of hand-running separate tools.\n- Dry-run remains the default; nothing destructive happens without an exact whitelist approval reply.\n- Existing change-closure behavior, bucket precedence, child-lineage guard, and hot-band exclusion are unchanged.\n",
+    "agreement": "## Objectives\n\n1. `/adv-cleanup` reports all four ADV hygiene surfaces in one run — active-change debt, worktree drift, merged archived `change/*` branch debt, and archived/closed state leaks — instead of the two it covers today.\n2. Worktree deletion and merged-branch deletion become executable from inside `/adv-cleanup`, removing the current requirement to hand-run `adv_worktree_cleanup` and `adv_status view: \"hygiene\"`.\n3. Irreversible actions are guarded more strongly than reversible ones, so the added reach does not lower the safety bar.\n\n## Acceptance criteria\n\n- AC1: `/adv-cleanup` in default dry-run mode renders a report with a distinct section for each of the four hygiene surfaces, routing discovery through `adv_change_list`/`adv_change_show`, `adv_worktree_triage`, `adv_worktree_cleanup mode archived_branches dryRun true`, and `adv_status view hygiene`; empty surfaces render an explicit empty state rather than being omitted.\n- AC2: Every candidate bucket in the report carries an explicit reversible or irreversible marker, irreversible buckets state their recovery path, and the branch-deletion bucket states the reflog recovery time bound.\n- AC3: An irreversible bucket rejects the reply `approve all` and re-prompts; it accepts `delete all N` only when N equals the exact listed candidate count, plus `delete N,M`, `skip`, and `stop`/`abort`; a count mismatch re-prompts and no reply path uses LLM fallback.\n- AC4: Irreversible bucket prompts list each candidate by number with its exact worktree path or branch name, never a count-only summary.\n- AC5: Approved deletions are executed by `adv_worktree_delete` or `adv_worktree_cleanup`, `adv_worktree_triage` classification is never used as deletion authority, and tool safety refusals are surfaced verbatim in result lines rather than retried or bypassed.\n- AC6: With no execute flag, no change is closed, no worktree is deleted, and no branch is deleted, and the footer states how to re-run with execution enabled.\n- AC7: Active-change bucket precedence, the child-lineage guard, hot-recency-band exclusion, the reversible-bucket reply parser, per-bucket atomicity, and continue-after-bucket-failure all behave exactly as before.\n- AC8: `rq-cleanupHygieneScope01` exists in `.adv/specs/advance-workflow/spec.json` with the five scenarios from design.md and is cited from the command or skill so `spec-citation-invariant.test.ts` finds an anchor.\n- AC9: `plugin/src/adv-cleanup-contract-assets.test.ts` asserts the new contract, with the two report-only-invariant tests rewritten rather than left to pass falsely on the surviving phrase \"drift report\".\n- AC10: `pnpm run check` passes and the affected asset tests pass.\n\n## Constraints\n\n- C1: Deletion delegates to `adv_worktree_delete` or `adv_worktree_cleanup`; never `git worktree remove` or `git branch -d` directly, per `rq-terminalCleanupSafety01`.\n- C2: No background sweeps, daemons, or session-start auto-cleanup; operator-explicit invocation only, per `rq-archiveBranchCleanup01` and P37.\n- C3: Whitelist and regex reply parsing only, with no LLM fallback and no fuzzy matching on any bucket, per `rq-inlineApproval01.3`.\n- C4: The `skill(\"adv-cleanup\")` reference and its inline fallback phrase must survive within the bounded window checked by `skill-loading-policy-assets.test.ts` lines 231-245.\n- C5: Spec citations `rq-inlineApproval01.3`, `rq-inlineApproval01.4`, and `rq-autonomy01` must retain an anchor in the command file or be re-cited elsewhere.\n- C6: The skill stays read-only guidance while the command owns all tool calls and mutation.\n- C7: No `## Next` or `## Next stage` heading and no gate-handoff spine in this command, per `commands-spine-assets.test.ts`.\n\n## Avoidances\n\n- DONT1: Do not modify `adv_worktree_delete`, `adv_worktree_cleanup`, `adv_worktree_triage`, or `adv_status` tool behavior; this is consumer-side orchestration only.\n- DONT2: Do not split `/adv-cleanup` into separate discover and destroy commands, since the fused shape is validated as the established norm.\n- DONT3: Do not add a second execute flag, because the user selected typed confirmation at the prompt over flag escalation.\n- DONT4: Do not fold archived or closed state-leak remediation into an executable bucket, since it routes to `adv_archive_purge` which owns its own operator approval contract.\n- DONT5: Do not weaken the reversible-bucket parser to accommodate the new irreversible one; the two prompts stay distinct.\n",
+    "design": "## Spec-law impact: Add\n\nAssessment performed against `.adv/specs/` (23 capabilities). No existing requirement governs `/adv-cleanup` triage scope — `rg -n \"adv-cleanup\" .adv/specs/` returns nothing. The command's behavior is defined entirely in `.opencode/command/adv-cleanup.md` and `skills/adv-cleanup/SKILL.md` with no durable spec law behind it.\n\nAdjacent law reviewed and found compatible (no modification required):\n\n| Requirement | Capability | Relevance | Verdict |\n|---|---|---|---|\n| `rq-terminalCleanupSafety01` | worktree-lifecycle | \"advWorktreeDelete is the sole deletion authority\"; `census.cleanupEligible` is \"advisory discovery/visibility data only and must not be used as sufficient deletion authority\" | **Compatible** — cleanup must delegate deletion and must NOT treat the `adv_worktree_triage` safe bucket as authority. This constraint is load-bearing on the design. |\n| `rq-terminalCleanupReaper01` | worktree-lifecycle | Reaper \"must be reachable from archive, manual cleanup, status/triage discovery\" | **Compatible** — `/adv-cleanup` is a manual-cleanup reach path. |\n| `rq-archiveBranchCleanup01` | advance-workflow | `archived_branches` mode is \"operator-explicit (no background sweeps, no daemons, no session-start auto-cleanup per P37)\" | **Compatible** — user-invoked `/adv-cleanup --execute` under Tier B approval is operator-explicit. |\n| `rq-inlineApproval01` | advance-workflow | Enumerates Tier A/B across the seven named gate checkpoints; `.4` defines the structured numbered-list cancellation format | **Compatible, extended not modified** — cleanup's destructive-bucket approval is a new action class outside the seven gate checkpoints. It reuses the `.4` structural pattern rather than amending it. |\n\n### Delta obligation\n\nAdd `rq-cleanupHygieneScope01` to `.adv/specs/advance-workflow/spec.json`, priority `must`, tags `[cleanup, hygiene, approval, safety]`.\n\n**Body.** `/adv-cleanup` MUST triage all four ADV hygiene surfaces in a single run: active-change debt, worktree drift, merged archived `change/*` branch debt, and archived/closed state leaks. Discovery MUST route through `adv_change_list`, `adv_worktree_triage`, `adv_worktree_cleanup mode: \"archived_branches\" dryRun: true`, and `adv_status view: \"hygiene\"` respectively. Dry-run remains the default mode. Buckets MUST be classified by reversibility, and irreversible buckets MUST require a stronger confirmation than reversible ones. Deletion MUST delegate to `adv_worktree_delete` / `adv_worktree_cleanup` per `rq-terminalCleanupSafety01`; `adv_worktree_triage` classification is advisory discovery data and is never deletion authority.\n\n**Scenarios.**\n\n- `rq-cleanupHygieneScope01.1` — Four-surface discovery.\n  *Given* a project with stale changes, drifted worktrees, merged archived branches, and archived/closed state leaks; *when* the user runs `/adv-cleanup` in default dry-run mode; *then* the report contains a section for each of the four surfaces, each section is labelled with its reversibility, and no mutation occurs.\n\n- `rq-cleanupHygieneScope01.2` — Reversibility labelling.\n  *Given* a cleanup report with both reversible and irreversible candidate buckets; *when* the report is rendered; *then* every bucket carries an explicit reversible/irreversible marker, and irreversible buckets state their recovery path and any recovery time bound.\n\n- `rq-cleanupHygieneScope01.3` — Typed confirmation for irreversible buckets.\n  *Given* an irreversible bucket (worktree deletion or branch deletion) presented for approval; *when* the user replies `approve all`; *then* the reply is rejected and re-prompted, because irreversible buckets require a count-matched typed confirmation rather than the reversible-bucket whitelist.\n\n- `rq-cleanupHygieneScope01.4` — Delegated deletion authority.\n  *Given* an approved irreversible bucket; *when* the command applies it; *then* deletion is performed by `adv_worktree_delete` or `adv_worktree_cleanup`, the tools' own safety refusals are honoured and surfaced, and `adv_worktree_triage` classification alone never authorises removal.\n\n- `rq-cleanupHygieneScope01.5` — Dry-run default preserved.\n  *Given* no explicit execute flag; *when* `/adv-cleanup` runs; *then* no change is closed, no worktree is deleted, no branch is deleted, and the footer states how to re-run with execution enabled.\n\n## LBP validation: Caution — adopted with adjustments\n\nIndependent validator (`adv-researcher`) returned **⚠️ Caution** on the \"fuse report + executable destruction under one shared approval tier\" decision.\n\n**Confirmed without change.** The fused report+execute command shape is the established norm, not a deviation. Evidence surveyed: `docker system prune`, `git gc`/`git prune`, `kubectl delete --dry-run=none|client|server`, `npm prune`, `cargo sweep`, `nix-collect-garbage` all fuse discovery and destruction behind a dry-run/force flag. Even `terraform`, the canonical \"separated plan/apply\" example, fuses by default — `terraform apply` without a saved plan file creates a plan, prompts, and applies in one command; the two-step form exists for CI reproducibility, not safety. Splitting `/adv-cleanup` into separate discover and destroy commands was therefore rejected.\n\n**Confirmed without change.** Dry-run default plus whitelist-only regex parsing with no fuzzy matching matches clig.dev's robustness guidance and is explicitly endorsed for agent-facing CLIs — a typo should stay a typo rather than be helpfully resolved into a destructive action. The existing parser is kept as-is for reversible buckets.\n\n**Caution — adjustment adopted.** clig.dev's tiered danger model classifies \"deleting a directory\" and \"complex bulk modification that can't be easily undone\" as Moderate-to-Severe, and states that severe actions should be made \"hard to confirm by accident\", suggesting the user be asked \"to type something non-trivial\". clispec.dev and peterc's compact-contract independently reach the same conclusion: stronger guard for irreversible. The validator found no single normative source naming \"reversible and irreversible behind one flag\" as an anti-pattern, which is why the verdict is Caution rather than Conflict — but three independent sources converge on the direction.\n\nRecoverability analysis reduces severity without collapsing the asymmetry:\n\n| Action | Destroyed | Survives | Recovery | Tier |\n|---|---|---|---|---|\n| ADV change close | metadata flag | full history | re-open | reversible, zero effort |\n| `git branch -d` | branch ref + its reflog | commits (reachable from merge target; `-d` refuses unmerged) | `git reflog` → `git branch <name> <sha>` | irreversible, time-bounded 30–90d (`gc.reflogExpireUnreachable`=30d, `gc.reflogExpire`=90d) |\n| worktree dir delete | working directory | branch + commits (tool refuses dirty/unmerged) | `git worktree add <path> <branch>` | irreversible in effect, cheap to recreate |\n\n**Resolution.** Three shapes were offered to the user: separate `--execute-destructive` escalation flag; single flag with reversibility markers; single flag with typed confirmation at the prompt. The user selected typed confirmation, conditional on it being simple to implement. It is — these are markdown contracts, so the change is one additional reply-parsing row plus a rejection rule, the same edit cost as the weaker option.\n\n## Design\n\n### Surface model\n\nFour surfaces, two reversibility classes:\n\n| # | Surface | Discovery | Class | Executable |\n|---|---|---|---|---|\n| 1 | Active-change debt (duplicate / stuck / abandoned / ready-to-archive) | `adv_change_list` + `adv_change_show` | reversible | yes — existing behavior, unchanged |\n| 2 | Worktree drift | `adv_worktree_triage` | **irreversible** | yes — new |\n| 3 | Merged archived `change/*` branches | `adv_worktree_cleanup mode: \"archived_branches\" dryRun: true` | **irreversible** | yes — new |\n| 4 | Archived/closed state leaks | `adv_status view: \"hygiene\"` | report-only | no — recommendations only |\n\nSurface 4 stays report-only because its remediation is heterogeneous (leaks route to `adv_archive_purge`, an operator-only `recoveryOnly` tool with its own approval contract) and folding that into cleanup would duplicate an existing approval surface.\n\n### Bucket precedence is unaffected\n\nThe existing most-specific-wins precedence table orders *changes* only. New buckets operate on different entity kinds — worktrees, branches, leak records — and are classified independently. A change and its worktree may both appear, in different sections; that is correct and intended, and the report states the relationship rather than suppressing either.\n\n### Approval model\n\nReversible buckets keep the current parser verbatim: `approve all` / `reject all` / `keep N,M` / `cancel N,M` / `stop`.\n\nIrreversible buckets get a distinct prompt that:\n\n1. Lists every candidate by number with its **exact worktree path or branch name** — never a count-only summary.\n2. States the reversibility marker and the recovery path, including the reflog time bound for branch deletion.\n3. **Rejects bare `approve all`.** Accepted replies are `delete all N` where `N` must equal the exact listed candidate count, `delete N,M` for a subset, `skip` to skip the bucket, and `stop`/`abort` to halt the run.\n4. Re-prompts on anything else, including a count mismatch. No LLM fallback, consistent with Tier B.\n\nThe count-match requirement is the terraform-`yes` property: the confirmation cannot be produced from muscle memory, because the user must read the report to type it.\n\n### Delegation and safety\n\n`adv_worktree_triage` output classifies candidates for *display and selection only*. Every approved deletion is executed by `adv_worktree_delete` or `adv_worktree_cleanup`, which re-verify independently (terminal owning-change status, branch integration, clean worktree state, no live process CWD, tree-SHA squash-merge-safe branch detection). Tool refusals are surfaced verbatim in the result lines rather than retried or worked around. This satisfies `rq-terminalCleanupSafety01`'s sole-deletion-authority constraint.\n\nPer-bucket atomicity and continue-after-bucket-failure carry over from the existing apply rules.\n\n### Files and guards\n\n`.opencode/command/adv-cleanup.md` (140 lines) — Phase 1 gains two discovery calls; Phase 2.5 expands from the worktree-only drift report into the four-surface hygiene report; Phase 3 gains report sections; Phase 4 gains the irreversible-bucket prompt; Phase 5 gains delegated-deletion apply rules; Key Tools gains the new tool names. The `skill(\"adv-cleanup\")` reference and its inline fallback at L17–19 must survive — `skill-loading-policy-assets.test.ts:231–245` requires a fallback phrase in a bounded window around the reference. Spec-citation prose for `rq-inlineApproval01.3`, `rq-inlineApproval01.4`, and `rq-autonomy01` at L9 and L90 must survive or be re-cited.\n\n`skills/adv-cleanup/SKILL.md` (191 lines) — mirrors the three sections that are verbatim duplicates of the command (Worktree Drift Report, Approval Parser, Apply Rules) plus its own Defaults, Report Shape template, Anti-Patterns, and Constraints. The skill stays read-only guidance; the command retains ownership of tool calls and mutation.\n\n`plugin/src/adv-cleanup-contract-assets.test.ts` (63 lines) — the only behavioral guard on this command. Two of its six tests assert the report-only invariant via `/report-only|drift report|does not delete worktrees/i` and **will pass falsely** after the extension if left alone, because the phrase \"drift report\" survives. They must be rewritten to assert the new contract, not merely updated to keep passing.\n\nTool names introduced into command prose (`adv_worktree_cleanup`, `adv_status`, `adv_worktree_delete`) are already registered, so `tool-name-assets.test.ts:70–104` passes. No new `skill(\"…\")` literal is added, so the `SKILL_REF_INVENTORY` set-equality assertion is unaffected. No gate-handoff spine is added — `commands-spine-assets.test.ts` excludes this command from `expectedSpineFiles` and bans `## Next`/`## Next stage` headings.\n\n### Out of scope\n\nNo changes to `adv_worktree_delete`, `adv_worktree_cleanup`, `adv_worktree_triage`, or `adv_status` tool behavior. This is a consumer-side orchestration extension only.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\n`/adv-cleanup` now shows you every kind of cleanup debt in one run and can act on all of it, instead of showing half and making you finish the job by hand. You are approving a change to an internal maintenance command that gains the ability to delete git worktrees and merged branches — behind a deliberately harder confirmation than the command's existing actions.\n\n## Why It Matters\n\nBefore this change the command surfaced stale work items and mentioned drifted worktrees, but could not act on the worktrees and never looked at merged leftover branches or orphaned internal records at all. Anyone cleaning up had to run three more tools by hand, and would not have known the last two categories existed. This project currently carries 52 open work items, so the gap is not theoretical.\n\nThe change also closes a safety gap that predated it. The command's worktree categories (safe, blocked, dirty, needs-investigation) were labels the underlying tool never actually produces — it reports eight different technical states. That mismatch was harmless while the categories only fed a report. This change would have made those invented labels the gate deciding what gets deleted. Review caught it and added an explicit, source-derived mapping, so deletion eligibility is now decided by categories the tool genuinely emits, with anything unrecognized refused by default.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. One command run now covers four kinds of cleanup debt: stale work items, drifted worktrees, merged leftover branches, and orphaned internal records. Previously only the first was actionable and the second was mention-only.\n2. Worktree and branch cleanup can now be carried out from inside the command, removing the need to hand-run separate tools.\n3. Destructive actions are held to a higher bar than reversible ones. Reversible cleanup keeps its existing one-word approval. Deleting worktrees or branches requires typing a confirmation containing the exact number of items listed, so it cannot be approved from memory without reading the report — the same safeguard `terraform destroy` uses.\n4. Every item proposed for deletion is listed by its full name or path, never as a bare count, and each is labelled with whether it can be undone and how.\n5. Deletion is always carried out by the existing safety-checked tools, which independently re-verify before removing anything; their refusals are shown as-is rather than worked around.\n6. The rules were written into durable project law (`rq-cleanupHygieneScope01`), which previously had no governing requirement at all.\n\n## What Was Verified\n\n- Verdict: APPROVED with 9 findings (2 blockers, 3 issues, 4 suggestions); all blockers and issues fixed and re-verified, 0 unresolved\n- Harden added one further safety fix (see Release Readiness Summary), taking the guard suite to 69 tests\n- Tests: `pnpm run check` clean including type, lint and formatting (run `tr_mse5qhju_c450dccb`, exit 0); command guard suite 69/69 (run `tr_mse5obxj_d1f4fb24`, exit 0)\n- Full suite post-rebase: 8,351 of 8,366 pass. One failure, `src/mcp-server/health-field-scope.test.ts:99`, is inherited from trunk and not caused by this change — proven by reverting all changed files to trunk content and reproducing the identical failure\n- The command's own guard tests grew from 6 to 69, and were proven to genuinely detect the old behaviour rather than passing by coincidence\n- Preview URL: not_applicable — no user-facing visual surface. This change modifies agent-facing command instructions, project law, and tests; there is nothing to render in a browser. Recorded in the contract matrix under AC1/AC2.\n- Contract matrix: 22 of 22 required rows pass or respected; 0 failed, violated, or unknown\n\n## Remaining Concerns\n\n- **Accepted deviation.** The new project law was written straight into the branch's law file rather than registered as a tracked law change (NO_DELTAS). The rule itself is correct, verified, and reaches the main branch on merge, but the change history for it is thinner than usual. Operator decision at release: accept as-is and record.\n- **Accepted deviation, pre-existing.** Trunk CI is red from commit `da0344dd` (#365), which broke `health-field-scope.test.ts`. This change inherits that red; its own scope is green. Operator decision at release: ship and note.\n- **Non-blocking, pre-existing.** Four code-style warnings in unrelated internal files, and one configuration drift notice, neither touched by this change.\n- **Process note.** The first verification pass checked a hand-picked list of tests and missed a real regression this change introduced. Running the full suite caught it. The narrowed list was the mistake, not the tooling.\n\n## Supporting Evidence\n\nTasks tk-4a8638067257, tk-56a80b1f58f7, tk-487b323fcadf, tk-484dece9d8dc, tk-4e7528cf60ba. Test runs tr_mse5obxj_d1f4fb24 (guard suite 69/69) and tr_mse5qhju_c450dccb (full check). Design validated by an independent researcher against clig.dev, clispec.dev, and the documented behaviour of docker, git, kubectl, npm, cargo, nix and terraform. Safety findings verified directly against tool source at `plugin/src/tools/worktree/triage.ts:54-62` and `index.ts:3175`. Contract review matrix holds per-item evidence.\n\n## Release Readiness Summary\n\n**Verdict: READY.**\n\n**Safety fix found at harden.** The irreversible merged-branch bucket instructed an unscoped `adv_worktree_cleanup({ mode: \"archived_branches\" })` apply. On a subset approval — the operator types `delete 1,3` to remove two of five listed branches — that call would have deleted *every* currently eligible branch, silently bypassing the typed count-matched confirmation the bucket exists to enforce. This is the exact failure mode the change was designed to prevent, reintroduced one layer down in the apply step. Branch deletion is now issued once per approved candidate with an explicit `changeId`, and both command and skill state that an unscoped apply must never be issued. Guarded by two new tests. Committed as `77634516`.\n\n**Deploy/ops.** Deploy from merged trunk, never from the worktree. After merge: `pnpm run build`, then `./scripts/deploy-local.sh --fix`, then restart OpenCode so the plugin host reloads. `.opencode/command/adv-cleanup.md` and `skills/adv-cleanup/SKILL.md` are mirrored to the local install, so agents in other repos keep the old contract until that deploy runs.\n\n**Docs.** `manifest.ts`, command frontmatter, `README.md`, and `ADV_INSTRUCTIONS.md` now carry one identical description that discloses both the four surfaces and the typed-confirmation deletion capability. A new test keeps the four in sync, closing the drift class that had already gone unnoticed once on this branch.\n\n**Safety of the shipped contract.** Destructive paths require the `--execute` flag *and* a typed count-matched confirmation that rejects the reversible bucket's `approve all` token. Deletion is always delegated to `adv_worktree_delete` / `adv_worktree_cleanup`; `adv_worktree_triage` output is advisory and never deletion authority; unrecognized orphan classes fail closed. Archived/closed state leaks stay report-only and route to `adv_archive_purge`, which owns its own operator approval.\n\n**Rollback and blast radius.** Revert is clean: six scoped files, no schema, storage, or data migration. Nothing executes on its own — the command is operator-invoked with no background sweep, so a defect cannot fire unattended. If a deletion did misbehave, worktrees are restorable with `git worktree add` and branches via the reflog window.\n\n**Accepted deviations carried into release.** (1) NO_DELTAS — spec law written directly into branch `spec.json` rather than as a typed delta; law verified correct, audit trail thinner than standard. (2) Inherited red CI from trunk `da0344dd`; this change's own scope is green and the failure is proven not attributable to it. A separate change should repair the `temporal_health` regression on trunk.",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-04T02:21:49.444Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| AC1 | acceptance_criterion | `/adv-cleanup` in default dry-run mode renders a report with a distinct section for each of the four hygiene surfaces, routing discovery through `adv_change_list`/`adv_change_show`, `adv_worktree_triage`, `adv_worktree_cleanup mode archived_branches dryRun true`, and `adv_status view hygiene`; empty surfaces render an explicit empty state rather than being omitted. | pass | Command Phase 1 issues four numbered discovery calls (adv_change_list, adv_worktree_triage, adv_worktree_cleanup mode archived_branches dryRun true, adv_status view hygiene). Four-surface table in command and skill. Explicit empty-state snippets for all four surfaces, incl. the surface-1 snippet added during review remediation. Guarded by AC1 test block in adv-cleanup-contract-assets.test.ts; run tr_mse0z1mf_6590a14d exit 0. |\n| AC2 | acceptance_criterion | Every candidate bucket in the report carries an explicit reversible or irreversible marker, irreversible buckets state their recovery path, and the branch-deletion bucket states the reflog recovery time bound. | pass | Reversibility/recovery table in both files marks each bucket reversible or irreversible with recovery path; branch bucket states reflog bound ~30-90d citing gc.reflogExpireUnreachable and gc.reflogExpire. Report template carries inline markers. AC2 test block green; word-boundary regex confirmed not to match inside 'irreversible'. |\n| AC3 | acceptance_criterion | An irreversible bucket rejects the reply `approve all` and re-prompts; it accepts `delete all N` only when N equals the exact listed candidate count, plus `delete N,M`, `skip`, and `stop`/`abort`; a count mismatch re-prompts and no reply path uses LLM fallback. | pass | Phase 4b and skill Irreversible buckets carry count-matched delete-all regex with adjacent count-equality prose, subset, skip, and halt replies; explicit approve-all rejection; count-mismatch re-prompt; no LLM fallback. AC3 test block uses per-file heading-anchored section extraction after CORRECT-1 remediation. |\n| AC4 | acceptance_criterion | Irreversible bucket prompts list each candidate by number with its exact worktree path or branch name, never a count-only summary. | pass | Both files require every candidate listed numbered with exact worktree path or branch name, never a count-only summary or abbreviated path. AC4 test block asserts path, branch name, and never-a-count phrasing within the irreversible section. |\n| AC5 | acceptance_criterion | Approved deletions are executed by `adv_worktree_delete` or `adv_worktree_cleanup`, `adv_worktree_triage` classification is never used as deletion authority, and tool safety refusals are surfaced verbatim in result lines rather than retried or bypassed. | pass | Deletion delegates to adv_worktree_delete / adv_worktree_cleanup; direct git worktree remove and git branch -d prohibited; triage output declared advisory and never deletion authority; refusals surfaced verbatim. Strengthened at review by the OrphanClass mapping (SEC-1) so eligibility references categories triage.ts:54-62 actually emits, with unrecognized classes failing closed. |\n| AC6 | acceptance_criterion | With no execute flag, no change is closed, no worktree is deleted, and no branch is deleted, and the footer states how to re-run with execution enabled. | pass | Dry-run stated as default in command intro, flag table, and skill Defaults; footer states how to re-run with execution enabled. No mutation path reachable without --execute. AC6 test block green. |\n| AC7 | acceptance_criterion | Active-change bucket precedence, the child-lineage guard, hot-recency-band exclusion, the reversible-bucket reply parser, per-bucket atomicity, and continue-after-bucket-failure all behave exactly as before. | pass | Bucket Precedence, Normalization, Inspection Sequence and Child-Lineage Guard verified intact in SKILL.md after being dropped and restored during task 4. Hot-band exclusion, reversible parser tokens, per-bucket atomicity and continue-after-failure preserved. Contract scanner traced all seven facets with file:line evidence; full unit suite green confirms no regression. |\n| AC8 | acceptance_criterion | `rq-cleanupHygieneScope01` exists in `.adv/specs/advance-workflow/spec.json` with the five scenarios from design.md and is cited from the command or skill so `spec-citation-invariant.test.ts` finds an anchor. | pass | rq-cleanupHygieneScope01 present exactly once in .adv/specs/advance-workflow/spec.json (136 requirements) with 5 scenarios and priority must, verified by jq assertion in run tr_msdxxg5w_c8658ac0. Cited from command, skill and test file; spec-citation-invariant.test.ts green. |\n| AC9 | acceptance_criterion | `plugin/src/adv-cleanup-contract-assets.test.ts` asserts the new contract, with the two report-only-invariant tests rewritten rather than left to pass falsely on the surviving phrase \"drift report\". | pass | The two report-only-invariant tests were replaced, not appeased. Non-mutating discrimination proof: the retired-invariant guard evaluates false against base commit d14963c7 content for both files and true against current content, proving it distinguishes old from new contract rather than passing on the surviving phrase 'drift report'. |\n| AC10 | acceptance_criterion | `pnpm run check` passes and the affected asset tests pass. | pass | pnpm run check exit 0 incl. prettier (run tr_mse119qe_919cdfe9). Full unit project run tr_mse0z1mf_6590a14d exit 0: 541 files, 8346 passed, 0 failures. Guard suite grew 56 to 66 tests. Full-suite run also caught and led to fixing a manifest-doc-drift regression the earlier narrowed run missed. |\n| C1 | constraint | Deletion delegates to `adv_worktree_delete` or `adv_worktree_cleanup`; never `git worktree remove` or `git branch -d` directly, per `rq-terminalCleanupSafety01`. | respected | Both files delegate deletion to adv_worktree_delete / adv_worktree_cleanup and explicitly prohibit direct git worktree remove and git branch -d, satisfying rq-terminalCleanupSafety01 sole-deletion-authority. |\n| C2 | constraint | No background sweeps, daemons, or session-start auto-cleanup; operator-explicit invocation only, per `rq-archiveBranchCleanup01` and P37. | respected | No background sweeps, daemons, or session-start auto-cleanup introduced. Invocation remains operator-explicit via --execute plus per-bucket approval, consistent with rq-archiveBranchCleanup01 and P37. |\n| C3 | constraint | Whitelist and regex reply parsing only, with no LLM fallback and no fuzzy matching on any bucket, per `rq-inlineApproval01.3`. | respected | Both reversible and irreversible parsers are regex/whitelist only with explicit no-LLM-fallback statements; no fuzzy matching added. Count mismatch re-prompts rather than inferring intent. Asserted in AC3 test block. |\n| C4 | constraint | The `skill(\"adv-cleanup\")` reference and its inline fallback phrase must survive within the bounded window checked by `skill-loading-policy-assets.test.ts` lines 231-245. | respected | skill(\"adv-cleanup\") reference and its fallback phrase retained within the bounded window; no new skill literal added. skill-loading-policy-assets.test.ts green including SKILL_REF_INVENTORY set equality. |\n| C5 | constraint | Spec citations `rq-inlineApproval01.3`, `rq-inlineApproval01.4`, and `rq-autonomy01` must retain an anchor in the command file or be re-cited elsewhere. | respected | rq-inlineApproval01.3, rq-inlineApproval01.4 and rq-autonomy01 citations retained in the command; spec-citation-invariant.test.ts green in the full unit run. |\n| C6 | constraint | The skill stays read-only guidance while the command owns all tool calls and mutation. | respected | Skill retains 'Read-only guidance only; command owns ADV mutations' in Constraints; all tool invocation instructions remain in the command. Guarded by the C6 test block. |\n| C7 | constraint | No `## Next` or `## Next stage` heading and no gate-handoff spine in this command, per `commands-spine-assets.test.ts`. | respected | No ## Next or ## Next stage heading and no Problem/Chosen direction/Delivered spine added; commands-spine-assets.test.ts green plus explicit negative assertions in the C7 test block. |\n| DONT1 | avoidance | Do not modify `adv_worktree_delete`, `adv_worktree_cleanup`, `adv_worktree_triage`, or `adv_status` tool behavior; this is consumer-side orchestration only. | respected | No file under plugin/src/tools/ modified. Change touches only command markdown, skill markdown, spec.json, the guard test, one manifest.ts description line, and two doc table rows. Tool behavior for adv_worktree_delete/cleanup/triage and adv_status is unchanged; both blockers were fixed in consumer-side prose rather than by changing tool defaults. |\n| DONT2 | avoidance | Do not split `/adv-cleanup` into separate discover and destroy commands, since the fused shape is validated as the established norm. | respected | /adv-cleanup remains a single fused command; no separate discover or destroy command created. Validated during design against docker, git, kubectl, npm, cargo, nix and terraform precedent. |\n| DONT3 | avoidance | Do not add a second execute flag, because the user selected typed confirmation at the prompt over flag escalation. | respected | Single --execute flag retained; no --execute-destructive or equivalent escalation flag added. Explicit negative assertion in the DONT3 test block. |\n| DONT4 | avoidance | Do not fold archived or closed state-leak remediation into an executable bucket, since it routes to `adv_archive_purge` which owns its own operator approval contract. | respected | State leaks remain report-only and route to adv_archive_purge, which owns its own operator approval contract; surface 4 marked non-executable in the four-surface table. Asserted in the DONT4 test block. |\n| DONT5 | avoidance | Do not weaken the reversible-bucket parser to accommodate the new irreversible one; the two prompts stay distinct. | respected | Reversible parser table preserved verbatim (approve all, reject all, keep N,M, cancel N,M, stop/abort); the irreversible parser is a separate table with distinct tokens. Guarded by the AC7/DONT5 test block. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-04T00:10:51.204Z",
+      "contentHash": "b7833c1ac2616f24ed7c0ec382bd61772ec622ea0290864e11f3220113e0559b",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-04T00:30:14.932Z",
+      "contentHash": "0e694b3d8d40b762ada115a4d7ca99a302b5751e26c372fd9dd2eb93917715a4",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-04T00:32:52.211Z",
+      "contentHash": "1b33b2833f948e03408ba9e11b4246cd59f971156c3ac13117fab7def7d61502",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-04T04:29:11.898Z",
+      "contentHash": "9b00b8dea447224b4e95d3ccf13f92e09f9badec4f82e193f601e8f31c36b075",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-04T04:41:32.682Z",
+  "origin": {
+    "kind": "discovery"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "added",
+    "headline_internal": "/adv-cleanup covers four hygiene surfaces and can execute worktree and branch cleanup",
+    "highlights": [
+      "Discovery now spans active-change debt, worktree drift, merged archived change/* branches, and archived/closed state leaks in a single run",
+      "Worktree and merged-branch deletion are executable in-command; state leaks stay report-only and route to adv_archive_purge",
+      "Irreversible buckets require count-matched typed confirmation and reject the reversible-bucket approve-all token; no LLM fallback on any reply",
+      "Destructive candidates are listed by exact path or branch name with reversibility marker, recovery path, and deleted SHA in the result line",
+      "Deletion delegates to adv_worktree_delete / adv_worktree_cleanup per rq-terminalCleanupSafety01; adv_worktree_triage output is explicitly advisory, never deletion authority",
+      "Added an OrphanClass to drift-group eligibility mapping so deletion is gated on categories adv_worktree_triage actually emits, with unrecognized classes failing closed",
+      "New spec law rq-cleanupHygieneScope01 with five scenarios; /adv-cleanup scope previously had no governing requirement"
+    ],
+    "area": "adv-cleanup",
+    "user_action_required": false
+  },
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "No file in this change is reachable from the Temporal worker-bundle root. Verified structurally, not assumed. (1) git diff origin/trunk...HEAD is 7 files: .opencode/command/adv-cleanup.md, skills/adv-cleanup/SKILL.md, .adv/specs/advance-workflow/spec.json, ADV_INSTRUCTIONS.md, README.md, plugin/src/adv-cleanup-contract-assets.test.ts, and plugin/src/manifest.ts. None is under plugin/src/temporal/, so the bundle root plugin/src/temporal/workflows.ts and its static import graph are untouched. (2) The only non-test plugin source changed is manifest.ts, a one-line COMMAND_MANIFEST description string. manifest.ts is imported solely by src/tools/* (gate.ts, status-enrich.ts) and test files; tools/ is explicitly forbidden in the workflow-bundle import graph, so manifest.ts is unreachable from workflows.ts. workflows.ts has no direct manifest import. (3) Empirical confirmation against the built bundle: grep of dist/temporal/workflows.js returns 0 occurrences of COMMAND_MANIFEST and 0 occurrences of the changed description string. (4) The remaining changes are markdown assets, spec JSON data, and one unit test file, none of which are bundled into the worker. Therefore no build:worker or replay-determinism provenance is required for this release.",
+    "confirmed_at": "2026-08-04T04:41:32.682Z"
+  },
+  "creation_request_hash": "a63cc3fe7cb2707296d0a696b9082024b3b91e595dc0a397f983bbde8a6680ef",
+  "projection_revision": 46,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "2f2f37fdf872fcb778106a3d525021624561d7f9e95981e046f840879af5af25:createArtifacts:proposal",
+      "operation_id": "2f2f37fdf872fcb778106a3d525021624561d7f9e95981e046f840879af5af25:createArtifacts:proposal",
+      "payload_hash": "60202cea023444127e67f128a11782d4ded495ff890ec32b106bc7d0069ec5df",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-04T00:10:51.486Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-04T00:11:34.473Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-04T00:18:14.566Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-04T00:18:17.846Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "07f15e58f68121a5527676cf94b3bb5b08c510198946302b9eb421688c45d445:updateArtifacts:design",
+      "operation_id": "07f15e58f68121a5527676cf94b3bb5b08c510198946302b9eb421688c45d445:updateArtifacts:design",
+      "payload_hash": "fb2857c534094d2c3d6fe595efc4219f5859fae3200bf73fd18ffe5badd606dd",
+      "state_revision": 2,
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-04T00:30:15.306Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-04T00:30:29.582Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8e698d9f1cce3dccdc3063188738b51c3f955e12a23cc1ddd474b065e7e53ed4:updateArtifacts:agreement",
+      "operation_id": "8e698d9f1cce3dccdc3063188738b51c3f955e12a23cc1ddd474b065e7e53ed4:updateArtifacts:agreement",
+      "payload_hash": "5f9831c772bf35f141522c6a4276878717eecc6729d636b0105d219b237730d7",
+      "state_revision": 3,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-04T00:31:06.635Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-04T00:31:19.315Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-04T00:31:40.296Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0bada4ea1932529fe534d97af1d3a61042e0be40c350b659bd2a24f97ece48ee:updateArtifacts:agreement",
+      "operation_id": "0bada4ea1932529fe534d97af1d3a61042e0be40c350b659bd2a24f97ece48ee:updateArtifacts:agreement",
+      "payload_hash": "16e8615a5e8f837bd85d4887ae0dbdf5c7d2fc5a0f52cc2efd2311dcb78cc450",
+      "state_revision": 4,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-04T00:32:52.413Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-04T00:33:04.328Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-04T00:33:16.921Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-04T00:33:34.092Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-04T00:34:08.102Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-04T00:34:16.595Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-04T00:34:52.034Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-04T00:35:32.237Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-04T00:36:03.205Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-04T00:36:29.169Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-04T00:36:53.120Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-04T00:45:35.735Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-04T00:47:52.125Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-04T00:48:12.458Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-04T00:49:55.277Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "26646dcf653661c418779515893f8b6d8728f4df9da5973a8c162b07fdd4d9d8:taskUpdated",
+      "operation_id": "26646dcf653661c418779515893f8b6d8728f4df9da5973a8c162b07fdd4d9d8:taskUpdated",
+      "payload_hash": "a5ff5a7c3ab813ca3b6a3476db9902ba3644c3c5fb4579adb7058d7c13624d8b",
+      "state_revision": 5,
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-04T00:53:31.714Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-04T00:54:24.002Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "223d75ef5ee91b1117b83d02b7ece2fd8bd3cc719d859923d18099e9ce222f09:taskUpdated",
+      "operation_id": "223d75ef5ee91b1117b83d02b7ece2fd8bd3cc719d859923d18099e9ce222f09:taskUpdated",
+      "payload_hash": "fb94347059d8777171dcfad9c669c0ab988d84717e1e4981a3dd14eaaad5262c",
+      "state_revision": 6,
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-04T00:58:10.654Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-04T00:58:38.082Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-04T01:09:34.754Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-04T01:09:38.920Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-04T01:12:33.496Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-04T01:13:16.342Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-04T02:02:34.914Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-04T02:02:38.795Z"
+    },
+    {
+      "mutation_kind": "taskUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c9f40b8290a030f6cfc28ecabd88b61ac5a9979c70ebf5c833c69b8dd5362736:taskUpdated",
+      "operation_id": "c9f40b8290a030f6cfc28ecabd88b61ac5a9979c70ebf5c833c69b8dd5362736:taskUpdated",
+      "payload_hash": "336fc8ebc3cabd4686c28705d28edc122860d2bb3f8e67d833149315a5911b45",
+      "state_revision": 7,
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-04T02:17:49.337Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "8bde745b26d35ae943216ac9a527ba70d97f05d3f54ba4a8e069702b42d112b8:updateArtifacts:executiveSummary",
+      "operation_id": "8bde745b26d35ae943216ac9a527ba70d97f05d3f54ba4a8e069702b42d112b8:updateArtifacts:executiveSummary",
+      "payload_hash": "0cb3818443bae332967f900b7c86bc955f97ddab5cc1b4b9b44bdfa609d7d01e",
+      "state_revision": 8,
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-04T02:19:27.621Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "409f3198c1ab60e4a6d560527e828041d0dc6595e699d4a382d317ccf4c24099:releaseNotesSet",
+      "operation_id": "409f3198c1ab60e4a6d560527e828041d0dc6595e699d4a382d317ccf4c24099:releaseNotesSet",
+      "payload_hash": "f338ac898dd84691defc8698b6e9738aace44b340190c3f07f2bcde6facdfe28",
+      "state_revision": 9,
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-04T02:19:44.442Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-04T02:20:57.593Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785810109549_pnz8di5h",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-04T02:21:49.737Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-04T02:21:49.444Z",
+          "rows": [
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Command Phase 1 issues four numbered discovery calls (adv_change_list, adv_worktree_triage, adv_worktree_cleanup mode archived_branches dryRun true, adv_status view hygiene). Four-surface table in command and skill. Explicit empty-state snippets for all four surfaces, incl. the surface-1 snippet added during review remediation. Guarded by AC1 test block in adv-cleanup-contract-assets.test.ts; run tr_mse0z1mf_6590a14d exit 0."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Reversibility/recovery table in both files marks each bucket reversible or irreversible with recovery path; branch bucket states reflog bound ~30-90d citing gc.reflogExpireUnreachable and gc.reflogExpire. Report template carries inline markers. AC2 test block green; word-boundary regex confirmed not to match inside 'irreversible'."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Phase 4b and skill Irreversible buckets carry count-matched delete-all regex with adjacent count-equality prose, subset, skip, and halt replies; explicit approve-all rejection; count-mismatch re-prompt; no LLM fallback. AC3 test block uses per-file heading-anchored section extraction after CORRECT-1 remediation."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Both files require every candidate listed numbered with exact worktree path or branch name, never a count-only summary or abbreviated path. AC4 test block asserts path, branch name, and never-a-count phrasing within the irreversible section."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Deletion delegates to adv_worktree_delete / adv_worktree_cleanup; direct git worktree remove and git branch -d prohibited; triage output declared advisory and never deletion authority; refusals surfaced verbatim. Strengthened at review by the OrphanClass mapping (SEC-1) so eligibility references categories triage.ts:54-62 actually emits, with unrecognized classes failing closed."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Dry-run stated as default in command intro, flag table, and skill Defaults; footer states how to re-run with execution enabled. No mutation path reachable without --execute. AC6 test block green."
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "Bucket Precedence, Normalization, Inspection Sequence and Child-Lineage Guard verified intact in SKILL.md after being dropped and restored during task 4. Hot-band exclusion, reversible parser tokens, per-bucket atomicity and continue-after-failure preserved. Contract scanner traced all seven facets with file:line evidence; full unit suite green confirms no regression."
+            },
+            {
+              "contractId": "AC8",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "static_check",
+              "evidence": "rq-cleanupHygieneScope01 present exactly once in .adv/specs/advance-workflow/spec.json (136 requirements) with 5 scenarios and priority must, verified by jq assertion in run tr_msdxxg5w_c8658ac0. Cited from command, skill and test file; spec-citation-invariant.test.ts green."
+            },
+            {
+              "contractId": "AC9",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "The two report-only-invariant tests were replaced, not appeased. Non-mutating discrimination proof: the retired-invariant guard evaluates false against base commit d14963c7 content for both files and true against current content, proving it distinguishes old from new contract rather than passing on the surviving phrase 'drift report'."
+            },
+            {
+              "contractId": "AC10",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "pnpm run check exit 0 incl. prettier (run tr_mse119qe_919cdfe9). Full unit project run tr_mse0z1mf_6590a14d exit 0: 541 files, 8346 passed, 0 failures. Guard suite grew 56 to 66 tests. Full-suite run also caught and led to fixing a manifest-doc-drift regression the earlier narrowed run missed."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Both files delegate deletion to adv_worktree_delete / adv_worktree_cleanup and explicitly prohibit direct git worktree remove and git branch -d, satisfying rq-terminalCleanupSafety01 sole-deletion-authority."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No background sweeps, daemons, or session-start auto-cleanup introduced. Invocation remains operator-explicit via --execute plus per-bucket approval, consistent with rq-archiveBranchCleanup01 and P37."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Both reversible and irreversible parsers are regex/whitelist only with explicit no-LLM-fallback statements; no fuzzy matching added. Count mismatch re-prompts rather than inferring intent. Asserted in AC3 test block."
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "skill(\"adv-cleanup\") reference and its fallback phrase retained within the bounded window; no new skill literal added. skill-loading-policy-assets.test.ts green including SKILL_REF_INVENTORY set equality."
+            },
+            {
+              "contractId": "C5",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "rq-inlineApproval01.3, rq-inlineApproval01.4 and rq-autonomy01 citations retained in the command; spec-citation-invariant.test.ts green in the full unit run."
+            },
+            {
+              "contractId": "C6",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Skill retains 'Read-only guidance only; command owns ADV mutations' in Constraints; all tool invocation instructions remain in the command. Guarded by the C6 test block."
+            },
+            {
+              "contractId": "C7",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "No ## Next or ## Next stage heading and no Problem/Chosen direction/Delivered spine added; commands-spine-assets.test.ts green plus explicit negative assertions in the C7 test block."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "No file under plugin/src/tools/ modified. Change touches only command markdown, skill markdown, spec.json, the guard test, one manifest.ts description line, and two doc table rows. Tool behavior for adv_worktree_delete/cleanup/triage and adv_status is unchanged; both blockers were fixed in consumer-side prose rather than by changing tool defaults."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "/adv-cleanup remains a single fused command; no separate discover or destroy command created. Validated during design against docker, git, kubectl, npm, cargo, nix and terraform precedent."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Single --execute flag retained; no --execute-destructive or equivalent escalation flag added. Explicit negative assertion in the DONT3 test block."
+            },
+            {
+              "contractId": "DONT4",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "State leaks remain report-only and route to adv_archive_purge, which owns its own operator approval contract; surface 4 marked non-executable in the four-surface table. Asserted in the DONT4 test block."
+            },
+            {
+              "contractId": "DONT5",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Reversible parser table preserved verbatim (approve all, reject all, keep N,M, cancel N,M, stop/abort); the irreversible parser is a separate table with distinct tokens. Guarded by the AC7/DONT5 test block."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-04T02:21:49.548Z",
+        "mutationReceiptId": "mrec_1785810109549_pnz8di5h"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-04T02:22:09.126Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785816948291_zyobevcn",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-04T04:15:48.567Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-04T04:15:48.225Z",
+          "rows": [
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "adv-cleanup-contract-assets.test.ts 66/66 green (post-rebase) asserts four-surface discovery routing through adv_change_list/adv_change_show, adv_worktree_triage, adv_worktree_cleanup mode archived_branches dryRun true, and adv_status view hygiene, plus explicit per-surface empty states. Phase 1 of .opencode/command/adv-cleanup.md issues the four discovery calls with per-surface degradation."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Contract suite asserts reversible/irreversible markers per bucket, recovery paths on irreversible buckets, and the reflog time bound on the branch-deletion bucket. Phase 3 of the command renders the markers; 66/66 green."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Contract suite asserts the irreversible parser rejects 'approve all', accepts 'delete all N' only on exact count match, plus 'delete N,M', 'skip', 'stop'/'abort', and re-prompts on mismatch. adv-cleanup.md:174-187 defines the irreversible reply block: 'Allowed replies (trimmed, case-insensitive regex; no LLM fallback)' and 'Anything else -> re-prompt same options. Do NOT invoke LLM fallback.' 66/66 green."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Contract suite asserts irreversible prompts enumerate each candidate by number with exact worktree path or branch name rather than a count-only summary; assertions are anchored to the owning section via the fence-aware extractSection helper. 66/66 green."
+            },
+            {
+              "contractId": "AC5",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Contract suite asserts deletion delegates to adv_worktree_delete/adv_worktree_cleanup and that adv_worktree_triage is advisory only. adv-cleanup.md:205 states deletion authority belongs to those tools alone (rq-terminalCleanupSafety01) and that tool refusals are reported verbatim rather than routed around. 66/66 green."
+            },
+            {
+              "contractId": "AC6",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Contract suite asserts dry-run default: with no execute flag no change is closed, no worktree deleted, no branch deleted, and the footer states how to re-run with execution enabled. 66/66 green."
+            },
+            {
+              "contractId": "AC7",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Regression guard portion of the contract suite (retained from the pre-change file) asserts active-change bucket precedence, child-lineage guard, hot-recency-band exclusion, the reversible reply parser, per-bucket atomicity, and continue-after-bucket-failure are unchanged. DONT5 separately confirms the reversible parser block (adv-cleanup.md:152) stays distinct from the new irreversible block (:174). 66/66 green."
+            },
+            {
+              "contractId": "AC8",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Post-rebase validation: .adv/specs/advance-workflow/spec.json parses as valid JSON with 136 requirements; rq-cleanupHygieneScope01 present exactly once with 5 scenarios and priority must; 0 duplicate ids. spec-citation-invariant.test.ts and command-requirement-citations.test.ts pass, so the citation anchor resolves."
+            },
+            {
+              "contractId": "AC9",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "The two report-only-invariant tests were rewritten, not left to pass on the surviving phrase 'drift report'. Proven by a non-mutating discrimination test: the retired-invariant guard evaluates false against base commit d14963c7 content for both command and skill, and true against the new content, so it genuinely distinguishes old contract from new."
+            },
+            {
+              "contractId": "AC10",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Post-rebase onto origin/trunk (0 behind, 6 ahead, clean tree): pnpm run check exit 0 (schemas, typecheck, manifests, frontmatter across 42 files, test-isolation, lockfile, lint, format all pass; 0 errors) and adv-cleanup-contract-assets.test.ts 66/66. bin/oc-test full is 8351/8366 with the single failure (src/mcp-server/health-field-scope.test.ts:99) proven pre-existing: reverting all 7 changed files to origin/trunk content reproduces the identical failure, and its production path was last modified by trunk commit da0344dd."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "grep confirms no direct git deletion is prescribed: the only occurrences of 'git worktree remove'/'git branch -d' are prohibitions at adv-cleanup.md:205 and SKILL.md:277, both citing rq-terminalCleanupSafety01. Delegated tool references (adv_worktree_delete/adv_worktree_cleanup) appear 9x in the command and 8x in the skill."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "grep for daemon|background sweep|auto-cleanup|session-start|poll|cron|schedule across command and skill returns exactly one match: SKILL.md:318 'Operator-explicit only; no background sweeps, daemons, or session-start auto-cleanup.' No scheduling or polling construct is introduced, consistent with rq-archiveBranchCleanup01 and P37."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Both reply blocks declare 'trimmed, case-insensitive regex; no LLM fallback' (adv-cleanup.md:152 and :174) and both re-prompt paths state 'Do NOT invoke LLM fallback' (:162 and :187). Skill mirrors at SKILL.md:195 and :223. No fuzzy-matching construct present, per rq-inlineApproval01.3."
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "adv-cleanup.md:17 retains the skill(\"adv-cleanup\") reference together with its inline fallback phrase ('If unavailable, use fallback below.'), inside the bounded window checked by skill-loading-policy-assets.test.ts lines 231-245. That guard test passes in the post-rebase run."
+            },
+            {
+              "contractId": "C5",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "Citation anchors retained in .opencode/command/adv-cleanup.md: rq-inlineApproval01.3 x1, rq-inlineApproval01.4 x2, rq-autonomy01 x1. command-requirement-citations.test.ts and spec-citation-invariant.test.ts both pass."
+            },
+            {
+              "contractId": "C6",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "SKILL.md:26 declares 'Skill is read-only guidance; command owns ADV tool calls, state mutation, and approval enforcement', reinforced at SKILL.md:313. No imperative tool-call directives were introduced in the skill; all mutation phases (Phase 4b approval, Phase 5 apply) live in the command file."
+            },
+            {
+              "contractId": "C7",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "grep for '^##+ Next' in .opencode/command/adv-cleanup.md returns no match; no '## Next' or '## Next stage' heading and no gate-handoff spine present. commands-spine-assets.test.ts passes in the post-rebase run."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "git diff origin/trunk...HEAD --name-only yields 7 files, none under plugin/src/tools/. No worktree or status tool source was modified: adv_worktree_delete, adv_worktree_cleanup, adv_worktree_triage, and adv_status behavior is untouched. The change is consumer-side orchestration plus the manifest description string only."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "git diff --diff-filter=A origin/trunk...HEAD shows no added file under .opencode/command/. /adv-cleanup remains a single fused report+execute command, matching the design-gate validator finding that the fused shape is the established norm across docker/git/kubectl/npm/cargo/nix/terraform."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Distinct flags in .opencode/command/adv-cleanup.md are --bucket, --age-threshold, and --execute. Exactly one execute flag exists; escalation for irreversible buckets is handled by typed count-matched confirmation at the prompt (Phase 4b), which is the shape the user selected over a second flag."
+            },
+            {
+              "contractId": "DONT4",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Archived/closed state-leak remediation remains report-only and routes to adv_archive_purge, which owns its own operator approval contract: adv_archive_purge is referenced 3x in the command and 4x in the skill, and the surface is excluded from executable buckets. Asserted by the contract suite (DONT4 routing test)."
+            },
+            {
+              "contractId": "DONT5",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "The two prompts stay distinct: the reversible reply block at adv-cleanup.md:152 and the new irreversible block at :174 are separate 'Allowed replies' sections with different accepted tokens. The reversible parser was not widened to accept the irreversible tokens, and the irreversible block explicitly rejects the reversible 'approve all' token."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-04T04:15:48.290Z",
+        "mutationReceiptId": "mrec_1785816948291_zyobevcn"
+      }
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-04T04:25:30.870Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-04T04:25:34.199Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "a6d074cb667461b35ea9bde73ee3c1f7d27403cd1e8d317251f74c8fde592cc1:updateArtifacts:executiveSummary",
+      "operation_id": "a6d074cb667461b35ea9bde73ee3c1f7d27403cd1e8d317251f74c8fde592cc1:updateArtifacts:executiveSummary",
+      "payload_hash": "0e4122b0f019980db06e8e6724b36c8f544e0fa155f4f2d8a6374bb6447b5437",
+      "state_revision": 10,
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-04T04:29:12.240Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-04T04:40:39.193Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "extendCleanupHygieneCoverage",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-04T04:41:32.970Z"
+    }
+  ],
+  "state_revision": 10,
+  "_source": "disk"
+}
