@@ -33,6 +33,7 @@ export const launcherProjectionTools = {
         const projection = await buildLauncherProjection({
           changesDir: store.paths.changes,
           summariesDir: store.paths.summariesDir,
+          archiveDir: store.paths.archive,
           generatedAt,
           degradedThresholdMs: 300_000,
         });

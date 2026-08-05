@@ -4,6 +4,7 @@ import {
   type ChangeSummaryShard,
   type ProjectionDocumentWarning,
 } from "./change-summary-shard-reader";
+import { hasArchiveBundle } from "./json";
 
 export const LauncherChangeSummarySchema = z.object({
   id: z.string(),
@@ -55,6 +56,8 @@ export type LauncherProjection = z.infer<typeof LauncherProjectionSchema>;
 export interface BuildLauncherProjectionInput {
   changesDir: string;
   summariesDir: string;
+  /** Archive bundles are terminal evidence when a summary shard is stale. */
+  archiveDir?: string;
   generatedAt: string;
   degradedThresholdMs: number;
   /** Injectable summary reader for deterministic projection tests. */
@@ -74,6 +77,7 @@ export async function buildLauncherProjection(
   const {
     changesDir,
     summariesDir,
+    archiveDir,
     generatedAt,
     degradedThresholdMs,
     readSummaries,
@@ -86,7 +90,19 @@ export async function buildLauncherProjection(
       `Unable to read launcher summary pointers: ${summaries.error}`,
     );
   }
-  const activeSummaries = summaries.summaries
+  const reconciledSummaries = await Promise.all(
+    summaries.summaries.map(async (summary) => {
+      if (
+        summary.status === "draft" &&
+        archiveDir &&
+        (await hasArchiveBundle(archiveDir, summary.id))
+      ) {
+        return { ...summary, status: "archived" as const };
+      }
+      return summary;
+    }),
+  );
+  const activeSummaries = reconciledSummaries
     .filter((summary) => summary.status === "draft")
     .map(
       (summary): LauncherChangeSummary => ({
