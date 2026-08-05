@@ -16,7 +16,7 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, writeFileSync, chmodSync } from "fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, chmodSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -71,36 +71,40 @@ function runCheckDetailed(payload: string): {
   diagnostic: string;
 } {
   const dir = mkdtempSync(join(tmpdir(), "adv-cli-check-"));
-  const stubPath = writeCliStub(dir, payload);
-  const harness = join(dir, "harness.sh");
-  writeFileSync(
-    harness,
-    [
-      "#!/usr/bin/env bash",
-      "set -uo pipefail",
-      `REPO_ROOT=${JSON.stringify(REPO_ROOT)}`,
-      `ADV_CLI_TARGET=${JSON.stringify(stubPath)}`,
-      extractFunction(),
-      // Call in a conditional context. The function restores `set -e`
-      // internally, so a bare invocation would abort this harness at the call
-      // site and the diagnostic below would never print.
-      `if ${FUNCTION_NAME}; then rc=0; else rc=$?; fi`,
-      // The function surfaces observed values to its caller so the deploy
-      // failure branch never has to re-invoke the CLI to describe them.
-      'printf "DIAGNOSTIC:%s\\n" "${ADV_CLI_LIVE_JSON_DIAGNOSTIC:-}"',
-      "exit $rc",
-    ].join("\n"),
-    "utf8",
-  );
-  chmodSync(harness, 0o755);
+  try {
+    const stubPath = writeCliStub(dir, payload);
+    const harness = join(dir, "harness.sh");
+    writeFileSync(
+      harness,
+      [
+        "#!/usr/bin/env bash",
+        "set -uo pipefail",
+        `REPO_ROOT=${JSON.stringify(REPO_ROOT)}`,
+        `ADV_CLI_TARGET=${JSON.stringify(stubPath)}`,
+        extractFunction(),
+        // Call in a conditional context. The function restores `set -e`
+        // internally, so a bare invocation would abort this harness at the call
+        // site and the diagnostic below would never print.
+        `if ${FUNCTION_NAME}; then rc=0; else rc=$?; fi`,
+        // The function surfaces observed values to its caller so the deploy
+        // failure branch never has to re-invoke the CLI to describe them.
+        'printf "DIAGNOSTIC:%s\\n" "${ADV_CLI_LIVE_JSON_DIAGNOSTIC:-}"',
+        "exit $rc",
+      ].join("\n"),
+      "utf8",
+    );
+    chmodSync(harness, 0o755);
 
-  const proc = Bun.spawnSync(["bash", harness]);
-  const stdout = proc.stdout.toString();
-  const match = stdout.match(/DIAGNOSTIC:(.*)/);
-  return {
-    exitCode: proc.exitCode ?? 1,
-    diagnostic: match ? match[1].trim() : "",
-  };
+    const proc = Bun.spawnSync(["bash", harness]);
+    const stdout = proc.stdout.toString();
+    const match = stdout.match(/DIAGNOSTIC:(.*)/);
+    return {
+      exitCode: proc.exitCode ?? 1,
+      diagnostic: match ? match[1].trim() : "",
+    };
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function runCheck(payload: string): number {

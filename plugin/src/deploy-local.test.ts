@@ -136,8 +136,20 @@ describe("deploy-local.sh", () => {
       );
       expect(content).toContain("is_recognized_adv_cli_target");
       expect(content).toContain("PATH shadow");
-      expect(content).toContain('"source"[[:space:]]*:[[:space:]]*"temporal"');
-      expect(content).toContain('"schema_version"[[:space:]]*:[[:space:]]*1');
+      // rq-advCliLocalInstall01: structural, root-scoped assertion. The previous
+      // whole-document grep for `"schema_version": 1` was defeated by
+      // `resume_projection_state.schema_version`, emitted unconditionally on
+      // the healthy live path — so the check could not pass from 2026-07-28.
+      // Pin the jq assertion that replaced it, not implementation tokens that
+      // could regress to a substring heuristic.
+      expect(content).toContain(
+        `jq -e '.source == "temporal" and (.schema_version != 1)'`,
+      );
+      // And guard against the old pattern creeping back in: a whole-document
+      // grep for schema_version is the defect, not a valid implementation.
+      expect(content).not.toMatch(
+        /grep -q.*"schema_version"\[.space.\]\*.:.\*.1/,
+      );
     });
 
     test("removes stale adv commands from global", () => {
