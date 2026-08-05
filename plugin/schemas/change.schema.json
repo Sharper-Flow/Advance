@@ -7530,6 +7530,9 @@
                 },
                 "type": "array"
               },
+              "budget_warning": {
+                "type": "string"
+              },
               "error_class": {
                 "enum": [
                   "TRANSIENT",
@@ -7788,6 +7791,12 @@
           "implementation_summary": {
             "type": "string"
           },
+          "last_blocking_fingerprints": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "metadata": {
             "additionalProperties": {
               "type": "string"
@@ -7800,6 +7809,44 @@
           "priority": {
             "default": 0,
             "type": "number"
+          },
+          "progress_rounds": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "agent": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "attempt": {
+                  "maximum": 9007199254740991,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "fingerprints": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "recorded_at": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "summary": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "attempt",
+                "agent",
+                "summary",
+                "fingerprints",
+                "recorded_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
           "section": {
             "type": "string"
