@@ -1,0 +1,1030 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "fixDeployCliLivenessCheck",
+  "title": "Fix deploy CLI liveness check",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-05T00:44:37.113Z",
+  "tasks": [
+    {
+      "id": "tk-709fb9d6317c",
+      "title": "RED: regression guard for verify_adv_cli_live_json",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-05T00:48:49.879Z",
+      "started_at": "2026-08-05T00:53:46.397Z",
+      "completed_at": "2026-08-05T00:55:08.845Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED recorded via adv_run_test runId tr_msfdjy7w_0dff8158 (exitCode 1): 1 fail, 4 pass. The single failure is exactly the regression — \"accepts a healthy live payload containing a nested resume_projection_state.schema_version\" expected exit 0, received 1 — reproducing the defect where the document-wide grep matches a nested projection version and concludes the response is a stale disk-only read.\n\nNew file bin/deploy-local-cli-check.test.ts (bun test; runs under the separate `bun test bin/` CI job per AGENTS.md, not Vitest). Five cases: healthy live with nested resume_projection_state.schema_version 1 (DDC3, the exact shape that defeated the original check), fail-closed live error (DDC2, must pass because rq-advCliLocalInstall01 names it a passing shape), stale disk-only with a top-level schema_version (AC2/C3, must fail), non-temporal source, and unparseable output.\n\nThe four passing cases are deliberate: they must hold both before and after, so they guard against over-correcting. In particular the disk-only rejection passing now means a fix that simply deletes the check would be caught, and the live-error acceptance passing now means a fix that asserts live:true would be caught.\n\nHarness drives the REAL shell function rather than restating its logic — a guard that reimplemented the assertion would have agreed with the broken implementation and caught nothing. deploy-local.sh runs a full deployment at top level with no main guard, so it cannot be sourced; the function is extracted by name and executed with a stubbed CLI and overridden ADV_CLI_TARGET/REPO_ROOT. Extraction fails loudly with a pointed message if the function is renamed or restructured, rather than silently testing a stale copy. Noted but not acted on: adding a main guard to deploy-local.sh would make sourcing possible and is a cleaner long-term harness, but that changes deployment control flow and is outside this change's scope.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "bin/deploy-local-cli-check.test.ts"
+      ],
+      "checkpointSha": "ac86d1ef89f2d354a91f59024ff75b45f160849f",
+      "completedAt": "2026-08-05T00:55:08.845Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "tdd_phase": "red"
+      },
+      "touched_files": [
+        "bin/deploy-local-cli-check.test.ts"
+      ]
+    },
+    {
+      "id": "tk-3b34bd0868e8",
+      "title": "GREEN: root-scope the disk-only assertion",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-709fb9d6317c"
+        }
+      ],
+      "created_at": "2026-08-05T00:49:08.829Z",
+      "started_at": "2026-08-05T00:55:21.186Z",
+      "completed_at": "2026-08-05T00:58:03.405Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "GREEN via adv_run_test runId tr_msfdlk3m_3071e3f4 (exitCode 0, 5/5), against RED runId tr_msfdjy7w_0dff8158 (exitCode 1, the healthy-live case failing).\n\nEnd-to-end proof against the REAL installed CLI, not just fixtures: extracted both the old and new function and ran each against $HOME/.local/bin/adv back to back. Old function FAIL (exit 1), new function PASS (exit 0). Same binary, same moment, so the outcome change is attributable to the fix rather than environmental drift — this is the false positive actually disappearing, not a fixture agreeing with itself.\n\nImplemented in scripts/deploy-local.sh verify_adv_cli_live_json: replaced the two substring greps with one root-scoped structural assertion, jq -e '.source == \"temporal\" and (.schema_version != 1)'.\n\nThree properties the comment now records so the reasoning survives:\n- .schema_version is root-scoped deliberately — rq-advCliLocalInstall01 rejects a disk-only payload identified by its own top-level version, not any nested field sharing the name. The prior whole-document grep matched resume_projection_state.schema_version, which bin/adv:162 emits unconditionally on success per DONT5, making the check incapable of passing from 2026-07-28 onward.\n- .live is deliberately NOT asserted. The law accepts fail-closed live error metadata (live:false with error), so requiring liveness would trade this false positive for a false negative — failing exactly when an operator most needs a true signal.\n- jq -e sets exit status from the result and fails closed on unparseable output, preserving the function's existing shell contract. The [ -x \"$ADV_CLI_TARGET\" ] guard and the 0|1|2 exit-status allowlist are unchanged.\n\njq was already a hard dependency of this script via config patching, so C2 holds with no new requirement. Note the deploy --dry-run path reports \"dry-run: skipped live installed-CLI validation\" and therefore does not exercise this function at all, which is why the real-CLI comparison above was run instead of relying on the dry run.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "scripts/deploy-local.sh"
+      ],
+      "checkpointSha": "227ca82c10357f90371f100e8dcd3880136bfc1f",
+      "completedAt": "2026-08-05T00:58:03.405Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2",
+          "AC3"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "C3",
+          "C4",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "tdd_phase": "green"
+      },
+      "touched_files": [
+        "scripts/deploy-local.sh"
+      ]
+    },
+    {
+      "id": "tk-140f9d17e12b",
+      "title": "Make the failure output self-describing",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-3b34bd0868e8"
+        }
+      ],
+      "created_at": "2026-08-05T00:49:28.532Z",
+      "started_at": "2026-08-05T00:58:17.207Z",
+      "completed_at": "2026-08-05T01:25:16.616Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Review finding (issue, self-caught during inline 12-dimension review): the negative guard regex in deploy-local.test.ts did not actually match the old BRE pattern it was supposed to prevent from returning. /grep -q.*\"schema_version\"\\[.space.\\]\\*.:.\\*.1/ was hand-traced against the POSIX character class but the character alignment was wrong — verified empirically with node, which returned false against the actual trunk line. Replaced with /grep -q.*schema_version/, which matches the command form (not the word in comments) and correctly catches the old pattern while not tripping on the explanatory comment at line 976 or the new jq assertion. Verified: catches old true, catches new false, deploy-local.test.ts 72/72.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/deploy-local.test.ts"
+      ],
+      "checkpointSha": "aaa61b1ecc9c61d6143edbf53b4e2828e66ba4d2",
+      "completedAt": "2026-08-05T01:25:16.616Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "verifies": [
+          "SC3"
+        ],
+        "respects": [
+          "C1",
+          "C3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/deploy-local.test.ts"
+      ]
+    }
+  ],
+  "subagent_reports": [],
+  "test_runs": {
+    "tk-709fb9d6317c": [
+      {
+        "runId": "tr_msfdjy7w_0dff8158",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test bin/deploy-local-cli-check.test.ts",
+        "durationMs": 104.21944799995981,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-05T00:54:36.052Z"
+      }
+    ],
+    "tk-3b34bd0868e8": [
+      {
+        "runId": "tr_msfdlk3m_3071e3f4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/deploy-local-cli-check.test.ts",
+        "durationMs": 110.97960399999283,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-05T00:55:51.060Z"
+      }
+    ],
+    "tk-140f9d17e12b": [
+      {
+        "runId": "tr_msfdqe7h_21487ada",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test bin/deploy-local-cli-check.test.ts",
+        "durationMs": 209.73888599989004,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-05T00:59:36.379Z"
+      },
+      {
+        "runId": "tr_msfdrjmm_f9590e49",
+        "phase": "green",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "bun test bin/deploy-local-cli-check.test.ts",
+        "durationMs": 278.34556900011376,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-05T01:00:30.964Z"
+      },
+      {
+        "runId": "tr_msfdsmjd_14c06612",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "bun test bin/deploy-local-cli-check.test.ts",
+        "durationMs": 281.5296969995834,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-05T01:01:21.338Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-05T00:45:18.455Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task; user directed \"do it now\" after being shown the validator false positive. ORIGIN classified as defect per rq-defectOriginRca01; RCA persisted in problem-statement.md with verified anchors: verify_adv_cli_live_json at scripts/deploy-local.sh:945-964 greps the whole adv status --json document for \"schema_version\": 1 to detect a disk-only fallback, while resume_projection_state.schema_version: 1 is emitted unconditionally on the healthy live path at bin/adv:162 and bin/adv:258 with an explicit \"always emit the state, even on success (DONT5)\" comment. Timeline confirms unconditional breakage rather than intermittent misfire: the check landed 2026-06-06 (commit 88f436e8), the unconditional field landed 2026-07-28 (commit 7081bca2, PR #335), so the negative grep has matched on every successful live read since. Empirically reproduced twice on 2026-08-05: CLI emits source \"temporal\", live true, stale false at the validator's own 1000ms budget while the validator reports failure. Defect class is P33/P38 — an unscoped substring heuristic standing in for a structural field assertion, where declared intent and implemented behavior diverged silently when an unrelated field was added elsewhere in the payload.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "bacc443f7ad6edc282b54d2055b6ef61a4bd67fb32dc5600e3de0b7270965a4b",
+        "non_whitespace_chars": 2082,
+        "checked_at": "2026-08-05T00:44:37.244Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-05T00:47:57.194Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task. Spec-law impact assessed as NO SPEC LAW UPDATE REQUIRED. Governing law rq-advCliLocalInstall01 (advance-meta) already states the correct behavior: deploy-local.sh must \"verify installed status JSON is live-status metadata (source: temporal on success or fail-closed live error metadata) rather than stale disk-only schema_version: 1 output\". The shell implementation diverged from that law in two ways: it greps the whole document rather than the payload's own top-level schema_version, and it does not distinguish the fail-closed live error shape the law explicitly accepts. This is an implementation-conformance fix; the spec needs no delta. Rationale persisted in design.md and agreement.md. Payload shapes verified in bin/lib/live-status.ts: buildLiveStatusPayloadFromSummaries (:75-87) emits source temporal / live true, buildLiveStatusFailure (:95-105) emits source temporal / live false with error and remediation — both carry source temporal, which is why a second assertion exists, and neither carries a top-level schema_version. Contract minted: 14 items (SC1-3, AC1-4, C1-4, DONT1-3). Notable correction captured during discovery: asserting live: true would have been wrong, since the law names fail-closed live error metadata as a passing shape — that would have traded a false positive for a false negative.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "non_whitespace_chars": 3227,
+        "checked_at": "2026-08-05T00:44:37.245Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-05T00:48:14.313Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task. Design persisted with the approach, rejected alternatives, DDCs, risks, and out-of-scope boundaries. Approach: replace the two substring greps in verify_adv_cli_live_json with a single root-scoped structural jq assertion — .source == \"temporal\" and (.schema_version != 1) — expressing rq-advCliLocalInstall01 directly instead of approximating it with a document-wide substring search (P33). jq is already a hard dependency of deploy-local.sh via config patching, so C2 holds. Failure output gains the observed source and schema_version values so the next divergence is legible in one run rather than requiring a source read (AC4). Alternatives rejected with reasons: narrowing the grep regex leaves the heuristic in place and stays serialization-dependent; asserting live: true rejects the fail-closed live error shape the law accepts, trading a false positive for a false negative precisely when an operator needs an accurate signal; deleting the disk-only check violates DONT2 since the law requires the detection; changing resume_projection_state inverts the dependency and violates DONT1 and C4. Three DDCs recorded, the key one being that the regression guard must exercise a payload carrying resume_projection_state.schema_version: 1, since that exact shape defeated the original check. Guard belongs under bin/ tests, which run as a separate bun test bin/ CI job per AGENTS.md rather than under Vitest. No CONFLICT verdict; no halt required.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "d1c2816e30038c20e80650d968f5c8f1d4592c00c4c916eaebfd4323fa74a039",
+        "non_whitespace_chars": 4894,
+        "checked_at": "2026-08-05T00:44:37.246Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-05T00:52:46.390Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task with planning completed at /adv-apply invocation, which counts as explicit approval per the apply contract. Three tasks, dependency-ordered from a single RED root: tk-709fb9d6317c (RED regression guard in bin/deploy-local-cli-check.test.ts covering all three payload shapes) → tk-3b34bd0868e8 (GREEN: replace the two substring greps in verify_adv_cli_live_json with a root-scoped jq assertion) → tk-140f9d17e12b (self-describing failure output plus P25 related-scan for the same unscoped-grep pattern elsewhere in deploy-local.sh). All 4 acceptance criteria covered, 0 uncovered; adv_change_validate passed with 0 errors. The NO_DELTAS warning is expected and correct: discovery assessed spec-law impact as no update required, because rq-advCliLocalInstall01 already states the right behavior and only the shell implementation diverged. Guard lives under bin/ because that tree runs as a separate bun test bin/ CI job per AGENTS.md, not under Vitest. Evidence policy is test for all three tasks with inline TDD."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-05T01:20:40.929Z",
+      "completed_by": "agent",
+      "approval_evidence": "3/3 tasks done; no cancellations. adv_change_validate passed with 0 errors and 3 warnings, all non-blocking: the expected NO_DELTAS (spec law needed no update; the implementation diverged from rq-advCliLocalInstall01, which already states the correct behavior), plus a degraded conflict inventory because a peer change (decideWorkflowHibernation) carries a schema-invalid projection from the same doom-loop defect this change's sibling just shipped a fix for. The conflict-inventory degradation is not a conflict — decideWorkflowHibernation touches no plugin/ or scripts/ file — just inability to prove that conclusively while one peer is bricked.\n\nVerification: bash -n scripts/deploy-local.sh exit 0; bun test bin/ 10/10 including the new deploy-local-cli-check.test.ts; plugin unit 8496 passed with exactly the 7 known base-attributable failures (advance-epics-assets, adv-autonomy-quality-assets, ops-follow-up-assets, optimized-handoff-assets, workflow-noise-reduction-assets x2, status-host-cap); plugin check exit 0; pnpm run check green.\n\nEnd-to-end proof against the REAL installed CLI was the decisive evidence, not fixtures: extracted both the old and new function from the script and ran each against $HOME/.local/bin/adv back to back. Old function FAIL (exit 1), new function PASS (exit 0). Same binary, same moment, so the outcome change is attributable to the fix. The real-CLI run also rendered the new diagnostic on a deliberately-bad target (\"CLI not executable at /nonexistent/adv\"), confirming the self-describing failure output works end to end.\n\nCourse correction caught by independent adv-verifier: plugin/src/deploy-local.test.ts:139-140 content-pinned the removed BRE grep patterns, so the fix that removed them turned the pin red. Updated the pins to assert the new structural jq assertion and a negative guard against the substring pattern returning — the negative guard matters because without it a future regression to the heuristic would pass content-pin and be caught only by the behavioral test, which is further from the cause. Also cleaned up a per-call temp-dir leak in the bun test the verifier flagged. After both fixes the unit suite showed exactly 7 base failures across 6 files with deploy-local.test.ts no longer among them.\n\nP25 related-scan: no other instance of the whole-document-grep-over-JSON pattern in scripts/deploy-local.sh. The three remaining grep -q uses are space-padded word-membership tests over flat string lists, a different and safe idiom."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-05T01:27:33.186Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted via Tier A inline approval \"approve\" on 2026-08-05. Review verdict APPROVED with 1 finding (issue, fixed during review — a broken negative-guard regex in deploy-local.test.ts that did not actually match the old BRE pattern; replaced with /grep -q.*schema_version/ which correctly catches old and does not trip on the explanatory comment or the new jq assertion). Contract review matrix persisted: 14 rows, 0 failing. Verification: bash -n exit 0; bun test bin/ 10/10; plugin unit 8496 passed (7 known base-attributable failures, none caused by this change); pnpm run check exit 0. Decisive end-to-end proof: extracted old and new verify_adv_cli_live_json from the script and ran each against $HOME/.local/bin/adv back to back — old FAIL (exit 1), new PASS (exit 0), same binary same moment. Preview URL not_applicable — deploy script with no browser-visible surface. Executive summary persisted before the prompt. Degradation note: phase-plan read timed out twice (Temporal read path); proceeded via the protocol's Inline Fallback with gate state verified through a smaller reliable read; no gate mutated from a degraded read. One non-blocking follow-up: trunk baseline redness owned by fix/trunk-ci-redness.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "69c32bdb2f6f28a6825300e60d89c78357714c1d70b41fc39058c6eef1cd64fc",
+        "non_whitespace_chars": 2807,
+        "checked_at": "2026-08-05T00:44:37.247Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+      "approvedAt": "2026-08-05T00:47:42.827Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A healthy live CLI response passes the check, including one carrying `resume_projection_state.schema_version: 1`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "A stale disk-only response still fails the check",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "The check's failure output identifies which assertion failed and the observed value",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given an installed CLI emitting a healthy live status payload with `source: \"temporal\"` and a nested `resume_projection_state.schema_version: 1`, when `scripts/deploy-local.sh --fix` runs, then the ADV CLI section reports no issues.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an installed CLI emitting a healthy live status payload with `source: \"temporal\"` and a nested `resume_projection_state.schema_version: 1`",
+          "trigger": "`scripts/deploy-local.sh --fix` runs",
+          "outcome": "the ADV CLI section reports no issues"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given a status payload carrying a top-level `schema_version: 1` (the stale disk-only shape), when the check runs, then it fails, preserving the detection `rq-advCliLocalInstall01` requires.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a status payload carrying a top-level `schema_version: 1` (the stale disk-only shape)",
+          "trigger": "the check runs",
+          "outcome": "it fails, preserving the detection `rq-advCliLocalInstall01` requires"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a fail-closed live error payload (`source: \"temporal\"` with `live: false`, `error`, and `remediation`), when the check runs, then it passes, because `rq-advCliLocalInstall01` explicitly accepts live error metadata as live-status metadata.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a fail-closed live error payload (`source: \"temporal\"` with `live: false`, `error`, and `remediation`)",
+          "trigger": "the check runs",
+          "outcome": "it passes, because `rq-advCliLocalInstall01` explicitly accepts live error metadata as live-status metadata"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given the check fails, when it reports, then the message names the failed assertion and the observed value rather than a generic expectation string.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the check fails",
+          "trigger": "it reports",
+          "outcome": "the message names the failed assertion and the observed value rather than a generic expectation string"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must conform to `rq-advCliLocalInstall01` as written; this change fixes the implementation, not the law",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must conform to `rq-advCliLocalInstall01` as written; this change fixes the implementation, not the law"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must not require a new tool dependency — `jq` is already a hard dependency of `deploy-local.sh`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not require a new tool dependency — `jq` is already a hard dependency of `deploy-local.sh`"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must not weaken detection: a genuine stale disk-only payload must still fail",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not weaken detection: a genuine stale disk-only payload must still fail"
+        }
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Must not modify `resume_projection_state`, which is correct and deliberately unconditional per DONT5",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not modify `resume_projection_state`, which is correct and deliberately unconditional per DONT5"
+        }
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not change `bin/adv` status payload shape to satisfy the validator — the payload is correct",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not delete the disk-only detection outright; `rq-advCliLocalInstall01` requires it",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not substitute `live: true` for the disk-only check — that would reject the fail-closed live error shape the spec accepts",
+        "sourceArtifact": "agreement",
+        "sourceHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-05T01:25:52.250Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test deploy-local-cli-check.test.ts: healthy live payload with nested resume_projection_state.schema_version 1 passes (exit 0). Confirmed end-to-end against the REAL installed CLI: old function FAIL, new function PASS, same binary same moment.",
+          "notes": "The exact payload shape that broke the original check now passes."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test: disk-only payload with top-level schema_version 1 fails (non-zero exit). Detection preserved.",
+          "notes": "The fix did not weaken the check it replaced."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test: failure diagnostics section asserts observed source, observed schema_version, unparseable-output distinction, bounded length under 200 chars, and no diagnostic on success.",
+          "notes": "ADV_CLI_LIVE_JSON_DIAGNOSTIC surfaces on every failure path."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Real-CLI proof: extracted old and new function, ran each against $HOME/.local/bin/adv. Old FAIL (exit 1), new PASS (exit 0). The false positive that has fired on every deploy since 2026-07-28 is gone.",
+          "notes": "Fixture test plus end-to-end against the real binary."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test case 'rejects a stale disk-only payload with a top-level schema_version' asserts non-zero exit. The jq assertion .schema_version != 1 is root-scoped, so only a top-level version triggers it.",
+          "notes": "rq-advCliLocalInstall01 detection preserved."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test case 'accepts fail-closed live error metadata' asserts exit 0 for a live:false payload with error and remediation. The jq assertion deliberately does NOT require .live == true.",
+          "notes": "Discovery corrected an instinct to assert live:true, which would have rejected this spec-accepted shape."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "bun test: five diagnostic cases verify the observed source, schema_version, unparseable distinction, bounded length, and silence-on-success. Real-CLI run confirmed the diagnostic renders end-to-end ('CLI not executable at /nonexistent/adv').",
+          "notes": "Caller wording also corrected: 'did not emit live Temporal metadata' became 'live-status metadata'."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "The jq assertion .source == 'temporal' and (.schema_version != 1) expresses rq-advCliLocalInstall01 as written: accept source temporal (success or fail-closed error), reject top-level schema_version 1 (disk-only). No spec change made or needed.",
+          "notes": "Implementation-conformance fix, not a law change."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "jq appears 38 times in deploy-local.sh and is a hard precondition (check_jq at lines 790 and 1140). The fix adds one more use; no new dependency.",
+          "notes": "Confirmed by adv-verifier."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "bun test case for disk-only payload asserts non-zero exit. Negative guard in deploy-local.test.ts (/grep -q.*schema_version/) prevents the old heuristic from returning.",
+          "notes": "Review fixed the guard regex, which was broken and did not actually match the old pattern."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff confirms bin/adv and bin/lib/live-status.ts are untouched. Only scripts/deploy-local.sh and test files changed.",
+          "notes": "The payload is correct; the validator was wrong."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "git diff shows no changes to bin/adv or any status payload builder.",
+          "notes": "Payload shape unchanged."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "The jq assertion includes (.schema_version != 1), preserving disk-only detection. bun test confirms disk-only still fails.",
+          "notes": "Detection was scoped, not removed."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "The jq assertion deliberately does not reference .live. Comment records why: the law accepts fail-closed live error metadata, so requiring liveness would trade a false positive for a false negative.",
+          "notes": "The trap was identified during discovery and avoided."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given an installed CLI emitting a healthy live status payload with `source: \"temporal\"` and a nested `resume_projection_state.schema_version: 1`, when `scripts/deploy-local.sh --fix` runs, then the ADV CLI section reports no issues.",
+    "Given a status payload carrying a top-level `schema_version: 1` (the stale disk-only shape), when the check runs, then it fails, preserving the detection `rq-advCliLocalInstall01` requires.",
+    "Given a fail-closed live error payload (`source: \"temporal\"` with `live: false`, `error`, and `remediation`), when the check runs, then it passes, because `rq-advCliLocalInstall01` explicitly accepts live error metadata as live-status metadata.",
+    "Given the check fails, when it reports, then the message names the failed assertion and the observed value rather than a generic expectation string."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\nLocal deployment always reports `ADV CLI: ❌ 1 issue(s)`, whether or not anything is wrong. The check has been unable to pass since 2026-07-28.\n\n## Root Cause Analysis\n\nSee problem-statement.md. In short: `verify_adv_cli_live_json` greps the entire `adv status --json` document for `\"schema_version\": 1` to detect a disk-only fallback, but `resume_projection_state.schema_version: 1` is now emitted unconditionally on the healthy live path — so the negative check always trips.\n\n## Proposed direction\n\n1. **Make the check structural, not substring-based.** Parse the JSON and assert the specific fields that define liveness, rather than pattern-matching the serialized document. `jq` is already a hard dependency of `deploy-local.sh` (it is used for config patching), so this adds no new requirement.\n2. **Identify the real disk-only marker.** Confirm which field actually indicates a disk-only readiness response, and assert on that path specifically — not on any `schema_version` anywhere. If the top-level `source` and `live` fields already fully distinguish live from disk-only, the second check may be redundant and should be removed rather than rewritten.\n3. **Make the failure self-describing.** When the check fails, report which assertion failed and the observed value, so the next false positive is diagnosable in one run instead of requiring a source read.\n4. **Regression-guard it.** The defect's essential property is that an unrelated payload addition silently broke an unrelated validator. A test that runs the validator against a realistic healthy payload — one containing `resume_projection_state` — would have caught it and would prevent recurrence.\n\n## Why this is worth doing now\n\nThe check is not merely noisy; it is incapable of passing. Every deployment prints a failure line that carries no information, which is strictly worse than removing the check: it will hide a real CLI regression when one occurs.\n\n## Out of scope\n\n- The `resume_projection_state` field itself. It is correct and deliberately unconditional (DONT5); this change adapts the validator to it, not the reverse.\n- Other `deploy-local.sh` validators, unless the same unscoped-grep pattern appears in them — worth a related-scan (P25), but any finding beyond the CLI check should be surfaced rather than silently folded in.\n- The `adv_doctor` false-healthy gap observed alongside this. Tracked separately in `resolveAdvPersistenceRecovery` Decision 3.",
+    "problemStatement": "`scripts/deploy-local.sh` reports `ADV CLI: ❌ 1 issue(s)` on every deployment, even when the installed CLI is fully healthy. The check can no longer pass under any conditions.\n\n## Root Cause Analysis\n\n`verify_adv_cli_live_json` (`scripts/deploy-local.sh:945-964`) validates the installed CLI by running `adv status --json` and applying two greps to the **entire document**:\n\n```bash\nprintf '%s' \"$output\" | grep -q '\"source\"[[:space:]]*:[[:space:]]*\"temporal\"' || return 1\nif printf '%s' \"$output\" | grep -q '\"schema_version\"[[:space:]]*:[[:space:]]*1'; then\n  return 1\nfi\n```\n\nThe first grep is the positive signal (live Temporal read). The second is intended to reject a **disk-only fallback readiness marker** — the message reads \"Expected source:\\\"temporal\\\" and no disk-only schema_version:1 readiness\".\n\nThe second grep is unscoped. It matches `\"schema_version\": 1` anywhere in a ~17KB JSON document, not only within the readiness object it targets.\n\n### The collision\n\n`adv status --json` emits `resume_projection_state.schema_version: 1` **unconditionally** on the live path (`bin/adv:162` and `bin/adv:258`). The surrounding comment is explicit that this is by design:\n\n```\n// Always emit the state, even on success. An absent projection must be\n// explicable, never silently missing (DONT5).\n```\n\nSo a healthy live response always contains the substring the check treats as proof of an unhealthy disk-only response.\n\n### Timeline — the check is unconditionally broken, not intermittently wrong\n\n- `verify_adv_cli_live_json` landed **2026-06-06** (commit `88f436e8`), when `\"schema_version\": 1` plausibly appeared only in the disk-only readiness payload.\n- `resume_projection_state` was added to the status payload **2026-07-28** (commit `7081bca2`, PR #335, \"stop advisory resume projection from hanging adv status\").\n\nSince 2026-07-28 the second grep matches on every successful live read, so `verify_adv_cli_live_json` returns 1 unconditionally on the live path. There is no input for which it can now succeed.\n\n## Observed evidence (2026-08-05)\n\nDeploy validator output:\n\n```\n✓  target: /home/jon/.local/bin/adv -> /home/jon/.local/share/Advance/bin/adv\n✓  runtime imports: Temporal client sources available\n✓  PATH: adv resolves to managed target\n✗  status JSON: installed adv did not emit live Temporal metadata\nADV CLI: ❌ 1 issue(s)\n```\n\nActual CLI output at the validator's own 1000ms budget:\n\n```json\n{ \"source\": \"temporal\", \"live\": true, \"stale\": false, ... }\n```\n\nThe only `\"schema_version\": 1` in the document sits at `resume_projection_state`, alongside `\"completeness\": \"complete\"` — a healthy projection, not a fallback marker. Reproduced across two consecutive `--fix` runs.\n\n## Impact\n\n- **Alarm fatigue.** Every local deployment reports a CLI failure. A validator that always fails carries no signal, and trains operators to ignore the line where a real CLI regression would appear.\n- **Masked regressions.** A genuine disk-only fallback would now be indistinguishable from the standing false positive.\n- **Misleading remediation.** The advice is \"repair PATH or rerun --fix after manual remediation\"; neither can resolve it, because nothing is wrong.\n\n## Class of defect\n\nA heuristic owns a correctness signal: substring matching over a whole document stands in for a structural check of one field (P33). It also violates P38 — the declared intent (\"no disk-only readiness\") and the implemented behavior (\"no such substring anywhere\") diverged silently when an unrelated field was added elsewhere in the payload.",
+    "agreement": "# Agreement\n\n> Fast-tracked via `/adv-task`. User directed \"do it now\" after being shown the validator\n> false positive during the `clampDoomLoopAccumulator` deployment.\n\n## Objectives\n\n1. Restore `scripts/deploy-local.sh` CLI liveness validation to conformance with existing spec law, so it passes on a healthy install and can still detect a real regression\n\n## Success Criteria\n\n1. A healthy live CLI response passes the check, including one carrying `resume_projection_state.schema_version: 1`\n2. A stale disk-only response still fails the check\n3. The check's failure output identifies which assertion failed and the observed value\n\n## Acceptance Criteria\n\n1. Given an installed CLI emitting a healthy live status payload with `source: \"temporal\"` and a nested `resume_projection_state.schema_version: 1`, when `scripts/deploy-local.sh --fix` runs, then the ADV CLI section reports no issues.\n2. Given a status payload carrying a top-level `schema_version: 1` (the stale disk-only shape), when the check runs, then it fails, preserving the detection `rq-advCliLocalInstall01` requires.\n3. Given a fail-closed live error payload (`source: \"temporal\"` with `live: false`, `error`, and `remediation`), when the check runs, then it passes, because `rq-advCliLocalInstall01` explicitly accepts live error metadata as live-status metadata.\n4. Given the check fails, when it reports, then the message names the failed assertion and the observed value rather than a generic expectation string.\n\n## Constraints\n\n1. Must conform to `rq-advCliLocalInstall01` as written; this change fixes the implementation, not the law\n2. Must not require a new tool dependency — `jq` is already a hard dependency of `deploy-local.sh`\n3. Must not weaken detection: a genuine stale disk-only payload must still fail\n4. Must not modify `resume_projection_state`, which is correct and deliberately unconditional per DONT5\n\n## Avoidances\n\n1. Do not change `bin/adv` status payload shape to satisfy the validator — the payload is correct\n2. Do not delete the disk-only detection outright; `rq-advCliLocalInstall01` requires it\n3. Do not substitute `live: true` for the disk-only check — that would reject the fail-closed live error shape the spec accepts\n\n## Preview Applicability\n\n`visual_surface: false` — a shell validator in a deployment script, no browser-visible surface.\n`preview_expectation`: `exact_route_required: not_applicable`,\n`data_state_expectation: not_applicable`, `viewport_expectation: not_applicable`.\n\n## Decisions\n\n### User Decisions\n\n1. **Fix now, inline.** User directed \"do it now\" after reviewing the false-positive evidence.\n\n### Agent Decisions (LBP)\n\n1. **Scope the assertion to the document root, not the whole document.** `rq-advCliLocalInstall01` rejects \"stale disk-only `schema_version: 1` output\" — the payload's own version, not any nested occurrence. `resume_projection_state.schema_version` is a nested projection's version and is unrelated. Parsing with `jq` and asserting on the root path expresses the law directly instead of approximating it with a substring search (P33).\n\n2. **Do not assert `live: true`.** An earlier reading suggested requiring liveness, but the spec explicitly accepts \"`source: \\\"temporal\\\"` on success **or fail-closed live error metadata**\". A `live: false` error payload is still live-status metadata and must pass; only a disk-only payload must fail.\n\n## Spec-Law Impact\n\n**No spec law update required.** `rq-advCliLocalInstall01` (`advance-meta`) already states the correct behavior; the shell implementation diverged from it. This change restores conformance. Rationale recorded in design.md.\n\n## Deferred Questions\n\nNone.\n\n## Sign-Off\n\nUser directed the fix with \"do it now\" on 2026-08-05 after being shown the RCA and impact.\n",
+    "design": "# Design — Fix deploy CLI liveness check\n\n## Problem restated\n\n`verify_adv_cli_live_json` (`scripts/deploy-local.sh:945-964`) has been unable to pass since\n2026-07-28. It greps the entire `adv status --json` document for `\"schema_version\": 1` to\ndetect a stale disk-only payload, but `resume_projection_state.schema_version: 1` is now\nemitted unconditionally on the healthy live path (`bin/adv:162`, `:258`).\n\n## The law is already correct\n\n`rq-advCliLocalInstall01` (`advance-meta`) requires `deploy-local.sh` to:\n\n> verify installed status JSON is live-status metadata (`source: \"temporal\"` on success or\n> fail-closed live error metadata) rather than stale disk-only `schema_version: 1` output\n\nTwo things follow, and the second corrects an intuition worth recording:\n\n1. The rejected marker is the **payload's own** `schema_version` — a disk-only document. A\n   nested projection's version is a different field that happens to share a name.\n2. A `live: false` payload is **acceptable**. The spec names \"fail-closed live error metadata\"\n   as a passing shape. So the fix must not assert `live: true`, even though that reads like the\n   natural liveness check. Doing so would trade a false positive for a false negative.\n\nThis is an implementation-conformance fix. The spec needs no change.\n\n## Payload shapes (verified)\n\n`bin/lib/live-status.ts`:\n\n| Builder | Shape |\n|---|---|\n| `buildLiveStatusPayloadFromSummaries` (`:75-87`) | `source: \"temporal\"`, `live: true`, `stale: false`, counts, changes |\n| `buildLiveStatusFailure` (`:95-105`) | `source: \"temporal\"`, `live: false`, `stale: false`, `error`, `remediation` |\n\nBoth carry `source: \"temporal\"`, which is why `source` alone is insufficient and a second\nassertion exists. Neither carries a top-level `schema_version`. The stale disk-only shape does —\nthat is the discriminator the law names.\n\n## Approach\n\nReplace the two substring greps with a single structural `jq` assertion on the parsed document:\n\n```bash\nprintf '%s' \"$output\" | jq -e '.source == \"temporal\" and (.schema_version != 1)' >/dev/null\n```\n\n- `.source == \"temporal\"` — accepts both live success and fail-closed live error metadata\n- `.schema_version != 1` — root-scoped, so a nested `resume_projection_state.schema_version`\n  cannot trip it, while a disk-only payload still fails\n- `jq -e` sets exit status from the result, so the shell contract is unchanged\n\n`jq` is already a hard dependency of `deploy-local.sh` (used for config patching), so this adds\nno new requirement (C2).\n\n### Diagnosable failure output\n\nToday the failure prints a fixed expectation string, which is why diagnosing this took a source\nread. On failure the check should report the observed `source` and `schema_version` values so\nthe next divergence is legible in one run (AC4).\n\n## Why not the alternatives\n\n- **Narrow the grep regex** (e.g. anchor to line start): still substring matching, still\n  position-dependent on serialization, and would break again if the payload were reformatted.\n  The defect is the heuristic, not the pattern.\n- **Assert `live: true`**: rejects the fail-closed live error shape the spec accepts. Trades a\n  false positive for a false negative — worse, because it would fail exactly when an operator\n  most needs an accurate signal.\n- **Delete the disk-only check**: `rq-advCliLocalInstall01` requires the detection (DONT2).\n- **Change `resume_projection_state`**: the field is correct and deliberately unconditional per\n  DONT5. Adapting the payload to a broken validator inverts the dependency (DONT1).\n\n## Regression guard\n\nThe essential property of this defect is that an **unrelated payload addition silently broke an\nunrelated validator**, with no test coupling them. A guard must therefore exercise the validator\nagainst a realistic healthy payload that includes `resume_projection_state.schema_version: 1` —\nthe exact shape that broke it — plus a disk-only payload that must still fail.\n\n`bin/` is covered by `bun test bin/` as a separate CI job (per `AGENTS.md`), not Vitest. The\nguard belongs there, or as a shell-level assertion, whichever fits the existing `bin/` test\nconventions.\n\n## Affected Components\n\n| Component | Change | Anchor |\n|---|---|---|\n| `scripts/deploy-local.sh:945-964` | Replace substring greps with root-scoped `jq` assertion | `verify_adv_cli_live_json` |\n| `scripts/deploy-local.sh:1042-1043` | Report observed values on failure | failure branch |\n| `bin/` tests | Regression guard covering both payload shapes | new |\n\n## Design-Derived Criteria\n\n- **DDC1:** The disk-only assertion must be scoped to the document root. A nested field named\n  `schema_version` anywhere in the payload must not affect the result.\n- **DDC2:** A fail-closed live error payload (`live: false` with `error`) must pass, per\n  `rq-advCliLocalInstall01`.\n- **DDC3:** The regression guard must include a payload carrying\n  `resume_projection_state.schema_version: 1`, since that is the precise shape that defeated the\n  original check.\n\n## Risks / Mitigations\n\n| Risk | Severity | Mitigation |\n|---|---|---|\n| Fix silently weakens disk-only detection | High | AC2 plus a guard asserting a top-level `schema_version: 1` payload still fails |\n| `jq` absent at validation time | Low | Already a hard dependency; the script's config patching fails without it regardless |\n| Malformed/empty CLI output parses ambiguously | Medium | `jq -e` fails closed on parse error, preserving the existing fail-closed posture |\n\n## Out of Scope\n\n- The `adv_doctor` false-healthy gap observed alongside this — tracked in\n  `resolveAdvPersistenceRecovery` Decision 3.\n- Other `deploy-local.sh` validators, unless the same unscoped-grep pattern appears; a P25\n  related-scan should surface any, and anything beyond the CLI check is reported rather than\n  silently folded in.\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nThe local deployment script has reported `ADV CLI: ❌ 1 issue(s)` on every run since July 28, regardless of whether anything was wrong. This change fixes that permanently-red validator so it passes on a healthy install and can still catch a real regression.\n\n## Why It Matters\n\nA validator that always fails carries no signal. It trains operators to ignore the exact line where a genuine CLI regression would appear — and it prints misleading remediation advice (\"repair PATH or rerun --fix\") that cannot resolve anything, because nothing is wrong.\n\n## Verdict\n\nAPPROVED\n\n## What Was Built\n\n1. **The liveness check now works.** A whole-document substring grep that matched an unrelated nested field was replaced with a root-scoped structural assertion. The check passes on a healthy install and still rejects a stale disk-only response.\n2. **Failures now explain themselves.** When the check fails, it reports the observed values (source, schema_version) rather than a fixed expectation string, so the next divergence is diagnosable in one run.\n3. **A regression guard prevents recurrence.** A new test drives the real shell function against all three payload shapes, including the exact one that defeated the original check. A negative guard in the existing content-pin test prevents the old heuristic from returning.\n\n## What Was Verified\n\n- Verdict: APPROVED with 1 finding (issue, fixed during review — a broken negative-guard regex that did not actually match the old pattern)\n- Tests: 10/10 bun tests, 72/72 content-pin tests, 8,496 unit tests pass (7 pre-existing base failures, none caused by this change)\n- Decisive end-to-end proof: old function and new function run against the real installed CLI back-to-back — old FAIL, new PASS, same binary, same moment\n- Contract matrix: 14 of 14 required rows pass or respected, 0 failing\n\n## Remaining Concerns\n\n- **Non-blocking:** seven test assertions fail on the main branch itself (proven base-attributable by an independent verifier). Owned by `fix/trunk-ci-redness`.\n- **No migration, no data change, no user-visible behavior change.** This is a deploy-time validator fix; it affects only what `scripts/deploy-local.sh` prints after a local deployment.\n\n## Supporting Evidence\n\nTasks tk-709fb9d6317c, tk-3b34bd0868e8, tk-140f9d17e12b. Independent adv-verifier gate run (caught the stale content-pin regression). Contract review matrix (14 rows). End-to-end real-CLI proof (old function FAIL, new function PASS). RCA with verified source anchors and timeline in problem-statement.md.\n\n## Consequence Context\n\n| Category | Status | Evidence |\n|---|---|---|\n| Delivered value | delivered | Deploy validator passes on healthy install; diagnostic failure output added. Matrix 14/14. |\n| Enabling-only dependency | none | Self-contained. |\n| Ops readiness | ready | bash -n exit 0; check exit 0; no migration, config, or runtime toggle. |\n| Migration / data impact | n/a | Shell validator only; no data, no migration. |\n| Frontend / preview | not_applicable | Deploy script; no browser-visible surface. |\n| Collision / release risk | low | No file contested by other active changes. |\n| Open follow-ups | 1 non-blocking | Trunk baseline redness owned by fix/trunk-ci-redness. |\n| Next action | ready | Acceptance approval proceeds inline to /adv-harden. |\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-05T01:25:52.250Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A healthy live CLI response passes the check, including one carrying `resume_projection_state.schema_version: 1` | pass | bun test deploy-local-cli-check.test.ts: healthy live payload with nested resume_projection_state.schema_version 1 passes (exit 0). Confirmed end-to-end against the REAL installed CLI: old function FAIL, new function PASS, same binary same moment. |\n| SC2 | success_criterion | A stale disk-only response still fails the check | pass | bun test: disk-only payload with top-level schema_version 1 fails (non-zero exit). Detection preserved. |\n| SC3 | success_criterion | The check's failure output identifies which assertion failed and the observed value | pass | bun test: failure diagnostics section asserts observed source, observed schema_version, unparseable-output distinction, bounded length under 200 chars, and no diagnostic on success. |\n| AC1 | acceptance_criterion | Given an installed CLI emitting a healthy live status payload with `source: \"temporal\"` and a nested `resume_projection_state.schema_version: 1`, when `scripts/deploy-local.sh --fix` runs, then the ADV CLI section reports no issues. | pass | Real-CLI proof: extracted old and new function, ran each against $HOME/.local/bin/adv. Old FAIL (exit 1), new PASS (exit 0). The false positive that has fired on every deploy since 2026-07-28 is gone. |\n| AC2 | acceptance_criterion | Given a status payload carrying a top-level `schema_version: 1` (the stale disk-only shape), when the check runs, then it fails, preserving the detection `rq-advCliLocalInstall01` requires. | pass | bun test case 'rejects a stale disk-only payload with a top-level schema_version' asserts non-zero exit. The jq assertion .schema_version != 1 is root-scoped, so only a top-level version triggers it. |\n| AC3 | acceptance_criterion | Given a fail-closed live error payload (`source: \"temporal\"` with `live: false`, `error`, and `remediation`), when the check runs, then it passes, because `rq-advCliLocalInstall01` explicitly accepts live error metadata as live-status metadata. | pass | bun test case 'accepts fail-closed live error metadata' asserts exit 0 for a live:false payload with error and remediation. The jq assertion deliberately does NOT require .live == true. |\n| AC4 | acceptance_criterion | Given the check fails, when it reports, then the message names the failed assertion and the observed value rather than a generic expectation string. | pass | bun test: five diagnostic cases verify the observed source, schema_version, unparseable distinction, bounded length, and silence-on-success. Real-CLI run confirmed the diagnostic renders end-to-end ('CLI not executable at /nonexistent/adv'). |\n| C1 | constraint | Must conform to `rq-advCliLocalInstall01` as written; this change fixes the implementation, not the law | respected | The jq assertion .source == 'temporal' and (.schema_version != 1) expresses rq-advCliLocalInstall01 as written: accept source temporal (success or fail-closed error), reject top-level schema_version 1 (disk-only). No spec change made or needed. |\n| C2 | constraint | Must not require a new tool dependency — `jq` is already a hard dependency of `deploy-local.sh` | respected | jq appears 38 times in deploy-local.sh and is a hard precondition (check_jq at lines 790 and 1140). The fix adds one more use; no new dependency. |\n| C3 | constraint | Must not weaken detection: a genuine stale disk-only payload must still fail | respected | bun test case for disk-only payload asserts non-zero exit. Negative guard in deploy-local.test.ts (/grep -q.*schema_version/) prevents the old heuristic from returning. |\n| C4 | constraint | Must not modify `resume_projection_state`, which is correct and deliberately unconditional per DONT5 | respected | git diff confirms bin/adv and bin/lib/live-status.ts are untouched. Only scripts/deploy-local.sh and test files changed. |\n| DONT1 | avoidance | Do not change `bin/adv` status payload shape to satisfy the validator — the payload is correct | respected | git diff shows no changes to bin/adv or any status payload builder. |\n| DONT2 | avoidance | Do not delete the disk-only detection outright; `rq-advCliLocalInstall01` requires it | respected | The jq assertion includes (.schema_version != 1), preserving disk-only detection. bun test confirms disk-only still fails. |\n| DONT3 | avoidance | Do not substitute `live: true` for the disk-only check — that would reject the fail-closed live error shape the spec accepts | respected | The jq assertion deliberately does not reference .live. Comment records why: the law accepts fail-closed live error metadata, so requiring liveness would trade a false positive for a false negative. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-05T00:44:37.546Z",
+      "contentHash": "bacc443f7ad6edc282b54d2055b6ef61a4bd67fb32dc5600e3de0b7270965a4b",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-05T00:44:37.546Z",
+      "contentHash": "e69bfd439d79d9766b389def2687a1618bd749b1fa07a46deddf38bbad77a9ea",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-05T00:47:31.506Z",
+      "contentHash": "77e00e9c33fb8a81c1a414a4b5c42bd3be1376c93480dc68a93e7057ce96df16",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-05T00:47:31.506Z",
+      "contentHash": "d1c2816e30038c20e80650d968f5c8f1d4592c00c4c916eaebfd4323fa74a039",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-05T01:26:18.921Z",
+      "contentHash": "69c32bdb2f6f28a6825300e60d89c78357714c1d70b41fc39058c6eef1cd64fc",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-05T01:28:15.874Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "Observed during clampDoomLoopAccumulator local deployment 2026-08-05; deploy reported ADV CLI failure while the CLI was demonstrably healthy"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "worker_bundle_impact": {
+    "kind": "not_applicable",
+    "rationale": "This change modifies scripts/deploy-local.sh (a bash deployment script) and test files (bin/deploy-local-cli-check.test.ts and plugin/src/deploy-local.test.ts). None of these are Temporal workflow-reachable code. The worker bundle import graph (rooted at plugin/src/temporal/workflows.ts) is unchanged — no file under plugin/src/temporal/ or any other workflow-reachable path was touched. No build_worker or replay_determinism provenance applies.",
+    "confirmed_at": "2026-08-05T01:28:15.874Z"
+  },
+  "creation_request_hash": "c54eca345c18e4a03b04ab950eb5307b6eaf93f01a4dee1bca40d4a7045c5325",
+  "projection_revision": 28,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "dd7a5da054289d79dfd5268c041a34545fa73c11de4d867ab2db03254d76e59a:createArtifacts:proposal",
+      "operation_id": "dd7a5da054289d79dfd5268c041a34545fa73c11de4d867ab2db03254d76e59a:createArtifacts:proposal",
+      "payload_hash": "d07533bbfc877dd28c34e649aa26db762b5e8711a78aaeb111d79c76b849ebb3",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-05T00:44:37.741Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "dd7a5da054289d79dfd5268c041a34545fa73c11de4d867ab2db03254d76e59a:createArtifacts:problemStatement",
+      "operation_id": "dd7a5da054289d79dfd5268c041a34545fa73c11de4d867ab2db03254d76e59a:createArtifacts:problemStatement",
+      "payload_hash": "c972d6002d09898b645a9a3505a93a57b20cde93e4eb4a4792920cb4f910f8a5",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-05T00:44:37.937Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-05T00:45:18.572Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "18ad33e57170c7c7bcc7a8b76c1b3167d25fa46c9202492b82aa505fa2c036f4:updateArtifacts:agreement",
+      "operation_id": "18ad33e57170c7c7bcc7a8b76c1b3167d25fa46c9202492b82aa505fa2c036f4:updateArtifacts:agreement",
+      "payload_hash": "5d3a8ff9307663787800a637b6b044a860736cc0765457ad9df1a3cd1846c76e",
+      "state_revision": 3,
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-05T00:47:31.713Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "18ad33e57170c7c7bcc7a8b76c1b3167d25fa46c9202492b82aa505fa2c036f4:updateArtifacts:design",
+      "operation_id": "18ad33e57170c7c7bcc7a8b76c1b3167d25fa46c9202492b82aa505fa2c036f4:updateArtifacts:design",
+      "payload_hash": "5a4494b3f7a69af557833fd0427dbef2d296669a6e0962d02b9864c1b4e182b3",
+      "state_revision": 4,
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-05T00:47:31.994Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-05T00:47:42.993Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-05T00:47:57.313Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-05T00:48:14.455Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-05T00:48:47.280Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-05T00:48:50.155Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-05T00:49:08.996Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-05T00:49:28.708Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-05T00:52:46.494Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-05T00:53:49.067Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-05T00:55:08.943Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-05T00:55:23.614Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-05T00:58:03.521Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-05T00:58:19.762Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-05T01:02:09.561Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-05T01:19:42.102Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-05T01:20:41.069Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-05T01:25:16.787Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785893152331_ejw4pi5a",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-05T01:25:52.523Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-05T01:25:52.250Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "bun test deploy-local-cli-check.test.ts: healthy live payload with nested resume_projection_state.schema_version 1 passes (exit 0). Confirmed end-to-end against the REAL installed CLI: old function FAIL, new function PASS, same binary same moment.",
+              "notes": "The exact payload shape that broke the original check now passes."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "bun test: disk-only payload with top-level schema_version 1 fails (non-zero exit). Detection preserved.",
+              "notes": "The fix did not weaken the check it replaced."
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "bun test: failure diagnostics section asserts observed source, observed schema_version, unparseable-output distinction, bounded length under 200 chars, and no diagnostic on success.",
+              "notes": "ADV_CLI_LIVE_JSON_DIAGNOSTIC surfaces on every failure path."
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Real-CLI proof: extracted old and new function, ran each against $HOME/.local/bin/adv. Old FAIL (exit 1), new PASS (exit 0). The false positive that has fired on every deploy since 2026-07-28 is gone.",
+              "notes": "Fixture test plus end-to-end against the real binary."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "bun test case 'rejects a stale disk-only payload with a top-level schema_version' asserts non-zero exit. The jq assertion .schema_version != 1 is root-scoped, so only a top-level version triggers it.",
+              "notes": "rq-advCliLocalInstall01 detection preserved."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "bun test case 'accepts fail-closed live error metadata' asserts exit 0 for a live:false payload with error and remediation. The jq assertion deliberately does NOT require .live == true.",
+              "notes": "Discovery corrected an instinct to assert live:true, which would have rejected this spec-accepted shape."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "bun test: five diagnostic cases verify the observed source, schema_version, unparseable distinction, bounded length, and silence-on-success. Real-CLI run confirmed the diagnostic renders end-to-end ('CLI not executable at /nonexistent/adv').",
+              "notes": "Caller wording also corrected: 'did not emit live Temporal metadata' became 'live-status metadata'."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "The jq assertion .source == 'temporal' and (.schema_version != 1) expresses rq-advCliLocalInstall01 as written: accept source temporal (success or fail-closed error), reject top-level schema_version 1 (disk-only). No spec change made or needed.",
+              "notes": "Implementation-conformance fix, not a law change."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "jq appears 38 times in deploy-local.sh and is a hard precondition (check_jq at lines 790 and 1140). The fix adds one more use; no new dependency.",
+              "notes": "Confirmed by adv-verifier."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "bun test case for disk-only payload asserts non-zero exit. Negative guard in deploy-local.test.ts (/grep -q.*schema_version/) prevents the old heuristic from returning.",
+              "notes": "Review fixed the guard regex, which was broken and did not actually match the old pattern."
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "git diff confirms bin/adv and bin/lib/live-status.ts are untouched. Only scripts/deploy-local.sh and test files changed.",
+              "notes": "The payload is correct; the validator was wrong."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "git diff shows no changes to bin/adv or any status payload builder.",
+              "notes": "Payload shape unchanged."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "The jq assertion includes (.schema_version != 1), preserving disk-only detection. bun test confirms disk-only still fails.",
+              "notes": "Detection was scoped, not removed."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "The jq assertion deliberately does not reference .live. Comment records why: the law accepts fail-closed live error metadata, so requiring liveness would trade a false positive for a false negative.",
+              "notes": "The trap was identified during discovery and avoided."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-05T01:25:52.331Z",
+        "mutationReceiptId": "mrec_1785893152331_ejw4pi5a"
+      }
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0cdf6b89bd5ee79ad072f01051ae9d47cedb88f64ca1dc3139024299504d9b93:updateArtifacts:executiveSummary",
+      "operation_id": "0cdf6b89bd5ee79ad072f01051ae9d47cedb88f64ca1dc3139024299504d9b93:updateArtifacts:executiveSummary",
+      "payload_hash": "327262f6b2acfc4f9b0f1a749f2b106734c3b43eda45de652715a81cd49c6375",
+      "state_revision": 5,
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-05T01:26:19.126Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-05T01:27:33.334Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-05T01:28:16.177Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-05T01:28:32.324Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "fixDeployCliLivenessCheck",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-05T01:31:12.386Z"
+    }
+  ],
+  "state_revision": 5,
+  "_source": "disk"
+}

@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-05T01:31:48.790Z",
+  "capabilities": [],
+  "change_hash": "31089082e273a76800f473d44c794e76d59b8404ca8551f2645fb2523056e022",
+  "change_id": "fixDeployCliLivenessCheck",
+  "completed_tasks": 3,
+  "created_at": "2026-08-05T00:44:37.113Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-05T01:27:33.186Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "7d348eb893901ab4bd5ead5e185d683622d8f7864e629652f1efcf20acac4539",
+  "task_count": 3,
+  "title": "Fix deploy CLI liveness check",
+  "version": "1"
+}
