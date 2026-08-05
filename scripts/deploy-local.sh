@@ -956,10 +956,28 @@ verify_adv_cli_live_json() {
 	*) return 1 ;;
 	esac
 
-	printf '%s' "$output" | grep -q '"source"[[:space:]]*:[[:space:]]*"temporal"' || return 1
-	if printf '%s' "$output" | grep -q '"schema_version"[[:space:]]*:[[:space:]]*1'; then
-		return 1
-	fi
+	# rq-advCliLocalInstall01: accept live-status metadata — `source: "temporal"`
+	# on success OR fail-closed live error metadata — and reject stale disk-only
+	# `schema_version: 1` output.
+	#
+	# Assert structurally on the parsed document, not by substring. A previous
+	# whole-document grep for `"schema_version": 1` matched
+	# `resume_projection_state.schema_version`, which the CLI emits
+	# unconditionally on the healthy live path (bin/adv:162, DONT5). That made
+	# the check incapable of passing from 2026-07-28 onward.
+	#
+	# `.schema_version` is root-scoped on purpose: the law rejects a disk-only
+	# *payload*, identified by its own top-level version, not by any nested
+	# field that happens to share the name.
+	#
+	# Deliberately NOT asserting `.live == true`: the law accepts fail-closed
+	# live error metadata (`live: false` with `error`), so requiring liveness
+	# would trade this false positive for a false negative.
+	#
+	# `jq -e` sets exit status from the result and fails closed on unparseable
+	# output, preserving this function's existing contract.
+	printf '%s' "$output" |
+		jq -e '.source == "temporal" and (.schema_version != 1)' >/dev/null 2>&1 || return 1
 	return 0
 }
 
