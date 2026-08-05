@@ -2158,6 +2158,14 @@ export function applySubagentReportSubmittedToState(
       0;
     const totalAttempts = priorTotal + 1;
 
+    // rq-budgetWarning01 / AC7: the retention clamp (slice(-maxRetries)) was
+    // silent — an operator could not tell that a submission at/over budget had
+    // its history elided. Emit an explicit marker so the clamp is visible.
+    // Report submission is never refused at/over budget: the report applies
+    // and the marker makes the elision honest. Fires at == (budget exhausted)
+    // and > (over budget); absent while the budget holds.
+    const atOrOverBudget = totalAttempts >= maxRetries;
+
     task.error_recovery = {
       last_error: blockers.summary,
       // Matches what ErrorRecoverySchema's transform re-derives on read
@@ -2168,6 +2176,12 @@ export function applySubagentReportSubmittedToState(
       next_strategy: "Resolve sub-agent reported blocker",
       attempts: retainedAttempts,
       total_attempts: totalAttempts,
+      ...(atOrOverBudget
+        ? {
+            budget_warning:
+              "retry budget exhausted — report accepted; only the most recent attempts are retained",
+          }
+        : {}),
     };
     }
   }

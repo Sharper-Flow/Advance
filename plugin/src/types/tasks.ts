@@ -228,6 +228,15 @@ export const ErrorRecoverySchema = z
      * backward compatibility with records written before it existed.
      */
     total_attempts: z.number().int().min(0).optional(),
+    /**
+     * Explicit marker set when the retention clamp has fired — i.e. the true
+     * attempt count ({@link total_attempts}) has reached or exceeded
+     * `max_retries`. Makes the clamp visible rather than silent: report
+     * submission is never refused at/over budget (AC7), but the operator can
+     * see that history was elided. Set by the reducer
+     * (`applySubagentReportSubmittedToState`); absent while the budget holds.
+     */
+    budget_warning: z.string().optional(),
     /** Typed failure attribution for this recovery state */
     failure_attribution: FailureAttributionSchema.optional(),
   })
