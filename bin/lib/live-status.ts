@@ -339,12 +339,17 @@ function loadSummariesFromDisk(projectId: string): ChangeSummary[] {
     join: (...args: string[]) => string;
   };
   try {
-    const changesDir = join(resolveExternalRoot(projectId), "changes");
-    const files = readdirSync(changesDir).filter((f: string) => f.endsWith(".json"));
+    // Try canonical path first, then XDG shard path (oc wrapper per-project)
+    const canonicalDir = join(resolveExternalRoot(projectId), "changes");
+    const { homedir } = require("node:os") as { homedir: () => string };
+    const dataHome = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
+    const shardDir = join(dataHome, "opencode-projects", projectId, "opencode", "plugins", "advance", projectId, "changes");
+    const dir = readdirSync(canonicalDir).length > 0 ? canonicalDir : shardDir;
+    const files = readdirSync(dir).filter((f: string) => f.endsWith(".json"));
     const summaries: ChangeSummary[] = [];
     for (const f of files) {
       try {
-        const raw = JSON.parse(readFileSync(join(changesDir, f), "utf8"));
+        const raw = JSON.parse(readFileSync(join(dir, f), "utf8"));
         const state = raw.state ?? raw;
         if (state.status === "archived" || state.status === "closed") continue;
         summaries.push({
