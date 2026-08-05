@@ -352,9 +352,7 @@ describe("changeWorkflow disk projection", () => {
 
     expect(handler).toMatch(/async\s*\(\)\s*=>\s*\{/);
     expect(handler).toMatch(/wf\.patched\(ARCHIVE_SIGNAL_PERSIST_PATCH\)/);
-    expect(handler).toMatch(
-      /await projectChangeState\("archiveChange"\)/,
-    );
+    expect(handler).toMatch(/await projectChangeState\("archiveChange"\)/);
   });
 
   // rq-archiveRetirement01.1 / AC2. The durable summary shard — not the wrapper

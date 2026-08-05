@@ -19,7 +19,7 @@ import {
   recoveryReasonFromError,
   type RecoveryReason,
 } from "../temporal/recovery-classification";
-import { poisonedDescriptionEvidence } from "./recovery-probe";
+// poisonedDescriptionEvidence import removed — Temporal bypass
 import { waitForQueryPredicate } from "../utils/query-predicate";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import {
@@ -323,63 +323,23 @@ function failureToMutationOutcome<T>(
  *   path is used.
  * - `skipProbe` bypasses the describe probe and assumes a live workflow.
  */
-export async function resolveChangeAuthority(args: {
+export async function resolveChangeAuthority(_args: {
   changeId?: string;
   signalError?: unknown;
   handle?: TemporalWorkflowHandleProxy;
   skipProbe?: boolean;
 }): Promise<ChangeAuthority> {
-  const { signalError, handle, skipProbe, changeId } = args;
-
-  if (signalError !== undefined) {
-    return failureToAuthority(normalizeWorkflowFailure(signalError));
-  }
-
-  if (skipProbe || !handle) {
-    if (handle) {
-      return {
-        kind: "temporal_live",
-        handle,
-        changeId: changeId ?? "unknown",
-      };
-    }
-    return {
-      kind: "operator_required",
-      reason:
-        "No workflow handle and no signal error; cannot resolve authority.",
-    };
-  }
-
-  try {
-    const description = await handle.describe();
-    const evidence = poisonedDescriptionEvidence(description);
-    if (evidence !== null) {
-      return {
-        kind: "workflow_poisoned",
-        evidence: { reason: "poisoned_history", evidence },
-      };
-    }
-    return {
-      kind: "temporal_live",
-      handle,
-      changeId: changeId ?? "unknown",
-    };
-  } catch (describeError) {
-    const failure = normalizeWorkflowFailure(describeError);
-    if (
-      failure.kind === "workflow_completed" ||
-      failure.kind === "workflow_missing"
-    ) {
-      return failureToAuthority(failure);
-    }
-    // Any other describe failure is not authoritative: the workflow may be
-    // live but temporarily unreachable. Fall back to the healthy signal path.
-    return {
-      kind: "temporal_live",
-      handle,
-      changeId: changeId ?? "unknown",
-    };
-  }
+  // Temporal bypass: all mutations write directly to disk projections via
+  // the recovery path. Temporal signal dispatch is permanently bypassed.
+  // See: simplifyAdvanceCore Phase 3 — rip-the-band-aid.
+  return {
+    kind: "workflow_missing",
+    evidence: {
+      reason: "missing_workflow",
+      evidence:
+        "Direct disk projection writes — Temporal signal dispatch bypassed",
+    },
+  };
 }
 
 function isRecoverableWorkflowFailure(failure: WorkflowFailure): boolean {
