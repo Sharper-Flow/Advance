@@ -344,7 +344,13 @@ function loadSummariesFromDisk(projectId: string): ChangeSummary[] {
     const { homedir } = require("node:os") as { homedir: () => string };
     const dataHome = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
     const shardDir = join(dataHome, "opencode-projects", projectId, "opencode", "plugins", "advance", projectId, "changes");
-    const dir = readdirSync(canonicalDir).length > 0 ? canonicalDir : shardDir;
+    let dir: string;
+    try {
+      const canonicalFiles = readdirSync(canonicalDir);
+      dir = canonicalFiles.length > 0 ? canonicalDir : shardDir;
+    } catch {
+      dir = shardDir;
+    }
     const files = readdirSync(dir).filter((f: string) => f.endsWith(".json"));
     const summaries: ChangeSummary[] = [];
     for (const f of files) {
