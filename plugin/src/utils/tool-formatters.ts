@@ -64,6 +64,11 @@ export interface FormattedDoomLoop {
   attemptSummary: string;
   banner: string;
   suggestedAction: string;
+  /**
+   * Explicit budget-exhaustion marker surfaced from the reducer's retention
+   * clamp (rq-budgetWarning01 / AC7). Absent while the retry budget holds.
+   */
+  budgetWarning?: string;
 }
 
 export interface FormattedSmellReport {
@@ -223,6 +228,11 @@ export type DoomLoopInput = {
   error_class: string;
   /** True attempt count including entries elided by the retention bound. */
   total_attempts?: number;
+  /**
+   * Marker set by the reducer when the retention clamp has fired
+   * (rq-budgetWarning01 / AC7). Present when total_attempts >= max_retries.
+   */
+  budget_warning?: string;
   attempts?: Array<{
     attempt_number: number;
     error: string;
@@ -725,7 +735,12 @@ export function formatDoomLoopDiagnostics(
       ? `Retry ${input.retry_count}/${input.max_retries} — ${input.max_retries - input.retry_count} remaining`
       : "";
 
-  return { inDoomLoop, attemptSummary, banner, suggestedAction };
+  // rq-budgetWarning01 / AC7: surface the explicit clamp marker so the
+  // operator can see that a submission at/over budget had history elided,
+  // rather than the retention clamp being silent.
+  const budgetWarning = input.budget_warning;
+
+  return { inDoomLoop, attemptSummary, banner, suggestedAction, budgetWarning };
 }
 
 /**

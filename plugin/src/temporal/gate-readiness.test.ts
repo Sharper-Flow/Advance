@@ -13,6 +13,7 @@ import {
   checkOpsFollowupReleaseBlockers,
   checkUnresolvedDesignConcerns,
   checkUnresolvedVerificationEvidence,
+  checkRespectsEvidenceAuthority,
   getOpenOpsFollowupObligations,
 } from "./gate-readiness";
 import type { ChangeWorkflowState } from "./contracts";
@@ -2910,5 +2911,248 @@ describe("evaluateWorkerBundleProvenance — worker-bundle release provenance (K
         "replay_determinism run run-replay-1",
       );
     });
+  });
+});
+
+describe("checkRespectsEvidenceAuthority — fixFindingRouting AC3 (rq-respectsEvaluation01)", () => {
+  /**
+   * AC3: a task whose contract_refs.respects targets an avoidance (DONT) or
+   * out_of_scope (OOS) item must carry task-scoped review authority from a
+   * non-claiming agent (adv-reviewer). Self-asserted compliance alone fails.
+   * Applies to ALL done tasks at acceptance and release; existing recorded
+   * review evidence is accepted, not re-litigated (OOS2).
+   */
+  function contractWithAvoidanceOos() {
+    return {
+      version: 1,
+      rigor: "standard" as const,
+      source: {
+        artifact: "agreement" as const,
+        approvedAt: "2026-01-01T00:00:00.000Z",
+      },
+      items: [
+        {
+          id: "AC1",
+          kind: "acceptance_criterion" as const,
+          text: "acceptance criterion",
+          sourceArtifact: "agreement" as const,
+          verificationRequired: true,
+          evidencePolicy: "test" as never,
+          status: "approved" as never,
+        },
+        {
+          id: "C1",
+          kind: "constraint" as const,
+          text: "constraint",
+          sourceArtifact: "agreement" as const,
+          verificationRequired: true,
+          evidencePolicy: "static_check" as never,
+          status: "approved" as never,
+        },
+        {
+          id: "DONT1",
+          kind: "avoidance" as const,
+          text: "do not X",
+          sourceArtifact: "agreement" as const,
+          verificationRequired: true,
+          evidencePolicy: "review" as never,
+          status: "approved" as never,
+        },
+        {
+          id: "OOS1",
+          kind: "out_of_scope" as const,
+          text: "out of scope Y",
+          sourceArtifact: "agreement" as const,
+          verificationRequired: false,
+          evidencePolicy: "not_applicable" as never,
+          status: "approved" as never,
+        },
+      ],
+    };
+  }
+
+  function doneTaskWithRespects(
+    id: string,
+    respects: string[],
+    status = "done",
+  ) {
+    return {
+      id,
+      title: "Task",
+      type: "code",
+      status: status as never,
+      priority: 0,
+      created_at: "2026-01-01T00:00:00.000Z",
+      contract_refs: { respects },
+      evidence_policy: "test" as never,
+    };
+  }
+
+  function reviewerReportForTask(taskId: string) {
+    return {
+      schema_version: "1.0" as const,
+      change_id: "respects-auth",
+      task_id: taskId,
+      scope: { kind: "task" as const, task_id: taskId },
+      attempt: 1,
+      agent: "adv-reviewer" as const,
+      phase: "review" as const,
+      verdict: "READY" as const,
+      blocking_findings: [],
+      nonblocking_findings: [],
+      changes_made: [],
+      wisdom_candidates: [],
+      verification: {
+        tests_run: [],
+        results: "pass" as const,
+        evidence: "review" as const,
+      },
+      scope_drift: null,
+      risks: [],
+      required_main_agent_actions: [],
+      workdir_used: "/tmp/worktree",
+      context_update_for_adv: {
+        what_ads_needs_to_know: "x",
+        suggested_next_action: "y",
+      },
+    };
+  }
+
+  it("blocks a done task respecting a DONT item with no review authority (AC3)", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["DONT1"])],
+      subagent_reports: [],
+    });
+    const blockers = checkRespectsEvidenceAuthority(state, "acceptance");
+    expect(
+      blockers.some((b) => b.code === "RESPECTS_EVIDENCE_AUTHORITY_MISSING"),
+    ).toBe(true);
+  });
+
+  it("blocks a done task respecting an OOS item with no review authority (AC3)", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["OOS1"])],
+      subagent_reports: [],
+    });
+    const blockers = checkRespectsEvidenceAuthority(state, "acceptance");
+    expect(
+      blockers.some((b) => b.code === "RESPECTS_EVIDENCE_AUTHORITY_MISSING"),
+    ).toBe(true);
+  });
+
+  it("passes a done task respecting a DONT item WITH task-scoped adv-reviewer report", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["DONT1"])],
+      subagent_reports: [reviewerReportForTask("tk-1")],
+    });
+    expect(checkRespectsEvidenceAuthority(state, "acceptance")).toEqual([]);
+  });
+
+  it("passes a done task respecting an OOS item WITH task-scoped adv-reviewer report", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["OOS1"])],
+      subagent_reports: [reviewerReportForTask("tk-1")],
+    });
+    expect(checkRespectsEvidenceAuthority(state, "acceptance")).toEqual([]);
+  });
+
+  it("does not require review authority for respects on constraints (non-avoidance)", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["C1"])],
+      subagent_reports: [],
+    });
+    expect(checkRespectsEvidenceAuthority(state, "acceptance")).toEqual([]);
+  });
+
+  it("does not check non-done tasks (in_progress skipped)", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["DONT1"], "in_progress")],
+      subagent_reports: [],
+    });
+    expect(checkRespectsEvidenceAuthority(state, "acceptance")).toEqual([]);
+  });
+
+  it("returns [] for gates other than acceptance/release", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["DONT1"])],
+      subagent_reports: [],
+    });
+    expect(checkRespectsEvidenceAuthority(state, "execution")).toEqual([]);
+    expect(checkRespectsEvidenceAuthority(state, "planning")).toEqual([]);
+  });
+
+  it("enforces on BOTH acceptance and release gates (no grandfathering)", () => {
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["DONT1"])],
+      subagent_reports: [],
+    });
+    expect(
+      checkRespectsEvidenceAuthority(state, "acceptance").some(
+        (b) => b.code === "RESPECTS_EVIDENCE_AUTHORITY_MISSING",
+      ),
+    ).toBe(true);
+    expect(
+      checkRespectsEvidenceAuthority(state, "release").some(
+        (b) => b.code === "RESPECTS_EVIDENCE_AUTHORITY_MISSING",
+      ),
+    ).toBe(true);
+  });
+
+  it("does not block when the contract has no avoidance/out_of_scope items", () => {
+    const state = makeState({
+      contract: {
+        ...contractWithAvoidanceOos(),
+        items: [
+          {
+            id: "AC1",
+            kind: "acceptance_criterion" as const,
+            text: "criterion",
+            sourceArtifact: "agreement" as const,
+            verificationRequired: true,
+            evidencePolicy: "test" as never,
+            status: "approved" as never,
+          },
+        ],
+      },
+      tasks: [doneTaskWithRespects("tk-1", ["AC1"])],
+      subagent_reports: [],
+    });
+    expect(checkRespectsEvidenceAuthority(state, "acceptance")).toEqual([]);
+  });
+
+  it("does not block when the contract is absent", () => {
+    const state = makeState({
+      tasks: [doneTaskWithRespects("tk-1", ["DONT1"])],
+      subagent_reports: [],
+    });
+    expect(checkRespectsEvidenceAuthority(state, "acceptance")).toEqual([]);
+  });
+
+  it("does not count a change-scoped reviewer report as task authority", () => {
+    // A change-scoped review is not task-scoped authority for a specific
+    // task's respects claim — the reviewer must have examined THIS task.
+    const changeScopedReport = {
+      ...reviewerReportForTask("tk-1"),
+      scope: { kind: "change" as const, scope_key: "review:acceptance" },
+    };
+    delete (changeScopedReport as Record<string, unknown>).task_id;
+    const state = makeState({
+      contract: contractWithAvoidanceOos(),
+      tasks: [doneTaskWithRespects("tk-1", ["DONT1"])],
+      subagent_reports: [changeScopedReport],
+    });
+    expect(
+      checkRespectsEvidenceAuthority(state, "acceptance").some(
+        (b) => b.code === "RESPECTS_EVIDENCE_AUTHORITY_MISSING",
+      ),
+    ).toBe(true);
   });
 });

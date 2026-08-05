@@ -822,6 +822,74 @@ export function checkCompletedTaskEvidencePlan(
   return blockers;
 }
 
+// rq-respectsEvaluation01 / AC3: a task's contract_refs.respects claim on an
+// avoidance/out_of_scope item is a positive compliance assertion that the
+// claiming agent cannot self-certify. Requires task-scoped adv-reviewer report
+// authority (non-claiming agent). Applies to ALL done tasks at acceptance and
+// release (no grandfathering); existing recorded review evidence is accepted,
+// not re-litigated (OOS2).
+export function checkRespectsEvidenceAuthority(
+  state: ChangeWorkflowState,
+  gateId: GateId,
+): GateReadinessBlocker[] {
+  if (gateId !== "acceptance" && gateId !== "release") return [];
+
+  const contract = state.contract;
+  if (!contract) return [];
+
+  // Build the set of avoidance/out_of_scope contract item IDs. A respects
+  // claim targeting one of these is a positive compliance assertion that the
+  // claiming agent cannot self-certify (AC3). Both kinds are covered: DONT
+  // items already declare evidencePolicy "review" + verificationRequired, but
+  // nothing enforced it; OOS items declare "not_applicable" for their OWN
+  // verification, yet a task claiming to RESPECT the boundary makes a positive
+  // assertion regardless.
+  const avoidanceOosIds = new Set(
+    contract.items
+      .filter(
+        (item) => item.kind === "avoidance" || item.kind === "out_of_scope",
+      )
+      .map((item) => item.id),
+  );
+  if (avoidanceOosIds.size === 0) return [];
+
+  const reports = state.subagent_reports ?? [];
+  const blockers: GateReadinessBlocker[] = [];
+
+  for (const task of state.tasks) {
+    if (task.status !== "done") continue;
+
+    const respects = task.contract_refs?.respects ?? [];
+    const avoidanceRespects = respects.filter((id) => avoidanceOosIds.has(id));
+    if (avoidanceRespects.length === 0) continue;
+
+    // Authority: a task-scoped adv-reviewer report (non-claiming agent) must
+    // exist. Its existence IS the authority — the reviewer is trusted to have
+    // examined the task holistically, including its respects claims. A
+    // change-scoped report does not qualify: the reviewer must have examined
+    // THIS task. Existing recorded evidence is accepted, not re-litigated
+    // (OOS2): no date-based grandfathering, but no re-examination either.
+    const hasReviewerAuthority = reports.some(
+      (report) =>
+        report.agent === "adv-reviewer" &&
+        verificationReportTaskId(report) === task.id,
+    );
+
+    if (!hasReviewerAuthority) {
+      blockers.push(
+        makeBlocker({
+          code: "RESPECTS_EVIDENCE_AUTHORITY_MISSING",
+          gateId,
+          message: `Completed task ${task.id} claims to respect avoidance/out_of_scope item(s) ${avoidanceRespects.join(", ")} but lacks task-scoped review authority from a non-claiming agent (adv-reviewer). Self-asserted compliance alone is insufficient (AC3).`,
+          remediation: `Submit an adv-reviewer report scoped to task ${task.id} confirming the respects claim(s), or remove the respects ref(s) if the task does not actually honor the boundary.`,
+        }),
+      );
+    }
+  }
+
+  return blockers;
+}
+
 function hasCompleteOpsProof(link: OpsFollowupLink): boolean {
   const resolution = link.resolution;
   if (!resolution) return false;
@@ -1208,6 +1276,7 @@ export function evaluateGateReadiness(
     blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
     blockers.push(...checkUnresolvedVerificationEvidence(state, gateId));
     blockers.push(...checkCompletedTaskEvidencePlan(state, gateId));
+    blockers.push(...checkRespectsEvidenceAuthority(state, gateId));
   }
 
   if (gateId === "release") {
@@ -1220,6 +1289,7 @@ export function evaluateGateReadiness(
     blockers.push(...checkUnresolvedDesignConcerns(state, gateId));
     blockers.push(...checkUnresolvedVerificationEvidence(state, gateId));
     blockers.push(...checkCompletedTaskEvidencePlan(state, gateId));
+    blockers.push(...checkRespectsEvidenceAuthority(state, gateId));
   }
 
   const warnings = artifactCascadeWarnings(state, gateId);

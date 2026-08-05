@@ -188,6 +188,19 @@ export interface ChangeCreateOptionsBag {
   initialMetadata?: ChangeCreateInitialMetadata;
 }
 
+/**
+ * Bounded portfolio state attached to adv_change_create results
+ * (rq-createPortfolioLine01 / AC4). `available: false` is the explicit
+ * degradation marker when the deadline-capped read fails — distinguishable
+ * from a legitimately zero portfolio.
+ */
+export interface ChangePortfolioState {
+  available: boolean;
+  open_count?: number;
+  never_terminal_share?: number;
+  nudge?: string;
+}
+
 export interface ChangeCreateResult {
   changeId: string;
   path: string;
@@ -197,6 +210,8 @@ export interface ChangeCreateResult {
   executiveSummaryPath?: string;
   acceptancePath?: string;
   duplicateWarning?: string;
+  /** Attached by the adv_change_create tool layer (tools/portfolio-state.ts). */
+  portfolioState?: ChangePortfolioState;
 }
 
 export interface UpdateArtifactsResult {

@@ -63,6 +63,10 @@ If new objectives/AC emerge, do NOT silently fold them into the current task gra
 2. Otherwise → Tier A prompt: `reenter {gate}`, `split` (fast-follow child), `keep`, `cancel`
 3. After reentry with `adv_change_reenter`, walk reopened gates, then resume `/adv-apply` — new tasks will be available alongside existing completed work.
 
+### Finding Routing
+
+Out-of-scope findings surfaced mid-lifecycle MUST be routed to the durable backlog with `adv_backlog_add` — not reflexive change creation, not prose-only notes; `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up. Route the finding, then continue the current task.
+
 ## Phase 0.1: Worktree Isolation
 
 If `adv_worktree_create` unavailable → `[ADV:BLOCKED] Worktree tools required`.

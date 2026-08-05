@@ -834,6 +834,25 @@ describe("tool-formatters", () => {
         expect(result.inDoomLoop).toBe(false);
         expect(result.attemptSummary).toContain("2");
       });
+
+      // rq-budgetWarning01 / AC7: the reducer emits an explicit budget_warning
+      // marker when the retention clamp fires, so the operator can see that a
+      // submission at/over budget had its history elided rather than the clamp
+      // being silent. The formatter must surface it.
+      it("surfaces budget_warning as budgetWarning when present", () => {
+        const result = formatDoomLoopDiagnostics({
+          ...clampedAtCap,
+          budget_warning:
+            "retry budget exhausted — submission accepted, history clamped",
+        });
+        expect(typeof result.budgetWarning).toBe("string");
+        expect(result.budgetWarning).toContain("retry budget exhausted");
+      });
+
+      it("omits budgetWarning when the input carries none", () => {
+        const result = formatDoomLoopDiagnostics(clampedAtCap);
+        expect(result.budgetWarning).toBeUndefined();
+      });
     });
   });
 

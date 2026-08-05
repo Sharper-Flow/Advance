@@ -875,7 +875,7 @@ import {
   ARTIFACT_HARD_CAP,
   ARTIFACT_SOFT_CAP,
 } from "../types";
-import { WisdomDraftSchema } from "../types/tasks";
+import { normalizeFindingText, WisdomDraftSchema } from "../types/tasks";
 
 const utf8 = new TextEncoder();
 function byteLength(content: string): number {
@@ -1769,6 +1769,62 @@ function blockerSummary(
   }
 }
 
+function blockingFingerprints(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): string[] {
+  // Stable finding keys for progress-vs-retry discrimination
+  // (rq-retryProgressAccounting01). A finding matches a previous round when
+  // ANY of its keys appears in the previous set: stable id first, normalized
+  // text and file as fallbacks. Off-schema findings contribute no keys, which
+  // keeps classification on the conservative retry path (KD4: uncertain ⇒
+  // retry). Pure function of the payload — replay-safe (DDC2).
+  const keys: string[] = [];
+  switch (report.agent) {
+    case "adv-engineer":
+    case "adv-designer":
+      for (const blocker of report.blockers) {
+        if (typeof blocker.what === "string" && blocker.what) {
+          keys.push(`text:${normalizeFindingText(blocker.what)}`);
+        }
+        if (typeof blocker.file === "string" && blocker.file) {
+          keys.push(`file:${blocker.file}`);
+        }
+      }
+      return keys;
+
+    case "adv-reviewer":
+      for (const finding of report.blocking_findings) {
+        if (typeof finding.id === "string" && finding.id) {
+          keys.push(`id:${finding.id}`);
+        }
+        if (typeof finding.what === "string" && finding.what) {
+          keys.push(`text:${normalizeFindingText(finding.what)}`);
+        }
+        if (typeof finding.file === "string" && finding.file) {
+          keys.push(`file:${finding.file}`);
+        }
+      }
+      return keys;
+
+    case "adv-researcher":
+    case "adv-tron":
+    case "adv-scanner-bundle":
+    case "adv-verification-triage-bundle":
+      return [];
+
+    case "adv-visual-review":
+      for (const blocker of report.blockers) {
+        keys.push(`text:${normalizeFindingText(blocker)}`);
+      }
+      return keys;
+
+    default: {
+      const exhaustive: never = report;
+      return assertNeverSubagentReport(exhaustive);
+    }
+  }
+}
+
 function taskIdFromReport(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): string | undefined {
@@ -2025,68 +2081,109 @@ export function applySubagentReportSubmittedToState(
 
   const blockers = blockerSummary(payload.report);
   if (task && blockers) {
-    // Issue #349: deduplicate auto-generated strategy_label so repeat
-    // submissions from the same agent don't produce identical labels that
-    // fail schema validation ("strategy_label values must be distinct").
-    const existingLabels = new Set(
-      (task.error_recovery?.attempts ?? []).map((a) => a.strategy_label),
-    );
-    const baseLabel = `${payload.report.agent}-reported-blocker`;
-    let strategyLabel = baseLabel;
-    let suffix = 2;
-    while (existingLabels.has(strategyLabel)) {
-      strategyLabel = `${baseLabel}-${suffix}`;
-      suffix++;
+    // rq-retryProgressAccounting01 (KD4): discriminate progress from retry by
+    // finding identity. A blocked round whose findings share no key with the
+    // previous blocked round is progress on new ground — record it in
+    // progress_rounds and leave error_recovery untouched so retry severity
+    // (rq-loopLedger01) is not inflated. Uncertain ⇒ retry: an empty previous
+    // or current fingerprint set always takes the retry path.
+    const currentFingerprints = blockingFingerprints(payload.report);
+    const previousFingerprints = task.last_blocking_fingerprints ?? [];
+    const isProgressRound =
+      previousFingerprints.length > 0 &&
+      currentFingerprints.length > 0 &&
+      currentFingerprints.every((fp) => !previousFingerprints.includes(fp));
+    task.last_blocking_fingerprints = currentFingerprints;
+
+    if (isProgressRound) {
+      task.progress_rounds = [
+        ...(task.progress_rounds ?? []),
+        {
+          attempt: payload.report.attempt,
+          agent: payload.report.agent,
+          summary: blockers.summary,
+          fingerprints: currentFingerprints,
+          recorded_at: payload.submittedAt,
+        },
+      ];
+    } else {
+      // Issue #349: deduplicate auto-generated strategy_label so repeat
+      // submissions from the same agent don't produce identical labels that
+      // fail schema validation ("strategy_label values must be distinct").
+      const existingLabels = new Set(
+        (task.error_recovery?.attempts ?? []).map((a) => a.strategy_label),
+      );
+      const baseLabel = `${payload.report.agent}-reported-blocker`;
+      let strategyLabel = baseLabel;
+      let suffix = 2;
+      while (existingLabels.has(strategyLabel)) {
+        strategyLabel = `${baseLabel}-${suffix}`;
+        suffix++;
+      }
+
+      // The retry budget is an invariant the read path enforces
+      // (ErrorRecoverySchema rejects attempts.length > max_retries). Writing past
+      // it produces state ADV itself refuses to read, which brick the change on
+      // both the read and write paths — so the accumulator must clamp here.
+      //
+      // This reducer is the only site that can heal an already-bricked change:
+      // Temporal rebuilds workflow state by replaying history through it, so a
+      // clamped reducer re-derives valid state from unchanged poisoned histories.
+      // A guard at the tool boundary or in the schema normalizer cannot do that.
+      const maxRetries = SUBAGENT_REPORT_MAX_RETRIES;
+      const recordedAttempts = [
+        ...(task.error_recovery?.attempts ?? []),
+        {
+          attempt_number: payload.report.attempt,
+          error: blockers.summary,
+          diagnosis: blockers.diagnosis,
+          fix_tried: "Sub-agent report submission recorded blocker",
+          strategy_label: strategyLabel,
+          outcome: "failed" as const,
+          attempted_at: payload.submittedAt,
+        },
+      ];
+
+      // Retain the most recent entries. Each keeps its own attempt_number so an
+      // elided window stays visible rather than being renumbered to 1..n.
+      const retainedAttempts = recordedAttempts.slice(-maxRetries);
+      // The true count is recorded, not derived: attempt_number is a per-agent
+      // counter, so the highest retained value can sit below the real total when
+      // agents interleave on one task. Increment from the prior total rather than
+      // measuring recordedAttempts, whose length is already bounded by the
+      // retention window and would plateau at maxRetries + 1.
+      const priorTotal =
+        task.error_recovery?.total_attempts ??
+        task.error_recovery?.attempts?.length ??
+        0;
+      const totalAttempts = priorTotal + 1;
+
+      // rq-budgetWarning01 / AC7: the retention clamp (slice(-maxRetries)) was
+      // silent — an operator could not tell that a submission at/over budget had
+      // its history elided. Emit an explicit marker so the clamp is visible.
+      // Report submission is never refused at/over budget: the report applies
+      // and the marker makes the elision honest. Fires at == (budget exhausted)
+      // and > (over budget); absent while the budget holds.
+      const atOrOverBudget = totalAttempts >= maxRetries;
+
+      task.error_recovery = {
+        last_error: blockers.summary,
+        // Matches what ErrorRecoverySchema's transform re-derives on read
+        // (attempts.length), so the persisted and parsed values agree.
+        retry_count: retainedAttempts.length,
+        max_retries: maxRetries,
+        error_class: "SEMANTIC",
+        next_strategy: "Resolve sub-agent reported blocker",
+        attempts: retainedAttempts,
+        total_attempts: totalAttempts,
+        ...(atOrOverBudget
+          ? {
+              budget_warning:
+                "retry budget exhausted — report accepted; only the most recent attempts are retained",
+            }
+          : {}),
+      };
     }
-
-    // The retry budget is an invariant the read path enforces
-    // (ErrorRecoverySchema rejects attempts.length > max_retries). Writing past
-    // it produces state ADV itself refuses to read, which brick the change on
-    // both the read and write paths — so the accumulator must clamp here.
-    //
-    // This reducer is the only site that can heal an already-bricked change:
-    // Temporal rebuilds workflow state by replaying history through it, so a
-    // clamped reducer re-derives valid state from unchanged poisoned histories.
-    // A guard at the tool boundary or in the schema normalizer cannot do that.
-    const maxRetries = SUBAGENT_REPORT_MAX_RETRIES;
-    const recordedAttempts = [
-      ...(task.error_recovery?.attempts ?? []),
-      {
-        attempt_number: payload.report.attempt,
-        error: blockers.summary,
-        diagnosis: blockers.diagnosis,
-        fix_tried: "Sub-agent report submission recorded blocker",
-        strategy_label: strategyLabel,
-        outcome: "failed" as const,
-        attempted_at: payload.submittedAt,
-      },
-    ];
-
-    // Retain the most recent entries. Each keeps its own attempt_number so an
-    // elided window stays visible rather than being renumbered to 1..n.
-    const retainedAttempts = recordedAttempts.slice(-maxRetries);
-    // The true count is recorded, not derived: attempt_number is a per-agent
-    // counter, so the highest retained value can sit below the real total when
-    // agents interleave on one task. Increment from the prior total rather than
-    // measuring recordedAttempts, whose length is already bounded by the
-    // retention window and would plateau at maxRetries + 1.
-    const priorTotal =
-      task.error_recovery?.total_attempts ??
-      task.error_recovery?.attempts?.length ??
-      0;
-    const totalAttempts = priorTotal + 1;
-
-    task.error_recovery = {
-      last_error: blockers.summary,
-      // Matches what ErrorRecoverySchema's transform re-derives on read
-      // (attempts.length), so the persisted and parsed values agree.
-      retry_count: retainedAttempts.length,
-      max_retries: maxRetries,
-      error_class: "SEMANTIC",
-      next_strategy: "Resolve sub-agent reported blocker",
-      attempts: retainedAttempts,
-      total_attempts: totalAttempts,
-    };
   }
 
   setLastSignalAt(state, payload.submittedAt);

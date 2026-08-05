@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixFindingRouting",
+  "title": "Fix finding routing",
+  "release_notes": {
+    "audience": "both",
+    "category": "fixed",
+    "headline_internal": "Claims-vs-facts defect class: findings route to backlog, avoidance respects require review authority, progress-vs-retry discrimination, visible budget clamp",
+    "headline_external": "Finding routing, respects-evidence enforcement, and honest retry accounting",
+    "highlights": [
+      "Mid-lifecycle findings route to adv_backlog_add via command contract claims with drift-guard asset tests",
+      "Respects claims on avoidance/out_of_scope items require task-scoped adv-reviewer authority at acceptance and release gates",
+      "Retry reducer distinguishes productive review rounds (disjoint findings) from failed retries (overlapping findings)",
+      "Budget clamp emits visible budget_warning marker instead of silently dropping history; submission never refuses at/over budget",
+      "adv_change_create surfaces bounded portfolio state with graceful degradation"
+    ],
+    "area": "workflow-contract-evidence",
+    "breaking": {
+      "description": "The new checkRespectsEvidenceAuthority gate check blocks acceptance/release for done tasks whose contract_refs.respects target avoidance (DONT) or out_of_scope (OOS) items without task-scoped adv-reviewer report authority. Existing changes at acceptance without per-task reviewer reports for such tasks will be blocked until /adv-review produces them.",
+      "migration": "Run /adv-review on any in-flight change whose done tasks respect DONT/OOS items. The review produces task-scoped adv-reviewer reports that satisfy the check."
+    },
+    "links": {}
+  }
+}

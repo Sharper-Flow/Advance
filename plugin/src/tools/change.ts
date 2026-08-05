@@ -99,6 +99,7 @@ import {
   completeReleaseGateAfterFinalization,
 } from "./change/archive-gate";
 import { releaseGateProofToCompletion } from "./change/release-proof";
+import { readPortfolioState } from "./portfolio-state";
 import {
   getGateDivergenceHint,
   ARCHIVE_SEARCH_ATTRIBUTE_RECOVERY_HINT,
@@ -2764,6 +2765,10 @@ export const changeTools = {
           : {}),
       });
       const output: Record<string, unknown> = { ...result };
+      // rq-createPortfolioLine01 (AC4): bounded portfolio state at creation.
+      // Deadline-capped and degrades to { available: false } — never blocks
+      // creation (DDC3, R4).
+      output.portfolioState = await readPortfolioState(store);
       if (fastFollowOf) {
         output.fast_follow_of = fastFollowOf;
       }

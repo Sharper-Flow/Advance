@@ -339,6 +339,8 @@ When 2+ worktrees are active for same project, scan for file-path intersections 
 | Could    | Desirable, time permitting   | Optional                |
 | Won't    | Out of scope                 | Document in proposal.md |
 
+Won't items are findings too: document them in proposal.md AND route each to `adv_backlog_add` — the durable middle-tier option between folding scope into this change and losing the finding in prose. `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up.
+
 ---
 
 ## Phase 5: Contract & User Approval
