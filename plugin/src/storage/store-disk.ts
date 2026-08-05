@@ -1326,7 +1326,9 @@ export async function createDiskStore(
       retire: async () => {
         throw new Error("Epics require the Temporal store backend.");
       },
-      repairIndex: async () => {
+      repairIndex: async (): Promise<
+        Awaited<ReturnType<Store["epics"]["repairIndex"]>>
+      > => {
         throw new Error("Epics require the Temporal store backend.");
       },
     },

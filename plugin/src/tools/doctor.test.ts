@@ -33,6 +33,7 @@ const listOrphanSessionQueuesMock = vi.hoisted(() => vi.fn());
 const getProjectIdMock = vi.hoisted(() => vi.fn());
 const getCurrentSessionIdMock = vi.hoisted(() => vi.fn(() => undefined));
 const reconcileTerminalWorkflowsMock = vi.hoisted(() => vi.fn());
+const repairEpicIndexMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../temporal/service", () => ({
   getService: getServiceMock,
@@ -102,6 +103,7 @@ function makeStore(): Store {
       changes: "/tmp/changes",
       external: `/tmp/${PROJECT_ID}`,
     },
+    epics: { repairIndex: repairEpicIndexMock },
   } as unknown as Store;
 }
 
@@ -196,6 +198,15 @@ function setHealthy() {
     failed: [],
     capped: false,
     dryRun: false,
+  });
+  repairEpicIndexMock.mockResolvedValue({
+    total: 0,
+    backfilled: 0,
+    refreshed: 0,
+    unverified: 0,
+    skipped: 0,
+    unreachable: 0,
+    epics: [],
   });
 }
 
@@ -447,6 +458,56 @@ describe("adv_doctor", () => {
       inspected: 1,
       skipped: [{ changeId: "staleDraft", reason: "still_active" }],
     });
+  });
+
+  test("backfilled Epic projections are reported as an applied doctor fix", async () => {
+    repairEpicIndexMock.mockResolvedValueOnce({
+      total: 1,
+      backfilled: 1,
+      refreshed: 1,
+      unverified: 0,
+      skipped: 0,
+      unreachable: 0,
+      epics: [
+        { epic_id: "missingEpic", status: "active", action: "backfilled" },
+      ],
+    });
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore()),
+    );
+
+    expect(parsed.fixes_applied).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          class: "missing_epic_projection",
+          action: "backfill_epic_projections",
+          outcome: "applied",
+          after: { backfilled: 1, epic_ids: ["missingEpic"] },
+        }),
+      ]),
+    );
+  });
+
+  test("Epic index repair failures are returned as doctor findings", async () => {
+    repairEpicIndexMock.mockRejectedValueOnce(
+      new Error("Temporal unavailable"),
+    );
+
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore()),
+    );
+
+    expect(parsed.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          class: "missing_epic_projection",
+          finding: "epic_index_repair_failed",
+          severity: "error",
+        }),
+      ]),
+    );
+    expect(parsed.success).toBe(false);
   });
 
   test("AC8/AC10: no owning session skips the session probe and preserves legacy verification shape", async () => {

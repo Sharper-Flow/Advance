@@ -129,6 +129,13 @@ async function setupWithRetiredEpicsDir() {
   return { ...base, tempDir, legacy };
 }
 
+async function saveTestActiveProjection(deps: StoreDeps, epicId: string) {
+  await saveActiveEpicProjection(
+    deps.legacy.paths.activeEpics,
+    makeEpic({ id: epicId }),
+  );
+}
+
 describe("createEpicOps", () => {
   test("create starts workflow and fires epicCreated signal", async () => {
     const { deps, signalMock } = setup();
@@ -1138,8 +1145,39 @@ describe("createEpicOps", () => {
   });
 
   describe("repairIndex", () => {
+    test("backfills a missing active projection so subsequent listing includes the running Epic", async () => {
+      const { deps, queryMock, list } = await setupWithRetiredEpicsDir();
+      const missingEpic = makeEpic({ id: "missingEpic" });
+      list.mockImplementation(() => {
+        return (async function* iter() {
+          yield {
+            workflowId:
+              "adv/epic/0000ec00d0000000000000000000000000000000/missingEpic",
+          };
+        })();
+      });
+      queryMock.mockResolvedValue(makeState(missingEpic));
+
+      const ops = createEpicOps(deps);
+      expect(await ops.list()).toEqual([]);
+
+      const report = await ops.repairIndex({
+        evidence: "Backfill missing Epic projection",
+      });
+
+      expect(report.backfilled).toBe(1);
+      expect(report.epics).toEqual([
+        { epic_id: "missingEpic", status: "active", action: "backfilled" },
+      ]);
+      expect((await ops.list()).map((epic) => epic.id)).toEqual([
+        "missingEpic",
+      ]);
+    });
+
     test("dry-run reports running Epics with current progress status and no mutations", async () => {
       const { deps, queryMock, signalMock, list } = setup();
+      await saveTestActiveProjection(deps, "activeEpic");
+      await saveTestActiveProjection(deps, "otherEpic");
       list.mockImplementation(() => {
         return (async function* iter() {
           yield {
@@ -1161,6 +1199,7 @@ describe("createEpicOps", () => {
       });
 
       expect(report.total).toBe(2);
+      expect(report.backfilled).toBe(0);
       expect(report.refreshed).toBe(0);
       expect(report.skipped).toBe(0);
       expect(report.unreachable).toBe(0);
@@ -1173,6 +1212,7 @@ describe("createEpicOps", () => {
 
     test("non-dry-run confirms refreshed only after describe proof shows the current Epic status", async () => {
       const { deps, queryMock, signalMock, describeMock, list } = setup();
+      await saveTestActiveProjection(deps, "activeEpic");
       list.mockImplementation(() => {
         return (async function* iter() {
           yield {
@@ -1189,6 +1229,7 @@ describe("createEpicOps", () => {
       });
 
       expect(report.total).toBe(1);
+      expect(report.backfilled).toBe(0);
       expect(report.refreshed).toBe(1);
       expect(report.unverified).toBe(0);
       expect(report.skipped).toBe(0);
@@ -1207,6 +1248,7 @@ describe("createEpicOps", () => {
 
     test("non-dry-run reports unverified when signal is delivered but describe proof is missing", async () => {
       const { deps, queryMock, describeMock, list } = setup();
+      await saveTestActiveProjection(deps, "activeEpic");
       list.mockImplementation(() => {
         return (async function* iter() {
           yield {
@@ -1224,6 +1266,7 @@ describe("createEpicOps", () => {
       });
 
       expect(report.total).toBe(1);
+      expect(report.backfilled).toBe(0);
       expect(report.refreshed).toBe(0);
       expect(report.unverified).toBe(1);
       expect(report.skipped).toBe(0);
