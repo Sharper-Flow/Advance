@@ -1,12 +1,10 @@
 /// <reference types="bun-types" />
 
-import { dirname, join } from "path";
-import { mkdir } from "fs/promises";
-import { spawn, spawnSync } from "child_process";
+import { join } from "path";
+import { spawnSync } from "child_process";
 import { statSync, accessSync, constants as fsConstants } from "node:fs";
 import * as net from "node:net";
 import { tmpdir } from "os";
-import { acquireFileLock } from "../utils/fs";
 import { getTemporalAddress, getTemporalNamespace } from "./client";
 
 type TemporalEnv = Record<string, string | undefined>;
@@ -396,48 +394,15 @@ export async function waitForTemporalRuntime(
 }
 
 export async function ensureTemporalRuntime(
-  projectId: string,
-  env: TemporalEnv = process.env,
+  _projectId: string,
+  _env: TemporalEnv = process.env,
 ): Promise<{ address: string; namespace: string; startedRuntime: boolean }> {
-  const probe = probeTemporalClientRuntime();
-  if (!probe.supported) {
-    throw new Error(
-      `${probe.reason}${probe.remediation ? ` ${probe.remediation}` : ""}`,
-    );
-  }
-
-  const address = getTemporalAddress(env);
-  const namespace = getTemporalNamespace(env);
-
-  if (await canReachAddress(address)) {
-    return { address, namespace, startedRuntime: false };
-  }
-
-  const lockPath = getTemporalRuntimeLockPath(projectId, env);
-  await mkdir(dirname(lockPath), { recursive: true });
-  const release = await acquireFileLock(lockPath, 10000);
-
-  try {
-    if (await canReachAddress(address)) {
-      return { address, namespace, startedRuntime: false };
-    }
-
-    const { command, args } = buildTemporalServerCommand(env);
-    const server = spawn(command, args, {
-      detached: true,
-      stdio: "ignore",
-      env: {
-        ...buildSafeSpawnEnv(process.env),
-        ADV_TEMPORAL_ADDRESS: env.ADV_TEMPORAL_ADDRESS,
-        ADV_TEMPORAL_NAMESPACE: env.ADV_TEMPORAL_NAMESPACE,
-        ADV_TEMPORAL_ALLOW_REMOTE: env.ADV_TEMPORAL_ALLOW_REMOTE,
-      },
-    });
-    server.unref();
-    await waitForTemporalRuntime(address);
-
-    return { address, namespace, startedRuntime: true };
-  } finally {
-    await release();
-  }
+  // Temporal bypass: do not start or connect to the Temporal dev server.
+  // Returns a placeholder address; all queries fail fast via runTemporal
+  // bypass and fall back to disk projections.
+  return {
+    address: "127.0.0.1:7233",
+    namespace: "default",
+    startedRuntime: false,
+  };
 }

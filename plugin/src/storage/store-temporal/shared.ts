@@ -11,7 +11,7 @@ import {
   TemporalQueryTimeoutError,
   type TemporalErrorClass,
   type TemporalReadDeadline,
-  withTemporalRetry,
+  // withTemporalRetry removed — runTemporal is bypassed
 } from "../../temporal/retry-wrapper";
 import {
   recoveryReasonFromError,
@@ -390,15 +390,15 @@ export interface RunTemporalOptions {
 }
 
 export async function runTemporal<T>(
-  op: () => Promise<T>,
-  options?: RunTemporalOptions,
+  _op: () => Promise<T>,
+  _options?: RunTemporalOptions,
 ): Promise<T> {
-  return withTemporalRetry(op, {
-    opType: options?.opType,
-    timeoutMs: options?.timeoutMs,
-    deadline: options?.deadline,
-    onTransientFailure: makeReconnectingHook(),
-  });
+  // Temporal bypass: throw immediately to trigger disk fallback everywhere.
+  // No Temporal server connection, no queries, no timeouts.
+  // See: simplifyAdvanceCore Phase 3 — rip-the-band-aid.
+  throw new Error(
+    "Temporal bypassed — disk projection is sole source of truth",
+  );
 }
 
 /**
