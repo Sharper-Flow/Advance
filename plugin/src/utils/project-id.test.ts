@@ -6,7 +6,14 @@
  * leaking into a real ADV project's external state directory.
  */
 
-import { describe, test, expect, afterAll, afterEach } from "vitest";
+import {
+  describe,
+  test,
+  expect,
+  afterAll,
+  afterEach,
+  beforeEach,
+} from "vitest";
 import {
   getProjectId,
   getProjectIdFromGit,
@@ -231,12 +238,24 @@ describe("getProjectIdFromGit (raw, bypasses test-mode override)", () => {
 
 describe("getExternalRoot", () => {
   const originalEnv = process.env.XDG_DATA_HOME;
+  const originalTestDataHome = process.env.ADV_TEST_DATA_HOME;
+
+  beforeEach(() => {
+    // These assertions intentionally exercise the configured XDG path rather
+    // than the test-mode isolation root.
+    process.env.ADV_TEST_DATA_HOME = "0";
+  });
 
   afterEach(() => {
     if (originalEnv !== undefined) {
       process.env.XDG_DATA_HOME = originalEnv;
     } else {
       delete process.env.XDG_DATA_HOME;
+    }
+    if (originalTestDataHome !== undefined) {
+      process.env.ADV_TEST_DATA_HOME = originalTestDataHome;
+    } else {
+      delete process.env.ADV_TEST_DATA_HOME;
     }
   });
 
@@ -278,16 +297,84 @@ describe("getExternalRoot", () => {
   });
 });
 
+describe("getDataHome — test-mode isolation", () => {
+  const originalVitest = process.env.VITEST;
+  const originalAdvTestMode = process.env.ADV_TEST_MODE;
+  const originalTestDataHome = process.env.ADV_TEST_DATA_HOME;
+  const originalXdg = process.env.XDG_DATA_HOME;
+
+  afterEach(() => {
+    if (originalVitest !== undefined) process.env.VITEST = originalVitest;
+    else delete process.env.VITEST;
+    if (originalAdvTestMode !== undefined)
+      process.env.ADV_TEST_MODE = originalAdvTestMode;
+    else delete process.env.ADV_TEST_MODE;
+    if (originalTestDataHome !== undefined)
+      process.env.ADV_TEST_DATA_HOME = originalTestDataHome;
+    else delete process.env.ADV_TEST_DATA_HOME;
+    if (originalXdg !== undefined) process.env.XDG_DATA_HOME = originalXdg;
+    else delete process.env.XDG_DATA_HOME;
+  });
+
+  test("roots VITEST stores under os.tmpdir instead of the production data home", () => {
+    process.env.VITEST = "true";
+    delete process.env.ADV_TEST_MODE;
+    delete process.env.ADV_TEST_DATA_HOME;
+    delete process.env.XDG_DATA_HOME;
+
+    const dataHome = getDataHome();
+
+    expect(dataHome.startsWith(resolve(tmpdir()))).toBe(true);
+    expect(dataHome).not.toBe(join(homedir(), ".local/share"));
+  });
+
+  test("roots ADV_TEST_MODE stores under os.tmpdir", () => {
+    delete process.env.VITEST;
+    process.env.ADV_TEST_MODE = "1";
+    delete process.env.ADV_TEST_DATA_HOME;
+    delete process.env.XDG_DATA_HOME;
+
+    expect(getDataHome().startsWith(resolve(tmpdir()))).toBe(true);
+  });
+
+  test("allows XDG assertions to opt out of test-mode redirection", () => {
+    process.env.VITEST = "true";
+    process.env.ADV_TEST_DATA_HOME = "0";
+    process.env.XDG_DATA_HOME = "/custom/data";
+
+    expect(getDataHome()).toBe("/custom/data");
+  });
+
+  test("preserves the configured XDG path outside test mode", () => {
+    process.env.VITEST = "false";
+    delete process.env.ADV_TEST_MODE;
+    delete process.env.ADV_TEST_DATA_HOME;
+    process.env.XDG_DATA_HOME = "/custom/data";
+
+    expect(getDataHome()).toBe("/custom/data");
+  });
+});
+
 describe("getExternalRootForProject", () => {
   const originalEnv = process.env.XDG_DATA_HOME;
+  const originalTestDataHome = process.env.ADV_TEST_DATA_HOME;
   const sourceProjectId = "1".repeat(40);
   const targetProjectId = "2".repeat(40);
+
+  beforeEach(() => {
+    process.env.ADV_TEST_DATA_HOME = "0";
+  });
 
   afterEach(() => {
     if (originalEnv !== undefined) {
       process.env.XDG_DATA_HOME = originalEnv;
     } else {
       delete process.env.XDG_DATA_HOME;
+    }
+    if (originalTestDataHome !== undefined) {
+      process.env.ADV_TEST_DATA_HOME = originalTestDataHome;
+    } else {
+      delete process.env.ADV_TEST_DATA_HOME;
     }
   });
 
@@ -327,6 +414,11 @@ describe("getExternalRootForProject", () => {
 describe("getWorktreeBase", () => {
   const originalEnv = process.env.XDG_DATA_HOME;
   const originalWorktreeHome = process.env.ADV_WORKTREE_HOME;
+  const originalTestDataHome = process.env.ADV_TEST_DATA_HOME;
+
+  beforeEach(() => {
+    process.env.ADV_TEST_DATA_HOME = "0";
+  });
 
   afterEach(() => {
     if (originalEnv !== undefined) process.env.XDG_DATA_HOME = originalEnv;
@@ -334,6 +426,9 @@ describe("getWorktreeBase", () => {
     if (originalWorktreeHome !== undefined)
       process.env.ADV_WORKTREE_HOME = originalWorktreeHome;
     else delete process.env.ADV_WORKTREE_HOME;
+    if (originalTestDataHome !== undefined)
+      process.env.ADV_TEST_DATA_HOME = originalTestDataHome;
+    else delete process.env.ADV_TEST_DATA_HOME;
   });
 
   test("uses the XDG opencode worktree namespace", () => {
