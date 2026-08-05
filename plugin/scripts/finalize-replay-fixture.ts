@@ -11,8 +11,8 @@
  * committed history still replays deterministically via `Worker.runReplayHistory`.
  *
  * Regeneration flow (reproducible source recorded in each metadata `source`):
- *   1. pnpm exec tsx scripts/gen-replay-fixture.ts --branch <branch>
- *   2. temporal workflow show --address 127.0.0.1:7233 --namespace default \
+ *   1. REPLAY_FIXTURE_NAMESPACE=adv-replay-fixtures pnpm exec tsx scripts/gen-replay-fixture.ts --branch <branch>
+ *   2. temporal workflow show --address 127.0.0.1:7233 --namespace "$REPLAY_FIXTURE_NAMESPACE" \
  *        --workflow-id <id> --output json --no-json-shorthand-payloads > raw.json
  *   3. pnpm exec tsx scripts/finalize-replay-fixture.ts --branch <branch> --raw raw.json
  *
@@ -48,7 +48,7 @@ interface FinalizeConfig {
 
 const GEN = "pnpm exec tsx scripts/gen-replay-fixture.ts";
 const SHOW =
-  "temporal workflow show --address 127.0.0.1:7233 --namespace default --output json --no-json-shorthand-payloads";
+  'temporal workflow show --address 127.0.0.1:7233 --namespace "$REPLAY_FIXTURE_NAMESPACE" --output json --no-json-shorthand-payloads';
 
 const CONFIGS: Record<BranchId, FinalizeConfig> = {
   "state-backed-gate-artifact": {

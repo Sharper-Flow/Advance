@@ -5,7 +5,8 @@
  * server so that each uncovered patch branch in `workflows.ts` is exercised,
  * then prints the workflowId so the operator can export the history with:
  *
- *   temporal workflow show --address 127.0.0.1:7233 --namespace default \
+ *   REPLAY_FIXTURE_NAMESPACE=adv-replay-fixtures pnpm exec tsx scripts/gen-replay-fixture.ts --branch <id>
+ *   temporal workflow show --address 127.0.0.1:7233 --namespace adv-replay-fixtures \
  *     --workflow-id <id> --output json --no-json-shorthand-payloads
  *
  * No event history is hand-authored: every history is produced by Temporal
@@ -21,7 +22,8 @@
  *
  * Identifiers are STABLE (no timestamps) so the exported history is
  * reproducible and needs only `identity` sanitization. Re-running terminates
- * any in-flight execution of the same workflowId first.
+ * any in-flight execution of the same workflowId first. Generation requires
+ * `REPLAY_FIXTURE_NAMESPACE` and refuses the live `default` namespace.
  *
  * Usage:
  *   pnpm exec tsx scripts/gen-replay-fixture.ts --branch <id>
@@ -45,6 +47,7 @@ import {
   createTemporalScriptFacade,
   TemporalScriptOutcomeError,
 } from "./temporal-script-facade";
+import { getReplayFixtureNamespace } from "./replay-fixture-boundary";
 import { NativeConnection, Worker } from "@temporalio/worker";
 
 import {
@@ -62,7 +65,6 @@ import {
 } from "../src/temporal/activities";
 
 const ADDRESS = process.env.REPLAY_FIXTURE_ADDRESS ?? "127.0.0.1:7233";
-const NAMESPACE = "default";
 const PROJECT_ID = "b".repeat(40);
 const PROJECTION_ROOT = "/tmp/adv-replay-fixture";
 
@@ -381,6 +383,7 @@ async function buildLegacyTerminalVariant(): Promise<string> {
 
 async function main(): Promise<void> {
   const { branch } = parseArgs();
+  const namespace = getReplayFixtureNamespace();
   const config = BRANCHES[branch];
   const workflowId = `adv/change/${PROJECT_ID}/${config.changeId}`;
   const taskQueue = `replay-fixture-gen-${branch}`;
@@ -427,7 +430,7 @@ async function main(): Promise<void> {
   const owner = await createTemporalScriptFacade({
     projectId: PROJECT_ID,
     address: ADDRESS,
-    namespace: NAMESPACE,
+    namespace,
   });
   const nativeConnection = await NativeConnection.connect({ address: ADDRESS });
 
@@ -440,7 +443,7 @@ async function main(): Promise<void> {
 
   const worker = await Worker.create({
     connection: nativeConnection,
-    namespace: NAMESPACE,
+    namespace,
     taskQueue,
     workflowsPath: activeWorkflowsPath,
     activities: {
@@ -540,7 +543,7 @@ async function main(): Promise<void> {
   }
 
   const exportCmd =
-    `temporal workflow show --address ${ADDRESS} --namespace ${NAMESPACE} ` +
+    `temporal workflow show --address ${ADDRESS} --namespace ${namespace} ` +
     `--workflow-id ${workflowId} --output json --no-json-shorthand-payloads`;
 
   console.log(
