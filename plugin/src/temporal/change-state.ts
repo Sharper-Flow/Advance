@@ -875,7 +875,7 @@ import {
   ARTIFACT_HARD_CAP,
   ARTIFACT_SOFT_CAP,
 } from "../types";
-import { WisdomDraftSchema } from "../types/tasks";
+import { normalizeFindingText, WisdomDraftSchema } from "../types/tasks";
 
 const utf8 = new TextEncoder();
 function byteLength(content: string): number {
@@ -1769,6 +1769,62 @@ function blockerSummary(
   }
 }
 
+function blockingFingerprints(
+  report: SubagentReportSubmittedSignalPayload["report"],
+): string[] {
+  // Stable finding keys for progress-vs-retry discrimination
+  // (rq-retryProgressAccounting01). A finding matches a previous round when
+  // ANY of its keys appears in the previous set: stable id first, normalized
+  // text and file as fallbacks. Off-schema findings contribute no keys, which
+  // keeps classification on the conservative retry path (KD4: uncertain ⇒
+  // retry). Pure function of the payload — replay-safe (DDC2).
+  const keys: string[] = [];
+  switch (report.agent) {
+    case "adv-engineer":
+    case "adv-designer":
+      for (const blocker of report.blockers) {
+        if (typeof blocker.what === "string" && blocker.what) {
+          keys.push(`text:${normalizeFindingText(blocker.what)}`);
+        }
+        if (typeof blocker.file === "string" && blocker.file) {
+          keys.push(`file:${blocker.file}`);
+        }
+      }
+      return keys;
+
+    case "adv-reviewer":
+      for (const finding of report.blocking_findings) {
+        if (typeof finding.id === "string" && finding.id) {
+          keys.push(`id:${finding.id}`);
+        }
+        if (typeof finding.what === "string" && finding.what) {
+          keys.push(`text:${normalizeFindingText(finding.what)}`);
+        }
+        if (typeof finding.file === "string" && finding.file) {
+          keys.push(`file:${finding.file}`);
+        }
+      }
+      return keys;
+
+    case "adv-researcher":
+    case "adv-tron":
+    case "adv-scanner-bundle":
+    case "adv-verification-triage-bundle":
+      return [];
+
+    case "adv-visual-review":
+      for (const blocker of report.blockers) {
+        keys.push(`text:${normalizeFindingText(blocker)}`);
+      }
+      return keys;
+
+    default: {
+      const exhaustive: never = report;
+      return assertNeverSubagentReport(exhaustive);
+    }
+  }
+}
+
 function taskIdFromReport(
   report: SubagentReportSubmittedSignalPayload["report"],
 ): string | undefined {
@@ -2025,6 +2081,32 @@ export function applySubagentReportSubmittedToState(
 
   const blockers = blockerSummary(payload.report);
   if (task && blockers) {
+    // rq-retryProgressAccounting01 (KD4): discriminate progress from retry by
+    // finding identity. A blocked round whose findings share no key with the
+    // previous blocked round is progress on new ground — record it in
+    // progress_rounds and leave error_recovery untouched so retry severity
+    // (rq-loopLedger01) is not inflated. Uncertain ⇒ retry: an empty previous
+    // or current fingerprint set always takes the retry path.
+    const currentFingerprints = blockingFingerprints(payload.report);
+    const previousFingerprints = task.last_blocking_fingerprints ?? [];
+    const isProgressRound =
+      previousFingerprints.length > 0 &&
+      currentFingerprints.length > 0 &&
+      currentFingerprints.every((fp) => !previousFingerprints.includes(fp));
+    task.last_blocking_fingerprints = currentFingerprints;
+
+    if (isProgressRound) {
+      task.progress_rounds = [
+        ...(task.progress_rounds ?? []),
+        {
+          attempt: payload.report.attempt,
+          agent: payload.report.agent,
+          summary: blockers.summary,
+          fingerprints: currentFingerprints,
+          recorded_at: payload.submittedAt,
+        },
+      ];
+    } else {
     // Issue #349: deduplicate auto-generated strategy_label so repeat
     // submissions from the same agent don't produce identical labels that
     // fail schema validation ("strategy_label values must be distinct").
@@ -2087,6 +2169,7 @@ export function applySubagentReportSubmittedToState(
       attempts: retainedAttempts,
       total_attempts: totalAttempts,
     };
+    }
   }
 
   setLastSignalAt(state, payload.submittedAt);

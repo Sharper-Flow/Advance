@@ -30,7 +30,7 @@ import {
 } from "./change-state";
 import { createDefaultGates } from "../types";
 import type { Change, ChangeOrigin } from "../types";
-import { ErrorRecoverySchema, observedAttemptCount } from "../types/tasks";
+import { ErrorRecoverySchema, observedAttemptCount, TaskSchema } from "../types/tasks";
 import {
   SUBAGENT_REPORT_MAX_RETRIES,
   subagentReportKey,
@@ -3449,5 +3449,226 @@ describe("error_recovery retry-budget clamp (clampDoomLoopAccumulator)", () => {
       1, 2,
     ]);
     expect(ErrorRecoverySchema.safeParse(recovery).success).toBe(true);
+  });
+});
+
+describe("progress-vs-retry discrimination (rq-retryProgressAccounting01)", () => {
+  /**
+   * fixFindingRouting D6 / AC6: a BLOCKED verdict whose blocking findings
+   * share no id or stable fingerprint with the previous round is progress on
+   * new ground, not a failed retry of the same ground. Progress rounds append
+   * to task.progress_rounds and MUST NOT inflate error_recovery (KD4 —
+   * rq-loopLedger01 derives retry severity from error_recovery).
+   */
+  function seedProgressTask(changeId: string) {
+    const state = createChangeWorkflowState({
+      changeId,
+      title: "Progress discrimination",
+      createdAt: "2026-08-05T00:00:00.000Z",
+    });
+    applyTaskAddedToState(state, {
+      task: {
+        id: "tk-blocked",
+        title: "Blocked task",
+        type: "code",
+        status: "pending",
+        priority: 0,
+        created_at: "2026-08-05T00:00:01.000Z",
+      },
+      addedAt: "2026-08-05T00:00:01.000Z",
+    });
+    return state;
+  }
+
+  function blockedReviewerReport(
+    changeId: string,
+    attempt: number,
+    findings: Array<{ id: string; what: string; file?: string }>,
+  ) {
+    return {
+      ...makeReviewerReport(changeId, "tk-blocked", attempt),
+      verdict: "BLOCKED" as const,
+      blocking_findings: findings.map((finding) => ({
+        id: finding.id,
+        label: "blocker" as const,
+        file: finding.file,
+        what: finding.what,
+        why: `why ${finding.id}`,
+      })),
+    };
+  }
+
+  function submit(
+    state: ReturnType<typeof seedProgressTask>,
+    report: ReturnType<typeof blockedReviewerReport>,
+    second: number,
+  ) {
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-blocked",
+      report,
+      submittedAt: `2026-08-05T00:00:${String(second).padStart(2, "0")}.000Z`,
+    });
+  }
+
+  it("records a disjoint second BLOCKED verdict as progress, not a retry (AC6)", () => {
+    const changeId = "progress-disjoint";
+    const state = seedProgressTask(changeId);
+
+    submit(
+      state,
+      blockedReviewerReport(changeId, 1, [
+        { id: "f-1", what: "Auth token refresh fails" },
+      ]),
+      2,
+    );
+    submit(
+      state,
+      blockedReviewerReport(changeId, 2, [
+        { id: "f-2", what: "Portfolio query times out" },
+      ]),
+      3,
+    );
+
+    const task = state.tasks[0];
+    expect(task.progress_rounds).toHaveLength(1);
+    expect(task.progress_rounds?.[0].attempt).toBe(2);
+    expect(task.progress_rounds?.[0].agent).toBe("adv-reviewer");
+    expect(task.progress_rounds?.[0].fingerprints).toContain("id:f-2");
+    expect(task.progress_rounds?.[0].recorded_at).toBe(
+      "2026-08-05T00:00:03.000Z",
+    );
+    // Progress is not a failure: error_recovery must not inflate (KD4).
+    expect(task.error_recovery?.retry_count).toBe(1);
+    expect(task.error_recovery?.attempts).toHaveLength(1);
+    expect(task.error_recovery?.total_attempts).toBe(1);
+    expect(ErrorRecoverySchema.safeParse(task.error_recovery).success).toBe(
+      true,
+    );
+  });
+
+  it("counts findings overlapping by id as a retry", () => {
+    const changeId = "progress-overlap-id";
+    const state = seedProgressTask(changeId);
+
+    submit(
+      state,
+      blockedReviewerReport(changeId, 1, [{ id: "f-1", what: "Same failure" }]),
+      2,
+    );
+    submit(
+      state,
+      blockedReviewerReport(changeId, 2, [{ id: "f-1", what: "Same failure" }]),
+      3,
+    );
+
+    const task = state.tasks[0];
+    expect(task.progress_rounds ?? []).toHaveLength(0);
+    expect(task.error_recovery?.retry_count).toBe(2);
+    expect(task.error_recovery?.total_attempts).toBe(2);
+  });
+
+  it("treats the first blocked round as the baseline failure, never progress", () => {
+    const changeId = "progress-baseline";
+    const state = seedProgressTask(changeId);
+
+    submit(
+      state,
+      blockedReviewerReport(changeId, 1, [
+        { id: "f-1", what: "Initial failure" },
+      ]),
+      2,
+    );
+
+    const task = state.tasks[0];
+    expect(task.progress_rounds ?? []).toHaveLength(0);
+    expect(task.error_recovery?.retry_count).toBe(1);
+  });
+
+  it("counts a re-worded finding on the same file as a retry (uncertain ⇒ retry)", () => {
+    const changeId = "progress-reworded";
+    const state = seedProgressTask(changeId);
+
+    submit(
+      state,
+      blockedReviewerReport(changeId, 1, [
+        { id: "f-1", what: "Auth fails", file: "src/auth.ts" },
+      ]),
+      2,
+    );
+    submit(
+      state,
+      blockedReviewerReport(changeId, 2, [
+        { id: "f-9", what: "Auth fails differently", file: "src/auth.ts" },
+      ]),
+      3,
+    );
+
+    const task = state.tasks[0];
+    expect(task.progress_rounds ?? []).toHaveLength(0);
+    expect(task.error_recovery?.retry_count).toBe(2);
+  });
+
+  it("records engineer blocker rounds with disjoint file+what as progress", () => {
+    const changeId = "progress-engineer";
+    const state = seedProgressTask(changeId);
+
+    const engineerBlocked = (attempt: number, file: string, what: string) => ({
+      ...makeEngineerReport(changeId, "tk-blocked", attempt),
+      blockers: [{ file, what, diagnosis: `diagnosis ${what}` }],
+    });
+
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-blocked",
+      report: engineerBlocked(1, "src/a.ts", "Type error in a"),
+      submittedAt: "2026-08-05T00:00:02.000Z",
+    });
+    applySubagentReportSubmittedToState(state, {
+      taskId: "tk-blocked",
+      report: engineerBlocked(2, "src/b.ts", "Missing export in b"),
+      submittedAt: "2026-08-05T00:00:03.000Z",
+    });
+
+    const task = state.tasks[0];
+    expect(task.progress_rounds).toHaveLength(1);
+    expect(task.progress_rounds?.[0].agent).toBe("adv-engineer");
+    expect(task.error_recovery?.retry_count).toBe(1);
+  });
+
+  it("keeps mixed progress+retry rounds consistent for loop-ledger inputs", () => {
+    const changeId = "progress-mixed";
+    const state = seedProgressTask(changeId);
+
+    submit(
+      state,
+      blockedReviewerReport(changeId, 1, [{ id: "f-1", what: "First" }]),
+      2,
+    );
+    // Round 2: disjoint → progress.
+    submit(
+      state,
+      blockedReviewerReport(changeId, 2, [{ id: "f-2", what: "Second" }]),
+      3,
+    );
+    // Round 3: same findings as round 2 → retry.
+    submit(
+      state,
+      blockedReviewerReport(changeId, 3, [{ id: "f-2", what: "Second" }]),
+      4,
+    );
+
+    const task = state.tasks[0];
+    expect(task.progress_rounds).toHaveLength(1);
+    expect(task.error_recovery?.retry_count).toBe(2);
+    expect(task.error_recovery?.total_attempts).toBe(2);
+    // observedAttemptCount floors at the highest occurred attempt_number
+    // (attempt 3 was submitted and retry-classified), so it reports 3 even
+    // though only 2 entries are failure-classified retries. retryFailureCount
+    // (per-entry verdict) is not inflated by the progress round.
+    expect(observedAttemptCount(task.error_recovery)).toBe(3);
+    expect(ErrorRecoverySchema.safeParse(task.error_recovery).success).toBe(
+      true,
+    );
+    // Task record stays schema-readable with the new optional fields present.
+    expect(TaskSchema.safeParse(task).success).toBe(true);
   });
 });

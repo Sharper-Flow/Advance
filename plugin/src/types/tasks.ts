@@ -428,6 +428,45 @@ export const DelegationRecoverySchema = z
 export type DelegationRecovery = z.infer<typeof DelegationRecoverySchema>;
 
 // =============================================================================
+// Progress Rounds (rq-retryProgressAccounting01)
+// =============================================================================
+//
+// A BLOCKED sub-agent verdict whose blocking findings share no id or stable
+// fingerprint with the previous blocked round is progress on new ground, not
+// a failed retry of the same ground. Progress rounds are recorded here and
+// MUST NOT inflate error_recovery: rq-loopLedger01 derives retry severity
+// from error_recovery, and a progress round is not a failure.
+
+/**
+ * One productive review/implementation round: a blocked report whose findings
+ * were disjoint from the previous blocked round's findings.
+ */
+export const ProgressRoundSchema = z
+  .object({
+    /** Per-agent monotonic attempt counter from the source report. */
+    attempt: z.number().int().min(0),
+    /** Submitting agent (e.g. "adv-reviewer"). */
+    agent: z.string().trim().min(1),
+    /** Human-readable joined blocker summary from the report. */
+    summary: z.string(),
+    /** Stable finding keys (`id:`/`text:`/`file:` prefixed) for this round. */
+    fingerprints: z.array(z.string()),
+    /** ISO8601 submission timestamp from the signal payload. */
+    recorded_at: z.string().trim().min(1),
+  })
+  .strict();
+export type ProgressRound = z.infer<typeof ProgressRoundSchema>;
+
+/**
+ * Normalize finding text for fingerprint comparison. Pure and deterministic
+ * (DDC2 — replay-safe): lowercase, collapse whitespace, trim. No Date, no
+ * randomness.
+ */
+export function normalizeFindingText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+// =============================================================================
 // Wisdom Drafts (rq-wisdomAutoSurfacing01)
 // =============================================================================
 //
@@ -612,6 +651,18 @@ export const TaskSchema = z
      * delegation until inline diagnosis evidence exists (AC5).
      */
     delegation_recovery: DelegationRecoverySchema.optional(),
+    /**
+     * Productive blocked rounds whose findings were disjoint from the prior
+     * blocked round (rq-retryProgressAccounting01). Zod-optional; absent on
+     * pre-change state and treated as `[]` everywhere (C-REPLAY/DDC2).
+     */
+    progress_rounds: z.array(ProgressRoundSchema).optional(),
+    /**
+     * Finding fingerprints of the most recent blocked round on this task.
+     * Updated on every blocked report regardless of progress/retry
+     * classification so the next round compares against the latest ground.
+     */
+    last_blocking_fingerprints: z.array(z.string()).optional(),
     /**
      * Repo-relative paths of files changed by this task.
      * Populated by adv_task_checkpoint after successful git commit.
