@@ -279,7 +279,7 @@ export async function tryInitStore(
       });
       currentWorkerRole = singletonPlan.workerRole;
       workerRoleResolved = true;
-      const shouldSpawnWorker = singletonPlan.shouldSpawnWorker;
+      const shouldSpawnWorker = false; // Temporal bypass — no workers needed
       profilePluginInit("worker_singleton_resolved", {
         enforce: workerSingletonEnforce,
         forceInProcessWorker: process.env.ADV_FORCE_IN_PROCESS_WORKER === "1",
