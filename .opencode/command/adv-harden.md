@@ -126,6 +126,10 @@ Inspect report-created follow-ups (persisted as typed report metadata) before sc
 
 Do not silently ignore report-created follow-ups. Do not require harden to fix non-adjacent or unrelated follow-ups.
 
+### Finding Routing
+
+Out-of-scope findings surfaced mid-lifecycle MUST be routed to the durable backlog with `adv_backlog_add` — not reflexive change creation, not prose-only notes; `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up. Scanner findings outside the change's contract route to the backlog rather than blocking release.
+
 ### Contract Proof Audit
 
 If `change.contract` exists, verify `contract.reviewMatrix` before scanners run:

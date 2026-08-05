@@ -92,6 +92,10 @@ findings:
 END_REVIEW_FINDINGS
 ```
 
+### Finding Routing
+
+Out-of-scope findings surfaced mid-lifecycle MUST be routed to the durable backlog with `adv_backlog_add` — not reflexive change creation, not prose-only notes; `adv_backlog_promote` is the bridge back to a tracked change when the item is later picked up. Findings in scope for the current change stay in the REVIEW_FINDINGS block; findings outside the change's contract get a durable backlog record.
+
 ## Phase 7: Acceptance Sign-Off
 ### Persist Executive Summary
 Before acceptance prompt, persist durable executive summary for non-technical release-approval readers. Translate task/gate evidence into plain English first; keep technical terms only as parenthetical supporting detail. Use evidence-only impact wording: user/business benefit appears only when proposal, agreement, task, review, harden, archive, or follow-up evidence supports it.
