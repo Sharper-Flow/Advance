@@ -59,6 +59,8 @@ import {
 import { loadLiveResumeProjection } from "./lib/resume-projection-live";
 import { settleWithinBudget } from "./lib/optional-enrichment";
 import { buildResumeProjectionState } from "./lib/resume-projection-state";
+import { analyzeCensus } from "./lib/census";
+import { loadLiveCensusInventory } from "./lib/census-live";
 
 // =============================================================================
 // Constants
@@ -275,6 +277,45 @@ async function runEpicListCommand(json: boolean): Promise<number> {
     );
     return 2;
   }
+}
+
+async function runCensus(noColor: boolean, json: boolean): Promise<number> {
+  const rawTimeout = Number(process.env.ADV_STATUS_TIMEOUT_MS);
+  const timeoutMs =
+    Number.isFinite(rawTimeout) && rawTimeout > 0
+      ? rawTimeout
+      : QUERY_TIMEOUT_MS;
+  const projectId = await resolveProjectId(process.cwd());
+  const inventory = await loadLiveCensusInventory({
+    temporalProjectId: projectId,
+    timeoutMs,
+  });
+  const report = analyzeCensus(inventory);
+
+  if (json) {
+    process.stdout.write(emitJson(report) + "\n");
+    return report.exit_code;
+  }
+
+  const useColor = shouldUseColor(noColor);
+  const title = useColor ? `${BOLD}ADV census${RESET}` : "ADV census";
+  const output = [title, ""];
+  for (const [name, dimension] of Object.entries(report.dimensions)) {
+    const marker = dimension.count === 0 ? "ok" : "fail";
+    output.push(`${marker}: ${name} (${dimension.count})`);
+    for (const item of dimension.items) {
+      const subject = item.workflow_id ?? item.path ?? "unknown";
+      output.push(`  - ${subject}: ${item.why}`);
+    }
+    if (dimension.omitted > 0) {
+      output.push(`  - ... ${dimension.omitted} more omitted`);
+    }
+  }
+  if (inventory.temporal.kind !== "complete") {
+    output.push(`temporal: unavailable — ${inventory.temporal.error}`);
+  }
+  process.stdout.write(output.join("\n") + "\n");
+  return report.exit_code;
 }
 
 async function runEpic(argv: string[]): Promise<number> {
@@ -566,12 +607,13 @@ SUBCOMMANDS:
   dashboard doctor      Check dashboard user service health
   slop-scan            Run deterministic slop scanner
   epic list            Show live Epic IDs from Temporal Visibility (JSON-only)
+  census               Audit machine-wide ADV stores and running workflows (read-only)
 
 FLAGS (global):
   -h, --help              Show this help
   -v, --version           Print version
       --no-color          Disable ANSI colors (also: NO_COLOR=1)
-      --json              Output JSON for status, slop-scan; required for epic list
+      --json              Output JSON for status, slop-scan; required for epic list; census
 
 FLAGS (dashboard only):
       --config <path>      Dashboard config JSON (schema_version 1)
@@ -586,6 +628,7 @@ FLAGS (dashboard install/doctor):
 EXIT CODES:
   0  Success
   1  Not in a git repo, git failure, or unknown command
+     Census findings or unavailable Temporal census dimensions (census)
    2  Live Temporal status unavailable (status)
       Epic list unavailable or JSON flag missing (epic list)
       Dashboard config/server error (dashboard)
@@ -676,6 +719,31 @@ async function main(argv: string[]): Promise<number> {
       (slopValues["no-color"] as boolean) ?? false,
       (slopValues.json as boolean) ?? false,
       slopPositionals[0] ?? ".",
+    );
+  }
+
+  if (subcommand === "census") {
+    const censusArgv = argv.slice(1);
+    let censusValues: Record<string, unknown>;
+    try {
+      const parsed = parseArgs({
+        args: censusArgv,
+        options: {
+          "no-color": { type: "boolean" },
+          json: { type: "boolean" },
+        },
+        allowPositionals: false,
+        strict: true,
+      });
+      censusValues = parsed.values as Record<string, unknown>;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`census: ${msg}\n`);
+      return 2;
+    }
+    return runCensus(
+      (censusValues["no-color"] as boolean) ?? false,
+      (censusValues.json as boolean) ?? false,
     );
   }
 

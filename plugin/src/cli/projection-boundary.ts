@@ -19,3 +19,10 @@ export {
   type ChangeEntryInput,
   nodeRefKey,
 } from "../projection/resume-projection";
+
+// Keep canonical test-identity recognition available to the standalone CLI
+// without allowing it to deep-import plugin internals.
+export {
+  SYNTHETIC_TEST_PROJECT_ID,
+  SYNTHETIC_TEST_PROJECT_ID_PREFIX,
+} from "../utils/project-id";
