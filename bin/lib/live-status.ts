@@ -310,12 +310,57 @@ export async function loadLiveSummaries(
   now: Date,
   timeoutMs = QUERY_TIMEOUT_MS,
 ): Promise<ChangeSummary[]> {
-  return withTemporalOperations(
-    projectId,
-    (owner) => summariesFromVisibility(owner, { projectId, now, timeoutMs }),
-    undefined,
-    { connectTimeoutMs: timeoutMs },
-  );
+  try {
+    return await withTemporalOperations(
+      projectId,
+      (owner) => summariesFromVisibility(owner, { projectId, now, timeoutMs }),
+      undefined,
+      { connectTimeoutMs: timeoutMs },
+    );
+  } catch {
+    // Temporal bypass: fall back to disk projections
+    return loadSummariesFromDisk(projectId);
+  }
+}
+
+/**
+ * Disk-projection fallback for the Temporal bypass.
+ * Reads schemaVersion: 2 projection envelopes from the changes directory.
+ */
+function loadSummariesFromDisk(projectId: string): ChangeSummary[] {
+  const { resolveExternalRoot } = require("./project") as {
+    resolveExternalRoot: (id: string) => string;
+  };
+  const { readdirSync, readFileSync } = require("node:fs") as {
+    readdirSync: (p: string) => string[];
+    readFileSync: (p: string, enc: string) => string;
+  };
+  const { join } = require("node:path") as {
+    join: (...args: string[]) => string;
+  };
+  try {
+    const changesDir = join(resolveExternalRoot(projectId), "changes");
+    const files = readdirSync(changesDir).filter((f: string) => f.endsWith(".json"));
+    const summaries: ChangeSummary[] = [];
+    for (const f of files) {
+      try {
+        const raw = JSON.parse(readFileSync(join(changesDir, f), "utf8"));
+        const state = raw.state ?? raw;
+        if (state.status === "archived" || state.status === "closed") continue;
+        summaries.push({
+          id: state.id,
+          title: state.title ?? state.id,
+          status: state.status ?? "draft",
+          lastActivityAt: state.lastActivityAt ?? state.updatedAt ?? raw.projectedAt ?? new Date().toISOString(),
+        } as ChangeSummary);
+      } catch {
+        // skip malformed projections
+      }
+    }
+    return summaries;
+  } catch {
+    return [];
+  }
 }
 
 
