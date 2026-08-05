@@ -6,10 +6,12 @@
  * leaking into a real ADV project's external state directory.
  */
 
-import { describe, test, expect, afterEach } from "vitest";
+import { describe, test, expect, afterAll, afterEach } from "vitest";
 import {
   getProjectId,
   getProjectIdFromGit,
+  InvalidProjectIdentityError,
+  resolveProjectIdentity,
   getDataHome,
   getExternalRoot,
   getExternalRootForProject,
@@ -21,8 +23,72 @@ import {
   SYNTHETIC_TEST_PROJECT_ID_PREFIX,
   synthesizeTestProjectId,
 } from "./project-id";
+import { existsSync } from "fs";
+import { chmod, mkdtemp, rm, writeFile } from "fs/promises";
 import { join, resolve } from "path";
-import { homedir } from "os";
+import { homedir, tmpdir } from "os";
+
+const INVALID_IDENTITY_REPO_ENV = "ADV_INVALID_IDENTITY_TEST_REPO";
+const INVALID_IDENTITY_CANDIDATE_ENV = "ADV_INVALID_IDENTITY_TEST_CANDIDATE";
+let invalidIdentityFixtureRoot: string | undefined;
+
+afterAll(async () => {
+  if (invalidIdentityFixtureRoot) {
+    await rm(invalidIdentityFixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test("resolveProjectIdentity refuses a non-SHA40 candidate without minting a store", async () => {
+  const candidate = "3f9f88dbc6c65a2463945f1dd2692f7f2dfd56984e2627";
+  const fixtureRoot = await mkdtemp(join(tmpdir(), "adv-invalid-identity-"));
+  invalidIdentityFixtureRoot = fixtureRoot;
+  const gitWrapper = join(fixtureRoot, "git");
+  const originalGitPath = process.env.ADV_GIT_PATH;
+  const originalRepo = process.env[INVALID_IDENTITY_REPO_ENV];
+  const originalCandidate = process.env[INVALID_IDENTITY_CANDIDATE_ENV];
+  const originalXdg = process.env.XDG_DATA_HOME;
+
+  await writeFile(
+    gitWrapper,
+    `#!/bin/sh
+if [ "\${${INVALID_IDENTITY_REPO_ENV}}" = "$(pwd)" ] && [ "$1" = "rev-list" ]; then
+  printf '%s\\n' "\${${INVALID_IDENTITY_CANDIDATE_ENV}}"
+  exit 0
+fi
+exec /usr/bin/git "$@"
+`,
+  );
+  await chmod(gitWrapper, 0o755);
+
+  try {
+    process.env.ADV_GIT_PATH = gitWrapper;
+    process.env[INVALID_IDENTITY_REPO_ENV] = process.cwd();
+    process.env[INVALID_IDENTITY_CANDIDATE_ENV] = candidate;
+    process.env.XDG_DATA_HOME = fixtureRoot;
+
+    await expect(resolveProjectIdentity(process.cwd())).rejects.toMatchObject({
+      name: "InvalidProjectIdentityError",
+      repoPath: process.cwd(),
+      projectId: candidate,
+      message: expect.stringContaining("40 lowercase hexadecimal characters"),
+    });
+    await expect(getProjectIdFromGit(process.cwd())).rejects.toBeInstanceOf(
+      InvalidProjectIdentityError,
+    );
+    expect(existsSync(getExternalRoot(candidate))).toBe(false);
+  } finally {
+    if (originalGitPath === undefined) delete process.env.ADV_GIT_PATH;
+    else process.env.ADV_GIT_PATH = originalGitPath;
+    if (originalRepo === undefined)
+      delete process.env[INVALID_IDENTITY_REPO_ENV];
+    else process.env[INVALID_IDENTITY_REPO_ENV] = originalRepo;
+    if (originalCandidate === undefined)
+      delete process.env[INVALID_IDENTITY_CANDIDATE_ENV];
+    else process.env[INVALID_IDENTITY_CANDIDATE_ENV] = originalCandidate;
+    if (originalXdg === undefined) delete process.env.XDG_DATA_HOME;
+    else process.env.XDG_DATA_HOME = originalXdg;
+  }
+});
 
 describe("SYNTHETIC_TEST_PROJECT_ID_PREFIX + SYNTHETIC_TEST_PROJECT_ID", () => {
   test("prefix is 16 zeros (unambiguously synthetic, no real SHA collides)", () => {

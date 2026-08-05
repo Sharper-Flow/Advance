@@ -40,6 +40,8 @@ import { createHash } from "crypto";
  */
 export const SYNTHETIC_TEST_PROJECT_ID_PREFIX = "0000000000000000"; // 16 zeros
 
+const SHA40 = /^[0-9a-f]{40}$/;
+
 /**
  * Synthetic project identifier returned by `getProjectId` during vitest
  * runs when no directory context is available (e.g. directory is empty
@@ -139,6 +141,17 @@ export class UnstableIdentityError extends Error {
   }
 }
 
+/** Typed refusal raised when git returns an invalid project identity. */
+export class InvalidProjectIdentityError extends Error {
+  constructor(
+    public readonly repoPath: string,
+    public readonly projectId: string,
+  ) {
+    super(invalidIdentityGuidance(repoPath, projectId));
+    this.name = "InvalidProjectIdentityError";
+  }
+}
+
 function unstableIdentityGuidance(
   repoPath: string,
   reason: "shallow" | "graft",
@@ -154,6 +167,14 @@ function unstableIdentityGuidance(
   return (
     `ADV cannot derive a stable project identity for ${repoPath}: the repository ${cause}. ` +
     `${fix} No ADV state was created under the unstable identity.`
+  );
+}
+
+function invalidIdentityGuidance(repoPath: string, projectId: string): string {
+  return (
+    `ADV cannot derive a valid project identity for ${repoPath}: git returned ` +
+    `the invalid candidate "${projectId}". Project identities must be exactly ` +
+    `40 lowercase hexadecimal characters. No ADV state was created under the invalid identity.`
   );
 }
 
@@ -203,6 +224,9 @@ export async function resolveProjectIdentity(
 
   const projectId = await resolveRootCommit(directory);
   if (!projectId) return { kind: "not_git" };
+  if (!SHA40.test(projectId)) {
+    throw new InvalidProjectIdentityError(directory, projectId);
+  }
   return { kind: "ok", projectId };
 }
 
@@ -239,10 +263,7 @@ async function resolveRootCommit(directory: string): Promise<string | null> {
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
     const trimmed = roots[0]; // Sort for determinism when multiple roots exist
-    if (/^[0-9a-f]{40}$/.test(trimmed)) {
-      return trimmed;
-    }
-    return null;
+    return trimmed ?? null;
   } catch {
     return null;
   }

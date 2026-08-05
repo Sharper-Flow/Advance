@@ -22,7 +22,7 @@
 
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFile, rename, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const PLUGIN_BUNDLE_MANIFEST_FILENAME = "plugin-bundle-manifest.json";
@@ -52,6 +52,44 @@ export interface PluginBundleFreshness {
   reason: string | null;
   recovery: string | null;
   advisoryType?: typeof PLUGIN_BUNDLE_STALE_ADVISORY;
+}
+
+export interface PluginBundleGenerationGuardError {
+  error: string;
+  code: "PLUGIN_BUNDLE_GENERATION_MISMATCH";
+  reason: "generation_mismatch";
+  loadedGeneration: string;
+  deployedGeneration: string;
+  loadedModulePath: string;
+  recovery: string;
+}
+
+export interface PluginBundleGenerationGuardOptions {
+  /** Generation captured by the caller; omitted uses the loaded bundle value. */
+  loadedGeneration?: string;
+  /** Absolute path of the entry module that owns the loaded generation. */
+  loadedModulePath: string;
+}
+
+/** Error raised by the host read guard when code identity is stale. */
+export class PluginBundleGenerationMismatchError extends Error {
+  readonly error: string;
+  readonly code = "PLUGIN_BUNDLE_GENERATION_MISMATCH" as const;
+  readonly reason = "generation_mismatch" as const;
+  readonly loadedGeneration: string;
+  readonly deployedGeneration: string;
+  readonly loadedModulePath: string;
+  readonly recovery: string;
+
+  constructor(refusal: PluginBundleGenerationGuardError) {
+    super(refusal.error);
+    this.name = "PluginBundleGenerationMismatchError";
+    this.error = refusal.error;
+    this.loadedGeneration = refusal.loadedGeneration;
+    this.deployedGeneration = refusal.deployedGeneration;
+    this.loadedModulePath = refusal.loadedModulePath;
+    this.recovery = refusal.recovery;
+  }
 }
 
 export interface WritePluginBundleManifestOptions {
@@ -206,6 +244,17 @@ const UNKNOWN_RECOVERY =
   "Manifest state is unreadable; verify deployment and restart OpenCode if stale behavior persists.";
 
 /**
+ * Select recovery for the process that actually owns the loaded bundle.
+ * `mcp-server.js` is supervised by Vision, not by an OpenCode session.
+ */
+export function getPluginBundleRecoveryHint(loadedModulePath: string): string {
+  if (basename(loadedModulePath) === "mcp-server.js") {
+    return "Restart the Vision-managed adv-advance server (vision restart adv-advance) to load the current plugin bundle.";
+  }
+  return RESTART_RECOVERY;
+}
+
+/**
  * Compare the loaded plugin bundle generation against the deployed manifest.
  * Returns a bounded freshness verdict with recovery guidance. Never throws.
  */
@@ -254,6 +303,40 @@ export function comparePluginBundleGenerations(
     deployedIndexSha256: deployedManifest.files.index,
     reason: "generation_mismatch",
     recovery: RESTART_RECOVERY,
+  };
+}
+
+/**
+ * Check the code-identity guard used by read surfaces. Unknown freshness is
+ * deliberately allowed: an absent/unreadable manifest must not turn a routine
+ * read into a Temporal-availability failure. Only a generation mismatch is a
+ * typed refusal.
+ */
+export async function getPluginBundleGenerationGuardError(
+  distDir: string,
+  options: PluginBundleGenerationGuardOptions,
+): Promise<PluginBundleGenerationGuardError | null> {
+  const freshness = await getPluginBundleFreshness(
+    distDir,
+    options.loadedGeneration,
+  );
+  if (
+    freshness.state !== "stale" ||
+    freshness.loadedGeneration === null ||
+    freshness.deployedGeneration === null
+  ) {
+    return null;
+  }
+
+  return {
+    error:
+      "Read refused: loaded plugin bundle generation does not match the deployed manifest.",
+    code: "PLUGIN_BUNDLE_GENERATION_MISMATCH",
+    reason: "generation_mismatch",
+    loadedGeneration: freshness.loadedGeneration,
+    deployedGeneration: freshness.deployedGeneration,
+    loadedModulePath: options.loadedModulePath,
+    recovery: getPluginBundleRecoveryHint(options.loadedModulePath),
   };
 }
 

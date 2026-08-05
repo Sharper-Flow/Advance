@@ -10,6 +10,7 @@ import {
   comparePluginBundleGenerations,
   generatePluginBundleGeneration,
   getLoadedPluginBundleGeneration,
+  getPluginBundleGenerationGuardError,
   getPluginBundleDistDir,
   getPluginBundleFreshness,
   getPluginBundleReleasePreflightError,
@@ -343,6 +344,41 @@ describe("getPluginBundleFreshness", () => {
     expect(result.reason).toBe("missing_manifest");
     expect(result.deployedGeneration).toBeNull();
   });
+});
+
+describe("plugin bundle generation guard", () => {
+  test.each([
+    {
+      loadedModulePath: "/plugin/dist/index.js",
+      processName: "OpenCode",
+    },
+    {
+      loadedModulePath: "/plugin/dist/mcp-server.js",
+      processName: "Vision-managed adv-advance",
+    },
+  ])(
+    "returns a typed refusal instead of serving a read for $processName when generations differ",
+    async ({ loadedModulePath, processName }) => {
+      const dir = await tempDistDir();
+      const loaded = generatePluginBundleGeneration();
+      const deployed = generatePluginBundleGeneration();
+      await writePluginBundleManifest(dir, deployed, { now: () => NOW });
+
+      const refusal = await getPluginBundleGenerationGuardError(dir, {
+        loadedGeneration: loaded,
+        loadedModulePath,
+      });
+
+      expect(refusal).toMatchObject({
+        code: "PLUGIN_BUNDLE_GENERATION_MISMATCH",
+        loadedGeneration: loaded,
+        deployedGeneration: deployed,
+        loadedModulePath,
+      });
+      expect(refusal?.recovery).toContain(processName);
+      expect(refusal?.recovery).toMatch(/restart/i);
+    },
+  );
 });
 
 describe("getPluginBundleReleasePreflightError", () => {

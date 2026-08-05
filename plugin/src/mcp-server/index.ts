@@ -13,6 +13,7 @@
 
 import { readFile } from "fs/promises";
 import type { Readable, Writable } from "node:stream";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -112,6 +113,9 @@ export async function startServer(
 
         const text = await executeTier4Tool(cwd, toolName, args, {
           createToolMap: createTier4ToolMap,
+          pluginBundleGuard: {
+            loadedModulePath: fileURLToPath(import.meta.url),
+          },
         });
         return {
           content: [{ type: "text" as const, text }],
