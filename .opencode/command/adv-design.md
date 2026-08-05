@@ -47,7 +47,7 @@ Produce a design covering:
 4. **Interfaces and affected components**
 5. **LBP analysis** — why this is the preferred long-term approach
 6. **Design-Derived Criteria** — technical budgets/limits created by the chosen architecture (performance, security, scale, migration, or operations)
-7. **Risks and mitigations**
+7. **Risks and mitigations** — a risk that a finding or concern might be lost MUST be framed as a durable record (route it to `adv_backlog_add`), never as `no change owns it`; an unrecorded risk is a dropped finding.
 
 Criteria boundary:
 

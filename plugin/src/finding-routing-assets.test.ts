@@ -51,3 +51,21 @@ describe("finding routing — apply/review/harden command claims (D1, AC5)", () 
     }
   });
 });
+
+describe("finding routing — prep Won't path and design risk framing (D2/D5, AC1/AC2/AC5)", () => {
+  const prep = readCommand("adv-prep.md");
+  const design = readCommand("adv-design.md");
+
+  test("adv-prep MoSCoW Won't path routes findings to adv_backlog_add (AC1)", () => {
+    expect(prep).toContain("Won't items are findings too");
+    expect(prep).toContain("durable middle-tier option");
+    expect(prep).toContain("`adv_backlog_add`");
+    expect(prep).toContain("`adv_backlog_promote`");
+  });
+
+  test("adv-design risk table requires durable-record framing (AC2)", () => {
+    expect(design).toContain("an unrecorded risk is a dropped finding");
+    expect(design).toContain("never as `no change owns it`");
+    expect(design).toContain("`adv_backlog_add`");
+  });
+});
