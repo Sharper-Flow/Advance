@@ -145,11 +145,10 @@ describe("deploy-local.sh", () => {
       expect(content).toContain(
         `jq -e '.source == "temporal" and (.schema_version != 1)'`,
       );
-      // And guard against the old pattern creeping back in: a whole-document
-      // grep for schema_version is the defect, not a valid implementation.
-      expect(content).not.toMatch(
-        /grep -q.*"schema_version"\[.space.\]\*.:.\*.1/,
-      );
+      // And guard against the old pattern creeping back in: a `grep -q`
+      // referencing schema_version is the defect, not a valid implementation.
+      // The fix uses jq; no legitimate grep -q over schema_version remains.
+      expect(content).not.toMatch(/grep -q.*schema_version/);
     });
 
     test("removes stale adv commands from global", () => {
