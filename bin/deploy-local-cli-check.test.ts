@@ -64,9 +64,12 @@ function writeCliStub(dir: string, payload: string): string {
 
 /**
  * Run the extracted validator against a stubbed CLI payload.
- * Returns the function's exit status: 0 = accepted, non-zero = rejected.
+ * Returns the function's exit status and any diagnostic it surfaced.
  */
-function runCheck(payload: string): number {
+function runCheckDetailed(payload: string): {
+  exitCode: number;
+  diagnostic: string;
+} {
   const dir = mkdtempSync(join(tmpdir(), "adv-cli-check-"));
   const stubPath = writeCliStub(dir, payload);
   const harness = join(dir, "harness.sh");
@@ -78,15 +81,30 @@ function runCheck(payload: string): number {
       `REPO_ROOT=${JSON.stringify(REPO_ROOT)}`,
       `ADV_CLI_TARGET=${JSON.stringify(stubPath)}`,
       extractFunction(),
-      `${FUNCTION_NAME}`,
-      "exit $?",
+      // Call in a conditional context. The function restores `set -e`
+      // internally, so a bare invocation would abort this harness at the call
+      // site and the diagnostic below would never print.
+      `if ${FUNCTION_NAME}; then rc=0; else rc=$?; fi`,
+      // The function surfaces observed values to its caller so the deploy
+      // failure branch never has to re-invoke the CLI to describe them.
+      'printf "DIAGNOSTIC:%s\\n" "${ADV_CLI_LIVE_JSON_DIAGNOSTIC:-}"',
+      "exit $rc",
     ].join("\n"),
     "utf8",
   );
   chmodSync(harness, 0o755);
 
   const proc = Bun.spawnSync(["bash", harness]);
-  return proc.exitCode ?? 1;
+  const stdout = proc.stdout.toString();
+  const match = stdout.match(/DIAGNOSTIC:(.*)/);
+  return {
+    exitCode: proc.exitCode ?? 1,
+    diagnostic: match ? match[1].trim() : "",
+  };
+}
+
+function runCheck(payload: string): number {
+  return runCheckDetailed(payload).exitCode;
 }
 
 /** Healthy live payload — the shape that broke the original check. */
@@ -174,5 +192,46 @@ describe("verify_adv_cli_live_json", () => {
 
   test("fails closed on unparseable output", () => {
     expect(runCheck("not json at all")).not.toBe(0);
+  });
+
+  describe("failure diagnostics", () => {
+    // Diagnosing the original false positive required reading the shell source
+    // and hand-running the CLI, because the failure printed a fixed expectation
+    // string and never said what it actually saw. Report observed values so the
+    // next divergence is legible in one run.
+
+    test("reports the observed source when it is not temporal", () => {
+      const { exitCode, diagnostic } = runCheckDetailed(
+        JSON.stringify({ source: "disk", live: false }),
+      );
+      expect(exitCode).not.toBe(0);
+      expect(diagnostic).toContain("source");
+      expect(diagnostic).toContain("disk");
+    });
+
+    test("reports the observed top-level schema_version on a disk-only payload", () => {
+      const { exitCode, diagnostic } = runCheckDetailed(DISK_ONLY_PAYLOAD);
+      expect(exitCode).not.toBe(0);
+      expect(diagnostic).toContain("schema_version");
+      expect(diagnostic).toContain("1");
+    });
+
+    test("reports unparseable output distinctly rather than as a field mismatch", () => {
+      const { exitCode, diagnostic } = runCheckDetailed("not json at all");
+      expect(exitCode).not.toBe(0);
+      expect(diagnostic).toMatch(/pars|invalid|malformed/i);
+    });
+
+    test("stays bounded — never echoes the whole payload", () => {
+      // The live payload is ~17KB; a diagnostic that dumps it is unreadable.
+      const { diagnostic } = runCheckDetailed(DISK_ONLY_PAYLOAD);
+      expect(diagnostic.length).toBeLessThan(200);
+    });
+
+    test("surfaces no diagnostic on success", () => {
+      const { exitCode, diagnostic } = runCheckDetailed(HEALTHY_LIVE_PAYLOAD);
+      expect(exitCode).toBe(0);
+      expect(diagnostic).toBe("");
+    });
   });
 });

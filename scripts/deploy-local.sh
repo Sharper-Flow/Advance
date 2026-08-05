@@ -943,7 +943,16 @@ adv_cli_target_state() {
 }
 
 verify_adv_cli_live_json() {
-	[ -x "$ADV_CLI_TARGET" ] || return 1
+	# Observed values are surfaced to the caller so the failure branch can
+	# describe what it actually saw without re-invoking the CLI. A second
+	# invocation could observe different state and report a value that never
+	# caused the failure.
+	ADV_CLI_LIVE_JSON_DIAGNOSTIC=""
+
+	if [ ! -x "$ADV_CLI_TARGET" ]; then
+		ADV_CLI_LIVE_JSON_DIAGNOSTIC="CLI not executable at $ADV_CLI_TARGET"
+		return 1
+	fi
 
 	local output status
 	set +e
@@ -953,7 +962,10 @@ verify_adv_cli_live_json() {
 
 	case "$status" in
 	0 | 1 | 2) ;;
-	*) return 1 ;;
+	*)
+		ADV_CLI_LIVE_JSON_DIAGNOSTIC="CLI exited $status (outside the expected 0/1/2 range)"
+		return 1
+		;;
 	esac
 
 	# rq-advCliLocalInstall01: accept live-status metadata — `source: "temporal"`
@@ -976,9 +988,25 @@ verify_adv_cli_live_json() {
 	#
 	# `jq -e` sets exit status from the result and fails closed on unparseable
 	# output, preserving this function's existing contract.
-	printf '%s' "$output" |
-		jq -e '.source == "temporal" and (.schema_version != 1)' >/dev/null 2>&1 || return 1
-	return 0
+	if printf '%s' "$output" | jq -e . >/dev/null 2>&1; then
+		:
+	else
+		ADV_CLI_LIVE_JSON_DIAGNOSTIC="status --json output was not parseable JSON"
+		return 1
+	fi
+
+	if printf '%s' "$output" |
+		jq -e '.source == "temporal" and (.schema_version != 1)' >/dev/null 2>&1; then
+		return 0
+	fi
+
+	# Report the observed values, bounded. The payload can exceed 15KB, so it is
+	# summarized rather than echoed.
+	local observed_source observed_schema
+	observed_source="$(printf '%s' "$output" | jq -r '.source // "absent"' 2>/dev/null)"
+	observed_schema="$(printf '%s' "$output" | jq -r '.schema_version // "absent"' 2>/dev/null)"
+	ADV_CLI_LIVE_JSON_DIAGNOSTIC="observed source=${observed_source} top-level schema_version=${observed_schema}"
+	return 1
 }
 
 verify_adv_cli_runtime_imports() {
@@ -1057,8 +1085,14 @@ check_adv_cli_install() {
 		if verify_adv_cli_live_json; then
 			echo "    ✓  status JSON: live Temporal metadata"
 		else
-			echo "    ✗  status JSON: installed adv did not emit live Temporal metadata"
-			echo "       Expected source:\"temporal\" and no disk-only schema_version:1 readiness"
+			# Wording note: liveness is NOT required here. rq-advCliLocalInstall01
+			# accepts fail-closed live error metadata, so the check rejects only a
+			# non-temporal source or a stale disk-only payload.
+			echo "    ✗  status JSON: installed adv did not emit live-status metadata"
+			echo "       Expected source:\"temporal\" and no top-level schema_version:1 (disk-only payload)"
+			if [ -n "${ADV_CLI_LIVE_JSON_DIAGNOSTIC:-}" ]; then
+				echo "       Got: $ADV_CLI_LIVE_JSON_DIAGNOSTIC"
+			fi
 			((cli_issues++)) || true
 		fi
 	fi
