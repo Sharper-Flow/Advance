@@ -22,6 +22,8 @@ const PROJECT_ID = "0".repeat(40);
 const ensureChangeWorkflowStarted = vi.hoisted(() => vi.fn());
 const getCurrentSessionIdMock = vi.hoisted(() => vi.fn());
 const removeChangeDirMock = vi.hoisted(() => vi.fn());
+const listSummaryChanges = vi.hoisted(() => vi.fn());
+const hasArchiveBundleMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../../temporal/workflow-start", () => ({
   ensureChangeWorkflowStarted,
@@ -46,11 +48,10 @@ vi.mock("../json", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
+    hasArchiveBundle: hasArchiveBundleMock,
     removeChangeDir: removeChangeDirMock,
   };
 });
-
-const listSummaryChanges = vi.hoisted(() => vi.fn());
 
 vi.mock("../change-summary-shard", async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
@@ -798,6 +799,7 @@ describe("createChangeOps", () => {
       changes: string;
       summariesDir: string;
       root: string;
+      archive?: string;
     }) {
       const workflowClient = { workflow: { getHandle: vi.fn() } };
       const owner = createMockOwnerFromClient({ client: workflowClient });
@@ -868,6 +870,34 @@ describe("createChangeOps", () => {
       expect(a.completedTasks).toBe(2);
       expect(a.currentGate).toBe("execution");
       expect(a.status).toBe("draft");
+    });
+
+    test("preserves in-flight rows and emits degradation when terminal resolution fails", async () => {
+      listSummaryChanges.mockResolvedValue({
+        kind: "ok",
+        summaries: [summaryShard("inFlight")],
+      });
+      hasArchiveBundleMock.mockRejectedValueOnce(
+        new Error("archive unavailable"),
+      );
+      const { ops } = buildOps({
+        changes: "/tmp/changes",
+        summariesDir: "/tmp/summaries",
+        root: "/tmp/project",
+        archive: "/tmp/archive",
+      });
+
+      const result = await ops.listSummary!();
+
+      expect(result.changes.map((c) => c.id)).toEqual(["inFlight"]);
+      expect(result.warnings).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: "TERMINAL_SOURCE_DEGRADED",
+            source: "archive",
+          }),
+        ]),
+      );
     });
 
     test("includes archived/closed terminal rows when explicitly requested", async () => {

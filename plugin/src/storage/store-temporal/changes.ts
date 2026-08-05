@@ -927,15 +927,13 @@ async function readProjectionChangeList(
   } catch (err) {
     const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
     degradedSources.add("active_disk");
-    if (wantsTerminalStatuses) {
-      warnings.push({
-        code: "TERMINAL_SOURCE_DEGRADED",
-        source: "active_disk",
-        message: `Disk listChangeDirs ${
-          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-        }: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
+    warnings.push({
+      code: "TERMINAL_SOURCE_DEGRADED",
+      source: "active_disk",
+      message: `Disk listChangeDirs ${
+        hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+      }: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
   addSourceIds(diskIds);
 
@@ -990,15 +988,13 @@ async function readProjectionChangeList(
     } catch (err) {
       const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
       degradedSources.add("archive");
-      if (wantsTerminalStatuses) {
-        warnings.push({
-          code: "TERMINAL_SOURCE_DEGRADED",
-          source: "archive",
-          message: `Archive bundle scan ${
-            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-          }: ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
+      warnings.push({
+        code: "TERMINAL_SOURCE_DEGRADED",
+        source: "archive",
+        message: `Archive bundle scan ${
+          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+        }: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
   }
   if (wantsTerminalStatuses) {
@@ -1024,13 +1020,11 @@ async function readProjectionChangeList(
         // be checked; do not fail closed or omit the requested row.
         return false;
       }
-      if (wantsTerminalStatuses) {
-        warnings.push({
-          code: "TERMINAL_SOURCE_DEGRADED",
-          source: "archive",
-          message: `Archive bundle check for ${changeId} failed: ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
+      warnings.push({
+        code: "TERMINAL_SOURCE_DEGRADED",
+        source: "archive",
+        message: `Archive bundle check for ${changeId} failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
       return false;
     }
   };
