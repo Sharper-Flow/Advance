@@ -25,6 +25,10 @@ import {
   makeTemporalOperationContext,
   type TemporalOperations,
 } from "../../plugin/src/cli/temporal-boundary";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { resolveExternalRoot } from "./project";
 
 export const QUERY_TIMEOUT_MS = 5_000;
 
@@ -328,20 +332,7 @@ export async function loadLiveSummaries(
  * Reads schemaVersion: 2 projection envelopes from the changes directory.
  */
 function loadSummariesFromDisk(projectId: string): ChangeSummary[] {
-  const { resolveExternalRoot } = require("./project") as {
-    resolveExternalRoot: (id: string) => string;
-  };
-  const { readdirSync, readFileSync } = require("node:fs") as {
-    readdirSync: (p: string) => string[];
-    readFileSync: (p: string, enc: string) => string;
-  };
-  const { join } = require("node:path") as {
-    join: (...args: string[]) => string;
-  };
-  try {
-    // Try canonical path first, then XDG shard path (oc wrapper per-project)
-    const canonicalDir = join(resolveExternalRoot(projectId), "changes");
-    const { homedir } = require("node:os") as { homedir: () => string };
+  const canonicalDir = join(resolveExternalRoot(projectId), "changes");
     const dataHome = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
     const shardDir = join(dataHome, "opencode-projects", projectId, "opencode", "plugins", "advance", projectId, "changes");
     let dir: string;
