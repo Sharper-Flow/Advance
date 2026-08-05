@@ -30,7 +30,11 @@ import {
 } from "./change-state";
 import { createDefaultGates } from "../types";
 import type { Change, ChangeOrigin } from "../types";
-import { ErrorRecoverySchema, observedAttemptCount, TaskSchema } from "../types/tasks";
+import {
+  ErrorRecoverySchema,
+  observedAttemptCount,
+  TaskSchema,
+} from "../types/tasks";
 import {
   SUBAGENT_REPORT_MAX_RETRIES,
   subagentReportKey,
@@ -3729,10 +3733,7 @@ describe("budget warning on retry-budget clamp (AC7 / rq-budgetWarning01)", () =
   ) {
     applySubagentReportSubmittedToState(state, {
       taskId: "tk-budget",
-      report: retryReport(
-        state.changeId ?? "budget-warning",
-        attempt,
-      ),
+      report: retryReport(state.changeId ?? "budget-warning", attempt),
       submittedAt: `2026-08-05T00:00:${String(second).padStart(2, "0")}.000Z`,
     });
   }

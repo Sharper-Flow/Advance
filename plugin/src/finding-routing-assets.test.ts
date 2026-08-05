@@ -17,7 +17,8 @@ const REPO_ROOT = resolve(__dirname, "../..");
 
 const ROUTING_CLAIM =
   "Out-of-scope findings surfaced mid-lifecycle MUST be routed to the durable backlog with `adv_backlog_add`";
-const BRIDGE_CLAIM = "`adv_backlog_promote` is the bridge back to a tracked change";
+const BRIDGE_CLAIM =
+  "`adv_backlog_promote` is the bridge back to a tracked change";
 
 function readCommand(name: string): string {
   return readFileSync(join(REPO_ROOT, `.opencode/command/${name}`), "utf8");

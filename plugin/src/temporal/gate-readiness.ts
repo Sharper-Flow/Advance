@@ -860,9 +860,7 @@ export function checkRespectsEvidenceAuthority(
     if (task.status !== "done") continue;
 
     const respects = task.contract_refs?.respects ?? [];
-    const avoidanceRespects = respects.filter((id) =>
-      avoidanceOosIds.has(id),
-    );
+    const avoidanceRespects = respects.filter((id) => avoidanceOosIds.has(id));
     if (avoidanceRespects.length === 0) continue;
 
     // Authority: a task-scoped adv-reviewer report (non-claiming agent) must

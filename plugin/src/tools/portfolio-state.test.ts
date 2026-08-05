@@ -9,10 +9,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import {
-  derivePortfolioState,
-  readPortfolioState,
-} from "./portfolio-state";
+import { derivePortfolioState, readPortfolioState } from "./portfolio-state";
 
 describe("derivePortfolioState", () => {
   it("counts non-terminal changes and computes never-terminal share", () => {

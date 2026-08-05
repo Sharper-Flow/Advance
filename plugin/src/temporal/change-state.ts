@@ -2107,82 +2107,82 @@ export function applySubagentReportSubmittedToState(
         },
       ];
     } else {
-    // Issue #349: deduplicate auto-generated strategy_label so repeat
-    // submissions from the same agent don't produce identical labels that
-    // fail schema validation ("strategy_label values must be distinct").
-    const existingLabels = new Set(
-      (task.error_recovery?.attempts ?? []).map((a) => a.strategy_label),
-    );
-    const baseLabel = `${payload.report.agent}-reported-blocker`;
-    let strategyLabel = baseLabel;
-    let suffix = 2;
-    while (existingLabels.has(strategyLabel)) {
-      strategyLabel = `${baseLabel}-${suffix}`;
-      suffix++;
-    }
+      // Issue #349: deduplicate auto-generated strategy_label so repeat
+      // submissions from the same agent don't produce identical labels that
+      // fail schema validation ("strategy_label values must be distinct").
+      const existingLabels = new Set(
+        (task.error_recovery?.attempts ?? []).map((a) => a.strategy_label),
+      );
+      const baseLabel = `${payload.report.agent}-reported-blocker`;
+      let strategyLabel = baseLabel;
+      let suffix = 2;
+      while (existingLabels.has(strategyLabel)) {
+        strategyLabel = `${baseLabel}-${suffix}`;
+        suffix++;
+      }
 
-    // The retry budget is an invariant the read path enforces
-    // (ErrorRecoverySchema rejects attempts.length > max_retries). Writing past
-    // it produces state ADV itself refuses to read, which brick the change on
-    // both the read and write paths — so the accumulator must clamp here.
-    //
-    // This reducer is the only site that can heal an already-bricked change:
-    // Temporal rebuilds workflow state by replaying history through it, so a
-    // clamped reducer re-derives valid state from unchanged poisoned histories.
-    // A guard at the tool boundary or in the schema normalizer cannot do that.
-    const maxRetries = SUBAGENT_REPORT_MAX_RETRIES;
-    const recordedAttempts = [
-      ...(task.error_recovery?.attempts ?? []),
-      {
-        attempt_number: payload.report.attempt,
-        error: blockers.summary,
-        diagnosis: blockers.diagnosis,
-        fix_tried: "Sub-agent report submission recorded blocker",
-        strategy_label: strategyLabel,
-        outcome: "failed" as const,
-        attempted_at: payload.submittedAt,
-      },
-    ];
+      // The retry budget is an invariant the read path enforces
+      // (ErrorRecoverySchema rejects attempts.length > max_retries). Writing past
+      // it produces state ADV itself refuses to read, which brick the change on
+      // both the read and write paths — so the accumulator must clamp here.
+      //
+      // This reducer is the only site that can heal an already-bricked change:
+      // Temporal rebuilds workflow state by replaying history through it, so a
+      // clamped reducer re-derives valid state from unchanged poisoned histories.
+      // A guard at the tool boundary or in the schema normalizer cannot do that.
+      const maxRetries = SUBAGENT_REPORT_MAX_RETRIES;
+      const recordedAttempts = [
+        ...(task.error_recovery?.attempts ?? []),
+        {
+          attempt_number: payload.report.attempt,
+          error: blockers.summary,
+          diagnosis: blockers.diagnosis,
+          fix_tried: "Sub-agent report submission recorded blocker",
+          strategy_label: strategyLabel,
+          outcome: "failed" as const,
+          attempted_at: payload.submittedAt,
+        },
+      ];
 
-    // Retain the most recent entries. Each keeps its own attempt_number so an
-    // elided window stays visible rather than being renumbered to 1..n.
-    const retainedAttempts = recordedAttempts.slice(-maxRetries);
-    // The true count is recorded, not derived: attempt_number is a per-agent
-    // counter, so the highest retained value can sit below the real total when
-    // agents interleave on one task. Increment from the prior total rather than
-    // measuring recordedAttempts, whose length is already bounded by the
-    // retention window and would plateau at maxRetries + 1.
-    const priorTotal =
-      task.error_recovery?.total_attempts ??
-      task.error_recovery?.attempts?.length ??
-      0;
-    const totalAttempts = priorTotal + 1;
+      // Retain the most recent entries. Each keeps its own attempt_number so an
+      // elided window stays visible rather than being renumbered to 1..n.
+      const retainedAttempts = recordedAttempts.slice(-maxRetries);
+      // The true count is recorded, not derived: attempt_number is a per-agent
+      // counter, so the highest retained value can sit below the real total when
+      // agents interleave on one task. Increment from the prior total rather than
+      // measuring recordedAttempts, whose length is already bounded by the
+      // retention window and would plateau at maxRetries + 1.
+      const priorTotal =
+        task.error_recovery?.total_attempts ??
+        task.error_recovery?.attempts?.length ??
+        0;
+      const totalAttempts = priorTotal + 1;
 
-    // rq-budgetWarning01 / AC7: the retention clamp (slice(-maxRetries)) was
-    // silent — an operator could not tell that a submission at/over budget had
-    // its history elided. Emit an explicit marker so the clamp is visible.
-    // Report submission is never refused at/over budget: the report applies
-    // and the marker makes the elision honest. Fires at == (budget exhausted)
-    // and > (over budget); absent while the budget holds.
-    const atOrOverBudget = totalAttempts >= maxRetries;
+      // rq-budgetWarning01 / AC7: the retention clamp (slice(-maxRetries)) was
+      // silent — an operator could not tell that a submission at/over budget had
+      // its history elided. Emit an explicit marker so the clamp is visible.
+      // Report submission is never refused at/over budget: the report applies
+      // and the marker makes the elision honest. Fires at == (budget exhausted)
+      // and > (over budget); absent while the budget holds.
+      const atOrOverBudget = totalAttempts >= maxRetries;
 
-    task.error_recovery = {
-      last_error: blockers.summary,
-      // Matches what ErrorRecoverySchema's transform re-derives on read
-      // (attempts.length), so the persisted and parsed values agree.
-      retry_count: retainedAttempts.length,
-      max_retries: maxRetries,
-      error_class: "SEMANTIC",
-      next_strategy: "Resolve sub-agent reported blocker",
-      attempts: retainedAttempts,
-      total_attempts: totalAttempts,
-      ...(atOrOverBudget
-        ? {
-            budget_warning:
-              "retry budget exhausted — report accepted; only the most recent attempts are retained",
-          }
-        : {}),
-    };
+      task.error_recovery = {
+        last_error: blockers.summary,
+        // Matches what ErrorRecoverySchema's transform re-derives on read
+        // (attempts.length), so the persisted and parsed values agree.
+        retry_count: retainedAttempts.length,
+        max_retries: maxRetries,
+        error_class: "SEMANTIC",
+        next_strategy: "Resolve sub-agent reported blocker",
+        attempts: retainedAttempts,
+        total_attempts: totalAttempts,
+        ...(atOrOverBudget
+          ? {
+              budget_warning:
+                "retry budget exhausted — report accepted; only the most recent attempts are retained",
+            }
+          : {}),
+      };
     }
   }
 
