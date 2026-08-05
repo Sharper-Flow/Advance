@@ -489,6 +489,14 @@ export const TERMINAL_PROJECTION_PATCH = "terminal-projection-v1";
 // accepted gate transition cannot outrun disk durability. Existing histories
 // retain the fire-and-forget projection command sequence during replay.
 export const GATE_COMPLETED_PROJECTION_PATCH = "gate-completed-projection-v1";
+// Patch rationale: archiveChangeSignal now persists terminal status when
+// handled (matching every sibling terminal signal) instead of deferring
+// persistence to the exit-time terminal projection. Workflows that received
+// the archive signal under pre-patch code replay with the old no-activity
+// handler; post-deploy and new workflows durably record the terminal shard at
+// signal time. Without this, an archived-but-still-running workflow never
+// persists (the root cause this change exists to repair).
+export const ARCHIVE_SIGNAL_PERSIST_PATCH = "archive-signal-persist-v1";
 const phase9StatusUpdatedSignal = wf.defineSignal<
   [import("../types").Phase9StatusUpdatedSignalPayload]
 >(CHANGE_WORKFLOW_SIGNAL_NAMES.phase9StatusUpdated);
@@ -2141,7 +2149,7 @@ export async function changeWorkflow(
     archiveChangeSignal,
     signalAsync(
       "archiveChange",
-      () => {
+      async () => {
         wf.log.info("op:start", {
           op: "archiveChangeSignal",
           changeId: state.changeId,
@@ -2158,6 +2166,22 @@ export async function changeWorkflow(
               op: "archiveChangeSignal",
               changeId: state.changeId,
               error: saErr instanceof Error ? saErr.message : String(saErr),
+            });
+          }
+        }
+        // Persist terminal status when the signal is handled, matching every
+        // sibling terminal signal (archiveRequested/archiveConverged/changeCancelled).
+        // Gated behind ARCHIVE_SIGNAL_PERSIST_PATCH so existing running workflows
+        // that handled this signal under pre-patch code replay without the new
+        // activity invocation. Without this, an archived-but-still-running
+        // workflow never durably records the terminal shard (the original defect).
+        if (wf.patched(ARCHIVE_SIGNAL_PERSIST_PATCH)) {
+          const projected = await projectChangeState("archiveChange");
+          if (projected !== "written") {
+            wf.log.warn("archive-signal-projection-failed", {
+              op: "archiveChangeSignal",
+              changeId: state.changeId,
+              projected,
             });
           }
         }
