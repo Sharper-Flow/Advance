@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0",
+  "change_id": "decideWorkflowHibernation",
+  "title": "Decide workflow hibernation lifecycle",
+  "release_notes": {
+    "audience": "internal",
+    "category": "added",
+    "headline_internal": "ADR-002: ADV adopts a workflow hibernation lifecycle state (decision only, no code)",
+    "highlights": [
+      "ADR-002 decided AFFIRMATIVE on architectural-shape grounds: ADV will let stale-but-open change and epic workflows complete and be recreated on demand.",
+      "Reversed from an earlier NEGATIVE verdict after the supporting cost measurement was found invalid — it was sampled immediately after a manual cleanup pass and omitted that cleanup as a variable.",
+      "Both previously-blocking preconditions recorded as resolved with call-site anchors: running-worker identity via bundle-generation parity (DEC-1), and the terminal race via a self-completing signal (DEC-2).",
+      "Epics identified as the clearest case and the leading phase-1 candidate: 40 running, zero ever closed, no routine close path exists.",
+      "rq-hib04 (signal-loss observability) promoted from standalone hardening to a blocking prerequisite — hibernation increases completion events, which is when buffered signals are lost.",
+      "Nine overturned assumptions catalogued in the ADR itself, including three claims asserted beyond their evidence that review caught and corrected.",
+      "New reference skill at ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md — 8 sourced Temporal facts, 6 ADV-specific anchors, every external claim carrying a source URL.",
+      "Downstream implementation change addWorkflowHibernation created, carrying DEC-1, DEC-2, DDC1/2/6/8/10 and a mandatory rq-changeLifecycleState01 spec amendment."
+    ],
+    "area": "workflow-lifecycle",
+    "user_action_required": false,
+    "links": {
+      "issue": "decideWorkflowHibernation"
+    }
+  }
+}

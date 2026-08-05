@@ -1,0 +1,1743 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "decideWorkflowHibernation",
+  "title": "Decide workflow hibernation lifecycle",
+  "status": "draft",
+  "lifecycleState": "open",
+  "created_at": "2026-08-04T20:19:34.305Z",
+  "tasks": [
+    {
+      "id": "tk-47703010effc",
+      "title": "Author the Temporal durable-execution lifecycle skill",
+      "type": "docs",
+      "section": "Artifacts",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-05T00:15:39.650Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC7"
+        ],
+        "respects": [
+          "C1",
+          "C3",
+          "DONT2"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Deliverable is a written skill artifact, not logic. Proof is file existence plus source-URL citation per external claim, exactly as AC7 specifies. No behavior is introduced, so there is nothing to red/green.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-08-05T00:19:06.886Z",
+      "verification": "Skill authored at ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md (12375 bytes). Path is outside the repo by design — agent-created skill class, distinct from the deploy-mirrored repo skills/ dir which holds only adv-* bundled skills. Verified: frontmatter parses as valid YAML with name=agent-temporal-lifecycle and metadata.review_status=pending; 13 source URLs; 13 unique file:line anchors. All 10 required content items covered, including F2 (continue-as-new does NOT preserve unprocessed signals) carrying the validator-caught error as its worked example, and A2 (absence of bundle_generation is not parity). No code introduced (C1); orphan mechanism recorded unresolved (C3). No repo files touched by this task, so a clean tree here is the expected outcome.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/ARCHIVE_SUMMARY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/BRIEFING_DIGEST.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/CONTRACT_TRACEABILITY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/acceptance.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/change.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/executive-summary.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/proposal.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/release-notes.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/spec-projection.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/summary.v1.json"
+      ],
+      "touched_files": [
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/ARCHIVE_SUMMARY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/BRIEFING_DIGEST.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/CONTRACT_TRACEABILITY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/acceptance.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/change.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/executive-summary.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/proposal.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/release-notes.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/spec-projection.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/summary.v1.json"
+      ],
+      "checkpointSha": "2f7b403a9725e2bded3583d486066d77f9dea181",
+      "completedAt": "2026-08-05T00:21:12.409Z",
+      "completed_at": "2026-08-05T00:21:12.409Z"
+    },
+    {
+      "id": "tk-f7fcf367f261",
+      "title": "Verify ADR-002 and the skill satisfy every contract item",
+      "type": "verification",
+      "section": "Verification",
+      "status": "in_progress",
+      "priority": 1,
+      "created_at": "2026-08-05T00:16:06.613Z",
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-47703010effc"
+        }
+      ],
+      "metadata": {
+        "tdd_intent": "separate_verification",
+        "delegation_hint": "delegate_allowed"
+      },
+      "contract_refs": {
+        "verifies": [
+          "SC1",
+          "SC2",
+          "SC3",
+          "AC1",
+          "AC2",
+          "AC3",
+          "AC4",
+          "AC5",
+          "AC6",
+          "AC7"
+        ],
+        "respects": [
+          "C2",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_policy": "review",
+      "evidence_plan": {
+        "policy": "review",
+        "proof_target": "Structured review conclusion",
+        "rationale": "The obligation is that a written artifact says specific things. There is no executable behavior to assert against, so the proof route is a structured review mapping each contract item to the passage satisfying it. Reviewer-owned evidence, not caller prose.",
+        "provenance": "new",
+        "stage": "stage-v2",
+        "review_evidence_ref": {
+          "report_key": "decideWorkflowHibernation|tk-f7fcf367f261|adv-reviewer|4"
+        }
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-08-05T00:25:07.111Z",
+      "subagent_reports": [
+        {
+          "schema_version": "1.0",
+          "change_id": "decideWorkflowHibernation",
+          "attempt": 1,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+          "task_id": "tk-f7fcf367f261",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f7fcf367f261"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "SC1-1",
+              "label": "blocker",
+              "file": "design.md",
+              "line": 1,
+              "what": "DEC-2–DEC-5 lack complete per-decision alternatives and consequences.",
+              "why": "SC1 requires rationale, alternatives, and consequences for every open-question decision.",
+              "fix": "Add concise alternatives and consequences to each DEC without changing the verdict."
+            },
+            {
+              "id": "SC3-1",
+              "label": "blocker",
+              "file": "design.md",
+              "line": 1,
+              "what": "Visible ADR text lacks evidence anchors for its ~500 MB/day rebuttal and the overturned closing/reclamation assumption.",
+              "why": "SC3 requires an anchor for every overturned proposal assumption.",
+              "fix": "Add direct measurement and terminal/retention anchors or cited evidence records."
+            },
+            {
+              "id": "AC7-1",
+              "label": "blocker",
+              "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+              "line": 86,
+              "what": "External claims F5–F7 lack source URLs; F8's service/worker source is unlinked.",
+              "why": "AC7 requires a source URL for every external claim.",
+              "fix": "Add authoritative URLs next to F5–F8 claims."
+            },
+            {
+              "id": "AC7-2",
+              "label": "blocker",
+              "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+              "line": 173,
+              "what": "ADV-specific audit assertions A3/A6 lack file:line anchors.",
+              "why": "AC7 requires a file:line anchor for every ADV-specific claim.",
+              "fix": "Add source/query or repository anchors, including the history_size_bytes NULL assertion."
+            }
+          ],
+          "nonblocking_findings": [
+            {
+              "id": "coverage-transport-1",
+              "label": "question",
+              "file": "design.md",
+              "line": 1,
+              "what": "adv_change_show truncated the final 5,538 of 26,498 artifact characters.",
+              "why": "DDC-tail evidence and complete DONT1 review cannot be claimed from the authorized output."
+            }
+          ],
+          "changes_made": [],
+          "wisdom_candidates": [
+            {
+              "type": "gotcha",
+              "content": "A global ADR alternatives/consequences section does not meet a contract requiring every DEC-n to record those elements."
+            }
+          ],
+          "verification": {
+            "tests_run": [
+              "oc-fresh status --repo /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation --json",
+              "source inspection: workflows.ts:2240-2299; plugin-init.ts:290-394; worker-bundle-manifest.ts:1-110; worker-heartbeat.ts:85-176; worker-roll.ts:120-229"
+            ],
+            "results": "fail",
+            "evidence": "Freshness current, behind=0, clean. Independent citations PASS: workflows.ts:2251-2284 is terminal completion and projects at 2268-2280 before drain at 2283; plugin-init.ts:357-364 scopes monitor OOP-only; worker-bundle-manifest.ts:29 includes workflows.js. AC1 ranges match heartbeat 99-117/169-176 and worker-roll 133-216. Coverage table: SC1 FAIL—ADR-002 has alternatives/consequences but DEC-2–5 do not each; SC2 PASS—architectural shape stated as basis and supporting context says it does not decide verdict; SC3 FAIL—DEC-1 and continue-as-new correction anchored, visible cost/reclamation rebuttals not; AC1 PASS—DEC-1 anchors required three files; AC2 PASS—DEC-2 self-signal/cancel/terminate resolution; AC3 PASS—shape basis and all four measurements; AC4 PASS—same epic verdict + distinct close-path gap; AC5 PASS—established/unestablished split and ~50x reason; AC6 PASS—rq-hib04 standalone; AC7 FAIL—F5–F8 URL gaps and A3/A6 anchor gaps. External URL spot-checks F1, F2, F3, F4, F8 dynamic-config portion; ADV-anchor spot-checks A1, A2, A4, A5 and F2 worked example. C2 PASS—no defineUpdate; C4 PASS—design gate done at 2026-08-04T23:56:26.366Z; DONT1 PASS for inspected content—no ruled-out mechanism re-argued, but tail unavailable."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Design artifact output transport truncated; final 5,538 characters unreviewed.",
+            "No artifacts changed: source selection and decision-record completion require owner action."
+          ],
+          "required_main_agent_actions": [
+            "Route SC1/SC3/AC7 gaps to the design owner or reenter design; do not alter the NEGATIVE verdict.",
+            "Obtain sanctioned full/range design artifact read, then rerun tail DDC/DONT1 verification.",
+            "Add the missing skill URLs and ADV file:line anchors, then rerun AC7."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "decideWorkflowHibernation",
+          "attempt": 2,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+          "task_id": "tk-f7fcf367f261",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f7fcf367f261"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "ac7-1",
+              "label": "blocker",
+              "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+              "line": 86,
+              "what": "Several external factual sections have no claim-local source URL, and one ADV-specific audit fact has no file:line anchor.",
+              "why": "AC7 requires every external factual claim to carry a source URL and every ADV-specific claim to carry a file:line anchor. F5 (lines 86-102), F6 (104-109), and F7 (111-118) have no URLs; F4's termination/drain assertion (79-84) is also uncited. A3's claimed ADV audit counts (173-175) lack a file:line anchor.",
+              "fix": "Add direct, claim-local authoritative URLs for the uncited external assertions and a durable ADV file:line anchor for A3's audit result (or remove the unsupported numeric assertion)."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [
+              "oc-fresh status --repo /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation --json",
+              "node -e YAML frontmatter parse for ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md"
+            ],
+            "results": "pass",
+            "evidence": "Worktree current and clean. SKILL.md exists; YAML parser accepted its frontmatter. Counted 13 source-URL occurrences (7 distinct URLs) and 13 distinct file:line anchors. SC1 passes: all five DEC rows explicitly give alternatives, rejected rationale, and consequences. SC3 passes: all five assumptions have evidence anchors; row 2's stated inputs, calculation, and resulting rate count as an evidence anchor because the derivation is explicit and auditable, rather than a bare assertion. AC7 remains blocked by the cited missing claim-local URLs and A3 anchor."
+          },
+          "scope_drift": null,
+          "risks": [
+            "Skill sources are not uniformly claim-local, so future lifecycle decisions could treat uncited factual assertions as verified."
+          ],
+          "required_main_agent_actions": [
+            "Add the minimal AC7 citations/ADV anchor described in ac7-1, then rerun this narrow AC7 review.",
+            "Do not revisit SC1 or SC3; both pass on attempt 2."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "decideWorkflowHibernation",
+          "attempt": 3,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+          "task_id": "tk-f7fcf367f261",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f7fcf367f261"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "ac7-f7-1",
+              "label": "blocker",
+              "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+              "line": 130,
+              "what": "F7 says no archival configuration reclaims open workflow history.",
+              "why": "Its only cited source establishes retention applies to closed executions; it does not establish the archival assertion.",
+              "fix": "Remove the archival clause or add a source that explicitly proves it."
+            },
+            {
+              "id": "ac7-f8-1",
+              "label": "blocker",
+              "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+              "line": 143,
+              "what": "F8 cites `service/worker/service.go` without a URL for the default and start-dev assertions.",
+              "why": "AC7 requires a source-URL citation for every external claim; the linked dynamic-config page does not itself establish that start-dev does not override the setting.",
+              "fix": "Cite pinned URLs for the Worker Service default and start-dev configuration, or narrow to what the existing URL proves."
+            },
+            {
+              "id": "ac7-a6-1",
+              "label": "blocker",
+              "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+              "line": 215,
+              "what": "A6 has no ADV file:line or provenance anchor.",
+              "why": "Its SQLite schema/measurement claims are ADV-specific and AC7 requires an anchor.",
+              "fix": "Add the relevant query/schema file:line anchor or a measurement-style provenance anchor equivalent to A3."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [],
+            "results": "n/a",
+            "evidence": "Read skill directly; frontmatter valid YAML and metadata.review_status is present. External fact citations: F1 PASS; F2 PASS; F3 PASS; F4 PASS (the cited https://github.com/temporalio/temporal/issues/2860 is present); F5 PASS (PollerInfo source supports identity, last_access_time, rate_per_second, and worker-supplied version/deployment fields, not handlers); F6 PASS (Cloud limits scopes in-flight command limits per Workflow Execution); F7 FAIL (archival wording exceeds cited retention source); F8 FAIL (non-URL source path / unsupported start-dev clause). ADV anchors: A1 PASS; A2 PASS; A3 PASS (change + dataset path + server version is an appropriate provenance anchor for a database measurement, not a code claim); A4 PASS; A5 PASS; A6 FAIL (no anchor)."
+          },
+          "scope_drift": null,
+          "risks": [
+            "AC7 remains unsatisfied until the three minimal evidence corrections are made."
+          ],
+          "required_main_agent_actions": [
+            "Correct F7, F8, and A6 evidence only; then rerun AC7 review."
+          ]
+        },
+        {
+          "schema_version": "1.0",
+          "change_id": "decideWorkflowHibernation",
+          "attempt": 4,
+          "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+          "task_id": "tk-f7fcf367f261",
+          "scope": {
+            "kind": "task",
+            "task_id": "tk-f7fcf367f261"
+          },
+          "agent": "adv-reviewer",
+          "phase": "review",
+          "verdict": "BLOCKED",
+          "blocking_findings": [
+            {
+              "id": "AC7-F4-1",
+              "label": "blocker",
+              "file": "../../../../../../.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+              "line": 79,
+              "what": "F4 states that external termination skips handler drain and abandons in-flight work, but its only citation is a cancellation issue.",
+              "why": "The cited issue supports the RequestCancel completed-workflow behavior, not the separate termination/drain claim. This remains stronger than its source and fails AC7's per-external-claim sourcing requirement.",
+              "fix": "Add a source URL that directly documents termination's handler-drain semantics, or remove/narrow the sentence to the cited cancellation fact."
+            }
+          ],
+          "nonblocking_findings": [],
+          "changes_made": [],
+          "wisdom_candidates": [],
+          "verification": {
+            "tests_run": [],
+            "results": "n/a",
+            "evidence": "Read-only AC7 audit. File exists; YAML frontmatter contains metadata.review_status. External fact audit: F1 pass; F2 pass; F3 pass; F4 fail (lines 79-80 termination/drain subclaim unsupported by its cited cancellation issue); F5 pass; F6 pass; F7 pass; F8 pass. ADV-anchor audit: A1 pass (manifest/heartbeat/roll/init anchors verified); A2 pass (init/heartbeat anchors verified); A3 pass (provenance supplied); A4 pass (workflows.ts:2268-2284 verified); A5 pass (terminate anchors verified); A6 pass (change, dataset, server version, SQLite persistence, enum encoding, and DDC5 provenance supplied). Attempt-3 fixes confirmed: F7 archival wording removed and scope limit present; F8 uses pinned GitHub URL and labels start-dev assertion inference/observation; A6 includes requested provenance. No further overclaim found beyond F4."
+          },
+          "scope_drift": null,
+          "risks": [
+            "AC7 remains unmet until F4's termination/drain assertion is directly sourced or removed."
+          ],
+          "required_main_agent_actions": [
+            "Apply the minimal F4 correction, then rerun AC7 review."
+          ]
+        }
+      ],
+      "error_recovery": {
+        "last_error": "../../../../../../.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :79 F4 states that external termination skips handler drain and abandons in-flight work, but its only citation is a cancellation issue.",
+        "retry_count": 4,
+        "max_retries": 3,
+        "error_class": "SEMANTIC",
+        "next_strategy": "Resolve sub-agent reported blocker",
+        "attempts": [
+          {
+            "attempt_number": 1,
+            "error": "design.md :1 DEC-2–DEC-5 lack complete per-decision alternatives and consequences.; design.md :1 Visible ADR text lacks evidence anchors for its ~500 MB/day rebuttal and the overturned closing/reclamation assumption.; ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :86 External claims F5–F7 lack source URLs; F8's service/worker source is unlinked.; ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :173 ADV-specific audit assertions A3/A6 lack file:line anchors.",
+            "diagnosis": "SC1 requires rationale, alternatives, and consequences for every open-question decision.; SC3 requires an anchor for every overturned proposal assumption.; AC7 requires a source URL for every external claim.; AC7 requires a file:line anchor for every ADV-specific claim.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker",
+            "outcome": "failed",
+            "attempted_at": "2026-08-05T00:28:42.622Z"
+          },
+          {
+            "attempt_number": 2,
+            "error": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :86 Several external factual sections have no claim-local source URL, and one ADV-specific audit fact has no file:line anchor.",
+            "diagnosis": "AC7 requires every external factual claim to carry a source URL and every ADV-specific claim to carry a file:line anchor. F5 (lines 86-102), F6 (104-109), and F7 (111-118) have no URLs; F4's termination/drain assertion (79-84) is also uncited. A3's claimed ADV audit counts (173-175) lack a file:line anchor.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker-2",
+            "outcome": "failed",
+            "attempted_at": "2026-08-05T00:40:37.886Z"
+          },
+          {
+            "attempt_number": 3,
+            "error": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :130 F7 says no archival configuration reclaims open workflow history.; ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :143 F8 cites `service/worker/service.go` without a URL for the default and start-dev assertions.; ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :215 A6 has no ADV file:line or provenance anchor.",
+            "diagnosis": "Its only cited source establishes retention applies to closed executions; it does not establish the archival assertion.; AC7 requires a source-URL citation for every external claim; the linked dynamic-config page does not itself establish that start-dev does not override the setting.; Its SQLite schema/measurement claims are ADV-specific and AC7 requires an anchor.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker-3",
+            "outcome": "failed",
+            "attempted_at": "2026-08-05T00:48:56.292Z"
+          },
+          {
+            "attempt_number": 4,
+            "error": "../../../../../../.config/opencode/skills/agent-temporal-lifecycle/SKILL.md :79 F4 states that external termination skips handler drain and abandons in-flight work, but its only citation is a cancellation issue.",
+            "diagnosis": "The cited issue supports the RequestCancel completed-workflow behavior, not the separate termination/drain claim. This remains stronger than its source and fails AC7's per-external-claim sourcing requirement.",
+            "fix_tried": "Sub-agent report submission recorded blocker",
+            "strategy_label": "adv-reviewer-reported-blocker-4",
+            "outcome": "failed",
+            "attempted_at": "2026-08-05T00:55:12.519Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tk-3eca1b40f863",
+      "title": "Create durable follow-up records for DEC-3, DEC-4, DEC-5",
+      "type": "docs",
+      "section": "Artifacts",
+      "status": "done",
+      "priority": 2,
+      "created_at": "2026-08-05T00:16:33.005Z",
+      "metadata": {
+        "tdd_intent": "not_applicable",
+        "delegation_hint": "inline_required"
+      },
+      "contract_refs": {
+        "respects": [
+          "DONT3",
+          "C1",
+          "OOS4",
+          "OOS3"
+        ]
+      },
+      "evidence_policy": "artifact_reference",
+      "evidence_plan": {
+        "policy": "artifact_reference",
+        "proof_target": "Artifact reference or operational output",
+        "rationale": "Deliverable is durable follow-up records. Proof is the created change IDs plus their stated scope. No logic is introduced. This operationalizes consequences the ADR already records; it does not defer the decision, which is made.",
+        "stage": "stage-v2",
+        "provenance": "new"
+      },
+      "assignedTo": "agent",
+      "started_at": "2026-08-05T00:22:37.495Z",
+      "verification": "Three durable follow-up records created, each a fast_follow_of decideWorkflowHibernation, verified present via adv_change_list (total 58 -> 60 with investigateOrphanWorkflow already counted, confirming exactly 3 created and no duplicates):\n\n1. investigateOrphanWorkflow (DEC-4) — capability advance-workflow. Carries established facts (scanner healthy, historyScannerEnabled defaults true, ADV only terminates at 5 cited call sites), the unestablished mechanism, and the mandatory DDC4 opening constraint requiring an explicit population predicate.\n2. addEpicClosePath (DEC-3) — capability advance-epics. 40 running epic workflows, zero ever closed; completion machinery exists at workflows.ts:2494-2522 but nothing drives it. Explicitly framed as correctness/shape, not storage (epic history is only ~1.2 MB).\n3. addSignalLossObservability (DEC-5 / rq-hib04) — capability advance-workflow. Carries DDC3 observability-only bounds, the signal/query-only surface law, and the ADR-0003 no-throw rule.\n\nEach record states its scope, evidence anchors, and governing constraint, so it can be started cold.\n\nConstraint compliance: C1 — records only, nothing implemented. OOS4 — orphan reclamation explicitly deferred until the mechanism is known. OOS3 — no per-session task-queue work folded in. DONT3 — these are distinct downstream items ADR-002 names as consequences, not per-symptom tickets substituting for a verdict; the verdict is made and recorded.\n\nNote: all three adv_change_create calls returned ToolExecutionTimeout at 10000ms, but every write landed. The timeout is a post-write readback hang, not a write failure — verified by listing before any retry, so no duplicates were created.",
+      "summary": "Task checkpoint completed",
+      "implementation_summary": "Task checkpoint completed",
+      "filesTouched": [
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/ARCHIVE_SUMMARY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/BRIEFING_DIGEST.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/CONTRACT_TRACEABILITY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/acceptance.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/change.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/executive-summary.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/proposal.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/release-notes.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/spec-projection.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/summary.v1.json"
+      ],
+      "touched_files": [
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/ARCHIVE_SUMMARY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/BRIEFING_DIGEST.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/CONTRACT_TRACEABILITY.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/acceptance.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/change.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/executive-summary.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/proposal.md",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/release-notes.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/spec-projection.json",
+        ".adv/archive/2026-08-05-clampDoomLoopAccumulator/summary.v1.json"
+      ],
+      "checkpointSha": "2f7b403a9725e2bded3583d486066d77f9dea181",
+      "completedAt": "2026-08-05T00:24:52.631Z",
+      "completed_at": "2026-08-05T00:24:52.631Z"
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "decideWorkflowHibernation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:hibernation-preconditions"
+      },
+      "agent": "adv-researcher",
+      "topic": "Temporal workflow hibernation preconditions (signal-buffering, running-worker identity, completion race, entity-pattern alternatives)",
+      "sources": [
+        {
+          "label": "TS SDK workflow.ts — setDefaultSignalHandler + signal buffering impl comment",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "SDK sorts Signal/Update jobs ahead of other activation jobs; if no handler is registered the signal is pushed to an in-memory buffer. setDefaultSignalHandler dispatches buffered signals in server-acceptance order. Documentary contract: 'If a WFT contains a Signal/Update, and if a handler is available... then the handler will be executed' — i.e. the guarantee is conditional on a handler existing."
+        },
+        {
+          "label": "Temporal community: How to handle undefined signals",
+          "locator": "https://community.temporal.io/t/how-to-handle-undefined-signals/10692",
+          "summary": "SDK maintainer (bergundy): 'if a handler isn't registered at the time a signal is received by the SDK, it is buffered in memory.' Recommends setDefaultSignalHandler as catch-all for visibility."
+        },
+        {
+          "label": "Temporal docs — Errors: Unhandled Command + Pending Signals Limit Exceeded",
+          "locator": "https://docs.temporal.io/references/errors",
+          "summary": "UnhandledCommand = WFT failed because workflow attempted to close itself without handling new Events that arrived since WFT start. Transient; a retry WFT is scheduled. Pending Signals Limit Exceeded = workflow reached capacity for pending signals (server-side buffer cap)."
+        },
+        {
+          "label": "Temporal API proto — WorkflowTaskFailedCause enum",
+          "locator": "https://buf.build/temporalio/api/raw/54001d31c68a41dda97490fe01642301/-/temporal/api/enums/v1/failed_cause.proto",
+          "summary": "UNHANDLED_COMMAND=1: 'Between starting and completing the workflow task (with a workflow completion command), some new command (like a signal) was processed into workflow history. The outstanding task will be failed with this reason, and a worker must pick up a new task.' PENDING_SIGNALS_LIMIT_EXCEEDED=28: server-side signal buffer cap."
+        },
+        {
+          "label": "Temporal community: Continuously signalWithStart behaviour (maxim)",
+          "locator": "https://community.temporal.io/t/continuously-signalwithstart-behaviour/16084",
+          "summary": "Temporal maintainer (maxim): on race between completion and a new signal, server fails the last WFT with UnhandledCommand and rolls back so the signal is processed. If the signal arrives after the workflow completed at the service, a new execution is started (signalWithStart). 'signals cannot be lost if the workflow code is written correctly' — conditional on a handler existing."
+        },
+        {
+          "label": "Temporal community: What happens to signals sent to a closing workflow",
+          "locator": "https://community.temporal.io/t/what-happens-to-signals-sent-to-a-closing-workflow/8409",
+          "summary": "Drain signal channel before exit; Temporal rolls back to last blocked state to give the workflow a chance to handle a signal arriving during the close window."
+        },
+        {
+          "label": "Temporal community: Async drain signal & Unhandled Command (maxim)",
+          "locator": "https://community.temporal.io/t/async-drain-signal-unhandled-command/11891",
+          "summary": "'There is no way to eliminate UnhandledCommand as it is not an error but an indication of the race condition between workflow completion and new signals.' Benign when channel is drained correctly."
+        },
+        {
+          "label": "TS SDK workflow-client.ts — query() routes to a worker that replays history",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/client/src/workflow-client.ts",
+          "summary": "query() uses QueryWorkflow RPC; signal() resolves on server acceptance (does not wait for processing). QueryRejectedError thrown when queryRejectCondition rejects (e.g. workflow not open)."
+        },
+        {
+          "label": "TS SDK interfaces.ts — query handlers are live read-only ops",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/interfaces.ts",
+          "summary": "isReplayingHistoryEvents returns false during query handlers and update validators — 'live read-only operations that should not be considered as replaying history events.' Confirms queries execute on a live poller, not from stored history."
+        },
+        {
+          "label": "Temporal docs — Handling Signals, Queries, & Updates",
+          "locator": "https://docs.temporal.io/handling-messages",
+          "summary": "Workflow execution is single-threaded; handlers run interleaved with main workflow. 'finish running all handlers before the Workflow run completes' via all_handlers_finished. Handler Unfinished Policy controls warnings for in-flight handlers."
+        },
+        {
+          "label": "TS SDK common/workflow-options.ts — WorkflowIdReusePolicy + WorkflowIdConflictPolicy",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/common/src/workflow-options.ts",
+          "summary": "ALLOW_DUPLICATE is default ReusePolicy (start allowed if previous is Closed). ConflictPolicy: FAIL / USE_EXISTING / TERMINATE_EXISTING for a RUNNING workflow with same ID."
+        },
+        {
+          "label": "TS SDK common/failure.ts — WorkflowExecutionAlreadyStartedError",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/common/src/failure.ts",
+          "summary": "Thrown when: conflict=FAIL and running; reuse=REJECT_DUPLICATE and closed; reuse=ALLOW_DUPLICATE_FAILED_ONLY and prior run Completed."
+        },
+        {
+          "label": "Temporal docs — Worker Versioning (Deployments)",
+          "locator": "https://docs.temporal.io/production-deployment/worker-deployments/worker-versioning",
+          "summary": "Worker Deployment Version = deployment name + Build ID (operator-assigned free-form string). VersioningBehavior.PINNED pins a workflow to its current Build ID; AUTO_UPGRADE moves to latest. Server records versions when first poller arrives. Does NOT introspect registered handlers."
+        },
+        {
+          "label": "TS SDK common/worker-deployments.ts — VersioningBehavior PINNED/AUTO_UPGRADE",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/common/src/worker-deployments.ts",
+          "summary": "PINNED: workflow pinned to current Build ID unless manually moved. AUTO_UPGRADE: workflow moves to latest task-queue version on next task dispatch."
+        },
+        {
+          "label": "TS SDK API — DescribeTaskQueueResponse (pollers, versioningInfo, versionsInfo)",
+          "locator": "https://typescript.temporal.io/api/interfaces/proto.temporal.api.workflowservice.v1.IDescribeTaskQueueResponse",
+          "summary": "pollers: IPollerInfo[] (includes identity). versioningInfo: routing target. versionsInfo: DEPRECATED, ENHANCED-mode only, per-Build-ID taskReachability. Reachability is eventually-consistent and conservative; reports open/new/closed reachability, NOT handler names."
+        },
+        {
+          "label": "TS SDK API — GetWorkerTaskReachabilityRequest (deprecated)",
+          "locator": "https://typescript.temporal.io/api/classes/proto.temporal.api.workflowservice.v1.GetWorkerTaskReachabilityRequest",
+          "summary": "Deprecated: 'Use DescribeTaskQueue.' Returns whether a Build ID is reachable by open/closed/new workflows. taskReachability is eventually-consistent and takes the conservative side until convergence. Cannot report registered handlers."
+        },
+        {
+          "label": "TS SDK API — DescribeWorkerDeploymentResponse / DescribeWorkerDeploymentVersionRequest",
+          "locator": "https://typescript.temporal.io/api/classes/proto.temporal.api.workflowservice.v1.DescribeWorkerDeploymentResponse",
+          "summary": "Worker Deployment API (versioning-3). Returns WorkerDeploymentInfo with VersionSummaries + DrainageStatus. Build IDs and deployment names are operator-assigned identifiers; the API tracks routing/drainage, not code-level handler registration."
+        },
+        {
+          "label": "Temporal docs — Workers: Worker Identity",
+          "locator": "https://docs.temporal.io/workers",
+          "summary": "Worker Identity defaults to ${process.pid}@${os.hostname()}; operator-assigned free-form string visible in pollers list and event history. A tracing label, not a code-identity or handler-set proof."
+        },
+        {
+          "label": "TS SDK worker-options.ts — buildId is operator-assigned",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/worker/src/worker-options.ts",
+          "summary": "buildId: 'A string that should be unique to the exact worker code/binary being executed... Required if useVersioning is true.' It is a CLAIM by the operator, not server-introspected from code."
+        },
+        {
+          "label": "Temporal issue #2860 — RequestCancel on completed returns OK",
+          "locator": "https://github.com/temporalio/temporal/issues/2860",
+          "summary": "RequestCancelWorkflowExecution against an already-completed workflow returns OK (no error). Cancel is best-effort by design; docs were corrected to drop the 'fails if completed' claim. Not usable as a 'only-if-still-X' guard."
+        },
+        {
+          "label": "Temporal community: Race between signal handler and workflow completing",
+          "locator": "https://community.temporal.io/t/race-condition-between-signal-handler-and-workflow-completing/16803",
+          "summary": "Once the workflow function returns the workflow is completed and its activities are cancelled/not retried. Fix: await wf.condition(wf.allHandlersFinished) before return. Confirms single-threaded self-arbiter semantics."
+        },
+        {
+          "label": "Temporal docs — Continue-As-New",
+          "locator": "https://docs.temporal.io/workflow-execution/continue-as-new",
+          "summary": "CaN completes current execution and atomically starts a new one with same Workflow ID, fresh Event History. 'Workflows that do this are often called Entity Workflows because they represent durable objects.' Bounds history, NOT running-workflow count."
+        },
+        {
+          "label": "Temporal docs — Event History limits",
+          "locator": "https://docs.temporal.io/workflow-execution/event",
+          "summary": "Hard limits: 51,200 Events or 50MB history; >10,000 signals or >2,000 updates terminate the workflow. 'There is no time constraint on how long a Workflow Execution can run.' No per-namespace running-workflow COUNT cap documented."
+        },
+        {
+          "label": "Temporal docs — Entity Workflow design pattern",
+          "locator": "https://docs.temporal.io/design-patterns/entity-workflow",
+          "summary": "Official recommendation for one-workflow-per-entity. 'Use entity ID as Workflow ID.' Must use Continue-As-New to prevent unbounded history. 'One Workflow per entity means you should consider costs at scale.' Not a fit for 'entities with only CRUD operations (use a database).'"
+        },
+        {
+          "label": "Temporal docs — Entity lifecycle patterns",
+          "locator": "https://docs.temporal.io/design-patterns/entity-lifecycle-patterns",
+          "summary": "Entity Workflow + Continue-As-New + Updatable Timer are the official lifecycle patterns. CaN is the prescribed history-bound mechanism; nothing here prescribes completing-then-recreating idle entities."
+        },
+        {
+          "label": "Temporal blog — Managing very long-running Workflows",
+          "locator": "https://temporal.io/blog/very-long-running-workflows",
+          "summary": "Entity Workflow = Workflows representing something that potentially lives forever. CaN is the mechanism to run forever. No guidance to hibernate idle entity workflows."
+        },
+        {
+          "label": "Temporal docs — Cloud limits",
+          "locator": "https://docs.temporal.io/cloud/limits",
+          "summary": "Cloud limits: 20,000 activity + 20,000 workflow-task pollers per namespace; 2,000 incomplete in-flight commands per workflow execution; 51,200 events / 50MB history; APS/RPS/OPS rate limits. NO documented per-namespace cap on concurrent RUNNING workflow executions."
+        },
+        {
+          "label": "Temporal docs — Cost optimization (Active vs Retained Storage)",
+          "locator": "https://docs.temporal.io/best-practices/cost-optimization",
+          "summary": "Active Storage (open workflows + their histories) is 'significantly more expensive' than Retained Storage. Missing Continue-As-New is the named cost anti-pattern. CaN before long sleeps 'closes the current execution (moving to cheaper Retained Storage) and starts fresh when work resumes.' Closest official analogue to the hibernation proposal — but CaN-based, not complete-and-recreate."
+        },
+        {
+          "label": "Temporal community: How queries on completed workflows work",
+          "locator": "https://community.temporal.io/t/how-queries-on-completed-workflows-work/11516",
+          "summary": "Queries are answered by a worker replaying the (closed) history using current code — query results reflect the code of whichever worker served the query. Confirms query = point-in-time code-execution probe, not a stored artifact."
+        },
+        {
+          "label": "sdk-core sticky_queues.md — query dispatch via poller",
+          "locator": "https://github.com/temporalio/sdk-core/blob/master/arch_docs/sticky_queues.md",
+          "summary": "Workers recreate state by replaying history then issue task completion; query tasks are dispatched through the same matching/poller path. Confirms queries execute on a live poller."
+        }
+      ],
+      "architecture_assessment": "Three preconditions gate hibernation. (1) Running-worker signal-set identity has NO native Temporal API: DescribeTaskQueue/Worker-Versioning/Deployments expose operator-assigned Build IDs and eventually-consistent reachability, never the set of registered signal-handler names. A workflow QUERY is a viable point-in-time code-identity probe (queries execute on a live poller with isReplayingHistoryEvents=false) but is sound ONLY under PINNED worker versioning (workflow pinned to one build so query and subsequent signal route to the same code); without versioning it is a racy TOCTOU check. (2) Race-free self-completion IS cheaply satisfiable: a self-completing signal makes the single-threaded workflow the arbiter of its own close; the only residual race (signal arrives during the close window) is handled by server-side UnhandledCommand rollback, and is lossless WHEN a handler exists. Recreate-on-demand is cheap via WorkflowIdReusePolicy.ALLOW_DUPLICATE (default) + signalWithStart. (3) The premise that running-workflow COUNT is the thing to bound is questionable: Temporal has no per-namespace running-count cap, 191 idle workflows is operationally trivial, and the documented cost lever is Active Storage of open histories — which Continue-As-New already bounds and which the official Entity-Workflow + CaN pattern is designed to carry indefinitely. The deeper hibernation risk is silent data loss: a signal sent to a name NO worker build registers is buffered in SDK memory and is SILENTLY DISCARDED when the workflow completes (transient UnhandledCommand during the close race resolves to loss, not stuck); only setDefaultSignalHandler gives visibility. This loss is a real hazard for hibernation specifically because complete-then-recreate widens the window in which the host may emit a signal the (about-to-close / not-yet-recreated) workflow cannot handle.",
+      "validation": {
+        "status": "caution",
+        "blockers": [],
+        "notes": "Research succeeded; no source-access blocker. Caution (not fail) because no precondition is strictly unsatisfiable, but Q1's identity precondition is satisfiable only expensively (requires adopting PINNED worker versioning + an identity query + accepting a TOCTOU window), and Q3 shows the motivating premise (running count = cost driver) is weakly supported by documented limits — the cheaper, officially-blessed lever is Continue-As-New. Two material risks surface for the orchestrator to weigh: (a) silent signal loss on hibernation when the host emits a name no registered handler covers; (b) the identity-prevention check cannot be made lossless without versioning discipline."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Hibernation (complete + signalWithStart-recreate) reduces Active Storage cost of idle open workflows but introduces a silent-signal-loss window that Continue-As-New does not have (CaN preserves pending signals across the chain).",
+          "A query-based running-worker identity probe is cheap to build but is sound only under PINNED worker versioning; adopting versioning is itself a non-trivial operational commitment (Build ID discipline, deployment management, drainage monitoring).",
+          "Bounding running-workflow count addresses a metric (count) that Temporal does not limit per-namespace; the real cost lever (Active Storage GB) is already bounded by Continue-As-New, which the codebase appears to already use for terminal completion.",
+          "Self-completing signals make close race-free w.r.t. workflow-internal state, but RequestCancel is best-effort and returns OK on already-completed workflows — it cannot serve as a 'complete only if still X' guard, so the design must use signal-driven self-close, not external cancel/terminate."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Continue-As-New with infrequent inactivity timers (official Entity-Workflow pattern)",
+            "disposition": "preferred",
+            "rationale": "Officially blessed for 'workflows that run forever.' Bounds history (the real storage cost), preserves pending signals across the chain (no silent loss), needs no identity probe. Downsides: does NOT reduce running-workflow count, and timers do not survive CaN (must be carried in input)."
+          },
+          {
+            "option": "Hibernation (complete stale workflows + signalWithStart recreate on demand)",
+            "disposition": "deferred",
+            "rationale": "Reduces running count and Active Storage of truly-idle workflows. Costs: silent-signal-loss window (mitigated only by setDefaultSignalHandler + backward-compatible signal set), expensive/unsound identity check without versioning, and recreate-on-demand latency on first touch after idle. Defer until Active-Storage/APS cost evidence justifies the added risk."
+          },
+          {
+            "option": "Hybrid: CaN for bounded-history long-life + hibernate only on a true inactivity timeout with default-signal-handler draining",
+            "disposition": "deferred",
+            "rationale": "Use CaN as the primary history bound; add hibernation only as an explicit inactivity-timeout transition that first drains via setDefaultSignalHandler (logging any unhandled name) before completing. Minimizes the loss window and makes any divergence observable. Defer until/unless hibernation is committed; then this is the strongest form."
+          },
+          {
+            "option": "External database for entity state instead of one-workflow-per-entity",
+            "disposition": "rejected",
+            "rationale": "Temporal's own Entity-Workflow doc says CRUD-only entities should use a database. If ADV changes were mostly CRUD with occasional process logic, a DB + short-lived process workflows might be simpler — but this is a larger architectural change outside this change's scope and ADV's durable per-change workflow carries genuine process logic, so rejected for this context."
+          }
+        ],
+        "recommendation": "Do NOT gate the design on a native running-worker-identity API — none exists. If hibernation is pursued: (1) adopt PINNED worker versioning so the identity probe (a registered query returning handler names) is sound, OR enforce a backward-compatible signal-set invariant (signal names are add-only across versions) so divergence cannot occur and the identity check becomes unnecessary; (2) implement close via a self-completing signal after await wf.condition(wf.allHandlersFinished), never via external RequestCancel/Terminate; (3) install setDefaultSignalHandler that logs every unhandled name BEFORE completing, so any divergence is observable rather than silently lost; (4) recreate with signalWithStart under WorkflowIdReusePolicy.ALLOW_DUPLICATE. Separately, re-examine whether 191 running workflows is a real cost problem — the documented levers (Active Storage, APS) point at Continue-As-New, not at count reduction."
+      },
+      "recommendation": "See architecture_judgement.recommendation. Summary: Q1 identity = NOT satisfiable natively, expensively satisfiable via versioned query-probe (recommend the add-only signal-set invariant instead, which dissolves the precondition). Q2 completion race = SATISFIABLE CHEAPLY via self-completing signal + allHandlersFinished + ALLOW_DUPLICATE/signalWithStart. Q3 = the cheaper answer is Continue-As-New (already in use for terminal completion); running-count bounding is solving a weakly-documented problem — verify the actual Active Storage / APS cost before committing to hibernation complexity.",
+      "follow_ups": [
+        "adv_change_show timed out (10s) on first call this session; session-health flagged the active change as possibly unsafe to continue from chat history. Orchestrator should resume decideWorkflowHibernation in a fresh session by changeId before relying on any in-flight context.",
+        "Verify the codebase's actual signal-emission surface: enumerate every signal name the host (ADV plugin) sends to change workflows. If that set is add-only across all deployed worker builds, the Q1 identity precondition is dissolved for free and hibernation's data-loss risk collapses to 'only loses signals whose handlers were removed/renamed', which should be a release-gated invariant, not a runtime probe.",
+        "Confirm whether ADV workers already use Worker Deployment Versioning (buildId/deploymentName). If not, the query-probe identity check is unsound and must not be relied upon.",
+        "Measure the real cost driver before committing: pull Active Storage GB and APS for the ADV namespace. 191 open workflows is far below any documented Cloud limit; the decision should be evidence-led, not count-led.",
+        "If hibernation proceeds, add a regression test that signals an unregistered name to a workflow in its close window and asserts the signal is observable via setDefaultSignalHandler (not silently dropped)."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decideWorkflowHibernation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Design validation — Workflow Hibernation Lifecycle (ADR-002)",
+      "sources": [
+        {
+          "label": "Temporal continue-as-new design pattern",
+          "locator": "https://docs.temporal.io/design-patterns/continue-as-new",
+          "summary": "Authoritative: 'Forgetting to drain Signals before continuing. Any Signals received but not yet processed are lost when Continue-As-New starts a fresh execution.' Continue-as-new does NOT automatically preserve pending signals; author must drain and carry as args."
+        },
+        {
+          "label": "Temporal TS SDK — message passing / allHandlersFinished",
+          "locator": "https://docs.temporal.io/develop/typescript/workflows/message-passing",
+          "summary": "Guidance is to wait for allHandlersFinished before continue-as-new; signals processed by handlers, not auto-serialized to next run. Completion and continue-as-new share this drain requirement."
+        },
+        {
+          "label": "Temporal community — TS SDK signals and continueAsNew",
+          "locator": "https://community.temporal.io/t/ts-sdk-signals-and-continueasnew/4406",
+          "summary": "Maintainer confirms at high signal rates 'the application has to be remodeled' and signals must be carried manually to the next run. Confirms no automatic carry-over."
+        },
+        {
+          "label": "Temporal TS SDK source — setDefaultSignalHandler",
+          "locator": "https://github.com/temporalio/sdk-typescript/blob/main/packages/workflow/src/workflow.ts",
+          "summary": "setDefaultSignalHandler calls activator.dispatchBufferedSignals() — dispatch is WITHIN the same run, not a carry to the next run. Confirms unregistered-signal discard is not solved by continue-as-new."
+        },
+        {
+          "label": "Temporal entity-workflow pattern",
+          "locator": "https://docs.temporal.io/design-patterns/entity-workflow",
+          "summary": "Entity workflows run for entity lifetime, use continue-as-new for longevity, complete only on entity deletion/terminal. No guidance recommends completing idle live entities to bound running count. Supports design claim #4."
+        },
+        {
+          "label": "Temporal entity loyalty-points guide",
+          "locator": "https://docs.temporal.io/guides/entity-pattern-loyalty-points",
+          "summary": "'Unprocessed Signals are preserved' is achieved by the workflow MANUALLY serializing them into state passed to continue_as_new — not automatic SDK behavior. Confirms claim #3 misattributes the mechanism."
+        },
+        {
+          "label": "Temporal control-plane blog (entity workflow)",
+          "locator": "https://temporal.io/blog/how-to-build-a-resilient-platform-control-plane-with-temporal",
+          "summary": "Entity workflow = durable control-plane record for a resource; continue-as-new prevents unbounded history. Reinforces workflow-lifetime-mirrors-entity-lifetime as canonical."
+        },
+        {
+          "label": "Temporal GitHub issue #2860 — RequestCancel on completed returns OK",
+          "locator": "https://github.com/temporalio/temporal/issues/2860",
+          "summary": "Maintainer confirms RequestCancelWorkflowExecution against a completed workflow returns OK; 'cancellation is very much best-effort.' Supports DEC-2."
+        },
+        {
+          "label": "Temporal GitHub issue #952 / api service.proto",
+          "locator": "https://github.com/temporalio/api/blob/main/temporal/api/workflowservice/v1/service.proto",
+          "summary": "Proto doc comment claims NotFoundFailure on completed workflow, but issue #2860 shows actual behavior returns OK. Supports DEC-2 'unusable as guard' conclusion."
+        },
+        {
+          "label": "ADV code — worker-bundle-manifest.ts:29,81-89",
+          "locator": "plugin/src/temporal/worker-bundle-manifest.ts",
+          "summary": "Verified: WORKER_BUNDLE_FILES=['worker.js','workflows.js']; generation = SHA-256 over both file hashes+names. Generation equality DOES establish workflows.js byte-equality = registered signal-set equality. DEC-1 proxy claim technically correct."
+        },
+        {
+          "label": "ADV code — workflows.ts:2251-2288 (terminal + continue-as-new paths)",
+          "locator": "plugin/src/temporal/workflows.ts",
+          "summary": "Verified: BOTH terminal-completion (2281) and continue-as-new (2287) drain via wf.allHandlersFinished; continue-as-new carries a state seed via buildChangeWorkflowContinueAsNewSeed, NOT pending/unregistered signals. Refutes design claim #3 as applied to ADV's own code."
+        },
+        {
+          "label": "ADV spec — advance-delivery (signal/query only)",
+          "locator": ".adv/specs/advance-delivery/spec.json + docs/specs/advance-delivery.md",
+          "summary": "Spec law: production change workflow SHALL remain signal/query based, SHALL NOT reintroduce defineUpdate; regression tests fail on defineUpdate. DEC-2 self-completion-by-signal respects this (C2 satisfied)."
+        },
+        {
+          "label": "ADV ADR-0003 precedent",
+          "locator": "docs/adr/0003-signal-handlers-must-not-throw.md",
+          "summary": "Establishes inline-ADR precedent and signal-only surface rationale (update histories caused replay poisoning). Supports keeping ADR-002 inline and the signal-only constraint."
+        }
+      ],
+      "architecture_assessment": "The NEGATIVE verdict is architecturally sound and consistent with Temporal's canonical entity-workflow pattern: workflow lifetime mirrors entity lifetime, continue-as-new handles history longevity, completion happens only at entity-terminal. Four of five shape arguments (#1 entity-mirror-correct, #2 cache-vs-mirror regression, #4 no Temporal guidance to complete idle entities, #5 real defect is entity-lifecycle discipline) are well-supported by official Temporal docs and stand independently. DEC-1's bundle-generation proxy is verified correct at the code level for signal-SET equality (worker-bundle-manifest.ts:29,81-89 hashes workflows.js, which carries every wf.setHandler). DEC-2's self-completion-by-signal is the correct single-threaded arbiter pattern, and RequestCancel returning OK on completed workflows is confirmed (temporal #2860). DEC-3/DEC-4/DEC-5 are appropriately scoped. HOWEVER, shape argument #3 contains a load-bearing factual inaccuracy: it asserts continue-as-new 'serializes pending signals into the next run' and is 'strictly safer' on signal grounds. Temporal docs and ADV's own code contradict this — continue-as-new ALSO drops undrained/unregistered signals unless the workflow manually carries them (ADV does not; it carries only a state seed at workflows.ts:2286). The actual architectural difference is liveness (continue-as-new keeps the entity able to receive future signals; completion ends reception), not signal preservation. Must be restated before ADR approval; correction strengthens the design by making #3 consistent with DEC-5.",
+      "validation": {
+        "status": "caution",
+        "blockers": [
+          {
+            "finding": "Shape argument #3 asserts 'Completion discards signals; continue-as-new preserves them' and 'Continue-as-new serializes pending signals into the next run,' concluding continue-as-new is 'strictly safer than hibernation' on signal-preservation grounds. Factually inaccurate. Temporal's continue-as-new docs state unprocessed signals are LOST on continue-as-new unless manually drained and carried as args; the loyalty guide's 'preserved' wording is achieved by manual state serialization, not automatic SDK behavior; TS SDK continueAsNew() takes args only with no signal auto-carry; setDefaultSignalHandler.dispatchBufferedSignals() is same-run not next-run. ADV's own code (workflows.ts:2285-2288) carries a state seed via buildChangeWorkflowContinueAsNewSeed, not pending/unregistered signals, and BOTH terminal and continue-as-new paths drain only registered handlers via allHandlersFinished. For the DEC-5 unregistered-signal case, completion and continue-as-new BOTH discard. Violates DONT2 (asserts a mechanism guarantees a property — signal preservation — without tracing declaration through consumer to observable effect; the trace refutes it) and undermines the precision AC3/SC2 require of the architectural-shape basis. Does NOT overturn the verdict — arguments #1,#2,#4,#5 independently justify NEGATIVE. Accurate restatement: continue-as-new preserves entity LIVENESS (future signal reception) while completion ends it; neither automatically preserves undrained unregistered signals (exactly why DEC-5/rq-hib04 is verdict-independent).",
+            "contract_ids": [
+              "DONT2",
+              "AC3",
+              "SC2"
+            ],
+            "scope": "in_scope",
+            "in_scope_remediation": "Restate shape argument #3 in design.md (the deliverable of this decision-only change, so fully in-scope). Replace the signal-preservation framing with the liveness framing: 'Both completion and continue-as-new drop undrained/unregistered signals; ADV mitigates registered signals via allHandlersFinished in both paths. The architectural difference is that continue-as-new preserves the entity's ability to RECEIVE future signals (keeps the durable mirror alive), while completing a live entity (hibernation) ends reception and requires recreation via signalWithStart. This liveness asymmetry — not a signal-serialization guarantee — is why continue-as-new is the sanctioned longevity mechanism.' Also makes #3 consistent with DEC-5 and removes the false 'strictly safer on signal grounds' premise. No verdict change, no new scope.",
+            "source": {
+              "label": "Temporal continue-as-new docs + ADV workflows.ts:2285-2288",
+              "locator": "https://docs.temporal.io/design-patterns/continue-as-new ('Any Signals received but not yet processed are lost when Continue-As-New starts a fresh execution'); https://docs.temporal.io/develop/typescript/workflows/message-passing; plugin/src/temporal/workflows.ts:2285-2288 (continueAsNew carries state seed, not signals)",
+              "summary": "Continue-as-new does not automatically preserve/serialize pending or unregistered signals; ADV's implementation carries state only. Claim #3's signal-preservation rationale is unfounded; true architectural difference is liveness, not preservation."
+            }
+          }
+        ],
+        "notes": "Verdict (NEGATIVE) is sound and survives correction of claim #3. Spec-law compliance PASS: no existing spec requires a positive hibernation decision; C2 (signal/query-only, no defineUpdate) satisfied by DEC-2's self-completion-by-signal and enforced by advance-delivery spec + workflow-bundle-boundary.test.ts; DEC-4's recording of an unresolved mechanism satisfies C3 (separates established fact from unestablished mechanism) and violates no evidence/verification spec law because it explicitly declines to assert the mechanism. DDC1-DDC5 well-formed and traceable. Revisit trigger measurable (SQL join on history_node bytes x executions_visibility.status=1; DDC5 pins the method; note it is dev-server-sqlite-specific). required_validation_consistency.status = caution. Alternatives disposed: (a) namespace retention/archival orthogonal (closed-history, freelist_count=0 healthy) acceptably implicit; (b) lower continue-as-new threshold correctly disposed; (c) scheduled reaper IS the preferred alternative; (d) multi-namespace split omitted, acceptable for decision-only shape ADR, revisit trigger implicitly covers."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "medium",
+        "tradeoffs": [
+          "Recording a contested 5-round decision with full evidence anchors (DEC-1..5, DDC1-5) adds document weight but is justified by DONT1/DONT3's anti-re-litigation objective; a thinner record would invite a seventh round.",
+          "Inline ADR (vs docs/adr/) matches ADR-0001/0003 precedent and keeps the decision adjacent to the change, at the cost of discoverability for readers who scan docs/adr/.",
+          "Negative verdict accepts bounded growth (71.9MB, 0.8-1.6MB/day) until entity-lifecycle discipline happens; mitigated by a measurable revisit trigger but real if discipline stalls.",
+          "DEC-4 leaves orphan mechanism unresolved by design (C3); correct for a decision-only change but means 93.5MB reclamation deferred with no owner-bound timeline.",
+          "Revisit-trigger thresholds (500MB / 10MB-day-over-30d) are measurable on the local dev-server sqlite but would need restating for a real Temporal deployment; acceptable since ADV targets the local server topology."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Namespace-level retention/archival config to bound history",
+            "disposition": "rejected",
+            "rationale": "Retention governs CLOSED-workflow history, not running count; design reports retention already healthy (freelist_count=0, zero closed past 24h). Orthogonal to the running-workflow question; not a missed disposal, just not the same problem."
+          },
+          {
+            "option": "Reduce continue-as-new threshold",
+            "disposition": "rejected",
+            "rationale": "Design's alternatives table disposes it accurately: bounds history not running count, and max observed history is 46% of the current threshold so it would rarely fire. Verified against Temporal entity-pattern guidance."
+          },
+          {
+            "option": "Scheduled reaper bringing abandoned entities terminal",
+            "disposition": "preferred",
+            "rationale": "This IS the design's preferred alternative (entity-lifecycle discipline, P40 repair). Correctly identified as repairing the owning invariant rather than compensating. Consistent with prior per-session-task-queue reaping precedent (isolateAdvWorkerTaskQueues etc., all terminal)."
+          },
+          {
+            "option": "Split ADV state across multiple namespaces",
+            "disposition": "deferred",
+            "rationale": "Not discussed in the design. Would bound per-namespace running count but adds major cross-namespace query/worker-config complexity and is an implementation-level escape hatch, not a shape decision. The revisit trigger implicitly covers 'if growth becomes unbearable.' Acceptable to omit in a decision-only shape ADR; worth a one-line acknowledgment if a future affirmative revisit occurs (DONT1-adjacent)."
+          }
+        ],
+        "recommendation": "Proceed toward ADR approval AFTER restating shape argument #3. The NEGATIVE verdict is correct and well-supported by Temporal's canonical entity-workflow pattern plus four independent shape arguments; it should not be overturned. But claim #3's assertion that continue-as-new 'serializes pending signals into the next run' and is 'strictly safer' on signal grounds is refuted by Temporal docs and by ADV's own workflows.ts:2285-2288. Restate to the liveness framing (no spec amendment needed, fully in-scope edit to design.md, the change's deliverable). Spec-law is otherwise clear and C2/C3 are satisfied; alternatives are acceptably disposed. required_validation_consistency = caution only because of the claim #3 restatement; no other blockers."
+      },
+      "recommendation": "Proceed toward ADR-002 approval AFTER restating shape argument #3 to the liveness framing. The NEGATIVE verdict is architecturally sound: four independent shape arguments (#1 entity-mirror-correct, #2 cache-vs-mirror regression, #4 no Temporal guidance to complete idle entities — verified across docs.temporal.io/design-patterns/entity-workflow, the loyalty-points guide, and the control-plane blog, #5 real defect is entity-lifecycle discipline) justify it without claim #3. DEC-1's bundle-generation parity is verified correct at worker-bundle-manifest.ts:29,81-89 (signal-SET equality holds; DDC1/DDC2 add the needed re-verification caveats). DEC-2's self-completion-by-signal is the correct single-threaded arbiter and RequestCancel-returns-OK is confirmed (temporal #2860). Spec-law: no conflict — advance-delivery's signal/query-only law is respected (C2), DEC-4's established-vs-unestablished split satisfies C3, no spec requires a positive decision. The single caution is claim #3's false signal-preservation premise (violates DONT2, weakens AC3/SC2 precision): restate it to 'continue-as-new preserves entity LIVENESS, not signals; both paths drop undrained unregistered signals, which is exactly why DEC-5 is verdict-independent.' This small in-scope edit to design.md strengthens internal consistency. Alternatives acceptably disposed; multi-namespace split is the only omission and is fairly deferred to the revisit trigger.",
+      "follow_ups": [
+        "Restate design claim #3 to the liveness framing before design-gate approval (the one caution blocker).",
+        "Add a one-line acknowledgment in ADR-002 alternatives that multi-namespace state-splitting was assessed and deferred to the revisit trigger, to forestall a future 'you never considered it' round (DONT1-adjacent).",
+        "When rq-hib04 (setDefaultSignalHandler) is implemented downstream, verify it does not alter registered-signal dispatch (DDC3) and that its observability covers BOTH completion and continue-as-new paths, since both drop unregistered signals.",
+        "Note in the revisit-trigger section that the history_node x executions_visibility join is specific to the dev-server sqlite topology; a production Temporal deployment would need an equivalent visibility/history query restated in its own terms."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decideWorkflowHibernation",
+      "attempt": 1,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+      "task_id": "tk-f7fcf367f261",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f7fcf367f261"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "SC1-1",
+          "label": "blocker",
+          "file": "design.md",
+          "line": 1,
+          "what": "DEC-2–DEC-5 lack complete per-decision alternatives and consequences.",
+          "why": "SC1 requires rationale, alternatives, and consequences for every open-question decision.",
+          "fix": "Add concise alternatives and consequences to each DEC without changing the verdict."
+        },
+        {
+          "id": "SC3-1",
+          "label": "blocker",
+          "file": "design.md",
+          "line": 1,
+          "what": "Visible ADR text lacks evidence anchors for its ~500 MB/day rebuttal and the overturned closing/reclamation assumption.",
+          "why": "SC3 requires an anchor for every overturned proposal assumption.",
+          "fix": "Add direct measurement and terminal/retention anchors or cited evidence records."
+        },
+        {
+          "id": "AC7-1",
+          "label": "blocker",
+          "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+          "line": 86,
+          "what": "External claims F5–F7 lack source URLs; F8's service/worker source is unlinked.",
+          "why": "AC7 requires a source URL for every external claim.",
+          "fix": "Add authoritative URLs next to F5–F8 claims."
+        },
+        {
+          "id": "AC7-2",
+          "label": "blocker",
+          "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+          "line": 173,
+          "what": "ADV-specific audit assertions A3/A6 lack file:line anchors.",
+          "why": "AC7 requires a file:line anchor for every ADV-specific claim.",
+          "fix": "Add source/query or repository anchors, including the history_size_bytes NULL assertion."
+        }
+      ],
+      "nonblocking_findings": [
+        {
+          "id": "coverage-transport-1",
+          "label": "question",
+          "file": "design.md",
+          "line": 1,
+          "what": "adv_change_show truncated the final 5,538 of 26,498 artifact characters.",
+          "why": "DDC-tail evidence and complete DONT1 review cannot be claimed from the authorized output."
+        }
+      ],
+      "changes_made": [],
+      "wisdom_candidates": [
+        {
+          "type": "gotcha",
+          "content": "A global ADR alternatives/consequences section does not meet a contract requiring every DEC-n to record those elements."
+        }
+      ],
+      "verification": {
+        "tests_run": [
+          "oc-fresh status --repo /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation --json",
+          "source inspection: workflows.ts:2240-2299; plugin-init.ts:290-394; worker-bundle-manifest.ts:1-110; worker-heartbeat.ts:85-176; worker-roll.ts:120-229"
+        ],
+        "results": "fail",
+        "evidence": "Freshness current, behind=0, clean. Independent citations PASS: workflows.ts:2251-2284 is terminal completion and projects at 2268-2280 before drain at 2283; plugin-init.ts:357-364 scopes monitor OOP-only; worker-bundle-manifest.ts:29 includes workflows.js. AC1 ranges match heartbeat 99-117/169-176 and worker-roll 133-216. Coverage table: SC1 FAIL—ADR-002 has alternatives/consequences but DEC-2–5 do not each; SC2 PASS—architectural shape stated as basis and supporting context says it does not decide verdict; SC3 FAIL—DEC-1 and continue-as-new correction anchored, visible cost/reclamation rebuttals not; AC1 PASS—DEC-1 anchors required three files; AC2 PASS—DEC-2 self-signal/cancel/terminate resolution; AC3 PASS—shape basis and all four measurements; AC4 PASS—same epic verdict + distinct close-path gap; AC5 PASS—established/unestablished split and ~50x reason; AC6 PASS—rq-hib04 standalone; AC7 FAIL—F5–F8 URL gaps and A3/A6 anchor gaps. External URL spot-checks F1, F2, F3, F4, F8 dynamic-config portion; ADV-anchor spot-checks A1, A2, A4, A5 and F2 worked example. C2 PASS—no defineUpdate; C4 PASS—design gate done at 2026-08-04T23:56:26.366Z; DONT1 PASS for inspected content—no ruled-out mechanism re-argued, but tail unavailable."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Design artifact output transport truncated; final 5,538 characters unreviewed.",
+        "No artifacts changed: source selection and decision-record completion require owner action."
+      ],
+      "required_main_agent_actions": [
+        "Route SC1/SC3/AC7 gaps to the design owner or reenter design; do not alter the NEGATIVE verdict.",
+        "Obtain sanctioned full/range design artifact read, then rerun tail DDC/DONT1 verification.",
+        "Add the missing skill URLs and ADV file:line anchors, then rerun AC7."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decideWorkflowHibernation",
+      "attempt": 2,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+      "task_id": "tk-f7fcf367f261",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f7fcf367f261"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "ac7-1",
+          "label": "blocker",
+          "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+          "line": 86,
+          "what": "Several external factual sections have no claim-local source URL, and one ADV-specific audit fact has no file:line anchor.",
+          "why": "AC7 requires every external factual claim to carry a source URL and every ADV-specific claim to carry a file:line anchor. F5 (lines 86-102), F6 (104-109), and F7 (111-118) have no URLs; F4's termination/drain assertion (79-84) is also uncited. A3's claimed ADV audit counts (173-175) lack a file:line anchor.",
+          "fix": "Add direct, claim-local authoritative URLs for the uncited external assertions and a durable ADV file:line anchor for A3's audit result (or remove the unsupported numeric assertion)."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [
+          "oc-fresh status --repo /home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation --json",
+          "node -e YAML frontmatter parse for ~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md"
+        ],
+        "results": "pass",
+        "evidence": "Worktree current and clean. SKILL.md exists; YAML parser accepted its frontmatter. Counted 13 source-URL occurrences (7 distinct URLs) and 13 distinct file:line anchors. SC1 passes: all five DEC rows explicitly give alternatives, rejected rationale, and consequences. SC3 passes: all five assumptions have evidence anchors; row 2's stated inputs, calculation, and resulting rate count as an evidence anchor because the derivation is explicit and auditable, rather than a bare assertion. AC7 remains blocked by the cited missing claim-local URLs and A3 anchor."
+      },
+      "scope_drift": null,
+      "risks": [
+        "Skill sources are not uniformly claim-local, so future lifecycle decisions could treat uncited factual assertions as verified."
+      ],
+      "required_main_agent_actions": [
+        "Add the minimal AC7 citations/ADV anchor described in ac7-1, then rerun this narrow AC7 review.",
+        "Do not revisit SC1 or SC3; both pass on attempt 2."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decideWorkflowHibernation",
+      "attempt": 3,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+      "task_id": "tk-f7fcf367f261",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f7fcf367f261"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "ac7-f7-1",
+          "label": "blocker",
+          "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+          "line": 130,
+          "what": "F7 says no archival configuration reclaims open workflow history.",
+          "why": "Its only cited source establishes retention applies to closed executions; it does not establish the archival assertion.",
+          "fix": "Remove the archival clause or add a source that explicitly proves it."
+        },
+        {
+          "id": "ac7-f8-1",
+          "label": "blocker",
+          "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+          "line": 143,
+          "what": "F8 cites `service/worker/service.go` without a URL for the default and start-dev assertions.",
+          "why": "AC7 requires a source-URL citation for every external claim; the linked dynamic-config page does not itself establish that start-dev does not override the setting.",
+          "fix": "Cite pinned URLs for the Worker Service default and start-dev configuration, or narrow to what the existing URL proves."
+        },
+        {
+          "id": "ac7-a6-1",
+          "label": "blocker",
+          "file": "~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+          "line": 215,
+          "what": "A6 has no ADV file:line or provenance anchor.",
+          "why": "Its SQLite schema/measurement claims are ADV-specific and AC7 requires an anchor.",
+          "fix": "Add the relevant query/schema file:line anchor or a measurement-style provenance anchor equivalent to A3."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "Read skill directly; frontmatter valid YAML and metadata.review_status is present. External fact citations: F1 PASS; F2 PASS; F3 PASS; F4 PASS (the cited https://github.com/temporalio/temporal/issues/2860 is present); F5 PASS (PollerInfo source supports identity, last_access_time, rate_per_second, and worker-supplied version/deployment fields, not handlers); F6 PASS (Cloud limits scopes in-flight command limits per Workflow Execution); F7 FAIL (archival wording exceeds cited retention source); F8 FAIL (non-URL source path / unsupported start-dev clause). ADV anchors: A1 PASS; A2 PASS; A3 PASS (change + dataset path + server version is an appropriate provenance anchor for a database measurement, not a code claim); A4 PASS; A5 PASS; A6 FAIL (no anchor)."
+      },
+      "scope_drift": null,
+      "risks": [
+        "AC7 remains unsatisfied until the three minimal evidence corrections are made."
+      ],
+      "required_main_agent_actions": [
+        "Correct F7, F8, and A6 evidence only; then rerun AC7 review."
+      ]
+    },
+    {
+      "schema_version": "1.0",
+      "change_id": "decideWorkflowHibernation",
+      "attempt": 4,
+      "workdir_used": "/home/jon/.local/share/opencode/worktree/bdf259aa162ae192af5b18899ccdc653b085528d/change/decideWorkflowHibernation",
+      "task_id": "tk-f7fcf367f261",
+      "scope": {
+        "kind": "task",
+        "task_id": "tk-f7fcf367f261"
+      },
+      "agent": "adv-reviewer",
+      "phase": "review",
+      "verdict": "BLOCKED",
+      "blocking_findings": [
+        {
+          "id": "AC7-F4-1",
+          "label": "blocker",
+          "file": "../../../../../../.config/opencode/skills/agent-temporal-lifecycle/SKILL.md",
+          "line": 79,
+          "what": "F4 states that external termination skips handler drain and abandons in-flight work, but its only citation is a cancellation issue.",
+          "why": "The cited issue supports the RequestCancel completed-workflow behavior, not the separate termination/drain claim. This remains stronger than its source and fails AC7's per-external-claim sourcing requirement.",
+          "fix": "Add a source URL that directly documents termination's handler-drain semantics, or remove/narrow the sentence to the cited cancellation fact."
+        }
+      ],
+      "nonblocking_findings": [],
+      "changes_made": [],
+      "wisdom_candidates": [],
+      "verification": {
+        "tests_run": [],
+        "results": "n/a",
+        "evidence": "Read-only AC7 audit. File exists; YAML frontmatter contains metadata.review_status. External fact audit: F1 pass; F2 pass; F3 pass; F4 fail (lines 79-80 termination/drain subclaim unsupported by its cited cancellation issue); F5 pass; F6 pass; F7 pass; F8 pass. ADV-anchor audit: A1 pass (manifest/heartbeat/roll/init anchors verified); A2 pass (init/heartbeat anchors verified); A3 pass (provenance supplied); A4 pass (workflows.ts:2268-2284 verified); A5 pass (terminate anchors verified); A6 pass (change, dataset, server version, SQLite persistence, enum encoding, and DDC5 provenance supplied). Attempt-3 fixes confirmed: F7 archival wording removed and scope limit present; F8 uses pinned GitHub URL and labels start-dev assertion inference/observation; A6 includes requested provenance. No further overclaim found beyond F4."
+      },
+      "scope_drift": null,
+      "risks": [
+        "AC7 remains unmet until F4's termination/drain assertion is directly sourced or removed."
+      ],
+      "required_main_agent_actions": [
+        "Apply the minimal F4 correction, then rerun AC7 review."
+      ]
+    }
+  ],
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-04T21:36:44.078Z",
+      "completed_by": "user",
+      "approval_evidence": "Command-as-approval: user invoked `/adv-discover decideWorkflowHibernation` while proposal checkpoint pending. Problem statement + proposal confirmed, carrying settled/ruled-out ledger from five prior review rounds in parent change resolveAdvPersistenceRecovery.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "58c577377bb11fa9621013ec9e6040443e37753be950af7f895b491f07f21309",
+        "non_whitespace_chars": 4078,
+        "checked_at": "2026-08-04T20:19:34.418Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-04T23:25:35.321Z",
+      "completed_by": "agent",
+      "approval_evidence": "Contract minted: 21 items (SC1-3, AC1-7, C1-4, DONT1-3, OOS1-4). Criteria approved via Tier A inline approval after two open-question rounds. Discovery resolved both blocking preconditions, refuted the motivating premise by direct measurement, and reframed the decision criterion to architectural shape per user direction.",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "non_whitespace_chars": 8643,
+        "checked_at": "2026-08-04T20:19:34.419Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-04T23:56:26.366Z",
+      "completed_by": "agent",
+      "approval_evidence": "ADR-002 recorded with NEGATIVE verdict on architectural-shape grounds. DEC-1 through DEC-5 resolve both blocking preconditions and dispose of epic scope, orphan pool, and silent signal discard. Validator: CAUTION — one in-scope blocker (DONT2/AC3/SC2: false claim that continue-as-new preserves pending signals) raised, verified against Temporal docs and workflows.ts:2286, and resolved by restating shape argument 3 on liveness grounds with the correction recorded explicitly. Verdict unaffected; four independent arguments stand. 6 DDCs. No spec conflict.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "3659803747ef3b4c631e316247cd019434f89824c35c9811af191e998f2aa727",
+        "non_whitespace_chars": 21483,
+        "checked_at": "2026-08-04T20:19:34.420Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-05T00:18:41.836Z",
+      "completed_by": "agent",
+      "approval_evidence": "User approved prep plan via Tier A inline approval (\"approve\"). 3 tasks, 21 contract items, 0 uncovered AC. Decision-only change: AC1-AC6 already delivered by design gate (ADR inline in design.md), so no implementation tasks by construction. NO_DELTAS warning expected — rq-hib01/02/03/05 were contingent on an affirmative verdict; verdict is negative and rq-hib04 routes to follow-up."
+    },
+    "execution": {
+      "status": "pending"
+    },
+    "acceptance": {
+      "status": "pending"
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+      "approvedAt": "2026-08-04T23:25:24.837Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "The ADR records a decision for every open question with rationale, alternatives, and consequences, so a seventh review round does not re-litigate resolved ground.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "The hibernation verdict is justified on architectural-shape grounds against Temporal's documented entity-workflow guidance, with measured cost as supporting context rather than the deciding factor.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Every proposal assumption that discovery overturned is recorded with its evidence anchor.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given the proposal asserts no running-worker identity report exists and its cost is unestimated, when the ADR is written, then it records that assertion as refuted and names bundle-generation parity (`plugin/src/temporal/worker-bundle-manifest.ts:29`, `plugin/src/temporal/worker-heartbeat.ts:99-117`, `plugin/src/temporal/worker-roll.ts:133-216`) as the resolved mechanism.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the proposal asserts no running-worker identity report exists and its cost is unestimated",
+          "trigger": "the ADR is written",
+          "outcome": "it records that assertion as refuted and names bundle-generation parity (`plugin/src/temporal/worker-bundle-manifest.ts:29`, `plugin/src/temporal/worker-heartbeat.ts:99-117`, `plugin/src/temporal/worker-roll.ts:133-216`) as the resolved mechanism"
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given the hibernation and terminal race was unresolved, when the ADR is written, then it records self-completion by signal as the resolution and records external cancel or terminate as unusable because RequestCancelWorkflowExecution returns OK against an already-completed workflow.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the hibernation and terminal race was unresolved",
+          "trigger": "the ADR is written",
+          "outcome": "it records self-completion by signal as the resolution and records external cancel or terminate as unusable because RequestCancelWorkflowExecution returns OK against an already-completed workflow"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given measurement showing 71.9 MB unreclaimable, 0.8 to 1.6 MB per day growth, static idle workflows, and healthy retention, when the ADR records its hibernation verdict, then the verdict's stated basis is architectural shape and the measurements appear as supporting context.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "measurement showing 71.9 MB unreclaimable, 0.8 to 1.6 MB per day growth, static idle workflows, and healthy retention",
+          "trigger": "the ADR records its hibernation verdict",
+          "outcome": "the verdict's stated basis is architectural shape and the measurements appear as supporting context"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given 40 epic workflows are running and none has ever closed, when the ADR is written, then epic workflows are covered by the same verdict and the absence of a routine epic close path is recorded as a distinct finding.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "40 epic workflows are running and none has ever closed",
+          "trigger": "the ADR is written",
+          "outcome": "epic workflows are covered by the same verdict and the absence of a routine epic close path is recorded as a distinct finding"
+        }
+      },
+      {
+        "id": "AC5",
+        "kind": "acceptance_criterion",
+        "text": "Given the orphan history pool of roughly 93.5 MB across 20 workflows, when the ADR records it, then it separates established fact (history scanner healthy, worker.historyScannerEnabled defaults true, ADV calls only terminate and never delete or reset) from unestablished mechanism (what produces orphans and whether the set is still growing), and states the latter as unresolved.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the orphan history pool of roughly 93.5 MB across 20 workflows",
+          "trigger": "the ADR records it",
+          "outcome": "it separates established fact (history scanner healthy, worker.historyScannerEnabled defaults true, ADV calls only terminate and never delete or reset) from unestablished mechanism (what produces orphans and whether the set is still growing)",
+          "boundaries": [
+            "states the latter as unresolved"
+          ]
+        }
+      },
+      {
+        "id": "AC6",
+        "kind": "acceptance_criterion",
+        "text": "Given signals for unregistered names are silently discarded on workflow completion, when the ADR is written, then rq-hib04 is recorded as standalone hardening whose value does not depend on the hibernation verdict.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "signals for unregistered names are silently discarded on workflow completion",
+          "trigger": "the ADR is written",
+          "outcome": "rq-hib04 is recorded as standalone hardening whose value does not depend on the hibernation verdict"
+        }
+      },
+      {
+        "id": "AC7",
+        "kind": "acceptance_criterion",
+        "text": "Evidence: sourced Temporal lifecycle findings captured at `~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md` verified by file existence and by source-URL citation for each external claim.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "evidence",
+          "subject": "sourced Temporal lifecycle findings captured at `~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md` verified",
+          "method": "file existence and by source-URL citation for each external claim"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must not implement hibernation, orphan reclamation, or setDefaultSignalHandler in this change, because it is decision-only per the parent change.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not implement hibernation, orphan reclamation, or setDefaultSignalHandler in this change, because it is decision-only per the parent change"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must preserve the signal and query only workflow surface, with no defineUpdate in workflow-reachable code.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must preserve the signal and query only workflow surface, with no defineUpdate in workflow-reachable code"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must not present the orphan root cause as established, and must not run any destructive Temporal or SQLite command against live state.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not present the orphan root cause as established, and must not run any destructive Temporal or SQLite command against live state"
+        }
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Must obtain ADR approval at the design gate before any downstream implementation begins.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must obtain ADR approval at the design gate before any downstream implementation begins"
+        }
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not re-litigate the ruled-out mechanisms without new evidence.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not assert that an existing mechanism guarantees a property without tracing declaration through consumer to observable effect.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not defer the decision by spawning more per-symptom tickets.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "OOS1",
+        "kind": "out_of_scope",
+        "text": "The read-path 8s deadline in `plugin/src/temporal/retry-wrapper.ts:203`, owned by fixHealthViewTimeoutHealth, fixChangeReadTimeouts, and fixTemporalReadDiagnosis.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS2",
+        "kind": "out_of_scope",
+        "text": "Worker process memory of roughly 3 GB across 3 workers, a distinct resource with no workflow-lifecycle interaction.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS3",
+        "kind": "out_of_scope",
+        "text": "Per-session task-queue accumulation, already solved by four terminal changes.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      },
+      {
+        "id": "OOS4",
+        "kind": "out_of_scope",
+        "text": "Implementing any reclamation of orphaned history.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+        "verificationRequired": false,
+        "evidencePolicy": "not_applicable",
+        "status": "approved",
+        "notRequiredReason": "Out-of-scope contract item"
+      }
+    ],
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given the proposal asserts no running-worker identity report exists and its cost is unestimated, when the ADR is written, then it records that assertion as refuted and names bundle-generation parity (`plugin/src/temporal/worker-bundle-manifest.ts:29`, `plugin/src/temporal/worker-heartbeat.ts:99-117`, `plugin/src/temporal/worker-roll.ts:133-216`) as the resolved mechanism.",
+    "Given the hibernation and terminal race was unresolved, when the ADR is written, then it records self-completion by signal as the resolution and records external cancel or terminate as unusable because RequestCancelWorkflowExecution returns OK against an already-completed workflow.",
+    "Given measurement showing 71.9 MB unreclaimable, 0.8 to 1.6 MB per day growth, static idle workflows, and healthy retention, when the ADR records its hibernation verdict, then the verdict's stated basis is architectural shape and the measurements appear as supporting context.",
+    "Given 40 epic workflows are running and none has ever closed, when the ADR is written, then epic workflows are covered by the same verdict and the absence of a routine epic close path is recorded as a distinct finding.",
+    "Given the orphan history pool of roughly 93.5 MB across 20 workflows, when the ADR records it, then it separates established fact (history scanner healthy, worker.historyScannerEnabled defaults true, ADV calls only terminate and never delete or reset) from unestablished mechanism (what produces orphans and whether the set is still growing), and states the latter as unresolved.",
+    "Given signals for unregistered names are silently discarded on workflow completion, when the ADR is written, then rq-hib04 is recorded as standalone hardening whose value does not depend on the hibernation verdict.",
+    "Evidence: sourced Temporal lifecycle findings captured at `~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md` verified by file existence and by source-URL citation for each external claim."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\n191 running Temporal workflows, growing monotonically with lifetime change count. Closing changes does not reclaim them. ADV needs a lifecycle state that lets a stale change's workflow complete and be recreated on demand.\n\n## Starting position — what five review rounds already settled\n\nThis change starts from a verified position rather than from zero. The following are **established** and should not be re-litigated without new evidence:\n\n**Ruled out as mechanisms:**\n- *In-workflow durable signal queue.* Temporal workflow code cannot perform filesystem or network I/O; a handler cannot persist a `queuedSignals[]` to disk. Any design that \"persists from a handler\" is invalid by construction.\n- *`continueAsNew` as the bounding mechanism.* Bounds history size, not running count.\n- *Auto-archive, creation ceiling, shared workflow, lazy-spawn.* Each rejected with reasons recorded in the parent change's design.md.\n- *`evaluateWorkerDeploymentReadiness` as a version-skew gate.* It governs Worker Versioning readiness (build IDs, ramping, drainage), has no signal/handler parity concept, and records ADV's current `singleton_replace_in_place` topology as explicitly not-ready.\n- *`dualWriteAfterMutation` as a durability basis.* It is labeled \"Best-effort by design: this is a cache-refresh path\" (`plugin/src/storage/store-temporal/index.ts:411`) and skips the disk write on non-`confirmed` readback (`:399`), empty readback (`:405`), or poisoned workflow (`:366`) — precisely the degraded conditions under which hibernation would fire.\n- *`verifyDeployedBuildIdentity` alone as a parity gate.* It inspects the bundle on disk, not the code a long-lived worker process is executing.\n\n**Established as sound:**\n- The completion path already exists and already drains handlers correctly: `plugin/src/temporal/workflows.ts:2221-2240` completes on terminal status after `await wf.condition(wf.allHandlersFinished)`. Hibernation is a new trigger on that path, not new machinery.\n- All `wf.setHandler` calls register synchronously before the first await (`:1703-2209` vs `:2221`), so within one worker build no known-name signal is buffered-without-handler at hibernation time.\n- `assertDurablePersist` / `DiskPersistOutcome` (`plugin/src/storage/store-temporal/disk-persist.ts:31,44`) is the real durability gate. Only a `persisted` outcome is meaningful for hibernation; `skipped` means `archived` and signals a terminal race, not a benign no-op.\n- The operation ledger (`plugin/src/temporal/change-state.ts:376-510`) dedupes retried signals by `operation_id`, bounded to 1000 entries, making resume-then-retry safe for post-completion signal races.\n- `plugin/src/temporal/recovery-classification.ts:104-111,138` already classifies the already-completed / not-running error family (`missing_workflow`) that a post-completion signal produces.\n\n---\n\n# Discovery Findings (2026-08-04)\n\nDiscovery set out to firm the two preconditions the proposal named as blocking. It resolved both — and in doing so measured the motivating premise, which does not hold as stated.\n\n**Headline: the two \"blocking\" preconditions are cheap or already solved. The premise they were blocking is the thing that failed verification.**\n\n## Finding 1 — Precondition 1 (running-worker identity) is ALREADY SOLVED in this repo\n\nThe proposal states: *\"No running-worker identity report exists today… This is new work whose cost has not been estimated.\"*\n\n**This is incorrect.** A running-worker identity mechanism exists, is liveness-gated, and is actively self-healing. Full trace (declaration → sole writer → consumer → observable effect, per P38):\n\n| Link | Anchor | Behavior |\n|---|---|---|\n| Generation defined | `plugin/src/temporal/worker-bundle-manifest.ts:29,81-89` | `generation` = SHA-256 over `worker.js` **+ `workflows.js`** file hashes with names. `workflows.js` is the file carrying every `wf.setHandler` registration — so the generation is a precise proxy for \"which signal set does this code register\". |\n| Declared on the lock | `plugin/src/temporal/worker-lock.ts:33,87-89` | `bundle_generation` written at acquire. |\n| Sole post-acquire writer | `plugin/src/temporal/worker-heartbeat.ts:99-117,169-176` | `renewLockNow` persists `bundle_generation` + `last_heartbeat` in one atomic tmp+rename, every beat (10s). Deliberately the only writer — a second RMW path would race and lose updates. |\n| Drift detection | `plugin/src/temporal/worker-roll.ts:133-155` | Every beat compares on-disk manifest generation against the generation the running child was spawned with (tracked in-memory, lock value as fallback). Owner-pid gated. |\n| Drift response | `plugin/src/temporal/worker-roll.ts:197-216` | On drift → `restartChild()` (graceful SIGTERM drain, readiness-gated) → record new generation → stamp lock. Single-flight latched. |\n| Safety gate | `plugin/src/temporal/worker-roll.ts:160-195` | Refuses to roll onto a candidate bundle that fails replay verification unless `ADV_FORCE_DEPLOY=1`. |\n| Freshness bound | `worker-lock.ts:7,210-220` | 60s stale-heartbeat grace; pid liveness probe. |\n\n**Consequence.** \"Is the running worker executing the deployed workflow code?\" is answerable now, cheaply, from local state: `in-memory/lock bundle_generation == on-disk manifest generation` AND heartbeat fresh AND owner pid alive. No new Temporal API, no worker versioning adoption, no query-probe. The proposal's rejection of `verifyDeployedBuildIdentity` was correct about that function — but concluded no mechanism exists, missing the three modules that supply the other half (binding *running child* to *generation*).\n\nThis is a sixth instance of the failure mode the problem statement names — but inverted: the design **under**-credited an existing mechanism instead of over-crediting one.\n\n**Independent corroboration (external research):** Temporal offers **no** native API that reports a running worker's registered handler set. `DescribeTaskQueue` pollers expose only an operator-supplied `identity` string; `versionsInfo` / `GetWorkerTaskReachability` / `DescribeWorkerDeployment` expose Build IDs and reachability, and `buildId` is itself an operator-assigned claim, not server-introspected from code. `DescribeWorker` does not exist. A workflow **query** could serve as a probe (queries are served by a live worker executing real code, non-replaying), but it is sound only under `VersioningBehavior.PINNED` — otherwise any polling build may answer, giving a TOCTOU. **ADV's bundle-generation mechanism is strictly cheaper and already deployed.**\n\n## Finding 2 — Precondition 2 (hibernation/terminal race) is cheap\n\nSourced from Temporal docs/SDK:\n\n- **Self-completing signal is the correct primitive.** The workflow is the single-threaded arbiter of its own state, so \"complete only if still non-terminal\" is decided inside the workflow with no external race. (`docs.temporal.io/handling-messages`)\n- **External cancel/terminate is wrong.** `RequestCancelWorkflowExecution` is best-effort and returns OK against an already-completed workflow — it cannot serve as a guard. (`temporalio/temporal#2860`)\n- **The close-window race is lossless when a handler exists.** A signal arriving during the final workflow task fails the WFT with `UNHANDLED_COMMAND`, rolls back, and reprocesses. (`failed_cause.proto`)\n- **Recreation works.** `WorkflowIdReusePolicy.ALLOW_DUPLICATE` (the default) permits starting the same workflow id after close; `signalWithStart` against a completed id starts a new run and delivers the signal. That *is* the recreate-on-demand mechanism. ADV sets no explicit reuse/conflict policy today (`plugin/src/temporal/operations.ts:947-967`), so the permissive default already applies.\n\n**Residual hazard, and it is real:** a signal sent for a name the running worker does **not** register is buffered in SDK memory and **silently discarded** when the workflow completes — no error, no warning. Hibernation widens that window. Mitigation is cheap and independent: install `setDefaultSignalHandler` to log unhandled signal names, and hold an add-only invariant on the signal set across deployed builds.\n\n## Finding 3 — The motivating premise does not survive measurement\n\nMeasured directly against the live server (`temporal` CLI 1.7.2 / Server 1.31.1, local dev server, SQLite, `default` namespace, 24h retention):\n\n| Claim | Measured | Verdict |\n|---|---|---|\n| 191 running workflows | **189** — 149 `adv/change/`, 40 `adv/epic/`, 15 projects, zero non-ADV | Substantially correct |\n| Running count is costing something | Server **531 MB RSS / 7.9% CPU**. Task queue backlog **0**, add rate **0** — the 189 are idle, not working | **Not supported** |\n| Read latency pain from count | `workflow count` ~60ms · `list --limit 200` ~125ms · `describe` ~65ms · `cluster health` ~58ms | **Not supported** |\n| Session's 8s Temporal timeouts are caused by workflow count | `TEMPORAL_READ_DEADLINE_BUDGET_MS = 8_000` (`plugin/src/temporal/retry-wrapper.ts:203`) is a **per-request aggregate** wall-clock budget covering all retries/backoff for one read. Independent of running-workflow count. | **Refuted — different root cause** |\n| `continueAsNew` is irrelevant because it bounds history not count | True as stated, but: threshold is 5000 events (`contracts.ts:953`); **max observed history across all 149 running changes is 2320 (46%)**; `StartTime == OriginalStartTime` on every sampled workflow — **no ADV workflow has ever continued-as-new** | Mechanism exists, never yet exercised |\n\n**The one real cost slope:** the SQLite DB is **410 MB, of which `history_node` is 380 MB (93%)**, growing **~500 MB/day**. Namespace retention is 24h — but **retention only reclaims CLOSED workflows.** 189 never-closing workflows hold their history permanently. *That* is the defensible cost argument for hibernation, and it is a different argument from the one the proposal makes. It is a slope, not a wall: the host has 47 GB available and loadavg is not workflow-bound.\n\n## Finding 4 — Root cause is portfolio hygiene, not Temporal lifecycle (P40)\n\nAge distribution of the 149 running change workflows: **112 are ≥ 1 week old**; only 9 are < 1 day. Cross-referencing the change inventory (245 total): the long tail is `status: draft` changes parked for weeks at `phase: release` or `phase: proposal` — created, worked, and abandoned without ever reaching `archived` or `closed`.\n\nTermination is **not** broken: the server holds **196 Terminated + 26 Completed** workflows. The close path works. The growth driver is that **changes are never brought to a terminal state**, so their workflows correctly stay running.\n\nPer P40 (root-cause-first): hibernation is a *compensating* mechanism for accumulation whose owning mechanism — bringing changes to terminal state — is under-exercised, not defective. ADV already ships the owning surface (`/adv-triage`, the `adv-cleanup` skill, `adv_change_close`, `adv_change_archive`). Running a portfolio sweep would reclaim the same resource with no new machinery, no new lifecycle state, and no silent-signal-loss hazard.\n\nHibernation remains defensible as *defense-in-depth* for the residual case (a project legitimately holding many long-lived open changes) — but P40 permits defense-in-depth only for an independently stated failure mode that already has a primary control. The primary control here has not been exercised.\n\n## Discovery Checklist\n\n| # | Step | Result |\n|---|---|---|\n| 1 | Skill Discovery | PASS — 28 skills scanned; no pending-review; **GAP** in core domain (Temporal durable-execution lifecycle). Creation deferred pending the build/no-build decision. |\n| 2 | Prior Research Extension | PASS — extends parent `resolveAdvPersistenceRecovery` agreement + design (ADR-002 handoff). New findings: 1, 3, 4 below. No `docs/*-prep.md` pack exists. |\n| 3 | Conflict & Related-Work Scan | PASS — inventory **COMPLETE** (245/245, `hydrationStats.omitted: 0` on every page). No active conflict. |\n| 4 | Edge Case Investigation | PASS — see Edge Cases |\n| 5 | Design Question Depth | PASS — see Open Design Questions |\n| 6 | Draft Spec Deltas | PASS (conditional) — deltas drafted but contingent on the build/no-build decision |\n| 7 | P25 Related-Pattern Scan | PASS — see Related Pattern Scan |\n| 8 | LBP Check | PASS — external-solution check ran (Temporal official docs, SDK source, community) |\n| 9 | Completeness Verification | PASS — see Completeness Verification |\n\n## Conflict Scan\n\nInventory complete: 245 changes across 5 pages, `hydrationStats.omitted: 0` throughout. **No active change conflicts with this one.** All 33 workflow-lifecycle-adjacent changes are `closed` or `archived`.\n\nDirectly relevant prior art (all terminal):\n- `autoRollStaleWorkerBundle` (archived, 5/5) — **built the worker-roll drift/self-heal machinery that dissolves precondition 1**\n- `addWorkerBundleFreshness` (closed, 6/6) — worker-bundle freshness release gate\n- `fixShippedWorkflowTermination` (closed, 9/9) — workflow termination path\n- `retireAgendaWorkflow` (archived, 7/7) — precedent for retiring an entire workflow class\n- `fixWorkflowLifecycleMap` (archived, 3/3), `recoverRetire6Poisoned` (closed), `fixWedgedWorkflowRecovery` (archived), `deepScanTemporalWorkflowHot` (archived)\n- `makeReadsDiskAuthoritative`, `gateMutationSuccessDisk`, `makeToolReadsWorkerFree`, `fixMultiSessionTemporalRead` — the disk-authoritative foundation the parent ADR builds on\n\nAdjacent-but-distinct active changes (read-path latency, **not** workflow count — Finding 3 confirms these own the 8s timeout symptom): `fixHealthViewTimeoutHealth`, `fixTemporalReadDiagnosis`, `fixChangeReadTimeouts`.\n\nParent lineage validated: `resolveAdvPersistenceRecovery` exists, status `archived`, split documented and user-approved in its agreement.\n\n## Current State\n\n- One Temporal workflow per change (`adv/change/{projectId}/{changeId}`) + per epic. Completes only on `archived`/`closed`, or continues-as-new at 5000 events.\n- 189 running / 420 total; 15 projects; 410 MB SQLite (93% history).\n- Worker: out-of-process Node child (`worker-multi.ts:374-378`), lock-owned, heartbeat 10s, self-rolls on bundle drift.\n- Lifecycle states: `ChangeStatus` ∈ {draft, archived, closed}; `ChangeLifecycleState` ∈ {open, archived, closed} (`plugin/src/types/changes.ts:270-303`). **No hibernated/suspended state exists** (zero matches for `hibernat*` in `plugin/src/`).\n- List filtering: `includeArchived` / `includeClosed` booleans + `ChangeListStatusFilterSchema` (`types/changes.ts:315-329`, `tools/change.ts:1244-1286`) — a hibernated marker could reuse this shape.\n\n## Edge Cases\n\n**Gap A — hibernation trigger fires against a change that is concurrently going terminal**\n1. Change archived between candidate selection and precondition evaluation → self-completing signal observes `archived` first and completes on the normal terminal path; hibernation is a no-op. Safe by construction.\n2. `assertDurablePersist` returns `skipped` — which means `archived`, not a benign no-op. Treating `skipped` as success would hibernate a change mid-archive.\n\n**Gap B — signal arrives for a hibernated (completed) workflow**\n1. Known signal name, workflow completed → `signalWithStart` under `ALLOW_DUPLICATE` recreates and delivers. Operation ledger dedupes if the host retries. Safe.\n2. Signal name the *running* build does not register → buffered in SDK memory, **silently discarded on completion**. No error surface today. This is the one genuinely unsafe path, and it exists independently of hibernation — hibernation only widens the window.\n\n**Gap C — recreation from disk projection**\n1. Disk projection is stale relative to the completed workflow's final state (`dualWriteAfterMutation` skipped) → recreated workflow seeds from stale state, silently losing the delta.\n2. Disk projection missing entirely → recreation has no seed; must fail typed rather than create an empty workflow.\n\n**Gap D — worker generation drift at hibernation time**\n1. Deploy lands between drift check and hibernation signal → next beat (≤10s) rolls the worker; hibernation must re-verify rather than trust a stale check.\n2. Worker lock heartbeat stale (>60s) or owner pid dead → running-generation claim is unfounded; hibernation must suppress, not assume.\n\n## Open Design Questions\n\n**Q1 — Should hibernation be built at all?**\n- *Trust model:* **user-only.** This is a cost/benefit judgment about acceptable resource growth, not a technical question.\n- *Blast radius:* Building it adds a lifecycle state, a trigger, a recreation path, and a silent-signal-loss surface, for a benefit measured at ~120 MB of currently-unreclaimable history growing ~500 MB/day gross on a host with 47 GB free. Not building it leaves the slope in place, mitigated by portfolio hygiene.\n- *Alternatives:* (a) portfolio sweep only — bring stale changes terminal via existing tooling; (b) hibernation as designed; (c) sweep now + revisit hibernation if the slope persists after the tail is cleared.\n\n**Q2 — If built, what is the running-worker precondition?** *(agent-resolvable, resolved)*\n- *Trust model:* agent. **Resolved:** compare lock/in-memory `bundle_generation` to on-disk manifest generation, gated on heartbeat freshness (60s) and owner-pid liveness. No new mechanism. Rejected: Temporal worker versioning (`PINNED`) + query-probe — strictly more expensive, requires adopting a versioning topology the repo has already recorded as not-ready.\n\n**Q3 — If built, how does completion get triggered?** *(agent-resolvable, resolved)*\n- *Trust model:* agent. **Resolved:** a self-completing signal handled inside the workflow, releasing the existing `wf.condition` at `workflows.ts:2221` after `allHandlersFinished`. Rejected: client-side `terminate` (destroys handler drain) and `RequestCancelWorkflow` (best-effort, returns OK against completed workflows — cannot guard).\n\n**Q4 — Should `setDefaultSignalHandler` be installed regardless of the hibernation decision?**\n- *Trust model:* joint. Silent signal discard is a live hazard today, independent of hibernation. Cheap, additive, purely observability. Recommend yes either way.\n\n## Draft Spec Deltas\n\nContingent on Q1 resolving affirmative. If Q1 resolves \"no build\", only `rq-hib04` survives as a standalone hardening delta.\n\n- **rq-hib01 — Hibernation precondition is bundle-generation parity.** Given a hibernation candidate, when preconditions are evaluated, then hibernation proceeds only if the worker lock's `bundle_generation` equals the on-disk manifest generation, the heartbeat is within its grace window, and the owner pid is alive; otherwise hibernation is suppressed and the reason recorded.\n- **rq-hib02 — Hibernation completes via self-signal, never external termination.** Given a change selected for hibernation, when hibernation is triggered, then it is delivered as a signal the workflow handles itself, completing after `wf.condition(wf.allHandlersFinished)`; external `terminate`/`cancel` must not be used.\n- **rq-hib03 — Recreation is durability-gated.** Given a signal for a hibernated change, when the host recreates the workflow, then the seed derives from a disk projection whose last write was a `persisted` `DiskPersistOutcome`; a `skipped` or `failed` outcome must fail typed rather than seed from unverified state.\n- **rq-hib04 — Unhandled signal names are observable.** Given a signal for a name the running workflow build does not register, when it is received, then a default signal handler records the name and change id; silent discard must not be the only outcome. *(Standalone value — survives a \"no build\" decision.)*\n- **rq-hib05 — Hibernated changes remain visible.** Given a hibernated change, when `adv_change_list` is called with default arguments, then the change appears with a hibernation marker; it must not require an opt-in filter.\n\n## Related Pattern Scan\n\nPattern class: *\"long-lived resource per entity, entity count unbounded, no lifecycle terminator.\"*\n\n- **`adv/epic/` workflows — same pattern, same defect.** 40 running, 40 total, **zero ever closed**. Epics have the identical continue-as-new/terminal structure (`workflows.ts:2494-2522`). Any hibernation decision applies to epics too; a portfolio sweep does not, since epics have no equivalent close path in routine use.\n- **Per-session task queues** — `advance-{projectId}-{sessionId}`. Previously accumulated; already addressed by `isolateAdvWorkerTaskQueues`, `adoptOrphanedSessionQueues`, `autoAdoptOrphanSessionQueues`, `reapOrphanAdvWorkers` (all terminal). Precedent: ADV has solved this exact pattern class before, by reaping rather than hibernating.\n- **Worker processes** — 3 concurrent workers measured at ~3 GB RSS combined, ~6× the Temporal server's own 531 MB. Not in scope, but worth noting the resource conversation is dominated by workers, not workflows.\n\n## Completeness Verification\n\n**Problem-completeness — was the full problem identified, or only a symptom?** *Confidence: high.* The proposal identified a symptom (running count) and attributed it to a missing lifecycle state. Measurement shows the count is real but harmless, the close path works, and the actual driver is 112 abandoned changes ≥1 week old. The full problem is portfolio accumulation; running-workflow count is its shadow. Epic workflows (40, never closed) were surfaced as an in-scope parallel surface.\n\n**Solution-scope — is the full intended solution scoped?** *Confidence: high.* The proposal scoped one mechanism (hibernation). Discovery surfaced two others addressing the same cost: portfolio sweep (existing tooling, no new machinery) and `setDefaultSignalHandler` (independent hazard). Both are now explicit options rather than silent omissions.\n\n**Sole-entry claim:** none relied upon. The change makes no single-chokepoint claim for a cross-cutting operation; the completion path at `workflows.ts:2221-2240` is a single site but is a *local* structural fact, verified by direct read, not a cross-cutting sole-entry assertion. No broad surface scan required. **Status: not applicable — no blocking claim.**\n\n**Secondary-surface dispositions:**\n- **Epic workflows (40 running, never closed)** — *unresolved user-facing scope question.* Carried to the question loop.\n- **Per-session task queue accumulation** — *out of scope with rationale:* already solved by four terminal changes.\n- **Worker process memory (~3 GB across 3 workers)** — *out of scope with rationale:* distinct resource, distinct owner, no interaction with workflow lifecycle.\n- **Read-path 8s deadline** — *out of scope with rationale:* Finding 3 attributes it to a per-request aggregate budget, independent of workflow count; owned by `fixHealthViewTimeoutHealth` / `fixChangeReadTimeouts` / `fixTemporalReadDiagnosis`.\n\n**Reproduction finding classification (rq-acWarrant01):**\n\n| Finding | Classification | May seed a must-work criterion? |\n|---|---|---|\n| \"191 running workflows, growing monotonically\" | `broken_capability` (measured 189; growth confirmed; unreclaimable-history slope real) | Yes |\n| \"Closing changes does not reclaim them\" | **`unverified`** — 196 Terminated + 26 Completed exist on the server; the close path demonstrably terminates workflows. The original observation is unexplained and was not reproduced. | **No** |\n| \"Hibernation requires a new running-worker identity report\" | **`unwarranted_operation`** — the capability exists (Finding 1) | **No** |\n| \"Session Temporal timeouts evidence workflow-count pressure\" | **`unverified`** → reclassified: per-request read budget, unrelated to count | **No** |\n\n## LBP Check\n\n**Long-term best practice does not favor hibernation as proposed.**\n\nTemporal's official Entity Workflow guidance (`docs.temporal.io/design-patterns/entity-workflow`, `entity-lifecycle-patterns`) blesses one-workflow-per-entity keyed by entity id, and prescribes **continue-as-new** — not complete-and-recreate — for longevity. Crucially, continue-as-new **preserves pending signals** across the chain, whereas completion **discards** them. There is no official guidance recommending hibernation of idle entity workflows.\n\nTemporal documents **no per-namespace limit on concurrent running workflows** (Cloud limits cover pollers, in-flight commands, history size/event count, and rate — not count). The documented cost lever is **Active Storage**, and the named anti-pattern is *missing* continue-as-new. ADV's continue-as-new exists and has never fired (max history 46% of threshold).\n\n**External-solution check (gated: ecosystem unknown present).** Ran against Temporal official docs, `sdk-typescript`/`sdk-core` source, and community threads. No third-party tool or service addresses this; the decision is entirely internal. No `docs/*-prep.md` pack existed to cite; one is not warranted for a decision this narrow.\n\n**Where LBP does point:** P40 root-cause-first. Exercise the owning mechanism (bring changes terminal) before adding a compensating one. ADV has already solved this exact pattern class by reaping rather than hibernating (session task queues).\n\n## Recommended Objectives\n\n1. **Decide, on measured evidence, whether ADV should adopt a hibernation lifecycle state** — recording the decision, its rationale, and its alternatives as an ADR (ADR-002, inherited from the parent change).\n2. **Record the two preconditions as resolved**, so no future round re-litigates them: bundle-generation parity answers running-worker identity; the self-completing signal answers the terminal race.\n3. **Dispose of the silent-signal-discard hazard explicitly** — it is independent of the hibernation decision and currently unmitigated.\n4. **Resolve whether epic workflows share the decision's scope** (40 running, none ever closed).\n\n## AMBIGUITY ANALYSIS\n\n| ID | Severity | Cat | Finding |\n|---|---|---|---|\n| S1 | **HIGH** | S | No threshold defines what benefit would justify hibernation's complexity. The proposal asks \"does hibernation reclaim enough in practice to be worth its complexity?\" but sets no bar, so no measurement can settle it. Discovery measured the cost; the decision rule is still missing. |\n| B1 | MEDIUM | B | Epic workflows (40 running, never closed) are not mentioned anywhere in proposal scope, yet share the identical lifecycle structure. In or out? |\n| F1 | MEDIUM | F | \"Configurable by staleness-days OR active-change-count ceiling\" presupposes an affirmative decision. If the decision is negative, this settled scope is void. |\n| M1 | MEDIUM | M | The claim \"closing 74 changes did not reduce the running count\" is unexplained and contradicted by 196 Terminated workflows on the server. Root cause never established. |\n| S2 | LOW | S | Success criteria for a decision-only change are undefined — is success \"a correct decision\" or \"a decision that says yes\"? |\n\n**Evidence quotes:**\n- S1 — *\"A third, softer question: if the running-worker precondition suppresses hibernation whenever a deployment is stale or a worker unrestarted, does hibernation reclaim enough in practice to be worth its complexity? That is a real tradeoff, not a formality.\"*\n- B1 — `(no epic scope section)`\n- F1 — *\"Automatic triggering, configurable by staleness-days OR active-change-count ceiling (OR-combined).\"*\n- M1 — *\"Observed 2026-08-04: 191 running workflows across 15 projects, and closing 74 changes did not reduce the running count.\"*\n- S2 — `(no success criteria section)`\n\n**Coverage: B:P F:C S:P M:P**\n\n**Trigger evaluation:** 0 CRITICAL, 1 HIGH → **advisory, not blocking.** Advisory logged: S1 HIGH — no decision rule defined for \"worth it\". S1 is resolved by the question loop below, which is where a user-only cost/benefit judgment belongs; it is not a proposal-text ambiguity requiring `/adv-clarify`.\n\n## Discovery Opportunity Scout\n\n**Scout: skipped** — discovery already ran a dedicated `adv-researcher` external-evidence pass (Temporal official docs, `sdk-typescript`/`sdk-core` source, community threads, Cloud limits, entity-workflow guidance) plus a full operational measurement pass against the live server. A third bounded scout pass over the same surface has no remaining opportunity yield.\n",
+    "problemStatement": "ADV accumulates Temporal workflows without bound. Observed 2026-08-04: 191 running workflows across 15 projects, and closing 74 changes did not reduce the running count. There is no mechanism to reclaim Temporal resources from stale changes.\n\n`continueAsNew` does not solve this — it starts a fresh run to bound accumulated HISTORY size, but the workflow keeps running. Bounding *running count* requires the workflow to complete and be recreated on demand.\n\n## Why this is a separate change\n\nThis was Decision 2 of `resolveAdvPersistenceRecovery`. It was split out on 2026-08-04 after five independent structural review rounds, each of which found a different foundation assumption that did not survive verification. Decisions 1 and 3 of that change passed clean in all five rounds; every blocker was here.\n\nThe repeated failure mode was specific and worth naming: the design kept asserting *\"this existing ADV mechanism already guarantees X\"* where the mechanism did not. That happened three rounds in a row against three different mechanisms. The conclusion is not that hibernation is wrong — it is that hibernation's preconditions were never firmed at discovery, so design kept reaching for whatever looked adjacent.",
+    "agreement": "# Agreement\n\n> **Lineage.** Fast-follow of `resolveAdvPersistenceRecovery` (status `archived`). This change carries that ADR's Decision 2 — pre-split AC2, AC5, C1, C5, C6, DONT4, Objective 2, DDC1/2/5/6/7, and ADR-002 — split out on 2026-08-04 after five structural review rounds, each of which found a different D2 foundation assumption that did not survive verification. Split user-approved and documented in the parent's agreement. Lineage validated at discovery: parent exists, is archived, and the split rationale matches.\n\n> **Decision criterion (user, 2026-08-04).** Reframed at the agreement checkpoint from cost to correctness: *\"I've already done a TON of cleanup today to get it to this point. The slope is less relevant than what is best practice and best shape for temporal and our use.\"* Measured cost is therefore supporting context; architectural shape is the deciding factor.\n\n## Objectives\n\n1. Decide, on architectural-shape grounds, whether ADV should adopt a workflow hibernation lifecycle state — recording the decision as ADR-002 with rationale, alternatives, and consequences.\n2. Record both blocking preconditions as resolved, with their evidence anchors, so no seventh review round re-litigates them.\n3. Decide the disposition of the orphan history pool discovered during this change's discovery, separating established fact from unresolved mechanism.\n4. Cover epic workflows under the same verdict, and record the absence of a routine epic close path.\n5. Dispose of the silent-signal-discard hazard, which is independent of the hibernation verdict.\n\n## Success Criteria\n\n1. The ADR records a decision for every open question with rationale, alternatives, and consequences, so a seventh review round does not re-litigate resolved ground.\n2. The hibernation verdict is justified on architectural-shape grounds against Temporal's documented entity-workflow guidance, with measured cost as supporting context rather than the deciding factor.\n3. Every proposal assumption that discovery overturned is recorded with its evidence anchor.\n\n## Acceptance Criteria\n\n1. Given the proposal asserts no running-worker identity report exists and its cost is unestimated, when the ADR is written, then it records that assertion as refuted and names bundle-generation parity (`plugin/src/temporal/worker-bundle-manifest.ts:29`, `plugin/src/temporal/worker-heartbeat.ts:99-117`, `plugin/src/temporal/worker-roll.ts:133-216`) as the resolved mechanism.\n2. Given the hibernation and terminal race was unresolved, when the ADR is written, then it records self-completion by signal as the resolution and records external cancel or terminate as unusable because RequestCancelWorkflowExecution returns OK against an already-completed workflow.\n3. Given measurement showing 71.9 MB unreclaimable, 0.8 to 1.6 MB per day growth, static idle workflows, and healthy retention, when the ADR records its hibernation verdict, then the verdict's stated basis is architectural shape and the measurements appear as supporting context.\n4. Given 40 epic workflows are running and none has ever closed, when the ADR is written, then epic workflows are covered by the same verdict and the absence of a routine epic close path is recorded as a distinct finding.\n5. Given the orphan history pool of roughly 93.5 MB across 20 workflows, when the ADR records it, then it separates established fact (history scanner healthy, worker.historyScannerEnabled defaults true, ADV calls only terminate and never delete or reset) from unestablished mechanism (what produces orphans and whether the set is still growing), and states the latter as unresolved.\n6. Given signals for unregistered names are silently discarded on workflow completion, when the ADR is written, then rq-hib04 is recorded as standalone hardening whose value does not depend on the hibernation verdict.\n7. Evidence: sourced Temporal lifecycle findings captured at `~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md` verified by file existence and by source-URL citation for each external claim.\n\n## Constraints\n\n1. Must not implement hibernation, orphan reclamation, or setDefaultSignalHandler in this change, because it is decision-only per the parent change.\n2. Must preserve the signal and query only workflow surface, with no defineUpdate in workflow-reachable code.\n3. Must not present the orphan root cause as established, and must not run any destructive Temporal or SQLite command against live state.\n4. Must obtain ADR approval at the design gate before any downstream implementation begins.\n\n## Avoidances\n\n1. Do not re-litigate the ruled-out mechanisms without new evidence.\n2. Do not assert that an existing mechanism guarantees a property without tracing declaration through consumer to observable effect.\n3. Do not defer the decision by spawning more per-symptom tickets.\n\n## Out of Scope\n\n1. The read-path 8s deadline in `plugin/src/temporal/retry-wrapper.ts:203`, owned by fixHealthViewTimeoutHealth, fixChangeReadTimeouts, and fixTemporalReadDiagnosis.\n2. Worker process memory of roughly 3 GB across 3 workers, a distinct resource with no workflow-lifecycle interaction.\n3. Per-session task-queue accumulation, already solved by four terminal changes.\n4. Implementing any reclamation of orphaned history.\n\n## Preview Applicability\n\n`visual_surface: false` — internal ADV/Temporal architecture, no browser-visible surface.\n`preview_expectation`: `exact_route_required: not_applicable`, `data_state_expectation: not_applicable`, `viewport_expectation: not_applicable`.\nRationale: the deliverable is an ADR artifact plus a skill file; no rendered output exists.\n\n## Decisions\n\n### User Decisions\n\n1. **Decision criterion is architectural shape, not cost.** The user had already performed substantial manual cleanup before this session and judged the storage slope secondary to \"best practice and best shape for temporal and our use.\" Cost measurements are retained as supporting context and as the refutation of the proposal's stated premise, but they do not decide the verdict.\n2. **Epic workflows are in scope, under the same verdict.** 40 running, zero ever closed, identical continue-as-new and terminal structure. Excluding them would leave a known gap no change owns.\n3. **The silent-signal-discard hazard is fixed regardless of the verdict.** Carried as rq-hib04, standalone hardening.\n4. **The orphan history pool is pulled into this change's scope.** It is roughly 1.3x the running pool and is defective rather than merely growing.\n5. **Capture the Temporal lifecycle research as a skill.** The repo has 33 terminal changes in this domain and five review rounds died on unverified assumptions about it.\n\n### Agent Decisions (LBP)\n\n1. **Running-worker identity — resolved as bundle-generation parity.** Compare the worker lock's `bundle_generation` against the on-disk manifest generation, gated on heartbeat freshness (60s, `worker-lock.ts:7`) and owner-pid liveness. The generation is SHA-256 over `worker.js` and `workflows.js` (`worker-bundle-manifest.ts:29,81-89`); `workflows.js` carries every `wf.setHandler` registration, so the generation is a precise proxy for the registered signal set. The heartbeat is the sole post-acquire lock writer and persists it atomically every 10s (`worker-heartbeat.ts:99-117,169-176`); `worker-roll.ts:133-216` detects drift each beat and drives a readiness-gated child roll. Rejected: Temporal Worker Versioning (PINNED) plus a workflow query-probe — strictly more expensive, and sound only under a versioning topology the repo has already recorded as not-ready. Rejected because unavailable: no Temporal API reports a running worker's registered handler set; DescribeTaskQueue pollers expose only an operator-supplied identity, buildId is an operator claim, and DescribeWorker does not exist.\n2. **Terminal race — resolved as self-completion by signal.** The workflow is the single-threaded arbiter of its own state, so the guard is evaluated inside the workflow with no external race. External RequestCancelWorkflowExecution is unusable: it is best-effort and returns OK against an already-completed workflow. Recreation is signalWithStart under the default WorkflowIdReusePolicy.ALLOW_DUPLICATE; ADV sets no explicit reuse or conflict policy (`plugin/src/temporal/operations.ts:947-967`), so the permissive default already applies.\n3. **Best-practice framing for the verdict.** Temporal's entity-workflow pattern binds workflow lifetime to entity lifetime, with continue-as-new for longevity. An ADV change is a textbook entity with a natural terminal state, and `workflows.ts:2221-2240` already completes on it — the shape is correct. Hibernation would deliberately complete a workflow whose entity is still alive, breaking that mirror, and completion discards buffered signals where continue-as-new preserves them. The design gate owns the final verdict; discovery establishes that the shape argument, not the cost argument, is the one that decides it.\n4. **Orphan root cause deliberately left unresolved.** Two measurement passes used incompatible joins and disagreed by roughly 50x on population size — 20 workflows lacking any visibility row versus 1148 trees lacking a matching executions.run_id, the latter counting normal retention-purged closed runs. Rather than pick the convenient number, the mechanism is recorded as not established. Constraint 3 forbids presenting it otherwise.\n\n## Deferred Questions\n\nNone. All questions raised at discovery were resolved by user decision or agent decision above. The orphan mechanism is not deferred — it is explicitly recorded as unresolved and carried into the ADR as such, per AC5.\n\n## Sign-Off\n\nUser approved the acceptance criteria and success criteria at the Phase 4.5.1 inline checkpoint via Tier A whitelist reply \"approve\" on 2026-08-04, following two rounds of open-question resolution (round 1: build/no-build with a write-in reframing the decision criterion, epic scope, signal-loss disposition, skill creation; round 2: slope evidence and orphan-pool disposition).\n",
+    "design": "# Design — Workflow Hibernation Lifecycle (ADR-002)\n\n> **Decision-only change.** Constraint C1 forbids implementation here. This design *is* the\n> deliverable: ADR-002 plus the disposition decisions for the findings discovery surfaced. ADR-002 is\n> kept inline, matching the parent change's precedent (ADR-001 and ADR-003 inline in\n> `resolveAdvPersistenceRecovery` design.md), corroborated by `docs/adr/0003-signal-handlers-must-not-throw.md`.\n\n## Architecture Overview\n\nADV runs one Temporal workflow per change and per epic — the **entity workflow** pattern. The\nworkflow is not a job; it is the durable mirror of an entity's life. It starts when the entity is\ncreated and completes when the entity reaches a terminal state.\n\n```\nentity created ─────────────▶ workflow started (adv/change/<projectId>/<changeId>)\n      │                              │\n      │  signals (gate, task, …)     │  history grows\n      ▼                              ▼\nentity terminal (archived/closed) ─▶ wf.condition releases ─▶ project ─▶ drain ─▶ return\n      │                                                                            │\n      └────────────────── retention (24h) reclaims history ◀────────────────────────┘\n\nhistory ≥ 5000 events ─▶ continueAsNew (rotates history, entity stays live)\n```\n\nThe proposal asked to add a second, non-entity-driven completion trigger — *hibernation* — that\ncompletes a workflow whose entity is **still alive**, then recreates it on demand.\n\nThe design question is therefore not \"can we?\" (we can — both preconditions resolved below) but\n\"should the workflow lifetime stop mirroring the entity lifetime?\"\n\n## Overturned Assumptions\n\nEvery proposal assumption discovery invalidated, with the anchor that invalidated it (SC3).\n\n| # | Assumption as stated | Status | Evidence anchor |\n|---|---|---|---|\n| 1 | \"No running-worker identity report exists today… This is new work whose cost has not been estimated.\" | **Refuted** | The mechanism exists and is wired end-to-end: `worker-bundle-manifest.ts:29,81-89` (generation covers `workflows.js`), `worker-heartbeat.ts:99-117,169-176` (sole atomic writer), `worker-roll.ts:133-216` (evaluate + repair), `plugin-init.ts:301-302` (invoked each beat). Shipped by archived change `autoRollStaleWorkerBundle`. |\n| 2 | \"~500 MB/day\" storage growth | **Refuted** | Derived by dividing total DB size (410 MB) by server uptime (18h57m), which assumes an empty DB at start — it was not empty; 196 terminated workflows predated it. Counted rate is 0.8–1.6 MB/day: 10.71 new changes/day × 0.3795 never-terminal × 199 KB median (or 395 KB mean) per running change. |\n| 3 | \"Closing 74 changes did not reduce the running count.\" | **Unverified, and contradicted** | The close path demonstrably terminates workflows: the server holds 196 Terminated + 26 Completed. Zero closed workflows are older than 24h, so retention is also reclaiming them. The original observation was never reproduced and no mechanism was found; it must not seed a requirement (rq-acWarrant01). The actual growth driver is that 38% of changes older than 7 days never reach a terminal state at all. |\n| 4 | \"Continue-as-new serializes pending signals into the next run,\" making it \"strictly safer on signal grounds.\" *(An assumption introduced by an earlier draft of this design, not by the proposal.)* | **Refuted** | `docs.temporal.io/design-patterns/continue-as-new` states signals received but not yet processed are lost on rotation. `workflows.ts:2286` passes `buildChangeWorkflowContinueAsNewSeed(input, state)` — a **state** seed, not a signal queue. Caught by the design validator. See the correction note in ADR-002. |\n| 5 | Implicit: the 8s Temporal read timeouts observed during this change evidence workflow-count pressure. | **Refuted** | `TEMPORAL_READ_DEADLINE_BUDGET_MS = 8_000` (`plugin/src/temporal/retry-wrapper.ts:203`) is a per-request aggregate wall-clock budget covering all retries for one read. Independent of running-workflow count. Owned by `fixHealthViewTimeoutHealth`, `fixChangeReadTimeouts`, `fixTemporalReadDiagnosis` (OOS1). |\n\nAssumptions 1 and 4 are the same failure class in opposite directions — 1 under-credited an existing\nmechanism, 4 over-credited one. Both were asserted without tracing declaration through consumer to\nobservable effect. That class is what DONT2 exists to prevent, and it has now recurred six times\nacross this change and its parent.\n\n## Key Decisions\n\n### ADR-002 — Workflow hibernation lifecycle\n\n**Status:** Proposed (decision-only; no implementation in this change).\n\n**Verdict: NEGATIVE. ADV does not adopt a hibernation lifecycle state.**\n\n**Context.** 189 running workflows (149 change, 40 epic) across 15 projects, growing with lifetime\nchange count. Split from `resolveAdvPersistenceRecovery` after five review rounds, each of which\nfound a different foundation assumption that did not survive verification.\n\n**Decision basis is architectural shape, not cost** (user direction, recorded in agreement). Cost\nappears below only as supporting context and as the refutation of the proposal's stated premise.\n\n**Why negative — the shape argument:**\n\n1. **The current shape is already correct.** Temporal's entity-workflow pattern binds workflow\n   lifetime to entity lifetime, keyed by entity id, with continue-as-new for longevity. An ADV change\n   is a textbook entity: it has a natural terminal state, and the workflow already completes on it at\n   `plugin/src/temporal/workflows.ts:2251-2283`. Hibernation does not fix a wrong shape; it breaks a\n   right one.\n2. **Hibernation converts a durable mirror into a cache.** Completing a workflow whose entity is\n   still alive makes \"workflow not running\" ambiguous — it could mean terminal, or merely evicted.\n   Every consumer of workflow existence would need to learn that distinction. That is a structural\n   regression in a system whose read authority already depends on a careful running/poisoned/missing\n   classification (`plugin/src/temporal/recovery-classification.ts`).\n3. **Completion ends entity liveness; continue-as-new preserves it.** A live workflow can receive\n   future signals; a completed one cannot, until something recreates it. Continue-as-new rotates\n   history while keeping the entity continuously addressable, so no window exists in which a signal\n   has nowhere to land. Hibernation deliberately manufactures that window. *(Neither mechanism\n   preserves undrained or unregistered signals — see the correction note. The distinction is\n   liveness, not signal durability.)*\n4. **Temporal publishes no guidance recommending it.** Entity-workflow and entity-lifecycle docs\n   prescribe continue-as-new; none recommends completing idle entity workflows to bound running\n   count. There is no documented per-namespace limit on concurrent running workflows.\n5. **The real defect is elsewhere.** 38% of changes older than 7 days never reach a terminal state,\n   and epics have no routine close path at all (40 running, zero ever closed). The entity lifecycle\n   is not ending. Hibernation would compensate for that rather than repair it — the pattern P40\n   exists to prevent.\n\n**Correction note (validator, attempt 1).** An earlier draft of argument 3 asserted that\ncontinue-as-new \"serializes pending signals into the next run\" and was therefore \"strictly safer on\nsignal grounds.\" **That is false** — see Overturned Assumptions #4. The argument has been restated on\nliveness grounds, which is the real and defensible difference. Recorded rather than silently edited\nbecause this is precisely the DONT2 failure — asserting a mechanism guarantees a property without\ntracing it — committed in the same document that forbids it. The verdict is unaffected: arguments 1,\n2, 4, and 5 are independent and each stands alone.\n\n**Supporting context (does not decide the verdict):** the reclaimable pool is 71.9 MB growing\n0.8–1.6 MB/day; idle workflows are static (sampled 14–30-day-old workflows have last events 21–30\ndays old, so growth has no time-component); retention is healthy (zero closed workflows past 24h,\n`freelist_count = 0`).\n\n**Alternatives considered:**\n\n| Alternative | Disposition |\n|---|---|\n| Hibernation as proposed | Rejected — breaks the entity mirror, manufactures a no-liveness window, compensates rather than repairs |\n| Lower the continue-as-new threshold | Rejected as a hibernation substitute — bounds history, not running count, and max observed history is 46% of the current threshold, so it would fire on almost nothing |\n| Namespace retention / archival configuration | Rejected — orthogonal. Retention already works correctly and only ever applies to closed workflows; no retention setting reclaims a running workflow's history |\n| Split ADV state across multiple namespaces | Not pursued — redistributes the same workflows rather than reducing them, and multiplies operational surface |\n| End entity lifecycle properly, including a scheduled reaper | **Preferred** — repairs the owning mechanism; reclaims the same resource via the existing terminal path with no new state, no new trigger, no new ambiguity |\n| Accept unbounded running count permanently | Rejected as a stated position — the negative verdict is conditional, see revisit trigger |\n\n**Consequences:**\n\n- *Operational:* running-workflow count remains bounded only by entity-lifecycle discipline. The\n  71.9 MB pool persists and accrues at 0.8–1.6 MB/day until abandoned entities reach terminal state.\n- *Correctness:* workflow existence keeps its current unambiguous meaning. No new failure mode.\n- *Compatibility:* zero — nothing changes.\n- *Cost:* the decision is free; the deferred work is entity-lifecycle discipline, which ADV already\n  has tooling for.\n- *Reversibility:* high. Both preconditions are resolved and recorded (DEC-1, DEC-2), so a future\n  affirmative decision starts from firm ground rather than repeating rounds 1–5.\n\n**Revisit trigger (closes the S1 gap — no bar had ever been set):** reopen ADR-002 if *either*\n(a) the running-workflow pool exceeds 500 MB of unreclaimable history, or (b) sustained growth\nexceeds 10 MB/day over a 30-day window. Both are measurable by the method recorded in discovery\n(tree-aggregated `history_node` bytes joined to `executions_visibility.status = 1`). Below those\nthresholds the shape argument governs and cost does not reopen the question. See DDC5 for the\nportability caveat.\n\n### DEC-1 — Running-worker identity: RESOLVED as bundle-generation parity\n\nThe proposal's claim that no such report exists is **refuted** (Overturned Assumptions #1). Levers\ncited at their **call sites**, not their declarations:\n\n| Link | Call site | Effect |\n|---|---|---|\n| Drift check invoked | `plugin/src/plugin-init.ts:301-302` — `onBeat: () => { void workerBundleRollMonitor?.checkNow()… }` | Runs the parity check on every heartbeat beat (10s) |\n| Monitor constructed + generation seeded | `plugin/src/plugin-init.ts:364-379` | Seeds in-memory generation post-readiness, hands it to the heartbeat |\n| Parity evaluated | `plugin/src/temporal/worker-roll.ts:133-155` | Compares running generation against on-disk manifest; owner-pid gated |\n| Divergence repaired | `plugin/src/temporal/worker-roll.ts:197-216` | Readiness-gated `restartChild()`, then records + stamps the new generation |\n| Candidate gated | `plugin/src/temporal/worker-roll.ts:160-195` | Refuses to roll onto a bundle failing replay verification |\n| Generation persisted | `plugin/src/temporal/worker-heartbeat.ts:99-117,169-176` | Sole post-acquire lock writer; atomic tmp+rename each beat |\n| Generation defined | `plugin/src/temporal/worker-bundle-manifest.ts:29,81-89` | SHA-256 over `worker.js` **and `workflows.js`** — the file carrying every `wf.setHandler` |\n\nBecause `workflows.js` is inside the hashed set, generation equality is a sound proxy for the\n**worker-side registered signal set**. Independently confirmed by the design validator.\n\n**Scoping condition found while verifying the lever, and it is load-bearing:** the drift monitor is\nconstructed **only for out-of-process workers** (`plugin-init.ts:357-364` — in-process workers share\nthe host bundle and skip it), and its construction failure is swallowed (`:382-387`). A missing\n`bundle_generation` is therefore **not** evidence of parity. See DDC1.\n\n**Alternatives considered:** Temporal Worker Versioning (`PINNED`) plus a workflow query-probe —\nrejected as strictly more expensive and sound only under a versioning topology this repo already\nrecorded as not-ready. Native Temporal introspection — rejected as unavailable: `DescribeTaskQueue`\npollers expose only an operator-supplied `identity`, `buildId` is an operator claim, and\n`DescribeWorker` does not exist.\n\n**Consequences:** a future hibernation precondition needs no new mechanism, only a correct reading of\nan existing one, bounded by DDC1 and DDC2. The scoping condition means any consumer must handle three\ndistinct missing-generation cases rather than treating absence as parity.\n\n### DEC-2 — Hibernation/terminal race: RESOLVED as self-completion by signal\n\nIf hibernation were ever built, the correct mechanism is a signal the workflow handles itself,\nreleasing the existing `wf.condition` at `workflows.ts:2251-2255`, then following the terminal path\nat `:2260-2283`.\n\nThat path already carries the right ordering, and it is worth naming because it is the non-obvious\npart: it **projects state before draining handlers** (`:2266-2278`), with the explicit rationale that\nsignals arriving during the projection activity's round-trip are then observed by the subsequent\n`wf.condition(wf.allHandlersFinished)` drain rather than abandoned when the workflow returns.\n\nThe workflow is the single-threaded arbiter of its own state, so a \"still non-terminal?\" guard is\nevaluated with no external race.\n\n**Alternatives considered:** external `RequestCancelWorkflowExecution` — rejected, it is best-effort\nand returns OK against an already-completed workflow (`temporalio/temporal#2860`), so it cannot serve\nas a guard. External `terminate` — rejected, it skips handler drain and the terminal projection\nentirely. Client-side \"check then complete\" — rejected, selection and evaluation are not atomic.\n\n**Consequences:** recreation would be `signalWithStart` under the default\n`WorkflowIdReusePolicy.ALLOW_DUPLICATE`; ADV sets no explicit reuse or conflict policy\n(`plugin/src/temporal/operations.ts:947-967`), so the permissive default already applies. Any future\ntrigger must reuse the project-before-drain ordering (DDC6). Recorded so a future affirmative\ndecision does not re-derive it. Not implemented (C1).\n\n### DEC-3 — Epic workflows: covered by the same verdict, with a distinct finding\n\n40 epic workflows running, **zero ever closed**. Same continue-as-new/terminal structure\n(`workflows.ts:2494-2522`). The negative verdict applies unchanged.\n\nDistinct finding: unlike changes, epics have **no routine close path** in normal use. A change reaches\nterminal state through archive or close; an epic has no equivalent step. This is an entity-lifecycle\ngap, not a hibernation gap, and it is why epics accumulate 100% rather than 38%.\n\n**Alternatives considered:** exclude epics from the verdict — rejected, they are the same pattern with\nthe same structure, and excluding them would leave 40 permanently-running workflows unowned. Treat\nepics as the primary motivating case *for* hibernation — rejected, because their history is only\n~1.2 MB total; the case for them is correctness, not storage.\n\n**Consequences:** epics are the sharper instance of the ADR's thesis. For changes the terminal path\nexists and discipline can fix accumulation; for epics the path does not exist, so discipline cannot.\nOwned downstream by `addEpicClosePath`.\n\n### DEC-4 — Orphan history pool: recorded, mechanism deliberately unresolved\n\n**Established:**\n- ~93.5 MB across 20 workflows with rows in `history_node`/`history_tree` but none in `executions`\n  or `executions_visibility`; `temporal workflow describe` reports them not found.\n- `temporal-sys-history-scanner` is **healthy** — completing daily cycles with no failure status.\n- `worker.historyScannerEnabled` defaults `true` and `temporal server start-dev` does not override it\n  (`docs.temporal.io/references/dynamic-configuration`; `service/worker/service.go`).\n- **ADV never deletes or resets workflows.** Only `terminate()`, at\n  `plugin/src/temporal/operations.ts:1317`, `plugin/src/tools/_adapters.ts:148`,\n  `plugin/src/tools/change.ts:5787` (archive purge), `:5992` (poisoned-history recovery), `:6460`\n  (shipped-change cleanup). Terminate preserves history and produces a visibility row.\n\n**Not established, and recorded as such per C3:** the mechanism producing orphans, and whether the\nset is still growing. Two measurement passes used incompatible population definitions and disagreed\nby ~50× — 20 workflows lacking any visibility row versus 1148 trees lacking a matching\n`executions.run_id`. The latter counts every normal retention-purged closed run and is not the orphan\npopulation. Neither number is adopted.\n\n**Alternatives considered:** adopt the larger number and declare an active leak — rejected, the\npredicate is wrong. Adopt the smaller and declare the set historical — rejected, not proven either.\nPropose reclamation now — rejected by OOS4 and by P40, which forbids compensating an unexplained\ndefect.\n\n**Consequences:** ~93.5 MB stays stranded until the mechanism is known. This is larger than the entire\nrunning pool the ADR declined to reclaim, which means the storage argument that motivated hibernation\npoints at a different target than hibernation. Owned downstream by `investigateOrphanWorkflow`, whose\nfirst obligation is DDC4.\n\n### DEC-5 — Silent signal discard: standalone hardening (`rq-hib04`)\n\nA signal for an unregistered name is buffered in SDK memory and silently discarded on completion —\nno error, no log, no metric. Live today, independent of the hibernation verdict.\n\n**Alternatives considered:** treat it as hibernation's mitigation only — rejected, the hazard exists\non paths ADV already runs. Defer entirely — rejected, it is the only route to observability for this\nfailure class. Fail loudly on unregistered signals instead of logging — rejected, that would change\ndispatch behavior (DDC3).\n\n**Consequences:** the correction to argument 3 **raises** this decision's importance. Since\ncontinue-as-new does not preserve undrained signals either, `rq-hib04` is the only mechanism that\nwould make this failure class observable on any path. Owned downstream by `addSignalLossObservability`.\nNot implemented here (C1).\n\n## ADR Drafts\n\n**ADR-002** meets all three rubric criteria: hard-to-reverse (it sets the lifecycle contract future\nchanges build on), surprising-without-context (a negative decision about bounding a monotonically\ngrowing resource reads as an omission without the shape argument), and the result of a real tradeoff\n(accepted growth versus accepted structural regression). Kept inline per precedent. No other decision\nin this change meets the rubric.\n\n## Implementation Strategy\n\nThis change implements nothing (C1). It ships the ADR and the skill, then hands off:\n\n1. **This change:** persist ADR-002 and the DEC-1…DEC-5 record; author the Temporal lifecycle skill\n   (AC7). Both are artifacts, not code.\n2. **`addEpicClosePath`** — the epic close-path gap (DEC-3). Entity-lifecycle work, the direction\n   ADR-002 endorses.\n3. **`addSignalLossObservability`** — `rq-hib04` (DEC-5), bounded by DDC3.\n4. **`investigateOrphanWorkflow`** — establish the orphan mechanism (DEC-4) before proposing any\n   reclamation; must open by fixing the population predicate per DDC4.\n5. **Entity-lifecycle discipline** — bring abandoned changes terminal via existing tooling\n   (`/adv-triage`, the `adv-cleanup` skill, `adv_change_close`, `adv_change_archive`). No new change.\n\nItems 2–5 are independent and may proceed in any order.\n\n**Process note.** Items 2–4 were created reflexively during prep, which the user identified as an\nanti-pattern: this change measured a 4.07-permanent-entities-per-day accumulation rate and then added\nthree entities in one action. The three were judged warranted on their merits and kept; the defect was\nthe reflex. The structural drivers behind it are recorded as backlog item `finding-routing-defect`\nrather than as another change — deliberately, as the first application of the discipline it describes.\n\n## LBP Analysis\n\nThe long-term best practice for a durable-execution system is that **workflow lifetime mirrors entity\nlifetime**. This is Temporal's stated entity-workflow pattern, and ADV already implements it\ncorrectly. The pressure to hibernate came from treating running-workflow count as a resource to be\ncapped — a cache-eviction instinct applied to a durable-execution primitive.\n\nThe instinct is wrong for a specific reason: an evictable cache entry can be rebuilt from an\nauthoritative source with no loss, but the disk projection a hibernated workflow would be rebuilt\nfrom is refreshed by a path explicitly labeled best-effort (`dualWriteAfterMutation`,\n`plugin/src/storage/store-temporal/index.ts:411`), which skips on non-confirmed readback, empty\nreadback, or a poisoned workflow. The rebuild source is not guaranteed authoritative at the moment of\neviction. That asymmetry is what makes the cache analogy fail.\n\nContinue-as-new is the sanctioned longevity mechanism because it bounds history **without ending\nentity liveness** — not, as an earlier draft claimed, because it preserves pending signals.\n\nWhere LBP points is P40: repair the owning invariant before adding a compensating mechanism. ADV has\nsolved this exact pattern class once — per-session task queues accumulated and were addressed by\n**reaping**, not hibernating (`isolateAdvWorkerTaskQueues`, `adoptOrphanedSessionQueues`,\n`autoAdoptOrphanSessionQueues`, `reapOrphanAdvWorkers`, all terminal).\n\n## Affected Components\n\nNo code changes. These are the **subjects** of the decision, cited so downstream work starts from\nverified anchors.\n\n| Component | Role |\n|---|---|\n| `plugin/src/temporal/workflows.ts:2251-2283` | Terminal completion path incl. project-before-drain — the shape ADR-002 preserves (DEC-2) |\n| `plugin/src/temporal/workflows.ts:2285-2288` | Continue-as-new; seed is state, not signals (Overturned Assumption #4) |\n| `plugin/src/temporal/workflows.ts:2494-2522` | Epic equivalent (DEC-3) |\n| `plugin/src/plugin-init.ts:301-302,357-387` | Where drift parity runs, and its OOP-only scoping (DEC-1, DDC1) |\n| `plugin/src/temporal/worker-roll.ts:133-216` | Parity evaluation and repair (DEC-1) |\n| `plugin/src/temporal/worker-heartbeat.ts:99-117` | Sole lock writer persisting `bundle_generation` (DEC-1) |\n| `plugin/src/temporal/worker-bundle-manifest.ts:29,81-89` | Generation covers `workflows.js` (DEC-1) |\n| `plugin/src/temporal/operations.ts:947-967` | No explicit reuse/conflict policy (DEC-2) |\n| `plugin/src/tools/change.ts:5787,5992,6460` | The only `terminate()` call sites (DEC-4) |\n| `plugin/src/temporal/retry-wrapper.ts:203` | Per-request read budget (Overturned Assumption #5) |\n| `plugin/src/storage/store-temporal/index.ts:411` | Best-effort dual-write — why the cache analogy fails (LBP) |\n| `~/.config/opencode/skills/agent-temporal-lifecycle/SKILL.md` | New artifact (AC7) |\n\n## Design-Derived Criteria\n\nTechnical criteria created by this design. No new user-facing acceptance criteria.\n\n- **DDC1 — Absence of `bundle_generation` must never be read as parity.** Distinguish in-process\n  worker (parity by construction, `plugin-init.ts:357-364`), monitor unavailable (parity unknown,\n  `:382-387`), and pre-manifest legacy lock (parity unknown). Only an explicit generation match, with\n  a fresh heartbeat and a live owner pid, may be treated as parity.\n- **DDC2 — Parity must be re-verified at use, not at selection.** The drift window is up to one\n  heartbeat interval (10s, `worker-heartbeat.ts:12`).\n- **DDC3 — `rq-hib04` must be observability-only.** A default signal handler must not alter dispatch\n  of registered signals, must not consume them, and must not introduce a new failure path.\n- **DDC4 — Orphan population must be defined before it is counted.** State the predicate explicitly\n  and distinguish \"no `executions_visibility` row\" from \"no matching `executions.run_id`\".\n- **DDC5 — The revisit trigger must be measurable by the recorded method, and that method is\n  persistence-specific.** If Temporal persistence changes, restate the threshold in the new store's\n  terms rather than silently dropping it.\n- **DDC6 — Any future hibernation trigger must reuse the project-before-drain ordering**\n  (`workflows.ts:2266-2281`), not short-circuit to `return`.\n\n## Risks / Mitigations\n\n| Risk | Severity | Mitigation |\n|---|---|---|\n| Negative verdict is read as \"growth is fine forever\" | Medium | Explicit, measurable revisit trigger with two thresholds |\n| Entity-lifecycle discipline does not happen, so the pool keeps growing | Medium | Strategy item 5 names the owning tooling; the revisit trigger fires if discipline fails |\n| Epic close-path gap is not acted on | Medium | Durable record: `addEpicClosePath` |\n| Orphan mechanism stays unknown and 93.5 MB is never reclaimed | Medium | `investigateOrphanWorkflow`; DDC4 prevents repeating the population error |\n| Silent signal discard persists on every path | Medium | `addSignalLossObservability`; the argument-3 correction raises its priority |\n| A seventh round re-litigates DEC-1 or DEC-2 | Low | Both recorded with call-site levers and rejected alternatives; DONT1/DONT2 constrain re-entry |\n| Revisit trigger becomes untestable after a persistence change | Low | DDC5 requires restatement |\n\n## Design Leverage Scout\n\n**Scout: skipped — decision-only change with no implementation surface.** The scout looks for\nshortcuts, reusable components, parallelism, and simplification paths in a build plan. This design\nproduces an ADR and a skill file; C1 forbids adding a build plan. Discovery additionally ran two\n`adv-researcher` external-evidence passes and two operational measurement passes over the same\nsurface.\n\n## Validation\n\n**Validator: CAUTION** (`adv-researcher`, `researcher:design-validation`, attempt 1, confidence high,\nrisk medium).\n\nConfirmed with independent sourcing: the NEGATIVE verdict is architecturally sound and Temporal\npublishes no guidance recommending completion of idle live entity workflows; DEC-1's\ngeneration-as-signal-set proxy is correct; DEC-2's rejection of external cancel/terminate is correct\n(`temporalio/temporal#2860`); C2 spec-law respected (`advance-delivery` mandates the signal/query-only\nsurface, no `defineUpdate`); DEC-4's established/unestablished split satisfies C3. No spec conflict,\nno amendment required.\n\n**One in-scope blocker raised and resolved** (contract ids `DONT2`, `AC3`, `SC2`): shape argument 3\nasserted continue-as-new preserves pending signals. Refuted and restated on liveness grounds; the\ncorrection is recorded explicitly in ADR-002 and as Overturned Assumption #4 rather than silently\napplied.\n\nAlternatives the validator checked: namespace retention (orthogonal — now in the alternatives table),\nlower continue-as-new threshold (correctly disposed), scheduled reaper (agrees with the preferred\ndirection), multi-namespace split (now recorded explicitly). Its noted tradeoffs — inline-ADR\ndiscoverability and the dev-server-specific revisit metric — are addressed by the ADR-Drafts precedent\nnote and DDC5 respectively.\n\n**Contract-verification review (attempt 1): BLOCKED**, on SC1 (DEC rows lacked explicit alternatives\nand consequences) and SC3 (overturned assumptions lacked anchors). Both are addressed in this\nrevision: DEC-1…DEC-5 each now carry Alternatives and Consequences, and the Overturned Assumptions\nsection records all five with anchors. Its third blocker, AC7, was a truncated-read artifact — the\nskill was measured directly at 13 source URLs and 13 file:line anchors.\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-04T22:09:21.742Z",
+      "contentHash": "d0a881ce61f161560637f1c2c9612a1f2dbcfe6adef481a2fa4512e4f2e23e7e",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-04T20:19:34.726Z",
+      "contentHash": "3c9d667d8fd93ff843744da3cd9dc82d44eb7d5a82d7b0805afd3c566fcdabe0",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-04T23:25:11.950Z",
+      "contentHash": "34bcccacb986fa739b8f724791e13b0ec0cb7953cab1fc002204f486be8c03df",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-05T00:38:13.562Z",
+      "contentHash": "c8a823bb9a8575d34d8818a5e1fb3b679c98cd3b0059f5919b2de093db18157e",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-05T00:55:12.519Z",
+  "fast_follow_of": {
+    "parent_change_id": "resolveAdvPersistenceRecovery",
+    "linked_at": "2026-08-04T20:19:30.421Z"
+  },
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "Split from resolveAdvPersistenceRecovery Decision 2 after 5 blocked review rounds; analysis at /tmp/opencode/adv-incident-2026-08-04/design-round5-unpersisted.md"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "creation_request_hash": "b174b41121b86aa87570fc8b1aeb11b9886b34da3bd561b4403d925630cb8802",
+  "projection_revision": 34,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f8fa0bcdb45451581423cd465be1d10e13228a3401ea8d96065a50ef029784cd:createArtifacts:proposal",
+      "operation_id": "f8fa0bcdb45451581423cd465be1d10e13228a3401ea8d96065a50ef029784cd:createArtifacts:proposal",
+      "payload_hash": "c166f5faf1d896fa95a4bbc7e55ba6040066e402151c0b1c6dd40617c4623523",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-04T20:19:34.970Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f8fa0bcdb45451581423cd465be1d10e13228a3401ea8d96065a50ef029784cd:createArtifacts:problemStatement",
+      "operation_id": "f8fa0bcdb45451581423cd465be1d10e13228a3401ea8d96065a50ef029784cd:createArtifacts:problemStatement",
+      "payload_hash": "88b7ae1a6323f4a0bbbd6d2aef93b176d71f88c79aa225fb3ef3f753c4c70319",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-04T20:19:35.321Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-04T21:36:44.542Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-04T21:45:19.574Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-04T21:45:25.298Z"
+    },
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "c874f4f8fd9cf92ff0f43daab0e6ed137e78de3116f3693201ef5e95ad960ec3:updateArtifacts:proposal",
+      "operation_id": "c874f4f8fd9cf92ff0f43daab0e6ed137e78de3116f3693201ef5e95ad960ec3:updateArtifacts:proposal",
+      "payload_hash": "722bca30645b6886bf5a09ca4d5ed1550a8c3ce40253175b1ec51aeb71a2751d",
+      "state_revision": 3,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-04T22:09:21.925Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "402b2b28af8a563e902a0a0d44c229d74a3a717fdc046199721e5aa22f565318:updateArtifacts:agreement",
+      "operation_id": "402b2b28af8a563e902a0a0d44c229d74a3a717fdc046199721e5aa22f565318:updateArtifacts:agreement",
+      "payload_hash": "a14a09c95581a6dd93cda1aa9ad3ffb51f01766eb7fd3d54a2194804e97c35ba",
+      "state_revision": 4,
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-04T23:24:09.844Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ccf7f933546778011baba606ac9f6a4fdb5dbcfc9afe21e6c8e2291f13d7fa5f:updateArtifacts:agreement",
+      "operation_id": "ccf7f933546778011baba606ac9f6a4fdb5dbcfc9afe21e6c8e2291f13d7fa5f:updateArtifacts:agreement",
+      "payload_hash": "5fcb6ccd87feffe915f18546a6c1d0bb1e2164336f63c05ee2976a9d116a7d87",
+      "state_revision": 5,
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-04T23:25:12.170Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-04T23:25:25.046Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-04T23:25:35.447Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "0341b70770a354b6df631b8dcebe48ee93cf4d3b928746940beda161a071d54e:updateArtifacts:design",
+      "operation_id": "0341b70770a354b6df631b8dcebe48ee93cf4d3b928746940beda161a071d54e:updateArtifacts:design",
+      "payload_hash": "65d4ef3669d722087071cd397cafd48a74c180ba6ae361480271f59e2ae72e3c",
+      "state_revision": 6,
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-04T23:46:14.499Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-04T23:53:31.368Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-04T23:53:33.630Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ab4d3bf1a90798dcc3dcd227b42647a4f99a65bd3cbce90b4d5da15a0f9d0d52:updateArtifacts:design",
+      "operation_id": "ab4d3bf1a90798dcc3dcd227b42647a4f99a65bd3cbce90b4d5da15a0f9d0d52:updateArtifacts:design",
+      "payload_hash": "ee71b2dfb96d9fa93ced6c72184b97b8414378614511d5e926f7f8fe4c9658b3",
+      "state_revision": 7,
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-04T23:56:15.833Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-04T23:56:26.477Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-05T00:15:37.279Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-05T00:15:39.784Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-05T00:16:06.759Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-05T00:16:33.160Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-05T00:18:41.933Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-05T00:19:08.846Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-05T00:21:12.516Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-05T00:22:40.093Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-05T00:24:52.727Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-05T00:25:09.402Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-05T00:28:40.380Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-05T00:28:42.770Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "70aedbf11c38e9c95e601b598b6cb04388b231b6aebaf01a92320cf539766708:updateArtifacts:design",
+      "operation_id": "70aedbf11c38e9c95e601b598b6cb04388b231b6aebaf01a92320cf539766708:updateArtifacts:design",
+      "payload_hash": "7e943335cec67caef170bb50fb3d68e1c75e1559f24fcd18acc30f48cc10df36",
+      "state_revision": 8,
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-05T00:38:13.763Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-05T00:40:35.537Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-05T00:40:38.183Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-05T00:48:54.229Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-05T00:48:56.443Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-05T00:55:10.289Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "decideWorkflowHibernation",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-05T00:55:12.669Z"
+    }
+  ],
+  "state_revision": 8
+}

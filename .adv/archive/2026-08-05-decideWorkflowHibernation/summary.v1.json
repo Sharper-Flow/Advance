@@ -1,0 +1,20 @@
+{
+  "archived_at": "2026-08-05T04:55:24.115Z",
+  "capabilities": [],
+  "change_hash": "0d04e052fca562bd7f710fd0061cd798a1886a3bcdabe67c39b1ef01bdc00ac4",
+  "change_id": "decideWorkflowHibernation",
+  "completed_tasks": 6,
+  "created_at": "2026-08-04T20:19:34.305Z",
+  "current_gate": "release",
+  "fast_follow_of": {
+    "linked_at": "2026-08-04T20:19:30.421Z",
+    "parent_change_id": "resolveAdvPersistenceRecovery"
+  },
+  "last_activity_at": "2026-08-05T04:42:05.705Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "c45b57ac9bb8a482dbff33dc5413dab8c9b0ead953e020c9ecc1fe6cd22d85eb",
+  "task_count": 6,
+  "title": "Decide workflow hibernation lifecycle",
+  "version": "1"
+}
