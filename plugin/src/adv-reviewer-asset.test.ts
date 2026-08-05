@@ -23,7 +23,7 @@ import {
   ScopedSubagentReportSchema,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
 } from "./types";
-import { readCommandSurface } from "./__tests__/command-surface";
+import { PHASE_DIRECTIVES } from "./utils/phase-directive-content";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const AGENT_PATH = join(REPO_ROOT, ".opencode/agents/adv-reviewer.md");
@@ -358,7 +358,7 @@ describe("adv-reviewer agent asset", () => {
   });
 
   test("review and harden scanner context packets stay explore-only", () => {
-    const review = readCommandSurface("adv-review.md");
+    const review = PHASE_DIRECTIVES["adv-review"].content;
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
 
     const scannerPackets = [
@@ -381,7 +381,7 @@ describe("adv-reviewer agent asset", () => {
   });
 
   test("review and harden reviewer remediation packets include REVIEWER_REPORT packet anchors", () => {
-    const review = readCommandSurface("adv-review.md");
+    const review = PHASE_DIRECTIVES["adv-review"].content;
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
     const reviewerAnchors = getSubagentReportPacketAnchors("adv-reviewer");
 
@@ -428,7 +428,7 @@ describe("adv-reviewer agent asset", () => {
   });
 
   test("review and harden engineer remediation packets include ENGINEER_REPORT packet anchors", () => {
-    const review = readCommandSurface("adv-review.md");
+    const review = PHASE_DIRECTIVES["adv-review"].content;
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
     const engineerAnchors = getSubagentReportPacketAnchors("adv-engineer");
 
@@ -463,7 +463,7 @@ describe("adv-reviewer agent asset", () => {
   });
 
   test('review and harden reviewer remediation packets reference skill("adv-frontend-review") AND retain inline 6-dimension checklist as fallback', () => {
-    const review = readCommandSurface("adv-review.md");
+    const review = PHASE_DIRECTIVES["adv-review"].content;
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
 
     const reviewPacket = firstFencedBlock(
@@ -495,7 +495,7 @@ describe("adv-reviewer agent asset", () => {
   });
 
   test("review and harden keep adv-reviewer as review/harden owner and do NOT route to adv-designer", () => {
-    const review = readCommandSurface("adv-review.md");
+    const review = PHASE_DIRECTIVES["adv-review"].content;
     const harden = readFileSync(HARDEN_COMMAND_PATH, "utf8");
 
     for (const content of [review, harden]) {
