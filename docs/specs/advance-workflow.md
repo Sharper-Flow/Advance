@@ -1,7 +1,7 @@
 # Advance Workflow
 
-> **Version:** 1.43.2
-> **Updated:** 2026-08-04
+> **Version:** 1.45.0
+> **Updated:** 2026-08-05
 
 ## Purpose
 
@@ -861,6 +861,108 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - The durable proof REJECTS with the existing strict guard
 - Evidence-match + recovery-audit requirements remain unchanged
 
+**Committed-but-unverified release projection fails closed** (`rq-releaseProjectionDurability01.4`)
+
+**Given:**
+- The release-gate projection commit was written
+- The post-commit readback cannot verify the durable projection
+
+**When:** Archive evaluates the commit outcome
+
+**Then:**
+- Archive returns success false with typed code RELEASE_GATE_PROJECTION_COMMITTED_UNVERIFIED citing this requirement
+- The commit evidence and operator remediation are included
+- The release gate is not materialized as done on the local change
+
+---
+
+### Archive Terminal Transition Is Requested, Proven, and Repairable
+
+**ID:** `rq-archiveTerminalDurability01` | **Priority:** **[MUST]**
+
+Archive MUST NOT treat signal acceptance or projection state as proof that the terminal transition reached the change workflow. The archive flow MUST request the workflow transition on every non-dry-run route regardless of what any disk or active projection reports, MUST verify after the transition request that the workflow recorded terminal intent via a bounded describe-based proof (Visibility enumeration is never proof), and MUST fail closed with a typed error when that proof cannot be established. The change workflow MUST durably write its terminal projection before completing for both archived and closed terminal outcomes. A change whose archive bundle is reachable from the default branch, whose disk projection is archived, and whose workflow is absent MUST be repairable through the existing single mutation authority under a full proof gate; reconciliation MUST evaluate archive-bundle evidence before applying any stale-disk veto and MUST surface typed skip reasons for candidates it does not act on.
+
+**Tags:** `workflow`, `archive`, `terminal-state`, `durability`, `recovery`, `read-model`
+
+#### Scenarios
+
+**Projection state never gates the transition request** (`rq-archiveTerminalDurability01.1`)
+
+**Given:**
+- A change whose disk or active projection already reports status archived
+- The change workflow has not recorded the archive transition
+
+**When:** adv_change_archive runs on any non-dry-run route, including the existing-bundle reconciliation route
+
+**Then:**
+- The archive transition is requested through the store-backed save on every route
+- The existing bundle is reused and bundle re-writing is skipped on the reconciliation route
+- No projection read short-circuits the transition request
+
+**Post-save proof fails closed when the workflow cannot be verified** (`rq-archiveTerminalDurability01.2`)
+
+**Given:**
+- The archive transition request has been accepted by the store
+- A bounded describe of the change workflow fails, reports an unrecognized state, or the workflow is not found
+
+**When:** The archive flow evaluates whether the transition is durably recorded
+
+**Then:**
+- Archive returns success false with typed code ARCHIVE_WORKFLOW_PROOF_FAILED or ARCHIVE_WORKFLOW_PROOF_AMBIGUOUS citing this requirement
+- The not-found case is classified ambiguous because completed and retention-expired are indistinguishable
+- Visibility enumeration is never consulted as proof
+- The written bundle is preserved and no rollback or deletion is attempted
+
+**Terminal projection is durable before workflow completion** (`rq-archiveTerminalDurability01.3`)
+
+**Given:**
+- A change workflow has received signals that produce an archived or closed terminal outcome
+
+**When:** The workflow reaches its terminal block
+
+**Then:**
+- The terminal projection Activity is awaited and completes before the workflow completes
+- Both archived and closed outcomes are covered
+- In-flight executions recorded before this behavior replay through the patch-guarded legacy branch without nondeterminism errors
+
+**No-workflow archived population repairs under full proof** (`rq-archiveTerminalDurability01.4`)
+
+**Given:**
+- An archive bundle for the change is reachable from the default branch
+- The disk projection reports status archived
+- The change workflow is absent, confirmed by an exact workflow-not-found describe failure
+
+**When:** The repair path converges the change
+
+**Then:**
+- The convergence write is routed through the single mutation authority
+- The terminal projection is written and subsequent list, summary, and show reads agree on terminal status
+- The result carries the bundle hash and proof receipt
+
+**Repair refuses when default-branch bundle proof is missing** (`rq-archiveTerminalDurability01.5`)
+
+**Given:**
+- A change whose archive bundle exists only in a worktree or in-repo location and is not reachable from the default branch
+
+**When:** The repair path evaluates convergence
+
+**Then:**
+- The repair refuses with a typed refusal code and evidence
+- No projection write is performed
+
+**Reconciliation evaluates bundle evidence before the stale-disk veto** (`rq-archiveTerminalDurability01.6`)
+
+**Given:**
+- A reconciliation candidate with a merged archive bundle and a stale non-terminal disk projection
+
+**When:** Terminal reconciliation evaluates the candidate
+
+**Then:**
+- The archive-bundle evidence is evaluated first and the stale-disk veto does not skip the candidate
+- A candidate with no archive evidence is skipped with a typed reason
+- Skip reasons are observable through the existing doctor and startup diagnostic surfaces
+- Reconciliation converges through the existing terminal authority and never writes status directly
+
 ---
 
 ### Worker Bundle Release Requires Freshness and Replay-Determinism Provenance
@@ -1478,6 +1580,19 @@ When a durable terminal projection exists for a change, terminal-aware reads MUS
 - Rows are deduplicated by change.json.id
 - The archived change appears at most once
 - The canonical change ID is preserved in the returned row
+
+**List, summary, and show agree on terminal status** (`rq-terminalProjectionTruth01.3`)
+
+**Given:**
+- A change with an archive bundle on the default branch
+- A stale draft or active disk projection for the same change
+
+**When:** adv_change_list, its summary path, and adv_change_show each resolve the change
+
+**Then:**
+- All three surfaces report the same terminal status
+- The summary path applies the same archive-bundle dominance as the list and snapshot paths
+- Hydration statistics report real counts or omit measurements that do not exist; a hardcoded zero is never emitted as a measurement
 
 ---
 
@@ -7222,5 +7337,300 @@ For a proof-bearing task, acceptance and release readiness MUST evaluate typed v
 **Then:**
 - Acceptance remains blocked with an explicit verification-evidence reason
 - The other successful run is not substituted
+
+---
+
+### Unified hygiene triage scope for /adv-cleanup
+
+**ID:** `rq-cleanupHygieneScope01` | **Priority:** **[MUST]**
+
+/adv-cleanup MUST triage all four ADV hygiene surfaces in a single run: active-change debt, worktree drift, merged archived change/* branch debt, and archived/closed state leaks. Discovery MUST route through adv_change_list, adv_worktree_triage, adv_worktree_cleanup mode archived_branches dryRun true, and adv_status view hygiene respectively. Dry-run remains the default mode and no surface may be silently omitted when empty. Candidate buckets MUST be classified by reversibility, and irreversible buckets (worktree deletion, branch deletion) MUST require a stronger confirmation than reversible buckets: a count-matched typed reply that rejects the reversible-bucket approve-all token, with no LLM fallback. Deletion MUST delegate to adv_worktree_delete or adv_worktree_cleanup per rq-terminalCleanupSafety01; adv_worktree_triage classification is advisory discovery and selection data and is never sufficient deletion authority. Invocation remains operator-explicit with no background sweeps, daemons, or session-start auto-cleanup.
+
+**Tags:** `cleanup`, `hygiene`, `approval`, `safety`
+
+#### Scenarios
+
+**Four-surface discovery in one run** (`rq-cleanupHygieneScope01.1`)
+
+**Given:**
+- A project has stale active changes, drifted worktrees, merged archived change/* branches, and archived or closed state leaks
+
+**When:** The user runs /adv-cleanup in default dry-run mode
+
+**Then:**
+- The report contains a distinct section for each of the four hygiene surfaces
+- Each section is labelled with its reversibility class
+- A surface with no candidates renders an explicit empty state rather than being omitted
+- No change is closed and no worktree or branch is deleted
+
+**Reversibility labelling with recovery detail** (`rq-cleanupHygieneScope01.2`)
+
+**Given:**
+- A cleanup report contains both reversible and irreversible candidate buckets
+
+**When:** The report is rendered
+
+**Then:**
+- Every candidate bucket carries an explicit reversible or irreversible marker
+- Each irreversible bucket states its recovery path
+- The branch-deletion bucket states the reflog recovery time bound
+
+**Typed confirmation for irreversible buckets** (`rq-cleanupHygieneScope01.3`)
+
+**Given:**
+- An irreversible bucket such as worktree deletion or branch deletion is presented for approval
+
+**When:** The user replies approve all
+
+**Then:**
+- The reply is rejected and the bucket is re-prompted
+- Approval requires a count-matched typed reply whose count equals the exact listed candidate count
+- A count mismatch re-prompts
+- No LLM fallback is used on any reply
+
+**Delegated deletion authority** (`rq-cleanupHygieneScope01.4`)
+
+**Given:**
+- An irreversible bucket has been approved with a valid typed confirmation
+
+**When:** The command applies the approved bucket
+
+**Then:**
+- Deletion is performed by adv_worktree_delete or adv_worktree_cleanup
+- The deletion tool's own safety refusals are honoured and surfaced verbatim in the result lines
+- adv_worktree_triage classification alone never authorises removal
+- Each bucket remains atomic and a bucket failure does not halt remaining buckets
+
+**Dry-run default preserved** (`rq-cleanupHygieneScope01.5`)
+
+**Given:**
+- The user runs /adv-cleanup without an execute flag
+
+**When:** The command completes its scan and renders the report
+
+**Then:**
+- No change is closed
+- No worktree is deleted
+- No local branch is deleted
+- The footer states how to re-run with execution enabled
+
+---
+
+### Mid-lifecycle findings route to backlog, not reflexive change creation
+
+**ID:** `rq-findingRouting01` | **Priority:** **[MUST]**
+
+Command contracts that encounter mid-lifecycle findings — prep MoSCoW Won't path, design risk-table framing, apply/review/harden routing — MUST name adv_backlog_add as the durable middle-tier option. Findings that do not warrant immediate change creation MUST be routable to the backlog without friction (no mandatory prose justification gate). The command contracts MUST carry a fidelity anchor (asset-test claim) that fails if the routing direction is removed, so the vocabulary does not silently regress.
+
+**Tags:** `workflow`, `backlog`, `findings`, `vocabulary`, `routing`
+
+#### Scenarios
+
+**Prep MoSCoW Won't directs to backlog** (`rq-findingRouting01.1`)
+
+**Given:**
+- A finding is classified Won't during prep
+
+**When:** The agent follows the MoSCoW Won't path
+
+**Then:**
+- The contract names adv_backlog_add as the durable middle-tier option
+- No mandatory prose justification blocks the routing
+
+**Design risk-table requires durable-record framing** (`rq-findingRouting01.2`)
+
+**Given:**
+- A design risk-table entry exists for a finding that might be lost
+
+**When:** The mitigation is framed
+
+**Then:**
+- The adv-design contract requires durable-record framing
+- No-change-owns-it is not an acceptable mitigation
+
+**Apply/review/harden routing claims are drift-guarded** (`rq-findingRouting01.3`)
+
+**Given:**
+- The Finding Routing claims exist in the command files
+
+**When:** Asset tests run
+
+**Then:**
+- Each claim has a fidelity anchor that fails on removal
+- The routing vocabulary does not silently regress
+
+---
+
+### Respects claims on avoidance/out_of_scope items require non-claiming review authority
+
+**ID:** `rq-respectsEvaluation01` | **Priority:** **[MUST]**
+
+A task's contract_refs.respects claim targeting an avoidance (DONT) or out_of_scope (OOS) contract item is a positive compliance assertion that the claiming agent cannot self-certify. At acceptance and release gate readiness, every done task with such a respects claim MUST carry task-scoped review authority from a non-claiming agent (adv-reviewer). A change-scoped review report does not qualify — the reviewer must have examined THIS task. Self-asserted compliance alone MUST fail with a typed RESPECTS_EVIDENCE_AUTHORITY_MISSING blocker. The check applies to ALL done tasks (no grandfathering); existing recorded review evidence is accepted, not re-litigated. A task whose evidence_policy is 'test' is not exempt: respects on avoidance/OOS items requires review authority regardless of the task's own evidence route.
+
+**Tags:** `workflow`, `contract`, `acceptance`, `release`, `evidence`, `authority`, `respects`
+
+#### Scenarios
+
+**Self-asserted respects on avoidance/OOS fails without review authority** (`rq-respectsEvaluation01.1`)
+
+**Given:**
+- A done task has contract_refs.respects referencing a DONT or OOS item
+- No task-scoped adv-reviewer report exists for the task
+
+**When:** Acceptance or release readiness evaluates the task
+
+**Then:**
+- Gate readiness emits a RESPECTS_EVIDENCE_AUTHORITY_MISSING blocker
+- The blocker names the unverified respects item(s)
+
+**Task-scoped review authority satisfies the respects claim** (`rq-respectsEvaluation01.2`)
+
+**Given:**
+- A done task has contract_refs.respects referencing a DONT or OOS item
+- A task-scoped adv-reviewer report exists
+
+**When:** Acceptance or release readiness evaluates the task
+
+**Then:**
+- No respects-authority blocker is emitted
+- The existing review evidence is accepted without re-examination
+
+**Non-avoidance respects do not require review authority** (`rq-respectsEvaluation01.3`)
+
+**Given:**
+- A done task has contract_refs.respects referencing only constraints or acceptance criteria (non-avoidance)
+- No review report exists
+
+**When:** Acceptance or release readiness evaluates the task
+
+**Then:**
+- No respects-authority blocker is emitted
+
+**Change-scoped review does not satisfy task-scoped authority** (`rq-respectsEvaluation01.4`)
+
+**Given:**
+- A reviewer report exists but is scoped to the change, not the task
+
+**When:** Acceptance or release readiness evaluates a task with avoidance respects
+
+**Then:**
+- The respects-authority blocker is still emitted
+- The report does not count as task-scoped authority
+
+---
+
+### adv_change_create surfaces bounded portfolio state with graceful degradation
+
+**ID:** `rq-createPortfolioLine01` | **Priority:** **[SHOULD]**
+
+adv_change_create MUST surface bounded portfolio state at creation time: non-terminal change count, never-terminal share, and a soft nudge above threshold. Change creation is where reflexive change creation happens; surfacing the portfolio at that moment gives the creating agent the state it needs to consider the durable middle tier (adv_backlog_add). The portfolio read is deadline-capped (well under the store budget) and MUST degrade to an explicit { available: false } marker on any failure or timeout — creation is never blocked by the portfolio read. The nudge fires only above BOTH thresholds (minimum open count AND never-terminal share) so small portfolios stay quiet. An empty portfolio reports zero share with no nudge.
+
+**Tags:** `workflow`, `change-create`, `portfolio`, `backlog`, `degradation`
+
+#### Scenarios
+
+**Create surfaces bounded portfolio stats** (`rq-createPortfolioLine01.1`)
+
+**Given:**
+- A portfolio with non-terminal and terminal changes
+
+**When:** adv_change_create completes successfully
+
+**Then:**
+- The result carries portfolioState with available: true
+- open_count and never_terminal_share are computed correctly
+
+**Create degrades gracefully on portfolio read failure** (`rq-createPortfolioLine01.2`)
+
+**Given:**
+- The portfolio read exceeds its deadline or throws
+
+**When:** adv_change_create runs under a failing or slow portfolio read
+
+**Then:**
+- Creation still succeeds
+- The result carries portfolioState with available: false
+- The marker is explicit and distinguishable from a zero portfolio
+
+**Nudge fires only above both thresholds** (`rq-createPortfolioLine01.3`)
+
+**Given:**
+- A portfolio above both nudge thresholds (open count AND never-terminal share)
+
+**When:** adv_change_create evaluates the portfolio
+
+**Then:**
+- The nudge message is present and names adv_backlog_add
+
+**Small portfolios stay quiet** (`rq-createPortfolioLine01.4`)
+
+**Given:**
+- A portfolio below either threshold
+
+**When:** adv_change_create evaluates the portfolio
+
+**Then:**
+- No nudge is emitted
+
+---
+
+### Retry reducer distinguishes progress from retries and makes the budget clamp visible
+
+**ID:** `rq-retryProgressAccounting01` | **Priority:** **[MUST]**
+
+The retry reducer MUST distinguish productive review/implementation rounds from failed retries. A BLOCKED sub-agent verdict whose blocking findings share no id or stable fingerprint with the previous blocked round is progress on new ground, not a failed retry: it MUST be recorded in task.progress_rounds and MUST NOT inflate error_recovery. A round whose findings overlap by id or file+what is a retry. When the true attempt count (total_attempts) reaches or exceeds max_retries, the retention clamp MUST emit an explicit budget_warning marker on error_recovery rather than silently dropping history. Report submission is never refused at/over budget: the report applies and the marker makes the clamp visible. The doom-loop UX MUST surface the budget_warning so the operator can see that history was elided.
+
+**Tags:** `workflow`, `retry`, `doom-loop`, `honesty`, `evidence`, `subagent-reports`
+
+#### Scenarios
+
+**Disjoint findings are progress, not retry** (`rq-retryProgressAccounting01.1`)
+
+**Given:**
+- Two successive BLOCKED verdicts
+- The second verdict's blocking findings share no id or stable fingerprint with the first
+
+**When:** The reducer applies the second BLOCKED verdict
+
+**Then:**
+- The second verdict is recorded in task.progress_rounds
+- error_recovery.retry_count is not incremented
+- error_recovery.attempts is not inflated
+
+**Overlapping findings are a retry** (`rq-retryProgressAccounting01.2`)
+
+**Given:**
+- Two successive BLOCKED verdicts
+- The findings overlap by id or file+what
+
+**When:** The reducer applies the second BLOCKED verdict
+
+**Then:**
+- The second verdict increments the retry count
+- progress_rounds is not appended
+
+**Budget clamp emits visible warning, never refuses** (`rq-retryProgressAccounting01.3`)
+
+**Given:**
+- A task at or over retry budget
+- total_attempts >= max_retries
+
+**When:** A sub-agent report is submitted at/over budget
+
+**Then:**
+- Submission succeeds — no refusal
+- error_recovery carries a non-empty budget_warning string
+- The doom-loop UX surfaces budgetWarning
+
+**No warning while budget holds** (`rq-retryProgressAccounting01.4`)
+
+**Given:**
+- A task under retry budget
+- total_attempts < max_retries
+
+**When:** A sub-agent report is submitted
+
+**Then:**
+- No budget_warning is emitted
 
 ---

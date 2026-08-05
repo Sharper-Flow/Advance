@@ -2,9 +2,9 @@
   "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/spec.schema.json",
   "name": "advance-workflow",
   "title": "Advance Workflow",
-  "purpose": "Capability: Workflow contract layer for ADV \u2014 gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
-  "version": "1.44.0",
-  "updated_at": "2026-08-04T20:16:59.465Z",
+  "purpose": "Capability: Workflow contract layer for ADV — gate model, autonomy boundaries, design validation, scope management, releases, approvals, handoff voice, review remediation, and touched-scope quality. Split from `advance` capability.",
+  "version": "1.45.0",
+  "updated_at": "2026-08-05T04:56:31.351Z",
   "requirements": [
     {
       "id": "rq-problemSpecLaw01",
@@ -497,7 +497,7 @@
     {
       "id": "rq-releaseFinalization01",
       "title": "Archive Finalization Requires Origin or PR Merge Proof",
-      "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update the shared default-branch ref. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. A local bare origin is a valid remote route and is treated as `direct`. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release \u2713`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:\"skip\"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state \u2014 `Shipped.` after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence \u2014 before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. Release reachability MUST distinguish an unresolvable change ref from unmerged commits: when the change ref cannot be resolved to a commit, the archive MUST block with a reason distinct from the unmerged-commit reason, and git ref-resolution failure output MUST NOT be recorded as unmerged-commit evidence. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.",
+      "body": "Phase 9 Git Finalization must refresh the current default-branch basis before deciding local direct merge versus PR workflow. If no `origin` remote exists, `no_remote` blocks with `NO_REMOTE_RELEASE_AUTHORITY` and does not update the shared default-branch ref. If `origin` exists, release completion and archive retirement MUST require post-fetch `origin/{default-branch}` reachability or merged PR state. A local bare origin is a valid remote route and is treated as `direct`. Remote-backed push failure, skipped push, protected-branch rejection, unarmed PR, or pending auto-merge MUST NOT record `release ✓`, archive status, issue closure, branch deletion, or worktree cleanup. Protected or risky cases route to PR workflow: `Pending auto-merge.` only when GitHub auto-merge is armed and the change remains active; `Blocked.` when PR/auto-merge cannot be established. `phase9:\"skip\"` and release recovery must revalidate the same origin/default or merged PR proof before recording release. `adv_doctor` must detect archived-but-unmerged remote `change/*` branches and re-drive them through idempotent PR auto-merge without force-push (or surface an approval-required proposal when the safe path is blocked). For the direct (non-PR) path, Phase 9 dispatch MUST be awaited to a durable terminal state — `Shipped.` after post-fetch `origin/{default-branch}` reachability (or verified push to a local bare origin), else a recorded failed outcome with actionable recovery evidence — before archive completion is reported; direct finalization MUST NOT detach merge work behind a fire-and-forget promise, MUST NOT swallow failures, and MUST NOT add automatic retry, and interruption after dispatch MUST resume to the same durable shipped-or-failed state rather than losing merge work. Manual merge/push recovery for an affected direct archive revalidates the same origin/default or merged PR proof before recording release. Release reachability MUST distinguish an unresolvable change ref from unmerged commits: when the change ref cannot be resolved to a commit, the archive MUST block with a reason distinct from the unmerged-commit reason, and git ref-resolution failure output MUST NOT be recorded as unmerged-commit evidence. PR-mode finalization and wedged-workflow recovery are unchanged by this requirement.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -694,7 +694,7 @@
     {
       "id": "rq-releaseFinalization02",
       "title": "Auto-Drive Pending-PR Archive Completion",
-      "body": "When Phase 9 Git Finalization returns route \u201cpr_auto_merge\u201d or \u201cmerge_queue\u201d with auto-merge armed (i.e. the archive tool would otherwise return \u201cphase9: \u2018pending_merge\u2019\u201d), ADV orchestrates the remaining completion rather than handing back to the human. The orchestration spawns \u201cadv-ci-waiter\u201d, the bounded-poll exception to P37, and waits for it to report a terminal result. `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20\u201330 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state. CI success alone is not sufficient for release completion. Release completion requires either (a) explicit PR merge-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit` returning `state == MERGED`) or (b) unchanged `origin/{default-branch}` reachability proof. On terminal `MERGED` (verified separately) it syncs the local default branch in place and re-runs \u201cverifyReleaseEvidenceFromMain\u201d (which already proves reachability through \u201cpr_merged\u201d proof and is branch-ref-independent via the persisted tip SHA delivered by parent change \u201cfixPhase9SquashMergeRedetect\u201d). The auto-drive applies only to \u201cpr_auto_merge\u201d and \u201cmerge_queue\u201d routes; direct-push, no-remote, and \u201cff-only\u201d paths remain unchanged. Auto-drive orchestration lives in \u201cadv-archive.md\u201d; the trunk-sync helper lives in \u201cplugin/src/tools/archive-helpers/git-finalize.ts\u201d; the worker-bundle boundary (\u201cworkflow-bundle-boundary.test.ts\u201d) must remain green.",
+      "body": "When Phase 9 Git Finalization returns route “pr_auto_merge” or “merge_queue” with auto-merge armed (i.e. the archive tool would otherwise return “phase9: ‘pending_merge’”), ADV orchestrates the remaining completion rather than handing back to the human. The orchestration spawns “adv-ci-waiter”, the bounded-poll exception to P37, and waits for it to report a terminal result. `oc-ci-wait` (called by `adv-ci-waiter`) owns GitHub API polling and rate-limit backoff; the sub-agent samples `oc-ci-wait result --watch-id <id> --json` every 20–30 seconds. CI terminal statuses are `completed`, `timeout`, `cancelled`, `error`; `conclusion` is CI success/failure, NOT PR merge state. CI success alone is not sufficient for release completion. Release completion requires either (a) explicit PR merge-state evidence (`gh pr view <number> --json state,mergedAt,mergeCommit` returning `state == MERGED`) or (b) unchanged `origin/{default-branch}` reachability proof. On terminal `MERGED` (verified separately) it syncs the local default branch in place and re-runs “verifyReleaseEvidenceFromMain” (which already proves reachability through “pr_merged” proof and is branch-ref-independent via the persisted tip SHA delivered by parent change “fixPhase9SquashMergeRedetect”). The auto-drive applies only to “pr_auto_merge” and “merge_queue” routes; direct-push, no-remote, and “ff-only” paths remain unchanged. Auto-drive orchestration lives in “adv-archive.md”; the trunk-sync helper lives in “plugin/src/tools/archive-helpers/git-finalize.ts”; the worker-bundle boundary (“workflow-bundle-boundary.test.ts”) must remain green.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -706,38 +706,38 @@
           "id": "rq-releaseFinalization02.1",
           "title": "Auto-drive triggers on pending_merge",
           "given": [
-            "ADV calls \u201cadv_change_archive phase9:\u201crun\u201d\u201d",
-            "The archive tool returns \u201cphase9: \u2018pending_merge\u2019\u201d with the route coerced from \u201cpr_auto_merge\u201d or \u201cmerge_queue\u201d"
+            "ADV calls “adv_change_archive phase9:“run””",
+            "The archive tool returns “phase9: ‘pending_merge’” with the route coerced from “pr_auto_merge” or “merge_queue”"
           ],
           "when": "The orchestrator inspects the archive tool return",
           "then": [
-            "ADV spawns \u201cadv-ci-waiter\u201d against the PR via the Task tool",
+            "ADV spawns “adv-ci-waiter” against the PR via the Task tool",
             "The main agent does not poll CI status itself",
-            "ADV reads \u201cfinalization.prNumber\u201d, \u201cfinalization.prUrl\u201d, \u201cfinalization.mainCheckout\u201d, \u201cfinalization.defaultBranch\u201d from the structured return (fields are nested inside \u201cfinalization\u201d, not top-level)"
+            "ADV reads “finalization.prNumber”, “finalization.prUrl”, “finalization.mainCheckout”, “finalization.defaultBranch” from the structured return (fields are nested inside “finalization”, not top-level)"
           ]
         },
         {
           "id": "rq-releaseFinalization02.2",
           "title": "Auto-drive completes end-to-end on merge",
           "given": [
-            "The spawned waiter reports terminal \u201cMERGED\u201d"
+            "The spawned waiter reports terminal “MERGED”"
           ],
           "when": "ADV continues the auto-drive flow",
           "then": [
             "ADV merges and pushes the archive from an ephemeral detached worktree; the shared main checkout is not inspected or mutated",
-            "ADV re-calls \u201cadv_change_archive phase9:\u201crun\u201d\u201d and lets \u201cverifyReleaseEvidenceFromMain\u201d return \u201cShipped.\u201d via the \u201cpr_merged\u201d proof branch-ref-independent",
-            "No second human turn is required; the change reaches the \u201cShipped.\u201d state end-to-end"
+            "ADV re-calls “adv_change_archive phase9:“run”” and lets “verifyReleaseEvidenceFromMain” return “Shipped.” via the “pr_merged” proof branch-ref-independent",
+            "No second human turn is required; the change reaches the “Shipped.” state end-to-end"
           ]
         },
         {
           "id": "rq-releaseFinalization02.3",
           "title": "Non-pending-PR paths are untouched",
           "given": [
-            "A change is archived via direct push, local bare origin push, or \u201cff-only\u201d reconcile"
+            "A change is archived via direct push, local bare origin push, or “ff-only” reconcile"
           ],
           "when": "Phase 9 Git Finalization runs",
           "then": [
-            "The auto-drive does NOT trigger (no \u201cpending_merge\u201d is returned)",
+            "The auto-drive does NOT trigger (no “pending_merge” is returned)",
             "The route return and ordering match the pre-existing direct/local-bare-origin/ff-only behavior",
             "The change continues to reach its existing terminal state synchronously"
           ]
@@ -748,10 +748,10 @@
           "given": [
             "The auto-drive orchestration is added"
           ],
-          "when": "\u201cpnpm test -- src/temporal/workflow-bundle-boundary.test.ts\u201d is run",
+          "when": "“pnpm test -- src/temporal/workflow-bundle-boundary.test.ts” is run",
           "then": [
             "No new CI-wait or Task-spawn import appears in modules reachable from the Temporal worker bundle",
-            "\u201cgit-finalize.ts\u201d imports nothing additional from \u201ctemporal/\u201d (it keeps only the existing \u201cCHANGE_BRANCH_PREFIX\u201d import)",
+            "“git-finalize.ts” imports nothing additional from “temporal/” (it keeps only the existing “CHANGE_BRANCH_PREFIX” import)",
             "The worker-bundle boundary test stays green"
           ]
         }
@@ -833,7 +833,7 @@
     {
       "id": "rq-releaseFinalization04",
       "title": "Auto-Drive Non-Terminal Reporting",
-      "body": "When the spawned \u201cadv-ci-waiter\u201d returns a non-terminal outcome (timeout, blocked, red CI it cannot fix, missing credentials, ambiguous/partial report, or CI success while PR state is not yet `MERGED`), ADV MUST NOT escalate to release completion. The change MUST stay active; the terminal report MUST be \u201cPending auto-merge.\u201d or \u201cBlocked.\u201d with the PR URL and the exact retry command. CI success alone is necessary but not sufficient; a \u201cShipped.\u201d verdict requires `gh pr view <number> --json state` returning `MERGED` or unchanged `origin/{default-branch}` reachability. A false \u201cShipped.\u201d contradicts the shipped-invariant bar carried by \u201crq-releaseFinalization01\u201d. The retry command rendered in the report MUST match a copy-pasteable invocation that the user can run to resume the archive after fixing the upstream cause.",
+      "body": "When the spawned “adv-ci-waiter” returns a non-terminal outcome (timeout, blocked, red CI it cannot fix, missing credentials, ambiguous/partial report, or CI success while PR state is not yet `MERGED`), ADV MUST NOT escalate to release completion. The change MUST stay active; the terminal report MUST be “Pending auto-merge.” or “Blocked.” with the PR URL and the exact retry command. CI success alone is necessary but not sufficient; a “Shipped.” verdict requires `gh pr view <number> --json state` returning `MERGED` or unchanged `origin/{default-branch}` reachability. A false “Shipped.” contradicts the shipped-invariant bar carried by “rq-releaseFinalization01”. The retry command rendered in the report MUST match a copy-pasteable invocation that the user can run to resume the archive after fixing the upstream cause.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -846,13 +846,13 @@
           "title": "Timeout leaves change active",
           "given": [
             "Auto-drive is running",
-            "The waiter exceeds its bounded watch budget without reaching \u201cMERGED\u201d"
+            "The waiter exceeds its bounded watch budget without reaching “MERGED”"
           ],
           "when": "ADV must conclude the auto-drive",
           "then": [
-            "The change stays active (status remains \u201cdraft\u201d/\u201cpending_merge\u201d, archive not retired)",
-            "The report renders \u201cPending auto-merge.\u201d with the PR URL",
-            "The render includes the exact retry command: \u201cadv_change_archive changeId:{id} worktreePath:{worktree} phase9:\u201crun\u201d\u201d"
+            "The change stays active (status remains “draft”/“pending_merge”, archive not retired)",
+            "The report renders “Pending auto-merge.” with the PR URL",
+            "The render includes the exact retry command: “adv_change_archive changeId:{id} worktreePath:{worktree} phase9:“run””"
           ]
         },
         {
@@ -864,8 +864,8 @@
           "when": "ADV concludes the auto-drive",
           "then": [
             "The change stays active",
-            "The report renders \u201cBlocked.\u201d with reason and remediation",
-            "\u201cShipped.\u201d is NEVER emitted as the terminal verb for this scenario"
+            "The report renders “Blocked.” with reason and remediation",
+            "“Shipped.” is NEVER emitted as the terminal verb for this scenario"
           ]
         }
       ],
@@ -932,7 +932,7 @@
           "id": "rq-releaseProjectionDurability01.4",
           "title": "Shipped finalization is git-authoritative when both release-gate projections lag",
           "given": [
-            "A change whose Phase 9 finalization is `shipped` (git-verified default-branch reachability/merge \u2014 `finalization.status === \"shipped\"`, derived only from confirmed reachability, un-forgeable)",
+            "A change whose Phase 9 finalization is `shipped` (git-verified default-branch reachability/merge — `finalization.status === \"shipped\"`, derived only from confirmed reachability, un-forgeable)",
             "Both the store-backed release-gate read and the disk release-gate projection lag `pending` (propagation lag)"
           ],
           "when": "adv_change_archive runs the durable release-gate proof",
@@ -1879,7 +1879,7 @@
     {
       "id": "rq-readSourceAttribution01",
       "title": "Archive and Visibility Read Sources Are Bounded and Attributed",
-      "body": "Archive and Visibility candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). Visibility enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory \u00d7 candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory \u00d7 candidate scan is allowed. Existing terminal source-failure warnings stay terminal-only, while deadline and bound degradation are typed on both active and terminal paths.",
+      "body": "Archive and Visibility candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). Visibility enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory × candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory × candidate scan is allowed. Existing terminal source-failure warnings stay terminal-only, while deadline and bound degradation are typed on both active and terminal paths.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -2044,7 +2044,7 @@
           "when": "The ADV orchestrator evaluates the next gate",
           "then": [
             "The orchestrator stops and presents a change report",
-            "The user is asked for explicit sign-off via inline handoff text per docs/command-voice-standard.md \u00a7 Inline Approval Voice (Tier B)"
+            "The user is asked for explicit sign-off via inline handoff text per docs/command-voice-standard.md § Inline Approval Voice (Tier B)"
           ]
         },
         {
@@ -2172,7 +2172,7 @@
     {
       "id": "rq-acWarrant01",
       "title": "Capability-Warrant Validation and Reproduction-Finding Classification",
-      "body": "Acceptance and success criteria that presume a capability surface exists (a tool, a tool argument, or a spec requirement) MUST declare a typed warrant tag `[warrant: <ref>]` in the approved agreement, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. At contract mint, every declared warrant is verified against the live tool surface and known spec ids; an unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT. Verification authority is structural \u2014 declared warrants are checked against the assembled tool registry and specs, never inferred heuristically from prose. During discovery, every reproduction-sourced finding MUST be classified as broken_capability, unwarranted_operation, or unverified; findings classified unwarranted_operation or unverified MUST NOT seed a criterion asserting the capability must work. Behavioral criteria that presume no capability surface require no warrant (proportionality). This moves the catch for unwarranted criteria from the late design validator to an early structural gate.",
+      "body": "Acceptance and success criteria that presume a capability surface exists (a tool, a tool argument, or a spec requirement) MUST declare a typed warrant tag `[warrant: <ref>]` in the approved agreement, where ref is `tool:<name>`, `tool:<name>#<arg>`, or `spec:<rq-id>`. At contract mint, every declared warrant is verified against the live tool surface and known spec ids; an unresolved warrant fails the mint with CONTRACT_UNRESOLVED_WARRANT. Verification authority is structural — declared warrants are checked against the assembled tool registry and specs, never inferred heuristically from prose. During discovery, every reproduction-sourced finding MUST be classified as broken_capability, unwarranted_operation, or unverified; findings classified unwarranted_operation or unverified MUST NOT seed a criterion asserting the capability must work. Behavioral criteria that presume no capability surface require no warrant (proportionality). This moves the catch for unwarranted criteria from the late design validator to an early structural gate.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -2513,7 +2513,7 @@
     {
       "id": "rq-handoffVoice01",
       "title": "Gate Handoff Voice Spine",
-      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} \u2713 \u2192 {next-gate}`, and an arrow-prefixed runnable command `\u2192 `/adv-{next-command} {change-id}``. The command shown MUST be the single manifest-registered command needed to continue the next gate transition, taken from the current actionable phase-plan / directive. It MUST NOT be inferred, guessed, or substituted from prose. If no actionable command is available (blocked, recovery, approval, terminal, or missing command), the arrow-prefixed row MUST be omitted and the blockquote MUST show a blocked/recovery/approval status line. If a user reaches ADV with the retired `/adv-accept` wording, returned guidance MUST correct `/adv-accept` to `/adv-review` and MUST NOT register `/adv-accept` as a command or alias. Canonical source: docs/command-voice-standard.md \u00a7 Gate Handoff Voice.",
+      "body": "Every /adv-* command that emits a user-facing gate-transition message MUST use the Gate Handoff Voice spine: Problem / Chosen direction / Delivered, followed by a blockquote wayfinder block. The blockquote MUST contain three rows: bolded `**{change-id}**`, the gate transition `{gate} ✓ → {next-gate}`, and an arrow-prefixed runnable command `→ `/adv-{next-command} {change-id}``. The command shown MUST be the single manifest-registered command needed to continue the next gate transition, taken from the current actionable phase-plan / directive. It MUST NOT be inferred, guessed, or substituted from prose. If no actionable command is available (blocked, recovery, approval, terminal, or missing command), the arrow-prefixed row MUST be omitted and the blockquote MUST show a blocked/recovery/approval status line. If a user reaches ADV with the retired `/adv-accept` wording, returned guidance MUST correct `/adv-accept` to `/adv-review` and MUST NOT register `/adv-accept` as a command or alias. Canonical source: docs/command-voice-standard.md § Gate Handoff Voice.",
       "priority": "must",
       "tags": [
         "voice",
@@ -2531,9 +2531,9 @@
           "then": [
             "All three narrative spine headings are present: Problem, Chosen direction, Delivered, followed by a blockquote wayfinder block below a --- separator",
             "The blockquote contains a row with `**{change-id}**` (bolded change ID)",
-            "The blockquote contains a row with `{gate} \u2713 \u2192 {next-gate}` (gate transition)",
-            "The blockquote contains an arrow-prefixed row `\u2192 `/adv-{next-command} {change-id}`` showing exactly one runnable command",
-            "The archive terminal variant uses a single-line blockquote `> **{change-id}** \u00b7 release \u2713 \u00b7` followed by a terminal verb for final states (Shipped. when `origin/{default-branch}` reachability, merged PR proof, or verified local bare origin push exists); non-final remote-backed states use `release pending` / `release blocked` with `Pending auto-merge.` or `Blocked.` and leave the change active",
+            "The blockquote contains a row with `{gate} ✓ → {next-gate}` (gate transition)",
+            "The blockquote contains an arrow-prefixed row `→ `/adv-{next-command} {change-id}`` showing exactly one runnable command",
+            "The archive terminal variant uses a single-line blockquote `> **{change-id}** · release ✓ ·` followed by a terminal verb for final states (Shipped. when `origin/{default-branch}` reachability, merged PR proof, or verified local bare origin push exists); non-final remote-backed states use `release pending` / `release blocked` with `Pending auto-merge.` or `Blocked.` and leave the change active",
             "When the handoff is paired with a human-checkpoint approval, reply instructions appear as plain prose below the blockquote (not inside it); the three-section spine (Problem / Chosen direction / Delivered) is unchanged"
           ]
         },
@@ -2576,7 +2576,7 @@
           "then": [
             "## Next stage and ## Next headings are absent from the handoff",
             "A blockquote wayfinder block appears after ## Delivered with three rows: change-id, gate transition, arrow-prefixed runnable command",
-            "The archive terminal variant ends with a single-line blockquote using `release \u2713` only for final states (`Shipped.`); Pending auto-merge. and Blocked. use `release pending` or `release blocked` and no separate labeled block",
+            "The archive terminal variant ends with a single-line blockquote using `release ✓` only for final states (`Shipped.`); Pending auto-merge. and Blocked. use `release pending` or `release blocked` and no separate labeled block",
             "Optional reply instructions for human checkpoints (Inline Approval Voice) appear as plain prose below the blockquote, not inside it"
           ]
         },
@@ -2742,7 +2742,7 @@
     {
       "id": "rq-inlineApproval01",
       "title": "Inline Approval at Named Human Checkpoints",
-      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text \u2014 composed with the Gate Handoff Voice spine \u2014 instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible \u2014 proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible \u2014 archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md \u00a7 Inline Approval Voice.",
+      "body": "ADV's seven named human checkpoints (proposal confirmation, agreement sign-off, design approval, prep approval, acceptance, archive sign-off, cancellation approval) MUST use inline handoff text — composed with the Gate Handoff Voice spine — instead of the question tool. The inline pattern MUST emit reply instructions covering approve, redirect via slash command, revise, and stop. Reply parsing tiers MUST be: Tier A (reversible — proposal/agreement/design/prep/acceptance) uses whitelist + LLM fallback for natural-language replies; Tier B (irreversible — archive sign-off, cancellation) uses whitelist-only with no LLM fallback. Non-checkpoint question tool uses (change-id selection, doom-loop recovery, drift detection, AC clarification rounds, triage commands) remain unaffected. Canonical source: docs/command-voice-standard.md § Inline Approval Voice.",
       "priority": "must",
       "tags": [
         "voice",
@@ -3435,7 +3435,7 @@
           ],
           "when": "adv_status is called",
           "then": [
-            "Child change labels are prefixed with \u21b3 ",
+            "Child change labels are prefixed with ↳ ",
             "Recommendations reference the parent change ID",
             "Archived parents are annotated with (archived)"
           ]
@@ -3488,7 +3488,7 @@
     {
       "id": "rq-searchAttrHealth01",
       "title": "Search-Attribute Registration Must Use Correct OperatorService Method",
-      "body": "The Temporal OperatorService search-attribute health check MUST use `listSearchAttributes` (not `getSearchAttributes`). `getSearchAttributes` exists on WorkflowService, not OperatorService. Using the wrong method causes the check to silently fail, returning ok: false even when attributes are registered. All code paths that query search-attribute health \u2014 observability checks, diagnose tool, and register tool \u2014 must go through `checkAdvSearchAttributes` which uses the correct OperatorService method.",
+      "body": "The Temporal OperatorService search-attribute health check MUST use `listSearchAttributes` (not `getSearchAttributes`). `getSearchAttributes` exists on WorkflowService, not OperatorService. Using the wrong method causes the check to silently fail, returning ok: false even when attributes are registered. All code paths that query search-attribute health — observability checks, diagnose tool, and register tool — must go through `checkAdvSearchAttributes` which uses the correct OperatorService method.",
       "priority": "must",
       "scenarios": [
         {
@@ -3814,7 +3814,7 @@
     {
       "id": "rq-ambiguityScan01",
       "title": "Project-wide ambiguity scanning in /adv-audit",
-      "body": "/adv-audit MUST detect ambiguity in committed spec laws using the B/F/S/Q/E taxonomy. Detection runs inline during Phase 3 Synthesis via runSpecAmbiguityChecks(markdown, capability) \u2014 not a sub-agent stage. Categories: B (Boundaries), F (Functional), S (Completion Signals), Q (Quality Attributes), E (Error Handling).",
+      "body": "/adv-audit MUST detect ambiguity in committed spec laws using the B/F/S/Q/E taxonomy. Detection runs inline during Phase 3 Synthesis via runSpecAmbiguityChecks(markdown, capability) — not a sub-agent stage. Categories: B (Boundaries), F (Functional), S (Completion Signals), Q (Quality Attributes), E (Error Handling).",
       "priority": "must",
       "scenarios": [
         {
@@ -3880,7 +3880,7 @@
     {
       "id": "rq-ambiguityScan03",
       "title": "Ambiguity-aware quality gates",
-      "body": "Quality gates MUST promote health status based on ambiguity severity. CRITICAL ambiguity \u2265 1 promotes to MAJOR_DRIFT. HIGH ambiguity > 3 (standard mode) or any HIGH (strict mode) promotes to DRIFT_DETECTED.",
+      "body": "Quality gates MUST promote health status based on ambiguity severity. CRITICAL ambiguity ≥ 1 promotes to MAJOR_DRIFT. HIGH ambiguity > 3 (standard mode) or any HIGH (strict mode) promotes to DRIFT_DETECTED.",
       "priority": "must",
       "scenarios": [
         {
@@ -3991,7 +3991,7 @@
           "when": "adv_task_ready is called",
           "then": [
             "The response includes _todoProjection rows derived from ADV task state",
-            "Each row content is formatted as `tk-id \u2014 title`",
+            "Each row content is formatted as `tk-id — title`",
             "Completed ADV tasks are omitted from the projection"
           ]
         },
@@ -4822,7 +4822,7 @@
     {
       "id": "rq-designOpportunityScout01",
       "title": "Mandatory Design Leverage Scout",
-      "body": "/adv-design MUST execute a bounded Design Leverage Scout pass (Phase 2.5) for every full proposal workflow after draft design (Phase 2) and before independent validation (Phase 3.5). The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in design mode for worker methodology. It returns \u22645 structured candidates. The scout identifies leverage points: shortcuts, reusable components, parallelism, simplification paths. The scout phase MUST include an INCONCLUSIVE degradation path. Trivially scoped changes MAY skip with rationale. Auto-adopted candidates are incorporated into the design before the validator runs.",
+      "body": "/adv-design MUST execute a bounded Design Leverage Scout pass (Phase 2.5) for every full proposal workflow after draft design (Phase 2) and before independent validation (Phase 3.5). The scout uses a split-load contract: orchestrator owns ScoutCandidate schema, routing, fallback/degradation, adoption, and mutations; adv-researcher may load the adv-opportunity-scout skill in design mode for worker methodology. It returns ≤5 structured candidates. The scout identifies leverage points: shortcuts, reusable components, parallelism, simplification paths. The scout phase MUST include an INCONCLUSIVE degradation path. Trivially scoped changes MAY skip with rationale. Auto-adopted candidates are incorporated into the design before the validator runs.",
       "priority": "must",
       "tags": [
         "design",
@@ -4842,7 +4842,7 @@
           "then": [
             "The orchestrator prepares schema, routing, fallback/degradation, and adoption rules",
             "adv-researcher is spawned with design-mode prompt and may load adv-opportunity-scout in worker context",
-            "\u22645 candidates are returned with 8-field ScoutCandidate schema",
+            "≤5 candidates are returned with 8-field ScoutCandidate schema",
             "Candidates are sorted by payoff/risk ratio",
             "Auto-adopted candidates are integrated into design before validator"
           ]
@@ -5874,7 +5874,7 @@
       "scenarios": [
         {
           "id": "rq-reviewerEvidenceAuthority01.1",
-          "title": "Review-policy task with linked reviewer report \u2014 no verification block",
+          "title": "Review-policy task with linked reviewer report — no verification block",
           "given": [
             "A completed stage-v2 task has evidence_policy \"review\"",
             "A persisted same-task adv-reviewer report is linked as review_evidence_ref"
@@ -5887,7 +5887,7 @@
         },
         {
           "id": "rq-reviewerEvidenceAuthority01.2",
-          "title": "Test/static_check-policy task with only reviewer evidence \u2014 block remains",
+          "title": "Test/static_check-policy task with only reviewer evidence — block remains",
           "given": [
             "A completed task has evidence_policy \"test\" or \"static_check\"",
             "A persisted same-task adv-reviewer report carries aggregate tests_run",
@@ -5913,7 +5913,7 @@
         },
         {
           "id": "rq-reviewerEvidenceAuthority01.4",
-          "title": "Same-task ownership preserved \u2014 change-scoped reviewer report cannot satisfy task review_evidence_ref",
+          "title": "Same-task ownership preserved — change-scoped reviewer report cannot satisfy task review_evidence_ref",
           "given": [
             "A change-scoped adv-reviewer report has no task_id anchor"
           ],
@@ -6872,7 +6872,7 @@
           "when": "S1 calls ensureChangeWorkflowStarted with sessionId sessA",
           "then": [
             "The workflow's task queue is `advance-{P}-{sessA}` (not `advance-{P}`)",
-            "S2's worker is NOT polling `advance-{P}-{sessA}` \u2014 only S1's worker polls it"
+            "S2's worker is NOT polling `advance-{P}-{sessA}` — only S1's worker polls it"
           ]
         },
         {
@@ -7068,7 +7068,7 @@
     {
       "id": "rq-resumeFreshness01",
       "title": "Resume Freshness Advisory at ADV Step 2 Load State",
-      "body": "When an agent resumes a change whose `lastActivityAgeMinutes` exceeds the resume-freshness band (default 60 minutes), the agent MUST emit a bounded Resume Freshness advisory before the Gate Machine proceeds. The advisory MUST surface one or more stable finding codes (`resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`) using the `/adv-coordinate` taxonomy (`repo_backed_fact | adv_backed_fact | judgment_call | freshness_limited`). The advisory MUST NOT block any gate transition. The advisory MUST NOT mutate ADV state. The advisory MUST stay within a bounded tool-call cost ceiling (~5 calls per stale resume) and MUST invoke the resolver at most once per `adv_status` call (primary candidate only). Fresh changes (`lastActivityAgeMinutes <= 60`) MUST skip the advisory entirely. Missing or stale evidence MUST degrade to `freshness_limited`, not block. User dismissal of findings is NOT persisted \u2014 the advisory re-raises on every resume. The advisory scope is current-project only.",
+      "body": "When an agent resumes a change whose `lastActivityAgeMinutes` exceeds the resume-freshness band (default 60 minutes), the agent MUST emit a bounded Resume Freshness advisory before the Gate Machine proceeds. The advisory MUST surface one or more stable finding codes (`resume:sibling_overlap`, `resume:archived_duplicate`, `resume:codebase_drift`, `resume:freshness_limited`) using the `/adv-coordinate` taxonomy (`repo_backed_fact | adv_backed_fact | judgment_call | freshness_limited`). The advisory MUST NOT block any gate transition. The advisory MUST NOT mutate ADV state. The advisory MUST stay within a bounded tool-call cost ceiling (~5 calls per stale resume) and MUST invoke the resolver at most once per `adv_status` call (primary candidate only). Fresh changes (`lastActivityAgeMinutes <= 60`) MUST skip the advisory entirely. Missing or stale evidence MUST degrade to `freshness_limited`, not block. User dismissal of findings is NOT persisted — the advisory re-raises on every resume. The advisory scope is current-project only.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -7165,7 +7165,7 @@
         },
         {
           "id": "rq-resumeFreshness01.8",
-          "title": "Stateless \u2014 no dismissal memory",
+          "title": "Stateless — no dismissal memory",
           "given": [
             "A user dismissed a resume:sibling_overlap finding for pair (A, B) in a prior resume"
           ],
@@ -7183,7 +7183,7 @@
           ],
           "when": "Status enrichments are computed",
           "then": [
-            "The resolver is invoked at most once \u2014 for the primary candidate only",
+            "The resolver is invoked at most once — for the primary candidate only",
             "Non-primary candidates use the ticker path which never invokes the resolver"
           ]
         },
@@ -7198,7 +7198,7 @@
             "A copy-pasteable adv_change_close ... supersededBy snippet is surfaced",
             "The snippet requires the user to run it explicitly with their own approval evidence",
             "The advisory itself does NOT auto-execute close",
-            "The wording uses 'one-command accept (copy-paste and run)' \u2014 never 'one-click' or any phrasing implying button-click auto-execution"
+            "The wording uses 'one-command accept (copy-paste and run)' — never 'one-click' or any phrasing implying button-click auto-execution"
           ]
         }
       ]
@@ -7206,7 +7206,7 @@
     {
       "id": "rq-wisdomAutoSurfacing01",
       "title": "Advisory Wisdom Auto-Surfacing and Draft Lifecycle",
-      "body": "ADV auto-surfaces relevant wisdom and creates typed WisdomDraft entries on SEMANTIC error_recovery attempts to lower the friction of capturing cross-task learnings. All enrichment is advisory-only: it MUST NOT be used to complete gates, override specs/contracts, or replace task evidence. WisdomDrafts follow a strict one-way lifecycle: suggested \u2192 promoted (via adv_wisdom_add from_draft_id) | dismissed (auto at adv_task_checkpoint with reason auto_checkpoint OR explicit user dismiss with reason user_dismissed). Drafts are task-scoped: cancelled tasks' drafts do not appear in change-level wisdom queries. The generic [ADV:RECORD_WISDOM] system-block nudge is retired; it is replaced by a draft-aware [ADV:WISDOM_DRAFTS] nudge that fires only when drafts are pending review. The plugin emits a capabilities-gated episode recall hint only \u2014 it never executes MCP calls directly (preserves plugin\u2194MCP isolation). Existing callers of affected tools MUST observe byte-identical behavior when new optional fields/features are absent (backward-compat invariant).",
+      "body": "ADV auto-surfaces relevant wisdom and creates typed WisdomDraft entries on SEMANTIC error_recovery attempts to lower the friction of capturing cross-task learnings. All enrichment is advisory-only: it MUST NOT be used to complete gates, override specs/contracts, or replace task evidence. WisdomDrafts follow a strict one-way lifecycle: suggested → promoted (via adv_wisdom_add from_draft_id) | dismissed (auto at adv_task_checkpoint with reason auto_checkpoint OR explicit user dismiss with reason user_dismissed). Drafts are task-scoped: cancelled tasks' drafts do not appear in change-level wisdom queries. The generic [ADV:RECORD_WISDOM] system-block nudge is retired; it is replaced by a draft-aware [ADV:WISDOM_DRAFTS] nudge that fires only when drafts are pending review. The plugin emits a capabilities-gated episode recall hint only — it never executes MCP calls directly (preserves plugin↔MCP isolation). Existing callers of affected tools MUST observe byte-identical behavior when new optional fields/features are absent (backward-compat invariant).",
       "priority": "must",
       "tags": [
         "workflow",
@@ -7230,7 +7230,7 @@
             "FTS-filter candidate wisdom entries via the project's wisdom.search path using the joined implements[] IDs as the query",
             "Sort filtered entries deterministically by recorded_at DESC",
             "Return at most the top 5 entries",
-            "Return [] when FTS fails (advisory-only \u2014 never throw)",
+            "Return [] when FTS fails (advisory-only — never throw)",
             "Return [] when contract_refs.implements is empty or undefined"
           ]
         },
@@ -7262,7 +7262,7 @@
             "Exactly one WisdomDraft is appended to task.wisdom_drafts[]",
             "The draft's id matches dr-<8hex>",
             "suggested_type is 'failure'",
-            "suggested_content is the attempts concatenated as '{diagnosis} \u2192 {fix_tried}' joined by '; '",
+            "suggested_content is the attempts concatenated as '{diagnosis} → {fix_tried}' joined by '; '",
             "status is 'suggested'",
             "source_attempts references the triggering attempt_numbers"
           ]
@@ -7294,15 +7294,15 @@
         },
         {
           "id": "rq-wisdomAutoSurfacing01.6",
-          "title": "Lifecycle: suggested \u2192 promoted | dismissed is one-way",
+          "title": "Lifecycle: suggested → promoted | dismissed is one-way",
           "given": [
             "A WisdomDraft exists in any state"
           ],
           "when": "A transition is attempted",
           "then": [
-            "suggested \u2192 promoted is the only path to promoted (via adv_wisdom_add from_draft_id)",
-            "suggested \u2192 dismissed is the only path to dismissed (with reason auto_checkpoint OR user_dismissed)",
-            "promoted and dismissed are terminal \u2014 no revival path",
+            "suggested → promoted is the only path to promoted (via adv_wisdom_add from_draft_id)",
+            "suggested → dismissed is the only path to dismissed (with reason auto_checkpoint OR user_dismissed)",
+            "promoted and dismissed are terminal — no revival path",
             "No 'rejected' state exists in the lifecycle vocabulary"
           ]
         },
@@ -7523,7 +7523,7 @@
     {
       "id": "rq-stagedDeltaCrud01",
       "title": "Staged spec-delta records support amend, retract, and full operation vocabulary",
-      "body": "The change-owned staged spec-delta record (change.deltas[capability][]) supports the complete write vocabulary through public tools: adv_delta_add (add), adv_delta_modify (first modify), adv_delta_amend (replace an already-staged delta, preserving its id), adv_delta_retract (remove a staged delta), adv_delta_remove (stage an operation:remove delta), and adv_delta_rename (stage an operation:rename delta). Amend is full-replace (deterministic \u2014 the caller supplies the complete corrected delta; no heuristic merge). Every write returns explicit failure rather than false success when the post-signal readback cannot confirm the intended change (mutation-safety readback proof). Archive remains the sole global-spec writer; these tools only mutate the change-owned staged record. New signal handlers are additive and replay-safe.",
+      "body": "The change-owned staged spec-delta record (change.deltas[capability][]) supports the complete write vocabulary through public tools: adv_delta_add (add), adv_delta_modify (first modify), adv_delta_amend (replace an already-staged delta, preserving its id), adv_delta_retract (remove a staged delta), adv_delta_remove (stage an operation:remove delta), and adv_delta_rename (stage an operation:rename delta). Amend is full-replace (deterministic — the caller supplies the complete corrected delta; no heuristic merge). Every write returns explicit failure rather than false success when the post-signal readback cannot confirm the intended change (mutation-safety readback proof). Archive remains the sole global-spec writer; these tools only mutate the change-owned staged record. New signal handlers are additive and replay-safe.",
       "priority": "should",
       "tags": [
         "spec-delta",
@@ -7600,7 +7600,7 @@
     {
       "id": "rq-isolSessionTaskQueue05",
       "title": "Live worker adopts orphan session task queues from previous processes",
-      "body": "A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal namespace, identify session task queues (advance-{projectId}-sess_*) that have at least one RUNNING workflow and are not currently polled, and register them via the existing registerQueue path. Adoption MUST be idempotent (re-scans do not duplicate registrations for already-polled queues), non-blocking on startup (adoption only runs post-startup via heartbeat), bounded to queues with at least one RUNNING workflow, and observe run-error IPC for retry handling with bounded cooldown. Adoption MUST NOT mutate any workflow's taskQueue field \u2014 it only adds pollers, never re-routes workflows. Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance; operators can manually terminate contaminated workflows if needed.",
+      "body": "A live ADV worker MUST enumerate RUNNING workflows on its project's Temporal namespace, identify session task queues (advance-{projectId}-sess_*) that have at least one RUNNING workflow and are not currently polled, and register them via the existing registerQueue path. Adoption MUST be idempotent (re-scans do not duplicate registrations for already-polled queues), non-blocking on startup (adoption only runs post-startup via heartbeat), bounded to queues with at least one RUNNING workflow, and observe run-error IPC for retry handling with bounded cooldown. Adoption MUST NOT mutate any workflow's taskQueue field — it only adds pollers, never re-routes workflows. Adoption applies indiscriminately to all orphan session queues regardless of wedge-isolation provenance; operators can manually terminate contaminated workflows if needed.",
       "priority": "must",
       "tags": [
         "worker",
@@ -7784,7 +7784,7 @@
     {
       "id": "rq-launcherProjectionTruth01",
       "title": "Launcher read-projection provenance truthfulness",
-      "body": "ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times \u2014 `source:\"disk_projection\"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain Temporal-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (Temporal is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) \u2014 NOT by adding a new activity invocation to the workflow \u2014 so in-flight workflow histories replay identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the signal.",
+      "body": "ADV maintains a durable, launcher-consumable active-state disk projection (`active-launcher-state.json` under the per-project external-state dir) that aggregates active changes from the existing per-change `{changeId}.json` projections. The projection MUST: (a) list only draft/non-terminal changes; (b) exclude archived/terminal changes per `rq-terminalProjectionTruth01`, matched by canonical `change.json.id` (NOT archive directory name); (c) carry truthful provenance at all times — `source:\"disk_projection\"`, `schema_version`, `generated_at`, a last-mutation `freshness` timestamp, an advisory `degraded` flag, and `epics_available:false` (active epics remain Temporal-only and are NEVER fabricated as live). The aggregate is regenerated eagerly after every change mutation as host-side filesystem I/O (Temporal is NOT in the aggregate-write path); a producer-owned rebuild trigger regenerates it from the on-disk per-change set for drift recovery. The aggregate is written by extending the body of the existing `writeChangeProjection` activity (host-side) — NOT by adding a new activity invocation to the workflow — so in-flight workflow histories replay identically (no `wf.patch`/versioning required). The aggregate write is best-effort: a failure must not fail the per-change projection write or the signal.",
       "priority": "must",
       "tags": [
         "workflow",
@@ -8276,6 +8276,255 @@
             "No worktree is deleted",
             "No local branch is deleted",
             "The footer states how to re-run with execution enabled"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-findingRouting01",
+      "title": "Mid-lifecycle findings route to backlog, not reflexive change creation",
+      "body": "Command contracts that encounter mid-lifecycle findings — prep MoSCoW Won't path, design risk-table framing, apply/review/harden routing — MUST name adv_backlog_add as the durable middle-tier option. Findings that do not warrant immediate change creation MUST be routable to the backlog without friction (no mandatory prose justification gate). The command contracts MUST carry a fidelity anchor (asset-test claim) that fails if the routing direction is removed, so the vocabulary does not silently regress.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "backlog",
+        "findings",
+        "vocabulary",
+        "routing"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-findingRouting01.1",
+          "title": "Prep MoSCoW Won't directs to backlog",
+          "given": [
+            "A finding is classified Won't during prep"
+          ],
+          "when": "The agent follows the MoSCoW Won't path",
+          "then": [
+            "The contract names adv_backlog_add as the durable middle-tier option",
+            "No mandatory prose justification blocks the routing"
+          ]
+        },
+        {
+          "id": "rq-findingRouting01.2",
+          "title": "Design risk-table requires durable-record framing",
+          "given": [
+            "A design risk-table entry exists for a finding that might be lost"
+          ],
+          "when": "The mitigation is framed",
+          "then": [
+            "The adv-design contract requires durable-record framing",
+            "No-change-owns-it is not an acceptable mitigation"
+          ]
+        },
+        {
+          "id": "rq-findingRouting01.3",
+          "title": "Apply/review/harden routing claims are drift-guarded",
+          "given": [
+            "The Finding Routing claims exist in the command files"
+          ],
+          "when": "Asset tests run",
+          "then": [
+            "Each claim has a fidelity anchor that fails on removal",
+            "The routing vocabulary does not silently regress"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-respectsEvaluation01",
+      "title": "Respects claims on avoidance/out_of_scope items require non-claiming review authority",
+      "body": "A task's contract_refs.respects claim targeting an avoidance (DONT) or out_of_scope (OOS) contract item is a positive compliance assertion that the claiming agent cannot self-certify. At acceptance and release gate readiness, every done task with such a respects claim MUST carry task-scoped review authority from a non-claiming agent (adv-reviewer). A change-scoped review report does not qualify — the reviewer must have examined THIS task. Self-asserted compliance alone MUST fail with a typed RESPECTS_EVIDENCE_AUTHORITY_MISSING blocker. The check applies to ALL done tasks (no grandfathering); existing recorded review evidence is accepted, not re-litigated. A task whose evidence_policy is 'test' is not exempt: respects on avoidance/OOS items requires review authority regardless of the task's own evidence route.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "contract",
+        "acceptance",
+        "release",
+        "evidence",
+        "authority",
+        "respects"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-respectsEvaluation01.1",
+          "title": "Self-asserted respects on avoidance/OOS fails without review authority",
+          "given": [
+            "A done task has contract_refs.respects referencing a DONT or OOS item",
+            "No task-scoped adv-reviewer report exists for the task"
+          ],
+          "when": "Acceptance or release readiness evaluates the task",
+          "then": [
+            "Gate readiness emits a RESPECTS_EVIDENCE_AUTHORITY_MISSING blocker",
+            "The blocker names the unverified respects item(s)"
+          ]
+        },
+        {
+          "id": "rq-respectsEvaluation01.2",
+          "title": "Task-scoped review authority satisfies the respects claim",
+          "given": [
+            "A done task has contract_refs.respects referencing a DONT or OOS item",
+            "A task-scoped adv-reviewer report exists"
+          ],
+          "when": "Acceptance or release readiness evaluates the task",
+          "then": [
+            "No respects-authority blocker is emitted",
+            "The existing review evidence is accepted without re-examination"
+          ]
+        },
+        {
+          "id": "rq-respectsEvaluation01.3",
+          "title": "Non-avoidance respects do not require review authority",
+          "given": [
+            "A done task has contract_refs.respects referencing only constraints or acceptance criteria (non-avoidance)",
+            "No review report exists"
+          ],
+          "when": "Acceptance or release readiness evaluates the task",
+          "then": [
+            "No respects-authority blocker is emitted"
+          ]
+        },
+        {
+          "id": "rq-respectsEvaluation01.4",
+          "title": "Change-scoped review does not satisfy task-scoped authority",
+          "given": [
+            "A reviewer report exists but is scoped to the change, not the task"
+          ],
+          "when": "Acceptance or release readiness evaluates a task with avoidance respects",
+          "then": [
+            "The respects-authority blocker is still emitted",
+            "The report does not count as task-scoped authority"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-createPortfolioLine01",
+      "title": "adv_change_create surfaces bounded portfolio state with graceful degradation",
+      "body": "adv_change_create MUST surface bounded portfolio state at creation time: non-terminal change count, never-terminal share, and a soft nudge above threshold. Change creation is where reflexive change creation happens; surfacing the portfolio at that moment gives the creating agent the state it needs to consider the durable middle tier (adv_backlog_add). The portfolio read is deadline-capped (well under the store budget) and MUST degrade to an explicit { available: false } marker on any failure or timeout — creation is never blocked by the portfolio read. The nudge fires only above BOTH thresholds (minimum open count AND never-terminal share) so small portfolios stay quiet. An empty portfolio reports zero share with no nudge.",
+      "priority": "should",
+      "tags": [
+        "workflow",
+        "change-create",
+        "portfolio",
+        "backlog",
+        "degradation"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-createPortfolioLine01.1",
+          "title": "Create surfaces bounded portfolio stats",
+          "given": [
+            "A portfolio with non-terminal and terminal changes"
+          ],
+          "when": "adv_change_create completes successfully",
+          "then": [
+            "The result carries portfolioState with available: true",
+            "open_count and never_terminal_share are computed correctly"
+          ]
+        },
+        {
+          "id": "rq-createPortfolioLine01.2",
+          "title": "Create degrades gracefully on portfolio read failure",
+          "given": [
+            "The portfolio read exceeds its deadline or throws"
+          ],
+          "when": "adv_change_create runs under a failing or slow portfolio read",
+          "then": [
+            "Creation still succeeds",
+            "The result carries portfolioState with available: false",
+            "The marker is explicit and distinguishable from a zero portfolio"
+          ]
+        },
+        {
+          "id": "rq-createPortfolioLine01.3",
+          "title": "Nudge fires only above both thresholds",
+          "given": [
+            "A portfolio above both nudge thresholds (open count AND never-terminal share)"
+          ],
+          "when": "adv_change_create evaluates the portfolio",
+          "then": [
+            "The nudge message is present and names adv_backlog_add"
+          ]
+        },
+        {
+          "id": "rq-createPortfolioLine01.4",
+          "title": "Small portfolios stay quiet",
+          "given": [
+            "A portfolio below either threshold"
+          ],
+          "when": "adv_change_create evaluates the portfolio",
+          "then": [
+            "No nudge is emitted"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-retryProgressAccounting01",
+      "title": "Retry reducer distinguishes progress from retries and makes the budget clamp visible",
+      "body": "The retry reducer MUST distinguish productive review/implementation rounds from failed retries. A BLOCKED sub-agent verdict whose blocking findings share no id or stable fingerprint with the previous blocked round is progress on new ground, not a failed retry: it MUST be recorded in task.progress_rounds and MUST NOT inflate error_recovery. A round whose findings overlap by id or file+what is a retry. When the true attempt count (total_attempts) reaches or exceeds max_retries, the retention clamp MUST emit an explicit budget_warning marker on error_recovery rather than silently dropping history. Report submission is never refused at/over budget: the report applies and the marker makes the clamp visible. The doom-loop UX MUST surface the budget_warning so the operator can see that history was elided.",
+      "priority": "must",
+      "tags": [
+        "workflow",
+        "retry",
+        "doom-loop",
+        "honesty",
+        "evidence",
+        "subagent-reports"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-retryProgressAccounting01.1",
+          "title": "Disjoint findings are progress, not retry",
+          "given": [
+            "Two successive BLOCKED verdicts",
+            "The second verdict's blocking findings share no id or stable fingerprint with the first"
+          ],
+          "when": "The reducer applies the second BLOCKED verdict",
+          "then": [
+            "The second verdict is recorded in task.progress_rounds",
+            "error_recovery.retry_count is not incremented",
+            "error_recovery.attempts is not inflated"
+          ]
+        },
+        {
+          "id": "rq-retryProgressAccounting01.2",
+          "title": "Overlapping findings are a retry",
+          "given": [
+            "Two successive BLOCKED verdicts",
+            "The findings overlap by id or file+what"
+          ],
+          "when": "The reducer applies the second BLOCKED verdict",
+          "then": [
+            "The second verdict increments the retry count",
+            "progress_rounds is not appended"
+          ]
+        },
+        {
+          "id": "rq-retryProgressAccounting01.3",
+          "title": "Budget clamp emits visible warning, never refuses",
+          "given": [
+            "A task at or over retry budget",
+            "total_attempts >= max_retries"
+          ],
+          "when": "A sub-agent report is submitted at/over budget",
+          "then": [
+            "Submission succeeds — no refusal",
+            "error_recovery carries a non-empty budget_warning string",
+            "The doom-loop UX surfaces budgetWarning"
+          ]
+        },
+        {
+          "id": "rq-retryProgressAccounting01.4",
+          "title": "No warning while budget holds",
+          "given": [
+            "A task under retry budget",
+            "total_attempts < max_retries"
+          ],
+          "when": "A sub-agent report is submitted",
+          "then": [
+            "No budget_warning is emitted"
           ]
         }
       ]
