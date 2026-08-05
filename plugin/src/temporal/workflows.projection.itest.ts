@@ -59,6 +59,26 @@ async function readProjection(
   );
 }
 
+/**
+ * Read the durable summary shard that change enumeration actually consumes.
+ *
+ * `writeChangeProjection` writes the wrapper projection first and gates its
+ * `ok` result on that write alone; the summary shard, pointer, and launcher
+ * aggregate are published inside a best-effort try/catch whose failure is
+ * swallowed. Asserting only the wrapper therefore cannot prove AC2.
+ */
+async function readSummaryShard(
+  externalRoot: string,
+  changeId: string,
+): Promise<{ pointer: any; shard: any }> {
+  const summariesDir = join(externalRoot, "summaries");
+  const pointer = JSON.parse(
+    await readFile(join(summariesDir, changeId, "current.json"), "utf-8"),
+  );
+  const shard = JSON.parse(await readFile(pointer.shard_path, "utf-8"));
+  return { pointer, shard };
+}
+
 describe("changeWorkflow disk projection", () => {
   it("projects gate signals best-effort and terminal archive before completion", async () => {
     const dir = await createTempDir();
@@ -300,4 +320,49 @@ describe("changeWorkflow disk projection", () => {
     },
     30_000,
   );
+
+  // rq-archiveRetirement01.1 / AC2. The durable summary shard — not the wrapper
+  // projection — is what `listSummary` reads to build `summaryRows`. A stale
+  // non-terminal shard is returned directly to in-flight enumeration and never
+  // reaches archive dominance, so terminal status MUST be durable in the shard
+  // itself once the archive signal completes.
+  it("records terminal status in the durable summary shard after archiveChangeSignal", async () => {
+    const dir = await createTempDir("archive-signal-summary-shard-");
+    try {
+      const externalRoot = join(dir, "state");
+      const projectionChangesDir = join(externalRoot, "changes");
+      const changeId = "archive-signal-shard";
+
+      await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+        const taskQueue = `archive-signal-shard-${Date.now()}`;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowBundle: await getSharedWorkflowBundle(),
+          activities: { writeChangeProjection },
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `archive-signal-shard-${Date.now()}`,
+            taskQueue,
+            args: [makeChangeInput(changeId, projectionChangesDir)],
+          });
+
+          await handle.signal(archiveChangeSignal);
+          await expect(handle.result()).resolves.toBeUndefined();
+
+          const { pointer, shard } = await readSummaryShard(
+            externalRoot,
+            changeId,
+          );
+
+          expect(pointer).toMatchObject({ change_id: changeId });
+          expect(shard).toMatchObject({ status: "archived" });
+        });
+      });
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
 });
