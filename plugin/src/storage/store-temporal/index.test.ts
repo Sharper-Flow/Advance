@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { createTempDir, cleanupTempDir } from "../../__tests__/setup";
 import { createDefaultGates, type Change, type Task } from "../../types";
 import { createDiskStore } from "../store-disk";
+import { rebuildSummaryIndex } from "../change-summary-shard";
 import { changeToWorkflowState } from "../../temporal/change-state";
 import { createTemporalStoreBackend } from "./index";
 import { changeTools } from "../../tools/change";
@@ -1508,6 +1509,60 @@ describe("archive-first terminal projection resolution (rq-terminalProjectionTru
     expect(result.success).toBe(true);
     expect(result.data?.status).toBe("archived");
     expect(queryCount).toBe(0);
+  });
+
+  it("applies archive dominance to summary rows for list and listSummary", async () => {
+    tempDir = await createTempDir();
+    const legacy = await createDiskStore(tempDir);
+    const changeId = "summaryArchiveDominance";
+
+    await legacy.changes.save({ ...activeChange(changeId), status: "draft" });
+    const rebuilt = await rebuildSummaryIndex({
+      changesDir: legacy.paths.changes,
+      summariesDir: legacy.paths.summariesDir,
+    });
+    expect(rebuilt.kind).toBe("ok");
+
+    const archiveDir = join(tempDir, ".adv", "archive", changeId);
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(
+      join(archiveDir, "change.json"),
+      JSON.stringify(archivedChange(changeId), null, 2),
+    );
+
+    const temporal = {
+      client: {
+        workflow: {
+          getHandle: () => ({
+            query: async () => {
+              throw new Error(
+                "summary-row archive dominance must not query workflow",
+              );
+            },
+          }),
+          start: async () => {
+            throw new Error("start should not be called");
+          },
+        },
+      },
+    };
+    const store = createTemporalStoreBackend({
+      legacy,
+      temporal,
+      projectId: "0000ec0100000000000000000000000000000000",
+    });
+
+    const list = await store.changes.list({ includeArchived: true });
+    const listSummary = await store.changes.listSummary!({
+      includeArchived: true,
+    });
+
+    expect(list.changes.find((change) => change.id === changeId)?.status).toBe(
+      "archived",
+    );
+    expect(
+      listSummary.changes.find((change) => change.id === changeId)?.status,
+    ).toBe("archived");
   });
 
   it("serves an archived disk projection without querying a poisoned workflow when no archive bundle exists (poison read-resilience)", async () => {
