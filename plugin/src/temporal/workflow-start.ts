@@ -4,7 +4,6 @@ import {
   TemporalOperationsOwner,
   type TemporalOperations,
   type TemporalWorkflowHandle,
-  makeTemporalOperationContext,
   type WorkflowQueueMode,
   type TemporalMutationServerOutcome,
 } from "./operations";
@@ -40,83 +39,30 @@ export class StartWorkflowOutcomeError extends Error {
  * owner.startChangeWorkflow / owner.startEpicWorkflow directly.
  */
 
-function ownerFromTemporal(
-  temporal: TemporalOperations | TemporalOperationsOwner,
-): TemporalOperations {
-  return temporal;
-}
-
-function makeStartContext(
-  projectId: string,
-  workflowId: string,
-  budgetMs: number,
-) {
-  return makeTemporalOperationContext(
-    projectId,
-    workflowId,
-    "start",
-    "startWorkflow",
-    budgetMs,
-  );
-}
-
 export async function ensureChangeWorkflowStarted(
   temporal: TemporalOperations | TemporalOperationsOwner,
   input: ChangeWorkflowInput,
-  options?: {
+  _options?: {
     workflowQueueMode?: WorkflowQueueMode;
     budgetMs?: number;
   },
 ): Promise<TemporalWorkflowHandle> {
-  const owner = ownerFromTemporal(temporal);
+  // Temporal bypass: return a stub handle without starting a workflow.
+  // Mutations write directly to disk via the recovery path; reads fall back
+  // to disk projections when Temporal queries fail.
+  // See: simplifyAdvanceCore Phase 3 — rip-the-band-aid.
   const workflowId = buildChangeWorkflowId(input.projectId, input.changeId);
-  const ctx = makeStartContext(
-    input.projectId,
-    workflowId,
-    options?.budgetMs ?? 10_000,
-  );
-  const outcome = await owner.startChangeWorkflow(ctx, input, {
-    workflowQueueMode: options?.workflowQueueMode,
-  });
-  if (outcome.kind !== "confirmed") {
-    if (outcome.kind === "confirmed_failure") {
-      throw outcome.error ?? new Error(`startChangeWorkflow ${outcome.kind}`);
-    }
-    throw new StartWorkflowOutcomeError(
-      outcome.kind,
-      outcome.error,
-      outcome.diagnostic,
-      `startChangeWorkflow ${outcome.kind}`,
-    );
-  }
-  return outcome.value;
+  return { workflowId } as TemporalWorkflowHandle;
 }
 
 export async function ensureEpicWorkflowStarted(
   temporal: TemporalOperations | TemporalOperationsOwner,
   input: EpicWorkflowInput,
-  options?: { budgetMs?: number },
+  _options?: { budgetMs?: number },
 ): Promise<TemporalWorkflowHandle> {
-  const owner = ownerFromTemporal(temporal);
+  // Temporal bypass: return a stub handle without starting a workflow.
   const workflowId = buildEpicWorkflowId(input.projectId, input.epicId);
-  const ctx = makeStartContext(
-    input.projectId,
-    workflowId,
-    options?.budgetMs ?? 10_000,
-  );
-  const outcome = await owner.startEpicWorkflow(ctx, input);
-  if (outcome.kind !== "confirmed") {
-    if (outcome.kind === "confirmed_failure") {
-      throw outcome.error ?? new Error(`startEpicWorkflow ${outcome.kind}`);
-    }
-    throw new StartWorkflowOutcomeError(
-      outcome.kind,
-      outcome.error,
-      outcome.diagnostic,
-      `startEpicWorkflow ${outcome.kind}`,
-    );
-  }
-  return outcome.value;
+  return { workflowId } as TemporalWorkflowHandle;
 }
 
 export async function reImportChangeState(
