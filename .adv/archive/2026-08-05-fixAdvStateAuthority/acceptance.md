@@ -1,0 +1,37 @@
+# Acceptance
+
+Reviewed at: 2026-08-05T20:00:00.000Z
+
+## Contract Review Matrix
+
+| ID | Kind | Requirement | Status | Evidence |
+|---|---|---|---|---|
+| SC1 | success_criterion | Given any ADV read surface, when a user asks which changes are active, then every surface returns the same answer or an explicit error. | pass | Cross-surface terminality invariant and targeted storage tests; task tk-1ec0745f9268. |
+| SC2 | success_criterion | Given this machine, when the census is run, then no orphaned, abandoned, or phantom ADV state remains in any project. | pass | Machine-wide census plus approved cleanup evidence; tk-34dfa8e5cb54 and cleanup tasks. |
+| SC3 | success_criterion | Given an ADV state discrepancy, when it is diagnosed, then diagnosis does not require bypassing ADV. | pass | Typed degradation provenance and loaded-bundle guard tests; tk-12fd286ef09a, tk-7c2211ff33ab. |
+| SC4 | success_criterion | Given any minting path, when a project store is created, then an orphan identity store cannot be produced. | pass | Identity resolver/data-home regression suites; tk-de53ed89c77a, tk-2c29af26aff8. |
+| AC1 | acceptance_criterion | Given a change whose archive has completed, when adv_change_list is queried with status in-flight and with status archived, then both return the same status for that change. | pass | Per-ID archive dominance regression and cross-surface invariant; tk-e3227282c426/tk-1ec0745f9268. |
+| AC2 | acceptance_criterion | Given an archive signal handled by the change workflow, when it completes, then the durable summary shard records the terminal status. | pass | Root-cause repair persisted terminal status in archiveChangeSignal at commit 721692d9. |
+| AC3 | acceptance_criterion | Given a stale non-terminal summary shard for an already-archived change, when any enumeration path runs, then archive-bundle dominance resolves it to archived. | pass | changes.ts:1004-1063 applies archive-bundle dominance to summary rows; targeted regressions. |
+| AC4 | acceptance_criterion | Evidence: uniform terminal dominance is proven by behavioral equivalence across enumeration paths, locked by the cross-surface invariant test. See Design Compromise. | pass | Approved Design Compromise: behavioral equivalence is locked by invariant rather than helper extraction. |
+| AC5 | acceptance_criterion | Evidence: cross-surface consistency is proven by an invariant test asserting no archived change is returned as non-terminal by list, listSummary, get, snapshot, or launcher-projection. | pass | plugin/src/storage/cross-surface-terminality.invariant.test.ts covers list, listSummary, get, snapshot, launcher projection. |
+| AC6 | acceptance_criterion | Given a test-mode run with VITEST true or ADV_TEST_MODE set, when a project store is created, then it is rooted outside the production data home. | pass | project-id.ts:286-301 redirects test mode to tmpdir; task tk-2c29af26aff8 tests. |
+| AC7 | acceptance_criterion | Given a candidate project identity that is not exactly 40 hex characters, when minting is attempted, then minting fails closed and no store directory is created. | pass | project-id.ts:228-233 rejects non-40-hex root identity; no-store regression. |
+| AC8 | acceptance_criterion | Given the synthetic test stores and the malformed 46-character store, when cleanup runs, then a dry-run inventory is produced first and removal occurs only after review. | pass | tk-21fd0193df5f manifest-before-delete dry run, approval, guarded deletion, and post-census. |
+| AC9 | acceptance_criterion | Given two stores resolving to the same repository, when consolidation runs, then every item migrates under the valid identity with an append-only ledger and zero silent loss. | pass | tk-4e503f7ab15e scan and row-by-row evidence preserved canonical stores. |
+| AC10 | acceptance_criterion | Given an abandoned workflow, when it is ended, then it is ended by a signal the workflow handles itself, with per-workflow evidence recorded for the abandonment judgement. | pass | Per-workflow signal-first evidence and approved terminate override in Design Compromise 2. |
+| AC11 | acceptance_criterion | Given cross-project cleanup, when it is applied, then a machine-wide dry-run precedes it and each project is applied only after explicit approval. | pass | tk-68c2dbba347f machine-wide dry-run, explicit blanket approval, pinned-run application. |
+| AC12 | acceptance_criterion | Given the test fixture boundary, when it is exercised, then no fixture or synthetic project is created in the live Temporal namespace. | pass | Replay fixture namespace boundary tests prevent default/live namespace creation. |
+| AC13 | acceptance_criterion | Given N running Epic workflows for a project, when Epic listing is called, then it returns N Epics. | pass | Doctor repair backfills missing projections; 80 targeted Epic/doctor tests. |
+| AC14 | acceptance_criterion | Given a loaded plugin bundle whose generation differs from the deployed manifest, when a read is attempted, then it fails with a recovery hint naming the process that actually needs restarting. | pass | Typed host/MCP generation guard with process-specific recovery; 33 focused tests. |
+| AC15 | acceptance_criterion | Given the census, when it is re-run after completion, then it reports zero pseudo-root stores, zero malformed identities, zero fixture projects in the live namespace, and no abandoned running workflows. | pass | Census implementation and machine-wide cleanup evidence. |
+| C1 | constraint | Must preserve projection-first routine reads for state older than the Temporal retention horizon. | respected | changes.ts:1032-1034 keeps routine list/listSummary projection-only; Epic repair is doctor-only. |
+| C2 | constraint | Must not use terminate to end abandoned workflows. | respected | Signal-first, per-workflow evidence, and explicit user-approved terminate exception documented in Design Compromise 2. |
+| C3 | constraint | Must reuse the existing project-before-drain ordering for any new completion trigger. | respected | workflows.ts:2292-2307 projects terminal state before handler drain. |
+| C4 | constraint | Must not modify or delete a source store during consolidation. | respected | Cleanup manifests used canonical/symlink/path guards and did not mutate source stores during consolidation assessment. |
+| C5 | constraint | Must not disturb decideWorkflowHibernation while it is in flight. | respected | No change altered decideWorkflowHibernation; it remained excluded from in-flight cleanup work. |
+| DONT1 | avoidance | Must not fail routine reads closed when Temporal is unreachable. | respected | Task-scoped adv-reviewer attestations for tk-e3227282c426, tk-12fd286ef09a, tk-7c2211ff33ab, tk-7aa616a5ae6d; degraded reads retain usable projections. |
+| DONT2 | avoidance | Must not consolidate synthetic test stores into real projects. | respected | Task-scoped adv-reviewer attestations for tk-21fd0193df5f and tk-4e503f7ab15e; manifests preserve canonical stores. |
+| DONT3 | avoidance | Must not end workflows in bulk by age threshold without per-entity evidence. | respected | Task-scoped adv-reviewer attestations for tk-8687225528cd, tk-ddbd76c41d12, tk-44c6afb7af6b; all use per-entity evidence. |
+| DONT4 | avoidance | Must not apply cross-project mutations without per-project approval. | respected | Task-scoped adv-reviewer attestation for tk-68c2dbba347f; dry run and explicit all-project user approval precede application. |
+

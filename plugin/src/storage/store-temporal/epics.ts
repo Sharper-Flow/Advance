@@ -1148,6 +1148,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
       const report: Awaited<
         ReturnType<Store["epics"]["repairIndex"]>
       >["epics"] = [];
+      let backfilled = 0;
       let refreshed = 0;
       let unverified = 0;
       let skipped = 0;
@@ -1183,13 +1184,59 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
           continue;
         }
 
+        const projection = await loadActiveEpicProjection(
+          deps.legacy?.paths?.activeEpics,
+          epicId,
+        );
+        if (!projection.success) {
+          unverified += 1;
+          report.push({
+            epic_id: epicId,
+            status,
+            action: "unverified",
+            error: projection.error,
+          });
+          continue;
+        }
+        const needsBackfill = !projection.data;
+
         if (dryRun) {
           report.push({
             epic_id: epicId,
             status,
-            action: "would_refresh",
+            action: needsBackfill ? "would_backfill" : "would_refresh",
           });
           continue;
+        }
+
+        let didBackfill = false;
+        if (needsBackfill) {
+          const activeEpicsDir = deps.legacy?.paths?.activeEpics;
+          if (!activeEpicsDir) {
+            skipped += 1;
+            report.push({
+              epic_id: epicId,
+              status,
+              action: "skipped",
+              error:
+                "Cannot backfill Epic projection: activeEpics path is not configured",
+            });
+            continue;
+          }
+          try {
+            await saveActiveEpicProjection(activeEpicsDir, state.epic);
+            backfilled += 1;
+            didBackfill = true;
+          } catch (err) {
+            skipped += 1;
+            report.push({
+              epic_id: epicId,
+              status,
+              action: "skipped",
+              error: `Failed to backfill active Epic projection: ${err instanceof Error ? err.message : String(err)}`,
+            });
+            continue;
+          }
         }
 
         const payload = {
@@ -1220,14 +1267,14 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
             report.push({
               epic_id: epicId,
               status,
-              action: "refreshed",
+              action: didBackfill ? "backfilled" : "refreshed",
             });
           } else {
             unverified += 1;
             report.push({
               epic_id: epicId,
               status,
-              action: "unverified",
+              action: didBackfill ? "backfilled" : "unverified",
               error: verification.error,
             });
           }
@@ -1237,7 +1284,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
           report.push({
             epic_id: epicId,
             status,
-            action: "skipped",
+            action: didBackfill ? "backfilled" : "skipped",
             error: typed.message,
           });
         }
@@ -1245,6 +1292,7 @@ export function createEpicOps(deps: StoreDeps): Store["epics"] {
 
       return {
         total: ids.length,
+        backfilled,
         refreshed,
         unverified,
         skipped,

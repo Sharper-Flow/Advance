@@ -61,7 +61,7 @@ import {
   TemporalReadOutcomeError,
 } from "../../temporal/outcome-errors";
 import { getCurrentSessionId } from "../../utils/session-id";
-import { removeChangeDir, loadProjectConfig } from "../json";
+import { hasArchiveBundle, removeChangeDir, loadProjectConfig } from "../json";
 import { resolveProjectFeaturePolicy } from "../../types";
 import {
   isSchemaError,
@@ -927,30 +927,25 @@ async function readProjectionChangeList(
   } catch (err) {
     const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
     degradedSources.add("active_disk");
-    if (wantsTerminalStatuses) {
-      warnings.push({
-        code: "TERMINAL_SOURCE_DEGRADED",
-        source: "active_disk",
-        message: `Disk listChangeDirs ${
-          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-        }: ${err instanceof Error ? err.message : String(err)}`,
-      });
-    }
+    warnings.push({
+      code: "TERMINAL_SOURCE_DEGRADED",
+      source: "active_disk",
+      message: `Disk listChangeDirs ${
+        hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+      }: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
   addSourceIds(diskIds);
 
   // Archive bundles.
   // Build a canonical-id -> archive-directory map so duplicate date-prefixed
-  // directories for the same change id are deduplicated, active-disk shadows can
-  // be dominated, and terminal reads can hydrate archived changes.
+  // directories for the same change id are deduplicated and terminal reads can
+  // discover archive-only changes and hydrate archived rows.
   const archiveCandidateMap = new Map<
     string,
     { dir: string; change: Change }
   >();
-  if (
-    (wantsTerminalStatuses || options.loadArchiveForActiveShadow) &&
-    legacy.paths.archive
-  ) {
+  if (wantsTerminalStatuses && legacy.paths.archive) {
     try {
       const archiveDirs = await raceWithTemporalDeadline(
         listChangeDirs(legacy.paths.archive),
@@ -993,20 +988,46 @@ async function readProjectionChangeList(
     } catch (err) {
       const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
       degradedSources.add("archive");
-      if (wantsTerminalStatuses) {
-        warnings.push({
-          code: "TERMINAL_SOURCE_DEGRADED",
-          source: "archive",
-          message: `Archive bundle scan ${
-            hitDeadline ? "exceeded the aggregate read deadline" : "failed"
-          }: ${err instanceof Error ? err.message : String(err)}`,
-        });
-      }
+      warnings.push({
+        code: "TERMINAL_SOURCE_DEGRADED",
+        source: "archive",
+        message: `Archive bundle scan ${
+          hitDeadline ? "exceeded the aggregate read deadline" : "failed"
+        }: ${err instanceof Error ? err.message : String(err)}`,
+      });
     }
   }
   if (wantsTerminalStatuses) {
     for (const id of archiveCandidateMap.keys()) candidateIds.add(id);
   }
+
+  // Archive dominance for rows already covered by the projection fast path is
+  // resolved per requested ID. Do not consult the terminal archive candidate
+  // map here: active/in-flight enumeration must not load every archive bundle
+  // merely to invalidate stale summary or disk shadows.
+  const archiveBundleExists = async (changeId: string): Promise<boolean> => {
+    if (!legacy.paths.archive || expired()) return false;
+    try {
+      return await raceWithTemporalDeadline(
+        hasArchiveBundle(legacy.paths.archive, changeId),
+        deadline,
+      );
+    } catch (err) {
+      const hitDeadline = err instanceof TemporalQueryTimeoutError || expired();
+      degradedSources.add("archive");
+      if (hitDeadline) {
+        // The existing projection remains usable when archive authority cannot
+        // be checked; do not fail closed or omit the requested row.
+        return false;
+      }
+      warnings.push({
+        code: "TERMINAL_SOURCE_DEGRADED",
+        source: "archive",
+        message: `Archive bundle check for ${changeId} failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      return false;
+    }
+  };
 
   // Routine change-list reads must remain projection-only. Temporal Visibility
   // enumeration is reserved for explicit recovery/diagnostic surfaces such as
@@ -1024,13 +1045,27 @@ async function readProjectionChangeList(
   );
   const allIds = Array.from(candidateIds);
   const unresolvedIds = allIds.filter((id) => !summaryRows.has(id));
-  if (wantsTerminalStatuses) {
-    terminalCandidates = unresolvedIds.length;
-  }
   const batchConcurrency = Math.max(
     1,
     Math.min(20, filter?.validationConcurrency ?? 20),
   );
+
+  await mapWithConcurrency(
+    Array.from(summaryRows.keys()),
+    batchConcurrency,
+    async (id) => {
+      const row = rows.get(id);
+      if (!row || row.status === "archived" || row.status === "closed") {
+        return;
+      }
+      if (!(await archiveBundleExists(id))) return;
+      rows.set(id, { ...row, status: "archived", lifecycleState: "archived" });
+    },
+  );
+
+  if (wantsTerminalStatuses) {
+    terminalCandidates = unresolvedIds.length;
+  }
 
   const hydrate = async (id: string): Promise<void> => {
     if (expired()) {
@@ -1069,8 +1104,9 @@ async function readProjectionChangeList(
       let change = diskResult.data;
       const terminalOnDisk =
         change.status === "archived" || change.status === "closed";
-      // Archive-bundle dominance for active disk shadows.
-      if (!terminalOnDisk && archiveCandidateMap.has(change.id)) {
+      // Archive-bundle dominance for active disk shadows. This is deliberately
+      // per-id so active list reads do not require a bulk archive scan.
+      if (!terminalOnDisk && (await archiveBundleExists(change.id))) {
         change = { ...change, status: "archived" as const };
       }
       rows.set(change.id, changeToListRow(change));

@@ -3,8 +3,8 @@
   "name": "advance-meta",
   "title": "Advance Meta",
   "purpose": "Capability: Cross-cutting ADV concerns — config diagnostics, metadata filters, shutdown lifecycle, due-diligence routing, and synthetic-state guards. Split from `advance` capability.",
-  "version": "1.32.0",
-  "updated_at": "2026-07-29T22:15:00.000Z",
+  "version": "1.33.0",
+  "updated_at": "2026-08-05T20:09:27.711Z",
   "requirements": [
     {
       "id": "rq-synthstate01",
@@ -3306,6 +3306,76 @@
             "The request uses registry or filesystem context directly",
             "No Temporal reachability probe is required",
             "Tool classification structurally distinguishes pure/context/read-model/diagnostic needs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rq-loadedBundleIdentityAuthority01",
+      "title": "Loaded Bundle Identity Governs ADV Traffic",
+      "body": "The generation embedded in the loaded ADV bundle is the authority for whether the running code matches the deployed code. On a generation mismatch, ADV traffic MUST be refused with a typed mismatch code, both generations, and a recovery hint naming the process that owns the loaded module: an OpenCode restart for the host plugin bundle, and a restart of the Vision-managed adv-advance server for the MCP server bundle. Absent embedded generation or an unreadable manifest MUST be classified as unknown freshness and MUST continue to serve traffic, keeping dev/source runs and deployment gaps distinct from a mismatch. Generation equality alone decides staleness; per-file digests and filesystem timestamps stay diagnostic. The manifest MUST be published atomically after both bundle files exist so every reader observes a complete publish. Because a superseded bundle skips workflow patch markers silently, every durability guarantee implemented behind a `wf.patched` gate MUST additionally be paired with this generation guard so only current code serves the affected traffic.",
+      "priority": "must",
+      "tags": [
+        "meta",
+        "deploy",
+        "bundle",
+        "code-identity",
+        "correctness",
+        "recovery"
+      ],
+      "scenarios": [
+        {
+          "id": "rq-loadedBundleIdentityAuthority01.1",
+          "title": "Generation mismatch refuses traffic with a process-correct recovery hint",
+          "given": [
+            "A deployed bundle manifest exists",
+            "The loaded bundle generation differs from the deployed manifest generation"
+          ],
+          "when": "An adv_ tool call is dispatched",
+          "then": [
+            "The call is refused before it can answer from superseded code",
+            "The refusal carries a typed generation-mismatch code and both generations",
+            "The recovery hint names the process that owns the loaded module, distinguishing the OpenCode host plugin from the Vision-managed adv-advance server"
+          ]
+        },
+        {
+          "id": "rq-loadedBundleIdentityAuthority01.2",
+          "title": "Unknown freshness keeps serving traffic",
+          "given": [
+            "The loaded bundle carries no embedded generation, or the deployed manifest is absent or unreadable"
+          ],
+          "when": "An adv_ tool call is dispatched",
+          "then": [
+            "Freshness is classified as unknown",
+            "The call proceeds and returns its normal result",
+            "Unknown freshness is reported as unknown, distinct from a generation mismatch"
+          ]
+        },
+        {
+          "id": "rq-loadedBundleIdentityAuthority01.3",
+          "title": "Generation equality is the authority and the manifest publishes last",
+          "given": [
+            "A bundle build emits a pre-bundle generation token and per-file digests"
+          ],
+          "when": "Freshness is evaluated and the manifest is published",
+          "then": [
+            "Staleness is decided by generation equality alone",
+            "Per-file digests and filesystem timestamps are recorded as diagnostics only",
+            "The manifest is written after both bundle files exist, via an atomic replace, so every reader observes a complete publish"
+          ]
+        },
+        {
+          "id": "rq-loadedBundleIdentityAuthority01.4",
+          "title": "A patch-gated durability guarantee is paired with the generation guard",
+          "given": [
+            "A durability guarantee is implemented behind a workflow patch marker",
+            "A worker is serving a bundle that predates that marker"
+          ],
+          "when": "The guaranteed path executes on the stale bundle",
+          "then": [
+            "The patch marker is skipped silently and the guarantee does not hold",
+            "The guarantee is paired with the generation guard so only current code serves the affected traffic",
+            "The patch marker alone is treated as insufficient evidence of durability"
           ]
         }
       ]

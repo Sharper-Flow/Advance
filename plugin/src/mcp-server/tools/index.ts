@@ -9,7 +9,13 @@
 
 import type { Store } from "../../storage/store-types.js";
 import type { OpencodeClient } from "../../utils/opencode-types.js";
+import { fileURLToPath } from "node:url";
 import { wrapTier4Tool, type DegradationOptions } from "../degradation.js";
+import {
+  getLoadedPluginBundleGeneration,
+  getPluginBundleDistDir,
+  getPluginBundleGenerationGuardError,
+} from "../../plugin-bundle-manifest.js";
 
 export type ToolMap = Record<
   string,
@@ -26,6 +32,12 @@ export type CreateToolMapFn = (
 export interface ExecuteTier4ToolOptions extends DegradationOptions {
   /** Factory injected by the host/server registration path. */
   createToolMap: CreateToolMapFn;
+  /** Runtime identity inputs; production MCP passes its mcp-server entry path. */
+  pluginBundleGuard?: {
+    distDir?: string;
+    loadedGeneration?: string;
+    loadedModulePath?: string;
+  };
 }
 
 export type ToolClassification =
@@ -100,6 +112,20 @@ export async function executeTier4Tool(
       hint: "Add the tool to TOOL_CLASSIFICATIONS in plugin/src/mcp-server/tools/index.ts",
     });
   }
+
+  const guard = options.pluginBundleGuard;
+  const refusal = await getPluginBundleGenerationGuardError(
+    guard?.distDir ?? getPluginBundleDistDir(),
+    {
+      loadedGeneration:
+        guard?.loadedGeneration ??
+        getLoadedPluginBundleGeneration() ??
+        undefined,
+      loadedModulePath:
+        guard?.loadedModulePath ?? fileURLToPath(import.meta.url),
+    },
+  );
+  if (refusal) return JSON.stringify(refusal);
 
   const isPure = (classifications as readonly ToolClassification[]).includes(
     "pure",

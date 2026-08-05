@@ -1,0 +1,27 @@
+{
+  "schema_version": "1.0",
+  "change_id": "fixAdvStateAuthority",
+  "title": "Fix ADV state authority",
+  "release_notes": {
+    "audience": "both",
+    "category": "fixed",
+    "headline_internal": "ADV state authority: archived changes no longer appear active; stale bundles refused; orphan stores and abandoned workflows cleared",
+    "headline_external": "ADV now reports change status consistently and refuses to serve from stale plugin bundles",
+    "highlights": [
+      "Write-side root cause repaired: archiveChangeSignal now durably records terminal status at signal time (matching every sibling terminal signal), so an archived change can no longer linger as draft when its workflow doesn't exit promptly",
+      "Read-side per-ID archive dominance applied to summary rows across list, listSummary, get, snapshot, and launcher — every surface now agrees on terminal status",
+      "Cross-surface terminality invariant test locks the agreement at build time",
+      "Loaded plugin bundle generation is now the correctness authority: a stale bundle is refused with a typed error and a recovery hint naming the exact process to restart (OpenCode host vs Vision adv-advance MCP server)",
+      "Project-identity resolver fails closed on non-40-hex identities; test-mode stores redirect outside the production data home, stopping orphan-store creation at the source",
+      "Machine-wide cleanup: 13,035 orphan/malformed identity stores removed, 22 abandoned running workflows cleared, 91 stale summary shards rewritten to archived",
+      "Three spec deltas staged as durable law (enumeration terminal dominance, degradation provenance, loaded-bundle identity authority)"
+    ],
+    "area": "advance-workflow / advance-meta (Temporal state authority, read model, bundle identity)",
+    "user_action_required": true,
+    "breaking": {
+      "description": "The archiveChangeSignal handler now performs an additional projection activity at signal time under a new Temporal patch (ARCHIVE_SIGNAL_PERSIST_PATCH). Existing running ADV workflows replay safely (patch-gated). Operators must rebuild and redeploy the worker bundle (build:worker) for the patch to take effect; until then, archived-but-running workflows continue to rely on read-side dominance (which is correct, just not root-caused).",
+      "migration": "After merge: rebuild worker (pnpm run build:worker), redeploy, restart the Temporal worker process. Re-run `adv census` and `adv_change_list` in both directions to confirm AC1/AC15 (post-deploy obligations recorded in agreement.md Design Compromise 3)."
+    },
+    "links": {}
+  }
+}

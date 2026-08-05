@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "id": "ws-K2rf4C",
+      "type": "gotcha",
+      "content": "Cross-project ADV writes are blocked by design from a single host session. TemporalOperationsOwner (plugin/src/temporal/operations.ts:580) is constructed once with the host session's projectId; withTargetPathStore opens the target project's disk store but reuses the host's Temporal client, so validateContext (operations.ts:410-423) throws `projectId mismatch` before any signal fires. Reads work cross-project (disk snapshot path); writes never do. recoveryMode:poisoned_history does not cover this (its regex matches TMPRL1100/Nondeterminism/completed-workflow, not projectId mismatch). Workarounds used elsewhere in this change bypass the SDK entirely (direct `temporal workflow signal/terminate` CLI for workflow termination; direct filesystem for store removal) — but ADV-native lifecycle ops (adv_change_bulk_close, adv_change_archive) have no such bypass since they coordinate SDK-owned state. Closing/archiving foreign-project changes requires either a session rooted in each target repo, or an SDK change adding a per-target TemporalOperationsOwner (getServiceForProject). Discovered during tk-44c6afb7af6b: 4 of 190 close candidates closed (host project); 186 blocked by this invariant.",
+      "source_task": "tk-44c6afb7af6b",
+      "recorded_at": "2026-08-05T18:48:28.339Z"
+    }
+  ],
+  "count": 1
+}

@@ -14,6 +14,7 @@
 import { type Plugin } from "@opencode-ai/plugin";
 import { isAbsolute, join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import {
   initializeStatus,
   cleanup as cleanupTerminal,
@@ -80,8 +81,10 @@ import { parseWorktreePaths } from "./utils/worktree-paths";
 import { getWorktreeBase } from "./utils/project-id";
 import {
   getLoadedPluginBundleGeneration,
+  getPluginBundleGenerationGuardError,
   getPluginBundleDistDir,
   getPluginBundleFreshness,
+  PluginBundleGenerationMismatchError,
 } from "./plugin-bundle-manifest";
 import { existsSync } from "fs";
 import { readFile } from "node:fs/promises";
@@ -665,6 +668,21 @@ const advancePluginImpl: Plugin = async (input) => {
     args: Record<string, unknown>,
     input: Record<string, unknown>,
   ) => {
+    // Code-identity guard: once a deployed manifest supersedes this loaded
+    // bundle, refuse ADV traffic before any read can answer from stale code.
+    // Unknown freshness remains allowed so missing manifests and Temporal
+    // outages are not conflated with a generation mismatch.
+    if (toolName.startsWith("adv_")) {
+      const refusal = await getPluginBundleGenerationGuardError(
+        pluginBundleDistDir,
+        {
+          loadedGeneration: loadedBundleGeneration ?? undefined,
+          loadedModulePath: fileURLToPath(import.meta.url),
+        },
+      );
+      if (refusal) throw new PluginBundleGenerationMismatchError(refusal);
+    }
+
     const callerSessionID =
       typeof input.sessionID === "string" ? input.sessionID : undefined;
     await roleFirewallCheckWithSessionAncestry({

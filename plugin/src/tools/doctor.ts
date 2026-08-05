@@ -80,6 +80,7 @@ export type DoctorFindingClass =
   | "phantom_pointer"
   | "orphan_queue_adoption_degraded"
   | "leaked_terminal_workflow"
+  | "missing_epic_projection"
   | "informational"
   | "unhealthy";
 
@@ -93,7 +94,8 @@ export interface DoctorFixApplied {
     | "register_missing"
     | "worker_restart"
     | "clear_session_pointer"
-    | "reconcile_terminal_workflows";
+    | "reconcile_terminal_workflows"
+    | "backfill_epic_projections";
   outcome: "applied" | "no_op" | "failed";
   before?: unknown;
   after?: unknown;
@@ -441,6 +443,7 @@ export const doctorTools = {
           searchAttrs = null;
         }
       }
+
       if (searchAttrs && searchAttrs.wrongType.length > 0) {
         // Wrong-type SAs are a hard refuse — the operator must resolve
         // the type mismatch on the server; auto-registering missing SAs
@@ -621,6 +624,51 @@ export const doctorTools = {
             class: "leaked_terminal_workflow",
             finding: "terminal_reconcile_failed",
             detail: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+
+      // Epic projections can disappear while their running workflows remain
+      // authoritative. The read path stays projection-first; this explicit,
+      // idempotent sweep repairs only positively queried running Epics and
+      // reports transport/enumeration failures instead of failing closed.
+      if (bundle && projectId) {
+        try {
+          const epicRepair = await store.epics.repairIndex({
+            evidence: "adv_doctor active Epic projection repair",
+          });
+          const backfilledEpics = epicRepair.epics
+            .filter((epic) => epic.action === "backfilled")
+            .map((epic) => epic.epic_id);
+          if (epicRepair.backfilled > 0) {
+            fixesApplied.push({
+              class: "missing_epic_projection",
+              action: "backfill_epic_projections",
+              outcome: "applied",
+              after: {
+                backfilled: epicRepair.backfilled,
+                epic_ids: backfilledEpics,
+              },
+              evidence: `Backfilled ${epicRepair.backfilled} missing active Epic projection(s): ${backfilledEpics.join(", ")}`,
+            });
+          }
+          const unreachableEpics = epicRepair.epics
+            .filter((epic) => epic.action === "unreachable")
+            .map((epic) => epic.epic_id);
+          if (unreachableEpics.length > 0) {
+            findings.push({
+              class: "missing_epic_projection",
+              finding: "epic_index_query_failed",
+              severity: "error",
+              detail: `Epic index repair could not query ${unreachableEpics.length} running workflow(s): ${unreachableEpics.join(", ")}`,
+            });
+          }
+        } catch (err) {
+          findings.push({
+            class: "missing_epic_projection",
+            finding: "epic_index_repair_failed",
+            severity: "error",
+            detail: `Epic index repair failed: ${err instanceof Error ? err.message : String(err)}`,
           });
         }
       }
@@ -896,6 +944,10 @@ export const doctorTools = {
           case "informational":
             // Informational orphan-queue diagnostics never trigger a fix or a
             // health failure.
+            break;
+          case "missing_epic_projection":
+            // Repair is applied in the explicit Epic sweep above. Failure
+            // findings are intentionally diagnostic and do not throw.
             break;
         }
       }

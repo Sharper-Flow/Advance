@@ -662,6 +662,7 @@ export interface CommandStore extends StoreBase {
     ) => Promise<RetiredEpicProjection>;
     repairIndex: (input: { evidence: string; dryRun?: boolean }) => Promise<{
       total: number;
+      backfilled: number;
       refreshed: number;
       unverified: number;
       skipped: number;
@@ -670,6 +671,8 @@ export interface CommandStore extends StoreBase {
         epic_id: string;
         status: string;
         action:
+          | "would_backfill"
+          | "backfilled"
           | "would_refresh"
           | "refreshed"
           | "unverified"
@@ -1137,6 +1140,7 @@ export interface Store extends ReadStore, CommandStore {
      */
     repairIndex: (input: { evidence: string; dryRun?: boolean }) => Promise<{
       total: number;
+      backfilled: number;
       refreshed: number;
       unverified: number;
       skipped: number;
@@ -1145,6 +1149,8 @@ export interface Store extends ReadStore, CommandStore {
         epic_id: string;
         status: string;
         action:
+          | "would_backfill"
+          | "backfilled"
           | "would_refresh"
           | "refreshed"
           | "unverified"

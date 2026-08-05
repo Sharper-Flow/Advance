@@ -541,6 +541,7 @@ export async function writeChangeProjection(
     const projection = await buildLauncherProjection({
       changesDir: input.projectionChangesDir,
       summariesDir,
+      archiveDir: join(externalRoot, "archive"),
       generatedAt: input.state.lastSignalAt ?? input.projectedAt,
       degradedThresholdMs: 300_000,
     });

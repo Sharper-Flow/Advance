@@ -59,6 +59,26 @@ async function readProjection(
   );
 }
 
+/**
+ * Read the durable summary shard that change enumeration actually consumes.
+ *
+ * `writeChangeProjection` writes the wrapper projection first and gates its
+ * `ok` result on that write alone; the summary shard, pointer, and launcher
+ * aggregate are published inside a best-effort try/catch whose failure is
+ * swallowed. Asserting only the wrapper therefore cannot prove AC2.
+ */
+async function readSummaryShard(
+  externalRoot: string,
+  changeId: string,
+): Promise<{ pointer: any; shard: any }> {
+  const summariesDir = join(externalRoot, "summaries");
+  const pointer = JSON.parse(
+    await readFile(join(summariesDir, changeId, "current.json"), "utf-8"),
+  );
+  const shard = JSON.parse(await readFile(pointer.shard_path, "utf-8"));
+  return { pointer, shard };
+}
+
 describe("changeWorkflow disk projection", () => {
   it("projects gate signals best-effort and terminal archive before completion", async () => {
     const dir = await createTempDir();
@@ -237,6 +257,9 @@ describe("changeWorkflow disk projection", () => {
       "archived",
       async (handle: ChangeWorkflowHandle) =>
         handle.signal(archiveChangeSignal),
+      // archiveChangeSignal persists at signal time (ARCHIVE_SIGNAL_PERSIST_PATCH)
+      // AND the exit-time terminal projection runs on completion: 2 projections.
+      2,
     ],
     [
       "closed",
@@ -247,10 +270,13 @@ describe("changeWorkflow disk projection", () => {
           approval_evidence: "close projection test",
           approved_at: "2026-05-05T00:00:03.000Z",
         }),
+      // closeChangeSignal has no signal-time persist; only the exit-time
+      // terminal projection runs: 1 projection.
+      1,
     ],
   ])(
     "awaits the terminal projection Activity before completing (%s)",
-    async (status, trigger) => {
+    async (status, trigger, expectedProjections) => {
       const dir = await createTempDir();
       try {
         await withTimeSkippingTestWorkflowEnvironment(async (env) => {
@@ -282,10 +308,13 @@ describe("changeWorkflow disk projection", () => {
             await handle.result();
             events.push("workflow-completed");
 
-            expect(events).toEqual([
-              "projection-completed",
-              "workflow-completed",
-            ]);
+            // Every projection completes before the workflow completes
+            // (drain ordering), then completion is recorded last.
+            const projectionCount = events.filter(
+              (e) => e === "projection-completed",
+            ).length;
+            expect(projectionCount).toBe(expectedProjections);
+            expect(events[events.length - 1]).toBe("workflow-completed");
             await expect(
               readProjection(join(dir, "changes"), changeId),
             ).resolves.toMatchObject({
@@ -300,4 +329,76 @@ describe("changeWorkflow disk projection", () => {
     },
     30_000,
   );
+
+  // rq-archiveRetirement01.1 / AC2 (root-cause repair). archiveChangeSignal MUST
+  // persist terminal status at signal time under ARCHIVE_SIGNAL_PERSIST_PATCH,
+  // matching every sibling terminal signal. Without this, an archived workflow
+  // that does not exit promptly (e.g. an abandoned-but-archived running workflow)
+  // never durably records the terminal shard — the original defect. The structural
+  // assertion proves the persist is wired and patch-gated; the behavioral test
+  // above proves the projection count rises from 1 to 2 for archived.
+  it("archiveChangeSignal persists terminal status at signal time under ARCHIVE_SIGNAL_PERSIST_PATCH", async () => {
+    const source = await readFile(
+      new URL("./workflows.ts", import.meta.url),
+      "utf8",
+    );
+    const handlerStart = source.indexOf(
+      "wf.setHandler(\n    archiveChangeSignal",
+    );
+    expect(handlerStart).toBeGreaterThan(-1);
+    const handlerEnd = source.indexOf("closeChangeSignal", handlerStart);
+    expect(handlerEnd).toBeGreaterThan(handlerStart);
+    const handler = source.slice(handlerStart, handlerEnd);
+
+    expect(handler).toMatch(/async\s*\(\)\s*=>\s*\{/);
+    expect(handler).toMatch(/wf\.patched\(ARCHIVE_SIGNAL_PERSIST_PATCH\)/);
+    expect(handler).toMatch(
+      /await projectChangeState\("archiveChange"\)/,
+    );
+  });
+
+  // rq-archiveRetirement01.1 / AC2. The durable summary shard — not the wrapper
+  // projection — is what `listSummary` reads to build `summaryRows`. A stale
+  // non-terminal shard is returned directly to in-flight enumeration and never
+  // reaches archive dominance, so terminal status MUST be durable in the shard
+  // itself once the archive signal completes.
+  it("records terminal status in the durable summary shard after archiveChangeSignal", async () => {
+    const dir = await createTempDir("archive-signal-summary-shard-");
+    try {
+      const externalRoot = join(dir, "state");
+      const projectionChangesDir = join(externalRoot, "changes");
+      const changeId = "archive-signal-shard";
+
+      await withTimeSkippingTestWorkflowEnvironment(async (env) => {
+        const taskQueue = `archive-signal-shard-${Date.now()}`;
+        const worker = await Worker.create({
+          connection: env.nativeConnection,
+          workflowBundle: await getSharedWorkflowBundle(),
+          activities: { writeChangeProjection },
+          taskQueue,
+        });
+
+        await worker.runUntil(async () => {
+          const handle = await env.client.workflow.start("changeWorkflow", {
+            workflowId: `archive-signal-shard-${Date.now()}`,
+            taskQueue,
+            args: [makeChangeInput(changeId, projectionChangesDir)],
+          });
+
+          await handle.signal(archiveChangeSignal);
+          await expect(handle.result()).resolves.toBeUndefined();
+
+          const { pointer, shard } = await readSummaryShard(
+            externalRoot,
+            changeId,
+          );
+
+          expect(pointer).toMatchObject({ change_id: changeId });
+          expect(shard).toMatchObject({ status: "archived" });
+        });
+      });
+    } finally {
+      await cleanupTempDir(dir);
+    }
+  }, 30_000);
 });

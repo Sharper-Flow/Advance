@@ -17,6 +17,8 @@
  *   `synthesizeTestProjectId(directory)` so that vitest runs cannot leak
  *   fixture state into a real ADV project's external state directory AND
  *   so that fixtures using distinct target paths get isolated state dirs.
+ *   `getDataHome` also redirects test-mode state under `os.tmpdir()` unless
+ *   `ADV_TEST_DATA_HOME=0` explicitly opts out for XDG path assertions.
  *   Tests that need to verify the actual git resolution path call
  *   `getProjectIdFromGit` directly.
  *
@@ -26,7 +28,7 @@
 import { execFileGitCb } from "./git-binary";
 import { existsSync } from "fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "path";
-import { homedir } from "os";
+import { homedir, tmpdir } from "os";
 import { createHash } from "crypto";
 
 // =============================================================================
@@ -39,6 +41,9 @@ import { createHash } from "crypto";
  * prefix is unambiguously test-mode state.
  */
 export const SYNTHETIC_TEST_PROJECT_ID_PREFIX = "0000000000000000"; // 16 zeros
+
+const SHA40 = /^[0-9a-f]{40}$/;
+const TEST_DATA_HOME_ENV = "ADV_TEST_DATA_HOME";
 
 /**
  * Synthetic project identifier returned by `getProjectId` during vitest
@@ -139,6 +144,17 @@ export class UnstableIdentityError extends Error {
   }
 }
 
+/** Typed refusal raised when git returns an invalid project identity. */
+export class InvalidProjectIdentityError extends Error {
+  constructor(
+    public readonly repoPath: string,
+    public readonly projectId: string,
+  ) {
+    super(invalidIdentityGuidance(repoPath, projectId));
+    this.name = "InvalidProjectIdentityError";
+  }
+}
+
 function unstableIdentityGuidance(
   repoPath: string,
   reason: "shallow" | "graft",
@@ -154,6 +170,14 @@ function unstableIdentityGuidance(
   return (
     `ADV cannot derive a stable project identity for ${repoPath}: the repository ${cause}. ` +
     `${fix} No ADV state was created under the unstable identity.`
+  );
+}
+
+function invalidIdentityGuidance(repoPath: string, projectId: string): string {
+  return (
+    `ADV cannot derive a valid project identity for ${repoPath}: git returned ` +
+    `the invalid candidate "${projectId}". Project identities must be exactly ` +
+    `40 lowercase hexadecimal characters. No ADV state was created under the invalid identity.`
   );
 }
 
@@ -203,6 +227,9 @@ export async function resolveProjectIdentity(
 
   const projectId = await resolveRootCommit(directory);
   if (!projectId) return { kind: "not_git" };
+  if (!SHA40.test(projectId)) {
+    throw new InvalidProjectIdentityError(directory, projectId);
+  }
   return { kind: "ok", projectId };
 }
 
@@ -239,10 +266,7 @@ async function resolveRootCommit(directory: string): Promise<string | null> {
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
     const trimmed = roots[0]; // Sort for determinism when multiple roots exist
-    if (/^[0-9a-f]{40}$/.test(trimmed)) {
-      return trimmed;
-    }
-    return null;
+    return trimmed ?? null;
   } catch {
     return null;
   }
@@ -260,6 +284,12 @@ async function resolveRootCommit(directory: string): Promise<string | null> {
  * namespace boundaries.
  */
 export function getDataHome(): string {
+  const testMode =
+    process.env.VITEST === "true" || process.env.ADV_TEST_MODE === "1";
+  if (testMode && process.env[TEST_DATA_HOME_ENV] !== "0") {
+    return join(tmpdir(), "advance-test", String(process.pid));
+  }
+
   const configured = process.env.XDG_DATA_HOME;
   if (configured === undefined || configured === "") {
     return join(homedir(), ".local/share");
