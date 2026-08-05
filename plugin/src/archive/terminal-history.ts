@@ -277,7 +277,7 @@ function findLatestMatchingBundle(
   return matches[0] ?? null;
 }
 
-function extractCandidateIdFromArchiveDir(dir: string): string {
+export function extractCandidateIdFromArchiveDir(dir: string): string {
   const datePrefixMatch = /^\d{4}-\d{2}-\d{2}-(.+)$/.exec(dir);
   if (datePrefixMatch?.[1]) return datePrefixMatch[1];
   return dir;

@@ -288,7 +288,8 @@ async function executeWorktreeDelete(
         // No poison claim: this branch resolves a setTimeout sentinel, not a
         // rejection, so there is no error to classify. rq-worktreePoisonVisibility01
         // requires error-class plus structured evidence before naming poisoned
-        // history — asserting it here would be a guess.
+        // history — asserting it here would be a guess. rq-worktreeTimeoutTruthfulness01
+        // likewise forbids asserting an untested cause or an unreachable action.
         error: `adv_worktree_delete timed out after ${effectiveTimeoutMs}ms. The inner promise was not cancelled; the delete may still resolve.`,
         effectiveTimeoutMs,
         remediation:
@@ -455,7 +456,10 @@ async function executeWorktreeCleanup(
         // rejection, so there is no error to classify. rq-worktreePoisonVisibility01
         // requires error-class plus structured evidence before naming poisoned
         // history — asserting it here would be a guess. Report the stage that
-        // was actually in flight instead.
+        // was actually in flight instead (rq-worktreeTimeoutTruthfulness01:
+        // stage captured synchronously, empty vs unreadable pending-delete
+        // queue kept distinguishable, remediation names only actions that can
+        // succeed under the clamp).
         error: `adv_worktree_cleanup timed out after ${effectiveTimeoutMs}ms${clampedNote} during ${stageAtTimeout}. The inner promise was not cancelled; queued deletes may still resolve on a later drain pass.`,
         // rq-worktreeBoundedCleanup02: the safe budget is a structural ceiling,
         // so a clamped caller must be given an action that can actually succeed.
@@ -533,7 +537,8 @@ async function executeWorktreeDetach(
         ok: false,
         timedOut: true,
         // No unevidenced cause claim: this branch resolves a setTimeout
-        // sentinel, not a rejection (rq-worktreePoisonVisibility01).
+        // sentinel, not a rejection (rq-worktreePoisonVisibility01,
+        // rq-worktreeTimeoutTruthfulness01).
         error: `adv_worktree_detach timed out after ${effectiveTimeoutMs}ms. The inner promise was not cancelled; the detach batch may still resolve.`,
         effectiveTimeoutMs,
         remediation:

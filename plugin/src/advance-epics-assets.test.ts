@@ -16,6 +16,7 @@ import { existsSync, readFileSync, readdirSync } from "fs";
 import { join, resolve } from "path";
 import { COMMAND_MANIFEST } from "./manifest";
 import { epicTools } from "./tools/epic";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 
@@ -678,7 +679,10 @@ describe("Command docs wire Epic context into workflow", () => {
   test.each(commands)(
     "$file includes Epic context references",
     ({ file, required }) => {
-      const content = readRepoFile(`.opencode/command/${file}`);
+      const content =
+        file === "adv-review.md"
+          ? readCommandSurface("adv-review.md")
+          : readRepoFile(`.opencode/command/${file}`);
       for (const token of required) {
         expect(content).toContain(token);
       }

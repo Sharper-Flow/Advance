@@ -455,6 +455,7 @@ describe("Archive and spec assets", () => {
       "rq-releaseProjectionDurability01.3",
       "rq-releaseProjectionDurability01.4",
       "rq-releaseProjectionDurability01.5",
+      "rq-releaseProjectionDurability01.6",
     ]);
 
     const shipped = requirement!.scenarios.find(
