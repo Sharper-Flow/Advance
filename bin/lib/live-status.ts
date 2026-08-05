@@ -332,7 +332,8 @@ export async function loadLiveSummaries(
  * Reads schemaVersion: 2 projection envelopes from the changes directory.
  */
 function loadSummariesFromDisk(projectId: string): ChangeSummary[] {
-  const canonicalDir = join(resolveExternalRoot(projectId), "changes");
+  try {
+    const canonicalDir = join(resolveExternalRoot(projectId), "changes");
     const dataHome = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
     const shardDir = join(dataHome, "opencode-projects", projectId, "opencode", "plugins", "advance", projectId, "changes");
     let dir: string;
@@ -355,7 +356,7 @@ function loadSummariesFromDisk(projectId: string): ChangeSummary[] {
           status: state.status ?? "draft",
           lastActivityAt: state.lastActivityAt ?? state.updatedAt ?? raw.projectedAt ?? new Date().toISOString(),
         } as ChangeSummary);
-      } catch {
+      } catch (_e) {
         // skip malformed projections
       }
     }
