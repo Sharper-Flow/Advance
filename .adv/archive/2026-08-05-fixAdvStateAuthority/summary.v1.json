@@ -1,0 +1,19 @@
+{
+  "archived_at": "2026-08-05T20:09:27.711Z",
+  "capabilities": [
+    "advance-meta",
+    "advance-workflow"
+  ],
+  "change_hash": "72d76d6c8d9ef198d1a356c9cb31314d916a10c528be0d9ab5a6e8016051b032",
+  "change_id": "fixAdvStateAuthority",
+  "completed_tasks": 17,
+  "created_at": "2026-08-04T22:56:02.890Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-05T20:01:58.537Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "03fbcbc61d3354361f4adf7d3a74dd24debe1b97dcf09738743e9cb57a2be506",
+  "task_count": 18,
+  "title": "Fix ADV state authority",
+  "version": "1"
+}

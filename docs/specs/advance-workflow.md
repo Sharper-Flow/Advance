@@ -1,6 +1,6 @@
 # Advance Workflow
 
-> **Version:** 1.45.0
+> **Version:** 1.46.0
 > **Updated:** 2026-08-05
 
 ## Purpose
@@ -861,7 +861,7 @@ When `/adv-archive` Phase 9 finalization succeeds, archive success MUST be gated
 - The durable proof REJECTS with the existing strict guard
 - Evidence-match + recovery-audit requirements remain unchanged
 
-**Committed-but-unverified release projection fails closed** (`rq-releaseProjectionDurability01.4`)
+**Committed-but-unverified release projection fails closed** (`rq-releaseProjectionDurability01.6`)
 
 **Given:**
 - The release-gate projection commit was written
@@ -1686,9 +1686,9 @@ Authoritative change-read surfaces (`adv_change_list`, `adv_status`) MUST resolv
 
 **ID:** `rq-readSourceAttribution01` | **Priority:** **[MUST]**
 
-Archive and Visibility candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). Visibility enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory × candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory × candidate scan is allowed. Existing terminal source-failure warnings stay terminal-only, while deadline and bound degradation are typed on both active and terminal paths.
+Archive and Visibility candidate sources MUST be included in the aggregate deadline and source-classification design (`rq-boundedAuthoritativeRead01`). Visibility enumeration, active-disk enumeration, archive enumeration, archive-bundle pre-scan, candidate hydration, and fallback reads MUST check the shared deadline before admission and after completion. When a source is slow, fails, or reaches the deadline, the result MUST identify that source in typed degraded evidence and MUST stop further unbounded source work. The archive-inventory x candidate scan MUST be bounded with per-iteration admission checks; no unbounded archive-inventory x candidate scan is allowed. Terminal-resolution source degradation MUST be emitted as typed provenance regardless of query kind: an active or in-flight enumeration whose terminal-resolution inspection degrades MUST still return its rows AND surface the degradation, rather than suppressing the warning because terminal statuses were not requested. Terminal-only candidate-omission warnings and terminal hydration statistics remain terminal-only.
 
-**Tags:** `workflow`, `read-model`, `archive`, `visibility`, `degraded`
+**Tags:** `workflow`, `read-model`, `archive`, `visibility`, `degraded`, `provenance`
 
 #### Scenarios
 
@@ -1715,6 +1715,19 @@ Archive and Visibility candidate sources MUST be included in the aggregate deadl
 - Each iteration performs a deadline admission check
 - The scan is bounded and records omissionReason 'deadline' on expiry
 - No unbounded archive-inventory x candidate scan is performed
+
+**Terminal-resolution degradation is surfaced on non-terminal queries** (`rq-readSourceAttribution01.3`)
+
+**Given:**
+- A caller requests active or in-flight changes only
+- Terminal-resolution inspection degrades for one or more requested IDs
+
+**When:** The enumeration result is produced
+
+**Then:**
+- The projected rows are still returned
+- Typed terminal-resolution degradation provenance is emitted even though terminal statuses were not requested
+- The degradation is not converted into an error or an empty result
 
 ---
 
@@ -7632,5 +7645,56 @@ The retry reducer MUST distinguish productive review/implementation rounds from 
 
 **Then:**
 - No budget_warning is emitted
+
+---
+
+### Enumeration Terminal Dominance Is Per-ID and Scan-Free
+
+**ID:** `rq-enumerationTerminalDominance01` | **Priority:** **[MUST]**
+
+Change enumeration MUST resolve terminal dominance per requested ID, including rows served directly from durable summary shards. A row already present in the summary-shard set MUST NOT bypass archive-bundle dominance merely because it never entered candidate hydration. Enumeration dominance MUST be a bounded per-ID archive-bundle check over the requested row set, mirroring the per-ID resolution used by the snapshot read path. Active or in-flight enumeration MUST NOT perform O(all archive bundles) inventory I/O; full archive-inventory discovery remains permitted only when terminal statuses are explicitly requested. Rows already terminal as closed MUST be preserved unchanged.
+
+**Tags:** `workflow`, `archive`, `terminal-state`, `read-model`, `enumeration`
+
+#### Scenarios
+
+**Summary-shard row with an archive bundle resolves as archived** (`rq-enumerationTerminalDominance01.1`)
+
+**Given:**
+- A change has an archive bundle
+- Its durable summary shard still records a non-terminal status such as draft
+
+**When:** adv_change_list and its summary enumeration path each resolve the change
+
+**Then:**
+- Both surfaces return status archived
+- The stale non-terminal shard value is not returned by either surface
+- Dominance is applied to the summary-shard row without requiring candidate hydration
+
+**Active enumeration does not scan the whole archive inventory** (`rq-enumerationTerminalDominance01.2`)
+
+**Given:**
+- A caller requests active or in-flight changes
+- Many archive bundles exist on disk
+
+**When:** Enumeration resolves terminal dominance for the requested rows
+
+**Then:**
+- Terminal resolution performs a bounded per-ID archive-bundle check over the requested row set only
+- No O(all archive bundles) inventory scan is performed for that query
+- Full archive-inventory discovery remains available only when terminal statuses are explicitly requested
+
+**Closed rows are preserved when an archive bundle exists** (`rq-enumerationTerminalDominance01.3`)
+
+**Given:**
+- A change is recorded as closed
+- An archive bundle exists for the same canonical change ID
+
+**When:** Enumeration applies terminal dominance
+
+**Then:**
+- The closed status is preserved
+- Closed is not rewritten to archived by dominance
+- Existing closed-status handling is unchanged
 
 ---
