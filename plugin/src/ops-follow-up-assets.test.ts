@@ -9,6 +9,7 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 
@@ -171,7 +172,7 @@ describe("ops runbook command contracts", () => {
   test("prep/apply/review/harden/archive document ops runbook authority", () => {
     const prep = readRepoFile(".opencode/command/adv-prep.md");
     const apply = readRepoFile(".opencode/command/adv-apply.md");
-    const review = readRepoFile(".opencode/command/adv-review.md");
+    const review = readCommandSurface("adv-review.md");
     const harden = readRepoFile(".opencode/command/adv-harden.md");
     const archive = readRepoFile(".opencode/command/adv-archive.md");
 

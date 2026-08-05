@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { existsSync, readFileSync } from "fs";
 import { join, resolve } from "path";
+import { readCommandSurface } from "./__tests__/command-surface";
 
 const REPO_ROOT = resolve(__dirname, "../..");
 const COMMAND_DIR = join(REPO_ROOT, ".opencode/command");
@@ -39,7 +40,7 @@ describe("workflow noise reduction policy", () => {
   });
 
   test("review and harden commands do not require manufactured findings", () => {
-    const review = readCommand("adv-review.md");
+    const review = readCommandSurface("adv-review.md");
     const harden = readCommand("adv-harden.md");
 
     for (const content of [review, harden]) {
@@ -63,7 +64,7 @@ describe("workflow noise reduction policy", () => {
   });
 
   test("review and harden responsibilities are split without duplicate scanner fan-out", () => {
-    const review = readCommand("adv-review.md");
+    const review = readCommandSurface("adv-review.md");
     const harden = readCommand("adv-harden.md");
 
     expect(review).toMatch(

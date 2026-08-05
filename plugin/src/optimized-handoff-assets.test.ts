@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { readFileSync } from "fs";
 import { join, resolve } from "path";
+import { readCommandSurface } from "./__tests__/command-surface";
 import {
   getSubagentReportPacketAnchors,
   SUBAGENT_WARN_FIRST_PACKET_ANCHORS,
@@ -165,7 +166,10 @@ describe("optimized handoff command packets", () => {
 
   test("review and harden persist orchestrator-submitted scanner bundles only", () => {
     for (const path of ["adv-review.md", "adv-harden.md"]) {
-      const command = readFileSync(join(COMMAND_DIR, path), "utf8");
+      const command =
+        path === "adv-review.md"
+          ? readCommandSurface("adv-review.md")
+          : readFileSync(join(COMMAND_DIR, path), "utf8");
       expect(command).toContain("SCANNER_BUNDLE_REPORT");
       expect(command).toContain('"agent": "adv-scanner-bundle"');
       expectScannerBundlePayloadSkeleton(

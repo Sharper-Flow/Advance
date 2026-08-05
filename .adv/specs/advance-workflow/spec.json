@@ -958,7 +958,7 @@
           "warrant": "AC2"
         },
         {
-          "id": "rq-releaseProjectionDurability01.4",
+          "id": "rq-releaseProjectionDurability01.6",
           "title": "Committed-but-unverified release projection fails closed",
           "given": [
             "The release-gate projection commit was written",
