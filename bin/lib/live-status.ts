@@ -334,8 +334,10 @@ export async function loadLiveSummaries(
 function loadSummariesFromDisk(projectId: string): ChangeSummary[] {
   try {
     const canonicalDir = join(resolveExternalRoot(projectId), "changes");
-    const dataHome = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
-    const shardDir = join(dataHome, "opencode-projects", projectId, "opencode", "plugins", "advance", projectId, "changes");
+    // Always use the real home data dir for shard lookup — XDG_DATA_HOME
+    // may be set to a per-project shard by the oc wrapper, causing nesting.
+    const realDataHome = join(homedir(), ".local", "share");
+    const shardDir = join(realDataHome, "opencode-projects", projectId, "opencode", "plugins", "advance", projectId, "changes");
     let dir: string;
     try {
       const canonicalFiles = readdirSync(canonicalDir);
