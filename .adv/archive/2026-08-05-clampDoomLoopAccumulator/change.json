@@ -1,0 +1,1682 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Sharper-Flow/Advance/trunk/plugin/schemas/change.schema.json",
+  "id": "clampDoomLoopAccumulator",
+  "title": "Clamp doom loop accumulator",
+  "status": "archived",
+  "lifecycleState": "open",
+  "created_at": "2026-08-04T20:11:33.599Z",
+  "tasks": [
+    {
+      "id": "tk-cbacac2f2659",
+      "title": "RED: failing unit test for clamped accumulator",
+      "type": "code",
+      "status": "done",
+      "priority": 0,
+      "created_at": "2026-08-04T21:06:33.900Z",
+      "started_at": "2026-08-04T21:24:08.174Z",
+      "completed_at": "2026-08-04T21:24:37.409Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED phase recorded via adv_run_test runId tr_msf60ua8_41995156, exitCode 1, classification failed. Added describe block \"error_recovery retry-budget clamp (clampDoomLoopAccumulator)\" to plugin/src/temporal/change-state.test.ts with 6 cases. 5 fail as intended against the unclamped reducer: attempts[] length 4 and 12 instead of 3 (unbounded append), attempt_number sequence [1,2,3,4,5] instead of the most-recent [3,4,5], retry_count 6 instead of clamped 3, and — the load-bearing assertion — ErrorRecoverySchema.safeParse returns false, which is exactly the unreadable state that bricks a change. The 6th case (\"leaves under-budget accumulation untouched\") passes both before and after by design, guarding against over-clamping. Imported ErrorRecoverySchema from ../types/tasks so the test asserts the real read-path invariant rather than a restatement of it.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts"
+      ],
+      "checkpointSha": "2eb2b4e18f1f3e486c50f97e0f1f09ed4261441e",
+      "completedAt": "2026-08-04T21:24:37.409Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "SC1"
+        ],
+        "respects": [
+          "C3",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "tdd_phase": "red"
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts"
+      ]
+    },
+    {
+      "id": "tk-42a6bc88cba6",
+      "title": "GREEN: clamp retry_count and bound attempts[] in the reducer",
+      "type": "code",
+      "status": "done",
+      "priority": 1,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-cbacac2f2659"
+        }
+      ],
+      "created_at": "2026-08-04T21:06:52.529Z",
+      "started_at": "2026-08-04T21:24:47.761Z",
+      "completed_at": "2026-08-04T21:26:08.812Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "GREEN via adv_run_test runId tr_msf63404_795330d1 (exitCode 0, 6/6 clamp cases pass), against RED runId tr_msf60ua8_41995156 (exitCode 1). Full-file regression check runId tr_msf63ev4_b65e4ed8: 99/99 pass, no existing case disturbed — notably the issue-349 strategy_label dedup suite, which shares this reducer. Implemented in applySubagentReportSubmittedToState (plugin/src/temporal/change-state.ts): retry_count is now Math.min(payload.report.attempt, maxRetries), and attempts[] is built then .slice(-maxRetries) so only the most recent budget-worth is retained while each entry keeps its true monotonic attempt_number — an elided window stays visible rather than being renumbered to 1..n (C3). Comment records why this reducer is the sole self-heal site: Temporal rebuilds workflow state by replaying history through it, so a clamped reducer re-derives valid state from unchanged poisoned histories, which a tool-boundary or schema-normalizer guard cannot do (DONT1). maxRetries is a local const 3 here, matching the literal it replaced; hoisting it to a shared exported constant across both write sites is tk-80adf9566bfa.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.ts"
+      ],
+      "checkpointSha": "f8da9afe5af0315e0c5a64e20f2bbb9d73254577",
+      "completedAt": "2026-08-04T21:26:08.812Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "SC1"
+        ],
+        "respects": [
+          "C3",
+          "DONT1",
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "tdd_phase": "green"
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.ts"
+      ]
+    },
+    {
+      "id": "tk-80adf9566bfa",
+      "title": "Single source of truth for the retry budget",
+      "type": "code",
+      "status": "done",
+      "priority": 2,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-42a6bc88cba6"
+        }
+      ],
+      "created_at": "2026-08-04T21:07:11.446Z",
+      "completed_at": "2026-08-04T21:28:34.056Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Verified via adv_run_test runId tr_msf66g6p_f4d241a4 (exitCode 0): 170/170 across change-state.test.ts and subagent-report.test.ts. Added SUBAGENT_REPORT_MAX_RETRIES to plugin/src/types/subagent-reports.ts, beside the existing SUBAGENT_REPORT_SCHEMA_VERSION. Placed in types/ rather than tools/ because the Temporal workflow bundle root reaches change-state.ts and must not statically import from storage/, tools/, tool-registry.ts, plugin-init.ts, or node:* — tools/ would break the bundle boundary. Both write sites now resolve it: change-state.ts:2044 (accumulator) and subagent-report.ts:419 (submit-failure record). The latter also gained a clamp on retry_count; it writes a single attempt so it cannot breach the attempts-length ceiling, but an unclamped counter is still wrong and would trip the invariant if attempts were ever absent. Added a guard case asserting max_retries resolves to the shared constant and that no bare \"max_retries: <digit>\" literal remains in either source, using the existing readFileSync/sourcePath pattern already in this test file. The guard is not cosmetic: during the 2026-08-04 incident an operator raised the budget on the disk projection and the workflow re-emitted its own hardcoded 3, re-bricking the change — divergent literals defeat repair.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ],
+      "checkpointSha": "3b98b4b3213f66093f7079daca516dd338cf9381",
+      "completedAt": "2026-08-04T21:28:34.056Z",
+      "contract_refs": {
+        "implements": [
+          "AC4"
+        ],
+        "verifies": [
+          "SC1"
+        ],
+        "respects": [
+          "C4",
+          "DONT2"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/temporal/change-state.test.ts",
+        "plugin/src/temporal/change-state.ts",
+        "plugin/src/tools/subagent-report.ts",
+        "plugin/src/types/subagent-reports.ts"
+      ]
+    },
+    {
+      "id": "tk-c0e4b16123ac",
+      "title": "Replay self-heal: unchanged poisoned history through the clamped reducer",
+      "type": "code",
+      "status": "done",
+      "priority": 3,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-42a6bc88cba6"
+        }
+      ],
+      "created_at": "2026-08-04T21:07:33.611Z",
+      "started_at": "2026-08-04T21:38:04.665Z",
+      "completed_at": "2026-08-04T21:47:03.083Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Verified via adv_run_test runId tr_msf6u2no_ffae8343 (exitCode 0, 17/17) after pnpm run build:worker (exit 0). Both required assertions are in place per C4, since neither alone proves self-heal.\n\nAssertion 1 (command-safety): five committed production histories already record more subagentReportSubmitted signals than the retry budget — addArchiveScaleRegression (7), makeLegacyDesignValidation (8), fixArchiveDeltaReconciliation (15), refineTestEvidencePolicy (17), fixHealthViewTimeouts (24). All replay cleanly through the clamped reducer via the existing parametrized Worker.runReplayHistory suite. The new case pins why they matter here — asserting each exceeds SUBAGENT_REPORT_MAX_RETRIES and passes auditSanitizedHistory — plus a guard-the-guard check that at least one still carries 7+, so trimming fixtures cannot silently drop overflow coverage.\n\nAssertion 2 (the heal): drives applySubagentReportSubmittedToState with 4 blocked reports and asserts attempts[] is bounded to the budget and ErrorRecoverySchema.safeParse succeeds. This is what replay cannot prove — runReplayHistory validates the command/event sequence and never inspects derived state, while the schema rejection that bricks a change lives in the tool layer, outside replay.\n\nCourse correction worth recording: I first captured the real resolveAdvPersistenceRecovery history (run 019fc426, 227 events, 5 report signals) as a new fixture. Two findings killed it. First, auditSanitizedHistory correctly flagged 10 payloads carrying real proposal/agreement/task content; I redacted them with the repo's {redacted:true,kind:\"adv-payload\"} placeholder and the audit went green. Second, it then failed replay with TMPRL1100 at event 9 (UpsertWorkflowSearchAttributes) — a pre-existing bundle-identity divergence in that capture, the same class as makeLegacyDesignValidation, entirely unrelated to the clamp. Promoting a fixture that cannot replay would have been a standing liability and conflated budget overflow with old-bundle noise. The existing fixtures are strictly better evidence: real production histories, already CI-covered, spanning 7-24 report signals. Fixture files removed; no new fixture committed.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts"
+      ],
+      "checkpointSha": "86698fac32e3f59fc712a03ea6acd1203d8c04c4",
+      "completedAt": "2026-08-04T21:47:03.083Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC2"
+        ],
+        "verifies": [
+          "SC2"
+        ],
+        "respects": [
+          "C1",
+          "C4",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline",
+        "evidence_kind": "replay_determinism"
+      },
+      "touched_files": [
+        "plugin/src/temporal/__tests__/replay-determinism.test.ts"
+      ]
+    },
+    {
+      "id": "tk-e01d69110f0b",
+      "title": "Doom-loop escalation still fires at the clamped cap",
+      "type": "code",
+      "status": "done",
+      "priority": 4,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-42a6bc88cba6"
+        }
+      ],
+      "created_at": "2026-08-04T21:07:54.727Z",
+      "started_at": "2026-08-04T21:28:47.037Z",
+      "completed_at": "2026-08-04T21:37:50.051Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "RED runId tr_msf692rr_dea5e7a9 (exitCode 1) → GREEN runId tr_msf69rrj_969bf4df → final verify runId tr_msf6i65j_a85ccb59 (exitCode 0, 221/221 across 4 suites). Typecheck npx tsc --noEmit exits 0.\n\nEscalation boundary confirmed safe: every doom-loop predicate uses >= (tool-formatters.ts:696 retry_count >= max_retries; events/status.ts:295 and :344 against DOOM_LOOP_THRESHOLD = 3, which matches SUBAGENT_REPORT_MAX_RETRIES). Clamping to exactly max_retries therefore keeps escalation firing. The planned regression risk — a > comparison silently disabling detection after the clamp, turning a change-destroying bug into a quieter guardrail failure — does not materialize. Tests now pin that boundary.\n\nClamping did introduce a real honesty gap, caught by the task's own brief: attemptSummary reported attempts.length, so it read \"3 attempts\" after 12 occurred. Fixed via a shared observedAttemptCount(recovery) helper in types/tasks.ts that derives the true count from the highest retained attempt_number, with the summary now marking elision as \"(most recent N retained)\".\n\nP25 related-scan found the same understatement in tools/reflection.ts — retryTotal aggregation (:701) and the friction description \"after N retry attempt(s)\" (:811). Both were direct consequences of this change, so both were repointed at the shared helper rather than duplicating the rule inline; duplicating a subtle invariant across sites is precisely what produced the original max_retries defect.\n\nVerify burst delegated to adv-verifier (typecheck + 3 suites), which caught TS2345 at tool-formatters.ts:702 — the helper's Pick<ErrorRecovery,\"attempts\"> param was narrower than DoomLoopInput, whose outcome is a plain string. Fixed on attempt 1 by widening the parameter to a structural type covering only attempt_number, the sole field read, rather than narrowing DoomLoopInput and risking fixtures. The verifier also confirmed the new workflow-reachable import introduces no worker-bundle boundary violation: types/subagent-reports.ts imports only zod, ./gates, ./wisdom.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/reflection.ts",
+        "plugin/src/types/tasks.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ],
+      "checkpointSha": "69752b720c938f9f68b75bfd52fd36f88d1db242",
+      "completedAt": "2026-08-04T21:37:50.051Z",
+      "assignedTo": "agent",
+      "contract_refs": {
+        "implements": [
+          "AC3"
+        ],
+        "verifies": [
+          "SC3"
+        ],
+        "respects": [
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      },
+      "touched_files": [
+        "plugin/src/tools/reflection.ts",
+        "plugin/src/types/tasks.ts",
+        "plugin/src/utils/tool-formatters.test.ts",
+        "plugin/src/utils/tool-formatters.ts"
+      ]
+    },
+    {
+      "id": "tk-187b0b2a8edd",
+      "title": "Targeted error_recovery validation at the write boundary",
+      "type": "code",
+      "status": "cancelled",
+      "priority": 5,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-42a6bc88cba6"
+        }
+      ],
+      "created_at": "2026-08-04T21:08:19.604Z",
+      "completed_at": "2026-08-04T21:21:57.892Z",
+      "cancelApproval": "User selected 'Proceed, drop tk-187b0b2a8edd (Recommended)' at the Phase 0.2 coordination-required halt, after being shown the three-way contention on change-state.ts and the specific duplication of the write-boundary validation by fixTaskUpdatePersistence.",
+      "cancelledAt": "2026-08-04T21:21:57.892Z",
+      "cancellation": {
+        "reason": "Superseded by active change fixTaskUpdatePersistence, which already implements targeted error_recovery validation at the workflow boundary: it adds TaskAcceptedPartialSchema (types/tasks.ts, carrying error_recovery: ErrorRecoverySchema.optional()) and applies it in change-state.ts via ErrorRecoverySchema.safeParse with apply-only-on-success. Implementing the same guard here would duplicate that work and collide in change-state.ts and types/tasks.ts. The reducer clamp (tk-42a6bc88cba6) remains necessary and unaffected: it targets applySubagentReportSubmittedToState on the subagentReportSubmitted signal path, whereas fixTaskUpdatePersistence covers the assigned/blocked/completed status-transition signals. Note their silent-drop semantic would not have healed a bricked change on its own — dropping an invalid record is not the same as clamping it — so no coverage is lost by cancelling here. Follow-up recorded: after fixTaskUpdatePersistence merges, rebase and verify the silent-drop boundary composes correctly with the clamp.",
+        "approved_by_user": true,
+        "approval_evidence": "User selected 'Proceed, drop tk-187b0b2a8edd (Recommended)' at the Phase 0.2 coordination-required halt, after being shown the three-way contention on change-state.ts and the specific duplication of the write-boundary validation by fixTaskUpdatePersistence.",
+        "approved_at": "2026-08-04T21:21:57.892Z"
+      },
+      "contract_refs": {
+        "implements": [
+          "AC1"
+        ],
+        "verifies": [
+          "SC1"
+        ],
+        "respects": [
+          "C1",
+          "C2",
+          "DONT1"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "test",
+        "proof_target": "Automated red/green tests evidenced by adv_run_test",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "test",
+      "metadata": {
+        "tdd_intent": "inline"
+      }
+    },
+    {
+      "id": "tk-4db168229b5d",
+      "title": "Apply spec-delta obligations to subagent-reports",
+      "type": "docs",
+      "status": "done",
+      "priority": 6,
+      "deps": [
+        {
+          "type": "blocked_by",
+          "target": "tk-42a6bc88cba6"
+        },
+        {
+          "type": "blocked_by",
+          "target": "tk-c0e4b16123ac"
+        }
+      ],
+      "created_at": "2026-08-04T21:08:47.633Z",
+      "completed_at": "2026-08-04T22:42:28.537Z",
+      "implementation_summary": "Task checkpoint completed",
+      "verification": "Approved campsite fix (P23), verified via adv_run_test runId tr_msf8brkx_ec45f104 (exitCode 0, 51/51 across spec-citation-invariant.test.ts and adv-worktree.test.ts). Added a rq-worktreeTimeoutTruthfulness01 citation comment in plugin/src/tools/adv-worktree.ts at the adv_worktree_cleanup timeout branch. The requirement was introduced by archived change fixCleanupTimeoutRemediation (d421c0ba) with its behavior fully implemented but no citation on an allowed surface — its only reference lived in docs/specs/worktree-lifecycle.md, which the invariant explicitly excludes. Before adding the comment I confirmed the behavior genuinely exists rather than papering over a gap: the clamped-budget wording, the structural-ceiling remediation text, and skipDiscovery drain-only recovery are all present in adv-worktree.ts, and the chosen anchor is the timeout branch that implements the requirement's core rule — do not assert an untested cause, do not advise an unreachable action. User approved this as inline campsite rather than a separate change.",
+      "summary": "Task checkpoint completed",
+      "filesTouched": [
+        "plugin/src/tools/adv-worktree.ts"
+      ],
+      "checkpointSha": "45fbf1a5546012d8276f7c6ef69f83a0e5a37fd3",
+      "completedAt": "2026-08-04T22:42:28.537Z",
+      "contract_refs": {
+        "implements": [
+          "AC1",
+          "AC2"
+        ],
+        "verifies": [
+          "SC1",
+          "SC2"
+        ],
+        "respects": [
+          "DONT2",
+          "DONT3"
+        ]
+      },
+      "evidence_plan": {
+        "policy": "static_check",
+        "proof_target": "Static analysis or check output",
+        "rationale": "Durable spec-law text edit. The behavior it codifies is proven by the runtime tasks (tk-cbacac2f2659, tk-42a6bc88cba6, tk-c0e4b16123ac); the correct proof for the artifact itself is a passing schemas:check plus reviewer confirmation that the persisted obligations match design.md. No behavioral test applies to a JSON law file.",
+        "provenance": "new",
+        "stage": "stage-v2"
+      },
+      "evidence_policy": "static_check",
+      "metadata": {
+        "tdd_intent": "not_applicable"
+      },
+      "touched_files": [
+        "plugin/src/tools/adv-worktree.ts"
+      ]
+    }
+  ],
+  "subagent_reports": [
+    {
+      "schema_version": "1.0",
+      "change_id": "clampDoomLoopAccumulator",
+      "attempt": 1,
+      "workdir_used": "/home/jon/dev/advance",
+      "scope": {
+        "kind": "change",
+        "scope_key": "researcher:design-validation"
+      },
+      "agent": "adv-researcher",
+      "topic": "Replay-determinism of the doom-loop accumulator clamp: does the fix self-heal poisoned workflows, or is it a non-deterministic workflow-code change?",
+      "sources": [
+        {
+          "label": "Temporal TS SDK — patched()/deprecatePatch semantics (determinism is about command branching)",
+          "locator": "Context7 /temporalio/sdk-typescript -> packages/workflow/src/workflow.ts (patched)",
+          "summary": "patched() exists to branch to new/old ACTIVITY COMMAND sequences so the command/event sequence stays aligned with history. Its entire purpose is preserving the command sequence. The canonical example swaps one activity command for another. Confirms determinism enforcement targets the command sequence, not in-memory variable values."
+        },
+        {
+          "label": "Temporal TS SDK — DeterminismViolationError surface (forbidden modules, WeakRef/GC, Date/Math.random overrides)",
+          "locator": "Context7 /temporalio/sdk-typescript -> packages/workflow/src/global-overrides.ts",
+          "summary": "The SDK sandbox enforces determinism by blocking non-deterministic primitives (fs/network imports, WeakRef/FinalizationRegistry due to non-deterministic GC, replacing Date.now/Math.random with deterministic versions). No mechanism records or validates the VALUES of plain in-memory workflow variables."
+        },
+        {
+          "label": "ADV changeWorkflow main-loop condition (command-gating predicate)",
+          "locator": "plugin/src/temporal/workflows.ts:2221-2225",
+          "summary": "The workflow's sole blocking condition gates ONLY on state.status (archived/closed) and history-length (shouldContinueAsNew). It NEVER reads error_recovery.retry_count or attempts.length. The reducer does not mutate state.status, so clamping cannot change which branch (Complete vs continueAsNew) the workflow takes."
+        },
+        {
+          "label": "ADV signal handler wiring — reducer runs as pure state mutation",
+          "locator": "plugin/src/temporal/workflows.ts:1692-1694 (registration), :1154-1165 (signalMutation), :1102-1152 (signalAsync)",
+          "summary": "applySubagentReportSubmittedToState is invoked via signalMutation('subagentReportSubmitted', ...). signalMutation -> signalAsync wraps a pure reducer; the wrapper's afterSuccess() emits exactly one UpsertWorkflowSearchAttributes command (gated on searchAttributesEnabled config, not on clamped values) and does NOT set projectAfter for this signal, so no projection activity is scheduled. The reducer is a synchronous non-throwing pure function, so success/throw outcome is identical pre/post clamp."
+        },
+        {
+          "label": "ADV derive functions that read error_recovery feed QUERY handlers only",
+          "locator": "plugin/src/temporal/workflows.ts:614-622 (retryCount), :646-666 (deriveTaskRunSummary), :975-976 (getTaskRunSummaryQuery setHandler)",
+          "summary": "The only code paths that read task.error_recovery.attempts.length are read-side projections wired to query handlers. Queries are not part of the command/event history and do not gate command emission. So clamping cannot change the command sequence."
+        },
+        {
+          "label": "ADV search-attribute set — none derives from error_recovery",
+          "locator": "plugin/src/temporal/contracts.ts:33-49",
+          "summary": "ADVANCE_TEMPORAL_SEARCH_ATTRIBUTES = {changeId, changeStatus, lifecycleState, changeTitle, affectedProjects, currentGate, currentBucket, lastSignalAt, createdAt, worktreeBranches, worktreePaths, backlogIssueNumber, epicId, epicStatus, coordinationClaim}. No retry_count / attempts / error_recovery field. So the per-signal upsert command's payload is invariant under the clamp."
+        },
+        {
+          "label": "ADV replay-history classification schema — self_healed is a first-class outcome",
+          "locator": "plugin/src/temporal/replay-history-classification.ts:53",
+          "summary": "outcome: z.enum(['reproduced','self_healed','immutable_history']). 'self_healed' = a production history that previously failed now replays cleanly. The 'reproduced'/'immutable_history' outcomes in committed fixtures are ALL command-machine mismatches (TMPRL1100: 'Activity machine does not handle this event', 'UpsertWorkflowSearchAttributesMachine does not handle HistoryEvent(ActivityTaskScheduled)') — i.e. command-sequence divergences, never state-value changes."
+        },
+        {
+          "label": "ADV self-heal precedent — makeLegacyDesignValidation",
+          "locator": "plugin/src/temporal/__tests__/replay-determinism.test.ts:227-260 + histories/makeLegacyDesignValidation.poisoned-production.classification.json",
+          "summary": "A committed production history classified outcome='self_healed' that asserts Worker.runReplayHistory resolves undefined (replays cleanly) after trunk code integration. Proves the repo's harness already validates the self-heal property and that reducer/code changes can replay cleanly against unchanged poisoned histories."
+        },
+        {
+          "label": "ADV replay fixtures already containing multi-report signals",
+          "locator": "plugin/src/temporal/__tests__/replay/histories/addArchiveScaleRegression.poisoned-production.history.json (7 subagentReportSubmitted), fixHealthViewTimeouts.poisoned-production.history.json (6)",
+          "summary": "Committed replay fixtures already carry 6-7 subagentReportSubmitted signals and replay deterministically. These are candidate fixtures (or models) for a self-heal regression test."
+        },
+        {
+          "label": "ADV unit-test precedent for the reducer (dedup test template)",
+          "locator": "plugin/src/temporal/change-state.test.ts:3149-3219",
+          "summary": "Existing describe block feeds multiple applySubagentReportSubmittedToState calls and asserts attempts length/labels. This is the exact template for a new 4+-report test asserting ErrorRecoverySchema.safeParse(...).success === true (read-path heal)."
+        },
+        {
+          "label": "Second hardcoded max_retries site (tool layer, not workflow code)",
+          "locator": "plugin/src/tools/subagent-report.ts:419 (submitFailureRecovery)",
+          "summary": "submitFailureRecovery is a host/tool-layer helper constructing an ErrorRecovery payload for signal-submission failure. It is NOT workflow code (not subject to Temporal determinism). It is the second max_retries:3 hardcode to de-duplicate, but is NOT a self-heal site."
+        }
+      ],
+      "architecture_assessment": "The proposed clamp is a PURE IN-MEMORY STATE-DERIVATION change. applySubagentReportSubmittedToState runs inside signalMutation->signalAsync and only mutates the workflow state object; it emits no Temporal commands (no activity/timer/continueAsNew/child-workflow). Temporal replay determinism validates the COMMAND/EVENT sequence (TMPRL1100 = command-machine mismatch such as 'No command scheduled for event' / 'Activity machine does not handle this event'), NOT the values of in-memory variables. No command-gating logic reads error_recovery.retry_count or attempts.length: the main-loop condition (workflows.ts:2221) gates only on state.status and history length, and the reducer never mutates state.status; the derive functions that do read attempts.length feed only query handlers (getTaskRunSummaryQuery), which are not part of command history. The per-signal command footprint (one UpsertWorkflowSearchAttributes, gated on a config flag) is invariant, and the ADV search-attribute set carries no retry-derived value, so even the upsert payload is unchanged. Existing pattern: ADV rebuilds durable state by replaying signal history through reducers (signalMutation). Reference pattern: Temporal TS SDK determinism model — replay validates commands, not variable values; patched()/versioning exist only to preserve the command sequence when command-emitting branches change. Deviation: NONE. The fix is replay-safe by construction and self-heals already-poisoned workflows on next replay because the unchanged history (4+ subagentReportSubmitted signals) re-derives valid (clamped) state. IMPORTANT CAVEAT: the pure replay test (Worker.runReplayHistory) proves no COMMAND divergence but does NOT itself assert the derived state passes the read-path Zod schema (the read-path rejection happens in the tool layer, outside replay). So a complete self-heal proof requires BOTH a replay-determinism assertion AND a reducer-level assertion that 4+ reports yield ErrorRecoverySchema-valid state.",
+      "validation": {
+        "status": "pass",
+        "blockers": [],
+        "notes": "Answer to load-bearing question = (a) SELF-HEALS. The clamp is replay-safe because it changes zero commands: the reducer is a pure state mutation invoked via signalMutation, no command-gating logic reads the clamped values (main-loop condition gates only on state.status + history length; state.status is not mutated by the reducer), the per-signal upsert command is invariant and carries no retry-derived payload, and projectAfter is not set so no projection activity is scheduled. No patched()/Worker Versioning required — versioning exists for command-sequence divergences, which this change does not introduce; the singleton_replace_in_place readiness gap is therefore irrelevant. Self-heal is proven end-to-end by two complementary tests, not by replay alone."
+      },
+      "architecture_judgement": {
+        "applicability": "applicable",
+        "confidence": "high",
+        "risk": "low",
+        "tradeoffs": [
+          "Reducer clamp is the authoritative self-heal site (it is what replay runs), so correctness depends on the reducer; the write-boundary validation is defense-in-depth (P33) and cannot self-heal already-poisoned histories on its own.",
+          "Pure replay-determinism test does NOT assert schema-validity of derived state — it only proves command-safety — so the self-heal claim needs an additional reducer-level unit assertion or the claim is under-proven.",
+          "Bounding attempts[] to the most recent max_retries entries drops older attempt entries from derived state; the monotonic true attempt_number is preserved inside each retained entry, but the full retry history is no longer held in workflow state (history of record remains in Temporal event log).",
+          "self_heal requires the poisoned workflow to actually REPLAY — i.e. a worker redeploy or a query/update that triggers replay. A wedged execution that is never replayed will not heal until replay occurs; the change is not retroactive without a replay trigger."
+        ],
+        "alternatives_considered": [
+          {
+            "option": "Write-boundary validation only (validate error_recovery at applyTaskUpdatedToState / subagent-report.ts, no reducer clamp)",
+            "disposition": "rejected",
+            "rationale": "Does not self-heal already-bricked workflows. Unchanged history still re-derives the invalid record; only PREVENTS new poison, doesn't REPAIR existing. The load-bearing requirement (resolveAdvPersistenceRecovery must become writable again) is unmet."
+          },
+          {
+            "option": "Repair in the schema .transform normalizer at types/tasks.ts:285-289",
+            "disposition": "rejected",
+            "rationale": "The normalizer runs AFTER superRefine, which has already added the fatal issue for attempts.length > max_retries. The problem statement confirms this. The normalizer only fixes the retry_count field projection, not the attempts-length violation. Wrong layer."
+          },
+          {
+            "option": "patched()/deprecatePatch or Worker Deployment Versioning around the clamp",
+            "disposition": "rejected",
+            "rationale": "Versioning exists to keep the COMMAND sequence aligned when command-emitting branches change. The clamp changes zero commands, so there is no command divergence to gate. Adding a patch marker is unnecessary ceremony and the repo documents singleton_replace_in_place as not versioning-ready; avoiding versioning here is the correct, simpler choice (P19)."
+          },
+          {
+            "option": "Reducer clamp (proposed) + targeted write-boundary validation + max_retries de-dup",
+            "disposition": "preferred",
+            "rationale": "Reducer is the only site replay runs, so it is the only site that self-heals poisoned histories. Write-boundary validation closes the write/read asymmetry structurally (P33) as forward defense. De-dup removes the duplicated hardcoded budget."
+          }
+        ],
+        "recommendation": "PROCEED with the proposed reducer clamp (retry_count = min(attempt, max_retries); attempts bounded to last max_retries entries, preserving attempt_number). It is replay-safe and self-heals. ADD two tests to prove self-heal end-to-end: (1) reducer unit test feeding 4+ blocked reports asserting ErrorRecoverySchema.safeParse(...).success === true (template: change-state.test.ts:3149); (2) replay-determinism coverage — reuse the committed addArchiveScaleRegression fixture (7 subagentReportSubmitted signals) or add a 4+-blocked-report fixture asserting Worker.runReplayHistory resolves cleanly. Keep the write-boundary validation and max_retries de-dup as proposed. Do NOT add patched()/versioning. Verify the chosen clamp preserves distinct strategy_label across the bounded window (the dedup loop at change-state.ts:2030-2039 must still run against the clamped window)."
+      },
+      "recommendation": "Load-bearing answer: (a) SELF-HEALS — the clamp is a pure state-derivation change that touches zero Temporal commands, so replaying unchanged poisoned histories through the changed reducer re-derives valid state with no nondeterminism error. No separate manual repair path is required beyond deploying the fix and letting the wedged workflow replay (next query/update/worker redeploy). Verdict: PASS. Self-heal must be proven by BOTH a replay-determinism test (command-safe) AND a reducer unit test asserting the derived state passes ErrorRecoverySchema (read-path heals), because the replay test alone does not validate the read-path schema. Prove with: bin/oc-test targeted -- plugin/src/temporal/__tests__/replay-determinism.test.ts and bin/oc-test targeted -- plugin/src/temporal/change-state.test.ts (run pnpm run build:worker before .itest.ts files).",
+      "follow_ups": [
+        "Add a dedicated 4+-blocked-report replay fixture + classification outcome=self_healed (mirrors makeLegacyDesignValidation) so the self-heal property is regression-protected, not just incidentally covered by addArchiveScaleRegression.",
+        "Confirm after implementation that clamping the attempts window does not collide with the strategy_label dedup loop (change-state.ts:2030-2039) — labels must remain distinct within the bounded window.",
+        "Operator note: self-heal requires a replay trigger on the bricked resolveAdvPersistenceRecovery execution (a read/query or worker redeploy). If the execution is wedged and never schedules a task, it will not heal until replay occurs."
+      ]
+    }
+  ],
+  "test_runs": {
+    "tk-cbacac2f2659": [
+      {
+        "runId": "tr_msf60ua8_41995156",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts -t \"retry-budget clamp\"",
+        "durationMs": 1652.238636000082,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:23:48.417Z"
+      }
+    ],
+    "tk-42a6bc88cba6": [
+      {
+        "runId": "tr_msf63404_795330d1",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts -t \"retry-budget clamp\"",
+        "durationMs": 1597.0144489994273,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:25:33.834Z"
+      },
+      {
+        "runId": "tr_msf63ev4_b65e4ed8",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts",
+        "durationMs": 1549.9627469992265,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:25:47.194Z"
+      },
+      {
+        "runId": "tr_msf9ndz5_b6c7c07b",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts src/utils/tool-formatters.test.ts src/tools/reflection.test.ts src/tools/subagent-report.test.ts src/utils/loop-ledger.test.ts src/utils/wisdom-draft.test.ts src/utils/context-snapshot.test.ts src/events/status.test.ts",
+        "durationMs": 5837.909731000662,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T23:05:18.611Z"
+      },
+      {
+        "runId": "tr_msf9p6a7_7fee7911",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts src/utils/context-snapshot.test.ts src/utils/tool-formatters.test.ts",
+        "durationMs": 1714.4504810012877,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T23:06:42.045Z"
+      },
+      {
+        "runId": "tr_msfacf3o_f6429ae6",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/utils/loop-ledger.test.ts src/temporal/change-state.test.ts src/utils/tool-formatters.test.ts src/utils/context-snapshot.test.ts",
+        "durationMs": 1703.4032279998064,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T23:24:46.947Z"
+      }
+    ],
+    "tk-80adf9566bfa": [
+      {
+        "runId": "tr_msf66g6p_f4d241a4",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts src/tools/subagent-report.test.ts",
+        "durationMs": 6252.684733000584,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:28:09.650Z"
+      }
+    ],
+    "tk-e01d69110f0b": [
+      {
+        "runId": "tr_msf692rr_dea5e7a9",
+        "phase": "red",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/utils/tool-formatters.test.ts -t \"clamped retry budget\"",
+        "durationMs": 1131.4005869999528,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:30:12.302Z"
+      },
+      {
+        "runId": "tr_msf69rrj_969bf4df",
+        "phase": "green",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/utils/tool-formatters.test.ts",
+        "durationMs": 1080.7632909994572,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:30:44.161Z"
+      },
+      {
+        "runId": "tr_msf6i65j_a85ccb59",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts src/tools/subagent-report.test.ts src/utils/tool-formatters.test.ts src/tools/reflection.test.ts",
+        "durationMs": 6642.305941000581,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:37:17.333Z"
+      }
+    ],
+    "tk-c0e4b16123ac": [
+      {
+        "runId": "tr_msf6oz0j_5d5258ab",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project temporal src/temporal/__tests__/replay-determinism.test.ts -t \"retry-budget overflow\"",
+        "durationMs": 846.5563660003245,
+        "evidence_kind": "replay_determinism",
+        "recordedAt": "2026-08-04T21:42:34.232Z"
+      },
+      {
+        "runId": "tr_msf6pdtt_0cd945ce",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/temporal/__tests__/replay-determinism.test.ts -t \"retry-budget overflow\"",
+        "durationMs": 4655.798193000257,
+        "evidence_kind": "replay_determinism",
+        "recordedAt": "2026-08-04T21:42:53.271Z"
+      },
+      {
+        "runId": "tr_msf6rsry_9c94f420",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 25428.18515200168,
+        "evidence_kind": "replay_determinism",
+        "recordedAt": "2026-08-04T21:44:46.543Z"
+      },
+      {
+        "runId": "tr_msf6u2no_ffae8343",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 24677.908472001553,
+        "evidence_kind": "replay_determinism",
+        "recordedAt": "2026-08-04T21:46:31.837Z"
+      },
+      {
+        "runId": "tr_msfc5l1e_75f951ca",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "pnpm run build:worker",
+        "durationMs": 8730.638769999146,
+        "evidence_kind": "build_worker",
+        "recordedAt": "2026-08-05T00:15:26.509Z"
+      },
+      {
+        "runId": "tr_msfc6bvf_f431392b",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/temporal/__tests__/replay-determinism.test.ts",
+        "durationMs": 22112.73183900118,
+        "evidence_kind": "replay_determinism",
+        "recordedAt": "2026-08-05T00:16:00.481Z"
+      }
+    ],
+    "tk-4db168229b5d": [
+      {
+        "runId": "tr_msf7azv7_86b66cf4",
+        "phase": "verify",
+        "exitCode": 1,
+        "classification": "failed",
+        "command": "npx vitest run --project unit src/temporal/change-state.test.ts src/tools/subagent-report.test.ts src/utils/tool-formatters.test.ts src/tools/reflection.test.ts src/temporal/__tests__/replay-determinism.test.ts src/__tests__/spec-citation-invariant.test.ts",
+        "durationMs": 24137.93915699981,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T21:59:41.463Z"
+      },
+      {
+        "runId": "tr_msf8brkx_ec45f104",
+        "phase": "verify",
+        "exitCode": 0,
+        "classification": "passed",
+        "command": "npx vitest run --project unit src/__tests__/spec-citation-invariant.test.ts src/tools/adv-worktree.test.ts",
+        "durationMs": 49648.627266999334,
+        "evidence_kind": "unit",
+        "recordedAt": "2026-08-04T22:28:17.532Z"
+      }
+    ]
+  },
+  "deltas": {},
+  "wisdom": [],
+  "gates": {
+    "proposal": {
+      "status": "done",
+      "completed_at": "2026-08-04T20:54:24.965Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task. User confirmed the quick contract (\"Confirmed — execute (Recommended)\"). ORIGIN classified as defect per rq-defectOriginRca01; the RCA requirement is satisfied by the persisted problem-statement.md and proposal.md, both carrying a \"## Root Cause Analysis\" section with verified source anchors — applySubagentReportSubmittedToState (change-state.ts:1891, poison block :2041-2059), the trigger blockerSummary() (:1716,:1737), the read-path invariant (types/tasks.ts:216-229) and its post-superRefine normalizer (:285-289), the declined write-boundary validation (:1354-1362), and the duplicated hardcoded budget (change-state.ts:2044, subagent-report.ts:419). Repo-wide grep for a clamp returned zero matches. Defect observed live on 2026-08-04: change resolveAdvPersistenceRecovery accumulated 4 blocked adv-reviewer reports against max_retries 3, making the change both unreadable and unwritable with no in-band repair path; recovered by operator Temporal reset. Blast radius is systemic — any task reaching 4+ blocked sub-agent reports bricks its change. No /adv-problem deferral required.",
+      "artifact_evidence": {
+        "kind": "proposal",
+        "content_hash": "43dd5804232ee8640977761e149ef4ccf625b9a259cd9e0b4befa8ea67572c6d",
+        "non_whitespace_chars": 2161,
+        "checked_at": "2026-08-04T20:11:33.744Z"
+      }
+    },
+    "discovery": {
+      "status": "done",
+      "completed_at": "2026-08-04T21:05:35.693Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task. Spec-law impact assessed as MODIFY on capability subagent-reports: rq-subagentReports02 mandates mapping task-scoped report blockers into task error_recovery and scenario rq-subagentReports02.2 requires recording the report attempt number, but neither states the retry-budget invariant the read path enforces (types/tasks.ts:216-229 rejects attempts.length > max_retries). That silence is the defect. Precedent that specs govern this field: delegation-defaults already constrains error_recovery writes. Two draft spec-delta obligations persisted in design.md: (1) modify rq-subagentReports02 to require clamping retry_count to max_retries and bounding attempts[] while preserving each entry's true attempt_number, with a Given/When/Then scenario; (2) add a replay self-heal scenario for pre-clamp histories re-derived through the clamped reducer. Agreement persisted and contract minted: 15 items (SC1-3, AC1-4, C1-4, DONT1-4).",
+      "started_at": "2026-08-04T21:04:30.097Z",
+      "artifact_evidence": {
+        "kind": "agreement",
+        "content_hash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "non_whitespace_chars": 4573,
+        "checked_at": "2026-08-04T20:11:33.746Z"
+      }
+    },
+    "design": {
+      "status": "done",
+      "completed_at": "2026-08-04T21:05:52.766Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task. Design persisted with the architecture decision (fix in the reducer, not the tool boundary or schema normalizer), the LBP validation result, spec-delta obligations, risks, and out-of-scope boundaries. Independent adv-researcher design validation returned CONFIRMED on the load-bearing question — whether changing state-derivation logic over unchanged history breaks Temporal replay determinism. Answer: no, it self-heals. Sourced evidence: Temporal replay validates the command/event sequence rather than in-memory variable values (Context7 /temporalio/sdk-typescript global-overrides.ts and workflow.ts patched(), corroborated by this repo's replay-history-classification.ts:53 fixtures); the reducer runs via signalMutation/signalAsync (workflows.ts:1692-1694, :1154-1165) as a pure state mutation emitting zero commands; no command-gating reads the clamped values, since main-loop condition() (:2221-2225) gates only on status and history length while the derive functions reading attempts.length (:614, :646) feed query handlers only (:975); search attributes (contracts.ts:33-49) carry no retry-derived value so the upsert payload is invariant. Consequence: no patched() and no Worker Versioning needed, making ADV's singleton_replace_in_place readiness gap irrelevant here. Critical caveat captured as C4: replay testing proves command-safety only and does not exercise the read-path schema, so self-heal requires two independent assertions — reducer-output schema validity plus unchanged-history replay. No CONFLICT verdict; no halt required.",
+      "artifact_evidence": {
+        "kind": "design",
+        "content_hash": "97b64bdd3e74a3064ad13f7c787defc4ecb5c56638c6d19938c10a83827eef61",
+        "non_whitespace_chars": 7935,
+        "checked_at": "2026-08-04T20:11:33.747Z"
+      }
+    },
+    "planning": {
+      "status": "done",
+      "completed_at": "2026-08-04T21:09:43.908Z",
+      "completed_by": "user",
+      "approval_evidence": "Fast-track via /adv-task; user approved the quick contract covering scope and outcomes. Seven tasks, dependency-ordered from a single RED root. All 4 acceptance criteria covered, 0 uncovered; adv_change_validate passed with 0 errors. Graph: tk-cbacac2f2659 (RED unit test for clamp) → tk-42a6bc88cba6 (GREEN reducer clamp at change-state.ts:2041-2059, the sole self-heal site) → four parallel branches: tk-80adf9566bfa (single retry-budget constant across change-state.ts:2044 and subagent-report.ts:419, respecting the workflow-bundle import boundary), tk-c0e4b16123ac (replay self-heal with the two-assertion rule per C4), tk-e01d69110f0b (doom-loop escalation still fires at the cap), tk-187b0b2a8edd (targeted error_recovery write-boundary validation, scoped per C2); then tk-4db168229b5d (apply the two spec-delta obligations to subagent-reports, blocked on both the reducer fix and the replay proof). Evidence policies: six test-policy tasks with inline TDD; one static_check for the spec-law JSON edit with rationale. NO_DELTAS warning is expected — spec deltas are applied by tk-4db168229b5d during execution rather than declared up front."
+    },
+    "execution": {
+      "status": "done",
+      "completed_at": "2026-08-04T22:43:44.199Z",
+      "completed_by": "agent",
+      "approval_evidence": "6 of 7 tasks done; tk-187b0b2a8edd cancelled with explicit user approval at the Phase 0.2 coordination halt (superseded by in-flight change fixTaskUpdatePersistence, which already implements error_recovery validation at the workflow boundary). adv_change_validate passed with 0 errors. NO_DELTAS warning is expected: the spec deltas were applied directly to .adv/specs/subagent-reports/spec.json by tk-4db168229b5d (1.8.0 -> 1.9.0) rather than declared as pending delta records.\n\nVerification: pnpm run check exits 0 (schemas, typecheck, agent-manifest, frontmatter, test-isolation, lockfile, lint, format:check). Temporal project 90/90 across 25 files. This change's own suites 117/117 (change-state.test.ts + replay-determinism.test.ts), plus 51/51 for the campsite citation fix.\n\nKnown red, NOT introduced here: 5 asset-test assertions against .opencode/command/adv-review.md (advance-epics-assets, ops-follow-up-assets, optimized-handoff-assets, workflow-noise-reduction-assets x2). Independently verified as failing on origin/trunk itself — the expected tokens (epic_membership, status_source, SCANNER_BUNDLE_REPORT, and two Review-ownership phrases) are absent from adv-review.md at HEAD, at merge-base 8d3a4d15, and at origin/trunk 9f64e97d, and this branch's diff touches none of those files. They surfaced only after rebasing onto current trunk. Deliberately not fixed: unlike the one-line rq-worktreeTimeoutTruthfulness01 citation (approved campsite, behavior already implemented, unowned), these require substantive command-doc content owned by four other in-flight changes, so writing it would mean guessing at their deliverables. Recorded as a follow-up for /adv-review disposition.\n\nAC coverage: AC1 clamp semantics (tk-cbacac2f2659 RED, tk-42a6bc88cba6 GREEN), AC2 replay self-heal with the mandatory two-assertion rule per C4 (tk-c0e4b16123ac), AC3 escalation survives clamping (tk-e01d69110f0b), AC4 single-source retry budget (tk-80adf9566bfa). Spec law modified per discovery assessment (tk-4db168229b5d)."
+    },
+    "acceptance": {
+      "status": "done",
+      "completed_at": "2026-08-04T23:44:03.638Z",
+      "completed_by": "user",
+      "approval_evidence": "User accepted via Tier A inline approval \"approve\" on 2026-08-04. Review verdict APPROVED with 3 findings, all fixed and re-verified: (1) spec.json written with prettier though .adv/specs is outside format scope — restored canonical JSON.stringify(spec,null,2), shrinking the diff from 262 lines to 32 insertions/4 deletions; (2) six consumers under-reported attempt counts after the retention bound (workflows.ts x2, events/status.ts, context-snapshot.ts, loop-ledger.ts, and the escalation banner in tool-formatters.ts) — all migrated to observedAttemptCount; (3) observedAttemptCount derived its total from attempt_number, a per-agent counter that repeats when agents interleave, so it under-reported — now recorded structurally as total_attempts with derivation kept only as a legacy floor (P33). Contract review matrix persisted: 15 rows, 0 failing. Verification: pnpm run check exit 0; unit 8480 passed; temporal 90/90 including replay of five committed production histories carrying 7-24 subagentReportSubmitted signals. Preview URL not_applicable — internal state-recording logic with no browser-visible surface, rationale in the matrix. Executive summary and typed release notes persisted before the prompt. Two non-blocking follow-ups recorded: five adv-review.md asset assertions failing on origin/trunk itself (base-attributable across three independent verifier runs, owned by four other in-flight changes) and a documented pre-existing ambiguity about whether task.attempts and error_recovery.attempts can overlap in the loop-ledger count.",
+      "artifact_evidence": {
+        "kind": "acceptance",
+        "content_hash": "49a576c0a31e0afe21b791c170e6fcd1d73318e0c8a85d7e4bc8d0d3c41f3e2e",
+        "non_whitespace_chars": 3939,
+        "checked_at": "2026-08-04T20:11:33.748Z"
+      }
+    },
+    "release": {
+      "status": "pending"
+    }
+  },
+  "contract": {
+    "version": 1,
+    "rigor": "standard",
+    "source": {
+      "artifact": "agreement",
+      "contentHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+      "approvedAt": "2026-08-04T21:05:23.522Z"
+    },
+    "items": [
+      {
+        "id": "SC1",
+        "kind": "success_criterion",
+        "text": "A task can absorb any number of blocked sub-agent reports without its change becoming unreadable or unwritable",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC2",
+        "kind": "success_criterion",
+        "text": "An existing workflow whose recorded history already exceeds the retry budget re-derives valid state when replayed through the fixed reducer",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "SC3",
+        "kind": "success_criterion",
+        "text": "Doom-loop detection continues to fire at the retry cap — the guardrail stops work, it does not destroy the change",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "AC1",
+        "kind": "acceptance_criterion",
+        "text": "Given a task whose `error_recovery.attempts` already holds `max_retries` entries, when a further blocked sub-agent report is submitted, then `attempts[]` retains at most `max_retries` entries keeping the most recent, `retry_count` equals `max_retries` rather than the raw report attempt number, each retained entry preserves its original monotonic `attempt_number`, and the resulting record satisfies the read-path schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a task whose `error_recovery.attempts` already holds `max_retries` entries",
+          "trigger": "a further blocked sub-agent report is submitted",
+          "outcome": "`attempts[]` retains at most `max_retries` entries keeping the most recent, `retry_count` equals `max_retries` rather than the raw report attempt number, each retained entry preserves its original monotonic `attempt_number`",
+          "boundaries": [
+            "the resulting record satisfies the read-path schema"
+          ]
+        }
+      },
+      {
+        "id": "AC2",
+        "kind": "acceptance_criterion",
+        "text": "Given an existing workflow history containing more than `max_retries` blocked `subagentReportSubmitted` signals recorded before this fix, when a worker running the clamped reducer replays that unchanged history, then replay completes without a nondeterminism error and the re-derived `error_recovery` satisfies the read-path schema.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "an existing workflow history containing more than `max_retries` blocked `subagentReportSubmitted` signals recorded before this fix",
+          "trigger": "a worker running the clamped reducer replays that unchanged history",
+          "outcome": "replay completes without a nondeterminism error and the re-derived `error_recovery` satisfies the read-path schema"
+        }
+      },
+      {
+        "id": "AC3",
+        "kind": "acceptance_criterion",
+        "text": "Given a task that has reached the retry budget, when the doom-loop condition is evaluated, then escalation still fires, because clamping caps the stored budget rather than detection.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "a task that has reached the retry budget",
+          "trigger": "the doom-loop condition is evaluated",
+          "outcome": "escalation still fires, because clamping caps the stored budget rather than detection"
+        }
+      },
+      {
+        "id": "AC4",
+        "kind": "acceptance_criterion",
+        "text": "Given the retry budget constant, when it is read at either write site, then both `change-state.ts` and `subagent-report.ts` resolve it from a single shared source rather than separate hardcoded literals.",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "test",
+        "status": "approved",
+        "variant": {
+          "kind": "behavioral",
+          "context": "the retry budget constant",
+          "trigger": "it is read at either write site",
+          "outcome": "both `change-state.ts` and `subagent-report.ts` resolve it from a single shared source rather than separate hardcoded literals"
+        }
+      },
+      {
+        "id": "C1",
+        "kind": "constraint",
+        "text": "Must not break Temporal workflow replay determinism for existing running executions",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not break Temporal workflow replay determinism",
+          "scope": "existing running executions"
+        }
+      },
+      {
+        "id": "C2",
+        "kind": "constraint",
+        "text": "Must not reintroduce full `TaskSchema` validation at the write boundary — `change-state.ts:1354-1362` declined it deliberately, so any new validation is scoped to `error_recovery` only",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must not reintroduce full `TaskSchema` validation at the write boundary — `change-state.ts:1354-1362` declined it deliberately, so any new validation is scoped to `error_recovery` only"
+        }
+      },
+      {
+        "id": "C3",
+        "kind": "constraint",
+        "text": "Must preserve diagnostic value: bounding `attempts[]` must not silently falsify history, so each retained entry keeps its true `attempt_number`",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved",
+        "variant": {
+          "kind": "constraint",
+          "obligation": "Must preserve diagnostic value: bounding `attempts[]` must not silently falsify history, so each retained entry keeps its true `attempt_number`"
+        }
+      },
+      {
+        "id": "C4",
+        "kind": "constraint",
+        "text": "Self-heal must be proven by two independent assertions — reducer-output schema validity and unchanged-history replay — because replay proves command-safety only and the schema rejection lives outside replay",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "static_check",
+        "status": "approved"
+      },
+      {
+        "id": "DONT1",
+        "kind": "avoidance",
+        "text": "Do not fix this at the tool boundary or in the schema normalizer instead of the reducer — only the reducer runs during replay, so only the reducer can heal already-bricked changes",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT2",
+        "kind": "avoidance",
+        "text": "Do not change the retry budget value; this change makes the budget enforceable, not different",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT3",
+        "kind": "avoidance",
+        "text": "Do not redesign doom-loop detection semantics",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      },
+      {
+        "id": "DONT4",
+        "kind": "avoidance",
+        "text": "Do not add an operator repair tool unless the tests disprove self-heal",
+        "sourceArtifact": "agreement",
+        "sourceHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+        "verificationRequired": true,
+        "evidencePolicy": "review",
+        "status": "approved"
+      }
+    ],
+    "reviewMatrix": {
+      "reviewedAt": "2026-08-04T23:34:02.137Z",
+      "rows": [
+        {
+          "contractId": "SC1",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.test.ts 'error_recovery retry-budget clamp' suite: 4+ blocked reports leave attempts[] bounded to max_retries and ErrorRecoverySchema.safeParse succeeds. Pre-fix the same assertions failed (RED runId tr_msf60ua8_41995156). Full unit suite 8480 passed.",
+          "notes": "A task can now absorb unlimited blocked reports without its change becoming unreadable or unwritable."
+        },
+        {
+          "contractId": "SC2",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "replay-determinism.test.ts 'retry-budget overflow self-heals': five committed production histories carrying 7-24 subagentReportSubmitted signals replay cleanly through the clamped reducer (temporal 90/90), and the reducer re-derives schema-valid error_recovery from over-budget input.",
+          "notes": "Self-heal established by the two independent assertions C4 requires."
+        },
+        {
+          "contractId": "SC3",
+          "kind": "success_criterion",
+          "status": "pass",
+          "evidencePolicy": "review",
+          "evidence": "tool-formatters.test.ts 'clamped retry budget' confirms inDoomLoop true and the [ADV:BLOCKED] banner still renders at the cap. All escalation predicates verified as >= against DOOM_LOOP_THRESHOLD 3, matching SUBAGENT_REPORT_MAX_RETRIES.",
+          "notes": "The guardrail stops work without destroying the change."
+        },
+        {
+          "contractId": "AC1",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "change-state.ts applySubagentReportSubmittedToState: retry_count = retained length, attempts = recordedAttempts.slice(-maxRetries), each entry keeping its own attempt_number. Tests assert bounded length, most-recent retention, preserved attempt_number sequence [3,4,5], and schema validity.",
+          "notes": "Also pinned: persisted retry_count now equals what the schema transform re-derives on read, so the two cannot drift."
+        },
+        {
+          "contractId": "AC2",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "Worker.runReplayHistory over unchanged pre-clamp histories resolves without nondeterminism error (assertion 1), and the reducer applied to over-budget input yields ErrorRecoverySchema-valid state (assertion 2). adv-verifier independently confirmed no worker-bundle boundary violation and no nondeterministic primitives.",
+          "notes": "Replay proves command-safety only; the schema assertion is what proves the heal."
+        },
+        {
+          "contractId": "AC3",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "tool-formatters.test.ts asserts escalation fires with retry_count exactly at the cap and that the banner reports the true attempt count. Escalation predicates confirmed >= at tool-formatters.ts, events/status.ts (x2), context-snapshot.ts.",
+          "notes": "Planned regression (a > comparison silently disabling detection) verified absent."
+        },
+        {
+          "contractId": "AC4",
+          "kind": "acceptance_criterion",
+          "status": "pass",
+          "evidencePolicy": "test",
+          "evidence": "SUBAGENT_REPORT_MAX_RETRIES exported from types/subagent-reports.ts and consumed at both former hardcode sites. Guard test asserts max_retries resolves to the shared constant and that no bare 'max_retries: <digit>' literal remains in change-state.ts or subagent-report.ts.",
+          "notes": "Placed in types/ so the Temporal worker-bundle import boundary holds; verified clean by adv-verifier."
+        },
+        {
+          "contractId": "C1",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "temporal project 90/90 including the full replay-determinism suite over five committed production histories. adv-verifier confirmed the new reducer path is pure arithmetic with no Date.now, Math.random, or host I/O, and that workflows.ts's new import reaches only zod and sibling type modules.",
+          "notes": "No patched() or Worker Versioning required, per the design-gate research verdict."
+        },
+        {
+          "contractId": "C2",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "No validation was added at the taskUpdated write boundary. Planned task tk-187b0b2a8edd was cancelled with user approval because in-flight change fixTaskUpdatePersistence already implements ErrorRecoverySchema.safeParse there. Full TaskSchema validation was not reintroduced.",
+          "notes": "change-state.ts:1354-1362's deliberate cost decision left intact."
+        },
+        {
+          "contractId": "C3",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Each retained attempt keeps its true attempt_number (asserted as [3,4,5], explicitly not renumbered to [1,2,3]). Review round strengthened this: total_attempts is now recorded so the count survives elision, and wisdom-draft discloses elided attempts rather than dropping them.",
+          "notes": "Bounding no longer falsifies history in either entry numbering or the reported total."
+        },
+        {
+          "contractId": "C4",
+          "kind": "constraint",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "Both assertions exist and are independent: replay command-safety via Worker.runReplayHistory, and read-path schema validity via ErrorRecoverySchema.safeParse on reducer output. The replay suite includes a guard asserting fixtures still exceed the budget, so trimming them cannot silently drop overflow coverage.",
+          "notes": "Neither assertion alone would establish self-heal."
+        },
+        {
+          "contractId": "DONT1",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "The clamp lives in applySubagentReportSubmittedToState, the reducer replay executes. Not relocated to the tool boundary or the schema normalizer, and the spec delta records why in durable law.",
+          "notes": "The reducer is the only site that can heal an already-bricked change."
+        },
+        {
+          "contractId": "DONT2",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "static_check",
+          "evidence": "SUBAGENT_REPORT_MAX_RETRIES remains 3; DOOM_LOOP_THRESHOLD remains 3. No threshold value changed. The change makes the budget enforceable, not different.",
+          "notes": "Verified by source inspection and the no-bare-literal guard test."
+        },
+        {
+          "contractId": "DONT3",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "review",
+          "evidence": "Doom-loop detection semantics are unchanged: predicates, threshold, and the inDoomLoop condition are untouched. Only the reported attempt count was corrected to stop under-reporting.",
+          "notes": "Escalation behavior pinned by test rather than assumed."
+        },
+        {
+          "contractId": "DONT4",
+          "kind": "avoidance",
+          "status": "respected",
+          "evidencePolicy": "test",
+          "evidence": "No operator repair tool was added. Self-heal was proven by the two assertions, so the conditional the avoidance describes was never triggered.",
+          "notes": "Scope held to the clamp and its consumer correctness."
+        }
+      ]
+    },
+    "amendments": []
+  },
+  "acceptanceCriteria": [
+    "Given a task whose `error_recovery.attempts` already holds `max_retries` entries, when a further blocked sub-agent report is submitted, then `attempts[]` retains at most `max_retries` entries keeping the most recent, `retry_count` equals `max_retries` rather than the raw report attempt number, each retained entry preserves its original monotonic `attempt_number`, and the resulting record satisfies the read-path schema.",
+    "Given an existing workflow history containing more than `max_retries` blocked `subagentReportSubmitted` signals recorded before this fix, when a worker running the clamped reducer replays that unchanged history, then replay completes without a nondeterminism error and the re-derived `error_recovery` satisfies the read-path schema.",
+    "Given a task that has reached the retry budget, when the doom-loop condition is evaluated, then escalation still fires, because clamping caps the stored budget rather than detection.",
+    "Given the retry budget constant, when it is read at either write site, then both `change-state.ts` and `subagent-report.ts` resolve it from a single shared source rather than separate hardcoded literals."
+  ],
+  "documents": {
+    "proposal": "## Problem\n\nA guardrail meant to stop runaway retry loops instead destroys the change it fires on. Four blocked sub-agent reviews on one task is enough to make an entire ADV change permanently unreadable and unwritable — gates, artifacts, approvals and all.\n\n## Root Cause Analysis\n\nSee problem-statement.md. In short: `applySubagentReportSubmittedToState` (`plugin/src/temporal/change-state.ts:2041-2059`) increments `retry_count` and appends to `attempts[]` without clamping against `max_retries`, and the write boundary performs no schema validation (`:1354-1362`), while the read path enforces `attempts.length <= max_retries` (`plugin/src/types/tasks.ts:216-229`). ADV writes a record it will refuse to read.\n\n## Proposed direction\n\n1. **Clamp at the reducer.** `retry_count = min(payload.report.attempt, max_retries)`; bound `attempts[]` to the most recent `max_retries` entries. Preserve the monotonic true attempt number inside each entry's `attempt_number` so history is not falsified — only the bounded window is retained.\n2. **Close the write/read asymmetry.** Validate `error_recovery` at the write boundary so the reducer structurally cannot persist a record the read path rejects (P33). The existing comment at `:1354-1362` explains why full `TaskSchema` validation was declined; a targeted `error_recovery` validation is narrower and should not carry that cost.\n3. **De-duplicate the budget.** `max_retries: 3` is hardcoded at `change-state.ts:2044` and `subagent-report.ts:419`. Single source.\n4. **Verify the self-heal.** Because workflow state is derived by replaying history through the reducer, a clamped reducer should re-derive valid state for already-bricked changes on next replay — healing them with no manual repair. This is the most valuable property of the fix and the least certain. It must be proven against the replay-determinism suite, not assumed: changing how state is derived from an unchanged history is exactly the class of edit that determinism checks exist to catch.\n\n## Why this ordering matters\n\n`resolveAdvPersistenceRecovery` is blocked on this change. It cannot be written to until either the reducer heals it on replay or a separate repair path ships. That makes item 4 the load-bearing question, not a nice-to-have.\n\n## Out of scope\n\n- The `adv_doctor` false-healthy gap (tracked in `resolveAdvPersistenceRecovery` Decision 3).\n- Whether 3 is the right retry budget. This change makes the budget enforceable, not different.\n- Any redesign of doom-loop detection semantics.",
+    "problemStatement": "ADV's doom-loop accumulator writes a schema-invalid `error_recovery` record that ADV's own read path then rejects, permanently bricking the affected change.\n\n## Root Cause Analysis\n\n`applySubagentReportSubmittedToState` (`plugin/src/temporal/change-state.ts`, declared :1891) writes, at :2041-2059, on every blocked sub-agent report:\n\n```js\ntask.error_recovery = {\n  retry_count: payload.report.attempt,   // unclamped, monotonic\n  max_retries: 3,                        // hardcoded\n  attempts: [...(task.error_recovery?.attempts ?? []), { ... }],  // unbounded append\n};\n```\n\nTriggered via `blockerSummary()` (:1716), which for `adv-reviewer` returns non-null whenever `report.blocking_findings.length > 0` (:1737). Repo-wide grep for `Math.min.*retry_count` / `clamp.*retry` returns zero matches — no clamp exists anywhere.\n\nThe read path enforces an invariant the write path does not (`plugin/src/types/tasks.ts:216-229`):\n\n```js\nconst effectiveRetryCount = recovery.attempts?.length ?? recovery.retry_count;\nif (effectiveRetryCount > recovery.max_retries) { ctx.addIssue({ path: [\"retry_count\"], ... }); }\n```\n\nThe `.transform` normalizer (:285-289) repairs only the `retry_count` field and runs after `superRefine`, so it cannot rescue `attempts.length > max_retries`.\n\n`applyTaskUpdatedToState` (:1354-1362) documents that full `TaskSchema` validation was deliberately declined at the write boundary — only `wisdom_drafts` is validated. That write/read asymmetry is the second half of the defect: ADV persists a record it will later refuse to read.\n\n`max_retries: 3` is hardcoded at both write sites (`change-state.ts:2044`, `plugin/src/tools/subagent-report.ts:419`).\n\n## Observed impact\n\nOn 2026-08-04, change `resolveAdvPersistenceRecovery` accumulated 4 blocked `adv-reviewer` reports on one task. `attempts.length` reached 4 against `max_retries` 3. Result:\n\n- Reads and writes both fail with `retry_count must not exceed max_retries`.\n- The Temporal workflow state is equally poisoned — history holds 4 `subagentReportSubmitted` signals, so every replay re-derives the invalid state. A worker restart does not help.\n- Manual disk repair restored reads only; the write path re-derives `change.json` from poisoned workflow state and regenerates the invalid record.\n- The change is frozen with four `done` gates and a substantial design.md, and cannot be advanced.\n\n## Blast radius\n\nSystemic. Any task, in any change, in any ADV project that accumulates 4+ blocked sub-agent reports bricks its change identically. Applies to `adv-reviewer` (blocking_findings) and `adv-engineer`/`adv-designer` (blockers).\n\n## Collateral finding\n\nDuring recovery `adv_doctor` reported `healthy: true` with `server_alive`, `worker_alive`, and `queue_serviceable` all true, while `adv_task_show` timed out at 10s — the false-healthy gap that `resolveAdvPersistenceRecovery` Decision 3 addresses. Corroborating evidence, tracked there, not here.",
+    "agreement": "# Agreement\n\n> Fast-tracked via `/adv-task`. Quick contract confirmed by the user\n> (\"Confirmed — execute (Recommended)\"), 2026-08-04.\n\n## Objectives\n\n1. Make ADV's doom-loop accumulator structurally incapable of writing an `error_recovery` record that ADV's own read path rejects\n2. Recover changes already bricked by this defect, without operator Temporal surgery\n\n## Success Criteria\n\n1. A task can absorb any number of blocked sub-agent reports without its change becoming unreadable or unwritable\n2. An existing workflow whose recorded history already exceeds the retry budget re-derives valid state when replayed through the fixed reducer\n3. Doom-loop detection continues to fire at the retry cap — the guardrail stops work, it does not destroy the change\n\n## Acceptance Criteria\n\n1. Given a task whose `error_recovery.attempts` already holds `max_retries` entries, when a further blocked sub-agent report is submitted, then `attempts[]` retains at most `max_retries` entries keeping the most recent, `retry_count` equals `max_retries` rather than the raw report attempt number, each retained entry preserves its original monotonic `attempt_number`, and the resulting record satisfies the read-path schema.\n2. Given an existing workflow history containing more than `max_retries` blocked `subagentReportSubmitted` signals recorded before this fix, when a worker running the clamped reducer replays that unchanged history, then replay completes without a nondeterminism error and the re-derived `error_recovery` satisfies the read-path schema.\n3. Given a task that has reached the retry budget, when the doom-loop condition is evaluated, then escalation still fires, because clamping caps the stored budget rather than detection.\n4. Given the retry budget constant, when it is read at either write site, then both `change-state.ts` and `subagent-report.ts` resolve it from a single shared source rather than separate hardcoded literals.\n\n## Constraints\n\n1. Must not break Temporal workflow replay determinism for existing running executions\n2. Must not reintroduce full `TaskSchema` validation at the write boundary — `change-state.ts:1354-1362` declined it deliberately, so any new validation is scoped to `error_recovery` only\n3. Must preserve diagnostic value: bounding `attempts[]` must not silently falsify history, so each retained entry keeps its true `attempt_number`\n4. Self-heal must be proven by two independent assertions — reducer-output schema validity and unchanged-history replay — because replay proves command-safety only and the schema rejection lives outside replay\n\n## Avoidances\n\n1. Do not fix this at the tool boundary or in the schema normalizer instead of the reducer — only the reducer runs during replay, so only the reducer can heal already-bricked changes\n2. Do not change the retry budget value; this change makes the budget enforceable, not different\n3. Do not redesign doom-loop detection semantics\n4. Do not add an operator repair tool unless the tests disprove self-heal\n\n## Preview Applicability\n\n`visual_surface: false` — internal ADV state reducer, no browser-visible surface.\n`preview_expectation`: `exact_route_required: not_applicable`,\n`data_state_expectation: not_applicable`, `viewport_expectation: not_applicable`.\n\n## Decisions\n\n### User Decisions\n\n1. **Fast-track scope confirmed** — clamp semantics, write-boundary validation, and the replay self-heal question, scoped to `change-state.ts`, `subagent-report.ts`, and their tests. The user declined widening scope to a typed operator repair tool, on the basis that self-heal makes it unnecessary if proven.\n\n### Agent Decisions (LBP)\n\n1. **Fix site is the reducer** (`change-state.ts:2041-2059`). Validated Confirmed by independent `adv-researcher`: Temporal replay validates the command/event sequence, not in-memory variable values; the reducer emits zero commands and no command-gating logic reads the clamped values. A clamped reducer therefore re-derives valid state from unchanged histories — the self-heal property. The tool boundary cannot heal existing histories; the schema normalizer runs after `superRefine` has already rejected.\n\n2. **No `patched()` / Worker Versioning.** Those mechanisms address command-sequence divergence, which this change does not introduce. ADV's `singleton_replace_in_place` readiness gap is therefore irrelevant here.\n\n3. **Two-assertion evidence rule.** Replay testing proves command-safety only and does not exercise the read-path schema. Self-heal is established only by pairing a reducer-output schema assertion with an unchanged-history replay assertion.\n\n## Spec-Law Impact\n\n**Modify** — capability `subagent-reports`. Two draft delta obligations recorded in design.md: clamp/bound semantics on `rq-subagentReports02`, plus a replay self-heal scenario. Existing law mandates the write but is silent on the bound the read path enforces; that silence is the defect.\n\n## Deferred Questions\n\n1. **Whether 3 is the right retry budget** — out of scope; this change makes it enforceable.\n2. **Typed operator repair path** — only needed if the tests disprove self-heal.\n\n## Sign-Off\n\nUser confirmed the quick contract via `/adv-task` Phase 0 (\"Confirmed — execute (Recommended)\") on 2026-08-04, covering intent, defect origin with RCA already persisted, LBP targets, scope, and user outcomes.\n",
+    "design": "# Design — Clamp doom-loop accumulator\n\n## Problem restated\n\nADV's retry guardrail destroys the change it fires on. `applySubagentReportSubmittedToState`\nwrites an `error_recovery` record whose `attempts[]` grows without bound while `max_retries` is\nhardcoded to 3, and the read-path schema rejects `attempts.length > max_retries`. Four blocked\nsub-agent reports on one task therefore make the whole change unreadable and unwritable, with no\nin-band repair path. Observed live 2026-08-04 on `resolveAdvPersistenceRecovery`.\n\n## Architecture Decision\n\n**Fix in the reducer, not at the tool boundary or in the schema.**\n\nThe reducer is what replay runs. Because Temporal rebuilds workflow state by replaying event\nhistory through reducer code, a clamped reducer re-derives *valid* state from the *unchanged*\npoisoned histories — healing every already-bricked change with no manual repair. No other layer\nhas that property:\n\n| Candidate site | Verdict |\n|---|---|\n| `change-state.ts:2041-2059` reducer | **Chosen.** The only self-heal site — replay runs it |\n| `subagent-report.ts:419` tool boundary | Forward defense only; cannot heal existing histories |\n| `tasks.ts:285-289` schema normalizer | Wrong layer — runs *after* `superRefine` has already rejected |\n\nThe tool boundary still gets a targeted guard as defense-in-depth (P33), but it is explicitly not\nthe fix.\n\n## LBP Validation — ✅ Confirmed\n\nIndependent `adv-researcher` validation (scope `researcher:design-validation`, attempt 1).\n\n**Load-bearing question:** does changing state-derivation logic over unchanged history break\nTemporal replay determinism?\n\n**Answer: no — it self-heals.** Sourced findings:\n\n- Temporal replay validates the **command/event sequence**, not in-memory variable values.\n  TMPRL1100 is always a command-machine mismatch. The SDK sandbox blocks non-deterministic\n  *primitives* (fs/network, `WeakRef`, `Date`, `Math.random`) but never records or checks the\n  values of plain workflow variables. Source: Context7 `/temporalio/sdk-typescript`\n  (`global-overrides.ts`, `workflow.ts` `patched()`), corroborated by this repo's own\n  `replay-history-classification.ts:53` fixtures.\n- **The reducer emits zero commands.** It runs via `signalMutation` → `signalAsync`\n  (`workflows.ts:1692-1694`, `:1154-1165`) as a pure state mutation. The wrapper emits one\n  `UpsertWorkflowSearchAttributes` per signal, gated on a config flag rather than on clamped\n  values; `projectAfter` is unset so no projection activity fires.\n- **No command-gating reads the clamped values.** The main-loop `condition()` (`:2221-2225`) gates\n  only on `state.status` and history length; the reducer never touches `status`. The derive\n  functions that read `attempts.length` (`:614`, `:646`) feed query handlers only (`:975`).\n  Search attributes (`contracts.ts:33-49`) carry no retry-derived value, so the upsert payload is\n  invariant.\n- **Repo precedent:** `self_healed` is already a first-class replay classification, and\n  `makeLegacyDesignValidation` asserts a committed production history through\n  `Worker.runReplayHistory` (`replay-determinism.test.ts:227-260`). Committed fixtures already\n  carry 6-7 `subagentReportSubmitted` signals.\n\n**Consequence: no `patched()` and no Worker Versioning.** Those mechanisms exist for\ncommand-sequence divergence, which this change does not introduce. ADV's\n`singleton_replace_in_place` readiness gap (`worker-deployment-readiness.ts`) is therefore\nirrelevant here.\n\n**Caveat that shapes the test plan.** A pure replay test proves **command-safety only**. It does\n*not* assert the derived state passes the read-path Zod schema, because that rejection lives in\nthe tool layer, outside replay. Self-heal must therefore be proven by **two complementary\nassertions**, not one:\n\n1. Reducer output is schema-valid after 4+ blocked reports (unit)\n2. Unchanged poisoned history replays cleanly through the clamped reducer (replay determinism)\n\n## Implementation Approach\n\n**1. Clamp the accumulator** — `plugin/src/temporal/change-state.ts:2041-2059`\n\n- `retry_count: Math.min(payload.report.attempt, max_retries)`\n- `attempts: [...existing, newEntry].slice(-max_retries)` — retain the most recent `max_retries`\n  entries\n- Each entry keeps its true monotonic `attempt_number`, so bounding the window never falsifies\n  history. A reader sees attempts numbered e.g. 2, 3, 4 and can tell attempt 1 was elided.\n\n**2. Single source for the budget**\n\n`max_retries: 3` is hardcoded at `change-state.ts:2044` and `subagent-report.ts:419`. Extract one\nexported constant so the two sites cannot drift. This matters because the earlier incident's\nminimal workaround — bumping `max_retries` on disk — was defeated by the workflow re-emitting the\nhardcoded 3.\n\n**3. Targeted write-boundary validation**\n\n`applyTaskUpdatedToState` (`:1354-1362`) documents that full `TaskSchema` validation was\ndeliberately declined at the write boundary for cost reasons; only `wisdom_drafts` is validated.\nAdd a narrow `error_recovery` budget assertion rather than reinstating full validation, so the\nreducer structurally cannot persist a record the read path rejects (P33). Scope is one field, not\nthe whole task.\n\n## Spec-Law Impact: **Modify**\n\nExisting law mandates the write but is silent on the bound the read path enforces — that gap is\nthe defect.\n\n`rq-subagentReports02` (`subagent-reports` v1.8.0) requires the workflow to \"map task-scoped\nreport blockers into task `error_recovery`\", and scenario `rq-subagentReports02.2` requires that\n\"the `error_recovery` attempt records the report attempt number\". The implementation follows this\nliterally and unboundedly. Nothing in the spec requires the result to remain readable.\n\nPrecedent that the spec does govern this field: `delegation-defaults` already constrains\n`error_recovery` writes — \"MUST NOT be counted as a genuine SEMANTIC repair attempt in\n`task.ln.attempts`, and MUST NOT increment `task.ln.retry_count`.\"\n\n### Draft spec-delta obligations\n\n**Obligation 1 — modify `rq-subagentReports02` (capability `subagent-reports`)**\n\nAdd to the requirement body: blocker-to-`error_recovery` mapping MUST NOT write a record that\nviolates the retry-budget invariant enforced on read. `retry_count` MUST be clamped to\n`max_retries`, and `attempts[]` MUST be bounded to at most `max_retries` entries, retaining the\nmost recent, with each entry preserving its true monotonic `attempt_number`.\n\n- *Given* a task whose `error_recovery.attempts` already holds `max_retries` entries\n- *When* a further blocked sub-agent report is submitted and the workflow applies\n  `subagentReportSubmittedSignal`\n- *Then* `attempts[]` still holds at most `max_retries` entries, retaining the most recent\n- *And* `retry_count` equals `max_retries` rather than the raw report attempt number\n- *And* each retained entry preserves its original `attempt_number`\n- *And* the resulting `error_recovery` satisfies the read-path schema, so the change stays\n  readable and writable\n\n**Obligation 2 — add scenario to `rq-subagentReports02` (capability `subagent-reports`)**\n\n- *Given* an existing workflow whose recorded history contains more than `max_retries`\n  `subagentReportSubmitted` signals with blockers, written before the clamp shipped\n- *When* a worker running the clamped reducer replays that unchanged history\n- *Then* the re-derived `error_recovery` satisfies the read-path schema\n- *And* replay completes without a nondeterminism error\n- *And* the previously unreadable change becomes readable and writable without manual repair\n\nRationale: the self-heal property is the primary user-visible outcome and the least obvious part\nof the design. Leaving it unwritten invites a future change to \"simplify\" the clamp into the tool\nlayer, silently removing the only mechanism that recovers already-bricked changes.\n\n## Risks / Mitigations\n\n| Risk | Severity | Mitigation |\n|---|---|---|\n| Self-heal assumption wrong; bricked changes stay bricked | High | Two complementary tests required — reducer-output schema validity AND replay of an unchanged 4+-report history. Neither alone is sufficient. |\n| Bounding `attempts[]` loses diagnostic history operators rely on | Medium | Retain the most recent `max_retries`; preserve true `attempt_number` per entry so elision is visible, not silent |\n| Write-boundary validation reintroduces the cost `:1354-1362` rejected | Medium | Validate only `error_recovery`'s budget, not the full `TaskSchema` |\n| Doom-loop escalation stops firing once counts are clamped | Medium | Clamping caps the *stored* budget, not detection. `retry_count === max_retries` is exactly the escalation condition; verify the banner still fires at the cap. |\n| Budget constant drifts between the two write sites | Low | Single exported constant (implementation item 2) |\n\n## Out of Scope\n\n- Whether 3 is the right retry budget — this change makes the budget enforceable, not different\n- Any redesign of doom-loop detection semantics\n- A typed operator repair tool for bricked changes — unnecessary if self-heal holds, which the\n  tests will prove; if they disprove it, that becomes a follow-up\n- The `adv_doctor` false-healthy gap observed during the incident — tracked in\n  `resolveAdvPersistenceRecovery` Decision 3\n",
+    "executiveSummary": "# Executive Summary\n\n## Outcome\n\nA safety mechanism in ADV could destroy the work it was meant to protect. When a\ntask accumulated four blocked reviews, ADV wrote a record it then refused to read —\nmaking the whole change unreadable *and* unwritable, with no way to repair it from\ninside the tool. This change fixes that, and repairs affected changes automatically.\n\n## Why It Matters\n\nThe fault was systemic, not a one-off: any task in any ADV project that reached four\nblocked sub-agent reviews would brick its change the same way. It happened for real on\n2026-08-04 to `resolveAdvPersistenceRecovery`, which had four completed gates and a\nsubstantial design document, and took operator-level Temporal surgery to rescue.\n\nThe fix removes the need for that surgery. Because ADV rebuilds a change's state by\nreplaying its history, correcting the recording rule means already-broken changes\nrepair themselves the next time they are read — no manual intervention, no data loss.\n\n## Verdict\n\nAPPROVED — accepted by user 2026-08-04\n\n## What Was Built\n\n1. **The retry recorder no longer writes unreadable records.** It keeps the most recent\n   attempts within the allowed budget instead of growing without limit\n   (`applySubagentReportSubmittedToState`).\n2. **Already-broken changes repair themselves.** Because the correction lives in the\n   code that replays history, changes bricked before this shipped come back on their own.\n3. **The retry budget has one definition.** Previously two places each hard-coded it,\n   which is why an operator's earlier repair attempt was silently undone.\n4. **Counts stay honest after trimming.** Trimming the retained history would have made\n   ADV report \"3 attempts\" after twelve. The true total is now recorded and reported\n   everywhere an operator sees it.\n5. **The rule is written into durable spec law** (`subagent-reports` 1.8.0 → 1.9.0), so a\n   future simplification cannot quietly remove the self-repair property.\n\n## What Was Verified\n\n- Verdict: APPROVED with 3 findings (0 blockers at close, 2 issues fixed, 1 style fixed)\n- Tests: repo check passes; 8,496 unit tests pass; 94/94 Temporal tests pass, including\n  replay of five real production histories carrying 7–24 recorded reviews\n- Preview URL: not_applicable — internal state-recording logic with no browser-visible\n  or visual output; rationale recorded in the contract matrix\n- Contract matrix: 15 of 15 required rows pass or respected, 0 failing\n\n## Remaining Concerns\n\n- **Non-blocking, pre-existing:** seven test assertions fail on the main branch itself.\n  Proven base-attributable by reproducing them identically in a separate checkout of\n  `origin/trunk`. This change touches none of the implicated files. A dedicated\n  `fix/trunk-ci-redness` branch is already engaged on them.\n- **Non-blocking follow-up:** one pre-existing ambiguity was surfaced and documented\n  rather than silently resolved — whether two attempt lists that feed a diagnostic\n  counter can overlap. Recorded in the test that exercises it.\n- No migration, no data change, no user-visible behavior change.\n\n## Supporting Evidence\n\nTasks tk-cbacac2f2659, tk-42a6bc88cba6, tk-80adf9566bfa, tk-c0e4b16123ac,\ntk-e01d69110f0b, tk-4db168229b5d (tk-187b0b2a8edd cancelled with user approval).\nIndependent review scanner and four `adv-verifier` gate runs. Contract review matrix\n(15 rows). Design-gate research validating replay safety against Temporal SDK\ndocumentation. Incident record at `/tmp/opencode/adv-incident-2026-08-04/`.\n\n## Release Readiness Summary\n\n**Ready to release.**\n\n| Check | Result |\n|---|---|\n| Worker bundle build | exit 0 — manifest `0c5599aada4c` |\n| Repo check (schemas, typecheck, manifests, lint, format) | exit 0 |\n| Temporal suite | 94/94 |\n| Unit suite | 8,496 pass; 7 failures all proven base-attributable |\n| Regressions from rebase | none — branch is 0 behind / 9 ahead of `origin/trunk` |\n| Dependency / lockfile drift | none — `pnpm install --frozen-lockfile` clean |\n| Worker-bundle import boundary | holds after rebase; webpack compiled successfully |\n| Working tree | clean; no debug artifacts, no temp files |\n| Release blockers | none |\n\nBase attribution was proven, not asserted: the verifier created a detached worktree at\n`origin/trunk` and reproduced all seven failures with identical assertions and values.\nThe branch's nine commits touch none of the implicated files.\n\nDeployment note: this repo deploys from merged trunk, never from a worktree. The plugin\nbundle must be rebuilt and redeployed from trunk after merge for the fix to take effect\nin the running host — until then, the reducer in the deployed bundle is unchanged.\n\n## Consequence Context\n\n| Category | Status | Evidence |\n|---|---|---|\n| Delivered value | delivered | Retry guardrail can no longer brick a change; bricked changes self-repair on replay. Contract matrix 15/15. |\n| Enabling-only / follow-up dependency | none | Self-contained. No dependent change required for the fix to take effect. |\n| Ops readiness | ready | Build, check, temporal all green; no migration, no config, no runtime toggle. Requires redeploy from merged trunk. |\n| Migration / data impact | n/a | Additive optional field only; no migration, no backfill. Existing records read unchanged via legacy fallbacks. |\n| Frontend / preview impact | not_applicable | Internal state-recording logic; no browser-visible surface. Matching matrix rationale recorded. |\n| Collision / release risk | low | Rebased onto current trunk with no conflicts, despite `change-state.ts` being contested by `fixTaskUpdatePersistence` and `improveCrossProject`. |\n| Open follow-ups | 2 non-blocking | Trunk baseline redness (owned by `fix/trunk-ci-redness`); loop-ledger attempt-list overlap ambiguity (documented in test). |\n| Next action | ready | Archive sign-off. |\n",
+    "acceptance": "# Acceptance\n\nReviewed at: 2026-08-04T23:34:02.137Z\n\n## Contract Review Matrix\n\n| ID | Kind | Requirement | Status | Evidence |\n|---|---|---|---|---|\n| SC1 | success_criterion | A task can absorb any number of blocked sub-agent reports without its change becoming unreadable or unwritable | pass | change-state.test.ts 'error_recovery retry-budget clamp' suite: 4+ blocked reports leave attempts[] bounded to max_retries and ErrorRecoverySchema.safeParse succeeds. Pre-fix the same assertions failed (RED runId tr_msf60ua8_41995156). Full unit suite 8480 passed. |\n| SC2 | success_criterion | An existing workflow whose recorded history already exceeds the retry budget re-derives valid state when replayed through the fixed reducer | pass | replay-determinism.test.ts 'retry-budget overflow self-heals': five committed production histories carrying 7-24 subagentReportSubmitted signals replay cleanly through the clamped reducer (temporal 90/90), and the reducer re-derives schema-valid error_recovery from over-budget input. |\n| SC3 | success_criterion | Doom-loop detection continues to fire at the retry cap — the guardrail stops work, it does not destroy the change | pass | tool-formatters.test.ts 'clamped retry budget' confirms inDoomLoop true and the [ADV:BLOCKED] banner still renders at the cap. All escalation predicates verified as >= against DOOM_LOOP_THRESHOLD 3, matching SUBAGENT_REPORT_MAX_RETRIES. |\n| AC1 | acceptance_criterion | Given a task whose `error_recovery.attempts` already holds `max_retries` entries, when a further blocked sub-agent report is submitted, then `attempts[]` retains at most `max_retries` entries keeping the most recent, `retry_count` equals `max_retries` rather than the raw report attempt number, each retained entry preserves its original monotonic `attempt_number`, and the resulting record satisfies the read-path schema. | pass | change-state.ts applySubagentReportSubmittedToState: retry_count = retained length, attempts = recordedAttempts.slice(-maxRetries), each entry keeping its own attempt_number. Tests assert bounded length, most-recent retention, preserved attempt_number sequence [3,4,5], and schema validity. |\n| AC2 | acceptance_criterion | Given an existing workflow history containing more than `max_retries` blocked `subagentReportSubmitted` signals recorded before this fix, when a worker running the clamped reducer replays that unchanged history, then replay completes without a nondeterminism error and the re-derived `error_recovery` satisfies the read-path schema. | pass | Worker.runReplayHistory over unchanged pre-clamp histories resolves without nondeterminism error (assertion 1), and the reducer applied to over-budget input yields ErrorRecoverySchema-valid state (assertion 2). adv-verifier independently confirmed no worker-bundle boundary violation and no nondeterministic primitives. |\n| AC3 | acceptance_criterion | Given a task that has reached the retry budget, when the doom-loop condition is evaluated, then escalation still fires, because clamping caps the stored budget rather than detection. | pass | tool-formatters.test.ts asserts escalation fires with retry_count exactly at the cap and that the banner reports the true attempt count. Escalation predicates confirmed >= at tool-formatters.ts, events/status.ts (x2), context-snapshot.ts. |\n| AC4 | acceptance_criterion | Given the retry budget constant, when it is read at either write site, then both `change-state.ts` and `subagent-report.ts` resolve it from a single shared source rather than separate hardcoded literals. | pass | SUBAGENT_REPORT_MAX_RETRIES exported from types/subagent-reports.ts and consumed at both former hardcode sites. Guard test asserts max_retries resolves to the shared constant and that no bare 'max_retries: <digit>' literal remains in change-state.ts or subagent-report.ts. |\n| C1 | constraint | Must not break Temporal workflow replay determinism for existing running executions | respected | temporal project 90/90 including the full replay-determinism suite over five committed production histories. adv-verifier confirmed the new reducer path is pure arithmetic with no Date.now, Math.random, or host I/O, and that workflows.ts's new import reaches only zod and sibling type modules. |\n| C2 | constraint | Must not reintroduce full `TaskSchema` validation at the write boundary — `change-state.ts:1354-1362` declined it deliberately, so any new validation is scoped to `error_recovery` only | respected | No validation was added at the taskUpdated write boundary. Planned task tk-187b0b2a8edd was cancelled with user approval because in-flight change fixTaskUpdatePersistence already implements ErrorRecoverySchema.safeParse there. Full TaskSchema validation was not reintroduced. |\n| C3 | constraint | Must preserve diagnostic value: bounding `attempts[]` must not silently falsify history, so each retained entry keeps its true `attempt_number` | respected | Each retained attempt keeps its true attempt_number (asserted as [3,4,5], explicitly not renumbered to [1,2,3]). Review round strengthened this: total_attempts is now recorded so the count survives elision, and wisdom-draft discloses elided attempts rather than dropping them. |\n| C4 | constraint | Self-heal must be proven by two independent assertions — reducer-output schema validity and unchanged-history replay — because replay proves command-safety only and the schema rejection lives outside replay | respected | Both assertions exist and are independent: replay command-safety via Worker.runReplayHistory, and read-path schema validity via ErrorRecoverySchema.safeParse on reducer output. The replay suite includes a guard asserting fixtures still exceed the budget, so trimming them cannot silently drop overflow coverage. |\n| DONT1 | avoidance | Do not fix this at the tool boundary or in the schema normalizer instead of the reducer — only the reducer runs during replay, so only the reducer can heal already-bricked changes | respected | The clamp lives in applySubagentReportSubmittedToState, the reducer replay executes. Not relocated to the tool boundary or the schema normalizer, and the spec delta records why in durable law. |\n| DONT2 | avoidance | Do not change the retry budget value; this change makes the budget enforceable, not different | respected | SUBAGENT_REPORT_MAX_RETRIES remains 3; DOOM_LOOP_THRESHOLD remains 3. No threshold value changed. The change makes the budget enforceable, not different. |\n| DONT3 | avoidance | Do not redesign doom-loop detection semantics | respected | Doom-loop detection semantics are unchanged: predicates, threshold, and the inDoomLoop condition are untouched. Only the reported attempt count was corrected to stop under-reporting. |\n| DONT4 | avoidance | Do not add an operator repair tool unless the tests disprove self-heal | respected | No operator repair tool was added. Self-heal was proven by the two assertions, so the conditional the avoidance describes was never triggered. |\n\n"
+  },
+  "artifacts": {
+    "proposal": {
+      "updatedAt": "2026-08-04T20:11:34.045Z",
+      "contentHash": "43dd5804232ee8640977761e149ef4ccf625b9a259cd9e0b4befa8ea67572c6d",
+      "source": "temporal",
+      "readable": false
+    },
+    "problemStatement": {
+      "updatedAt": "2026-08-04T20:11:34.045Z",
+      "contentHash": "bfb716cc033f84e7306a78d68b2808592032a25cf69955e71378069721639b32",
+      "source": "temporal",
+      "readable": false
+    },
+    "design": {
+      "updatedAt": "2026-08-04T21:03:22.804Z",
+      "contentHash": "97b64bdd3e74a3064ad13f7c787defc4ecb5c56638c6d19938c10a83827eef61",
+      "source": "temporal",
+      "readable": false
+    },
+    "agreement": {
+      "updatedAt": "2026-08-04T21:05:13.085Z",
+      "contentHash": "f8585cbab0a9eaf165b4ee81c90704445c27bced7d9e0cdbd07b28c0e54b57fe",
+      "source": "temporal",
+      "readable": false
+    },
+    "executiveSummary": {
+      "updatedAt": "2026-08-04T23:57:59.164Z",
+      "contentHash": "bc7e59a59abc73e3756b5eb6e0893659ecc99fb584f8d7d7d0c13ec8d62e6328",
+      "source": "temporal",
+      "readable": false
+    }
+  },
+  "reentry_history": [],
+  "same_project_dependencies": [],
+  "lastSignalAt": "2026-08-05T00:17:14.975Z",
+  "origin": {
+    "kind": "discovery",
+    "source_artifact": "resolveAdvPersistenceRecovery/tk-80bead8588f7 — bricked 2026-08-04; incident notes at /tmp/opencode/adv-incident-2026-08-04/INCIDENT.md"
+  },
+  "adv_project_id": "bdf259aa162ae192af5b18899ccdc653b085528d",
+  "worktree_auto_managed": true,
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Doom-loop retry recorder no longer writes records ADV refuses to read",
+    "highlights": [
+      "Bound the retry-attempt history to the retry budget so a task accumulating blocked sub-agent reports can no longer produce state that fails the read-path schema and makes its change unreadable and unwritable",
+      "Changes already bricked by this defect self-repair on replay, because the correction lives in the reducer that rebuilds workflow state from history",
+      "Single shared retry-budget constant replaces two hardcoded literals that could drift and silently undo an operator repair",
+      "Attempt counts stay truthful after trimming: the true total is recorded rather than derived, and every operator-facing surface reports it"
+    ],
+    "area": "temporal/change-state",
+    "user_action_required": false
+  },
+  "worker_bundle_impact": {
+    "kind": "required",
+    "rationale": "This change modifies Temporal workflow-reachable code and therefore alters the worker bundle. plugin/src/temporal/change-state.ts (applySubagentReportSubmittedToState reducer) and plugin/src/temporal/workflows.ts (deriveInvestmentReportFromState, deriveTaskRunSummaryFromState) both sit inside the worker-bundle import graph, and workflows.ts is itself the bundle root. The reducer change alters how durable workflow state is derived from replayed history, which is precisely the class of edit worker-bundle provenance exists to gate. A new import was also added to the bundle graph (observedAttemptCount from plugin/src/types/tasks.ts). Provenance recorded: build_worker via pnpm run build:worker exit 0 with bundle manifest generation 0c5599aada4c; replay_determinism via the temporal project passing 94/94 across 25 files, including replay-determinism.test.ts exercising Worker.runReplayHistory over five committed production histories that each carry more subagentReportSubmitted signals than the retry budget (7, 8, 15, 17, and 24), with the workflow bundle reported by webpack as compiled successfully. The import boundary was independently re-verified after rebasing onto current trunk: types/tasks.ts reaches only zod and sibling type modules, with no path to storage/, tools/, tool-registry.ts, plugin-init.ts, or node:*.",
+    "confirmed_at": "2026-08-05T00:14:51.733Z"
+  },
+  "workerBundleProvenance": {
+    "source_sha": "b40e213fabb51a4fc068ba27a8f770d8e37596f2",
+    "build_run_id": "tr_msfc5l1e_75f951ca",
+    "replay_run_id": "tr_msfc6bvf_f431392b",
+    "recorded_at": "2026-08-05T00:17:14.975Z"
+  },
+  "creation_request_hash": "822dd4e7a62a78175b82f6bdd54a39299afa1e269b5de1517b8f303ab8375b20",
+  "projection_revision": 46,
+  "projection_commits": [
+    {
+      "mutation_kind": "proposalUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "6de8cc05219634ab37b17e9650711d36977b189f64bacdcf4b2ff6d48a2fc786:createArtifacts:proposal",
+      "operation_id": "6de8cc05219634ab37b17e9650711d36977b189f64bacdcf4b2ff6d48a2fc786:createArtifacts:proposal",
+      "payload_hash": "b4da4708c3900ce7f728ad92b58b2cd63616a68614f21c02faa6e558e8c5cd1a",
+      "state_revision": 1,
+      "prior_revision": 0,
+      "new_revision": 1,
+      "committed_at": "2026-08-04T20:11:34.246Z"
+    },
+    {
+      "mutation_kind": "problemStatementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "6de8cc05219634ab37b17e9650711d36977b189f64bacdcf4b2ff6d48a2fc786:createArtifacts:problemStatement",
+      "operation_id": "6de8cc05219634ab37b17e9650711d36977b189f64bacdcf4b2ff6d48a2fc786:createArtifacts:problemStatement",
+      "payload_hash": "534a80d12421d302f0e3d3d735e64823785b3ddaf86a3bceeb3d35381f2ddabf",
+      "state_revision": 2,
+      "prior_revision": 1,
+      "new_revision": 2,
+      "committed_at": "2026-08-04T20:11:34.576Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 2,
+      "new_revision": 3,
+      "committed_at": "2026-08-04T20:54:25.206Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 3,
+      "new_revision": 4,
+      "committed_at": "2026-08-04T21:01:43.389Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 4,
+      "new_revision": 5,
+      "committed_at": "2026-08-04T21:01:46.317Z"
+    },
+    {
+      "mutation_kind": "designUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "ad18cab5feff389c0c02c79d0e5ed996c23cc7a0c4f7b21e3204a7fa159e4f5b:updateArtifacts:design",
+      "operation_id": "ad18cab5feff389c0c02c79d0e5ed996c23cc7a0c4f7b21e3204a7fa159e4f5b:updateArtifacts:design",
+      "payload_hash": "ea1f7ecf3b24e29131cd7ac49077ea795f6b0ee26a1dc27928a4ff4c3e24567e",
+      "state_revision": 3,
+      "prior_revision": 5,
+      "new_revision": 6,
+      "committed_at": "2026-08-04T21:03:23.062Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 6,
+      "new_revision": 7,
+      "committed_at": "2026-08-04T21:03:40.996Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "eff32a9c1e40841374cd1690a98cabe1f2b05a002b890018b8a05521ed6954e5:updateArtifacts:agreement",
+      "operation_id": "eff32a9c1e40841374cd1690a98cabe1f2b05a002b890018b8a05521ed6954e5:updateArtifacts:agreement",
+      "payload_hash": "eba171e6c30eda8f1bee4959162e4366fcc4371b2bc694403ce86ed0c0c50fae",
+      "state_revision": 4,
+      "prior_revision": 7,
+      "new_revision": 8,
+      "committed_at": "2026-08-04T21:04:14.814Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 8,
+      "new_revision": 9,
+      "committed_at": "2026-08-04T21:04:30.209Z"
+    },
+    {
+      "mutation_kind": "agreementUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "b4cf801721b6315b20e03141b94f096f8ea6adc63e4d1c7ef9c867e4e699a46f:updateArtifacts:agreement",
+      "operation_id": "b4cf801721b6315b20e03141b94f096f8ea6adc63e4d1c7ef9c867e4e699a46f:updateArtifacts:agreement",
+      "payload_hash": "7caa0a211dd56eb28f0c356433f2229060f5b4cb90db4aee310c5bbeec5b03bb",
+      "state_revision": 5,
+      "prior_revision": 9,
+      "new_revision": 10,
+      "committed_at": "2026-08-04T21:05:13.210Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 10,
+      "new_revision": 11,
+      "committed_at": "2026-08-04T21:05:23.690Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 11,
+      "new_revision": 12,
+      "committed_at": "2026-08-04T21:05:35.806Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 12,
+      "new_revision": 13,
+      "committed_at": "2026-08-04T21:05:52.885Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 13,
+      "new_revision": 14,
+      "committed_at": "2026-08-04T21:06:31.261Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 14,
+      "new_revision": 15,
+      "committed_at": "2026-08-04T21:06:34.088Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 15,
+      "new_revision": 16,
+      "committed_at": "2026-08-04T21:06:52.686Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 16,
+      "new_revision": 17,
+      "committed_at": "2026-08-04T21:07:11.620Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 17,
+      "new_revision": 18,
+      "committed_at": "2026-08-04T21:07:33.802Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 18,
+      "new_revision": 19,
+      "committed_at": "2026-08-04T21:07:55.071Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 19,
+      "new_revision": 20,
+      "committed_at": "2026-08-04T21:08:19.910Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 20,
+      "new_revision": 21,
+      "committed_at": "2026-08-04T21:08:48.061Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 21,
+      "new_revision": 22,
+      "committed_at": "2026-08-04T21:09:44.134Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 22,
+      "new_revision": 23,
+      "committed_at": "2026-08-04T21:22:01.552Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 23,
+      "new_revision": 24,
+      "committed_at": "2026-08-04T21:24:10.633Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 24,
+      "new_revision": 25,
+      "committed_at": "2026-08-04T21:24:37.574Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 25,
+      "new_revision": 26,
+      "committed_at": "2026-08-04T21:24:49.889Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 26,
+      "new_revision": 27,
+      "committed_at": "2026-08-04T21:26:08.961Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 27,
+      "new_revision": 28,
+      "committed_at": "2026-08-04T21:28:34.181Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 28,
+      "new_revision": 29,
+      "committed_at": "2026-08-04T21:28:50.502Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 29,
+      "new_revision": 30,
+      "committed_at": "2026-08-04T21:37:50.196Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 30,
+      "new_revision": 31,
+      "committed_at": "2026-08-04T21:38:08.773Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 31,
+      "new_revision": 32,
+      "committed_at": "2026-08-04T21:47:03.210Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 32,
+      "new_revision": 33,
+      "committed_at": "2026-08-04T21:58:31.450Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 33,
+      "new_revision": 34,
+      "committed_at": "2026-08-04T22:42:28.645Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 34,
+      "new_revision": 35,
+      "committed_at": "2026-08-04T22:43:44.334Z"
+    },
+    {
+      "mutation_kind": "contract_review_matrix_set",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "mrec_1785886442221_x9khmowx",
+      "prior_revision": 35,
+      "new_revision": 36,
+      "committed_at": "2026-08-04T23:34:02.379Z",
+      "payload": {
+        "reviewMatrix": {
+          "reviewedAt": "2026-08-04T23:34:02.137Z",
+          "rows": [
+            {
+              "contractId": "SC1",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "change-state.test.ts 'error_recovery retry-budget clamp' suite: 4+ blocked reports leave attempts[] bounded to max_retries and ErrorRecoverySchema.safeParse succeeds. Pre-fix the same assertions failed (RED runId tr_msf60ua8_41995156). Full unit suite 8480 passed.",
+              "notes": "A task can now absorb unlimited blocked reports without its change becoming unreadable or unwritable."
+            },
+            {
+              "contractId": "SC2",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "replay-determinism.test.ts 'retry-budget overflow self-heals': five committed production histories carrying 7-24 subagentReportSubmitted signals replay cleanly through the clamped reducer (temporal 90/90), and the reducer re-derives schema-valid error_recovery from over-budget input.",
+              "notes": "Self-heal established by the two independent assertions C4 requires."
+            },
+            {
+              "contractId": "SC3",
+              "kind": "success_criterion",
+              "status": "pass",
+              "evidencePolicy": "review",
+              "evidence": "tool-formatters.test.ts 'clamped retry budget' confirms inDoomLoop true and the [ADV:BLOCKED] banner still renders at the cap. All escalation predicates verified as >= against DOOM_LOOP_THRESHOLD 3, matching SUBAGENT_REPORT_MAX_RETRIES.",
+              "notes": "The guardrail stops work without destroying the change."
+            },
+            {
+              "contractId": "AC1",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "change-state.ts applySubagentReportSubmittedToState: retry_count = retained length, attempts = recordedAttempts.slice(-maxRetries), each entry keeping its own attempt_number. Tests assert bounded length, most-recent retention, preserved attempt_number sequence [3,4,5], and schema validity.",
+              "notes": "Also pinned: persisted retry_count now equals what the schema transform re-derives on read, so the two cannot drift."
+            },
+            {
+              "contractId": "AC2",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "Worker.runReplayHistory over unchanged pre-clamp histories resolves without nondeterminism error (assertion 1), and the reducer applied to over-budget input yields ErrorRecoverySchema-valid state (assertion 2). adv-verifier independently confirmed no worker-bundle boundary violation and no nondeterministic primitives.",
+              "notes": "Replay proves command-safety only; the schema assertion is what proves the heal."
+            },
+            {
+              "contractId": "AC3",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "tool-formatters.test.ts asserts escalation fires with retry_count exactly at the cap and that the banner reports the true attempt count. Escalation predicates confirmed >= at tool-formatters.ts, events/status.ts (x2), context-snapshot.ts.",
+              "notes": "Planned regression (a > comparison silently disabling detection) verified absent."
+            },
+            {
+              "contractId": "AC4",
+              "kind": "acceptance_criterion",
+              "status": "pass",
+              "evidencePolicy": "test",
+              "evidence": "SUBAGENT_REPORT_MAX_RETRIES exported from types/subagent-reports.ts and consumed at both former hardcode sites. Guard test asserts max_retries resolves to the shared constant and that no bare 'max_retries: <digit>' literal remains in change-state.ts or subagent-report.ts.",
+              "notes": "Placed in types/ so the Temporal worker-bundle import boundary holds; verified clean by adv-verifier."
+            },
+            {
+              "contractId": "C1",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "temporal project 90/90 including the full replay-determinism suite over five committed production histories. adv-verifier confirmed the new reducer path is pure arithmetic with no Date.now, Math.random, or host I/O, and that workflows.ts's new import reaches only zod and sibling type modules.",
+              "notes": "No patched() or Worker Versioning required, per the design-gate research verdict."
+            },
+            {
+              "contractId": "C2",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "No validation was added at the taskUpdated write boundary. Planned task tk-187b0b2a8edd was cancelled with user approval because in-flight change fixTaskUpdatePersistence already implements ErrorRecoverySchema.safeParse there. Full TaskSchema validation was not reintroduced.",
+              "notes": "change-state.ts:1354-1362's deliberate cost decision left intact."
+            },
+            {
+              "contractId": "C3",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Each retained attempt keeps its true attempt_number (asserted as [3,4,5], explicitly not renumbered to [1,2,3]). Review round strengthened this: total_attempts is now recorded so the count survives elision, and wisdom-draft discloses elided attempts rather than dropping them.",
+              "notes": "Bounding no longer falsifies history in either entry numbering or the reported total."
+            },
+            {
+              "contractId": "C4",
+              "kind": "constraint",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "Both assertions exist and are independent: replay command-safety via Worker.runReplayHistory, and read-path schema validity via ErrorRecoverySchema.safeParse on reducer output. The replay suite includes a guard asserting fixtures still exceed the budget, so trimming them cannot silently drop overflow coverage.",
+              "notes": "Neither assertion alone would establish self-heal."
+            },
+            {
+              "contractId": "DONT1",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "The clamp lives in applySubagentReportSubmittedToState, the reducer replay executes. Not relocated to the tool boundary or the schema normalizer, and the spec delta records why in durable law.",
+              "notes": "The reducer is the only site that can heal an already-bricked change."
+            },
+            {
+              "contractId": "DONT2",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "static_check",
+              "evidence": "SUBAGENT_REPORT_MAX_RETRIES remains 3; DOOM_LOOP_THRESHOLD remains 3. No threshold value changed. The change makes the budget enforceable, not different.",
+              "notes": "Verified by source inspection and the no-bare-literal guard test."
+            },
+            {
+              "contractId": "DONT3",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "review",
+              "evidence": "Doom-loop detection semantics are unchanged: predicates, threshold, and the inDoomLoop condition are untouched. Only the reported attempt count was corrected to stop under-reporting.",
+              "notes": "Escalation behavior pinned by test rather than assumed."
+            },
+            {
+              "contractId": "DONT4",
+              "kind": "avoidance",
+              "status": "respected",
+              "evidencePolicy": "test",
+              "evidence": "No operator repair tool was added. Self-heal was proven by the two assertions, so the conditional the avoidance describes was never triggered.",
+              "notes": "Scope held to the clamp and its consumer correctness."
+            }
+          ]
+        },
+        "updatedAt": "2026-08-04T23:34:02.221Z",
+        "mutationReceiptId": "mrec_1785886442221_x9khmowx"
+      }
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "31f5c739622eee163732585da9333952749ba22b86b7aa716c0dddfc6995dd9e:updateArtifacts:executiveSummary",
+      "operation_id": "31f5c739622eee163732585da9333952749ba22b86b7aa716c0dddfc6995dd9e:updateArtifacts:executiveSummary",
+      "payload_hash": "b9772052df0056be858453d2b28a251cdac83e2aa6a7bf40a42a5c42ef372d1e",
+      "state_revision": 6,
+      "prior_revision": 36,
+      "new_revision": 37,
+      "committed_at": "2026-08-04T23:34:37.103Z"
+    },
+    {
+      "mutation_kind": "releaseNotesSet",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f04704a9d94761379dc3f334d3380bccf7dd5db246f16210efaece2c047127bd:releaseNotesSet",
+      "operation_id": "f04704a9d94761379dc3f334d3380bccf7dd5db246f16210efaece2c047127bd:releaseNotesSet",
+      "payload_hash": "68d20a40799bd2a4f23a14c6e52d94aaae65b7b6e04d93882ca5f1497e78fbf0",
+      "state_revision": 7,
+      "prior_revision": 37,
+      "new_revision": 38,
+      "committed_at": "2026-08-04T23:34:51.998Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 38,
+      "new_revision": 39,
+      "committed_at": "2026-08-04T23:44:03.719Z"
+    },
+    {
+      "mutation_kind": "executiveSummaryUpdated",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "f0a165ce1df050ceccc0605f097488680164b26a0e867d04ddcdea113f865d1e:updateArtifacts:executiveSummary",
+      "operation_id": "f0a165ce1df050ceccc0605f097488680164b26a0e867d04ddcdea113f865d1e:updateArtifacts:executiveSummary",
+      "payload_hash": "7f73e98982a2f7fa7ab66dc922e3e4aff4209d00c73eeffdfaf6dfbca38e4fa2",
+      "state_revision": 8,
+      "prior_revision": 39,
+      "new_revision": 40,
+      "committed_at": "2026-08-04T23:57:59.288Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 40,
+      "new_revision": 41,
+      "committed_at": "2026-08-05T00:14:27.341Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 41,
+      "new_revision": 42,
+      "committed_at": "2026-08-05T00:14:51.887Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 42,
+      "new_revision": 43,
+      "committed_at": "2026-08-05T00:15:00.366Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 43,
+      "new_revision": 44,
+      "committed_at": "2026-08-05T00:16:42.693Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 44,
+      "new_revision": 45,
+      "committed_at": "2026-08-05T00:17:15.073Z"
+    },
+    {
+      "mutation_kind": "temporal_dual_write_projection",
+      "authority_kind": "temporal",
+      "mutation_receipt_id": "clampDoomLoopAccumulator",
+      "prior_revision": 45,
+      "new_revision": 46,
+      "committed_at": "2026-08-05T00:17:20.915Z"
+    }
+  ],
+  "state_revision": 8,
+  "_source": "disk"
+}

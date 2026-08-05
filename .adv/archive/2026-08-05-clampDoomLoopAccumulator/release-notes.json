@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "change_id": "clampDoomLoopAccumulator",
+  "title": "Clamp doom loop accumulator",
+  "release_notes": {
+    "audience": "internal",
+    "category": "fixed",
+    "headline_internal": "Doom-loop retry recorder no longer writes records ADV refuses to read",
+    "highlights": [
+      "Bound the retry-attempt history to the retry budget so a task accumulating blocked sub-agent reports can no longer produce state that fails the read-path schema and makes its change unreadable and unwritable",
+      "Changes already bricked by this defect self-repair on replay, because the correction lives in the reducer that rebuilds workflow state from history",
+      "Single shared retry-budget constant replaces two hardcoded literals that could drift and silently undo an operator repair",
+      "Attempt counts stay truthful after trimming: the true total is recorded rather than derived, and every operator-facing surface reports it"
+    ],
+    "area": "temporal/change-state",
+    "user_action_required": false
+  }
+}

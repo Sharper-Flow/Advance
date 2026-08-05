@@ -1,0 +1,16 @@
+{
+  "archived_at": "2026-08-05T00:17:40.890Z",
+  "capabilities": [],
+  "change_hash": "605a96201e3679684469d7abfeb21ece8abc9d17a3cf9346f384ff6a3b2ddecd",
+  "change_id": "clampDoomLoopAccumulator",
+  "completed_tasks": 6,
+  "created_at": "2026-08-04T20:11:33.599Z",
+  "current_gate": "release",
+  "last_activity_at": "2026-08-04T23:44:03.638Z",
+  "lifecycle_state": "open",
+  "status": "archived",
+  "summary_hash": "6dd656fb43c91b5a7864b9c73a80a4be8719f560c1a48580a0942e7d0ea997dd",
+  "task_count": 7,
+  "title": "Clamp doom loop accumulator",
+  "version": "1"
+}
