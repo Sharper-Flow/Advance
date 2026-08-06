@@ -248,41 +248,6 @@ describe("deploy-local.sh", () => {
       );
     });
 
-    test("refreshes deployed Temporal workers after runtime sync", () => {
-      expect(content).toContain("refresh_deployed_temporal_workers");
-      expect(content).toContain(
-        'worker_script="$runtime_plugin_path/dist/temporal/worker.js"',
-      );
-      expect(content).toContain(
-        'cd "$ADV_RUNTIME_PLUGIN_PATH" 2>/dev/null && pwd -P',
-      );
-      expect(content).toContain('kill -TERM "$pid"');
-      expect(content).toContain("[ADV:ACTION_REQUIRED]");
-      expect(content).toContain("list_deployed_temporal_worker_matches");
-
-      const syncIndex = content.indexOf(
-        'rsync -a --delete --exclude="dist/$PLUGIN_BUNDLE_MANIFEST_BASENAME"',
-      );
-      const refreshIndex = content.indexOf(
-        'refresh_deployed_temporal_workers "after-sync"',
-      );
-      expect(syncIndex).toBeGreaterThan(-1);
-      expect(refreshIndex).toBeGreaterThan(syncIndex);
-    });
-
-    test("deploy worker refresh is exact-path scoped and excludes self", () => {
-      expect(content).toContain('if [ "$arg" = "$worker_script" ]; then');
-      expect(content).toContain('[ "$pid" = "$$" ] && continue');
-      expect(content).toContain('[ "$pid" = "${BASHPID:-$$}" ] && continue');
-      expect(content).not.toContain("pgrep -f dist/temporal/worker.js");
-    });
-
-    test("read-only deploy modes report worker refresh without signaling", () => {
-      expect(content).toContain('refresh_deployed_temporal_workers "check"');
-      expect(content).toContain('refresh_deployed_temporal_workers "dry-run"');
-      expect(content).toContain("No worker processes were signaled.");
-    });
-
     test("deploy worker refresh failure evidence is not swallowed by hooks", () => {
       expect(postCommitHook).toContain(
         'deploy_output="$($DEPLOY_SCRIPT --fix 2>&1)"',
@@ -298,11 +263,6 @@ describe("deploy-local.sh", () => {
       expect(prePushHook).not.toContain(
         '"$DEPLOY_SCRIPT" --fix >/dev/null 2>&1',
       );
-    });
-
-    test("setup docs mention deployed Temporal worker bounce", () => {
-      expect(setupDoc).toContain("Bounce exact-path deployed Temporal workers");
-      expect(setupDoc).toContain("[ADV:ACTION_REQUIRED]");
     });
 
     test("removes legacy non-ADV commands", () => {

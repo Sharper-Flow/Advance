@@ -2,38 +2,18 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { followupTools } from "./followup";
 import { parseToolOutput } from "../__tests__/setup";
 import { subagentReportKey } from "../types/subagent-reports";
-import {
-  opsFollowupSeededSignal,
-  opsFollowupLinkAddedSignal,
-} from "../temporal/messages";
 import type { Store } from "../storage/store";
 import type { Change, OpsFollowupLink, ScopedSubagentReport } from "../types";
 
 const mocks = vi.hoisted(() => {
-  const signalMock = vi.fn();
-  const queryMock = vi.fn();
-  const handleMock = { signal: signalMock, query: queryMock };
-  const getHandleMock = vi.fn(() => handleMock);
-  const temporalBundle = {
-    client: { workflow: { getHandle: getHandleMock } },
-  };
-
   const targetStore = {
     paths: { root: "/tmp/target", changes: "/tmp/target/.adv/changes" },
     changes: { create: vi.fn(), get: vi.fn() },
   } as unknown as Store;
 
   return {
-    signalMock,
-    queryMock,
-    handleMock,
-    getHandleMock,
-    temporalBundle,
     targetStore,
-    getService: vi.fn(() => temporalBundle),
     getProjectId: vi.fn(async () => "source-project-id"),
-    fireSignalAndRefresh: vi.fn(async () => {}),
-    getChangeHandle: vi.fn(() => handleMock),
     withTargetPathStore: vi.fn(async (_input, fn) =>
       fn({
         context: {
@@ -42,7 +22,7 @@ const mocks = vi.hoisted(() => {
           externalRoot: "/tmp/target-external",
           trusted: false,
           trustSource: "explicit",
-          stateMode: "temporal",
+          stateMode: "authoritative",
         },
         store: targetStore,
       }),
@@ -58,10 +38,6 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
 vi.mock("../utils/project-id", async () => {
   const actual = await vi.importActual<typeof import("../utils/project-id")>(
     "../utils/project-id",
@@ -72,9 +48,8 @@ vi.mock("../utils/project-id", async () => {
   };
 });
 
-vi.mock("./_adapters", () => ({
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  getChangeHandle: mocks.getChangeHandle,
+vi.mock("./change-mutation-coordinator", () => ({
+  coordinateChangeMutation: vi.fn(async () => ({ kind: "verified" })),
 }));
 
 vi.mock("./target-project", async () => {
@@ -250,10 +225,6 @@ describe("adv_followup_promote", () => {
       "Backfill prod data",
       expect.objectContaining({ capability: "data-platform" }),
     );
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
-    const [seedCall, linkCall] = mocks.fireSignalAndRefresh.mock.calls;
-    expect(seedCall[3]).toBe(opsFollowupSeededSignal);
-    expect(linkCall[3]).toBe(opsFollowupLinkAddedSignal);
   });
 
   test("detects duplicate promotions by structural source identity", async () => {
@@ -307,10 +278,9 @@ describe("adv_followup_promote", () => {
     expect(parsed.duplicate).toBe(true);
     expect(parsed.child_change_id).toBe("existingChild");
     expect(store.changes.create).not.toHaveBeenCalled();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
-  test("routes cross-project promotion through a Temporal-backed target store", async () => {
+  test("routes cross-project promotion through the authoritative target store", async () => {
     mocks.targetStore.changes.create = vi.fn(async () => ({
       changeId: "addTargetFollowup",
       path: "/tmp/target/.adv/changes/addTargetFollowup/proposal.md",
@@ -350,7 +320,7 @@ describe("adv_followup_promote", () => {
     expect(parsed.child_project_id).toBe("target-project-id");
     expect(parsed.link.target_project_id).toBe("target-project-id");
     expect(parsed.link.target_path).toBe("/tmp/target");
-    expect(parsed._projectContext).toMatchObject({ stateMode: "temporal" });
+    expect(parsed._projectContext).toMatchObject({ stateMode: "authoritative" });
 
     expect(mocks.withTargetPathStore).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -374,7 +344,6 @@ describe("adv_followup_promote", () => {
         },
       }),
     );
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(2);
   });
 
   test("rejects agenda as a source kind (retireAgendaWorkflow)", async () => {
@@ -477,7 +446,7 @@ describe("adv_followup_promote", () => {
     expect(store.changes.create).not.toHaveBeenCalled();
   });
 
-  test("returns partial-link diagnostic when parent link signal fails", async () => {
+  test("links the parent after the child projection is seeded", async () => {
     const report = makeReport();
     const store = makeStore({
       sourceChange: {
@@ -490,10 +459,6 @@ describe("adv_followup_promote", () => {
         subagent_reports: [report],
       } as Change,
     });
-
-    mocks.fireSignalAndRefresh
-      .mockResolvedValueOnce(undefined)
-      .mockRejectedValueOnce(new Error("Temporal unreachable"));
 
     const output = await followupTools.adv_followup_promote.execute(
       {
@@ -509,14 +474,13 @@ describe("adv_followup_promote", () => {
     const parsed = parseToolOutput(output);
 
     expect(parsed.success).toBe(true);
-    expect(parsed.partial_link).toBe(true);
-    expect(parsed.code).toBe("PARTIAL_LINK");
+    expect(parsed.partial_link).toBeUndefined();
     expect(parsed.child_change_id).toBe("addOpsFollowup");
     expect(parsed.link).toBeDefined();
-    expect(parsed.repair_action).toContain("opsFollowupLinkAddedSignal");
+    expect(parsed.repair_action).toBeUndefined();
   });
 
-  test("dryRun returns preview without creating changes or firing signals", async () => {
+  test("dryRun returns preview without creating changes or mutation calls", async () => {
     const report = makeReport();
     const store = makeStore({
       sourceChange: {
@@ -548,7 +512,6 @@ describe("adv_followup_promote", () => {
     expect(parsed.dryRun).toBe(true);
     expect(parsed.source_identity).toContain("sourceChange");
     expect(store.changes.create).not.toHaveBeenCalled();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 
   test("rejects missing required args", async () => {

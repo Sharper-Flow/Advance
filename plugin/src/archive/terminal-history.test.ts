@@ -13,7 +13,6 @@ import {
   serializeTerminalArchiveSummary,
 } from "./terminal-summary";
 import type { Change } from "../types";
-import { createTemporalReadDeadline } from "../temporal/retry-wrapper";
 
 function makeChange(id: string, status: "archived" | "closed"): Change {
   return {
@@ -328,7 +327,7 @@ describe("renderTerminalHistory", () => {
     const change = makeChange("fast", "archived");
     await writeArchiveBundle(tempDir!, change, true);
 
-    const deadline = createTemporalReadDeadline(0);
+    const deadline = { budgetMs: 0, deadlineAt: Date.now() - 1 };
 
     const result = await renderTerminalHistory({
       archivePath: join(tempDir!, ".adv", "archive"),

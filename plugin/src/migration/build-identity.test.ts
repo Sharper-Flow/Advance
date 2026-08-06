@@ -49,8 +49,7 @@ function makePluginTree(root: string, files: Record<string, string>): string {
 const BASE_FILES: Record<string, string> = {
   "index.js": "export const plugin = 1;\n",
   "chunk-AAAA1111.js": "export const chunk = 1;\n",
-  "temporal/worker.js": "export const worker = 1;\n",
-  "temporal/workflows.js": "export const workflows = 1;\n",
+  "mcp-server.js": "export const mcp = 1;\n",
 };
 
 describe("computeBuildIdentity", () => {
@@ -64,8 +63,7 @@ describe("computeBuildIdentity", () => {
     expect(a.files.map((f) => f.path).sort()).toEqual([
       "chunk-AAAA1111.js",
       "index.js",
-      "temporal/worker.js",
-      "temporal/workflows.js",
+      "mcp-server.js",
     ]);
   });
 
@@ -74,8 +72,8 @@ describe("computeBuildIdentity", () => {
     const pluginRoot = makePluginTree(root, BASE_FILES);
     const before = computeBuildIdentity(pluginRoot);
     writeFileSync(
-      join(pluginRoot, "dist", "temporal", "workflows.js"),
-      "export const workflows = 2;\n",
+      join(pluginRoot, "dist", "mcp-server.js"),
+      "export const mcp = 2;\n",
     );
     const after = computeBuildIdentity(pluginRoot);
     expect(after.digest).not.toBe(before.digest);

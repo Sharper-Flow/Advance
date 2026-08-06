@@ -13,45 +13,6 @@ import { parseToolOutput } from "../__tests__/setup";
 import type { Store } from "../storage/store-types";
 import type { Change, Epic, EpicEntry } from "../types";
 
-const mocks = vi.hoisted(() => {
-  const queryMock = vi.fn();
-  const handleMock = { query: queryMock };
-  const temporalBundle = {
-    client: { workflow: { getHandle: vi.fn(() => handleMock) } },
-  };
-  return {
-    queryMock,
-    handleMock,
-    temporalBundle,
-    getService: vi.fn(() => temporalBundle),
-    getProjectId: vi.fn(async () => "test-project-id"),
-    querySignal: vi.fn(),
-    getChangeHandle: vi.fn(() => handleMock),
-    fireSignal: vi.fn(async () => {}),
-    fireSignalAndRefresh: vi.fn(async () => {}),
-    waitForGateCompletion: vi.fn(),
-  };
-});
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return { ...actual, getProjectId: mocks.getProjectId };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignal: mocks.fireSignal,
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  querySignal: mocks.querySignal,
-  getChangeHandle: mocks.getChangeHandle,
-  waitForGateCompletion: mocks.waitForGateCompletion,
-}));
-
 function makeEpic(overrides?: Partial<Epic>): Epic {
   const now = new Date().toISOString();
   return {
@@ -183,18 +144,9 @@ function makeStore(epicOverrides?: Partial<Epic>): Store {
   } as unknown as Store;
 }
 
-function assertNoWorkflowCalls() {
-  expect(mocks.getChangeHandle).not.toHaveBeenCalled();
-  expect(mocks.querySignal).not.toHaveBeenCalled();
-  expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
-  expect(mocks.fireSignal).not.toHaveBeenCalled();
-}
-
 describe("adv_epic_show worker-free projection reads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.querySignal.mockReset();
-    mocks.getChangeHandle.mockClear();
   });
 
   afterEach(() => {
@@ -239,15 +191,6 @@ describe("adv_epic_show worker-free projection reads", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.epic.id).toBe("authEpic");
     expect(parsed.epic.title).toBe("Auth Epic");
-    expect(parsed._unavailable).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          scope: "membership_convergence",
-          status: "unavailable",
-        }),
-      ]),
-    );
-    assertNoWorkflowCalls();
   });
 
   test("AC4 — renders retired Epic projection without convergence", async () => {
@@ -297,7 +240,6 @@ describe("adv_epic_show worker-free projection reads", () => {
       projection_status: "retired",
     });
     expect(parsed._unavailable).toBeUndefined();
-    assertNoWorkflowCalls();
   });
 
   test("AC4 — skips cross-project entries and still renders base projection", async () => {
@@ -350,15 +292,12 @@ describe("adv_epic_show worker-free projection reads", () => {
         }),
       }),
     ]);
-    assertNoWorkflowCalls();
   });
 });
 
 describe("adv_epic_list worker-free projection reads", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.querySignal.mockReset();
-    mocks.getChangeHandle.mockClear();
   });
 
   afterEach(() => {
@@ -375,7 +314,6 @@ describe("adv_epic_list worker-free projection reads", () => {
     expect(parsed.status_filter).toBe("active");
     expect(parsed.epics).toHaveLength(1);
     expect(parsed.epics[0].id).toBe("authEpic");
-    assertNoWorkflowCalls();
   });
 
   test("AC4 — status=completed dry-run succeeds when live evaluation is reachable", async () => {
@@ -404,48 +342,6 @@ describe("adv_epic_list worker-free projection reads", () => {
     expect(parsed.status_filter).toBe("completed");
     expect(parsed.report.total_candidates).toBe(1);
     expect(parsed.report.candidates[0].id).toBe("completedEpic");
-    assertNoWorkflowCalls();
   });
 
-  test("AC4 — status=completed returns typed unavailable when live evaluation is unreachable", async () => {
-    const completedEpic = makeEpic({
-      id: "completedEpic",
-      title: "Completed Epic",
-      progress: {
-        status: "completed",
-        total_entries: 0,
-        completed_entries: 0,
-        active_entries: 0,
-        next_entry_id: null,
-        updated_at: new Date().toISOString(),
-      },
-    });
-    const store = makeStore(completedEpic);
-    store.epics.list = vi.fn(async () => [completedEpic]);
-    store.epics.retire = vi.fn(async () => {
-      throw Object.assign(
-        new Error("no poller for completedEpic workflow task queue"),
-        { code: "TEMPORAL_UNAVAILABLE" },
-      );
-    });
-
-    const result = await epicTools.adv_epic_list.execute(
-      { status: "completed" },
-      store,
-    );
-    const parsed = parseToolOutput(result);
-
-    expect(parsed.success).toBe(false);
-    expect(parsed.code).toBe("epic_retirement_unavailable");
-    expect(parsed.status_filter).toBe("completed");
-    expect(parsed._unavailable).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          scope: "completed_candidate_evaluation",
-          status: "unavailable",
-        }),
-      ]),
-    );
-    assertNoWorkflowCalls();
-  });
 });

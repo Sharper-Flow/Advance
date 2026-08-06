@@ -23,40 +23,6 @@ import { tmpdir } from "os";
 import { join } from "path";
 import { execSync } from "child_process";
 
-const workflowExecuteUpdate = vi.hoisted(() => vi.fn(async () => undefined));
-const workflowQuery = vi.hoisted(() =>
-  vi.fn(async () => ({
-    session_registry: {},
-    worktree_registry: {},
-    pending_worktree_deletes: {},
-    change_summaries: {},
-  })),
-);
-const workflowSignal = vi.hoisted(() => vi.fn(async () => undefined));
-const workflowList = vi.hoisted(() =>
-  vi.fn(() =>
-    (async function* () {
-      // default: no cross-change branch owners
-    })(),
-  ),
-);
-
-// Mock project-workflow-helper so state.ts resolveAccess returns workflow-backed.
-vi.mock("../project-workflow-helper", () => ({
-  getBoundedProjectWorkflowAccess: vi.fn(async () => ({
-    mode: "workflow-backed",
-    handle: {
-      query: workflowQuery,
-      executeUpdate: workflowExecuteUpdate,
-    },
-  })),
-}));
-
-// Worktree state is disk-authoritative; Temporal notifications are retired.
-vi.mock("../../temporal/service", () => ({
-  getService: vi.fn(() => null),
-}));
-
 // Mock debug-log to capture audit trail.
 vi.mock("../../utils/debug-log", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../utils/debug-log")>();
@@ -83,12 +49,10 @@ import {
 } from "./index";
 
 import { runHooksWithSafety } from "./hooks";
-import {
-  worktreeCreatedSignal,
-  worktreeRegistrationRepairedSignal,
-  worktreeSetupFailedSignal,
-} from "../../temporal/messages";
 import { getWorktreePath, worktreeExistsForChange } from "./state";
+
+// Legacy notification sentinels remain only so retired no-signal assertions
+// can state their boundary without importing removed notification modules.
 
 const isLinux = process.platform === "linux";
 
@@ -146,6 +110,8 @@ describe.skipIf(!isLinux)(
     let cleanupPaths: string[];
 
     beforeEach(() => {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
       // Clear shell-leaked experimental env vars so flag-off tests assert
       // the off-by-default warpFlagEnabled() behavior. P25 touched-scope
       // fix as part of fixWarpSessionLookup (T1).
@@ -154,17 +120,6 @@ describe.skipIf(!isLinux)(
       repoRoot = createGitRepo();
       cleanupPaths = [];
       vi.clearAllMocks();
-      workflowList.mockImplementation(() =>
-        (async function* () {
-          // default: no cross-change branch owners
-        })(),
-      );
-      workflowQuery.mockResolvedValue({
-        session_registry: {},
-        worktree_registry: {},
-        pending_worktree_deletes: {},
-        change_summaries: {},
-      });
       vi.mocked(runHooksWithSafety).mockReset();
     });
 
@@ -204,7 +159,7 @@ describe.skipIf(!isLinux)(
       return { client, create: hooks.tool!.worktree_create };
     }
 
-    it("reuses an existing change worktree before workflow recovery or create", async () => {
+    it("reuses an existing change worktree before creating a duplicate", async () => {
       const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-existing-"));
       rmSync(existingPath, { recursive: true, force: true });
       cleanupPaths.push(existingPath);
@@ -239,101 +194,6 @@ describe.skipIf(!isLinux)(
       }
       expect(resolveDefaultBranch).not.toHaveBeenCalled();
       expect(detectStaleBasis).not.toHaveBeenCalled();
-      expect(workflowExecuteUpdate).not.toHaveBeenCalled();
-    });
-
-    it("repairs an absent workflow registration after reusing a disk worktree", async () => {
-      const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-repair-"));
-      rmSync(existingPath, { recursive: true, force: true });
-      cleanupPaths.push(existingPath);
-      execSync(`git worktree add -b change/repair ${existingPath} main`, {
-        cwd: repoRoot,
-      });
-
-      const liveState = {
-        changeId: "repair",
-        worktrees: {} as Record<string, unknown>,
-      };
-      workflowQuery.mockResolvedValue(liveState);
-      workflowSignal.mockImplementation(async (signal, payload) => {
-        if (signal !== worktreeRegistrationRepairedSignal) return;
-        liveState.worktrees[payload.branch] = {
-          branch: payload.branch,
-          path: payload.path,
-          materialized: true,
-          changeId: liveState.changeId,
-          status: "created",
-          createdAt: payload.repairedAt,
-          lastSeenAt: payload.repairedAt,
-          baseRef: payload.baseRef,
-          headSha: payload.headSha,
-          source: "tool",
-          sourceVersion: 1,
-          setupReady: true,
-        };
-      });
-      const deps = createMockDeps(repoRoot);
-
-      const result = await advWorktreeCreate("change/repair", {}, deps);
-
-      expect(result).toMatchObject({ ok: true, reused: true });
-      expect(workflowSignal).not.toHaveBeenCalled();
-      await expect(
-        worktreeExistsForChange(deps.database, "repair"),
-      ).resolves.toBe(false);
-    });
-
-    it("skips repair for an existing ready record and preserves reuse when delivery fails", async () => {
-      const existingPath = mkdtempSync(join(tmpdir(), "adv-wt-repair-ready-"));
-      rmSync(existingPath, { recursive: true, force: true });
-      cleanupPaths.push(existingPath);
-      execSync(`git worktree add -b change/repair-ready ${existingPath} main`, {
-        cwd: repoRoot,
-      });
-
-      const readyState = {
-        changeId: "repair-ready",
-        worktrees: {
-          "change/repair-ready": {
-            branch: "change/repair-ready",
-            path: existingPath,
-            materialized: true,
-            changeId: "repair-ready",
-            status: "created",
-            createdAt: "2026-05-21T03:40:00.000Z",
-            lastSeenAt: "2026-05-21T03:40:00.000Z",
-            baseRef: "main",
-            headSha: "abc1234",
-            source: "tool",
-            sourceVersion: 1,
-            setupReady: true,
-          },
-        },
-      };
-      workflowQuery.mockResolvedValue(readyState);
-      const readyResult = await advWorktreeCreate(
-        "change/repair-ready",
-        {},
-        createMockDeps(repoRoot),
-      );
-      expect(readyResult).toMatchObject({ ok: true, reused: true });
-      expect(workflowSignal).not.toHaveBeenCalled();
-
-      const failedPath = mkdtempSync(join(tmpdir(), "adv-wt-repair-failed-"));
-      rmSync(failedPath, { recursive: true, force: true });
-      cleanupPaths.push(failedPath);
-      execSync(`git worktree add -b change/repair-failed ${failedPath} main`, {
-        cwd: repoRoot,
-      });
-      workflowQuery.mockResolvedValue({
-        changeId: "repair-failed",
-        worktrees: {},
-      });
-      workflowSignal.mockRejectedValueOnce(new Error("worker unavailable"));
-
-      await expect(
-        advWorktreeCreate("change/repair-failed", {}, createMockDeps(repoRoot)),
-      ).resolves.toMatchObject({ ok: true, reused: true });
     });
 
     it("blocks an existing git worktree when another active change owns the branch", async () => {
@@ -343,15 +203,6 @@ describe.skipIf(!isLinux)(
       execSync(`git worktree add -b change/owned ${existingPath} main`, {
         cwd: repoRoot,
       });
-      workflowList.mockImplementationOnce(() =>
-        (async function* () {
-          yield {
-            workflowId:
-              "adv/change/0e000d0000000000000000000000000000000000/other-change",
-          };
-        })(),
-      );
-
       const result = await advWorktreeCreate(
         "change/owned",
         {},
@@ -507,9 +358,6 @@ describe.skipIf(!isLinux)(
         expect(result.path).toContain("change/feature");
         expect(result.headSha).toBeTruthy();
       }
-      // Project-workflow and change-level Temporal notifications are retired.
-      expect(workflowSignal).not.toHaveBeenCalled();
-
       // Worktree should exist
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).toContain("change/feature");
@@ -577,25 +425,6 @@ describe.skipIf(!isLinux)(
 
     it("resume materializes a branch-only registry record", async () => {
       execSync("git branch change/unmade main", { cwd: repoRoot });
-      workflowQuery.mockResolvedValueOnce({
-        session_registry: {},
-        worktree_registry: {
-          "change/unmade": {
-            branch: "change/unmade",
-            materialized: false,
-            changeId: "unmade",
-            status: "idle",
-            createdAt: "2026-01-01T00:00:00.000Z",
-            lastSeenAt: "2026-01-01T00:00:00.000Z",
-            baseRef: "main",
-            headSha: "",
-            source: "tool",
-            sourceVersion: 1,
-          },
-        },
-        pending_worktree_deletes: {},
-        change_summaries: {},
-      });
       const deps = createMockDeps(repoRoot);
       deps.resolveDefaultBranch = async () => "main";
       deps.detectStaleBasis = async () => ({ stale: false });
@@ -608,152 +437,9 @@ describe.skipIf(!isLinux)(
         expect(result.path).toContain("change/unmade");
         expect(result.materialized).toBe(true);
       }
-      // Project-workflow executeUpdate is retired; addWorktreeSessionUpdate
-      // no longer dispatched.
     });
 
-    it("resume blocks setup_failed registry records", async () => {
-      // getWorktreeRecord is revived (Phase G) but this test's getService mock
-      // returns no state, so the lookup yields null and advWorktreeResume falls
-      // through to advWorktreeCreate. The setup_failed block via a real record is
-      // covered by state-record-probe.test.ts (worktreeExistsForChange) and the
-      // guard-isolation suites. Provide a valid base so create succeeds.
-      const deps = createMockDeps(repoRoot);
-      deps.resolveDefaultBranch = async () => "main";
-      deps.detectStaleBasis = async () => ({ stale: false });
-
-      const result = await advWorktreeResume(
-        { branch: "change/setup-fail" },
-        {},
-        deps,
-      );
-
-      // Falls through to create because getWorktreeRecord returns null here.
-      expect(result.ok).toBe(true);
-    });
-
-    it("SETUP_FAILED persists across sessions via worktreeSetupFailedSignal (hook_failed)", async () => {
-      const deps = createMockDeps(repoRoot);
-      deps.resolveDefaultBranch = async () => "main";
-      deps.detectStaleBasis = async () => ({ stale: false });
-      deps.hooks = { postCreate: ["exit 1"] };
-      vi.mocked(runHooksWithSafety).mockRejectedValueOnce(new Error("boom"));
-
-      const liveState = {
-        session_registry: {},
-        worktree_registry: {},
-        pending_worktree_deletes: {},
-        change_summaries: {},
-        worktrees: {} as Record<string, unknown>,
-      };
-      workflowQuery.mockImplementation(async () => liveState);
-      workflowSignal.mockImplementation(async (signal, payload) => {
-        if (signal === worktreeSetupFailedSignal) {
-          liveState.worktrees[payload.branch] = {
-            branch: payload.branch,
-            path: payload.path,
-            changeId: payload.changeId,
-            status: "setup_failed",
-            setupReady: false,
-            materialized: payload.stage === "hook_failed",
-            baseRef: payload.baseRef,
-            headSha: payload.headSha ?? "",
-            setupFailureReason: payload.setupFailureReason,
-            source: "tool",
-            sourceVersion: 1,
-            createdAt: payload.failedAt,
-            lastSeenAt: payload.failedAt,
-            cleanupEligible: false,
-            cleanupBlockedBy: [payload.stage],
-          };
-        }
-      });
-
-      const createResult = await advWorktreeCreate(
-        "change/setup-fail-cross",
-        {},
-        deps,
-      );
-      expect(createResult.ok).toBe(false);
-      if (createResult.ok) return;
-      expect(createResult.error).toBe("SETUP_FAILED");
-      expect(workflowSignal).not.toHaveBeenCalled();
-
-      // Simulate a new session resuming the same change.
-      const resumeDeps = createMockDeps(repoRoot);
-      const resumeResult = await advWorktreeResume(
-        { branch: "change/setup-fail-cross" },
-        {},
-        resumeDeps,
-      );
-      expect(resumeResult.ok).toBe(true);
-    });
-
-    it("GIT_FAILED persists across sessions via worktreeSetupFailedSignal (git_failed)", async () => {
-      const blockedPath = await getWorktreePath(
-        repoRoot,
-        "change/git-fail-cross",
-      );
-      execSync(`mkdir -p ${JSON.stringify(blockedPath)}`);
-      writeFileSync(join(blockedPath, "occupied"), "not a git worktree");
-      cleanupPaths.push(blockedPath);
-
-      const deps = createMockDeps(repoRoot);
-      deps.resolveDefaultBranch = async () => "main";
-      deps.detectStaleBasis = async () => ({ stale: false });
-
-      const liveState = {
-        session_registry: {},
-        worktree_registry: {},
-        pending_worktree_deletes: {},
-        change_summaries: {},
-        worktrees: {} as Record<string, unknown>,
-      };
-      workflowQuery.mockImplementation(async () => liveState);
-      workflowSignal.mockImplementation(async (signal, payload) => {
-        if (signal === worktreeSetupFailedSignal) {
-          liveState.worktrees[payload.branch] = {
-            branch: payload.branch,
-            path: payload.path,
-            changeId: payload.changeId,
-            status: "setup_failed",
-            setupReady: false,
-            materialized: payload.stage === "hook_failed",
-            baseRef: payload.baseRef,
-            headSha: payload.headSha ?? "",
-            setupFailureReason: payload.setupFailureReason,
-            source: "tool",
-            sourceVersion: 1,
-            createdAt: payload.failedAt,
-            lastSeenAt: payload.failedAt,
-            cleanupEligible: false,
-            cleanupBlockedBy: [payload.stage],
-          };
-        }
-      });
-
-      const createResult = await advWorktreeCreate(
-        "change/git-fail-cross",
-        {},
-        deps,
-      );
-      expect(createResult.ok).toBe(false);
-      if (createResult.ok) return;
-      expect(createResult.error).toBe("GIT_FAILED");
-      expect(workflowSignal).not.toHaveBeenCalled();
-
-      const resumeDeps = createMockDeps(repoRoot);
-      const resumeResult = await advWorktreeResume(
-        { branch: "change/git-fail-cross" },
-        {},
-        resumeDeps,
-      );
-      expect(resumeResult.ok).toBe(false);
-      if (resumeResult.ok) return;
-      expect(resumeResult.error).toBe("GIT_FAILED");
-    });
-
-    it("SETUP_FAILED — fires worktreeSetupFailedSignal and surfaces original hook error", async () => {
+    it("SETUP_FAILED surfaces the original hook error", async () => {
       const deps = createMockDeps(repoRoot);
       deps.resolveDefaultBranch = async () => "main";
       deps.detectStaleBasis = async () => ({ stale: false });
@@ -768,10 +454,9 @@ describe.skipIf(!isLinux)(
         branch: "change/setup-fail",
         reason: "boom",
       });
-      expect(workflowSignal).not.toHaveBeenCalled();
     });
 
-    it("GIT_FAILED — fires worktreeSetupFailedSignal with stage git_failed", async () => {
+    it("GIT_FAILED reports a blocked worktree path", async () => {
       const blockedPath = await getWorktreePath(repoRoot, "change/git-fail");
       execSync(`mkdir -p ${JSON.stringify(blockedPath)}`);
       writeFileSync(join(blockedPath, "occupied"), "not a git worktree");
@@ -787,7 +472,6 @@ describe.skipIf(!isLinux)(
       if (!result.ok) {
         expect(result.error).toBe("GIT_FAILED");
       }
-      expect(workflowSignal).not.toHaveBeenCalled();
     });
 
     it("BRANCH_LOCKED — exhausts bounded retry and reports attempts/elapsed", async () => {
@@ -877,30 +561,6 @@ describe.skipIf(!isLinux)(
         },
       };
 
-      // Registry already has a record for the peer-created worktree, so no
-      // repair signal should be needed.
-      workflowQuery.mockResolvedValue({
-        session_registry: {},
-        worktree_registry: {
-          [peerBranch]: {
-            branch: peerBranch,
-            path: peerPath,
-            materialized: true,
-            changeId: "peer-created",
-            status: "created",
-            createdAt: "2026-01-01T00:00:00.000Z",
-            lastSeenAt: "2026-01-01T00:00:00.000Z",
-            baseRef: "main",
-            headSha: "abc123",
-            source: "tool",
-            sourceVersion: 1,
-            setupReady: true,
-          },
-        },
-        pending_worktree_deletes: {},
-        change_summaries: {},
-      });
-
       const result = await advWorktreeCreate(peerBranch, {}, deps);
 
       expect(result.ok).toBe(true);
@@ -920,12 +580,6 @@ describe.skipIf(!isLinux)(
         line.includes(peerBranch),
       );
       expect(matchingEntries.length).toBe(1);
-
-      // No duplicate created signal.
-      expect(workflowSignal).not.toHaveBeenCalledWith(
-        worktreeCreatedSignal,
-        expect.anything(),
-      );
     });
 
     it("releases the acquired flock through the returned release callback", async () => {
@@ -943,15 +597,7 @@ describe.skipIf(!isLinux)(
       expect(release).toHaveBeenCalledOnce();
     });
 
-    it("BRANCH_IN_USE — blocks when Temporal visibility shows another active change owns the branch", async () => {
-      workflowList.mockImplementationOnce(() =>
-        (async function* () {
-          yield {
-            workflowId:
-              "adv/change/0e000d0000000000000000000000000000000000/other-change",
-          };
-        })(),
-      );
+    it("uses local git facts for branch ownership", async () => {
       const deps = createMockDeps(repoRoot);
       deps.resolveDefaultBranch = async () => "main";
       deps.detectStaleBasis = async () => ({ stale: false });
@@ -962,7 +608,6 @@ describe.skipIf(!isLinux)(
         ok: true,
         branch: "change/feature",
       });
-      expect(workflowList).not.toHaveBeenCalled();
       const list = execSync("git worktree list", { cwd: repoRoot }).toString();
       expect(list).toContain("change/feature");
     });
@@ -1000,9 +645,10 @@ describe.skipIf(!isLinux)(
       vi.stubGlobal("fetch", fetchImpl);
       const { client, create } = await createWorktreeCreateHarness();
 
-      const output = await create.execute({ branch: "change/mode-warp" }, {
-        sessionID: "session-1",
-      } as any);
+      const output = await create.execute(
+        { branch: "change/mode-warp", baseBranch: "main" },
+        { sessionID: "session-1" } as any,
+      );
 
       expect(output).toContain("Session warped to workspace ws-created.");
       expect(output).toContain(
@@ -1043,9 +689,10 @@ describe.skipIf(!isLinux)(
       vi.stubGlobal("fetch", fetchImpl);
       const { create } = await createWorktreeCreateHarness();
 
-      const output = await create.execute({ branch: "change/warp-cleanup" }, {
-        sessionID: "session-1",
-      } as any);
+      const output = await create.execute(
+        { branch: "change/warp-cleanup", baseBranch: "main" },
+        { sessionID: "session-1" } as any,
+      );
 
       expect(output).toContain(
         "mode:warp failed after creating the git worktree",

@@ -1,232 +1,79 @@
-/**
- * rq-doctorConsolidation01 (tk-dc21b6a3658d, design D5 / SC2 / SC4 / AC8 / AC9)
- *
- * adv_doctor consolidates the SAFE subset of infrastructure recovery into a
- * single diagnose→safe-fix→verify entry point. Unsafe escalations (wrong-type
- * SAs, suspect lock reclaim, ambiguous ownership) refuse with typed approval-
- * required proposals instead of auto-fixing.
- *
- * These tests cover the doctor's classification + safe-fix matrix at the
- * tool-boundary level. Primitive behaviors (STSL reinit, SA registration,
- * worker restart) are mocked — their internal correctness is covered by
- * their own test suites.
- */
-import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
+/** Disk-backed diagnostics and the safe session-pointer repair contract. */
+
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { doctorTools, setDoctorPointerRepairProvider } from "./doctor";
-import { createMockOwner } from "../temporal/__tests__/mock-owner";
 import type { Store } from "../storage/store";
 
-// ── Primitive mocks ──────────────────────────────────────────────────────
-const reinitStslMock = vi.hoisted(() => vi.fn());
-const getStslStatsMock = vi.hoisted(() => vi.fn());
-const getServiceMock = vi.hoisted(() => vi.fn());
-const getTemporalHealthMock = vi.hoisted(() => vi.fn());
-const checkAdvSearchAttributesMock = vi.hoisted(() => vi.fn());
-const registerMissingAdvSearchAttributesMock = vi.hoisted(() => vi.fn());
-const restartCurrentProjectTemporalWorkerMock = vi.hoisted(() => vi.fn());
-const getTemporalWorkerDiagnosticsMock = vi.hoisted(() => vi.fn());
-const getTemporalWorkerAlivenessMock = vi.hoisted(() => vi.fn());
-const getOrphanQueueAdoptionStatusMock = vi.hoisted(() => vi.fn());
-const probeTaskQueuePollersMock = vi.hoisted(() => vi.fn());
-const probeCachedTaskQueuePollersMock = vi.hoisted(() => vi.fn());
-const listOrphanSessionQueuesMock = vi.hoisted(() => vi.fn());
-const getProjectIdMock = vi.hoisted(() => vi.fn());
-const getCurrentSessionIdMock = vi.hoisted(() => vi.fn(() => undefined));
-const reconcileTerminalWorkflowsMock = vi.hoisted(() => vi.fn());
-const repairEpicIndexMock = vi.hoisted(() => vi.fn());
+const mockGetWorktreeCensus = vi.hoisted(() => vi.fn());
+const mockScanSnapshotHealth = vi.hoisted(() => vi.fn());
 
-vi.mock("../temporal/service", () => ({
-  getService: getServiceMock,
-  getStslStats: getStslStatsMock,
-  reinitStsl: reinitStslMock,
+vi.mock("../utils/worktree-census", () => ({
+  getWorktreeCensus: mockGetWorktreeCensus,
 }));
 
-vi.mock("../temporal/health-probe", () => ({
-  getTemporalHealth: getTemporalHealthMock,
-  probeCachedTaskQueuePollers: probeCachedTaskQueuePollersMock,
-  isWorkerAffirmativelyAlive: (worker: {
-    status: "available" | "unavailable";
-    value?: boolean;
-  }) => worker.status === "available" && worker.value === true,
+vi.mock("./snapshot-scan", () => ({
+  scanSnapshotHealth: mockScanSnapshotHealth,
 }));
 
-vi.mock("../temporal/observability", () => ({
-  buildTemporalSearchAttributes: vi.fn(() => ({})),
-  checkAdvSearchAttributes: checkAdvSearchAttributesMock,
-  registerMissingAdvSearchAttributes: registerMissingAdvSearchAttributesMock,
-}));
-
-vi.mock("../plugin-init", () => ({
-  ensureProjectTemporalQueue: vi.fn(),
-  getRegisteredTemporalWorkerQueues: vi.fn(() => []),
-  getTemporalWorkerAliveness: getTemporalWorkerAlivenessMock,
-  getTemporalWorkerDiagnostics: getTemporalWorkerDiagnosticsMock,
-  getOrphanQueueAdoptionStatus: getOrphanQueueAdoptionStatusMock,
-  restartCurrentProjectTemporalWorker: restartCurrentProjectTemporalWorkerMock,
-}));
-
-vi.mock("../temporal/queue-serviceability", () => ({
-  classifyQueueServiceability: vi.fn(),
-  probeTaskQueuePollers: probeTaskQueuePollersMock,
-}));
-
-vi.mock("../temporal/list-orphan-session-queues", () => ({
-  listOrphanSessionQueues: listOrphanSessionQueuesMock,
-}));
-
-vi.mock("../temporal/reconcile-terminal-workflows", () => ({
-  reconcileTerminalWorkflows: reconcileTerminalWorkflowsMock,
-}));
-
-vi.mock("../utils/project-id", () => ({
-  getProjectId: getProjectIdMock,
-}));
-
-vi.mock("../utils/session-id", () => ({
-  getCurrentSessionId: getCurrentSessionIdMock,
-}));
-
-const probeChangePhantomStatusMock = vi.hoisted(() => vi.fn());
-
-vi.mock("./_adapters", () => ({
-  isChangeReachable: vi.fn(),
-  probeChangePhantomStatus: probeChangePhantomStatusMock,
-  ReachabilityDeps: {},
-}));
-
-const PROJECT_ID = "0000000000000000000000000000000000000000";
-
-function makeStore(): Store {
+function makeStore(root: string, overrides: Partial<Store> = {}): Store {
+  const changes = join(root, "changes");
   return {
     paths: {
-      root: "/tmp/project",
-      changes: "/tmp/changes",
-      external: `/tmp/${PROJECT_ID}`,
+      root,
+      changes,
+      archive: join(root, "archive"),
+      specs: join(root, "specs"),
+      external: join(root, "external", "project-id"),
     },
-    epics: { repairIndex: repairEpicIndexMock },
+    status: vi.fn(async () => ({})),
+    specs: { list: vi.fn(async () => ({ specs: [] })) },
+    changes: {
+      list: vi.fn(async () => ({ changes: [] })),
+      get: vi.fn(async () => ({ success: true, data: {} })),
+    },
+    ...overrides,
   } as unknown as Store;
 }
 
-function setHealthy() {
-  getServiceMock.mockReturnValue(
-    createMockOwner({
-      checkSearchAttributes: vi.fn().mockResolvedValue({
-        ok: true,
-        present: [{ name: "AdvChangeId" }, { name: "AdvChangeStatus" }],
-        missing: [],
-        wrongType: [],
-      }),
-      registerSearchAttributes: vi.fn().mockResolvedValue(undefined),
-    }),
-  );
-  getTemporalHealthMock.mockResolvedValue({
-    server_alive: true,
-    worker_alive: { status: "available", value: true },
-    worker_process_alive: { status: "available", value: true },
-    registered_queues: ["advance-" + PROJECT_ID],
-    last_op_at: "2026-07-22T00:00:00.000Z",
-    last_error: null,
-    fallback_counts: {},
-    stale_queues: [],
-    reconnect_count: 0,
-    op_counters: [],
-    worker_lock: null,
-    last_worker_run_error: null,
-    server_poller_probe: {
-      status: "fresh",
-      lastAccessMs: 100,
-      pollerCount: 2,
-      lastPollerAt: "2026-07-22T00:00:00.000Z",
-    },
-    queues: [
-      {
-        queueName: "advance-" + PROJECT_ID,
-        queueType: "project",
-        serviceable: true,
-        pollerCount: 2,
-        lastPollerAt: "2026-07-22T00:00:00.000Z",
-      },
-    ],
-  });
-  getTemporalWorkerDiagnosticsMock.mockReturnValue([
-    {
-      kind: "out_of_process",
-      queues: ["advance-" + PROJECT_ID],
-      failedQueues: [],
-      alive: true,
-      diagnostics: [
-        {
-          queue: "advance-" + PROJECT_ID,
-          dead: false,
-          restartCount: 0,
-          childExitCode: null,
-          childPid: 123,
-          childRunning: true,
-        },
-      ],
-    },
-  ]);
-  getOrphanQueueAdoptionStatusMock.mockReturnValue({
-    enabled: false,
-    diagnostics: null,
-    reason: "no_worker_attached",
-  });
-  getTemporalWorkerAlivenessMock.mockReturnValue(false);
-  getStslStatsMock.mockReturnValue({
-    reconnectCount: 0,
-    reconnectFailureCount: 0,
-  });
-  getProjectIdMock.mockReturnValue(PROJECT_ID);
-  getCurrentSessionIdMock.mockReturnValue(undefined);
-  probeTaskQueuePollersMock.mockResolvedValue({
-    status: "fresh",
-    pollerCount: 2,
-    lastPollerAt: "2026-07-22T00:00:00.000Z",
-  });
-  probeCachedTaskQueuePollersMock.mockImplementation((input) =>
-    probeTaskQueuePollersMock(input),
-  );
-  listOrphanSessionQueuesMock.mockResolvedValue({
-    kind: "complete",
-    value: [],
-    truncated: false,
-  });
-  reconcileTerminalWorkflowsMock.mockResolvedValue({
-    inspected: 0,
-    reconciled: [],
-    skipped: [],
-    failed: [],
-    capped: false,
-    dryRun: false,
-  });
-  repairEpicIndexMock.mockResolvedValue({
+function setHealthyProbes(): void {
+  mockGetWorktreeCensus.mockResolvedValue({
     total: 0,
-    backfilled: 0,
-    refreshed: 0,
-    unverified: 0,
-    skipped: 0,
-    unreachable: 0,
-    epics: [],
+    stale: [],
+    records: [],
+    warnings: [],
+  });
+  mockScanSnapshotHealth.mockResolvedValue({
+    summary: { critical: 0 },
   });
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  setHealthy();
-});
+describe("adv_doctor disk diagnostics", () => {
+  let root: string;
 
-describe("adv_doctor", () => {
-  test("description names itself as the one diagnostic entry point (AC8)", () => {
-    expect(doctorTools.adv_doctor.description).toMatch(/diagnose/i);
-    expect(doctorTools.adv_doctor.description).toMatch(
-      /safe fix|safe-fix|safe repair/i,
-    );
-    expect(doctorTools.adv_doctor.description).toMatch(/verify/i);
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), "adv-doctor-test-"));
+    setHealthyProbes();
+    setDoctorPointerRepairProvider(null);
   });
 
-  test("healthy system: no fixes applied, no refusals, returns verified=true", async () => {
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
+  afterEach(async () => {
+    setDoctorPointerRepairProvider(null);
+    await rm(root, { recursive: true, force: true });
+  });
+
+  test("description identifies diagnosis, safe repair, and verification", () => {
+    expect(doctorTools.adv_doctor.description).toMatch(/diagnos/i);
+    expect(doctorTools.adv_doctor.description).toMatch(/safe .*repair/i);
+    expect(doctorTools.adv_doctor.description).toMatch(/reports/i);
+  });
+
+  test("healthy disk state returns verified predicates without fixes", async () => {
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
+    );
 
     expect(parsed.success).toBe(true);
     expect(parsed.findings).toEqual(
@@ -234,881 +81,109 @@ describe("adv_doctor", () => {
     );
     expect(parsed.fixes_applied).toEqual([]);
     expect(parsed.fixes_refused).toEqual([]);
-    expect(parsed.verification.healthy).toBe(true);
-  });
-
-  test("AC6: reports session and project queue rows with owning session", async () => {
-    const sessionId = "sess_DoctorQueue1";
-    getCurrentSessionIdMock.mockReturnValue(sessionId);
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-    const rows = parsed.queue_serviceability;
-
-    expect(rows).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          queueType: "session",
-          queueName: `advance-${PROJECT_ID}-${sessionId}`,
-          owningSession: sessionId,
-          serviceability: "fresh",
-          pollerCount: 2,
-          lastPollerAt: "2026-07-22T00:00:00.000Z",
-        }),
-        expect.objectContaining({
-          queueType: "project",
-          queueName: `advance-${PROJECT_ID}`,
-          serviceability: "fresh",
-          pollerCount: 2,
-          lastPollerAt: "2026-07-22T00:00:00.000Z",
-        }),
-      ]),
-    );
-  });
-
-  test("AC7: a quiet current-session queue is graded and is not reported blanket healthy", async () => {
-    const sessionId = "sess_DoctorQueue2";
-    getCurrentSessionIdMock.mockReturnValue(sessionId);
-    probeTaskQueuePollersMock.mockImplementation(async ({ taskQueue }) =>
-      taskQueue.endsWith(`-${sessionId}`)
-        ? { status: "none", pollerCount: 0, lastPollerAt: null }
-        : {
-            status: "fresh",
-            pollerCount: 2,
-            lastPollerAt: "2026-07-22T00:00:00.000Z",
-          },
-    );
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-    const sessionRow = parsed.verification.queue_serviceability.find(
-      (row: { queueType: string }) => row.queueType === "session",
-    );
-
-    expect(sessionRow).toMatchObject({
-      serviceability: "none",
-      status: "none",
-      serviceable: false,
+    expect(parsed.verification).toMatchObject({
+      healthy: true,
+      projection_readable: true,
+      snapshot_integrity: true,
+      session_pointer_sane: true,
+      worktree_census_reachable: true,
     });
-    expect(parsed.findings).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ class: "healthy" })]),
+  });
+
+  test("projection failures are reported as unhealthy rather than hidden", async () => {
+    const store = makeStore(root);
+    (store.status as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error("projection unreadable"),
     );
+    const parsed = JSON.parse(await doctorTools.adv_doctor.execute({}, store));
+
+    expect(parsed.success).toBe(false);
+    expect(parsed.verification.projection_readable).toBe(false);
     expect(parsed.findings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          class: "unhealthy",
-          finding: "session_queue_unserviceable",
-        }),
+        expect.objectContaining({ class: "unhealthy", finding: "projectionReadable" }),
       ]),
     );
   });
 
-  test("AC8: a quiet ended-session queue with non-terminal work is informational", async () => {
-    const currentSessionId = "sess_Current";
-    const endedSessionId = "sess_Ended";
-    getCurrentSessionIdMock.mockReturnValue(currentSessionId);
-    listOrphanSessionQueuesMock.mockResolvedValue({
-      kind: "complete",
-      value: [
-        {
-          queue: `advance-${PROJECT_ID}-${endedSessionId}`,
-          oldestStartTime: new Date("2026-07-22T00:00:00.000Z"),
-          workflowIds: [
-            `adv/change/${PROJECT_ID}/change-one`,
-            `adv/change/${PROJECT_ID}/change-two`,
-          ],
-        },
-      ],
-      truncated: false,
-    });
-    probeTaskQueuePollersMock.mockImplementation(async ({ taskQueue }) =>
-      taskQueue.endsWith(`-${endedSessionId}`)
-        ? { status: "none", pollerCount: 0, lastPollerAt: null }
-        : {
-            status: "fresh",
-            pollerCount: 2,
-            lastPollerAt: "2026-07-22T00:00:00.000Z",
-          },
-    );
+  test("confirmed-absent active pointer is cleared and verified", async () => {
+    let activePointer: string | null = "phantom-change";
+    const provider = {
+      getActivePointer: vi.fn(() => activePointer),
+      clearActivePointer: vi.fn(() => {
+        activePointer = null;
+      }),
+    };
+    setDoctorPointerRepairProvider(provider);
 
     const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore()),
-    );
-    const finding = parsed.findings.find(
-      (item: { finding?: string }) =>
-        item.finding === "orphan_session_queue_unserviceable",
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
     );
 
-    expect(finding).toMatchObject({
-      class: "informational",
-      severity: "informational",
-      queue: {
-        queueName: `advance-${PROJECT_ID}-${endedSessionId}`,
-        queueType: "session",
-        owningSession: endedSessionId,
-        serviceability: "none",
-        status: "none",
-        serviceable: false,
-        strandedChangeCount: 2,
-        strandedChangeIds: ["change-one", "change-two"],
-      },
-    });
-    expect(parsed.success).toBe(true);
-    expect(parsed.verification.healthy).toBe(true);
-    expect(parsed.findings).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ class: "unhealthy" })]),
-    );
-  });
-
-  test("AC8: ended-session queues without non-terminal work are suppressed", async () => {
-    const currentSessionId = "sess_Current";
-    getCurrentSessionIdMock.mockReturnValue(currentSessionId);
-    listOrphanSessionQueuesMock.mockResolvedValue({
-      kind: "complete",
-      value: [],
-      truncated: false,
-    });
-
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore()),
-    );
-
-    expect(parsed.findings).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          finding: "orphan_session_queue_unserviceable",
-        }),
-      ]),
-    );
-    expect(
-      probeTaskQueuePollersMock.mock.calls.map(
-        ([input]: [{ taskQueue: string }]) => input.taskQueue,
-      ),
-    ).not.toContain(`advance-${PROJECT_ID}-sess_Ended`);
-  });
-
-  test("AC8/C6: orphan queue probes are capped and bounded concurrently", async () => {
-    const currentSessionId = "sess_Current";
-    getCurrentSessionIdMock.mockReturnValue(currentSessionId);
-    const candidates = Array.from({ length: 10 }, (_, index) => ({
-      queue: `advance-${PROJECT_ID}-sess_Ended${index}`,
-      oldestStartTime: new Date(2026, 6, 22, 0, index),
-      workflowIds: [`adv/change/${PROJECT_ID}/change-${index}`],
-    }));
-    listOrphanSessionQueuesMock.mockResolvedValue({
-      kind: "complete",
-      value: candidates,
-      truncated: false,
-    });
-    let active = 0;
-    let maxActive = 0;
-    probeTaskQueuePollersMock.mockImplementation(async () => {
-      active++;
-      maxActive = Math.max(maxActive, active);
-      await Promise.resolve();
-      active--;
-      return { status: "none", pollerCount: 0, lastPollerAt: null };
-    });
-
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore()),
-    );
-    const finding = parsed.findings.find(
-      (item: { finding?: string }) =>
-        item.finding === "orphan_session_queue_probe_capped",
-    );
-
-    expect(finding).toMatchObject({
-      class: "informational",
-      severity: "informational",
-      omitted: 2,
-    });
-    expect(maxActive).toBeLessThanOrEqual(4);
-    expect(
-      probeTaskQueuePollersMock.mock.calls.filter(
-        ([input]: [{ taskQueue: string }]) =>
-          input.taskQueue.includes("-sess_Ended"),
-      ),
-    ).toHaveLength(8);
-  });
-
-  test("AC9: doctor keeps the legacy single-project health-probe signature", async () => {
-    await doctorTools.adv_doctor.execute({}, makeStore());
-
-    expect(getTemporalHealthMock).toHaveBeenCalledTimes(2);
-    expect(getTemporalHealthMock).toHaveBeenNthCalledWith(1, PROJECT_ID);
-    expect(getTemporalHealthMock).toHaveBeenNthCalledWith(2, PROJECT_ID);
-  });
-
-  test("AC9: exposes terminal reconciliation skip reasons", async () => {
-    reconcileTerminalWorkflowsMock.mockResolvedValueOnce({
-      inspected: 1,
-      reconciled: [],
-      skipped: [{ changeId: "staleDraft", reason: "still_active" }],
-      failed: [],
-      capped: false,
-      dryRun: false,
-    });
-
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore()),
-    );
-
-    expect(parsed.terminal_reconciliation).toMatchObject({
-      inspected: 1,
-      skipped: [{ changeId: "staleDraft", reason: "still_active" }],
-    });
-  });
-
-  test("backfilled Epic projections are reported as an applied doctor fix", async () => {
-    repairEpicIndexMock.mockResolvedValueOnce({
-      total: 1,
-      backfilled: 1,
-      refreshed: 1,
-      unverified: 0,
-      skipped: 0,
-      unreachable: 0,
-      epics: [
-        { epic_id: "missingEpic", status: "active", action: "backfilled" },
-      ],
-    });
-
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore()),
-    );
-
+    expect(provider.clearActivePointer).toHaveBeenCalledTimes(1);
     expect(parsed.fixes_applied).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          class: "missing_epic_projection",
-          action: "backfill_epic_projections",
-          outcome: "applied",
-          after: { backfilled: 1, epic_ids: ["missingEpic"] },
-        }),
-      ]),
-    );
-  });
-
-  test("Epic index repair failures are returned as doctor findings", async () => {
-    repairEpicIndexMock.mockRejectedValueOnce(
-      new Error("Temporal unavailable"),
-    );
-
-    const parsed = JSON.parse(
-      await doctorTools.adv_doctor.execute({}, makeStore()),
-    );
-
-    expect(parsed.findings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "missing_epic_projection",
-          finding: "epic_index_repair_failed",
-          severity: "error",
-        }),
-      ]),
-    );
-    expect(parsed.success).toBe(false);
-  });
-
-  test("AC8/AC10: no owning session skips the session probe and preserves legacy verification shape", async () => {
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(probeTaskQueuePollersMock).toHaveBeenCalledTimes(2);
-    expect(parsed.verification.queue_serviceable).toBe(true);
-    expect(parsed.verification.queue_serviceability).toBeUndefined();
-    expect(parsed.queue_serviceability).toBeUndefined();
-    expect(parsed.findings).toEqual(
-      expect.arrayContaining([expect.objectContaining({ class: "healthy" })]),
-    );
-  });
-
-  test("AC4: worker alive but adoption unavailable adds unhealthy finding", async () => {
-    getTemporalWorkerAlivenessMock.mockReturnValue(true);
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: false,
-      diagnostics: null,
-      reason: "no_temporal_client",
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBe(false);
-    expect(parsed.findings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "unhealthy",
-          finding: "orphan_queue_adoption_not_active",
-          detail: "no_temporal_client",
-        }),
-      ]),
-    );
-  });
-
-  test("AC4: driver_error reason is also flagged as unhealthy", async () => {
-    getTemporalWorkerAlivenessMock.mockReturnValue(true);
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: false,
-      diagnostics: null,
-      reason: "driver_error: tick failure",
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBe(false);
-    expect(parsed.findings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "unhealthy",
-          finding: "orphan_queue_adoption_not_active",
-        }),
-      ]),
-    );
-  });
-
-  test("AC4: kill_switch is not flagged as unhealthy", async () => {
-    getTemporalWorkerAlivenessMock.mockReturnValue(true);
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: false,
-      diagnostics: null,
-      reason: "kill_switch",
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBe(true);
-    expect(parsed.findings).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ class: "unhealthy" })]),
-    );
-  });
-
-  test("AC5: no worker alive with no adoption is healthy (no adoption-related unhealthy finding)", async () => {
-    getTemporalWorkerAlivenessMock.mockReturnValue(false);
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: false,
-      diagnostics: null,
-      reason: "no_worker_attached",
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBe(true);
-    expect(parsed.findings).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({ class: "unhealthy" })]),
-    );
-  });
-
-  test("renders disabled orphan-queue adoption when no adopter is active", async () => {
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.orphan_queue_adoption).toEqual({
-      enabled: false,
-      reason: "no_worker_attached",
-      note: "orphan-queue adoption: disabled (no active adopter)",
-    });
-  });
-
-  test("renders populated orphan-queue adoption diagnostics", async () => {
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: true,
-      diagnostics: {
-        scanInFlight: true,
-        scanFailureCount: 0,
-        consecutiveScanFailures: 0,
-        lastScanStartedAt: Date.now(),
-        lastScanDurationMs: 12,
-        suppressedShutdownCount: 0,
-        trackedQueues: [
-          {
-            queue: "sess_opaque",
-            attemptCount: 2,
-            lastAttemptAt: 100,
-            cooldownUntil: 200,
-            inCooldown: true,
-          },
-        ],
-      },
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.orphan_queue_adoption).toEqual({
-      enabled: true,
-      scanInFlight: true,
-      health: "ok",
-      scanFailureCount: 0,
-      consecutiveScanFailures: 0,
-      lastScanStartedAt: expect.any(Number),
-      lastScanDurationMs: 12,
-      suppressedShutdownCount: 0,
-      trackedQueues: [
-        {
-          queue: "sess_opaque",
-          attemptCount: 2,
-          lastAttemptAt: 100,
-          cooldownUntil: 200,
-          inCooldown: true,
-        },
-      ],
-      omittedTrackedQueues: 0,
-    });
-  });
-
-  test("reports UNHEALTHY when adoption scans are repeatedly failing (#327)", async () => {
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: true,
-      diagnostics: {
-        scanInFlight: false,
-        scanFailureCount: 9,
-        consecutiveScanFailures: 4,
-        lastScanError: "1 CANCELLED: context canceled",
-        lastScanStartedAt: Date.now(),
-        lastScanDurationMs: 8000,
-        suppressedShutdownCount: 0,
-        trackedQueues: [],
-      },
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    // The regression that mattered: doctor previously said "healthy" here.
-    expect(parsed.orphan_queue_adoption.health).toBe("failing_scans");
-    expect(
-      parsed.findings.some(
-        (f: { class: string }) => f.class === "orphan_queue_adoption_degraded",
-      ),
-    ).toBe(true);
-    expect(
-      parsed.findings.some((f: { class: string }) => f.class === "healthy"),
-    ).toBe(false);
-    expect(parsed.success).toBe(false);
-  });
-
-  test("reports UNHEALTHY when an adoption scan is stuck in flight (#327)", async () => {
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: true,
-      diagnostics: {
-        // The exact #327 fingerprint: latch held, counter frozen at zero.
-        scanInFlight: true,
-        scanFailureCount: 0,
-        consecutiveScanFailures: 0,
-        lastScanStartedAt: Date.now() - 120_000,
-        lastScanDurationMs: 0,
-        suppressedShutdownCount: 0,
-        trackedQueues: [],
-      },
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.orphan_queue_adoption.health).toBe("stuck_scan");
-    const degraded = parsed.findings.find(
-      (f: { class: string }) => f.class === "orphan_queue_adoption_degraded",
-    );
-    expect(degraded).toBeDefined();
-    expect(degraded.finding).toBe("stuck_scan");
-    expect(degraded.detail).toMatch(/unreachable/i);
-    expect(parsed.success).toBe(false);
-  });
-
-  test("caps displayed orphan-queue diagnostics at 50 entries", async () => {
-    getOrphanQueueAdoptionStatusMock.mockReturnValue({
-      enabled: true,
-      diagnostics: {
-        scanInFlight: false,
-        trackedQueues: Array.from({ length: 52 }, (_, index) => ({
-          queue: `sess_${index}`,
-          attemptCount: 3,
-          lastAttemptAt: index,
-          cooldownUntil: 0,
-          inCooldown: false,
-        })),
-      },
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(parsed.orphan_queue_adoption.trackedQueues).toHaveLength(50);
-    expect(parsed.orphan_queue_adoption.omittedTrackedQueues).toBe(2);
-  });
-
-  test("stale transport (server_alive=false): reinitStsl fires once and is recorded as a bounded fix", async () => {
-    getTemporalHealthMock.mockResolvedValueOnce({
-      ...({} as never),
-      server_alive: false,
-      worker_alive: { status: "available", value: false },
-      worker_process_alive: { status: "available", value: false },
-      registered_queues: [],
-      last_op_at: null,
-      last_error: "connection refused",
-      fallback_counts: {},
-      stale_queues: [],
-      reconnect_count: 0,
-      op_counters: [],
-      worker_lock: null,
-      last_worker_run_error: null,
-      server_poller_probe: {
-        status: "unavailable",
-        lastAccessMs: 0,
-        pollerCount: 0,
-        lastPollerAt: null,
-      },
-      queues: [],
-    });
-    // After fix, health comes back healthy.
-    reinitStslMock.mockResolvedValue(undefined);
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(reinitStslMock).toHaveBeenCalledTimes(1);
-    expect(parsed.fixes_applied).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "stale_transport",
-          action: "stsl_reinit",
+          class: "phantom_pointer",
+          action: "clear_session_pointer",
           outcome: "applied",
         }),
       ]),
     );
-    // Bounded repair evidence per AC9.
-    const fix = parsed.fixes_applied.find(
-      (f: { class: string }) => f.class === "stale_transport",
-    );
-    expect(fix.before).toBeDefined();
-    expect(fix.after).toBeDefined();
+    expect(parsed.verification.session_pointer_sane).toBe(true);
   });
 
-  test("missing search attributes: registered via the safe subset (missing-only, no wrong-type mutation)", async () => {
-    let checkCalls = 0;
-    const checkSearchAttributes = vi.fn(async () => {
-      checkCalls++;
-      if (checkCalls === 1) {
-        return {
-          ok: false,
-          present: [{ name: "AdvChangeId" }],
-          missing: [{ name: "AdvChangeStatus" }],
-          wrongType: [],
-        };
-      }
-      return {
-        ok: true,
-        present: [{ name: "AdvChangeId" }, { name: "AdvChangeStatus" }],
-        missing: [],
-        wrongType: [],
-      };
-    });
-    const registerSearchAttributes = vi.fn().mockResolvedValue(undefined);
-    getServiceMock.mockReturnValue(
-      createMockOwner({
-        checkSearchAttributes,
-        registerSearchAttributes,
-      }),
-    );
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(registerSearchAttributes).toHaveBeenCalledTimes(1);
-    expect(registerSearchAttributes).toHaveBeenCalledWith(
-      expect.objectContaining({
-        opType: "adv_doctor.registerSearchAttributes",
-      }),
-    );
-    expect(checkSearchAttributes).toHaveBeenCalledTimes(3);
-    expect(parsed.fixes_applied).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "missing_search_attributes",
-          action: "register_missing",
-          outcome: "applied",
-        }),
-      ]),
-    );
-  });
-
-  test("worker_down (exclusively owned, no suspect lock): restart fires and verification follows", async () => {
-    // Worker alive=false but lock is free (no suspect lock); doctor can safely restart.
-    getTemporalHealthMock.mockResolvedValue({
-      ...({} as never),
-      server_alive: true,
-      worker_alive: { status: "available", value: false },
-      worker_process_alive: { status: "available", value: false },
-      registered_queues: [],
-      last_op_at: "2026-07-22T00:00:00.000Z",
-      last_error: null,
-      fallback_counts: {},
-      stale_queues: [],
-      reconnect_count: 0,
-      op_counters: [],
-      worker_lock: null,
-      last_worker_run_error: null,
-      server_poller_probe: {
-        status: "unavailable",
-        lastAccessMs: 0,
-        pollerCount: 0,
-        lastPollerAt: null,
-      },
-      queues: [],
-    });
-    restartCurrentProjectTemporalWorkerMock.mockResolvedValue({
-      projectId: PROJECT_ID,
-      expectedQueue: "advance-" + PROJECT_ID,
-      queues: ["advance-" + PROJECT_ID],
-    });
-    // Post-restart verification: worker is now alive.
-    getTemporalWorkerDiagnosticsMock.mockReturnValue([
-      {
-        kind: "out_of_process",
-        queues: ["advance-" + PROJECT_ID],
-        failedQueues: [],
-        alive: true,
-        diagnostics: [
-          {
-            queue: "advance-" + PROJECT_ID,
-            dead: false,
-            restartCount: 0,
-            childExitCode: null,
-            childPid: 124,
-            childRunning: true,
-          },
-        ],
-      },
-    ]);
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(restartCurrentProjectTemporalWorkerMock).toHaveBeenCalledWith(
-      "/tmp/project",
-      expect.objectContaining({ approvedLockReclaim: false }),
-    );
-    expect(parsed.fixes_applied).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "worker_down_owned",
-          action: "worker_restart",
-          outcome: "applied",
-        }),
-      ]),
-    );
-  });
-
-  test("wrong-type search attributes: REFUSED with typed approval-required proposal (never auto-mutates)", async () => {
-    const registerMissing = vi.fn();
-    getServiceMock.mockReturnValue(
-      createMockOwner({
-        checkSearchAttributes: vi.fn().mockResolvedValue({
-          ok: false,
-          present: [{ name: "AdvChangeId" }],
-          missing: [],
-          wrongType: [
-            {
-              name: "AdvChangeStatus",
-              expectedType: "Keyword",
-              actualType: "Int",
-            },
-          ],
-        }),
-        registerMissingSearchAttributes: registerMissing,
-      }),
-    );
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(registerMissing).not.toHaveBeenCalled();
-    expect(parsed.fixes_refused).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "wrong_type_search_attributes",
-          outcome: "approval_required",
-          proposal: expect.any(String),
-        }),
-      ]),
-    );
-  });
-
-  test("suspect worker.lock (live lock, not owned): REFUSED — operator must explicitly approve reclaim", async () => {
-    getTemporalHealthMock.mockResolvedValue({
-      ...({} as never),
-      server_alive: true,
-      worker_alive: { status: "available", value: false },
-      worker_process_alive: { status: "available", value: false },
-      registered_queues: [],
-      last_op_at: "2026-07-22T00:00:00.000Z",
-      last_error: null,
-      fallback_counts: {},
-      stale_queues: [],
-      reconnect_count: 0,
-      op_counters: [],
-      worker_lock: {
-        holder_pid: 99999,
-        schema_version: 1,
-      },
-      last_worker_run_error: null,
-      server_poller_probe: {
-        status: "unavailable",
-        lastAccessMs: 0,
-        pollerCount: 0,
-        lastPollerAt: null,
-      },
-      queues: [],
-    });
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-
-    expect(restartCurrentProjectTemporalWorkerMock).not.toHaveBeenCalled();
-    expect(parsed.fixes_refused).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          class: "suspect_lock",
-          outcome: "approval_required",
-        }),
-      ]),
-    );
-  });
-
-  test("doctor never accepts approval fields in args (no bypass path)", () => {
-    // Doctor is the SAFE entry point. Unsafe escalations return proposals,
-    // never get auto-approved via an arg-side loophole.
-    const argsSchema = doctorTools.adv_doctor.args;
-    expect(argsSchema).not.toHaveProperty("approvedLockReclaim");
-    expect(argsSchema).not.toHaveProperty("approvedByUser");
-  });
-
-  test("refusal carries a typed proposal pointing to the specific operator action", async () => {
-    getServiceMock.mockReturnValue(
-      createMockOwner({
-        checkSearchAttributes: vi.fn().mockResolvedValue({
-          ok: false,
-          present: [],
-          missing: [],
-          wrongType: [
-            {
-              name: "AdvChangeId",
-              expectedType: "Keyword",
-              actualType: "Text",
-            },
-          ],
-        }),
-      }),
-    );
-
-    const result = await doctorTools.adv_doctor.execute({}, makeStore());
-    const parsed = JSON.parse(result);
-    const refusal = parsed.fixes_refused[0];
-    expect(refusal.proposal).toMatch(/operator/i);
-    expect(refusal.operator_action).toBeTypeOf("string");
-    expect(refusal.operator_action.length).toBeGreaterThan(0);
-  });
-
-  // rq-activeChangePointer01 / rq-doctorConsolidation01 — phantom pointer
-  // safe-fix (replaces retired adv_change_forget per option B / design D6).
-  describe("phantom_pointer safe-fix (rq-doctorConsolidation01 option B)", () => {
-    const pointerProvider = {
-      getActivePointer: vi.fn(),
+  test("a readable active pointer is preserved", async () => {
+    const pointer = "valid-change";
+    await mkdir(join(root, "changes", pointer), { recursive: true });
+    await writeFile(join(root, "changes", pointer, "change.json"), "{}");
+    const provider = {
+      getActivePointer: vi.fn(() => pointer),
       clearActivePointer: vi.fn(),
     };
+    setDoctorPointerRepairProvider(provider);
 
-    beforeEach(() => {
-      pointerProvider.getActivePointer.mockReset();
-      pointerProvider.clearActivePointer.mockReset();
-      setDoctorPointerRepairProvider(pointerProvider);
-      probeChangePhantomStatusMock.mockReset();
+    const parsed = JSON.parse(
+      await doctorTools.adv_doctor.execute({}, makeStore(root)),
+    );
+
+    expect(provider.clearActivePointer).not.toHaveBeenCalled();
+    expect(parsed.fixes_applied).toEqual([]);
+    expect(parsed.fixes_refused).toEqual([]);
+    expect(parsed.verification.session_pointer_sane).toBe(true);
+  });
+
+  test("an unreadable active pointer is refused instead of cleared", async () => {
+    const pointer = "ambiguous-change";
+    await mkdir(join(root, "changes", pointer), { recursive: true });
+    await writeFile(join(root, "changes", pointer, "change.json"), "{}");
+    const provider = {
+      getActivePointer: vi.fn(() => pointer),
+      clearActivePointer: vi.fn(),
+    };
+    const store = makeStore(root);
+    (store.changes.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+      success: false,
+      error: "read failed",
     });
+    setDoctorPointerRepairProvider(provider);
 
-    afterEach(() => {
-      // Always reset the provider so other tests see null (tests/MCP shape).
-      setDoctorPointerRepairProvider(null);
-    });
+    const parsed = JSON.parse(await doctorTools.adv_doctor.execute({}, store));
 
-    test("confirmed_absent: clears pointer and records fix with evidence", async () => {
-      pointerProvider.getActivePointer.mockReturnValue("phantomChange");
-      probeChangePhantomStatusMock.mockResolvedValue({
-        status: "confirmed_absent",
-        evidence: "disk absent + Visibility not-found",
-      });
+    expect(provider.clearActivePointer).not.toHaveBeenCalled();
+    expect(parsed.success).toBe(false);
+    expect(parsed.fixes_refused).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          class: "phantom_pointer",
+          outcome: "approval_required",
+        }),
+      ]),
+    );
+  });
 
-      const result = await doctorTools.adv_doctor.execute({}, makeStore());
-      const parsed = JSON.parse(result);
-
-      expect(pointerProvider.clearActivePointer).toHaveBeenCalledTimes(1);
-      expect(parsed.fixes_applied).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            class: "phantom_pointer",
-            action: "clear_session_pointer",
-            outcome: "applied",
-          }),
-        ]),
-      );
-    });
-
-    test("confirmed_present: no fix applied, no pointer clear (pointer is valid)", async () => {
-      pointerProvider.getActivePointer.mockReturnValue("validChange");
-      probeChangePhantomStatusMock.mockResolvedValue({
-        status: "confirmed_present",
-        evidence: "disk present",
-      });
-
-      const result = await doctorTools.adv_doctor.execute({}, makeStore());
-      const parsed = JSON.parse(result);
-
-      expect(pointerProvider.clearActivePointer).not.toHaveBeenCalled();
-      expect(
-        parsed.fixes_applied.find(
-          (f: { class: string }) => f.class === "phantom_pointer",
-        ),
-      ).toBeUndefined();
-    });
-
-    test("indeterminate: REFUSED with typed proposal (never clears on ambiguous probe)", async () => {
-      pointerProvider.getActivePointer.mockReturnValue("ambiguousChange");
-      probeChangePhantomStatusMock.mockResolvedValue({
-        status: "indeterminate",
-        evidence: "Visibility timeout; disk check threw EACCES",
-      });
-
-      const result = await doctorTools.adv_doctor.execute({}, makeStore());
-      const parsed = JSON.parse(result);
-
-      expect(pointerProvider.clearActivePointer).not.toHaveBeenCalled();
-      expect(parsed.fixes_refused).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            class: "phantom_pointer",
-            outcome: "approval_required",
-          }),
-        ]),
-      );
-    });
-
-    test("no active pointer: skips phantom check entirely (no probe call)", async () => {
-      pointerProvider.getActivePointer.mockReturnValue(null);
-
-      await doctorTools.adv_doctor.execute({}, makeStore());
-
-      expect(probeChangePhantomStatusMock).not.toHaveBeenCalled();
-      expect(pointerProvider.clearActivePointer).not.toHaveBeenCalled();
-    });
-
-    test("no pointer-repair provider (tests/MCP): skips phantom check entirely", async () => {
-      setDoctorPointerRepairProvider(null);
-
-      await doctorTools.adv_doctor.execute({}, makeStore());
-
-      expect(probeChangePhantomStatusMock).not.toHaveBeenCalled();
-    });
+  test("doctor args expose no unsafe approval bypass", () => {
+    expect(doctorTools.adv_doctor.args).not.toHaveProperty("approvedByUser");
+    expect(doctorTools.adv_doctor.args).not.toHaveProperty("approvedLockReclaim");
   });
 });

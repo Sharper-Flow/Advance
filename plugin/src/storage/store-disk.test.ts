@@ -201,6 +201,37 @@ describe("store-disk — bounded warnings + monotonic IDs", () => {
     expect(counts.every(Number.isFinite)).toBe(true);
     expect(counts.reduce((sum, n) => sum + n, 0)).toBe(2);
   });
+
+  test("status options source-rank before bounded hydration and mark projection reads", async () => {
+    const dir = await makeTempProject();
+    const store = await createDiskStore(dir);
+    const older = await store.changes.create("Older Change", {
+      capability: "test-capability",
+      artifacts: { proposal: "# Proposal\n" },
+    });
+    const newer = await store.changes.create("Newer Change", {
+      capability: "test-capability",
+      artifacts: { proposal: "# Proposal\n" },
+    });
+
+    for (const [changeId, createdAt] of [
+      [older.changeId, "2026-01-01T00:00:00.000Z"],
+      [newer.changeId, "2026-01-02T00:00:00.000Z"],
+    ] as const) {
+      const path = join(dir, ".adv/changes", changeId, "change.json");
+      const raw = JSON.parse(await readFile(path, "utf-8"));
+      raw.created_at = createdAt;
+      await writeFile(path, JSON.stringify(raw, null, 2));
+    }
+
+    const projectionState = { loaded: false };
+    const status = await store.status({ recentLimit: 1, projectionState });
+
+    expect(projectionState.loaded).toBe(true);
+    expect(status.changes.recent).toHaveLength(1);
+    expect(status.changes.recent[0]?.id).toBe(newer.changeId);
+    expect(status.hydrationStats?.boundedOmitted).toBe(1);
+  });
 });
 
 describe("store-disk — bundle-dominant terminal self-heal (rq-terminalProjectionTruth01)", () => {

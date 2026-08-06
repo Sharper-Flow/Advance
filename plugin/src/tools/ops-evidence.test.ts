@@ -1,12 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { opsEvidenceTools } from "./ops-evidence";
 import { parseToolOutput } from "../__tests__/setup";
-import {
-  opsEvidenceAppendedSignal,
-  opsFollowupResolutionUpsertedSignal,
-  opsRunEvidenceAppendedSignal,
-  opsRunUpsertedSignal,
-} from "../temporal/messages";
 import type { Store } from "../storage/store";
 import type { Change, OpsFollowupLink, OpsFollowupProfile } from "../types";
 
@@ -31,21 +27,12 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
 vi.mock("../utils/project-id", async () => {
   const actual = await vi.importActual<typeof import("../utils/project-id")>(
     "../utils/project-id",
   );
   return { ...actual, getProjectId: mocks.getProjectId };
 });
-
-vi.mock("./_adapters", () => ({
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  getChangeHandle: mocks.getChangeHandle,
-}));
 
 function makeProfile(
   overrides?: Partial<OpsFollowupProfile>,
@@ -72,6 +59,13 @@ function makeChange(overrides?: Partial<Change>): Change {
     title: "Child change",
     status: "active",
     created_at: "2026-06-20T04:00:00.000Z",
+    created_by: "test",
+    tasks: [],
+    deltas: {},
+    wisdom: [],
+    gates: {
+      proposal: { status: "done" }, discovery: { status: "done" }, design: { status: "done" }, planning: { status: "done" }, execution: { status: "done" }, acceptance: { status: "pending" }, release: { status: "pending" },
+    },
     ops_followup: makeProfile({
       evidence: [
         {
@@ -101,8 +95,11 @@ function makeLink(overrides?: Partial<OpsFollowupLink>): OpsFollowupLink {
 
 function makeStore(change?: Change): Store {
   const data = change ?? makeChange();
+  const changesDir = "/tmp/project/.adv/changes";
+  mkdirSync(join(changesDir, data.id), { recursive: true });
+  writeFileSync(join(changesDir, data.id, "change.json"), JSON.stringify(data));
   return {
-    paths: { root: "/tmp/project", changes: "/tmp/project/.adv/changes" },
+    paths: { root: "/tmp/project", changes: changesDir },
     changes: {
       get: vi.fn(async () => ({ success: true, data })),
       refresh: vi.fn(async () => {}),
@@ -142,16 +139,6 @@ describe("adv_ops_evidence_add", () => {
     expect(result.entry.id).toMatch(/^oee-/);
     expect(result.entry.recorded_at).toMatch(/^\d{4}-/);
 
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const call = mocks.fireSignalAndRefresh.mock.calls[0];
-    expect(call[3]).toBe(opsEvidenceAppendedSignal);
-    const payload = call[4] as {
-      entry: { status: string };
-      status: string;
-      appendedAt: string;
-    };
-    expect(payload.status).toBe("partial");
-    expect(payload.entry.status).toBe("partial");
   });
 
   test("maps failed status to entry fail and profile failed", async () => {
@@ -172,12 +159,6 @@ describe("adv_ops_evidence_add", () => {
     expect(result.status).toBe("failed");
     expect(result.entry.status).toBe("fail");
 
-    const payload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      entry: { status: string };
-      status: string;
-    };
-    expect(payload.status).toBe("failed");
-    expect(payload.entry.status).toBe("fail");
   });
 
   test("dry run returns preview without firing signal", async () => {
@@ -346,10 +327,6 @@ describe("ops runbook tools", () => {
     expect(result.run.steps[0].approval_policy).toMatchObject({
       mode: "approval_required",
     });
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
-      opsRunUpsertedSignal,
-    );
   });
 
   test("rejects bounded autonomous step without bounds", () => {
@@ -486,10 +463,6 @@ describe("ops runbook tools", () => {
     expect(result.success).toBe(true);
     expect(result.entry.artifact.kind).toBe("none");
     expect(result.status).toBe("complete");
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
-      opsRunEvidenceAppendedSignal,
-    );
   });
 
   test("rejects evidence summaries that look like secret material", async () => {
@@ -588,6 +561,7 @@ describe("adv_ops_followup_resolution_upsert", () => {
   test("upserts resolution onto a matching outbound link", async () => {
     const store = makeStore(
       makeChange({
+        id: "parentChange",
         ops_followup_links: [makeLink()],
       }),
     );
@@ -615,21 +589,12 @@ describe("adv_ops_followup_resolution_upsert", () => {
     expect(result.resolution.status).toBe("complete");
     expect(result.resolution.resolution_reason).toBe("verified");
     expect(result.resolution.child_updated_at).toBe("2026-06-20T04:04:00.000Z");
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    expect(mocks.fireSignalAndRefresh.mock.calls[0][3]).toBe(
-      opsFollowupResolutionUpsertedSignal,
-    );
-    const payload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      linkId: string;
-      resolution: Record<string, unknown>;
-    };
-    expect(payload.linkId).toBe("ofl-1");
-    expect(payload.resolution.status).toBe("complete");
   });
 
   test("returns dry-run preview without signaling", async () => {
     const store = makeStore(
       makeChange({
+        id: "parentChange",
         ops_followup_links: [makeLink()],
       }),
     );

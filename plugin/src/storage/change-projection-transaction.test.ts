@@ -18,9 +18,7 @@ import {
   type ProjectionCommitVerifyContext,
   type ProjectionCommitVerifyResult,
 } from "./change-projection-transaction";
-import { projectTemporalStateOntoLatest } from "./store-temporal/shared";
 import { ChangeSchema } from "../types";
-import { changeToState } from "../types/change-state-helpers";
 import {
   createTempDir,
   cleanupTempDir,
@@ -457,66 +455,6 @@ describe("commitChangeProjection", () => {
     });
   });
 
-  it("preserves a disjoint recovery repair when a Temporal dual-write commits second", async () => {
-    const changeId = "temporal-recovery-race";
-    const base = makeChange(changeId);
-    await seedChange(changesDir, base);
-    const temporalState = changeToState({
-      projectId: "0000ec0100000000000000000000000000000000",
-      change: { ...base, title: "Temporal authoritative title" },
-    });
-
-    const [recovery, temporal] = await Promise.all([
-      commitChangeProjection({
-        changesDir,
-        changeId,
-        authority: RECOVERY_AUTHORITY,
-        mutationKind: "recovery:verification-evidence",
-        mutateLatest: (latest) => ({
-          ...latest,
-          verification_evidence_dispositions: [
-            {
-              taskId: "tk-recovery",
-              concernKey: "readback",
-              disposition: "fixed",
-              evidence: "completed workflow recovery",
-              dispositionedAt: "2026-07-25T00:00:00.000Z",
-            },
-          ],
-        }),
-        verify: ({ readback }) =>
-          readback.verification_evidence_dispositions?.[0]?.taskId ===
-          "tk-recovery",
-      }),
-      commitChangeProjection({
-        changesDir,
-        changeId,
-        authority: { kind: "temporal", mutationReceiptId: changeId },
-        mutationKind: "temporal_dual_write_projection",
-        mutateLatest: (latest) =>
-          projectTemporalStateOntoLatest(latest, temporalState),
-        verify: ({ readback }) =>
-          readback.title === "Temporal authoritative title",
-      }),
-    ]);
-
-    expect(recovery.kind).toBe("committed");
-    expect(temporal.kind).toBe("committed");
-
-    const final = await loadChange(changesDir, changeId);
-    expect(final.success).toBe(true);
-    if (!final.success || !final.data) return;
-    expect(final.data.title).toBe("Temporal authoritative title");
-    expect(final.data.verification_evidence_dispositions?.[0]?.taskId).toBe(
-      "tk-recovery",
-    );
-    expect(final.data.projection_revision).toBe(2);
-    expect(final.data.projection_commits).toHaveLength(2);
-    expect(
-      final.data.projection_commits?.map((entry) => entry.authority_kind),
-    ).toEqual(expect.arrayContaining(["recovery", "temporal"]));
-  });
-
   it("records bounded audit metadata per commit", async () => {
     const changeId = "audit";
     await seedChange(changesDir, makeChange(changeId));
@@ -552,8 +490,8 @@ describe("commitChangeProjection", () => {
       "verification_evidence_dispositions",
     );
     expect(result.audit.authority_kind).toBe("recovery");
-    expect(result.audit.recovery_reason).toBe("poisoned_history");
-    expect(result.audit.recovery_evidence).toBe("TMPRL1100 on replay");
+    expect(result.audit.authority_reason).toBe("poisoned_history");
+    expect(result.audit.authority_evidence).toBe("TMPRL1100 on replay");
     expect(result.audit.prior_revision).toBe(0);
     expect(result.audit.new_revision).toBe(1);
 
@@ -564,28 +502,6 @@ describe("commitChangeProjection", () => {
     expect(raw.projection_commits[0].mutation_kind).toBe(
       "verification_evidence_dispositions",
     );
-  });
-
-  it("accepts temporal authority and records mutation receipt id", async () => {
-    const changeId = "temporal-authority";
-    await seedChange(changesDir, makeChange(changeId));
-
-    const result = await commitChangeProjection({
-      changesDir,
-      changeId,
-      authority: {
-        kind: "temporal",
-        mutationReceiptId: "receipt-123",
-      },
-      mutationKind: "test:temporal-dual-write",
-      mutateLatest: (latest) => ({ ...latest, title: "temporal" }),
-      verify: ({ readback }) => readback.title === "temporal",
-    });
-
-    expect(result.kind).toBe("committed");
-    if (result.kind !== "committed") return;
-    expect(result.audit.authority_kind).toBe("temporal");
-    expect(result.audit.mutation_receipt_id).toBe("receipt-123");
   });
 
   it("is archive/projection schema compatible: legacy archive without projection_revision parses", async () => {
@@ -614,6 +530,28 @@ describe("commitChangeProjection", () => {
     const reparsed = ChangeSchema.parse(raw);
     expect(reparsed.projection_revision).toBe(1);
     expect(reparsed.projection_commits).toHaveLength(1);
+  });
+
+  it("keeps archived temporal authority as a read-only legacy value", () => {
+    const parsed = ChangeSchema.parse({
+      ...makeChange("legacy-temporal-authority"),
+      status: "archived",
+      projection_commits: [
+        {
+          mutation_kind: "legacy:temporal-write",
+          authority_kind: "temporal",
+          mutation_receipt_id: "receipt-123",
+          prior_revision: 0,
+          new_revision: 1,
+          committed_at: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    });
+
+    expect(parsed.projection_commits?.[0]).toMatchObject({
+      authority_kind: "temporal",
+      mutation_receipt_id: "receipt-123",
+    });
   });
 
   describe("operation identity and state revision fencing (AC4/AC12)", () => {

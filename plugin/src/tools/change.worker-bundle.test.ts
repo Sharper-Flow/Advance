@@ -9,46 +9,13 @@
 
 import { describe, expect, test, vi, beforeEach } from "vitest";
 import { z } from "zod";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { changeTools } from "./change";
-import {
-  workerBundleProvenanceRecordedSignal,
-  workerBundleImpactSetSignal,
-} from "../temporal/messages";
 import type { Change, Store } from "../types";
 
 const mocks = vi.hoisted(() => ({
-  getService: vi.fn(() => temporalBundle),
-  getProjectId: vi.fn(async () => "test-project-id"),
-  fireSignalAndRefresh: vi.fn(async () => {}),
-  getChangeHandle: vi.fn(() => handleMock),
-  signalMock: vi.fn(),
-  queryMock: vi.fn(),
   withTargetPathStore: vi.fn(),
-  changeToRefresh: null as { workerBundleProvenance?: unknown } | null,
-}));
-
-const handleMock = {
-  signal: mocks.signalMock,
-  query: mocks.queryMock,
-};
-const temporalBundle = {
-  client: { workflow: { getHandle: vi.fn(() => handleMock) } },
-};
-
-vi.mock("../temporal/service", () => ({
-  getService: mocks.getService,
-}));
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return { ...actual, getProjectId: mocks.getProjectId };
-});
-
-vi.mock("./_adapters", () => ({
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  getChangeHandle: mocks.getChangeHandle,
 }));
 
 // Mock withTargetPathStore while preserving the real targetPathSchema and
@@ -80,6 +47,18 @@ function createMockStore(change: Change): Store {
       refresh: vi.fn(),
     } as unknown as Store["changes"],
   } as unknown as Store;
+}
+
+async function seedProjection(store: Store, change: Change): Promise<void> {
+  const changeDir = join(store.paths.changes, change.id);
+  await mkdir(changeDir, { recursive: true });
+  await writeFile(join(changeDir, "change.json"), JSON.stringify(change));
+}
+
+async function readProjection(store: Store, changeId: string): Promise<Change> {
+  return JSON.parse(
+    await readFile(join(store.paths.changes, changeId, "change.json"), "utf8"),
+  ) as Change;
 }
 
 function activeChange(overrides: Partial<Change> = {}): Change {
@@ -116,28 +95,12 @@ const tools = changeTools as unknown as Record<
 describe("adv_worker_bundle_provenance_record", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getService.mockReturnValue(temporalBundle);
-    mocks.fireSignalAndRefresh.mockImplementation(
-      async (...args: unknown[]) => {
-        const signal = args[3];
-        const payload = args[4];
-        if (
-          signal === workerBundleProvenanceRecordedSignal &&
-          mocks.changeToRefresh &&
-          payload &&
-          typeof payload === "object"
-        ) {
-          mocks.changeToRefresh.workerBundleProvenance = payload;
-        }
-      },
-    );
-    mocks.changeToRefresh = null;
   });
 
-  test("fires workerBundleProvenanceRecordedSignal with the typed payload and refreshes the cache", async () => {
+  test("persists typed worker-bundle provenance and verifies the projection", async () => {
     const change = activeChange();
     const store = createMockStore(change);
-    mocks.changeToRefresh = change;
+    await seedProjection(store, change);
 
     const result = await tools.adv_worker_bundle_provenance_record.execute(
       {
@@ -155,29 +118,14 @@ describe("adv_worker_bundle_provenance_record", () => {
     expect(parsed.changeId).toBe(change.id);
     expect(parsed.source_sha).toBe("abc123def456");
 
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const call = mocks.fireSignalAndRefresh.mock.calls[0];
-    expect(call[0]).toBe(handleMock);
-    expect(call[1]).toBe(store);
-    expect(call[2]).toBe(change.id);
-    expect(call[3]).toBe(workerBundleProvenanceRecordedSignal);
-    expect(call[4]).toMatchObject({
+    const readback = await readProjection(store, change.id);
+    expect(readback.workerBundleProvenance).toMatchObject({
       source_sha: "abc123def456",
       build_run_id: "tr_build_001",
       replay_run_id: "tr_replay_002",
       worker_manifest_generation: 7,
     });
-    expect(typeof call[4].recorded_at).toBe("string");
-    expect(change.workerBundleProvenance).toMatchObject({
-      source_sha: "abc123def456",
-      build_run_id: "tr_build_001",
-      replay_run_id: "tr_replay_002",
-      worker_manifest_generation: 7,
-    });
-    expect(
-      typeof (change.workerBundleProvenance as { recorded_at?: unknown })
-        .recorded_at,
-    ).toBe("string");
+    expect(typeof readback.workerBundleProvenance?.recorded_at).toBe("string");
   });
 
   test("rejects an unknown change id", async () => {
@@ -216,13 +164,12 @@ describe("adv_worker_bundle_provenance_record", () => {
 describe("adv_change_set_worker_bundle_impact", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getService.mockReturnValue(temporalBundle);
-    mocks.fireSignalAndRefresh.mockImplementation(async () => {});
   });
 
-  test("saves worker_bundle_impact to the change and fires workerBundleImpactSetSignal", async () => {
+  test("saves worker_bundle_impact to the durable change projection", async () => {
     const change = activeChange();
     const store = createMockStore(change);
+    await seedProjection(store, change);
 
     const result = await tools.adv_change_set_worker_bundle_impact.execute(
       {
@@ -238,29 +185,20 @@ describe("adv_change_set_worker_bundle_impact", () => {
     expect(parsed.changeId).toBe(change.id);
     expect(parsed.worker_bundle_impact.kind).toBe("required");
 
-    expect(store.changes.save).toHaveBeenCalledTimes(1);
-    const saved = vi.mocked(store.changes.save).mock.calls[0][0] as Change;
+    const saved = await readProjection(store, change.id);
     expect(saved.worker_bundle_impact).toMatchObject({
       kind: "required",
       rationale: "Touches workflow-reachable code",
     });
     expect(typeof saved.worker_bundle_impact?.confirmed_at).toBe("string");
 
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const call = mocks.fireSignalAndRefresh.mock.calls[0];
-    expect(call[3]).toBe(workerBundleImpactSetSignal);
-    expect(call[4]).toMatchObject({
-      worker_bundle_impact: {
-        kind: "required",
-        rationale: "Touches workflow-reachable code",
-      },
-    });
-    expect(typeof call[4].set_at).toBe("string");
+    expect(typeof saved.worker_bundle_impact?.confirmed_at).toBe("string");
   });
 
   test("allows not_applicable with rationale", async () => {
     const change = activeChange();
     const store = createMockStore(change);
+    await seedProjection(store, change);
 
     const result = await tools.adv_change_set_worker_bundle_impact.execute(
       {
@@ -275,9 +213,8 @@ describe("adv_change_set_worker_bundle_impact", () => {
     expect(parsed.success).toBe(true);
     expect(parsed.worker_bundle_impact.kind).toBe("not_applicable");
 
-    const saved = vi.mocked(store.changes.save).mock.calls[0][0] as Change;
+    const saved = await readProjection(store, change.id);
     expect(saved.worker_bundle_impact?.kind).toBe("not_applicable");
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
   test("rejects invalid kind", () => {
@@ -333,16 +270,17 @@ describe("adv_change_set_worker_bundle_impact", () => {
     // AC2/AC4/AC6: when target_path is provided and confirmed, the inner
     // runSetImpact runs against the TARGET store, resolves the TARGET project
     // ID via projectContext, and fires the signal against the TARGET workflow.
-    const change = activeChange();
-    const sessionStore = createMockStore(change);
-    const targetStore = createMockStore(change);
+      const change = activeChange();
+      const sessionStore = createMockStore(change);
+      const targetStore = createMockStore(change);
+      await seedProjection(targetStore, change);
 
     const targetContext = {
       root: "/tmp/target-project",
       projectId: "target-project-id",
       trusted: false,
       trustSource: "explicit" as const,
-      stateMode: "temporal" as const,
+          stateMode: "authoritative" as const,
       warning: undefined,
     };
 
@@ -380,20 +318,11 @@ describe("adv_change_set_worker_bundle_impact", () => {
 
     // Session store untouched; target store received the save.
     expect(sessionStore.changes.save).not.toHaveBeenCalled();
-    expect(targetStore.changes.save).toHaveBeenCalledTimes(1);
-    const saved = vi.mocked(targetStore.changes.save).mock
-      .calls[0][0] as Change;
+    const saved = await readProjection(targetStore, change.id);
     expect(saved.worker_bundle_impact).toMatchObject({
       kind: "required",
       rationale: "Touches workflow-reachable code",
     });
-
-    // Signal fired once; project ID came from projectContext, not the session.
-    expect(mocks.getProjectId).not.toHaveBeenCalled();
-    expect(mocks.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const signalCall = mocks.fireSignalAndRefresh.mock.calls[0];
-    expect(signalCall[1]).toBe(targetStore); // activeStore passed in
-    expect(signalCall[3]).toBe(workerBundleImpactSetSignal);
 
     // Response includes _projectContext (peer shape parity).
     const parsed = JSON.parse(result);
@@ -437,6 +366,5 @@ describe("adv_change_set_worker_bundle_impact", () => {
 
     // AC8: no save, no signal, no workflow handle resolution.
     expect(sessionStore.changes.save).not.toHaveBeenCalled();
-    expect(mocks.fireSignalAndRefresh).not.toHaveBeenCalled();
   });
 });

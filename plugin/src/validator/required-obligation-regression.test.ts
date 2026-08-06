@@ -12,13 +12,9 @@
  * - Backward compatibility: contracts without requiredCritical work as before
  */
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { createDefaultGates } from "../types";
-import type {
-  Change,
-  ChangeState,
-  EngineerSubagentReport,
-} from "../types";
+import type { Change, ChangeState, EngineerSubagentReport } from "../types";
 import type { Store } from "../storage/store-types";
 import {
   checkCriticalOpsCoverage,
@@ -28,46 +24,19 @@ import {
   checkRequiredObligationReleaseBlockers,
   checkRequiredObligationRouting,
   evaluateGateReadiness,
-} from "../temporal/gate-readiness";
-
-// =============================================================================
-// Mocks (mirrors subagent-report.test.ts pattern for tool-layer ingestion)
-// =============================================================================
-
-const mocks = vi.hoisted(() => {
-  const fireSignalAndRefresh = vi.fn(async () => undefined);
-  const workflowHandle = { signal: vi.fn(), query: vi.fn() };
-
-  return {
-    fireSignalAndRefresh,
-    workflowHandle,
-  };
-});
-
-vi.mock("../tools/_adapters", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../tools/_adapters")>()),
-  fireSignalAndRefresh: mocks.fireSignalAndRefresh,
-  getChangeHandle: () => mocks.workflowHandle,
-}));
-
-vi.mock("../temporal/service", () => ({
-  getService: () => ({ client: { workflow: { getHandle: vi.fn() } } }),
-}));
+} from "../gates/gate-readiness";
 
 vi.mock("../utils/project-id", () => ({
   getProjectId: async () => "project-1",
 }));
 
 // Import tool layer AFTER mocks are established
-import { subagentReportTools } from "../tools/subagent-report";
 
 // =============================================================================
 // Helpers
 // =============================================================================
 
-function makeChangeState(
-  overrides: Partial<ChangeState> = {},
-): ChangeState {
+function makeChangeState(overrides: Partial<ChangeState> = {}): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",
@@ -236,10 +205,6 @@ function storeFor(baseChange: Change): Store {
       refresh: vi.fn(async () => undefined),
     },
   } as unknown as Store;
-}
-
-function parse(output: string): Record<string, any> {
-  return JSON.parse(output) as Record<string, any>;
 }
 
 // =============================================================================
@@ -541,128 +506,6 @@ describe("checkRequiredObligationRouting", () => {
     ] as const) {
       expect(checkRequiredObligationRouting(state, gateId)).toHaveLength(0);
     }
-  });
-});
-
-// =============================================================================
-// Report Ingestion Tests
-// =============================================================================
-
-// =============================================================================
-// required_follow_ups report ingestion — retireAgendaWorkflow revision
-//
-// retireAgendaWorkflow removed the agenda consumer write for required
-// follow_ups. The typed obligations still ride on the report payload (and on
-// the subagentReportSubmittedSignal) so the structural release-safety +
-// gate-readiness evaluators above continue to see them unchanged.
-// =============================================================================
-
-describe("required_follow_ups report ingestion", () => {
-  beforeEach(() => {
-    mocks.fireSignalAndRefresh.mockClear();
-  });
-
-  test("required_critical obligations ride on the signal payload unchanged", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: [],
-      required_follow_ups: [
-        {
-          text: "Fix security vulnerability",
-          obligation_class: "required_critical",
-          severity: "critical",
-          source_contract_id: "contract-sec-1",
-        },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    // retireAgendaWorkflow: no agenda write; the consumer result carries the
-    // preview count and an empty `created` list.
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
-    expect(output.consumerResults.requiredFollowUps.created).toEqual([]);
-    // The typed obligations still ride on the signal so release-safety +
-    // gate-readiness evaluators see them.
-    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      report: EngineerSubagentReport;
-    };
-    expect(signalPayload.report.required_follow_ups).toEqual([
-      expect.objectContaining({
-        text: "Fix security vulnerability",
-        obligation_class: "required_critical",
-        severity: "critical",
-        source_contract_id: "contract-sec-1",
-      }),
-    ]);
-  });
-
-  test("severity ordering is preserved across multiple obligations", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: [],
-      required_follow_ups: [
-        {
-          text: "A",
-          obligation_class: "required_critical",
-          severity: "critical",
-        },
-        { text: "B", obligation_class: "required_standard", severity: "high" },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(2);
-    const signalPayload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      report: EngineerSubagentReport;
-    };
-    expect(
-      signalPayload.report.required_follow_ups?.map((r) => r.text),
-    ).toEqual(["A", "B"]);
-  });
-
-  test("report with both follow_ups and required_follow_ups surfaces both kinds", async () => {
-    const store = storeFor(
-      buildChangeWithContract([], [{ id: "tk-1", status: "pending" }]),
-    );
-    const report = engineerReport({
-      follow_ups: ["Advisory follow-up"],
-      required_follow_ups: [
-        {
-          text: "Required follow-up",
-          obligation_class: "required_critical",
-          severity: "critical",
-        },
-      ],
-    });
-
-    const output = parse(
-      await subagentReportTools.adv_subagent_report_submit.execute(
-        { report },
-        store,
-      ),
-    );
-
-    expect(output.success).toBe(true);
-    expect(output.consumerResults.followUps.previewCount).toBe(1);
-    expect(output.consumerResults.requiredFollowUps.previewCount).toBe(1);
   });
 });
 

@@ -30,7 +30,7 @@ import { validateChange } from "./validator";
 import { projectContractCoverage, runContractChecks } from "./contract";
 import { resolveTaskEvidence } from "./task-classifier";
 import { buildContractFromAgreement } from "./contract-mint";
-import { evaluateGateCriteria } from "../temporal/gate-readiness";
+import { evaluateGateCriteria } from "../gates/gate-readiness";
 import { acceptanceCriteriaFromContract } from "../types/change-state-helpers";
 import type { ChangeState } from "../types/change-state";
 

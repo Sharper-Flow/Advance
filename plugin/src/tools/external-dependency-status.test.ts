@@ -3,7 +3,7 @@
  *
  * Verifies AC1/AC3: external-dependency status enrichment is capped by
  * per-item and total timeouts, bounded concurrency, and degrades gracefully
- * without breaking the core change read or issuing Temporal queries/signals.
+ * without breaking the core change read.
  */
 
 import { describe, test, expect, vi, beforeEach } from "vitest";
@@ -50,7 +50,7 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("../temporal/activities", () => ({
+vi.mock("./target-project", () => ({
   validateCrossRepoTarget: mocks.validateCrossRepoTarget,
 }));
 

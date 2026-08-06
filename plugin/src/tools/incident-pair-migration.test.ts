@@ -1,34 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { createDefaultGates, type Change } from "../types";
 import type { Store } from "../storage/store-types";
 import type { ChangeState } from "../types/change-state";
-import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
-import { evaluateGateReadiness } from "../temporal/gate-readiness";
+import { evaluateGateReadiness } from "../gates/gate-readiness";
 import { changeToState } from "../types/change-state-helpers";
 import { loadChange } from "../storage/json";
-import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
-
-const PROJECT_ID = "0".repeat(40);
-
-const workflowHandle = vi.hoisted(() => ({
-  signal: vi.fn(),
-  query: vi.fn(),
-  describe: vi.fn(),
-}));
-
-vi.mock("../temporal/service", () => ({
-  getService: () =>
-    createMockOwnerFromClient({
-      client: { workflow: { getHandle: () => workflowHandle } },
-    }),
-}));
-
-vi.mock("../utils/project-id", () => ({
-  getProjectId: async () => PROJECT_ID,
-}));
 
 import { contractTools } from "./contract";
 import { verificationEvidenceTools } from "./verification-evidence";
@@ -180,17 +159,6 @@ function makeGetState(change: Change): ChangeState {
 describe("incident-pair-migration", () => {
   let tempDir: string | undefined;
 
-  beforeEach(() => {
-    tempDir = undefined;
-    workflowHandle.describe.mockReset();
-    workflowHandle.signal.mockReset();
-    workflowHandle.query.mockReset();
-    workflowHandle.describe.mockResolvedValue({});
-    workflowHandle.signal.mockRejectedValue(
-      new Error("workflow execution already completed"),
-    );
-  });
-
   afterEach(async () => {
     if (tempDir) {
       await cleanupTempDir(tempDir);
@@ -204,22 +172,6 @@ describe("incident-pair-migration", () => {
       const change = baseChange();
       await seedProjection(changesDir, change);
       const store = createStore(change, changesDir);
-
-      // Each iteration simulates a captured base; the first getState call sees
-      // the seeded state, and subsequent recovery reads see the latest disk
-      // projection via commitChangeProjection.
-      workflowHandle.query.mockImplementation(
-        (queryName: string, receiptId?: string) => {
-          if (
-            queryName === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt ||
-            (typeof queryName === "object" &&
-              queryName.name === CHANGE_WORKFLOW_QUERY_NAMES.getMutationReceipt)
-          ) {
-            return Promise.resolve(receiptId ? { id: receiptId } : undefined);
-          }
-          return Promise.resolve(makeGetState(change));
-        },
-      );
 
       const matrixPromise =
         contractTools.adv_contract_review_matrix_set.execute(

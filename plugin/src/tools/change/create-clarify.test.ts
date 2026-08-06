@@ -12,17 +12,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdir, writeFile } from "node:fs/promises";
 import type { Store } from "../../storage/store-types";
 import type { ChangeListResponse, SpecListResponse } from "../../types";
-import { createTemporalReadDeadline } from "../../temporal/retry-wrapper";
+import { createReadDeadline } from "./validation-projection";
 import {
   loadValidationContext,
   checkActiveDuplicateChange,
 } from "./create-clarify";
-import {
-  markPoisonedWorkflowForChange,
-  clearPoisonedWorkflowCache,
-} from "../../storage/store-temporal/poisoned-workflow-cache";
 import type { Spec } from "../../types";
 
 interface MockSpec {
@@ -259,12 +256,17 @@ describe("loadValidationContext", () => {
       specGetDelayMs: 50,
       listDelayMs: 50,
     });
+    await mkdir("/tmp/test/.adv/changes/own-change", { recursive: true });
+    await writeFile(
+      "/tmp/test/.adv/changes/own-change/proposal.md",
+      "# Proposal",
+    );
 
     const pending = loadValidationContext(store, "own-change", "Own Change");
 
-    // Proposal read uses store.changes.get("own-change"); it should be
-    // scheduled immediately alongside the other branches.
-    expect(store.proposalGetCalls()).toBe(1);
+    // Proposal read now uses the disk artifact path; no peer or aggregate
+    // change read is needed.
+    expect(store.proposalGetCalls()).toBe(0);
 
     await vi.advanceTimersByTimeAsync(120);
     const result = await pending;
@@ -347,7 +349,7 @@ describe("loadValidationContext", () => {
       ]),
       listDelayMs: 500,
     });
-    const deadline = createTemporalReadDeadline(50);
+    const deadline = createReadDeadline(50);
 
     const pending = loadValidationContext(store, "own-change", "Own Change", {
       deadline,
@@ -377,7 +379,7 @@ describe("loadValidationContext", () => {
       peers: withOwnChange([]),
       specListDelayMs: 500,
     });
-    const deadline = createTemporalReadDeadline(50);
+    const deadline = createReadDeadline(50);
 
     const pending = loadValidationContext(store, "own-change", "Own Change", {
       deadline,
@@ -399,7 +401,7 @@ describe("loadValidationContext", () => {
       peers: withOwnChange([]),
       specGetDelayMs: 500,
     });
-    const deadline = createTemporalReadDeadline(50);
+    const deadline = createReadDeadline(50);
 
     const pending = loadValidationContext(store, "own-change", "Own Change", {
       deadline,
@@ -418,7 +420,7 @@ describe("loadValidationContext", () => {
       peers: withOwnChange([]),
       listDelayMs: 500,
     });
-    const deadline = createTemporalReadDeadline(50);
+    const deadline = createReadDeadline(50);
 
     const pending = loadValidationContext(store, "own-change", "Own Change", {
       deadline,
@@ -432,11 +434,7 @@ describe("loadValidationContext", () => {
   });
 });
 
-describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
-  afterEach(() => {
-    clearPoisonedWorkflowCache();
-  });
-
+describe("checkActiveDuplicateChange disk handling", () => {
   test("returns undefined when no active duplicate exists", async () => {
     const store = createMockStore({ peers: [] });
     const result = await checkActiveDuplicateChange(store, "Add user auth", {
@@ -457,50 +455,4 @@ describe("checkActiveDuplicateChange poisoned-workflow handling", () => {
     expect(result?.force_recreate).toBeUndefined();
   });
 
-  test("reports poisoned duplicate with force_recreate option", async () => {
-    const store = createMockStore({
-      peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
-    });
-    markPoisonedWorkflowForChange(
-      "0000ec0100000000000000000000000000000000",
-      "addUserAuth",
-    );
-    const result = await checkActiveDuplicateChange(store, "Add user auth", {
-      projectId: "0000ec0100000000000000000000000000000000",
-    });
-    expect(result).toBeDefined();
-    expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE_POISONED");
-    expect(result?.force_recreate).toBe(true);
-    expect(result?.hint).toContain("forceRecreate: true");
-  });
-
-  test("allows forceRecreate only when the existing workflow is poisoned", async () => {
-    const store = createMockStore({
-      peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
-    });
-    const result = await checkActiveDuplicateChange(store, "Add user auth", {
-      forceRecreate: true,
-      projectId: "0000ec0100000000000000000000000000000000",
-    });
-    expect(result).toBeDefined();
-    expect(result?.code).toBe("DUPLICATE_ACTIVE_CHANGE");
-    expect(result?.hint).toContain(
-      "only allowed when the existing change's workflow is poisoned",
-    );
-  });
-
-  test("allows recreate when the existing workflow is poisoned and forceRecreate is true", async () => {
-    const store = createMockStore({
-      peers: [{ id: "addUserAuth", title: "Add user auth", status: "active" }],
-    });
-    markPoisonedWorkflowForChange(
-      "0000ec0100000000000000000000000000000000",
-      "addUserAuth",
-    );
-    const result = await checkActiveDuplicateChange(store, "Add user auth", {
-      forceRecreate: true,
-      projectId: "0000ec0100000000000000000000000000000000",
-    });
-    expect(result).toBeUndefined();
-  });
 });

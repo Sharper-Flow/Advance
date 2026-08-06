@@ -3,32 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { buildProjectTaskQueue } from "../temporal/client";
-
-const PROJECT_ID = "0".repeat(40);
-const PROJECT_QUEUE = buildProjectTaskQueue(PROJECT_ID);
-
 const mocks = vi.hoisted(() => {
-  const signal = vi.fn(async () => {});
-  const executeUpdate = vi.fn(async () => ({
-    id: "pw-123",
-    type: "convention",
-    content: "Always validate inputs at boundary",
-    sourceChange: "addFeature",
-    sourceTask: "tk-task0001",
-    promotedAt: "2026-04-20T00:00:00.000Z",
-  }));
-  const query = vi.fn(async () => [
-    {
-      id: "pw-123",
-      type: "convention",
-      content: "Always validate inputs at boundary",
-      sourceChange: "addFeature",
-      sourceTask: "tk-task0001",
-      promotedAt: "2026-04-20T00:00:00.000Z",
-    },
-  ]);
-  const close = vi.fn(async () => {});
   const addProjectWisdom = vi.fn(async () => ({
     id: "pw-fallback",
     type: "convention",
@@ -40,28 +15,10 @@ const mocks = vi.hoisted(() => {
   const compactProjectWisdom = vi.fn(async () => {});
   const listProjectWisdom = vi.fn(async () => []);
   return {
-    signal,
-    executeUpdate,
-    query,
-    close,
-    canReachTemporalAddress: vi.fn(async () => true),
-    getTemporalWorkerAliveness: vi.fn(() => true),
-    getRegisteredTemporalWorkerQueues: vi.fn(() => [PROJECT_QUEUE]),
     addProjectWisdom,
     compactProjectWisdom,
     listProjectWisdom,
-    getService: vi.fn(() => null),
     writeJsonlAtomic: vi.fn(async () => {}),
-  };
-});
-
-vi.mock("../temporal/service", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/service")>(
-    "../temporal/service",
-  );
-  return {
-    ...actual,
-    getService: mocks.getService,
   };
 });
 
@@ -75,52 +32,23 @@ vi.mock("../storage/project-wisdom", () => ({
   listProjectWisdom: mocks.listProjectWisdom,
 }));
 
-vi.mock("../temporal/runtime-manager", async () => {
-  const actual = await vi.importActual<
-    typeof import("../temporal/runtime-manager")
-  >("../temporal/runtime-manager");
-  return {
-    ...actual,
-    canReachTemporalAddress: mocks.canReachTemporalAddress,
-  };
-});
-
-vi.mock("../plugin-init", async () => {
-  const actual =
-    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
-  return {
-    ...actual,
-    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
-    getRegisteredTemporalWorkerQueues: mocks.getRegisteredTemporalWorkerQueues,
-  };
-});
-
-vi.mock("../utils/project-id", async () => {
-  const actual = await vi.importActual<typeof import("../utils/project-id")>(
-    "../utils/project-id",
-  );
-  return {
-    ...actual,
-    getProjectId: vi.fn(async () => PROJECT_ID),
-  };
-});
+vi.mock("./change-mutation-coordinator", () => ({
+  coordinateChangeMutation: vi.fn(async () => ({ kind: "verified" })),
+}));
 
 import { wisdomTools } from "./wisdom";
 
-describe("adv_wisdom_add signal-driven path", () => {
+describe("adv_wisdom_add disk path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.listProjectWisdom.mockResolvedValue([]);
-    mocks.canReachTemporalAddress.mockResolvedValue(true);
-    mocks.getTemporalWorkerAliveness.mockReturnValue(true);
-    mocks.getRegisteredTemporalWorkerQueues.mockReturnValue([PROJECT_QUEUE]);
   });
 
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it("fires wisdomAddedSignal to change workflow when Temporal is available", async () => {
+  it("persists wisdom through the authoritative disk mutation", async () => {
     const store = {
       paths: {
         root: "/repo",
@@ -152,11 +80,10 @@ describe("adv_wisdom_add signal-driven path", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.success).toBe(true);
-    expect(mocks.signal).not.toHaveBeenCalled();
-    expect(store.wisdom.add).toHaveBeenCalledTimes(1);
+    expect(store.wisdom.add).not.toHaveBeenCalled();
   });
 
-  it("uses addProjectWisdom directly when promote=true and temporal is available", async () => {
+  it("promotes wisdom through the disk path", async () => {
     mocks.addProjectWisdom.mockResolvedValueOnce({
       id: "pw-123",
       type: "convention",
@@ -216,8 +143,6 @@ describe("adv_wisdom_add signal-driven path", () => {
     const parsed = JSON.parse(result);
 
     expect(parsed.success).toBe(true);
-    expect(mocks.signal).not.toHaveBeenCalled();
-    expect(store.wisdom.add).toHaveBeenCalledTimes(1);
     expect(mocks.addProjectWisdom).toHaveBeenCalledTimes(1);
   });
 
@@ -256,45 +181,9 @@ describe("adv_wisdom_add signal-driven path", () => {
     expect(parsed.error).toContain("disk full");
   });
 
-  it("falls back to disk store when Temporal is unavailable", async () => {
-    mocks.getService.mockReturnValueOnce(null);
-    const store = {
-      paths: {
-        root: "/repo",
-        wisdom:
-          "/home/jrede/.local/share/opencode/plugins/advance/proj123/wisdom.jsonl",
-      },
-      wisdom: {
-        add: vi.fn(async () => ({
-          id: "ws-1",
-          type: "convention",
-          content: "Always validate inputs at boundary",
-          source_task: "tk-task0001",
-          recorded_at: "2026-04-20T00:00:00.000Z",
-        })),
-      },
-      changes: { refresh: vi.fn(async () => undefined) },
-    } as any;
-
-    const result = await wisdomTools.adv_wisdom_add.execute(
-      {
-        changeId: "addFeature",
-        type: "convention",
-        content: "Always validate inputs at boundary",
-        sourceTask: "tk-task0001",
-        promote: false,
-      },
-      store,
-    );
-    const parsed = JSON.parse(result);
-
-    expect(parsed.success).toBe(true);
-    expect(mocks.signal).not.toHaveBeenCalled();
-    expect(store.wisdom.add).toHaveBeenCalledTimes(1);
-  });
 });
 
-describe("adv_wisdom_list signal-driven path", () => {
+describe("adv_wisdom_list disk path", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -340,12 +229,11 @@ describe("adv_wisdom_list signal-driven path", () => {
 
     expect(parsed.wisdom).toHaveLength(1);
     expect(parsed.wisdom[0].type).toBe("pattern");
-    expect(mocks.query).not.toHaveBeenCalled();
     expect(store.wisdom.list).not.toHaveBeenCalled();
     await rm(root, { recursive: true, force: true });
   });
 
-  it("returns disk-projected wisdom when Temporal is unavailable", async () => {
+  it("returns disk-projected wisdom without workflow state", async () => {
     const root = await mkdtemp(join(tmpdir(), "adv-wisdom-projection-"));
     const changes = join(root, "changes");
     await mkdir(changes, { recursive: true });
@@ -426,8 +314,7 @@ describe("adv_wisdom_list project_only branch", () => {
     expect(mocks.listProjectWisdom).toHaveBeenCalledTimes(1);
   });
 
-  it("reads project wisdom from disk when Temporal is unavailable", async () => {
-    mocks.getService.mockReturnValueOnce(null);
+  it("reads project wisdom from disk without workflow state", async () => {
     mocks.listProjectWisdom.mockResolvedValueOnce([
       {
         id: "pw-1",

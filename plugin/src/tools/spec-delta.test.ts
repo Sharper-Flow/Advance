@@ -19,16 +19,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
-  const signal = vi.fn(async () => {});
-  const query = vi.fn(async () => ({
-    deltas: {},
-    signal_rejections: [],
-  }));
-  const close = vi.fn(async () => {});
-  const invalidateChange = vi.fn();
-  const setCachedChange = vi.fn();
-  const emitChangeSummarySignal = vi.fn();
-  const persistStateToDisk = vi.fn();
   const specDeltasAdd = vi.fn();
   const specDeltasModify = vi.fn();
   const specDeltasAmend = vi.fn();
@@ -36,58 +26,12 @@ const mocks = vi.hoisted(() => {
   const specDeltasRemove = vi.fn();
   const specDeltasRename = vi.fn();
   return {
-    signal,
-    query,
-    close,
-    invalidateChange,
-    setCachedChange,
-    emitChangeSummarySignal,
-    persistStateToDisk,
     specDeltasAdd,
     specDeltasModify,
     specDeltasAmend,
     specDeltasRetract,
     specDeltasRemove,
     specDeltasRename,
-    canReachTemporalAddress: vi.fn(async () => true),
-    getTemporalWorkerAliveness: vi.fn(() => true),
-    getRegisteredTemporalWorkerQueues: vi.fn(() => ["advance-proj123"]),
-    getService: vi.fn(() => ({
-      connection: { close },
-      client: {
-        workflow: {
-          getHandle: vi.fn(() => ({ signal, query })),
-          start: vi.fn(async () => ({ signal, query })),
-        },
-      },
-    })),
-  };
-});
-
-vi.mock("../temporal/service", async () => {
-  const actual = await vi.importActual<typeof import("../temporal/service")>(
-    "../temporal/service",
-  );
-  return { ...actual, getService: mocks.getService };
-});
-
-vi.mock("../temporal/runtime-manager", async () => {
-  const actual = await vi.importActual<
-    typeof import("../temporal/runtime-manager")
-  >("../temporal/runtime-manager");
-  return {
-    ...actual,
-    canReachTemporalAddress: mocks.canReachTemporalAddress,
-  };
-});
-
-vi.mock("../plugin-init", async () => {
-  const actual =
-    await vi.importActual<typeof import("../plugin-init")>("../plugin-init");
-  return {
-    ...actual,
-    getTemporalWorkerAliveness: mocks.getTemporalWorkerAliveness,
-    getRegisteredTemporalWorkerQueues: mocks.getRegisteredTemporalWorkerQueues,
   };
 });
 

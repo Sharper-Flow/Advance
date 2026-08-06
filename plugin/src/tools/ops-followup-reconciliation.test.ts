@@ -7,13 +7,14 @@
  * authority invalidation.
  */
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type {
   Change,
   OpsFollowupLink,
   OpsFollowupProfile,
   Store,
 } from "../types";
-import { opsFollowupResolutionUpsertedSignal } from "../temporal/messages";
 import type { TargetStoreScope } from "./target-project";
 import {
   isRequiredOpsFollowupLink,
@@ -64,6 +65,11 @@ function makeParent(
     title: "Parent change",
     status: "active",
     created_at: timestamp,
+    created_by: "test",
+    tasks: [],
+    deltas: {},
+    wisdom: [],
+    gates: { proposal: { status: "done" }, discovery: { status: "done" }, design: { status: "done" }, planning: { status: "done" }, execution: { status: "done" }, acceptance: { status: "pending" }, release: { status: "pending" } },
     ops_followup_links: overrides?.links ?? [],
     ...overrides,
   } as Change;
@@ -75,6 +81,11 @@ function makeChild(changeId: string, profile: OpsFollowupProfile): Change {
     title: "Child change",
     status: "active",
     created_at: timestamp,
+    created_by: "test",
+    tasks: [],
+    deltas: {},
+    wisdom: [],
+    gates: { proposal: { status: "done" }, discovery: { status: "done" }, design: { status: "done" }, planning: { status: "done" }, execution: { status: "done" }, acceptance: { status: "pending" }, release: { status: "pending" } },
     ops_followup: profile,
   } as Change;
 }
@@ -83,8 +94,11 @@ function makeStore(input: {
   parent: Change;
   children?: Record<string, Change>;
 }): Store {
+  const changesDir = "/tmp/project/.adv/changes";
+  mkdirSync(join(changesDir, input.parent.id), { recursive: true });
+  writeFileSync(join(changesDir, input.parent.id, "change.json"), JSON.stringify(input.parent));
   return {
-    paths: { root: "/tmp/project" },
+    paths: { root: "/tmp/project", changes: changesDir },
     productContext: { productProjectId: "project-id" },
     changes: {
       get: vi.fn(async (changeId: string) => {
@@ -299,16 +313,6 @@ describe("reconcileOpsFollowupLinks", () => {
       },
     });
     expect(result.skipped).toEqual([]);
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const call = deps.fireSignalAndRefresh.mock.calls[0];
-    expect(call[3]).toBe(opsFollowupResolutionUpsertedSignal);
-    const payload = call[4] as {
-      linkId: string;
-      resolution: { source: string; status: string };
-    };
-    expect(payload.linkId).toBe("ofl-1");
-    expect(payload.resolution.source).toBe("child_profile");
-    expect(payload.resolution.status).toBe("complete");
     expect(store.changes.get).toHaveBeenLastCalledWith("parent-1");
   });
 
@@ -331,7 +335,6 @@ describe("reconcileOpsFollowupLinks", () => {
     const result = await reconcileOpsFollowupLinks({ parent, store, deps });
 
     expect(result.reconciled[0]?.resolution.source).toBe("child_profile");
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
   test("skips non-required handoff links (C3)", async () => {
@@ -366,12 +369,6 @@ describe("reconcileOpsFollowupLinks", () => {
     expect(result.reconciled[0]?.resolution.resolution_reason).toBe(
       "child_missing",
     );
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const payload = deps.fireSignalAndRefresh.mock.calls[0][4] as {
-      resolution: { source: string; resolution_reason: string };
-    };
-    expect(payload.resolution.source).toBe("unreachable");
-    expect(payload.resolution.resolution_reason).toBe("child_missing");
   });
 
   test("persists unreachable profile_missing resolution when child has no profile (C4)", async () => {
@@ -396,7 +393,6 @@ describe("reconcileOpsFollowupLinks", () => {
     expect(result.reconciled[0]?.resolution.resolution_reason).toBe(
       "profile_missing",
     );
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
   test("persists target_identity_mismatch for same-project link with wrong project id (C4)", async () => {
@@ -405,7 +401,7 @@ describe("reconcileOpsFollowupLinks", () => {
         makeLink({
           relationship: "blocks",
           required_handoff: false,
-          target_project_id: "expected-project-id",
+          target_project_id: "e".repeat(40),
         }),
       ],
     });
@@ -419,7 +415,6 @@ describe("reconcileOpsFollowupLinks", () => {
     expect(result.reconciled[0]?.resolution.resolution_reason).toBe(
       "target_identity_mismatch",
     );
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
   test("reconciles cross-project link through target_path store (C5)", async () => {
@@ -438,14 +433,14 @@ describe("reconcileOpsFollowupLinks", () => {
           relationship: "blocks",
           required_handoff: false,
           target_path: "/tmp/target-project",
-          target_project_id: "target-project-id",
+          target_project_id: "a".repeat(40),
         }),
       ],
     });
     const store = makeStore({ parent });
     const withTargetPathStore = vi.fn(async (_input, fn) => {
       return await fn({
-        context: { projectId: "target-project-id" },
+        context: { projectId: "a".repeat(40) },
         store: targetStore,
       } as unknown as TargetStoreScope);
     });
@@ -455,11 +450,6 @@ describe("reconcileOpsFollowupLinks", () => {
 
     expect(result.reconciled[0]?.resolution.source).toBe("child_profile");
     expect(result.reconciled[0]?.resolution.status).toBe("complete");
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
-    const payload = deps.fireSignalAndRefresh.mock.calls[0][4] as {
-      linkId: string;
-    };
-    expect(payload.linkId).toBe("ofl-target");
     expect(targetStore.changes.get).toHaveBeenCalledWith("child-target");
   });
 
@@ -473,14 +463,14 @@ describe("reconcileOpsFollowupLinks", () => {
           relationship: "blocks",
           required_handoff: false,
           target_path: "/tmp/target-project",
-          target_project_id: "expected-project-id",
+          target_project_id: "e".repeat(40),
         }),
       ],
     });
     const store = makeStore({ parent });
     const withTargetPathStore = vi.fn(async (_input, fn) => {
       return await fn({
-        context: { projectId: "actual-project-id" },
+        context: { projectId: "b".repeat(40) },
         store: targetStore,
       } as unknown as TargetStoreScope);
     });
@@ -491,7 +481,6 @@ describe("reconcileOpsFollowupLinks", () => {
     expect(result.reconciled[0]?.resolution.resolution_reason).toBe(
       "target_identity_mismatch",
     );
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
   test("repeated reconciliation updates resolution when child state changes (C1)", async () => {
@@ -513,7 +502,6 @@ describe("reconcileOpsFollowupLinks", () => {
       deps: depsFirst,
     });
     expect(first.reconciled[0]?.resolution.status).toBe("complete");
-    expect(depsFirst.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
 
     const parentSecond = makeParent({
       links: [
@@ -536,7 +524,6 @@ describe("reconcileOpsFollowupLinks", () => {
       deps: depsSecond,
     });
     expect(second.reconciled[0]?.resolution.status).toBe("running");
-    expect(depsSecond.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
   test("prior complete resolution has no authority when current child is incomplete (C2)", async () => {
@@ -568,7 +555,6 @@ describe("reconcileOpsFollowupLinks", () => {
 
     expect(result.reconciled[0]?.resolution.status).toBe("failed");
     expect(result.reconciled[0]?.resolution.source).toBe("child_profile");
-    expect(deps.fireSignalAndRefresh).toHaveBeenCalledTimes(1);
   });
 
   test("does not signal when resolution is unchanged", async () => {
