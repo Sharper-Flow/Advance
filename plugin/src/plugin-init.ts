@@ -71,7 +71,7 @@ import {
 import { recordWorkerRunFailure } from "./temporal/retry-wrapper";
 import { resolveProductContext } from "./storage/product-context";
 import {
-  tryReclaimStaleLock,
+  _tryReclaimStaleLock,
   type ReclaimWorkerLockOptions,
   type WorkerLockResult,
 } from "./temporal/worker-lock";
@@ -123,23 +123,10 @@ export interface WorkerSingletonPlan {
 }
 
 export async function resolveWorkerSingletonPlan(
-  options: WorkerSingletonPlanOptions,
+  _options: WorkerSingletonPlanOptions,
 ): Promise<WorkerSingletonPlan> {
-  if (options.forceInProcessWorker || !options.workerSingletonEnforce) {
-    return { shouldSpawnWorker: true, workerRole: "host" };
-  }
-
-  const lockResult = await tryReclaimStaleLock(options.projectStateDir, {
-    ...options,
-    schemaVersion: 2,
-    expectedQueue: options.expectedQueue,
-  });
-
-  return {
-    shouldSpawnWorker: lockResult.owned,
-    workerRole: lockResult.owned ? "host" : "client",
-    lockResult,
-  };
+  // Temporal bypass: no worker resolution needed.
+  return { shouldSpawnWorker: false, workerRole: "degraded" };
 }
 
 function buildTemporalClientEnv(input: {
