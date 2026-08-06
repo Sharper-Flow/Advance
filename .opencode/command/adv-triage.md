@@ -17,12 +17,12 @@ Reconcile backlog sources into GitHub issues, apply `priority:*` labels to bugs 
 
 ## Phase 0: Load Skill
 
-`skill("adv-triage")` → source enumeration, structural matching, cleanup validation, coalesce evidence tiers, approval parser, portfolio-balance schema, report template, and anti-patterns. If unavailable, continue with this embedded protocol.
+`skill("adv-triage")` → source enumeration, structural matching, cleanup validation, coalesce evidence tiers, approval parser, portfolio-balance schema, report template, and anti-patterns. Required — if the skill fails to load, stop and report a broken deploy (run scripts/deploy-local.sh --fix).
 
 ## Parse Flags
 
 - `--dry-run` — preview only; skip GH/link/cleanup mutations + Tier B prompts
-- `--source <name>` — limit Phase 2 scan: `gh`/`wisdom`/`notes`/`changes`/`epics`/`todos`
+- `--source <name>` — limit the source scan (skill § Gather Sources): `gh`/`wisdom`/`notes`/`changes`/`epics`/`todos`
 
 Reject unknown flags: single-line error + valid list.
 
@@ -42,37 +42,6 @@ Any failure → `[ADV:BLOCKED]` + cause, stop. Resolve project handle, ensure cu
 
 ---
 
-## Phase 2: Gather Sources
-
-Inline parallel reads (I/O bound, no sub-agents). 7 sources: open GH issues, GH Projects items, active ADV changes, active ADV Epics, wisdom, cross-session notes, TODO/FIXMEs. Cap each 100; overflow → recency sort + `(N more not shown)`. Build inventory records with stable refs, linkage fields, optional Epic membership, and advisory `kind_hint`. `kind_hint` (`bug | feature | unknown`) classifies a **source item being promoted to a GitHub issue**; its consumers are the Phase 4a `reclassify N as bug|feature` reply, the `ADV Type` field set at issue creation, and the Phase 4c bug priority loop. It is advisory and never authorizes persistence.
-
-`kind_hint` is distinct from `defectHint`: `kind_hint` classifies a source item on its way to becoming an issue, while `defectHint` ranks an existing ADV change already tracked in ADV. For active changes, derive the optional advisory `defectHint` with `deriveDefectHint({ originKind, title })`: typed `origin.kind === 'triage'` yields source `origin_kind` and is the PRIMARY source; a `/^\s*fix\b/i` title prefix yields source `title_prefix` and is SECONDARY and weak. The hint always carries its evidence source and affects ordering only; it does not decide membership or authorize a mutation. Use `adv_change_list status:'in-flight'`, `adv_epic_list`, and bounded `adv_epic_show` only for plausible relevant Epics. See skill § Phase 1.
-
----
-
-## Phase 3: Match + Identify Gaps
-
-Structural-first match (stable ref → body excerpt → title similarity). Build `represented[]` + `unrepresented[]`. Title-similarity is heuristic-only — stays in user-confirmation list, never auto-suppresses. See skill § Phase 2.
-
-## Phase 3.5: Source Cleanup Validation (Tier B, batched)
-
-After `represented[]` / `unrepresented[]` are built and before any issue creation or bug priority assignment, validate the whole source pool for cleanup decisions. Build command-local `cleanup_decisions[]` with source, stable ref, classification, evidence, proposed action, survivor/source when applicable, and source/reason approval group. Classifications: `relevant`, `stale/already-addressed`, `duplicate/superseded`, `should-merge`, `unclear`.
-
-- `relevant` → may proceed to Phase 4 issue creation or bug priority assignment.
-- `stale/already-addressed` / `duplicate/superseded` / `should-merge` → surface source, reason, evidence, survivor/source, and proposed action; mutate/suppress only after explicit Tier B approval batched by source/reason.
-- `unclear` → ask focused relevance clarification before issue creation or priority assignment; unresolved items stay visible and are not silently suppressed.
-
-Source-specific actions after approval:
-
-- ADV changes: recommend `/adv-archive` for completed/ready work; close duplicate/superseded/not-planned/cancelled only through ADV close tools with approval evidence.
-- GitHub issues: capability-detect duplicate close support via `gh issue close --help`. If `--duplicate-of` is available, use native duplicate close. If unavailable, use documented `Duplicate of #N` comment semantics plus supported close reasons only.
-
-MUST NOT create or open issue candidates before cleanup validation completes for the source pool. MUST NOT apply bug priority labels before cleanup validation completes. Title similarity and agent inference are advisory only (P33): they may flag cleanup candidates, never mutate, close, suppress, or remove without structural evidence and explicit approval. See skill § Source cleanup validation.
-
-If `unrepresented[]` is empty, represented issues have required fields, and cleanup validation has completed with no unresolved cleanup/clarification actions: `No new issues, no label gaps.` Skip Phase 4a issue creation, then continue through Phase 5 coalesce and Phase 6 portfolio balance.
-
----
-
 ## Phase 4: User Assignments (Tier B, batched)
 
 ### 4a. Confirm new issues
@@ -81,7 +50,7 @@ When `unrepresented[]` non-empty: emit Tier B inline approval (skill § Phase 3a
 
 ### 4b. Relevance validation
 
-Thin late fallback only: if a field-gap candidate was not covered by Phase 3.5 cleanup validation or new evidence appears after issue creation, relevance-check before asking for bug context or applying priority. Evidence sources: issue body/comments/labels/project status, linked ADV change state, current source/docs/tests for implementation-gap claims, and user-provided context from the run. Classify each item as `relevant`, `stale/already-addressed`, `duplicate/superseded`, or `unclear`.
+Thin late fallback only: if a field-gap candidate was not covered by cleanup validation (skill § Source Cleanup Validation) or new evidence appears after issue creation, relevance-check before asking for bug context or applying priority. Evidence sources: issue body/comments/labels/project status, linked ADV change state, current source/docs/tests for implementation-gap claims, and user-provided context from the run. Classify each item as `relevant`, `stale/already-addressed`, `duplicate/superseded`, or `unclear`.
 
 - `relevant` → include in the Phase 4c bug priority loop.
 - `stale/already-addressed` or `duplicate/superseded` → surface evidence and get explicit user approval before closing/removing/deprioritizing.
@@ -139,57 +108,6 @@ Reply grammar (exact, no LLM fallback):
 - `stop` / `abort` — halt without linking
 
 Anything else → re-prompt. On approval, call `adv_change_update_issues changeId:<id> add:[<issue-url>]` per approved pair. Partial failure is safe: retain successful links, report failed pairs with exact retry calls, continue only when failure does not corrupt linkage authority. `--dry-run` emits candidates and proposed calls without prompting or mutating.
-
----
-
-## Phase 6: Portfolio-Balance Report
-
-Emit exactly three sections. Cap each section at 10 rows and append `(N more not shown)` when truncated. No chat popup and no file write.
-
-### Important to complete
-
-Represent every nonterminal ADV change with no linked GitHub issue in this same section; absence of an issue link MUST NOT exclude it. Build membership structurally from typed change state only: nonterminal state plus typed absence of issue linkage. Title similarity, title prefix inference, and agent inference MUST NOT decide whether an unlinked change appears. Keep this membership decision separate from ranking.
-
-Rank the resulting changes by existing structural signals plus the bounded advisory hint:
-1. linked issue priority (`critical` → `high` → `medium` → `low` → none),
-2. for an unlinked change only, optional `defectHint` ordering weight strictly between `priority:low` and `priority:medium`; it may lift defect work above the weakest structural triage signal but never above a deliberate medium-or-higher human triage decision,
-3. gate proximity to release (release/acceptance/execution before earlier gates),
-4. recent activity as deterministic tie-breaker.
-
-Each row includes change ID/title, current gate, task progress, last activity, linked issue + priority, optional Epic ID/title/order, and any advisory defect hint rendered with its evidence source (`source:origin_kind` or `source:title_prefix`). Epic order is advisory: warn when earlier entries remain incomplete, never block work solely due to order. Resume pointer: `→ /adv-apply {change-id}`.
-
-### Cleanup needed
-
-Report counts + top IDs for `/adv-cleanup` buckets: ready-to-archive, stuck-at-proposal, abandoned-mid-flight, duplicate/superseded. Include stale Epic-entry projection warnings when found, but route repair through typed Epic repair tools or `/adv-cleanup`; `/adv-triage` MUST NOT close/cancel/archive changes or mutate Epic membership in this section.
-
-Pointer: `→ /adv-cleanup`.
-
-### Open issues worth solving
-
-List open issues with no linked active ADV change after Phase 5, sorted by `priority:*` then recency. Annotate related Epic shell/entry context when structurally present. Pointer: `→ /adv-proposal #N` (new issue-linked changes use `origin_kind:'triage'`). Never silently suppress overflow or heuristic overlaps.
-
----
-
-## Phase 7: Final Report
-
-Emit: sources scanned, issues created, priorities assigned, coalesce pairs proposed/linked/rejected/failed, active Epics inspected, and three portfolio-balance counts. If `--dry-run`, append `Re-run without --dry-run to apply mutations.`
-
----
-
-## Constraints
-
-- × MUST NOT auto-create GH issues without Tier B approval
-- × MUST NOT auto-link a coalesce pair without approval covering that displayed pair
-- × MUST NOT let `approve all` authorize hidden overflow pairs
-- × MUST NOT use heuristic similarity as linkage, cleanup, gate, or suppression authority (P33)
-- × MUST NOT own change closure or Epic repair from the portfolio report; delegate to typed paths
-- × MUST NOT write feature scoring fields from this command
-- × MUST NOT write `priority:*` labels to non-bug issues
-- × MUST NOT let an advisory defect hint filter, suppress, close, deprioritize, or authorize any mutation
-- × MUST NOT write any `priority:*` label or parallel priority field to an ADV change; `priority:*` remains GitHub-issue-scoped
-- × MUST NOT generate, echo, stage, commit, or push ROADMAP.md or `.adv/roadmap-snapshot.json`
-- × MUST NOT post priority rationale as issue comments
-- × MUST NOT use `question` to confirm priority choice — only gather bounded context
 
 ---
 

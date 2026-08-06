@@ -375,31 +375,11 @@ Update proposal artifact with the discovery findings so the sign-off flow can pr
 
 ## Phase 3.5: Discovery Opportunity Scout
 
-Run a trigger-based Discovery Opportunity Scout pass after current-state research and before agreement formation when Trigger Conditions apply. The scout identifies missed opportunities: alternative approaches, overlooked patterns, gaps in objectives/AC, and unconsidered edge cases.
+`skill("adv-opportunity-scout")` → bounded scout methodology (modes, output schema, routing taxonomy, prompt templates, opt-out, degradation). Use `discovery` mode for this phase. If skill is unavailable, the scout phase is inconclusive and recorded in the phase output; do not auto-adopt or surface candidates without the skill's routing taxonomy.
 
-### Trigger Conditions
+### Integration with Agreement
 
-Run the scout for strategic, architecture, product, ecosystem, external-option, or broad objective/AC changes. Skip for narrow low-opportunity changes where the opportunity surface is likely zero and record `Scout: skipped — {rationale}`.
-
-### Execution
-
-1. **Evaluate Trigger Conditions** — decide `run`, `skip`, or `inconclusive` before spawning. Record rationale in the phase output.
-2. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
-3. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, current-state findings (Phase 2–3), and prior-consideration data from Phase 1.6 conflict scan.
-4. **Spawn adv-researcher when triggered** — prompt worker to load `skill("adv-opportunity-scout")` in `discovery` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema) and submits a compact `RESEARCHER_REPORT` before final response.
-5. **Sort candidates** — by payoff/risk ratio (highest first).
-6. **Route adoption** per the skill's routing taxonomy:
-   - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
-   - **Surface to user** for all other candidates (untied, medium+ risk, or user-value tradeoff).
-7. **Integrate adopted findings** — auto-adopted candidates are incorporated into the agreement's objectives or AC before Phase 4 agreement presentation.
-
-### Opt-Out
-
-The scout phase may be skipped with rationale for narrow low-opportunity changes. Record `Scout: skipped — {rationale}` in the phase output.
-
-### Degradation
-
-If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/malformed output, or times out: record `Scout: inconclusive ({reason})` and proceed without blocking. Triggered means must attempt when applicable, not must succeed.
+Auto-adopted candidates from the scout are incorporated into the agreement's objectives or AC before Phase 4 agreement presentation.
 
 ### Output
 

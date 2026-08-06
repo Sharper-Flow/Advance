@@ -27,9 +27,7 @@ $ARGUMENTS
 </UserRequest>
 ## Phase 0: Load Skill
 
-`skill("adv-slop-detection")` → two-phase detection strategy, smell categories, thresholds, confidence, report schema. If unavailable, use fallback below.
-
-Fallback: run AST/regex checks from `slop-smells.yaml`, then first-level `explore` scanners for semantic smells. Preserve `WORKING DIRECTORY` in all prompts.
+`skill("adv-slop-detection")` → two-phase detection strategy, smell categories, thresholds, confidence, report schema. Required — if the skill fails to load, stop and report a broken deploy (run scripts/deploy-local.sh --fix).
 ## Pre-flight
 
 1. Git repo check: `git rev-parse --is-inside-work-tree`; stop if false.
@@ -53,53 +51,10 @@ Runner adapters:
 
 Each finding MUST include `id`, `name`, `severity`, `file`, `line`, `description`, `fix`, `confidence`, `detectionMethod`, `grouping`, `actionability`, `phase: 1`; include `nestingDepth`/`complexity` where applicable.
 
-### Phase 1 Confidence Defaults
-
-- AST-backed structural findings default to `confidence: high`
-- Regex-only defensive-overkill findings default to `confidence: medium`
-- Required detector degraded/failed/timed-out/unavailable/applicable-skipped coverage fails the scan with `SLOP_SCAN_DEGRADED`; it is not converted into low-confidence fallback findings.
-- Assign `actionability` and `grouping` before severity sorting
-
-### Required Coverage Failure Boundary
-
-Applicable required detectors are detector registry entries with `important: true`. If Phase 1 records any required detector state as `degraded`, `failed`, `timed_out`, `unavailable`, or applicable-required `skipped`, stop the command as unsuccessful before Phase 2. Preserve the typed report and coverage details for diagnosis. Advisory/external coverage such as `external-ci-semgrep` (`important: false`) remains visible but does not fail the local scan.
-
-### Structural Correctness Bypass (QUAL-012)
-
-Heuristics used only for discovery/ranking/triage/advisory notes are not findings.
-
-### Deletion Candidate Taxonomy
-
-Deletion candidates are `MAINT-003 deletion_candidate` findings, not automatic deletion actions. Subtypes:
-
-- unused dependency
-- unused export
-- unused file
-- unreachable branch
-- uncallable private symbol
-- impossible feature-flag path
-
-Every deletion candidate must include source evidence, confidence, detectionMethod, grouping, actionability, and a verification-oriented fix. Public exports, generated files, tests, fixtures, command modules, plugin registration surfaces, prompt context, examples, and task summaries are protected false-positive surfaces unless target source evidence proves otherwise.
-
-### Deletion Safety / Actionability Boundary
-
-Do not auto-delete. A deletion candidate is actionable only when structural evidence exists: tool-backed symbol/file/dependency evidence, exact reachability proof, entrypoint/config checks, typed roots, or source citations. No single external tool is the sole correctness authority for deletion safety.
-
-Uncertain candidates go to `low-confidence / user-review`. Heuristic-only or text-only unused-code guesses are not actionable removal proof.
-
 If `--phase 1` only → Phase 3: Report Generation.
 ## Phase 2: Heuristic Detection
 
 AI-assisted semantic scan via first-level `explore` sub-agents only.
-
-### No Nested Scanner Delegation (CRITICAL)
-
-`/adv-slop-scan` may fan out to first-level `explore` scanners only.
-
-- Scanner workers MUST do analysis inline with their own tools.
-- Scanner workers must NOT spawn additional sub-agents, delegates, or worker agents.
-- Scanner workers must NOT invoke any `/adv-*` slash commands; if ADV context is needed they must use ADV tools directly.
-- Deeper-analysis need → return gap to orchestrator.
 
 ### Work Distribution
 
@@ -119,11 +74,6 @@ EXPECTED OUTPUT: JSON with findings array per dimension schema
 
 Also include smell definitions for category, file list, novelty check, and these bans: do all work inline; do NOT spawn sub-agents/delegates; do NOT invoke `/adv-*`.
 
-### Context Boundary (Non-Scannable)
-
-Context packet text is orientation only, not a finding location. Every finding must cite a target source file and line or scoped source evidence. Do NOT emit findings against CHANGE, AFFECTED FILES summaries, TASK EVIDENCE SUMMARY, examples, or fixture descriptions.
-
-Timeout → `TIMEOUT`; failure → `INCOMPLETE`; all fail → report Phase 1 findings only and suggest `--phase 1` or retry. If Phase 1 required coverage has `SLOP_SCAN_DEGRADED`, do not start Phase 2.
 ## Phase 3: Report Generation
 
 > Anti-Loop: after Phase 2 → aggregate directly.
