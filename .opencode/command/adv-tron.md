@@ -24,53 +24,14 @@ Target resolution: file path → read directly, directory → outline all, symbo
 
 ---
 ## Phase 1: Load Skill
-`skill("adv-tron")` → provides investigation protocol, search priorities, evidence requirements, report schema. If the skill is unavailable, continue with the embedded protocol in this command file.
+`skill("adv-tron")` → provides investigation protocol, search priorities, evidence requirements, report schema.
+
+Required — if the skill fails to load, stop and report a broken deploy (run scripts/deploy-local.sh --fix).
 ## Phase 2: Determine Mode
 Empty args → broad. Non-empty → scoped. Emit: `[ADV:WORK] Tron reconnaissance: {mode}`.
 ## Phase 3: Gather Context
 1. `adv_project_context` + `adv_change_list`
 2. Broad: lgrep file tree for structure. Scoped: resolve target to concrete files/symbols → if unresolved after semantic/symbol/text search, fall back to the closest concrete target or broad reconnaissance and state that choice. Ask via `question` only if multiple plausible interpretations would lead to materially different investigations.
-
-### Analysis Startup Sequence
-
-Before deep reads, establish baseline context in this order:
-
-1. **WORKING DIRECTORY / repo root** — record the actual workdir and resolved target path.
-2. **Project context** — load `adv_project_context`.
-3. **active ADV state** — inspect active changes plus relevant wisdom/spec context using ADV read tools.
-4. **repo tree/outline** — inspect repo tree/outline before target-local reads.
-5. **coverage gaps** — record unavailable tools, skipped dimensions, and unexamined areas.
-
-### Broad Scan
-
-Run a bounded broad scan with: structure map, hotspot/risk scan, related pattern/convention scan, active-change/spec overlap check, and coverage gaps. Cap findings at 10.
-
-### Scoped Scan
-
-Run a bounded scoped scan with: target normalization, deep read, dependency/usage trace, related/sibling code scan, active-change/spec overlap check, and coverage gaps. Cap findings at 15.
-
-### Degraded Execution
-
-If `lgrep` or outline tools fail, fallback to allowed read/search tools, report degraded coverage, and only emit findings backed by inspected source. Unsupported signals become coverage gaps/open questions, not findings.
-
-### Follow-up Routing Matrix
-
-Use these trigger criteria for suggested next commands. Tron recommends only; it must not invoke `/adv-*`, must not create agenda/change/task state, and must not edit files.
-
-| Trigger criteria | Recommend |
-| --- | --- |
-| Simplification, bloat, duplicated flow, verbose code, or long-term maintainability proposal needed | `/adv-optimizer <target>` |
-| Slop smell, dead-code/deletion-safety, detector coverage, defensive overkill, AI-code quality issue | `/adv-slop-scan <target>` |
-| Architecture boundary, stack-pack, structural-correctness, heuristic-owned state/spec/security/persistence concern | `/adv-arch-scan <target>` |
-| Explicit spec-vs-implementation drift | `/adv-audit <capability>` |
-| Follow-up already bounded and implementation-ready | `/adv-task` |
-| Durable change needs proposal/agreement/design | `/adv-proposal <summary>` |
-| More local reconnaissance needed before choosing owner | `/adv-tron <deeper-target>` |
-
-Combination routing examples:
-
-- `/adv-slop-scan <target> then /adv-optimizer <target>` — first classify slop/deletion-safety evidence, then synthesize simplification proposal.
-- `/adv-arch-scan <target> then /adv-slop-scan <target>` — first validate architecture/structural boundary, then scan quality smells if source evidence also suggests code-level slop.
 ## Phase 4: Run as Tron Sub-Agent
 This command declares `agent: adv-tron` in frontmatter, so OpenCode invokes the `adv-tron` subagent directly — no Task-tool spawn. ADV orchestrator agents deny `task: adv-tron`, making `/adv-tron` the only entry point. The agent's system prompt carries behavioral instructions; establish this packet plus mode-specific context as the working scope:
 
@@ -104,23 +65,6 @@ Pass only:
 **Scoped:** target, resolved files, repo root, project context, relevant ADV state. Task: deep-read target, trace dependencies, find related code, assess complexity/coverage/risk, check ADV overlap, suggest follow-ups. Cap: 15 findings.
 
 **Opt-scan candidates:** If validated static opt-scan candidates are available, pass them in the spawn packet under `OPTIMIZATION_CANDIDATES`. Tron consumes them read-only, preserves all source evidence, and includes them as advisory `optimization_candidates` in the `TRON_REPORT` with a recommended `/adv-optimizer` handoff. Do not run opt-scan automatically from this command if candidates are not already available; candidate generation is outside Tron's scope.
-## Phase 5: Synthesize
-Validate findings (require file references, remove evidence-free, deduplicate). Emit TRON RECONNAISSANCE REPORT:
-- Target/scope
-- Numbered findings (category, title, description, evidence, confidence)
-- Hotspots (file/module + why)
-- Risks (with file references)
-- Open questions
-- Possible follow-ups (title, rationale, priority — suggestions only, not auto-created)
-- Suggested next commands (command, target, trigger, rationale): `/adv-optimizer`, `/adv-slop-scan`, `/adv-arch-scan`, `/adv-proposal`, `/adv-task`, `/adv-tron`, and optional `/adv-audit` only for explicit spec-vs-implementation drift
-## Constraints
-- Read-only — × never writes files or mutates ADV state
-- Adjacent commands are recommendations only — must not invoke `/adv-*`, must not create agenda/change/task state, must not edit files
-- × No agenda creation — suggestions in human-readable form only
-- × No change creation — user decides follow-up
-- Bounded: 10 findings (broad), 15 (scoped)
-
----
 ## Key Tools
 | Purpose | Tool |
 |---------|------|

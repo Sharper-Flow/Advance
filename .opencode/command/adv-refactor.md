@@ -14,9 +14,9 @@ Bidirectional reconciliation: update stale change proposals to match current cod
 
 ## Phase 0: Load Skill
 
-`skill("adv-refactor")` → batch selection, staleness analysis, drift/obsolescence/conflict scanners, intent verification, dry-run/execute report. If unavailable, use fallback below.
+`skill("adv-refactor")` → batch selection, staleness analysis, drift/obsolescence/conflict scanners, intent verification, dry-run/execute report.
 
-Fallback: select target(s), run three scanners, check deps inline, synthesize, ask on intent conflicts, optionally update under contract, validate.
+Required — if the skill fails to load, stop and report a broken deploy (run scripts/deploy-local.sh --fix).
 
 ## Parse Flags
 
@@ -31,43 +31,6 @@ Batch mode: `adv_change_list({ sort: "stalest", excludeRecencyBands: ["hot"] })`
 ## Pre-flight
 
 `adv_change_show include: { proposal: true, problemStatement: true, agreement: true, design: true }` + `adv_task_list`; use returned `_proposal` / `_problemStatement` / `_agreement` / `_design` or other returned context only (× don't read artifact files directly; × don't dereference `artifacts.*.path`). Record `{workdir}` via `pwd`; include `WORKING DIRECTORY: {workdir}` in prompts.
-
----
-
-## Phase 1: Staleness Analysis
-
-Spawn `explore` × 3:
-
-1. Drift Scanner — EXACT, METADATA, FUZZY; task reference validation.
-2. Obsolescence Detector — implemented-elsewhere requirements; tests as evidence.
-3. Conflict Scanner — overlaps with recent archived changes.
-
-Inline dependency check: Context7 (resolve library → query docs) against changelogs/release notes; `webfetch` fallback.
-
----
-
-## Phase 2: Synthesis & Intent Verification
-
-> Anti-Loop: `>>> SYNTHESIS COMPLETE <<<` → aggregate immediately.
-
-Combine drift, deps, conflicts, tasks, obsolescence. If code contradicts requirement → `[ADV:ATTN]` → ask via `question`: `New requirement` (update spec) or `Bug in code` (keep spec, flag code).
-
----
-
-## Phase 3: Refactoring (Under Contract)
-
-Skip if dry-run. If `--execute`:
-
-1. Path alignment — update moved-file refs in proposal, deltas, tasks.
-2. Intent guard — add `> Refactored: aligned with implementation in {file}`.
-3. Obsolescence — mark `[OBSOLETE]` with implementation location; don't delete.
-4. Task derivation — `adv_task_add` validation tasks.
-
----
-
-## Phase 4: Validation
-
-`adv_change_validate strict: true` → fix formatting issues → retry once.
 
 ---
 

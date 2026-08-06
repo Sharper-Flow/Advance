@@ -70,26 +70,11 @@ Keep the design actionable for `/adv-prep`; it should explain why the plan is co
 
 ## Phase 2.5: Design Leverage Scout
 
-Run a mandatory bounded leverage-scout pass after draft design and before independent validation (Phase 3.5). The scout identifies leverage points: shortcuts, reusable components, parallelism opportunities, simplification paths, and cross-cutting improvements.
+`skill("adv-opportunity-scout")` → bounded scout methodology (modes, output schema, routing taxonomy, prompt templates, opt-out, degradation). Use `design` mode for this phase. If skill is unavailable, the scout phase is inconclusive and recorded in the phase output; do not auto-adopt or surface candidates without the skill's routing taxonomy.
 
-### Execution
+### Integration with Validator
 
-1. **Prepare split-load contract** — orchestrator owns ScoutCandidate schema, routing taxonomy, fallback/degradation, adoption, and all ADV mutations. Do not load scout methodology into main context unless worker loading is unavailable.
-2. **Prepare context** — assemble proposal summary, agreement objectives/AC/constraints/avoidances, draft design content (Phase 2 output), and prior-consideration data from discovery's conflict scan. Inject this content inline; do not pass external ADV artifact paths.
-3. **Spawn adv-researcher** — prompt worker to load `skill("adv-opportunity-scout")` in `design` mode when available; otherwise use the embedded schema/routing summary in this command. The researcher returns ≤5 structured candidates (8-field ScoutCandidate schema).
-4. **Sort candidates** — by payoff/risk ratio (highest first).
-5. **Route adoption** per the skill's routing taxonomy:
-   - **Auto-adopt** only when: contract-tied (not "untied"), low risk, `adopt_now`/`design_around` fate, no user-value tradeoff.
-   - **Surface to user** for all other candidates (untied, medium+ risk, or user-value tradeoff).
-6. **Integrate adopted findings** — auto-adopted candidates are incorporated into the design before the validator runs (Phase 3.5). The validator then validates the design including any adopted improvements.
-
-### Opt-Out
-
-The scout phase may be skipped with rationale for trivially scoped changes where the opportunity surface is likely zero. Record "Scout: skipped — {rationale}" in the phase output.
-
-### Degradation
-
-If worker skill-load is unavailable, adv-researcher spawn fails, returns empty/malformed output, or times out: record "Scout: inconclusive ({reason})" and proceed without blocking. Mandatory means "must attempt," not "must succeed."
+Auto-adopted candidates from the scout are incorporated into the design before the validator runs (Phase 3.5). The validator then validates the design including any adopted improvements.
 
 ### Output
 

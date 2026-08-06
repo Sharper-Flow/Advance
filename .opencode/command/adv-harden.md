@@ -304,7 +304,7 @@ Return JSON with: `dimension: "test_coverage"`, `files_with_tests`, `files_witho
 
 #### AI-Slop Detection Scanner
 
-Use the methodology from `adv-slop-detection` loaded in Phase 0 for this scanner dimension. Preserve same severity ladder as the dedicated slop-scan workflow: BLOCKER (security/data loss) > HIGH (silent failures) > MEDIUM (debt) > LOW (style).
+Use the methodology from `adv-slop-detection` loaded in Phase 0 for this scanner dimension.
 
 Return JSON with: `dimension: "ai_slop"`, `summary` (total, blockers, high, by_category), `issues` (severity, category, file, line, pattern, code_snippet, message, fix_suggestion), `debt_quadrant`.
 

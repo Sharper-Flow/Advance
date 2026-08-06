@@ -14,9 +14,9 @@ Produce two-plane reflection for archived change: project execution + system fri
 
 ## Phase 0: Load Skill
 
-`skill("adv-reflect")` → two-plane dimensions, friction taxonomy, metric synthesis, REFLECTION.md template, persistence rules. If unavailable, use fallback below.
+`skill("adv-reflect")` → two-plane dimensions, friction taxonomy, metric synthesis, REFLECTION.md template, persistence rules.
 
-Fallback: load archived change, gather local task/gate metrics, synthesize Plane 1 + Plane 2, call `adv_reflect`, write REFLECTION.md, present summary.
+Required — if the skill fails to load, stop and report a broken deploy (run scripts/deploy-local.sh --fix).
 
 ## Exits
 
@@ -40,33 +40,6 @@ Parse `$ARGUMENTS`: `change-id` required. If empty, use `adv_change_list` → au
 
 ---
 
-## Phase 2: Gather Metrics
-
-Use the loaded change state and `adv_reflect`'s local metric extraction. Capture task count, retry count, elapsed time, per-gate durations, and task-derived work-time metrics without calling a separate user-facing investment tool.
-
----
-
-## Phase 3: Assemble Plane 1 — Project Execution
-
-Use skill rubric:
-
-| Dimension | Source |
-|---|---|
-| Efficiency | task counts, elapsed, retry density, per-gate durations |
-| Quality | TDD compliance, review/harden findings |
-| Process | gate completion, TDD intent mix, delegation count, drift triggers |
-| Wisdom | captured/promoted entries, reuse hits |
-
----
-
-## Phase 4: Assemble Plane 2 — System Friction
-
-Map evidence to categories from skill: `docs_gap`, `missing_capability`, `tool_gap`, `workaround`, `ux_friction`, `provider_specific`.
-
-Use wisdom entries, error recovery logs, cancellations, and runtime-specific failures. Provider-specific only when issue depends on runtime/provider (Bun vs Node, API quirks, env mismatch), not generic logic/design bugs.
-
----
-
 ## Phase 5: Persist
 
 1. Call `adv_reflect changeId: <target>`; report persists to `reflections.jsonl`.
@@ -76,8 +49,6 @@ Use wisdom entries, error recovery logs, cancellations, and runtime-specific fai
 ---
 
 ## Phase 6: Present Report
-
-Emit REFLECTION COMPLETE banner with change ID/title, Plane 1 summary, Plane 2 friction count/top categories, archive path, persisted reflection ID.
 
 ### Archive-visible summary
 

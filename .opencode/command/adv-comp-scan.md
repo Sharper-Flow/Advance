@@ -23,7 +23,9 @@ Parse `$ARGUMENTS`:
 
 ---
 ## Phase 0: Load Skill
-`skill("adv-comp-research")` → two-mode strategy, auto-mode detection, comparison table format, evidence requirements. Unavailable → use embedded protocol.
+`skill("adv-comp-research")` → two-mode strategy, auto-mode detection, comparison table format, evidence requirements.
+
+Required — if the skill fails to load, stop and report a broken deploy (run scripts/deploy-local.sh --fix).
 
 ---
 ## Pre-flight
@@ -45,34 +47,16 @@ All research MUST stay on public sources only.
 ## Phase 1: Source Mode (GitHub Repos)
 When mode is `source`:
 
-1. **Repo metadata** — Exa for candidate repos; searchcode file-tree, file-fetch, and repo-analysis capabilities for README, package manifests, main language
-2. **Feature surface** — analyze source structure, API endpoints, key modules
-3. **Tech stack** — identify dependencies, frameworks, runtime
-
 If repo is private or inaccessible → fallback to public mode with warning.
 
 ---
 ## Phase 1: Public Mode (Websites / Docs)
 When mode is `public`:
 
-1. **Firecrawl primary** — Firecrawl scrape for pricing, features, changelog pages
-2. **Exa fallback** — Exa web search for recent news, reviews, comparisons
-3. **Structured extraction** — identify feature list, pricing tiers, target audience
-
 If Firecrawl fails → use Exa search results as primary source.
 
 ---
-## Phase 2: Comparison Synthesis
-Align findings to comparison table:
-
-| Feature | This Project | Competitor | Notes |
-|---------|-------------|------------|-------|
-| {feature} | {our_status} | {their_status} | {observation} |
-
-Generate structured findings with `category`, `our_status`, `their_status`, `delta`, `source`.
-
----
-## Phase 3: Write Metadata
+## Write Metadata
 After successful completion, call `adv_project_metadata action:"write"` with:
 - `key`: `"comp-scan"`
 - `count`: number of comparison dimensions analyzed
@@ -92,4 +76,4 @@ Output structured JSON: `competitor`, `mode`, `comparison`, `findings[]`, `takea
 
 ---
 ## Execution
-1. Parse arguments → 2. Pre-flight → 3. Phase 1 (mode-specific) → 4. Phase 2 (synthesis) → 5. Write Metadata → 6. Report
+1. Parse arguments → 2. Pre-flight → 3. Phase 1 (mode-specific) → 4. Comparison synthesis per skill → 5. Write Metadata → 6. Report

@@ -14,9 +14,7 @@ Multi-phase spec/implementation drift audit using sub-agents + quality gates; co
 
 ## Phase 0: Load Skill
 
-`skill("adv-audit")` → quality gates, audit dimensions, sub-agent roles, drift severity, report schema. If unavailable, use fallback below.
-
-Fallback: parse specs, map code, detect conflicts/drift/orphans, apply gates, report, write metadata.
+`skill("adv-audit")` → quality gates, audit dimensions, sub-agent roles, drift severity, report schema. Required — if the skill fails to load, stop and report a broken deploy (run scripts/deploy-local.sh --fix).
 
 ## Target Resolution
 
@@ -27,17 +25,6 @@ Parse `$ARGUMENTS`: `capability` optional, `--json`, `--all` default, `--strict`
 1. `adv_spec action: "list"` → stop if no specs.
 2. `adv_change_list` → warn active changes may affect accuracy.
 3. Record `{workdir}` via `pwd`; include `WORKING DIRECTORY: {workdir}` in sub-agent prompts.
-
----
-
-## Quality Gates
-
-Use skill thresholds. Standard: HIGH drift 0, MEDIUM drift ≤3, orphaned code ≤3 files, conflicts 0, coverage ≥80%, CRITICAL ambiguity 0, HIGH ambiguity ≤3. `--strict`: all drift/conflict/orphan/ambiguity thresholds 0, coverage 100%.
-
-Ambiguity gates honor `clarify_enforcement` flag (read from project config or spec context):
-- `off` — skip ambiguity detection entirely
-- `advisory` — include findings in report; do not affect health status
-- `strict` — enforce ambiguity gates (CRITICAL and HIGH thresholds apply)
 
 ---
 
@@ -52,12 +39,6 @@ Execute stages:
 Each prompt includes `WORKING DIRECTORY: {workdir}` and expected JSON: `dimension`, `findings`, `summary`.
 
 > Ambiguity detection (B/F/S/Q/E taxonomy) runs inline during Phase 3 Synthesis using `runSpecAmbiguityChecks(markdown, capability)` — not a sub-agent stage.
-
----
-
-## Phase 2: Orphan Detection
-
-After Code Mapper, list source files not mapped to any spec (>50 lines; exclude config/types/generated/test utils). Categorize: undocumented feature, dead code, infrastructure.
 
 ---
 
@@ -103,37 +84,6 @@ If ALIGNED → report. If drift → report by default. Ask via `question` only w
 If ambiguity findings are present and `clarify_enforcement` is `advisory` or `strict`, include an informational handoff in the report:
 
 > Ambiguity findings can be resolved via `/adv-clarify`. Pass the structured findings list as context. Resolution writes back to the relevant spec file (not ADV change state).
-
----
-
-## Final Report
-
-Emit PROJECT AUDIT REPORT: scope, health, quality gate table, specs audited, requirement/scenario counts. If issues: findings by severity, spec text, actual, evidence, fix suggestion, conflicts, orphans, ambiguity findings, top 3 recommendations.
-
-JSON mode:
-
-```json
-{
-  "health": "ALIGNED|DRIFT_DETECTED|MAJOR_DRIFT",
-  "quality_gate": [],
-  "summary": {},
-  "drift": [],
-  "conflicts": [],
-  "orphans": [],
-  "ambiguity": [
-    {
-      "id": "...",
-      "category": "B|F|S|Q|E",
-      "severity": "CRITICAL|HIGH|MEDIUM|LOW",
-      "spec": "capability/rq-id",
-      "specText": "verbatim quote",
-      "issue": "...",
-      "fix": "..."
-    }
-  ],
-  "recommendations": []
-}
-```
 
 ---
 
