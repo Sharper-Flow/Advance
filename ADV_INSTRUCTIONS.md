@@ -879,7 +879,7 @@ This table is session-level operational routing, distinct from task-level Step 4
 | Trigger | Worker |
 | --- | --- |
 | >5 file reads/searches expected | `explore` |
-| repo structure / dependency map / same-pattern scan | `explore` or `adv-tron` |
+| repo structure / dependency map / same-pattern scan | `explore` |
 | DB/log/status/usage audit | `general` |
 | GitHub CI / check-run / status investigation | `general` |
 | repeated verify/test bursts | `adv-verifier` |
@@ -932,7 +932,7 @@ Primary agents: `adv`, `plan`, `build` (not spawnable). Spawnable: global `explo
 | `adv-visual-review`  | Image analysis (screenshots, UI captures) for text-only model orchestrators                                                                                                                                            |
 | `adv-verifier`       | Verify-only bursts and structured local verification triage; returns strict Verification Triage Result JSON; no edits or ADV mutation                                                                                  |
 | `general`            | Generic multi-step work and unavailable-runtime fallback for verify bursts                                                                                                                                              |
-| `adv-tron`       | Recon + hotspots (repo-local)                                                                                                                                                                                           |
+| `adv-tron`       | Recon + hotspots (repo-local; **command-only** via `/adv-tron` — never agent-spawned)                                                                                                                                                                                           |
 
 `adv-tron` repo-local. `adv-researcher` / `adv-engineer` / `adv-reviewer` / `adv-designer` bundled global via `scripts/deploy-local.sh`. Research pattern: `adv-researcher` covers docs/API/examples + architecture in a single spawn. Apply routing: structural `metadata.frontend == "true"` starts with `adv-engineer` (or a risk-forced inline implementation), then dispatches matching-cycle `adv-designer` follow-up with an implementation receipt; `metadata.delegation_hint` cannot select designer as the initial classified frontend implementation route.
 
