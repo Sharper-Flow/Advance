@@ -89,6 +89,7 @@ import { generateChangeId } from "../utils/change-id";
 import { searchWisdom, filterChanges } from "./content-search";
 import { listProjectWisdom } from "./project-wisdom";
 import { createLogger } from "../utils/debug-log";
+import { createEpicDiskOps } from "./epics-disk";
 
 const logger = createLogger("store-disk");
 
@@ -143,6 +144,11 @@ export async function createDiskStore(
       .map((r) => r.data)
       .filter((change) => change.status === "archived");
   };
+
+  const epicDiskOps = createEpicDiskOps({
+    activeEpicsDir: paths.activeEpics,
+    retiredEpicsDir: paths.retiredEpics,
+  });
 
   const store: Store = {
     paths,
@@ -1238,13 +1244,10 @@ export async function createDiskStore(
     },
 
     // -------------------------------------------------------------------
-    // Epics — disk-only backend does not persist Epic state. Temporal store
-    // overrides this with workflow-backed Epic operations.
+    // Epics — active and retired projections are the disk authority.
     // -------------------------------------------------------------------
     epics: {
-      create: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
+      create: epicDiskOps.create,
       get: async (epicId) => {
         const retired = await loadRetiredEpicProjection(
           paths.retiredEpics,
@@ -1286,51 +1289,23 @@ export async function createDiskStore(
             a.id.localeCompare(b.id),
         );
       },
-      update: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      updateScope: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      markMerged: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      addShell: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      promoteShell: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      linkChange: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      retargetChange: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      unlinkChange: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      setEntryMembershipStatus: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      setEntryTerminalSummary: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      reorder: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
+      update: epicDiskOps.update,
+      updateScope: epicDiskOps.updateScope,
+      markMerged: epicDiskOps.markMerged,
+      addShell: epicDiskOps.addShell,
+      promoteShell: epicDiskOps.promoteShell,
+      linkChange: epicDiskOps.linkChange,
+      retargetChange: epicDiskOps.retargetChange,
+      unlinkChange: epicDiskOps.unlinkChange,
+      setEntryMembershipStatus: epicDiskOps.setEntryMembershipStatus,
+      setEntryTerminalSummary: epicDiskOps.setEntryTerminalSummary,
+      reorder: epicDiskOps.reorder,
       getRetiredProjection: async (epicId) =>
         loadRetiredEpicProjection(paths.retiredEpics, epicId),
       saveRetiredProjection: async (epicId, projection) =>
         saveRetiredEpicProjection(paths.retiredEpics, epicId, projection),
-      retire: async () => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
-      repairIndex: async (): Promise<
-        Awaited<ReturnType<Store["epics"]["repairIndex"]>>
-      > => {
-        throw new Error("Epics require the Temporal store backend.");
-      },
+      retire: epicDiskOps.retire,
+      repairIndex: epicDiskOps.repairIndex,
     },
 
     // -------------------------------------------------------------------

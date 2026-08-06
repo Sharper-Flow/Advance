@@ -1217,7 +1217,24 @@ export const TestRunRecordSchema = z.object({
  */
 export const ProjectionCommitAuditEntrySchema = z.object({
   mutation_kind: z.string().min(1),
-  authority_kind: z.enum(["temporal", "recovery"]),
+  /**
+   * Why the commit was authorized.
+   *
+   * `mutation` (ordinary write) and `recovery` (repair) are the only values
+   * that can be written. `temporal` is retained as a read-only legacy value:
+   * archived changes committed before Temporal was removed carry it, and
+   * dropping it from the enum would make their `projection_commits`
+   * unreadable.
+   */
+  authority_kind: z.enum(["mutation", "recovery", "temporal"]),
+  authority_reason: z.string().optional(),
+  authority_evidence: z.string().optional(),
+  /**
+   * Legacy read-only fields. `mutation_receipt_id` was written by the
+   * Temporal authority; `recovery_reason` / `recovery_evidence` were the
+   * pre-rename spelling of `authority_reason` / `authority_evidence`. Kept
+   * optional so archived commits still parse.
+   */
   mutation_receipt_id: z.string().optional(),
   recovery_reason: z.string().optional(),
   recovery_evidence: z.string().optional(),

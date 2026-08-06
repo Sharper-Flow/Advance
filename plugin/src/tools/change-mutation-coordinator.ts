@@ -14,21 +14,27 @@ import {
 import type { Change, ProjectionCommitAuditEntry } from "../types";
 
 export interface DiskMutationAuthorization {
+  /**
+   * Whether this is an ordinary write or a repair. Defaults to `mutation`;
+   * only the recovery writers pass `recovery`, so the projection audit trail
+   * can still tell the two apart.
+   */
+  kind?: "mutation" | "recovery";
   reason: string;
   evidence: string;
 }
 
 export type MutationOutcome<T> =
   | {
-      kind: "recovered_verified";
+      kind: "verified";
       value: T;
       revision: number;
-      recoveryAudit: ProjectionCommitAuditEntry;
+      audit: ProjectionCommitAuditEntry;
     }
   | {
-      kind: "recovered_unverified";
+      kind: "unverified";
       reason: string;
-      recoveryAudit: ProjectionCommitAuditEntry;
+      audit: ProjectionCommitAuditEntry;
     }
   | { kind: "stale_revision"; expected: number; actual: number }
   | { kind: "operator_required"; reason: string };
@@ -81,7 +87,7 @@ async function executeDiskPath<T>({
     changeId: intent.changeId,
     expectedRevision,
     authority: {
-      kind: "recovery",
+      kind: authority.kind ?? "mutation",
       reason: authority.reason,
       evidence: authority.evidence,
     },
@@ -94,8 +100,8 @@ async function executeDiskPath<T>({
 }
 
 type CommitMappedOutcome =
-  | Extract<MutationOutcome<unknown>, { kind: "recovered_verified" }>
-  | Extract<MutationOutcome<unknown>, { kind: "recovered_unverified" }>
+  | Extract<MutationOutcome<unknown>, { kind: "verified" }>
+  | Extract<MutationOutcome<unknown>, { kind: "unverified" }>
   | Extract<MutationOutcome<unknown>, { kind: "stale_revision" }>
   | Extract<MutationOutcome<unknown>, { kind: "operator_required" }>;
 
@@ -105,16 +111,16 @@ function mapCommitOutcome(
   switch (commit.kind) {
     case "committed":
       return {
-        kind: "recovered_verified",
+        kind: "verified",
         value: commit.readback,
         revision: commit.revision,
-        recoveryAudit: commit.audit,
+        audit: commit.audit,
       };
     case "committed_unverified":
       return {
-        kind: "recovered_unverified",
+        kind: "unverified",
         reason: commit.postconditionError,
-        recoveryAudit: commit.audit,
+        audit: commit.audit,
       };
     case "stale_revision":
       return {

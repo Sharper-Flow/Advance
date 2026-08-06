@@ -50,8 +50,8 @@ function valueToWorkflowState(
 /**
  * Evaluate gate readiness from a coordinator mutation outcome.
  *
- * - `recovered_verified` values are evaluated.
- * - `recovered_unverified`, `stale_revision`, lock failures, and
+ * - `verified` values are evaluated.
+ * - `unverified`, `stale_revision`, lock failures, and
  *   `operator_required` are returned as blocking readiness results.
  */
 export function evaluateGateReadinessFromMutationOutcome(
@@ -61,11 +61,11 @@ export function evaluateGateReadinessFromMutationOutcome(
   options?: GateReadinessOptions,
 ): GateReadinessResult {
   switch (outcome.kind) {
-    case "recovered_verified": {
+    case "verified": {
       const state = valueToWorkflowState(outcome.value, projectId);
       return evaluateGateReadiness(state, gateId, options);
     }
-    case "recovered_unverified": {
+    case "unverified": {
       return {
         ready: false,
         blockers: [

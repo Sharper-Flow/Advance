@@ -10,23 +10,10 @@
  */
 
 import { loadChange } from "../storage/change-projection-reader";
-import { commitChangeProjection } from "../storage/change-projection-transaction";
 import type { Change, ContractReviewMatrix } from "../types";
 import type { GateRecoveryAudit } from "../types/gates";
-import type { ProjectionCommitOutcome } from "../storage/change-projection-transaction";
 import type { Store } from "../storage/store-types";
-import {
-  changeStateQuery,
-  contractReviewMatrixSetSignal,
-  designConcernDispositionedSignal,
-  verificationEvidenceDispositionedSignal,
-} from "../temporal/messages";
-import {
-  coordinateChangeMutation,
-  type TemporalWorkflowHandleProxy,
-  type MutationOutcome,
-} from "./change-mutation-coordinator";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 
 export interface ReconciledAcceptanceRemediation {
   kind: "reconciled";
@@ -107,41 +94,6 @@ function collectPendingReconciliationItems(
   return items;
 }
 
-function dispositionPostcondition(
-  state: ChangeWorkflowState,
-  item: Extract<
-    PendingReconciliationItem,
-    { family: "design_concern" | "verification_evidence" }
-  >,
-): boolean {
-  const list =
-    item.family === "design_concern"
-      ? state.design_concern_dispositions
-      : state.verification_evidence_dispositions;
-  const found = (list ?? []).find(
-    (d) =>
-      d.taskId === item.disposition.taskId &&
-      d.concernKey === item.disposition.concernKey,
-  );
-  if (!found) return false;
-  return (
-    found.disposition === item.disposition.disposition &&
-    found.evidence === item.disposition.evidence
-  );
-}
-
-function matrixPostcondition(
-  state: ChangeWorkflowState,
-  item: Extract<
-    PendingReconciliationItem,
-    { family: "contract_review_matrix" }
-  >,
-): boolean {
-  const actual = state.contract?.reviewMatrix;
-  const expected = item.matrix;
-  return reviewMatrixMatches(actual, expected);
-}
-
 function reviewMatrixMatches(
   actual: ContractReviewMatrix | undefined,
   expected: ContractReviewMatrix,
@@ -215,80 +167,6 @@ function matchesPendingRecoveredMatrix(
   );
 }
 
-async function redeliverDisposition(
-  handle: TemporalWorkflowHandleProxy,
-  changeId: string,
-  item: Extract<
-    PendingReconciliationItem,
-    { family: "design_concern" | "verification_evidence" }
-  >,
-): Promise<MutationOutcome<ChangeWorkflowState>> {
-  const signal =
-    item.family === "design_concern"
-      ? designConcernDispositionedSignal
-      : verificationEvidenceDispositionedSignal;
-  const { taskId, concernKey, disposition, evidence, dispositionedAt } =
-    item.disposition;
-
-  return coordinateChangeMutation<ChangeWorkflowState>({
-    authority: { kind: "temporal_live", handle, changeId },
-    intent: {
-      changeId,
-      mutationKind: `${item.family}_reconciliation_redelivery`,
-      payload: (mutationReceiptId) => ({
-        taskId,
-        concernKey,
-        disposition,
-        evidence,
-        dispositionedAt,
-        mutationReceiptId,
-      }),
-      sendSignal: async (h, payload) => {
-        await h.signal(signal, payload);
-      },
-      refresh: async (h) =>
-        h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
-      verifyTemporal: (state) => dispositionPostcondition(state, item),
-      mutateLatestProjection: (latest) => latest,
-      verifyProjection: () => true,
-    },
-  });
-}
-
-async function redeliverMatrix(
-  handle: TemporalWorkflowHandleProxy,
-  changeId: string,
-  item: Extract<
-    PendingReconciliationItem,
-    { family: "contract_review_matrix" }
-  >,
-): Promise<MutationOutcome<ChangeWorkflowState>> {
-  // Strip recovery_audit before signaling so the shared matrix signal schema
-  // never carries disk-only recovery metadata into workflow state.
-  const { recovery_audit: _, ...reviewMatrix } = item.matrix;
-
-  return coordinateChangeMutation<ChangeWorkflowState>({
-    authority: { kind: "temporal_live", handle, changeId },
-    intent: {
-      changeId,
-      mutationKind: "contract_review_matrix_reconciliation_redelivery",
-      payload: (mutationReceiptId) => ({
-        reviewMatrix,
-        updatedAt: new Date().toISOString(),
-        mutationReceiptId,
-      }),
-      sendSignal: async (h, payload) => {
-        await h.signal(contractReviewMatrixSetSignal, payload);
-      },
-      refresh: async (h) =>
-        h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
-      verifyTemporal: (state) => matrixPostcondition(state, item),
-      mutateLatestProjection: (latest) => latest,
-      verifyProjection: () => true,
-    },
-  });
-}
-
 function stripRecoveryAuditMarkers(
   change: Change,
   items: PendingReconciliationItem[],
@@ -346,8 +224,7 @@ async function clearRecoveryAuditMarkers(
   store: Store,
   changeId: string,
   items: PendingReconciliationItem[],
-): Promise<ProjectionCommitOutcome> {
-  const mutationReceiptId = `mrec_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+): Promise<Awaited<ReturnType<typeof coordinateChangeMutation<Change>>> > {
   const operationId = `acceptance-reconciliation-clear:${changeId}:${items
     .map((item) => {
       if (
@@ -360,14 +237,18 @@ async function clearRecoveryAuditMarkers(
     })
     .join(",")}`;
 
-  return commitChangeProjection({
+  return coordinateChangeMutation<Change>({
+    authority: {
+      kind: "recovery",
+      reason: "clear acceptance recovery markers after direct disk reconciliation",
+      evidence: operationId,
+    },
     changesDir: store.paths.changes,
-    changeId,
-    authority: { kind: "temporal", mutationReceiptId },
-    mutationKind: "acceptance_remediation_reconciliation",
-    operationId,
-    mutateLatest: (latest) => stripRecoveryAuditMarkers(latest, items),
-    verify: ({ readback }) => {
+    intent: {
+      changeId,
+      mutationKind: "acceptance_remediation_reconciliation",
+      mutateLatestProjection: (latest) => stripRecoveryAuditMarkers(latest, items),
+      verifyProjection: (readback) => {
       for (const item of items) {
         if (
           item.family === "design_concern" ||
@@ -410,18 +291,19 @@ async function clearRecoveryAuditMarkers(
           if (found.recovery_audit !== undefined) return false;
         }
       }
-      return true;
+        return true;
+      },
     },
   });
 }
 
-function failureReason(outcome: MutationOutcome<ChangeWorkflowState>): string {
+function failureReason(outcome: Awaited<ReturnType<typeof coordinateChangeMutation<Change>>>): string {
   switch (outcome.kind) {
     case "operator_required":
       return outcome.reason;
     case "stale_revision":
       return `stale projection revision: expected ${outcome.expected}, actual ${outcome.actual}`;
-    case "recovered_unverified":
+    case "unverified":
       return `recovery postcondition unverified: ${outcome.reason}`;
     default:
       return `unexpected outcome kind: ${outcome.kind}`;
@@ -455,9 +337,8 @@ function itemFailureDetail(
 export async function reconcileRecoveredAcceptanceRemediation(input: {
   store: Store;
   changeId: string;
-  handle: TemporalWorkflowHandleProxy;
 }): Promise<ReconcileRecoveredAcceptanceRemediationResult> {
-  const { store, changeId, handle } = input;
+  const { store, changeId } = input;
 
   const loaded = await loadChange(store.paths.changes, changeId);
   if (!loaded.success || !loaded.data) {
@@ -480,48 +361,21 @@ export async function reconcileRecoveredAcceptanceRemediation(input: {
     return { kind: "reconciled", clearedCount: 0, change };
   }
 
-  const failedItems: AcceptanceReconciliationBlocker["failedItems"] = [];
-
-  for (const item of pendingItems) {
-    const outcome =
-      item.family === "contract_review_matrix"
-        ? await redeliverMatrix(handle, changeId, item)
-        : await redeliverDisposition(handle, changeId, item);
-    if (outcome.kind !== "applied_temporal") {
-      failedItems.push({
-        family: item.family,
-        reason: failureReason(outcome),
-        ...itemFailureDetail(item),
-      });
-    }
-  }
-
-  if (failedItems.length > 0) {
-    return {
-      kind: "blocked",
-      code: "ACCEPTANCE_RECONCILIATION_SIGNAL_FAILED",
-      message: `Reconciliation of ${pendingItems.length} recovered acceptance remediation(s) failed for ${failedItems.length} item(s).`,
-      remediation:
-        "Retry acceptance after the workflow is reachable and the recovered disposition signals can be processed.",
-      failedItems,
-    };
-  }
-
   const clearResult = await clearRecoveryAuditMarkers(
     store,
     changeId,
     pendingItems,
   );
-  if (clearResult.kind !== "committed") {
+  if (clearResult.kind !== "verified") {
     return {
       kind: "blocked",
       code: "ACCEPTANCE_RECONCILIATION_CLEAR_FAILED",
       message: `Reconciliation signals succeeded but clearing recovery markers failed: ${clearResult.kind}`,
       remediation:
-        "Retry acceptance gate completion; if this persists, run adv_doctor to inspect the projection lock.",
+        "Retry acceptance gate completion; if this persists, inspect the projection lock.",
       failedItems: pendingItems.map((item) => ({
         family: item.family,
-        reason: "marker clear not confirmed",
+        reason: failureReason(clearResult),
         ...itemFailureDetail(item),
       })),
     };

@@ -21,10 +21,6 @@ import { GATE_ORDER, type GateId } from "../types";
 import { observedAttemptCount } from "../types/tasks";
 import { atomicWriteFile } from "../utils/fs";
 import { appendDebugLog } from "../utils/debug-log";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import { reflectionRecordedSignal } from "../temporal/messages";
 import { withOptionalTargetPathStore } from "./target-project";
 
 // =============================================================================
@@ -925,36 +921,6 @@ export const reflectionTools = {
 
       // Best-effort: write human-readable markdown to archive dir
       await writeReflectionMarkdown(store.paths.archive, change.id, persisted);
-
-      // Signal-driven: notify change workflow that reflection was recorded.
-      // Uses fireSignalAndRefresh (rq-cacheRefresh01) so the in-memory
-      // changeCache is invalidated after the signal fires.
-      try {
-        const bundle = getService();
-        if (bundle) {
-          const projectId =
-            store.productContext?.productProjectId ??
-            (await getProjectId(store.paths.root));
-          if (projectId) {
-            const handle = getChangeHandle(bundle, projectId, change.id);
-            await fireSignalAndRefresh(
-              handle,
-              store,
-              change.id,
-              reflectionRecordedSignal,
-              {
-                report: persisted,
-                recordedAt: new Date().toISOString(),
-              },
-            );
-          }
-        }
-      } catch (err) {
-        appendDebugLog(
-          "reflection",
-          `reflectionRecordedSignal failed: ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
 
       return formatToolOutput({
         reflection: persisted,

@@ -26,8 +26,20 @@ import type { Change, ProjectionCommitAuditEntry } from "../types";
 
 export const PROJECTION_COMMIT_MAX_AUDIT_ENTRIES = 50;
 
+/**
+ * Why a projection commit was authorized.
+ *
+ * `mutation` is the ordinary path: a tool applied a field-local change.
+ * `recovery` is the repair path, and stays distinct so the audit trail can
+ * still tell the two apart.
+ *
+ * There is deliberately no `temporal` variant here. Archived changes on disk
+ * carry `authority_kind: "temporal"` in their `projection_commits`, so the
+ * value stays readable — see `ProjectionCommitAuditEntry` — but nothing can
+ * write it any more.
+ */
 export type ProjectionCommitAuthority =
-  | { kind: "temporal"; mutationReceiptId: string }
+  | { kind: "mutation"; reason: string; evidence: string }
   | { kind: "recovery"; reason: string; evidence: string };
 
 export type ProjectionCommitVerifyResult =
@@ -336,12 +348,8 @@ export async function commitChangeProjection(
     const audit: ProjectionCommitAuditEntry = {
       mutation_kind: mutationKind,
       authority_kind: authority.kind,
-      ...(authority.kind === "temporal"
-        ? { mutation_receipt_id: authority.mutationReceiptId }
-        : {
-            recovery_reason: authority.reason,
-            recovery_evidence: authority.evidence,
-          }),
+      authority_reason: authority.reason,
+      authority_evidence: authority.evidence,
       operation_id: operationId,
       payload_hash: payloadHash,
       state_revision: stateRevision,

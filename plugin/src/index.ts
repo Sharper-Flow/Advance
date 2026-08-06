@@ -75,7 +75,6 @@ import {
   checkTrunkWriteBash,
   type TrunkWriteFirewallDeps,
 } from "./tools/trunk-write-firewall";
-import { isChangeReachable, type ReachabilityDeps } from "./tools/_adapters";
 import { setDoctorPointerRepairProvider } from "./tools/doctor";
 import { parseWorktreePaths } from "./utils/worktree-paths";
 import { getWorktreeBase } from "./utils/project-id";
@@ -113,6 +112,9 @@ const PROMPT_EXCERPT_CHARS = 2_000;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
+
+const isDiskChangeReachable = async (changesDir: string, changeId: string) =>
+  existsSync(join(changesDir, changeId, "change.json"));
 
 const normalizeToolTargetPath = (
   targetPath: string,
@@ -407,44 +409,6 @@ const advancePluginImpl: Plugin = async (input) => {
     ? { store: null, initError: identityError }
     : await tryInitStore(effectiveDir, externalRoot);
 
-  // Reachability dependencies for the active-change pointer gate.
-  // Visibility lister uses the store's own change getter (workflow state
-  // query) because index.ts does not have direct access to the Temporal
-  // client. Disk checker looks at the durable change.json snapshot.
-  const reachabilityDeps: ReachabilityDeps = store
-    ? {
-        visibilityLister: async (_projectId: string, cid: string) => {
-          try {
-            const result = await store.changes.get(cid);
-            return result.success;
-          } catch {
-            return false;
-          }
-        },
-        // existsSync returns a boolean and does not throw for string
-        // arguments (its only documented throw, DEP0187, is raised for
-        // invalid argument TYPES, and join() always yields a string), so
-        // this needs no guard.
-        diskChecker: async (_dir: string, cid: string) =>
-          existsSync(join(store.paths.changes, cid, "change.json")),
-        workflowStateGetter: async (cid: string) => {
-          try {
-            const result = await store.changes.get(cid);
-            return result.success;
-          } catch {
-            return false;
-          }
-        },
-      }
-    : {
-        // Degraded init: no store means no reachability signal; treat every
-        // candidate as unreachable so the pointer is never moved by phantom
-        // data, but still allow the forget/create paths to work.
-        visibilityLister: async () => false,
-        diskChecker: async () => false,
-        workflowStateGetter: async () => false,
-      };
-
   // Cache the worktree base path for rel-path resolution in the firewall
   // hook. Uses the project ID already resolved by resolveProjectContext.
   // Null when project ID is unavailable (falls back to session directory).
@@ -733,23 +697,10 @@ const advancePluginImpl: Plugin = async (input) => {
           // workflow-state tiers would require opening a Temporal client to
           // the target project; out of scope. The disk check is sufficient
           // signal that the change exists in the target project.
-          const targetDeps: ReachabilityDeps = {
-            visibilityLister: async () => false,
-            diskChecker: async (_dir: string, cid: string) => {
-              try {
-                return existsSync(join(targetChangesDir, cid, "change.json"));
-              } catch {
-                return false;
-              }
-            },
-            workflowStateGetter: async () => false,
-          };
-          const reachable = await isChangeReachable(
-            targetCtx.projectId,
-            String(args.changeId),
-            targetDeps,
-            targetChangesDir,
-          );
+           const reachable = await isDiskChangeReachable(
+             targetChangesDir,
+             String(args.changeId),
+           );
           if (reachable) {
             // KD3b: read target change.json for epic_membership.epic_id
             // Best-effort per DDC5; failures fall back to bare changeId title.
@@ -791,12 +742,12 @@ const advancePluginImpl: Plugin = async (input) => {
       } else {
         // Same-project reachability gate (AC4/AC5) — check before re-pointing
         try {
-          const reachable = await isChangeReachable(
-            resolvedProjectId ?? "",
-            String(args.changeId),
-            reachabilityDeps,
-            store?.paths.changes ?? "",
-          );
+           const reachable = store
+             ? await isDiskChangeReachable(
+                 store.paths.changes,
+                 String(args.changeId),
+               )
+             : false;
           if (reachable) {
             state.activeChange.id = String(args.changeId);
             const ctx = await resolveChangeContext(state.activeChange.id);
@@ -1062,7 +1013,7 @@ const advancePluginImpl: Plugin = async (input) => {
   // the canonical ADV worktree pattern. rq-fixZellijPaneTitles/AC1, AC2.
   // Best-effort: failures are logged and ignored, never blocking init.
   async function cwdDetectAndRepoint(): Promise<void> {
-    if (!resolvedProjectId || !store || !reachabilityDeps) return;
+    if (!resolvedProjectId || !store) return;
     try {
       const worktreeBase = getWorktreeBase(resolvedProjectId);
       const cwd = process.cwd();
@@ -1071,12 +1022,7 @@ const advancePluginImpl: Plugin = async (input) => {
       const rest = cwd.slice(prefix.length);
       const changeId = rest.split("/")[0];
       if (!changeId) return;
-      const reachable = await isChangeReachable(
-        resolvedProjectId,
-        changeId,
-        reachabilityDeps,
-        store.paths.changes,
-      );
+       const reachable = await isDiskChangeReachable(store.paths.changes, changeId);
       if (reachable) {
         state.activeChange.id = changeId;
         const ctx = await resolveChangeContext(changeId);

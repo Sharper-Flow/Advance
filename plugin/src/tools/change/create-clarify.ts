@@ -20,9 +20,6 @@ import type { ConflictInventory } from "../../validator/types";
 import { generateChangeId } from "../../utils/change-id";
 import { isSyntheticValidationDraftPattern } from "../../utils/synthetic-fixture-detector";
 import { createLogger } from "../../utils/debug-log";
-import { buildClaimVisibilityQuery } from "../../temporal/visibility-claim-queries";
-import { CHANGE_WORKFLOW_PREFIX } from "../../temporal/contracts";
-import { makeTemporalOperationContext } from "../../temporal/operations";
 import { runClarifyReadinessChecks } from "../../validator/clarify-readiness";
 import { formatToolOutput } from "../../utils/tool-output";
 import {
@@ -30,19 +27,12 @@ import {
   type TargetProjectContext,
   withTargetPathStore,
 } from "../target-project";
-import { getService } from "../../temporal/service";
-import { buildChangeWorkflowId } from "../../temporal/client";
 import { loadProposalForContext } from "../change/artifacts";
 import {
   loadValidationInventory,
   raceWithDeadline,
 } from "./validation-projection";
-import {
-  createTemporalReadDeadline,
-  type TemporalReadDeadline,
-  TEMPORAL_READ_DEADLINE_BUDGET_MS,
-} from "../../temporal/retry-wrapper";
-import { isPoisonedWorkflowForChange } from "../../storage/store-temporal/poisoned-workflow-cache";
+import { createReadDeadline, type ReadDeadline } from "./validation-projection";
 import { withTimeout, TimeoutError } from "../../utils/with-timeout";
 const logger = createLogger("change");
 
@@ -65,7 +55,7 @@ export async function checkActiveDuplicateChange(
 ): Promise<
   | {
       error: string;
-      code: "DUPLICATE_ACTIVE_CHANGE" | "DUPLICATE_ACTIVE_CHANGE_POISONED";
+      code: "DUPLICATE_ACTIVE_CHANGE";
       existing_change_id: string;
       existing_change_title: string;
       hint: string;
@@ -80,41 +70,21 @@ export async function checkActiveDuplicateChange(
   );
   if (!existingDuplicate) return undefined;
 
-  const existingIsPoisoned =
-    options?.projectId !== undefined &&
-    isPoisonedWorkflowForChange(options.projectId, existingDuplicate.id);
-
-  if (options?.forceRecreate && existingIsPoisoned) {
-    // Allow a new change to be minted (with the disk store's suffix fallback)
-    // when the duplicate's workflow is poisoned and unusable.
-    return undefined;
-  }
-
   const baseHint = `Resume the existing change with /adv-apply ${existingDuplicate.id}, or archive it before creating a new one.`;
-  if (existingIsPoisoned) {
-    return {
-      error: `An active change already exists for "${summary}"`,
-      code: "DUPLICATE_ACTIVE_CHANGE_POISONED",
-      existing_change_id: existingDuplicate.id,
-      existing_change_title: existingDuplicate.title,
-      hint: `${baseHint} The existing change's workflow is poisoned; pass forceRecreate: true to recreate.`,
-      force_recreate: true,
-    };
-  }
   return {
     error: `An active change already exists for "${summary}"`,
     code: "DUPLICATE_ACTIVE_CHANGE",
     existing_change_id: existingDuplicate.id,
     existing_change_title: existingDuplicate.title,
     hint: options?.forceRecreate
-      ? `${baseHint} forceRecreate is only allowed when the existing change's workflow is poisoned.`
+      ? `${baseHint} forceRecreate is not supported by disk-only persistence.`
       : baseHint,
   };
 }
 /**
  * rq-backlogCoord02 / rq-backlogCoord03 — injection seam for the
  * pre-create + post-create claim-collision checks. Production wires to
- * `queryClaimsByIssueNumber` via `getService()`; tests inject a
+ * The disk projection is the production claim source; tests may inject a
  * deterministic mock.
  */
 export interface ChangeCreateProviders {
@@ -145,36 +115,19 @@ export async function defaultClaimChecker(
     status: string;
   }>
 > {
-  const owner = getService();
-  if (!owner) return [];
-  const query = buildClaimVisibilityQuery({ projectId, issueNumber });
-  const projectPrefix = `${CHANGE_WORKFLOW_PREFIX}${projectId}/`;
-  const results: { changeId: string; status: string }[] = [];
-  try {
-    const outcome = await owner.list<{ workflowId: string }>(
-      makeTemporalOperationContext(
-        projectId,
-        buildChangeWorkflowId(projectId, "issue-claim-check"),
-        "list",
-        "queryClaimsByIssueNumber",
-        5_000,
-      ),
-      query,
-    );
-    if (outcome.kind !== "complete") {
-      return [];
-    }
-    for (const wf of outcome.value) {
-      const wfid = wf.workflowId;
-      if (!wfid.startsWith(projectPrefix)) continue;
-      const changeId = wfid.slice(projectPrefix.length);
-      if (changeId.length === 0) continue;
-      results.push({ changeId, status: "active" });
-    }
-  } catch {
-    return [];
-  }
-  return results;
+  throw new Error(
+    `Disk claim checks require the owning Store (project ${projectId}, issue #${issueNumber}).`,
+  );
+}
+
+export async function listIssueClaims(
+  store: Store,
+  issueNumber: number,
+): Promise<Array<{ changeId: string; status: string }>> {
+  const active = await store.changes.list({ status: "active" });
+  return active.changes
+    .filter((change) => (change as unknown as Change).origin?.issue_number === issueNumber)
+    .map((change) => ({ changeId: change.id, status: change.status }));
 }
 /**
  * Extract structured context-mismatch fields from an error, if it's an
@@ -980,7 +933,7 @@ export interface LoadValidationContextOptions {
    * Request-scoped aggregate deadline. If omitted, a fresh 8-second deadline is
    * created at the start of the call.
    */
-  deadline?: TemporalReadDeadline;
+  deadline?: ReadDeadline;
 }
 
 /**
@@ -1012,7 +965,7 @@ async function boundedMap<T, U>(
 
 async function loadSpecsForValidation(
   store: Store,
-  deadline: TemporalReadDeadline | undefined,
+  deadline: ReadDeadline | undefined,
 ): Promise<Spec[]> {
   const specList = await raceWithDeadline(store.specs.list(), deadline);
   const specs = await boundedMap(
@@ -1033,7 +986,7 @@ async function loadProposalForValidation(
   store: Store,
   changeId: string,
   changeTitle: string,
-  deadline: TemporalReadDeadline | undefined,
+  deadline: ReadDeadline | undefined,
 ): Promise<string> {
   const { content } = await raceWithDeadline(
     loadProposalForContext(store, changeId, changeTitle),
@@ -1044,7 +997,7 @@ async function loadProposalForValidation(
 
 async function loadChangedSpecFilesForValidation(
   rootDir: string,
-  deadline: TemporalReadDeadline | undefined,
+  deadline: ReadDeadline | undefined,
 ): Promise<string[] | null | undefined> {
   let changedSpecFiles: string[] | null | undefined = undefined;
   try {
@@ -1115,7 +1068,7 @@ export async function loadValidationContext(
 }> {
   const deadline =
     options?.deadline ??
-    createTemporalReadDeadline(TEMPORAL_READ_DEADLINE_BUDGET_MS);
+    createReadDeadline(8_000);
 
   // Start all independent input reads concurrently under the same deadline.
   const [inventoryResult, specsResult, proposalResult, gitResult] =

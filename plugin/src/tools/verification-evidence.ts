@@ -1,25 +1,12 @@
 import { z } from "zod";
 import type { Store } from "../storage/store-types";
-import { getService } from "../temporal/service";
-import {
-  changeStateQuery,
-  verificationEvidenceDispositionedSignal,
-} from "../temporal/messages";
 import {
   VerificationEvidenceDispositionSchema,
   type Change,
   type VerificationEvidenceDisposition,
 } from "../types";
-import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
-import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import { getChangeHandle } from "./_adapters";
-import type { ChangeWorkflowState } from "../temporal/contracts";
-import {
-  coordinateChangeMutation,
-  resolveChangeAuthority,
-} from "./change-mutation-coordinator";
-import { logRecoveryProbeDiagnostics } from "./recovery-probe";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   formatTargetProjectContext,
   withTargetPathStore,
@@ -67,16 +54,6 @@ interface DispositionArgs {
   target_path?: string;
   target_confirmed?: true;
   confirmationEvidence?: string;
-}
-
-async function getChangeHandleForChangeId(store: Store, changeId: string) {
-  const bundle = getService();
-  if (!bundle) throw new Error("Temporal service not available");
-  const projectId =
-    store.productContext?.productProjectId ??
-    (await getProjectId(store.paths.root));
-  if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle, projectId, changeId);
 }
 
 async function loadChange(store: Store, changeId: string): Promise<Change> {
@@ -162,43 +139,15 @@ async function executeDisposition(
     });
   }
 
-  const handle = await getChangeHandleForChangeId(store, args.changeId);
-  const authority = await resolveChangeAuthority({
-    changeId: args.changeId,
-    handle,
-  });
-  if (authority.kind === "operator_required") {
-    return formatToolOutput({
-      error: `Cannot safely record verification evidence disposition: ${authority.reason}`,
-      code: "VERIFICATION_EVIDENCE_MUTATION_OPERATOR_REQUIRED",
-      changeId: args.changeId,
-      ...proj,
-    });
-  }
-  if (authority.kind !== "temporal_live") {
-    await logRecoveryProbeDiagnostics(handle, args.changeId);
-  }
-
-  const outcome = await coordinateChangeMutation<ChangeWorkflowState>({
-    authority,
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "record verification-evidence disposition",
+      evidence: args.evidence,
+    },
     changesDir: store.paths.changes,
     intent: {
       changeId: args.changeId,
       mutationKind: "verification_evidence_disposition",
-      payload: (mutationReceiptId) => ({
-        ...disposition,
-        mutationReceiptId,
-      }),
-      sendSignal: async (h, payload) => {
-        await h.signal(verificationEvidenceDispositionedSignal, payload);
-      },
-      refresh: async (h) =>
-        h.query(changeStateQuery) as Promise<ChangeWorkflowState>,
-      verifyTemporal: (state) =>
-        dispositionPostcondition(
-          state.verification_evidence_dispositions,
-          disposition,
-        ),
       mutateLatestProjection: (latest) => ({
         ...latest,
         verification_evidence_dispositions:
@@ -216,26 +165,15 @@ async function executeDisposition(
   });
 
   switch (outcome.kind) {
-    case "applied_temporal":
-    case "recovered_verified": {
-      const recovered = outcome.kind === "recovered_verified";
+    case "verified": {
       return formatToolOutput({
         success: true,
         changeId: args.changeId,
         disposition,
-        ...(recovered
-          ? {
-              _recoveryMutation: true,
-              recovered: true,
-              recoveryMode: "poisoned_history",
-              reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              note: `Disk-direct recovery after signal error (coordinator, authority=${authority.kind})`,
-            }
-          : {}),
         ...proj,
       });
     }
-    case "recovered_unverified":
+    case "unverified":
       return formatToolOutput({
         error: `Verification-evidence disposition recovery wrote the disk projection but the postcondition could not be verified: ${outcome.reason}`,
         code: "VERIFICATION_EVIDENCE_DISPOSITION_RECOVERY_UNVERIFIED",

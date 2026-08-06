@@ -3532,11 +3532,18 @@
     "projection_commits": {
       "items": {
         "properties": {
+          "authority_evidence": {
+            "type": "string"
+          },
           "authority_kind": {
             "enum": [
-              "temporal",
-              "recovery"
+              "mutation",
+              "recovery",
+              "temporal"
             ],
+            "type": "string"
+          },
+          "authority_reason": {
             "type": "string"
           },
           "committed_at": {

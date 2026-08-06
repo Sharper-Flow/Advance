@@ -18,10 +18,7 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import type { Store } from "../storage/store-types";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import { taskAddedSignal } from "../temporal/messages";
 import {
   ReportFollowUpKindSchema,
   type ReportFollowUpKind,
@@ -38,7 +35,7 @@ import {
   reportKeyFromReport,
   resolveReportFollowUpByRef,
 } from "../types/subagent-reports";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 
 const RoutingSchema = z.enum([
   "pre_planning_task",
@@ -56,19 +53,6 @@ function findReportByKey(
   return (change.subagent_reports ?? []).find(
     (report) => reportKeyFromReport(report) === reportKey,
   );
-}
-
-async function getChangeHandleForChangeId(
-  store: Store,
-  changeId: string,
-): Promise<ReturnType<typeof getChangeHandle>> {
-  const bundle = getService();
-  if (!bundle) throw new Error("Temporal service not available");
-  const projectId =
-    store.productContext?.productProjectId ??
-    (await getProjectId(store.paths.root));
-  if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle, projectId, changeId);
 }
 
 async function loadSourceChange(
@@ -183,20 +167,32 @@ async function createPrePlanningTask(
   task.evidence_plan = evidencePlan;
 
   try {
-    const handle = await getChangeHandleForChangeId(
-      sourceStore,
-      input.source_change_id,
-    );
-    await fireSignalAndRefresh(
-      handle,
-      sourceStore,
-      input.source_change_id,
-      taskAddedSignal,
-      {
-        task,
-        addedAt: now,
+    const outcome = await coordinateChangeMutation<Change>({
+      authority: {
+        reason: "promote report follow-up to task",
+        evidence: JSON.stringify(ref),
       },
-    );
+      changesDir: sourceStore.paths.changes,
+      intent: {
+        changeId: input.source_change_id,
+        mutationKind: "report_followup_task_add",
+        mutateLatestProjection: (latest) => ({
+          ...latest,
+          tasks: [...latest.tasks, task],
+        }),
+        verifyProjection: (readback) =>
+          readback.tasks.some((candidate) => candidate.id === task.id),
+      },
+    });
+    if (outcome.kind !== "verified") {
+      return {
+        ok: false,
+        error:
+          outcome.kind === "unverified" || outcome.kind === "operator_required"
+            ? outcome.reason
+            : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+      };
+    }
     return { ok: true, result: { taskId: task.id, task } };
   } catch (err) {
     return {

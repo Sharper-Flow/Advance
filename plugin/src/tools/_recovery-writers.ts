@@ -119,6 +119,7 @@ export async function saveRecoveredTaskMutation(input: {
   const taskId = input.taskId;
   const outcome = await coordinateChangeMutation<Change>({
     authority: {
+      kind: "recovery",
       reason: "task recovery",
       evidence: "disk projection mutation",
     },
@@ -171,6 +172,7 @@ export async function saveRecoveredTaskAdd(input: {
   const task = input.task;
   const outcome = await coordinateChangeMutation<Change>({
     authority: {
+      kind: "recovery",
       reason: "task add recovery",
       evidence: "disk projection mutation",
     },
@@ -225,7 +227,7 @@ export async function saveRecoveredGateCompletion(input: {
     },
   } as Gates[keyof Gates];
   const outcome = await coordinateChangeMutation<Change>({
-    authority: input.authorization,
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
@@ -266,7 +268,7 @@ export async function saveRecoveredArtifactMetadata(input: {
   const kind = input.kind;
   const metadata = input.metadata;
   const outcome = await coordinateChangeMutation<Change>({
-    authority: input.authorization,
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
@@ -304,7 +306,7 @@ export async function saveRecoveredChangeStatus(input: {
   const lifecycleState = input.lifecycleState;
   const closure = input.closure;
   const outcome = await coordinateChangeMutation<Change>({
-    authority: input.authorization,
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
@@ -350,7 +352,7 @@ export async function saveRecoveredDesignConcernDisposition(input: {
     },
   };
   const outcome = await coordinateChangeMutation<Change>({
-    authority: input.authorization,
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
@@ -410,7 +412,7 @@ export async function saveRecoveredVerificationEvidenceDisposition(input: {
     },
   };
   const outcome = await coordinateChangeMutation<Change>({
-    authority: input.authorization,
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
@@ -475,7 +477,7 @@ export async function saveRecoveredContractReviewMatrix(input: {
     },
   };
   const outcome = await coordinateChangeMutation<Change>({
-    authority: input.authorization,
+    authority: { ...input.authorization, kind: "recovery" },
     changesDir: input.store.paths.changes,
     intent: {
       changeId: input.change.id,
@@ -724,7 +726,7 @@ export async function saveRecoveredSubagentReport(input: {
   // Active/closed changes route through the conditional projection commit.
   if (!bundleDir) {
     const outcome = await coordinateChangeMutation<Change>({
-      authority: input.authorization,
+      authority: { ...input.authorization, kind: "recovery" },
       changesDir: input.store.paths.changes,
       intent: {
         changeId: input.change.id,

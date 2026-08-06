@@ -1,74 +1,34 @@
-/**
- * Validation-specific Store projection.
- *
- * Returns a typed conflict inventory in one bounded pass using capability data
- * already exposed by the Store's list surface, removing the duplicate
- * active-peer hydration loop from validation context loading.
- */
+/** Disk-store validation projection. */
+import type { Store } from "../../storage/store-types";
+import type { ConflictInventory, ConflictInventoryEntry } from "../../validator/types";
 
-import type {
-  Store,
-  ChangeConflictAuthority,
-  AuthorityDiagnostics,
-} from "../../storage/store-types";
-import type {
-  ConflictInventory,
-  ConflictInventoryEntry,
-} from "../../validator/types";
-import {
-  remainingDeadlineMs,
-  TemporalQueryTimeoutError,
-  type TemporalReadDeadline,
-} from "../../temporal/retry-wrapper";
+export interface ReadDeadline {
+  startedAt: number;
+  budgetMs: number;
+}
+
+export function createReadDeadline(budgetMs: number): ReadDeadline {
+  return { startedAt: Date.now(), budgetMs };
+}
+
+function remainingDeadlineMs(deadline: ReadDeadline): number {
+  return Math.max(0, deadline.budgetMs - (Date.now() - deadline.startedAt));
+}
 
 export interface ValidationInventoryOptions {
-  /**
-   * Request-scoped aggregate deadline. When provided, every enumeration step is
-   * admitted against the remaining budget.
-   */
-  deadline?: TemporalReadDeadline;
+  deadline?: ReadDeadline;
 }
 
-function makeDiagnostics(
-  source: string,
-  startMs: number,
-  overrides?: Partial<AuthorityDiagnostics>,
-): AuthorityDiagnostics {
-  return {
-    source,
-    activeCandidateCount: null,
-    omittedCount: null,
-    shadowCount: null,
-    elapsedMs: Date.now() - startMs,
-    ...overrides,
-  };
-}
-
-/**
- * Race a Store read against the remaining aggregate deadline. On expiry it
- * rejects with TemporalQueryTimeoutError so callers can record typed
- * incompleteness rather than hanging or returning a misleading fallback.
- */
-export async function raceWithDeadline<T>(
-  op: Promise<T>,
-  deadline: TemporalReadDeadline | undefined,
-): Promise<T> {
+export async function raceWithDeadline<T>(op: Promise<T>, deadline?: ReadDeadline): Promise<T> {
   if (!deadline) return op;
-
   const remaining = remainingDeadlineMs(deadline);
-  if (remaining <= 0) {
-    throw new TemporalQueryTimeoutError(deadline.budgetMs);
-  }
-
+  if (remaining <= 0) throw new Error("Read deadline exceeded");
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       op,
       new Promise<T>((_, reject) => {
-        timer = setTimeout(
-          () => reject(new TemporalQueryTimeoutError(deadline.budgetMs)),
-          remaining,
-        );
+        timer = setTimeout(() => reject(new Error("Read deadline exceeded")), remaining);
       }),
     ]);
   } finally {
@@ -76,245 +36,67 @@ export async function raceWithDeadline<T>(
   }
 }
 
-function hasIncompleteMetadata(
-  listResult: Awaited<ReturnType<Store["changes"]["list"]>>,
-): boolean {
-  if (listResult.hydrationStats?.deadlineExceeded) return true;
-  if (listResult.hydrationStats?.boundedOmitted) return true;
-  if (
-    listResult.warnings?.some(
-      (w: { code?: string }) =>
-        w.code === "SOURCE_DEADLINE_EXCEEDED" ||
-        w.code === "SOURCE_BOUND_EXCEEDED",
-    )
-  )
-    return true;
-  return false;
+function incomplete(list: Awaited<ReturnType<Store["changes"]["list"]>>): boolean {
+  return Boolean(
+    list.hydrationStats?.deadlineExceeded ||
+      list.hydrationStats?.boundedOmitted ||
+      list.warnings?.some((warning: { code?: string }) =>
+        warning.code === "SOURCE_DEADLINE_EXCEEDED" || warning.code === "SOURCE_BOUND_EXCEEDED"),
+  );
 }
 
-function hasDegradedMetadata(
-  listResult: Awaited<ReturnType<Store["changes"]["list"]>>,
-): boolean {
-  if (
-    listResult.warnings?.some(
-      (w: { code?: string }) =>
-        w.code === "TERMINAL_SOURCE_DEGRADED" ||
-        w.code === "TERMINAL_CANDIDATE_OMITTED",
-    )
-  )
-    return true;
-  return false;
+function degraded(list: Awaited<ReturnType<Store["changes"]["list"]>>): boolean {
+  return Boolean(
+    list.warnings?.some((warning: { code?: string }) =>
+      warning.code === "TERMINAL_SOURCE_DEGRADED" || warning.code === "TERMINAL_CANDIDATE_OMITTED"),
+  );
 }
 
-/**
- * Build a bounded, one-pass validation inventory projection.
- *
- * Stably orders peers by id and derives conflict-inventory entries from the
- * Store's own list row, which now carries the capability names derived from
- * deltas in the same single read. No per-peer `store.changes.get` is performed.
- *
- * Incomplete Store enumeration metadata (deadline/bound/warnings) is
- * propagated to blocked or non-conclusive inventory state so validation can
- * never draw a clean conclusion from a truncated view.
- */
-export async function loadValidationInventory(
-  store: Store,
-  changeId: string,
-  options?: ValidationInventoryOptions,
-): Promise<ConflictInventory> {
-  const deadline = options?.deadline;
+export async function loadValidationInventory(store: Store, changeId: string, options?: ValidationInventoryOptions): Promise<ConflictInventory> {
   const startMs = Date.now();
-
-  // Prefer the dedicated active-only conflict authority when the Store exposes
-  // it. This path performs zero terminal/archive enumeration and is the only
-  // structural source for validation conflict completeness.
-  if (store.changes.listConflictAuthority) {
-    let authority: ChangeConflictAuthority;
-    try {
-      authority = await raceWithDeadline(
-        store.changes.listConflictAuthority({ deadline }),
-        deadline,
-      );
-    } catch (err) {
-      return {
-        entries: [],
-        completeness: "blocked",
-        warnings: [
-          `Active conflict authority unreachable: ${err instanceof Error ? err.message : String(err)}`,
-        ],
-        source: "validation-inventory-projection",
-        authorityDiagnostics: makeDiagnostics(
-          "active-conflict-authority",
-          startMs,
-        ),
-        ownChangeId: changeId,
-        canConcludeClean: false,
-      };
-    }
-
-    const entries: ConflictInventoryEntry[] = authority.active.map((peer) => {
-      const isOwnChange = peer.id === changeId;
-      const entry: ConflictInventoryEntry = {
-        id: peer.id,
-        title: peer.title,
-        status: peer.status,
-        isArchived: false,
-        isOwnChange,
-        capabilities: peer.capabilities,
-        ...(peer.epic_membership
-          ? {
-              epic: {
-                id: peer.epic_membership.epic_id,
-                title: peer.epic_membership.title,
-                entry_id: peer.epic_membership.entry_id,
-              },
-            }
-          : {}),
-      };
-      return entry;
-    });
-
-    const completeness: ConflictInventory["completeness"] =
-      authority.completeness === "complete" ? "complete" : "non-conclusive";
-
-    const authorityDiagnostics: AuthorityDiagnostics =
-      authority.authorityDiagnostics ??
-      makeDiagnostics(authority.source, startMs, {
-        activeCandidateCount: authority.candidateCount ?? null,
-        omittedCount: authority.omittedCount ?? null,
-        shadowCount: authority.shadowCount ?? null,
-        elapsedMs: null,
-      });
-
-    return {
-      entries,
-      completeness,
-      warnings: authority.warnings,
-      source: "validation-inventory-projection",
-      authorityDiagnostics,
-      ownChangeId: changeId,
-      canConcludeClean: authority.canConcludeClean,
-    };
-  }
-
-  const warnings: string[] = [];
-
-  // 1. Enumerate changes with shared deadline admission.
-  let changeList: Awaited<ReturnType<typeof store.changes.list>>;
+  let list: Awaited<ReturnType<Store["changes"]["list"]>>;
   try {
-    changeList = await raceWithDeadline(
-      store.changes.list({
-        includeArchived: true,
-        includeClosed: true,
-        validationConcurrency: 4,
-      }),
-      deadline,
+    list = await raceWithDeadline(
+      store.changes.list({ includeArchived: true, includeClosed: true, validationConcurrency: 4 }),
+      options?.deadline,
     );
-  } catch (err) {
-    warnings.push(
-      `Change inventory source unreachable: ${err instanceof Error ? err.message : String(err)}`,
-    );
+  } catch (error) {
     return {
       entries: [],
       completeness: "blocked",
-      warnings,
+      warnings: [`Change inventory source unreachable: ${error instanceof Error ? error.message : String(error)}`],
       source: "validation-inventory-projection",
-      authorityDiagnostics: makeDiagnostics(
-        "validation-inventory-projection",
-        startMs,
-      ),
+      authorityDiagnostics: { source: "disk-change-list", activeCandidateCount: null, omittedCount: null, shadowCount: null, elapsedMs: Date.now() - startMs },
       ownChangeId: changeId,
       canConcludeClean: false,
     };
   }
-
-  // 2. Propagate Store-level incomplete metadata before any conclusion.
-  if (hasIncompleteMetadata(changeList)) {
-    const code = changeList.hydrationStats?.deadlineExceeded
-      ? "deadline"
-      : changeList.hydrationStats?.boundedOmitted
-        ? "bound"
-        : "source";
-    warnings.push(
-      `Store inventory enumeration is incomplete (${code}); peer capabilities may be missing.`,
-    );
-  }
-  if (hasDegradedMetadata(changeList)) {
-    warnings.push(
-      "Store inventory enumeration reported degraded terminal sources; some rows may be incomplete.",
-    );
-  }
-
-  // 3. Stable input ordering by id (DC2 / C3).
-  const orderedSummaries = [...changeList.changes].sort((a, b) =>
-    a.id.localeCompare(b.id),
-  );
-
-  // 4. Build lightweight inventory entries from the one-pass list row.
-  //    Preserve presence/absence of capabilities structurally: if the Store
-  //    exposed an explicit array (even empty), keep it; if it omitted the field,
-  //    leave it undefined so downstream code can distinguish "no deltas" from
-  //    "capabilities not exposed".
-  const entries: ConflictInventoryEntry[] = orderedSummaries.map((summary) => {
-    const isOwnChange = summary.id === changeId;
-    const isArchived =
-      summary.status === "archived" || summary.status === "closed";
-    const entry: ConflictInventoryEntry = {
+  const warnings: string[] = [];
+  if (incomplete(list)) warnings.push("Store inventory enumeration is incomplete; peer capabilities may be missing.");
+  if (degraded(list)) warnings.push("Store inventory enumeration reported degraded terminal sources; some rows may be incomplete.");
+  const entries: ConflictInventoryEntry[] = [...list.changes]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((summary) => ({
       id: summary.id,
       title: summary.title,
       status: summary.status,
-      isArchived,
-      isOwnChange,
-      ...(summary.epic_membership
-        ? {
-            epic: {
-              id: summary.epic_membership.epic_id,
-              title: summary.epic_membership.title,
-              entry_id: summary.epic_membership.entry_id,
-            },
-          }
-        : {}),
-    };
-    if (summary.capabilities !== undefined) {
-      entry.capabilities = summary.capabilities;
-    }
-    return entry;
-  });
-
-  // 5. Detect active non-own peers whose capabilities were not exposed by the
-  //    Store without a second read. A peer with `capabilities: []` has zero
-  //    deltas and is complete; a peer with *missing* capabilities is degraded.
-  const peersWithoutCapabilities = entries
-    .filter((e) => !e.isArchived && !e.isOwnChange)
-    .filter((e) => e.capabilities === undefined);
-  if (peersWithoutCapabilities.length > 0) {
-    for (const peer of peersWithoutCapabilities) {
-      warnings.push(
-        `Peer change ${peer.id} capabilities not exposed by one-pass Store list; conflict detection may be incomplete.`,
-      );
-    }
-  }
-
+      isArchived: summary.status === "archived" || summary.status === "closed",
+      isOwnChange: summary.id === changeId,
+      ...(summary.capabilities !== undefined ? { capabilities: summary.capabilities } : {}),
+      ...(summary.epic_membership ? { epic: { id: summary.epic_membership.epic_id, title: summary.epic_membership.title, entry_id: summary.epic_membership.entry_id } } : {}),
+    }));
+  const missingCapabilities = entries.filter((entry) => !entry.isArchived && !entry.isOwnChange && entry.capabilities === undefined);
+  for (const entry of missingCapabilities) warnings.push(`Peer change ${entry.id} capabilities not exposed by disk Store list; conflict detection may be incomplete.`);
   let completeness: ConflictInventory["completeness"] = "complete";
-  if (peersWithoutCapabilities.length > 0) {
-    completeness = "degraded";
-  }
-  if (hasIncompleteMetadata(changeList)) {
-    completeness = "non-conclusive";
-  }
-  if (hasDegradedMetadata(changeList) && completeness === "complete") {
-    completeness = "degraded";
-  }
-
+  if (missingCapabilities.length > 0) completeness = "degraded";
+  if (incomplete(list)) completeness = "non-conclusive";
+  if (degraded(list) && completeness === "complete") completeness = "degraded";
   return {
     entries,
     completeness,
     warnings,
     source: "validation-inventory-projection",
-    authorityDiagnostics: makeDiagnostics(
-      "validation-inventory-projection",
-      startMs,
-    ),
+    authorityDiagnostics: { source: "disk-change-list", activeCandidateCount: entries.length, omittedCount: missingCapabilities.length, shadowCount: null, elapsedMs: Date.now() - startMs },
     ownChangeId: changeId,
     canConcludeClean: completeness === "complete",
   };

@@ -514,9 +514,7 @@ async function executeWorktreeDetach(
     projectRoot,
     database,
     {
-      store,
       log,
-      signalTimeoutMs: Math.max(1, effectiveTimeoutMs - 2_000),
     },
   );
 
@@ -1040,7 +1038,6 @@ export const advWorktreeTools = {
           : {}),
         ...(result.omitted ? { omitted: result.omitted } : {}),
         ...(result.stageTimings ? { stageTimings: result.stageTimings } : {}),
-        ...(result.warnings ? { warnings: result.warnings } : {}),
       });
     },
   },

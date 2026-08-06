@@ -10,16 +10,8 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import type { Store } from "../storage/store-types";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
 import { formatToolOutput } from "../utils/tool-output";
-import {
-  opsEvidenceAppendedSignal,
-  opsFollowupResolutionUpsertedSignal,
-  opsRunEvidenceAppendedSignal,
-  opsRunUpsertedSignal,
-} from "../temporal/messages";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import {
   type OpsEvidenceEntry,
   type OpsFollowupStatus,
@@ -237,19 +229,6 @@ function buildRun(
   };
 }
 
-async function getChangeHandleForChangeId(
-  store: Store,
-  changeId: string,
-): Promise<ReturnType<typeof getChangeHandle>> {
-  const bundle = getService();
-  if (!bundle) throw new Error("Temporal service not available");
-  const projectId =
-    store.productContext?.productProjectId ??
-    (await getProjectId(store.paths.root));
-  if (!projectId) throw new Error("Could not resolve project ID");
-  return getChangeHandle(bundle, projectId, changeId);
-}
-
 export const opsEvidenceTools = {
   adv_ops_evidence_add: {
     description:
@@ -336,18 +315,40 @@ export const opsEvidenceTools = {
         });
       }
 
-      const handle = await getChangeHandleForChangeId(store, input.changeId);
-      await fireSignalAndRefresh(
-        handle,
-        store,
-        input.changeId,
-        opsEvidenceAppendedSignal,
-        {
-          entry,
-          status: profileStatus,
-          appendedAt: recordedAt,
+      const outcome = await coordinateChangeMutation<Change>({
+        authority: {
+          reason: "append operational evidence",
+          evidence: input.action,
         },
-      );
+        changesDir: store.paths.changes,
+        intent: {
+          changeId: input.changeId,
+          mutationKind: "ops_evidence_appended",
+          mutateLatestProjection: (latest) => ({
+            ...latest,
+            ops_followup: latest.ops_followup
+              ? {
+                  ...latest.ops_followup,
+                  status: profileStatus,
+                  updated_at: recordedAt,
+                  evidence: [...latest.ops_followup.evidence, entry],
+                }
+              : undefined,
+          }),
+          verifyProjection: (readback) =>
+            readback.ops_followup?.evidence.some((candidate) => candidate.id === entry.id) ??
+            false,
+        },
+      });
+      if (outcome.kind !== "verified") {
+        return formatToolOutput({
+          error:
+            outcome.kind === "unverified" || outcome.kind === "operator_required"
+              ? outcome.reason
+              : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+          changeId: input.changeId,
+        });
+      }
 
       return formatToolOutput({
         success: true,
@@ -478,18 +479,36 @@ export const opsEvidenceTools = {
         });
       }
 
-      const handle = await getChangeHandleForChangeId(store, input.changeId);
-      await fireSignalAndRefresh(
-        handle,
-        store,
-        input.changeId,
-        opsFollowupResolutionUpsertedSignal,
-        {
-          linkId: input.linkId,
-          resolution,
-          upsertedAt: recordedAt,
+      const outcome = await coordinateChangeMutation<Change>({
+        authority: {
+          reason: "upsert ops follow-up resolution",
+          evidence: input.linkId,
         },
-      );
+        changesDir: store.paths.changes,
+        intent: {
+          changeId: input.changeId,
+          mutationKind: "ops_followup_resolution_upserted",
+          mutateLatestProjection: (latest) => ({
+            ...latest,
+            ops_followup_links: (latest.ops_followup_links ?? []).map((link) =>
+              link.id === input.linkId ? { ...link, resolution } : link,
+            ),
+          }),
+          verifyProjection: (readback) =>
+            readback.ops_followup_links?.some(
+              (link) => link.id === input.linkId && link.resolution?.verified_at === resolution.verified_at,
+            ) ?? false,
+        },
+      });
+      if (outcome.kind !== "verified") {
+        return formatToolOutput({
+          error:
+            outcome.kind === "unverified" || outcome.kind === "operator_required"
+              ? outcome.reason
+              : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+          changeId: input.changeId,
+        });
+      }
 
       return formatToolOutput({
         success: true,
@@ -570,14 +589,42 @@ export const opsEvidenceTools = {
         });
       }
 
-      const handle = await getChangeHandleForChangeId(store, input.changeId);
-      await fireSignalAndRefresh(
-        handle,
-        store,
-        input.changeId,
-        opsRunUpsertedSignal,
-        { run, upsertedAt: now },
-      );
+      const outcome = await coordinateChangeMutation<Change>({
+        authority: {
+          reason: "upsert ops runbook run",
+          evidence: input.runId,
+        },
+        changesDir: store.paths.changes,
+        intent: {
+          changeId: input.changeId,
+          mutationKind: "ops_run_upserted",
+          mutateLatestProjection: (latest) => ({
+            ...latest,
+            ops_followup: latest.ops_followup
+              ? {
+                  ...latest.ops_followup,
+                  updated_at: now,
+                  runs: [
+                    ...latest.ops_followup.runs.filter((candidate) => candidate.id !== run.id),
+                    run,
+                  ],
+                }
+              : undefined,
+          }),
+          verifyProjection: (readback) =>
+            readback.ops_followup?.runs.some((candidate) => candidate.id === run.id) ??
+            false,
+        },
+      });
+      if (outcome.kind !== "verified") {
+        return formatToolOutput({
+          error:
+            outcome.kind === "unverified" || outcome.kind === "operator_required"
+              ? outcome.reason
+              : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+          changeId: input.changeId,
+        });
+      }
 
       return formatToolOutput({
         success: true,
@@ -719,19 +766,47 @@ export const opsEvidenceTools = {
         });
       }
 
-      const handle = await getChangeHandleForChangeId(store, input.changeId);
-      await fireSignalAndRefresh(
-        handle,
-        store,
-        input.changeId,
-        opsRunEvidenceAppendedSignal,
-        {
-          runId: input.runId,
-          entry,
-          ...(profileStatus ? { status: profileStatus } : {}),
-          appendedAt: recordedAt,
+      const outcome = await coordinateChangeMutation<Change>({
+        authority: {
+          reason: "append ops run evidence",
+          evidence: input.runId,
         },
-      );
+        changesDir: store.paths.changes,
+        intent: {
+          changeId: input.changeId,
+          mutationKind: "ops_run_evidence_appended",
+          mutateLatestProjection: (latest) => ({
+            ...latest,
+            ops_followup: latest.ops_followup
+              ? {
+                  ...latest.ops_followup,
+                  ...(profileStatus ? { status: profileStatus } : {}),
+                  updated_at: recordedAt,
+                  runs: latest.ops_followup.runs.map((candidate) =>
+                    candidate.id === input.runId
+                      ? { ...candidate, status: input.next_status, evidence: [...candidate.evidence, entry] }
+                      : candidate,
+                  ),
+                }
+              : undefined,
+          }),
+          verifyProjection: (readback) =>
+            readback.ops_followup?.runs.some(
+              (candidate) =>
+                candidate.id === input.runId &&
+                candidate.evidence.some((evidence) => evidence.id === entry.id),
+            ) ?? false,
+        },
+      });
+      if (outcome.kind !== "verified") {
+        return formatToolOutput({
+          error:
+            outcome.kind === "unverified" || outcome.kind === "operator_required"
+              ? outcome.reason
+              : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+          changeId: input.changeId,
+        });
+      }
 
       return formatToolOutput({
         success: true,

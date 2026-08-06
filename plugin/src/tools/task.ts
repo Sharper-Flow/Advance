@@ -33,6 +33,7 @@ import {
   paginate,
   resolveOutputMode,
 } from "../utils/tool-output";
+import { getProjectId } from "../utils/project-id";
 import { maybeAttachChangeTicker } from "../storage/context-snapshot-fetch";
 import {
   buildTodoProjection,
@@ -48,27 +49,13 @@ import {
   withTargetPathStore,
 } from "./target-project";
 import { includeSnapshotSchema } from "./shared-args";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
 import { readChangeProjectionState } from "../storage/read-change-projection";
-import {
-  listTasksFromChangeState,
-  getReadyTasksFromChangeState,
-} from "../temporal/change-state";
+import { coordinateChangeMutation } from "./change-mutation-coordinator";
 import { extractStructuredOutput } from "../utils/extract-structured-output";
 import {
   appendDraft,
   maybeCreateWisdomDraftFromErrorRecovery,
 } from "../utils/wisdom-draft";
-import {
-  taskAddedSignal,
-  taskUpdatedSignal,
-  taskAssignedSignal,
-  taskBlockedSignal,
-  taskCompletedSignal,
-  taskCancelledSignal,
-} from "../temporal/messages";
 import {
   checkWorktreeIsolation,
   type WorktreeIsolationDeps,
@@ -81,13 +68,6 @@ import {
 } from "./worktree-auto-manage";
 import type { Change } from "../types";
 import { resolveProjectFeaturePolicy } from "../types";
-import { RECOVERY_RECONCILIATION_WARNING } from "../temporal/recovery-classification";
-import { logRecoveryProbeDiagnostics } from "./recovery-probe";
-import {
-  saveRecoveredTaskAdd,
-  saveRecoveredTaskMutation,
-} from "./_recovery-writers";
-import { classifyMutationRecoveryDecision } from "./monotonic-recovery";
 
 // =============================================================================
 // Helpers
@@ -108,6 +88,100 @@ function serializeContractCoverage(
     cancelledTaskIds: projection.cancelledTaskIds,
     cancelledTaskCount: projection.cancelledTaskCount,
   };
+}
+
+function listTasksFromProjection(
+  state: { tasks: Task[] },
+  status?: Task["status"],
+  filter?: string,
+): Task[] {
+  let tasks = status
+    ? state.tasks.filter((task) => task.status === status)
+    : [...state.tasks];
+  const hasKeyMatch = filter?.match(/^has_metadata_key:(.+)$/);
+  const kvMatch = filter?.match(/^metadata:([^=]+)=(.+)$/);
+  if (hasKeyMatch) {
+    tasks = tasks.filter((task) => task.metadata && hasKeyMatch[1] in task.metadata);
+  } else if (kvMatch) {
+    tasks = tasks.filter((task) => task.metadata?.[kvMatch[1]] === kvMatch[2]);
+  }
+  return tasks;
+}
+
+function getReadyTasksFromProjection(state: { tasks: Task[] }) {
+  const ready: Task[] = [];
+  const blocked: Array<{ task: Task; blockedBy: string[] }> = [];
+  for (const task of state.tasks) {
+    if (task.status !== "pending") continue;
+    const blockers = (task.deps ?? [])
+      .filter((dep) => dep.type === "blocked_by")
+      .filter((dep) => {
+        const blocking = state.tasks.find((candidate) => candidate.id === dep.target);
+        return blocking && blocking.status !== "done" && blocking.status !== "cancelled";
+      })
+      .map((dep) => dep.target);
+    if (blockers.length === 0) ready.push(task);
+    else blocked.push({ task, blockedBy: blockers });
+  }
+  return { ready, blocked };
+}
+
+async function mutateTaskProjection(
+  store: Store,
+  changeId: string,
+  taskId: string,
+  mutate: (task: Task) => Task,
+  mutationKind: string,
+  evidence: string,
+): Promise<Change> {
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: { reason: mutationKind, evidence },
+    changesDir: store.paths.changes,
+    intent: {
+      changeId,
+      mutationKind,
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        tasks: latest.tasks.map((task) =>
+          task.id === taskId ? mutate(task) : task,
+        ),
+      }),
+      verifyProjection: (readback) => {
+        const task = readback.tasks.find((candidate) => candidate.id === taskId);
+        return task ? JSON.stringify(task) === JSON.stringify(mutate(task)) : false;
+      },
+    },
+  });
+  if (outcome.kind === "verified") return outcome.value;
+  throw new Error(
+    outcome.kind === "unverified" || outcome.kind === "operator_required"
+      ? outcome.reason
+      : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+  );
+}
+
+async function addTaskToProjection(
+  store: Store,
+  changeId: string,
+  task: Task,
+): Promise<Change> {
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: { reason: "add task", evidence: task.id },
+    changesDir: store.paths.changes,
+    intent: {
+      changeId,
+      mutationKind: "task_add",
+      mutateLatestProjection: (latest) => ({ ...latest, tasks: [...latest.tasks, task] }),
+      verifyProjection: (readback) =>
+        readback.tasks.some((candidate) => candidate.id === task.id),
+    },
+  });
+  if (outcome.kind === "verified") return outcome.value;
+  throw new Error(
+    outcome.kind === "unverified" || outcome.kind === "operator_required"
+      ? outcome.reason
+      : `Projection revision conflict: expected ${outcome.expected}, actual ${outcome.actual}`,
+  );
 }
 
 /**
@@ -391,21 +465,6 @@ async function resolveChangeId(
   return null;
 }
 
-async function getHandleForChangeId(
-  store: Store,
-  changeId: string,
-): Promise<ReturnType<typeof getChangeHandle>> {
-  const bundle = getService();
-  if (!bundle) {
-    throw new Error("Temporal service not available");
-  }
-  const projectId = await getProjectId(store.paths.root);
-  if (!projectId) {
-    throw new Error("Could not resolve project ID");
-  }
-  return getChangeHandle(bundle, projectId, changeId);
-}
-
 // =============================================================================
 // Tool Definitions
 // =============================================================================
@@ -568,7 +627,7 @@ export const taskTools = {
             changeId,
           );
           const tasks = state
-            ? listTasksFromChangeState(state, status, filter)
+             ? listTasksFromProjection(state, status, filter)
             : [];
           const paged = paginate(tasks, {
             limit,
@@ -625,7 +684,7 @@ export const taskTools = {
             changeId,
           );
           const result = state
-            ? getReadyTasksFromChangeState(state)
+             ? getReadyTasksFromProjection(state)
             : { ready: [], blocked: [] };
           const formatted = formatTaskReadyOutput({
             ready: result.ready.map((t) => ({
@@ -831,7 +890,6 @@ export const taskTools = {
           });
         }
 
-        const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
         let taskRecord: Awaited<ReturnType<Store["tasks"]["show"]>> | null =
           null;
@@ -963,38 +1021,16 @@ export const taskTools = {
         }
 
         if (args.status === "done" && !shouldPatchExistingDoneTask) {
-          // D4 internal classification (rq-internalMonotonicRecovery01):
-          // allow the done-check to be bypassed when describe() confirms the
-          // workflow is poisoned/completed. The probe is only paid on
-          // recovery-shaped calls (status:done via adv_task_update); normal
-          // completion routes through adv_task_checkpoint.
-          const internalDecision = await classifyMutationRecoveryDecision({
-            handle,
+          return formatToolOutput({
+            error:
+              "Normal task completion must go through adv_task_checkpoint so git checkpoint metadata, touched files, and verification are recorded before the task is marked done.",
+            code: "TASK_DONE_REQUIRES_CHECKPOINT",
+            hint: "Run adv_task_checkpoint with mode:'complete'. Use adv_task_update status:'done' only to patch an already-done task's metadata/contract refs.",
+            changeId,
+            taskId: args.taskId,
           });
-          if (internalDecision.kind !== "recover_via_disk") {
-            return formatToolOutput({
-              error:
-                "Normal task completion must go through adv_task_checkpoint so git checkpoint metadata, touched files, and verification are recorded before the task is marked done.",
-              code: "TASK_DONE_REQUIRES_CHECKPOINT",
-              hint: "Run adv_task_checkpoint with mode:'complete'. Use adv_task_update status:'done' only to patch an already-done task's metadata/contract refs, or after recovering workflow reachability via adv_doctor.",
-              changeId,
-              taskId: args.taskId,
-              ...(internalDecision.kind === "operator_required"
-                ? {
-                    cause: internalDecision.cause,
-                    detail: internalDecision.detail,
-                  }
-                : {}),
-            });
-          }
         }
 
-        // D4 internal classification (rq-internalMonotonicRecovery01):
-        // probe describe() to detect poisoned/completed workflows automatically.
-        // Removes the evidence-copy ceremony from routine callers (AC5/SC3);
-        // destructive/competing-authority cases still refuse with a typed
-        // operator-required result (AC6).
-        let recoveredViaPoisoned = false;
         const mutateRecoveredTask = (task: Task) => {
           const patch: Partial<Task> = {
             status: args.status,
@@ -1037,205 +1073,19 @@ export const taskTools = {
             patch.verification =
               args.notes ??
               args.implementation_summary ??
-              "Task marked done via adv_task_update (poisoned-history recovery)";
+               "Task marked done via adv_task_update";
           }
           return { ...task, ...patch } as Task;
         };
-        const internalDecision = await classifyMutationRecoveryDecision({
-          handle,
-        });
-        if (internalDecision.kind === "recover_via_disk") {
-          await logRecoveryProbeDiagnostics(handle, changeId);
-          const changeResult = await activeStore.changes.get(changeId);
-          if (!changeResult.success || !changeResult.data) {
-            throw new Error(
-              `Cannot recover task ${args.taskId}: change ${changeId} not found`,
-            );
-          }
-          await saveRecoveredTaskMutation({
-            store: activeStore,
-            change: changeResult.data,
-            taskId: args.taskId,
-            mutate: mutateRecoveredTask,
-          });
-          recoveredViaPoisoned = true;
-        } else if (internalDecision.kind === "operator_required") {
-          return formatToolOutput({
-            error: `Cannot safely mutate task ${args.taskId}: ${internalDecision.detail}`,
-            code: "TASK_MUTATION_OPERATOR_REQUIRED",
-            cause: internalDecision.cause,
-            hint: "Re-run after recovering workflow reachability via adv_doctor.",
-            changeId,
-            taskId: args.taskId,
-          });
-        }
-
-        if (!recoveredViaPoisoned) {
-          try {
-            if (args.status === "in_progress") {
-              const isFrontendTask = currentTask?.metadata?.frontend === "true";
-              const currentCycle = currentTask?.apply_cycle;
-              const applyCycle =
-                isFrontendTask &&
-                (!currentCycle || args.restartImplementationCycle === true)
-                  ? {
-                      implementation_cycle_id: `ic_${randomUUID()}`,
-                      started_at: now,
-                      kind: currentCycle
-                        ? ("retry" as const)
-                        : ("initial" as const),
-                    }
-                  : undefined;
-              await fireSignalAndRefresh(
-                handle,
-                activeStore,
-                changeId,
-                taskAssignedSignal,
-                {
-                  taskId: args.taskId,
-                  sessionId: "agent",
-                  assignedAt: now,
-                  ...(applyCycle && { applyCycle }),
-                },
-              );
-            } else if (args.status === "blocked") {
-              // rq-wisdomAutoSurfacing01.3 / correctness-4: a SEMANTIC
-              // error_recovery accompanying a blocked-status update still
-              // creates a WisdomDraft. Computed against currentTask so the
-              // dedup check (one suggested draft per task) sees the
-              // pre-update task state. The blocked-signal payload carries
-              // the new wisdom_drafts array atomically with the blocked
-              // transition.
-              const blockedDraft = args.error_recovery
-                ? maybeCreateWisdomDraftFromErrorRecovery(
-                    currentTask,
-                    args.error_recovery,
-                    now,
-                  )
-                : null;
-              await fireSignalAndRefresh(
-                handle,
-                activeStore,
-                changeId,
-                taskBlockedSignal,
-                {
-                  taskId: args.taskId,
-                  reason: args.notes ?? "Task blocked",
-                  attempts: args.error_recovery?.attempts ?? [],
-                  blockedAt: now,
-                  ...(blockedDraft && {
-                    wisdom_drafts: appendDraft(
-                      currentTask?.wisdom_drafts,
-                      blockedDraft,
-                    ),
-                  }),
-                },
-              );
-            } else if (args.status === "done" && !shouldPatchExistingDoneTask) {
-              const combinedText = [args.implementation_summary, args.notes]
-                .filter(Boolean)
-                .join("\n");
-              const structuredOutput =
-                existingTaskReports.length > 0
-                  ? null
-                  : extractStructuredOutput(combinedText);
-              await fireSignalAndRefresh(
-                handle,
-                activeStore,
-                changeId,
-                taskCompletedSignal,
-                {
-                  taskId: args.taskId,
-                  verification:
-                    args.notes ??
-                    args.implementation_summary ??
-                    "Task marked done via adv_task_update",
-                  summary:
-                    args.implementation_summary ??
-                    args.notes ??
-                    "Task completed",
-                  filesTouched: [],
-                  completedAt: now,
-                  ...(structuredOutput && {
-                    structured_output: structuredOutput,
-                  }),
-                },
-              );
-            } else {
-              // rq-wisdomAutoSurfacing01 / D4: auto-create a WisdomDraft when
-              // error_recovery signals a SEMANTIC failure with attempts.
-              // Computed against currentTask so the dedup check (one suggested
-              // draft per task) sees the pre-update task state.
-              const newDraft = args.error_recovery
-                ? maybeCreateWisdomDraftFromErrorRecovery(
-                    currentTask,
-                    args.error_recovery,
-                    now,
-                  )
-                : null;
-              await fireSignalAndRefresh(
-                handle,
-                activeStore,
-                changeId,
-                taskUpdatedSignal,
-                {
-                  taskId: args.taskId,
-                  partial: {
-                    status: args.status,
-                    ...(args.notes && { notes: args.notes }),
-                    ...(args.implementation_summary && {
-                      implementation_summary: args.implementation_summary,
-                    }),
-                    ...(args.error_recovery && {
-                      error_recovery: args.error_recovery,
-                    }),
-                    ...(args.contract_refs && {
-                      contract_refs: args.contract_refs,
-                    }),
-                    ...(clearedDelegationRecovery && {
-                      delegation_recovery: clearedDelegationRecovery,
-                    }),
-                    ...(evidencePlanRepair && {
-                      evidence_policy: evidencePlanRepair.policy,
-                      evidence_plan: evidencePlanRepair,
-                    }),
-                    ...(newDraft && {
-                      wisdom_drafts: appendDraft(
-                        currentTask?.wisdom_drafts,
-                        newDraft,
-                      ),
-                    }),
-                  },
-                  updatedAt: now,
-                },
-              );
-            }
-          } catch (signalError) {
-            // D4 internal classification (rq-internalMonotonicRecovery01):
-            // signal-error recovery is classified from the signal error +
-            // describe() evidence via the unified classifier.
-            const decision = await classifyMutationRecoveryDecision({
-              signalError,
-              handle,
-            });
-            if (decision.kind === "recover_via_disk") {
-              const changeResult = await activeStore.changes.get(changeId);
-              if (!changeResult.success || !changeResult.data) {
-                throw signalError;
-              }
-              const change = changeResult.data;
-              await saveRecoveredTaskMutation({
-                store: activeStore,
-                change,
-                taskId: args.taskId,
-                mutate: mutateRecoveredTask,
-              });
-              recoveredViaPoisoned = true;
-            } else {
-              throw signalError;
-            }
-          }
-        }
+        await mutateTaskProjection(
+          activeStore,
+          changeId,
+          args.taskId,
+          mutateRecoveredTask,
+          "task_mutation",
+          args.notes ?? args.implementation_summary ?? args.status,
+        );
+        const recoveredViaPoisoned = false;
 
         let task: Task | null = null;
         if (!recoveredViaPoisoned) {
@@ -1261,12 +1111,6 @@ export const taskTools = {
           success: true,
           task,
           ...(projectContext ? { _projectContext: projectContext } : {}),
-          ...(recoveredViaPoisoned
-            ? {
-                _recoveryMutation: true,
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              }
-            : {}),
         };
         // Surface cancellation-aware implements/verifies coverage for both
         // repair and routine updates; tests and downstream prompts can rely
@@ -1467,8 +1311,6 @@ export const taskTools = {
           });
         }
 
-        const handle = await getHandleForChangeId(activeStore, changeId);
-
         // P1.12 Scope C: validate blockedBy task IDs exist in this change
         if (blockedBy && blockedBy.length > 0) {
           const state = readChangeProjectionState(
@@ -1563,76 +1405,8 @@ export const taskTools = {
           });
         }
 
-        let recoveredViaPoisoned = false;
-
-        // D4 internal classification (rq-internalMonotonicRecovery01):
-        // probe describe() to detect poisoned/completed workflows
-        // automatically. Removes the evidence-copy ceremony from routine
-        // callers (AC5/SC3); destructive/competing-authority cases still refuse
-        // with a typed operator-required result (AC6).
-        const internalDecision = await classifyMutationRecoveryDecision({
-          handle,
-        });
-        if (internalDecision.kind === "recover_via_disk") {
-          await logRecoveryProbeDiagnostics(handle, changeId);
-          const changeResult = await activeStore.changes.get(changeId);
-          if (!changeResult.success || !changeResult.data) {
-            throw new Error(
-              `Cannot recover-add task for change ${changeId}: change not found`,
-            );
-          }
-          await saveRecoveredTaskAdd({
-            store: activeStore,
-            change: changeResult.data,
-            task,
-          });
-          recoveredViaPoisoned = true;
-        } else if (internalDecision.kind === "operator_required") {
-          return formatToolOutput({
-            error: `Cannot safely add task to ${changeId}: ${internalDecision.detail}`,
-            code: "TASK_ADD_OPERATOR_REQUIRED",
-            cause: internalDecision.cause,
-            hint: "Re-run after recovering workflow reachability via adv_doctor.",
-            changeId,
-          });
-        }
-
-        if (!recoveredViaPoisoned) {
-          try {
-            await fireSignalAndRefresh(
-              handle,
-              activeStore,
-              changeId,
-              taskAddedSignal,
-              {
-                task,
-                addedAt: now,
-              },
-            );
-          } catch (signalError) {
-            // D4 internal classification (rq-internalMonotonicRecovery01):
-            // signal-error recovery is classified from the signal error +
-            // describe() evidence via the unified classifier.
-            const decision = await classifyMutationRecoveryDecision({
-              signalError,
-              handle,
-            });
-            if (decision.kind === "recover_via_disk") {
-              const changeResult = await activeStore.changes.get(changeId);
-              if (!changeResult.success || !changeResult.data) {
-                throw signalError;
-              }
-              await saveRecoveredTaskAdd({
-                store: activeStore,
-                change: changeResult.data,
-                task,
-              });
-              recoveredViaPoisoned = true;
-            } else {
-              throw signalError;
-            }
-          }
-        }
+         await addTaskToProjection(activeStore, changeId, task);
+         const recoveredViaPoisoned = false;
 
         const output: Record<string, unknown> = {
           taskId: task.id,
@@ -1648,12 +1422,6 @@ export const taskTools = {
               }
             : {}),
           ...(projectContext ? { _projectContext: projectContext } : {}),
-          ...(recoveredViaPoisoned
-            ? {
-                _recoveryMutation: true,
-                reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
-              }
-            : {}),
         };
         if (!recoveredViaPoisoned) {
           await maybeAttachChangeTicker(
@@ -1843,7 +1611,6 @@ export const taskTools = {
           }
 
           try {
-            const handle = await getHandleForChangeId(activeStore, changeId);
             const mutateCancelledTask = (task: Task) =>
               ({
                 ...task,
@@ -1853,42 +1620,14 @@ export const taskTools = {
                 notes: reasons[taskId],
               }) as Task;
 
-            // D4 internal classification (rq-internalMonotonicRecovery01):
-            // signal-error recovery is classified from the signal error +
-            // describe() evidence via the unified classifier.
-            try {
-              await fireSignalAndRefresh(
-                handle,
-                activeStore,
-                changeId,
-                taskCancelledSignal,
-                {
-                  taskId,
-                  approvalEvidence,
-                  reason: reasons[taskId],
-                  cancelledAt: now,
-                },
-              );
-            } catch (signalError) {
-              const decision = await classifyMutationRecoveryDecision({
-                signalError,
-                handle,
-              });
-              if (decision.kind === "recover_via_disk") {
-                const changeResult = await activeStore.changes.get(changeId);
-                if (!changeResult.success || !changeResult.data) {
-                  throw signalError;
-                }
-                await saveRecoveredTaskMutation({
-                  store: activeStore,
-                  change: changeResult.data,
-                  taskId,
-                  mutate: mutateCancelledTask,
-                });
-              } else {
-                throw signalError;
-              }
-            }
+            await mutateTaskProjection(
+              activeStore,
+              changeId,
+              taskId,
+              mutateCancelledTask,
+              "task_cancelled",
+              approvalEvidence,
+            );
             results.push({ taskId, success: true });
             cancelledTasks.push({ id: taskId, title: "(cancelled)" });
           } catch (err) {
@@ -2027,7 +1766,6 @@ export const taskTools = {
         }
 
         const changeId = taskResult.changeId;
-        const handle = await getHandleForChangeId(activeStore, changeId);
         const now = new Date().toISOString();
 
         const reclassification: TddReclassification = {
@@ -2069,20 +1807,18 @@ export const taskTools = {
           provenance: "reclassified",
         };
 
-        await fireSignalAndRefresh(
-          handle,
+        await mutateTaskProjection(
           activeStore,
           changeId,
-          taskUpdatedSignal,
-          {
-            taskId: args.taskId,
-            partial: {
-              metadata: updatedTask.metadata,
-              tdd_reclassification: reclassification,
-              evidence_plan: evidencePlan,
-            },
-            updatedAt: now,
-          },
+          args.taskId,
+          (current) => ({
+            ...current,
+            metadata: updatedTask.metadata,
+            tdd_reclassification: reclassification,
+            evidence_plan: evidencePlan,
+          }),
+          "task_tdd_reclassified",
+          args.approvalEvidence,
         );
 
         return formatToolOutput({

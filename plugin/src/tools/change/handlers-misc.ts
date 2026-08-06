@@ -4,11 +4,11 @@ import {
   GateIdSchema,
   ReleaseNotesContentSchema,
   type GateId,
+  type Change,
   type WorkerBundleImpact,
   type ReleaseNotesContent,
 } from "../../types";
 import type { Store } from "../../storage/store";
-import { getProjectId } from "../../utils/project-id";
 import { invalidGitHubIssueUrls, applyIssueUpdates } from "./create-clarify";
 import { buildReentryResult } from "./recovery";
 import { formatToolOutput } from "../../utils/tool-output";
@@ -21,13 +21,8 @@ import {
   appendTargetProjectContextOutput,
 } from "../target-project";
 import { includeSnapshotSchema } from "../shared-args";
-import { getService } from "../../temporal/service";
-import { fireSignalAndRefresh, getChangeHandle } from "../_adapters";
-import {
-  gateReenteredSignal,
-  workerBundleProvenanceRecordedSignal,
-  workerBundleImpactSetSignal,
-} from "../../temporal/messages";
+import { coordinateChangeMutation } from "../change-mutation-coordinator";
+import { GATE_ORDER } from "../../types";
 
 export const advWorkerBundleProvenanceRecordHandler = async (
   {
@@ -56,32 +51,41 @@ export const advWorkerBundleProvenanceRecordHandler = async (
     });
   }
 
-  const projectId = await getProjectId(store.paths.root);
-  if (!projectId) {
-    return formatToolOutput({ error: "Could not resolve project ID" });
-  }
-  const bundle = getService();
-  if (!bundle) {
-    return formatToolOutput({ error: "Temporal service not available" });
-  }
-
-  const handle = getChangeHandle(bundle, projectId, changeId);
   const recordedAt = new Date().toISOString();
-  await fireSignalAndRefresh(
-    handle,
-    store,
-    changeId,
-    workerBundleProvenanceRecordedSignal,
-    {
-      source_sha,
-      build_run_id,
-      replay_run_id,
-      ...(worker_manifest_generation !== undefined && {
-        worker_manifest_generation,
-      }),
-      recorded_at: recordedAt,
+  const provenance = {
+    source_sha,
+    build_run_id,
+    replay_run_id,
+    ...(worker_manifest_generation !== undefined
+      ? { worker_manifest_generation }
+      : {}),
+    recorded_at: recordedAt,
+  };
+  const outcome = await coordinateChangeMutation<Change>({
+    authority: {
+      reason: "record worker-bundle provenance",
+      evidence: `build_run_id=${build_run_id}; replay_run_id=${replay_run_id}`,
     },
-  );
+    changesDir: store.paths.changes,
+    intent: {
+      changeId,
+      mutationKind: "worker_bundle_provenance",
+      mutateLatestProjection: (latest) => ({
+        ...latest,
+        workerBundleProvenance: provenance,
+      }),
+      verifyProjection: (readback) =>
+        readback.workerBundleProvenance?.source_sha === source_sha &&
+        readback.workerBundleProvenance?.build_run_id === build_run_id &&
+        readback.workerBundleProvenance?.replay_run_id === replay_run_id,
+    },
+  });
+  if (outcome.kind !== "verified") {
+    return formatToolOutput({
+      error: outcome.kind === "unverified" ? outcome.reason : "Worker-bundle provenance mutation was not verified.",
+      changeId,
+    });
+  }
 
   return formatToolOutput({
     success: true,
@@ -135,29 +139,30 @@ export const advChangeSetWorkerBundleImpactHandler = async (
       rationale,
       confirmed_at: confirmedAt,
     };
-    const updated = { ...change, worker_bundle_impact };
-    await activeStore.changes.save(updated);
-
-    const projectId =
-      projectContext?.projectId ?? (await getProjectId(activeStore.paths.root));
-    if (!projectId) {
-      return formatToolOutput({ error: "Could not resolve project ID" });
-    }
-    const bundle = getService();
-    if (!bundle) {
-      return formatToolOutput({ error: "Temporal service not available" });
-    }
-    const handle = getChangeHandle(bundle, projectId, changeId);
-    await fireSignalAndRefresh(
-      handle,
-      activeStore,
-      changeId,
-      workerBundleImpactSetSignal,
-      {
-        worker_bundle_impact,
-        set_at: confirmedAt,
+    const outcome = await coordinateChangeMutation<Change>({
+      authority: {
+        reason: "set worker-bundle impact",
+        evidence: rationale,
       },
-    );
+      changesDir: activeStore.paths.changes,
+      intent: {
+        changeId,
+        mutationKind: "worker_bundle_impact",
+        mutateLatestProjection: (latest) => ({
+          ...latest,
+          worker_bundle_impact,
+        }),
+        verifyProjection: (readback) =>
+          readback.worker_bundle_impact?.kind === kind &&
+          readback.worker_bundle_impact?.rationale === rationale,
+      },
+    });
+    if (outcome.kind !== "verified") {
+      return formatToolOutput({
+        error: outcome.kind === "unverified" ? outcome.reason : "Worker-bundle impact mutation was not verified.",
+        changeId,
+      });
+    }
 
     return formatToolOutput({
       success: true,
@@ -428,36 +433,53 @@ export const advChangeReenterHandler = async (
     }
 
     try {
-      const bundle = getService();
-      if (!bundle) {
-        return formatToolOutput({
-          error: "Temporal service not available",
-          changeId,
-        });
-      }
-      const projectId = await getProjectId(activeStore.paths.root);
-      if (!projectId) {
-        return formatToolOutput({
-          error: "Could not resolve project ID",
-          changeId,
-        });
-      }
-      const handle = getChangeHandle(bundle, projectId, changeId);
-      // rq-cacheRefresh01: refresh after reenter so buildReentryResult
-      // reads the reset-gates state from a fresh cache, not stale gates.
-      await fireSignalAndRefresh(
-        handle,
-        activeStore,
-        changeId,
-        gateReenteredSignal,
-        {
-          fromGateId: fromGate,
-          reason,
-          scopeDelta,
-          reenteredBy: "agent",
-          reenteredAt: new Date().toISOString(),
+      const reenteredAt = new Date().toISOString();
+      const fromIndex = GATE_ORDER.indexOf(fromGate);
+      const outcome = await coordinateChangeMutation<Change>({
+        authority: {
+          reason: `reenter change from ${fromGate}`,
+          evidence: _approvalEvidence ?? reason,
         },
-      );
+        changesDir: activeStore.paths.changes,
+        intent: {
+          changeId,
+          mutationKind: "gate_reentry",
+          mutateLatestProjection: (latest) => ({
+            ...latest,
+            gates: Object.fromEntries(
+              GATE_ORDER.map((gateId, index) => [
+                gateId,
+                index >= fromIndex
+                  ? { status: "pending" }
+                  : latest.gates?.[gateId] ?? { status: "pending" },
+              ]),
+            ) as Change["gates"],
+            reentry_history: [
+              ...(latest.reentry_history ?? []),
+              {
+                from_gate: fromGate,
+                reason,
+                scope_delta: scopeDelta,
+                reopened_by: "agent",
+                approval_evidence: _approvalEvidence,
+                reopened_at: reenteredAt,
+                gates_reset: GATE_ORDER.slice(fromIndex),
+              },
+            ],
+          }),
+          verifyProjection: (readback) =>
+            readback.gates?.[fromGate]?.status === "pending" &&
+            readback.reentry_history?.some(
+              (entry) => entry.reopened_at === reenteredAt,
+            ) === true,
+        },
+      });
+      if (outcome.kind !== "verified") {
+        return formatToolOutput({
+          error: outcome.kind === "unverified" ? outcome.reason : "Gate re-entry mutation was not verified.",
+          changeId,
+        });
+      }
       const output = await buildReentryResult(
         activeStore,
         changeId,

@@ -39,15 +39,6 @@ import {
   resolveSiblingConformanceRoot,
 } from "../storage/conformance";
 import { type ConformanceState } from "../types";
-import { getService } from "../temporal/service";
-import { getProjectId } from "../utils/project-id";
-import { fireSignalAndRefresh, getChangeHandle } from "./_adapters";
-import {
-  conformanceLockedSignal,
-  conformanceOverriddenSignal,
-  conformanceVerdictSignal,
-} from "../temporal/messages";
-import { appendDebugLog } from "../utils/debug-log";
 import type { Store } from "../storage/store";
 
 // =============================================================================
@@ -88,14 +79,6 @@ type ConformanceArgs = z.infer<typeof ConformanceArgsSchema>;
  * conformance state was saved but change-workflow notification failed.
  * The code is stable so callers can branch on recoverable sync drift.
  */
-interface ConformanceSignalWarning {
-  code: "ADV_CONFORMANCE_SIGNAL_FAILED";
-  message: string;
-  reason: string;
-  recoverable: true;
-  changeId: string;
-}
-
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -116,64 +99,6 @@ function makeError(message: string): string {
 
 function nowIso(): string {
   return new Date().toISOString();
-}
-
-function signalFailureReason(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
-}
-
-function makeSignalWarning(
-  changeId: string,
-  reason: string,
-): ConformanceSignalWarning {
-  return {
-    code: "ADV_CONFORMANCE_SIGNAL_FAILED",
-    message:
-      "Local conformance state was saved, but change workflow notification failed.",
-    reason,
-    recoverable: true,
-    changeId,
-  };
-}
-
-async function getChangeHandleForProjectDir(
-  projectDir: string,
-  changeId: string,
-): Promise<ReturnType<typeof getChangeHandle> | null> {
-  const bundle = getService();
-  if (!bundle) return null;
-  const projectId = await getProjectId(projectDir);
-  if (!projectId) return null;
-  return getChangeHandle(bundle, projectId, changeId);
-}
-
-async function fireConformanceSignal(
-  projectDir: string,
-  store: Store,
-  changeId: string | undefined,
-  signal: unknown,
-  payload: unknown,
-): Promise<ConformanceSignalWarning | undefined> {
-  // rq-confSignalVisibility01: local conformance state may already be saved;
-  // notification failures must be caller-visible, not debug-log-only.
-  if (!changeId) return undefined;
-  try {
-    const handle = await getChangeHandleForProjectDir(projectDir, changeId);
-    if (handle) {
-      // rq-cacheRefresh01: invalidate cache after the signal so the
-      // next adv_change_show / adv_change_archive call sees the
-      // conformance state change reflected in the change workflow.
-      await fireSignalAndRefresh(handle, store, changeId, signal, payload);
-      return undefined;
-    }
-    const reason = "Change workflow handle unavailable";
-    appendDebugLog("conformance", `conformance signal failed: ${reason}`);
-    return makeSignalWarning(changeId, reason);
-  } catch (err) {
-    const reason = signalFailureReason(err);
-    appendDebugLog("conformance", `conformance signal failed: ${reason}`);
-    return makeSignalWarning(changeId, reason);
-  }
 }
 
 // =============================================================================
@@ -229,7 +154,6 @@ async function actionInit(
 
 async function actionLock(
   args: ConformanceArgs,
-  store: Store,
   projectDir: string,
   externalRoot: string,
 ): Promise<string> {
@@ -254,23 +178,10 @@ async function actionLock(
   });
   await saveConformanceState(externalRoot, next);
 
-  // Signal-driven: notify change workflow that spec was locked
-  const signalWarning = await fireConformanceSignal(
-    projectDir,
-    store,
-    args.change_id,
-    conformanceLockedSignal,
-    {
-      specs: [args.spec],
-      lockedAt,
-    },
-  );
-
   return formatToolOutput({
     success: true,
     spec: args.spec,
     locked: true,
-    ...(signalWarning ? { signalWarning } : {}),
   });
 }
 
@@ -320,7 +231,6 @@ async function actionUnlock(
 
 async function actionOverride(
   args: ConformanceArgs,
-  store: Store,
   projectDir: string,
   externalRoot: string,
 ): Promise<string> {
@@ -350,34 +260,15 @@ async function actionOverride(
   }
   await saveConformanceState(externalRoot, next);
 
-  // Signal-driven: notify the change workflow that locked this spec
-  const changeId = state.specs[args.spec]?.locked_at_archive;
-  const signalWarning = changeId
-    ? await fireConformanceSignal(
-        projectDir,
-        store,
-        changeId,
-        conformanceOverriddenSignal,
-        {
-          user: args.user,
-          reason: args.reason,
-          reVerifyDeadline: args.re_verify_deadline,
-          overriddenAt: nowIso(),
-        },
-      )
-    : undefined;
-
   return formatToolOutput({
     success: true,
     spec: args.spec,
     overrides: next.specs[args.spec]?.overrides.length ?? 0,
-    ...(signalWarning ? { signalWarning } : {}),
   });
 }
 
 async function actionRun(
   args: ConformanceArgs,
-  store: Store,
   projectDir: string,
   externalRoot: string,
 ): Promise<string> {
@@ -421,28 +312,10 @@ async function actionRun(
   });
   await saveConformanceState(externalRoot, next);
 
-  // Signal-driven: notify the change workflow that locked this spec
-  const changeId = entry.locked_at_archive;
-  const signalWarning = changeId
-    ? await fireConformanceSignal(
-        projectDir,
-        store,
-        changeId,
-        conformanceVerdictSignal,
-        {
-          verdict,
-          runId,
-          failed: parsed.failed,
-          recordedAt: ranAt,
-        },
-      )
-    : undefined;
-
   return formatToolOutput({
     verdict,
     run_id: runId,
     failed: parsed.failed,
-    ...(signalWarning ? { signalWarning } : {}),
   });
 }
 
@@ -530,13 +403,13 @@ export const conformanceTools = {
         case "init":
           return actionInit(args, projectDir, externalRoot);
         case "lock":
-          return actionLock(args, store, projectDir, externalRoot);
+           return actionLock(args, projectDir, externalRoot);
         case "unlock":
           return actionUnlock(args, projectDir, externalRoot);
         case "override":
-          return actionOverride(args, store, projectDir, externalRoot);
+           return actionOverride(args, projectDir, externalRoot);
         case "run":
-          return actionRun(args, store, projectDir, externalRoot);
+           return actionRun(args, projectDir, externalRoot);
       }
     },
   },
