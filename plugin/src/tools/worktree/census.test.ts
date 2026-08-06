@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { reconcileWorktreeRegistry } from "./census";
-import type { WorktreeRecord } from "../../temporal/contracts";
+import type { WorktreeRecord } from "../../types/worktree-registry";
 
 const now = "2026-05-04T00:00:00.000Z";
 

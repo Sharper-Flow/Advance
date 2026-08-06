@@ -1,21 +1,13 @@
 /** Live collection layer for the machine-wide census diagnostic. */
 
-import { readdir, readFile, realpath, stat } from "fs/promises";
+import { readdir, realpath, stat } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 
 import {
-  makeTemporalOperationContext,
-  withTemporalOperations,
-  type TemporalOperations,
-} from "../../plugin/src/cli/temporal-boundary";
-import { QUERY_TIMEOUT_MS } from "./live-status";
-import {
   resolveDataHomeRoot,
   type CensusInventory,
   type StoreInventoryEntry,
-  type TemporalInventoryStatus,
-  type WorkflowInventoryRow,
 } from "./census";
 
 interface ReadDirectoryResult {
@@ -93,120 +85,11 @@ async function collectStores(dataHome: string): Promise<{
   return { stores, complete };
 }
 
-async function collectArchiveChangeIds(
-  stores: StoreInventoryEntry[],
-): Promise<{ ids: Set<string>; complete: boolean }> {
-  const ids = new Set<string>();
-  let complete = true;
-  const seen = new Set<string>();
-  for (const store of stores) {
-    if (seen.has(store.resolvedPath)) continue;
-    seen.add(store.resolvedPath);
-    const archiveListing = await readDirectory(join(store.path, "archive"));
-    complete = complete && archiveListing.complete;
-    for (const bundleName of archiveListing.entries) {
-      const bundlePath = join(store.path, "archive", bundleName);
-      if (!(await isDirectory(bundlePath))) continue;
-      try {
-        const raw = await readFile(join(bundlePath, "change.json"), "utf8");
-        const parsed: unknown = JSON.parse(raw);
-        if (
-          typeof parsed === "object" &&
-          parsed !== null &&
-          "id" in parsed &&
-          typeof parsed.id === "string" &&
-          bundleName.endsWith(`-${parsed.id}`)
-        ) {
-          ids.add(parsed.id);
-        }
-      } catch {
-        // An unreadable/non-bundle directory is not positive archive evidence.
-      }
-    }
-  }
-  return { ids, complete };
-}
-
-async function listRunningWorkflows(
-  owner: TemporalOperations,
-  projectId: string,
-  timeoutMs: number,
-  workflowType: WorkflowInventoryRow["workflowType"],
-): Promise<WorkflowInventoryRow[]> {
-  const query =
-    workflowType === "changeWorkflow"
-      ? 'WorkflowType = "changeWorkflow" AND ExecutionStatus = "Running"'
-      : 'WorkflowType = "epicWorkflow" AND ExecutionStatus = "Running"';
-  const result = await owner.list<{ workflowId: string }>(
-    makeTemporalOperationContext(
-      projectId,
-      `adv/census/${workflowType}`,
-      "list",
-      "bin.census.listRunningWorkflows",
-      timeoutMs,
-    ),
-    query,
-    { limit: 1_000_000 },
-  );
-  if (result.kind !== "complete") {
-    throw result.error;
-  }
-  return result.value.map((row) => ({
-    workflowId: row.workflowId,
-    workflowType,
-    executionStatus: "Running",
-  }));
-}
-
-async function collectTemporal(
-  projectId: string | null,
-  timeoutMs: number,
-): Promise<{
-  workflows: WorkflowInventoryRow[];
-  status: TemporalInventoryStatus;
-}> {
-  if (!projectId) {
-    return {
-      workflows: [],
-      status: {
-        kind: "unavailable",
-        error:
-          "not in a git repo (or git unavailable); Temporal census skipped",
-      },
-    };
-  }
-  try {
-    const workflows = await withTemporalOperations(
-      projectId,
-      async (owner) => {
-        const [changes, epics] = await Promise.all([
-          listRunningWorkflows(owner, projectId, timeoutMs, "changeWorkflow"),
-          listRunningWorkflows(owner, projectId, timeoutMs, "epicWorkflow"),
-        ]);
-        return [...changes, ...epics];
-      },
-      undefined,
-      { connectTimeoutMs: timeoutMs },
-    );
-    return { workflows, status: { kind: "complete" } };
-  } catch (error) {
-    return {
-      workflows: [],
-      status: {
-        kind: "unavailable",
-        error: error instanceof Error ? error.message : String(error),
-      },
-    };
-  }
-}
-
 export interface LiveCensusOptions {
   dataHome?: string;
-  temporalProjectId: string | null;
-  timeoutMs?: number;
 }
 
-/** Collect disk and live Temporal inputs without mutating either source. */
+/** Collect disk inputs without mutating the machine-wide state. */
 export async function loadLiveCensusInventory(
   options: LiveCensusOptions,
 ): Promise<CensusInventory> {
@@ -215,15 +98,9 @@ export async function loadLiveCensusInventory(
       process.env.XDG_DATA_HOME ??
       join(homedir(), ".local/share"),
   );
-  const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
   const disk = await collectStores(dataHome);
-  const archives = await collectArchiveChangeIds(disk.stores);
-  const temporal = await collectTemporal(options.temporalProjectId, timeoutMs);
   return {
     stores: disk.stores,
-    workflows: temporal.workflows,
-    archiveChangeIds: archives.ids,
-    storeInventoryComplete: disk.complete && archives.complete,
-    temporal: temporal.status,
+    storeInventoryComplete: disk.complete,
   };
 }

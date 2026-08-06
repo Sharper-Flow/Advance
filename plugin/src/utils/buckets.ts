@@ -1,6 +1,6 @@
 import type { GateCompletion, GateId } from "../types";
 import { GATE_ORDER } from "../types";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 
 export type Bucket =
   | "awaiting_approval"
@@ -61,7 +61,7 @@ export function deriveBucket(ctx: BucketContext): Bucket {
 }
 
 export function bucketCtxFromState(
-  state: ChangeWorkflowState,
+  state: ChangeState,
   nowMs: number,
   idleThresholdMs = 24 * 60 * 60 * 1000,
 ): BucketContext {

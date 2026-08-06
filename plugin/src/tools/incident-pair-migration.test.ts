@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createTempDir, cleanupTempDir } from "../__tests__/setup";
 import { createDefaultGates, type Change } from "../types";
 import type { Store } from "../storage/store-types";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import { CHANGE_WORKFLOW_QUERY_NAMES } from "../temporal/contracts";
 import { evaluateGateReadiness } from "../temporal/gate-readiness";
-import { changeToWorkflowState } from "../temporal/change-state";
+import { changeToState } from "../types/change-state-helpers";
 import { loadChange } from "../storage/json";
 import { createMockOwnerFromClient } from "../temporal/__tests__/mock-owner";
 
@@ -170,8 +170,8 @@ async function seedProjection(
   );
 }
 
-function makeGetState(change: Change): ChangeWorkflowState {
-  return changeToWorkflowState({
+function makeGetState(change: Change): ChangeState {
+  return changeToState({
     projectId: "0000ec0100000000000000000000000000000000",
     change,
   });

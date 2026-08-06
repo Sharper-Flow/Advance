@@ -9,7 +9,7 @@ import { ChangeSchema, WorkerBundleProvenanceSchema } from "./changes";
  * `TEMPORAL_OWNED_PROJECTION_FIELDS` is constrained to `keyof Change` and
  * cannot list a field the type does not know about.
  *
- * Shape mirrors the stored declaration on `ChangeWorkflowState`
+ * Shape mirrors the stored declaration on `ChangeState`
  * (`temporal/contracts.ts`), which uses plain `string` / `number`. Format
  * validation of `recorded_at` happens at the signal boundary
  * (`types/signals.ts` uses `IsoTimestampSchema`); duplicating it here would

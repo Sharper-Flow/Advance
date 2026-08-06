@@ -29,6 +29,7 @@ export {
   ArtifactKindSchema,
   ARTIFACT_FILENAME,
   type ArtifactKind,
+  type ArtifactMetadata,
   ArtifactPayloadSchema,
   type ArtifactPayload,
   ARTIFACT_SOFT_CAP,
@@ -36,6 +37,17 @@ export {
   AGGREGATE_SOFT_CAP,
   AGGREGATE_HARD_CAP,
 } from "./artifacts";
+
+export { CHANGE_BRANCH_PREFIX } from "./branch-prefix";
+export type {
+  WorktreeRecord,
+  WorktreeRecordStatus,
+  MaterializedWorktreeRecord,
+  PendingWorktreeDelete,
+} from "./worktree-registry";
+export type { SessionRecord } from "./session-record";
+export type { ChangeInput, ChangeState } from "./change-state";
+export type { EpicInput, EpicState, EpicSignalRejection } from "./epic-state";
 
 // =============================================================================
 // Backlog
@@ -482,6 +494,10 @@ export {
   type ChangeContract,
   ChangeSchema,
   type Change,
+  SignalRejectionSchema,
+  type SignalRejection,
+  TestRunRecordSchema,
+  type TestRunRecord,
   ReleaseNotesAudienceSchema,
   type ReleaseNotesAudience,
   ReleaseNotesCategorySchema,

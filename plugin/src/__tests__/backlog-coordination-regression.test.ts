@@ -26,7 +26,7 @@ import {
   buildClaimVisibilityQuery,
   buildActiveClaimsVisibilityQuery,
 } from "../temporal/visibility-claim-queries";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import { createDefaultGates } from "../types";
 
 // =============================================================================
@@ -34,8 +34,8 @@ import { createDefaultGates } from "../types";
 // =============================================================================
 
 function makeState(
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+  overrides: Partial<ChangeState> = {},
+): ChangeState {
   return {
     id: "regression-test",
     projectId: "proj-test",

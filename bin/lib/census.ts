@@ -1,9 +1,8 @@
 /**
- * Pure ADV machine-wide census analyzer.
+ * Pure ADV machine-wide disk census analyzer.
  *
- * Collection of filesystem and Temporal data lives in census-live.ts. This
- * module only classifies an already-collected inventory, making the diagnostic
- * deterministic and safe to exercise without touching the live namespace.
+ * Collection of filesystem data lives in census-live.ts. This module only
+ * classifies an already-collected inventory.
  */
 
 import {
@@ -15,8 +14,6 @@ const CANONICAL_ID = /^[0-9a-f]{40}$/;
 const SYNTHETIC_ID = new RegExp(
   `^${SYNTHETIC_TEST_PROJECT_ID_PREFIX}[0-9a-f]{24}$`,
 );
-const ADV_WORKFLOW_ID = /^adv\/(change|epic)\/([^/]+)\/([^/]+)$/;
-
 /**
  * Resolve the machine-wide data-home root that holds `opencode/` and
  * `opencode-projects/`.
@@ -50,32 +47,15 @@ export interface StoreInventoryEntry {
   position: StorePosition;
 }
 
-export type CensusWorkflowType = "changeWorkflow" | "epicWorkflow";
-
-export interface WorkflowInventoryRow {
-  workflowId: string;
-  workflowType: CensusWorkflowType;
-  executionStatus: string;
-}
-
-export type TemporalInventoryStatus =
-  | { kind: "complete" }
-  | { kind: "unavailable"; error: string };
-
 export interface CensusInventory {
   stores: StoreInventoryEntry[];
-  workflows: WorkflowInventoryRow[];
-  archiveChangeIds: ReadonlySet<string>;
   storeInventoryComplete: boolean;
-  temporal: TemporalInventoryStatus;
 }
 
 export type CensusDimensionName =
   | "malformed_identity"
   | "synthetic_fixture"
-  | "pseudo_root"
-  | "fixture_project_in_live_namespace"
-  | "abandoned_running_workflow";
+  | "pseudo_root";
 
 export interface CensusFinding {
   path?: string;
@@ -96,7 +76,6 @@ export interface CensusReport {
   source: "census";
   clean: boolean;
   exit_code: 0 | 1;
-  temporal: TemporalInventoryStatus;
   dimensions: Record<CensusDimensionName, CensusDimension>;
 }
 
@@ -126,8 +105,6 @@ function emptyDimensions(): Record<CensusDimensionName, CensusDimension> {
     malformed_identity: { count: 0, items: [], omitted: 0 },
     synthetic_fixture: { count: 0, items: [], omitted: 0 },
     pseudo_root: { count: 0, items: [], omitted: 0 },
-    fixture_project_in_live_namespace: { count: 0, items: [], omitted: 0 },
-    abandoned_running_workflow: { count: 0, items: [], omitted: 0 },
   };
 }
 
@@ -160,36 +137,13 @@ function uniqueStores(stores: StoreInventoryEntry[]): StoreInventoryEntry[] {
   });
 }
 
-function parseWorkflowProjectId(workflowId: string): {
-  workflowType: CensusWorkflowType;
-  projectId: string;
-  itemId: string;
-} | null {
-  const match = ADV_WORKFLOW_ID.exec(workflowId);
-  if (!match) return null;
-  return {
-    workflowType: match[1] === "change" ? "changeWorkflow" : "epicWorkflow",
-    projectId: match[2],
-    itemId: match[3],
-  };
-}
-
-function workflowIdentityClass(
-  workflowId: string,
-): "malformed_identity" | "synthetic_fixture" | null {
-  const parsed = parseWorkflowProjectId(workflowId);
-  if (parsed) return identityClassification(parsed.projectId);
-  return workflowId.startsWith("adv/") ? "malformed_identity" : null;
-}
-
-/** Analyze a collected inventory without filesystem, network, or Temporal calls. */
+/** Analyze a collected disk inventory without additional I/O. */
 export function analyzeCensus(
   inventory: CensusInventory,
   options: AnalyzeCensusOptions = {},
 ): CensusReport {
   const dimensions = emptyDimensions();
   const stores = uniqueStores(inventory.stores);
-  const knownStoreIds = new Set(stores.map((store) => store.entry));
 
   for (const store of stores) {
     const identity = identityClassification(store.entry);
@@ -221,57 +175,16 @@ export function analyzeCensus(
     }
   }
 
-  for (const row of inventory.workflows) {
-    if (row.executionStatus !== "Running") continue;
-    const parsed = parseWorkflowProjectId(row.workflowId);
-    const identity = workflowIdentityClass(row.workflowId);
-    if (identity) {
-      addFinding(dimensions, "fixture_project_in_live_namespace", {
-        workflow_id: row.workflowId,
-        classification: "fixture_project_in_live_namespace",
-        identity_classification: identity,
-        why:
-          identity === "synthetic_fixture"
-            ? "Running ADV workflow encodes a synthetic fixture project identity."
-            : "Running ADV workflow has a malformed or unparseable project identity.",
-      });
-    }
-
-    if (
-      !parsed ||
-      row.workflowType !== "changeWorkflow" ||
-      parsed.workflowType !== "changeWorkflow"
-    ) {
-      continue;
-    }
-    const archiveEvidence = inventory.archiveChangeIds.has(parsed.itemId);
-    const missingStoreEvidence =
-      CANONICAL_ID.test(parsed.projectId) &&
-      inventory.storeInventoryComplete &&
-      !knownStoreIds.has(parsed.projectId);
-    if (archiveEvidence || missingStoreEvidence) {
-      addFinding(dimensions, "abandoned_running_workflow", {
-        workflow_id: row.workflowId,
-        classification: "abandoned_running_workflow",
-        why: archiveEvidence
-          ? `Running change workflow has positive archive-bundle evidence for change ${parsed.itemId}.`
-          : `Running change workflow has positive evidence that project store ${parsed.projectId} does not exist.`,
-      });
-    }
-  }
-
   const maxItems = Math.max(0, Math.floor(options.maxItems ?? 100));
   capDimensions(dimensions, maxItems);
   const findings = Object.values(dimensions).some(
     (dimension) => dimension.count > 0,
   );
-  const temporalClean = inventory.temporal.kind === "complete";
   return {
     schema_version: "census.v1",
     source: "census",
-    clean: !findings && temporalClean,
-    exit_code: !findings && temporalClean ? 0 : 1,
-    temporal: inventory.temporal,
+    clean: !findings && inventory.storeInventoryComplete,
+    exit_code: !findings && inventory.storeInventoryComplete ? 0 : 1,
     dimensions,
   };
 }

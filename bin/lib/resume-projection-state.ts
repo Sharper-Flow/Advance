@@ -9,8 +9,7 @@
  * `catch {}` and surfaced in neither output nor logs.
  *
  * Marker shape follows Google AIP-157 (partial responses) and AIP-158
- * (explicit truncation signalling). Temporal defines no standard projection
- * freshness schema, so this is an application contract.
+ * (explicit truncation signalling); this is an application contract.
  *
  * rq-statusCliWorkerFree01 (fixWorkerDependentResume) — AC6, DONT5
  */

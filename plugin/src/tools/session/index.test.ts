@@ -48,7 +48,7 @@ import {
   isProcessAlive,
 } from "../../migration/procfs";
 import { getSessionRecord } from "../worktree/state";
-import type { SessionRecord } from "../../temporal/contracts";
+import type { SessionRecord } from "../../types/session-record";
 
 const mockedDetectPeerSessions = vi.mocked(detectPeerSessions);
 const mockedReadStartTicks = vi.mocked(readProcessStartTicks);

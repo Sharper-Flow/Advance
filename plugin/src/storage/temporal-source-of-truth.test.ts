@@ -24,12 +24,12 @@
 import { describe, expect, it } from "vitest";
 
 import { renderBriefSummary } from "../utils/archive-summary";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 
 function buildState(
-  documents: ChangeWorkflowState["documents"],
+  documents: ChangeState["documents"],
   title = "Default Title",
-): ChangeWorkflowState {
+): ChangeState {
   return {
     changeId: "test-change",
     title,
@@ -42,7 +42,7 @@ function buildState(
     artifacts: {},
     documents,
     acceptanceCriteria: [],
-  } as unknown as ChangeWorkflowState;
+  } as unknown as ChangeState;
 }
 
 const summaryInput = {

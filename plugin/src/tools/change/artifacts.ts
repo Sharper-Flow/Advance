@@ -5,6 +5,7 @@ import { join } from "path";
 import {
   GATE_ORDER,
   ARTIFACT_FILENAME,
+  type ArtifactMetadata,
   type GateCompletion,
   type ArtifactKind,
   type Gates,
@@ -22,22 +23,6 @@ import {
 } from "./validation-projection";
 import { createLogger } from "../../utils/debug-log";
 const logger = createLogger("change-artifacts");
-
-/** Historical artifact metadata remains readable, including source:"temporal". */
-export interface ArtifactMetadata {
-  path?: string;
-  updatedAt: string;
-  contentHash?: string;
-  source?: "temporal" | "disk" | "archive" | "recovery";
-  readable?: boolean;
-  rejection?: {
-    reason: "ARTIFACT_OVERSIZED" | "AGGREGATE_OVERSIZED";
-    attempted_size: number;
-    cap: number;
-    rejected_at: string;
-  };
-  sizeWarning?: { size: number; soft_cap: number; at: string };
-}
 
 type ArtifactReadSource = Extract<
   NonNullable<LoadResult<unknown>["source"]>,

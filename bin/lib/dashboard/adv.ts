@@ -1,4 +1,4 @@
-import { loadLiveSummaries, QUERY_TIMEOUT_MS } from "../live-status";
+import { loadLiveSummaries } from "../live-status";
 import {
   loadLiveResumeProjection,
   type LiveResumeProjectionResult,
@@ -38,14 +38,10 @@ export interface DashboardAdvProjectSnapshot {
 
 export interface DashboardAdvReaderDeps {
   resolveProjectId?: (path: string) => Promise<string | null>;
-  loadBaseSummaries?: (projectId: string, now: Date, timeoutMs: number) => Promise<ChangeSummary[]>;
-  loadResumeProjection?: (
-    projectId: string,
-    timeoutMs: number,
-  ) => Promise<LiveResumeProjectionResult>;
+  loadBaseSummaries?: (projectId: string, now: Date) => Promise<ChangeSummary[]>;
+  loadResumeProjection?: (projectId: string) => Promise<LiveResumeProjectionResult>;
   loadOpsChanges?: (projectId: string, timeoutMs: number) => Promise<unknown[]>;
   now?: () => Date;
-  timeoutMs?: number;
 }
 
 export async function readDashboardAdvProject(
@@ -53,7 +49,6 @@ export async function readDashboardAdvProject(
   deps: DashboardAdvReaderDeps = {},
 ): Promise<DashboardAdvProjectSnapshot> {
   const now = deps.now?.() ?? new Date();
-  const timeoutMs = deps.timeoutMs ?? QUERY_TIMEOUT_MS;
   const projectId = await (deps.resolveProjectId ?? resolveProjectId)(project.path);
   if (!projectId) {
     return sanitizeDashboardState({
@@ -69,13 +64,13 @@ export async function readDashboardAdvProject(
   const loadBase = deps.loadBaseSummaries ?? loadLiveSummaries;
   const loadResume = deps.loadResumeProjection ?? loadLiveResumeProjection;
   const [baseSummaries, resumeResult] = await Promise.all([
-    loadBase(projectId, now, timeoutMs),
-    loadResume(projectId, timeoutMs).catch(
+    loadBase(projectId, now),
+    loadResume(projectId).catch(
       (err): LiveResumeProjectionResult => ({
         live: false,
         error: err instanceof Error ? err.message : String(err),
         remediation:
-          "ADV resume projection unavailable. Verify Temporal is running and the project has active changes/epics.",
+          "ADV resume projection unavailable. Verify the project state directory contains readable change and Epic projections.",
       }),
     ),
   ]);

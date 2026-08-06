@@ -18,7 +18,7 @@ import type {
   SessionRecord,
   WorktreeRecord,
   MaterializedWorktreeRecord,
-} from "../../temporal/contracts";
+} from "../../types";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { getDefaultBranch } from "../../utils/git";
 import { scanGitWorkspaceFacts, reconcileWorktreeRegistry } from "./census";

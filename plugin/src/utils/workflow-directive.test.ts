@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import type { GateId, GateReadinessBlocker, Gates } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
 import { LightweightProfileOmissionPolicySchema } from "../types/lightweight-change-profile";
@@ -15,8 +15,8 @@ const STALE = "2026-05-04T00:00:00.000Z"; // >24h before EPOCH
 const FRESH = "2026-05-05T11:30:00.000Z"; // 30m before EPOCH
 
 function makeState(
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+  overrides: Partial<ChangeState> = {},
+): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",

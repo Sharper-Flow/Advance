@@ -31,8 +31,8 @@ import { projectContractCoverage, runContractChecks } from "./contract";
 import { resolveTaskEvidence } from "./task-classifier";
 import { buildContractFromAgreement } from "./contract-mint";
 import { evaluateGateCriteria } from "../temporal/gate-readiness";
-import { acceptanceCriteriaFromContract } from "../temporal/change-state";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import { acceptanceCriteriaFromContract } from "../types/change-state-helpers";
+import type { ChangeState } from "../types/change-state";
 
 const createdAt = "2026-07-29T00:00:00.000Z";
 
@@ -206,8 +206,8 @@ async function validate(changeOverride: Partial<Change> = {}) {
 
 function makeState(
   change: Change,
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+  overrides: Partial<ChangeState> = {},
+): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: change.id,

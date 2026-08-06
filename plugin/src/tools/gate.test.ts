@@ -17,7 +17,7 @@ import {
   PARITY_ROWS,
   toolChangeFor,
 } from "../__tests__/phase-plan-parity-matrix";
-import { changeToDirectiveState } from "../temporal/change-state";
+import { changeToDirectiveState } from "../types/change-state-helpers";
 import { deriveWorkflowDirective } from "../utils/workflow-directive";
 
 const PROJECT_ID = "0".repeat(40);

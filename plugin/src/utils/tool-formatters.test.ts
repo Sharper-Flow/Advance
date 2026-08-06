@@ -360,10 +360,6 @@ describe("tool-formatters", () => {
         archivedCount: 0,
         recommendations: [],
         temporalAlive: true,
-        temporalHealth: {
-          worker_alive: { status: "available", value: true },
-          worker_process_alive: { status: "available", value: false },
-        },
         temporalQueueServiceability: {
           status: "serviceable",
           confidence: "server",
@@ -373,39 +369,8 @@ describe("tool-formatters", () => {
       });
 
       expect(result.healthSection).toContain(
-        "Worker process: peer-owned, serviceable",
+        "Queue serviceability: serviceable (server) advance-project",
       );
-      expect(result.healthSection).not.toContain("Worker process: degraded");
-    });
-
-    it("renders unavailable worker liveness as cannot observe", () => {
-      const result = formatStatusOutput({
-        specCount: 1,
-        requirementCount: 1,
-        activeChanges: [],
-        archivedCount: 0,
-        recommendations: [],
-        temporalAlive: true,
-        temporalHealth: {
-          worker_alive: {
-            status: "unavailable",
-            reason: "not_host_capable",
-          },
-          worker_process_alive: {
-            status: "unavailable",
-            reason: "not_host_capable",
-          },
-        },
-        temporalQueueServiceability: {
-          status: "serviceable",
-          confidence: "server",
-          expectedQueue: "advance-project",
-          blockers: [],
-        },
-      });
-
-      expect(result.healthSection).toContain("Worker process: cannot observe");
-      expect(result.healthSection).not.toContain("Worker process: healthy");
     });
 
     it("prepends ↳ to active changes with parent_change_id", () => {

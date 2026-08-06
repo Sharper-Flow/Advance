@@ -21,7 +21,7 @@ import { recordToolDuration } from "./metrics";
 import {
   isAdvSessionNotReady,
   ADV_SESSION_NOT_READY_KIND,
-} from "../temporal/readiness-types";
+} from "./readiness-envelope";
 import { DEFAULT_TOOL_TIMEOUT_MS } from "./tool-budgets";
 
 /**

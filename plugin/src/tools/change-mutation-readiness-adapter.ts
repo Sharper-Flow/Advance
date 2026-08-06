@@ -16,8 +16,8 @@ import {
   type GateReadinessOptions,
   type GateReadinessResult,
 } from "../temporal/gate-readiness";
-import { changeToWorkflowState } from "../temporal/change-state";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import { changeToState } from "../types/change-state-helpers";
+import type { ChangeState } from "../types/change-state";
 import type { GateId, GateReadinessBlocker } from "../types";
 import type { MutationOutcome } from "./change-mutation-coordinator";
 
@@ -37,11 +37,11 @@ function makeBlocker(
 function valueToWorkflowState(
   value: unknown,
   projectId: string,
-): ChangeWorkflowState {
+): ChangeState {
   // The coordinator returns the verified disk projection (Change). Bridge it
   // to the state shape the readiness evaluator expects.
   const change = value as { id: string; title: string; created_at: string };
-  return changeToWorkflowState({
+  return changeToState({
     projectId,
     change: change as never,
   });

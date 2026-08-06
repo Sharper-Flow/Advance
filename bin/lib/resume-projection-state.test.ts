@@ -49,14 +49,14 @@ describe("buildResumeProjectionState", () => {
     expect(state.reason).toContain("budget");
   });
 
-  test("live:false yields unavailable carrying the underlying error", () => {
+  test("unavailable results carry the underlying disk error", () => {
     const state = buildResumeProjectionState(
-      settled({ live: false, error: "Temporal connection refused" }),
+      settled({ live: false, error: "disk projection unreadable" }),
       NOW,
     );
 
     expect(state.completeness).toBe("unavailable");
-    expect(state.reason).toContain("Temporal connection refused");
+    expect(state.reason).toContain("disk projection unreadable");
   });
 
   test("successful projection yields complete with no reason", () => {

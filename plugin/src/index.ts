@@ -35,7 +35,7 @@ import {
   type SessionHealthIssue,
 } from "./utils/system-block";
 import { buildCompactionContext } from "./utils/compaction-context";
-import { changeToDirectiveState } from "./temporal/change-state";
+import { changeToDirectiveState } from "./types/change-state-helpers";
 import { deriveWorkflowDirective } from "./utils/workflow-directive";
 import {
   recordAdvToolCall,

@@ -4,47 +4,22 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plugin_dir="$repo_root/plugin"
-reaper_bin="$repo_root/bin/lib/oc-test-reaper.bash"
 
 usage() {
   cat >&2 <<'USAGE'
-Usage: bin/oc-test <targeted|smoke|full|integration> [-- <test args...>]
+Usage: bin/oc-test <targeted|smoke|full> [-- <test args...>]
 
 Tiers:
   targeted     Run Vitest with optional file/test filters.
   smoke        Run repo checks plus the ADV test-tool/subagent smoke slice.
-  full         Run the unit Vitest project (fast, parallel). Excludes the
-               Temporal integration project by default -- add --integration
-               (or run the `integration` tier) to include it.
-  integration  Run only the Temporal integration project (*.itest.ts).
-
-Flags:
-  --integration   With `full`, also run the Temporal integration project.
-
-Environment:
-  OC_TEST_REAPER_DISABLE=1   Skip the stale temporal-test-server sweep.
-  OC_TEST_REAPER_*           See bin/lib/oc-test-reaper.bash for reaper knobs.
+  full         Run the unit Vitest project (fast, parallel).
 USAGE
   exit 64
-}
-
-# Conservative stale-only sweep for orphaned temporal-test-server processes
-# (reapLeakedTestServers, AC3). The reaper only acts on processes provably
-# older than OC_TEST_REAPER_MIN_AGE_SECONDS (default 2h), so pre- and
-# post-run sweeps are both safe for concurrent peer runs. A reaper failure
-# must never fail the test run.
-sweep_test_servers() {
-  local phase="$1"
-  [[ "${OC_TEST_REAPER_DISABLE:-0}" == "1" ]] && return 0
-  [[ -r "$reaper_bin" ]] || return 0
-  OC_TEST_REAPER_PHASE="$phase" bash "$reaper_bin" || true
 }
 
 run_with_optional_gate() {
   local tier="$1"
   shift
-
-  sweep_test_servers pre
 
   local rc=0
   if command -v oc-test-gate >/dev/null 2>&1; then
@@ -60,7 +35,6 @@ run_with_optional_gate() {
     set -e
   fi
 
-  sweep_test_servers post
   exit "$rc"
 }
 
@@ -78,24 +52,8 @@ case "$tier" in
     run_with_optional_gate smoke bash -lc 'pnpm --dir "$1" run check && pnpm --dir "$1" exec vitest run src/tools/test.test.ts src/tools/subagent-report.test.ts' bash "$plugin_dir"
     ;;
   full)
-    # Default `full` runs the unit project only. The Temporal integration
-    # project spins real test servers and is an order of magnitude slower per
-    # test, so it is opt-in rather than a tax on every full run.
-    want_integration=0
-    if [[ "${1:-}" == "--integration" ]]; then
-      want_integration=1
-      shift
-    fi
     [[ $# -eq 0 ]] || usage
-    if ((want_integration)); then
-      run_with_optional_gate full pnpm --dir "$plugin_dir" test
-    else
-      run_with_optional_gate full pnpm --dir "$plugin_dir" exec vitest run --project unit
-    fi
-    ;;
-  integration)
-    [[ $# -eq 0 ]] || usage
-    run_with_optional_gate full pnpm --dir "$plugin_dir" exec vitest run --project temporal
+    run_with_optional_gate full pnpm --dir "$plugin_dir" exec vitest run --project unit
     ;;
   *)
     usage

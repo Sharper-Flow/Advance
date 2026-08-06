@@ -7,10 +7,6 @@ import { join } from "path";
 import { createTempDir, cleanupTempDir, parseToolOutput } from "./setup";
 import { epicTools } from "../tools/epic";
 import { addBacklogItem, archiveBacklogItem } from "../utils/backlog-store";
-import {
-  applyShellAddedToState,
-  createEpicWorkflowState,
-} from "../temporal/epic-state";
 import { EpicEntrySchema } from "../types";
 import type { Store } from "../storage/store";
 
@@ -56,37 +52,6 @@ describe("backlog-epic bridge", () => {
 
   afterEach(async () => {
     await cleanupTempDir(tempDir);
-  });
-
-  test("applyShellAddedToState preserves imported_from provenance", () => {
-    const state = createEpicWorkflowState({
-      projectId: "0000000000000000000000000000000000000000",
-      epicId: "epic",
-      title: "Epic",
-      narrative: "n",
-      initializedAt: "2026-01-01T00:00:00Z",
-    });
-    const result = applyShellAddedToState(state, {
-      entryId: "shell-1",
-      title: "From backlog",
-      successHint: "hint",
-      idempotencyKey: "key-1",
-      addedAt: "2026-01-01T00:00:00Z",
-      importedFrom: {
-        backlog_id: "bl-1",
-        imported_at: "2026-01-01T00:00:00Z",
-      },
-    });
-    expect(result.ok).toBe(true);
-    const entry = state.epic.entries.find((e) => e.entry_id === "shell-1");
-    expect(entry).toBeDefined();
-    expect(entry!.kind).toBe("shell");
-    if (entry!.kind === "shell") {
-      expect(entry!.imported_from).toEqual({
-        backlog_id: "bl-1",
-        imported_at: "2026-01-01T00:00:00Z",
-      });
-    }
   });
 
   test("EpicShellEntry schema validates imported_from", () => {

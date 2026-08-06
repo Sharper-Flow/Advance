@@ -31,7 +31,7 @@ import type {
   VerificationEvidenceDisposition,
 } from "../types";
 import { saveChange } from "../storage/json";
-import type { ArtifactMetadata } from "../temporal/contracts";
+import type { ArtifactMetadata } from "../types/artifacts";
 import {
   subagentReportImplementationCycleId,
   subagentReportKey,

@@ -229,6 +229,7 @@ const MockSurfaceEntrySchema = z.object({
   pattern: z.string(),
   count: z.number().int().nonnegative(),
 });
+export type MockSurfaceEntry = z.infer<typeof MockSurfaceEntrySchema>;
 
 /**
  * Shared record shape for a persisted test run. Stored in

@@ -67,7 +67,7 @@ import {
 
 import type { Store } from "../../storage/store";
 import { worktreeDematerializedSignal } from "../../temporal/messages";
-import type { ChangeWorkflowState } from "../../temporal/contracts";
+import type { ChangeState } from "../../types/change-state";
 import { WorktreeDematerializedSignalPayloadSchema } from "../../types";
 
 const access = {
@@ -140,7 +140,7 @@ beforeEach(() => {
     signal: vi.fn(),
     query: vi.fn().mockResolvedValue({
       lastSignalAt: oldIso(20),
-    } as ChangeWorkflowState),
+    } as ChangeState),
   });
   fireSignalAndRefreshFn.mockResolvedValue(undefined);
 
@@ -200,7 +200,7 @@ describe("advWorktreeDetachBatch", () => {
       signal: vi.fn(),
       query: vi.fn().mockResolvedValue({
         lastSignalAt: oldIso(20),
-      } as ChangeWorkflowState),
+      } as ChangeState),
     });
     fireSignalAndRefreshFn.mockResolvedValue(undefined);
 
@@ -444,7 +444,7 @@ describe("advWorktreeDetachBatch", () => {
       signal: vi.fn(),
       query: vi.fn().mockResolvedValue({
         lastSignalAt: newIso(),
-      } as ChangeWorkflowState),
+      } as ChangeState),
     });
 
     const result = await advWorktreeDetachBatch(
@@ -529,7 +529,7 @@ describe("advWorktreeDetachBatch", () => {
       signal: vi.fn(),
       query: vi.fn().mockResolvedValue({
         lastSignalAt: newIso(),
-      } as ChangeWorkflowState),
+      } as ChangeState),
     });
 
     await advWorktreeDetachBatch(

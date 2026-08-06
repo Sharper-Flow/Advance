@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 
 /**
  * Read the disk projection for one change without involving Temporal.
@@ -13,13 +13,13 @@ import type { ChangeWorkflowState } from "../temporal/contracts";
 export function readChangeProjectionState(
   changesDir: string,
   changeId: string,
-): ChangeWorkflowState | null {
+): ChangeState | null {
   try {
     const raw = JSON.parse(
       readFileSync(join(changesDir, `${changeId}.json`), "utf8"),
     ) as { state?: unknown } | null;
     if (!raw || typeof raw !== "object") return null;
-    return (raw.state ?? raw) as ChangeWorkflowState;
+    return (raw.state ?? raw) as ChangeState;
   } catch {
     return null;
   }

@@ -7,7 +7,7 @@ import {
   SAMPLE_CHANGE,
 } from "../__tests__/setup";
 import type { Change, Gates } from "../types";
-import type { TestRunRecord } from "../temporal/contracts";
+import type { TestRunRecord } from "../types/changes";
 import { evaluateWorkerBundleProvenanceForChange } from "../temporal/gate-readiness";
 import {
   getArchiveGatePreflightError,

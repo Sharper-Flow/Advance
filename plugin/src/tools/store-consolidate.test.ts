@@ -42,10 +42,10 @@ import {
 } from "./store-consolidate";
 import type { Store } from "../storage/store";
 import type {
-  ChangeWorkflowInput,
-  EpicWorkflowInput,
-  EpicWorkflowState,
-} from "../temporal/contracts";
+  ChangeInput,
+  EpicInput,
+  EpicState,
+} from "../types";
 
 const run = promisify(execFile);
 
@@ -937,7 +937,7 @@ describe("executeConsolidation", () => {
       await writeFile(join(richDir, "change.json"), JSON.stringify(richChange));
       await writeFile(join(richDir, "proposal.md"), "# Proposal\n\nRich body.");
 
-      let captured: ChangeWorkflowInput | null = null;
+      let captured: ChangeInput | null = null;
       const report = await executeConsolidation({
         sourceProjectId: EXEC_SOURCE,
         targetProjectId: EXEC_TARGET,
@@ -1033,9 +1033,9 @@ describe("executeConsolidation", () => {
           },
         },
         lastSignalAt: "2026-06-02T00:00:00.000Z",
-      } as unknown as EpicWorkflowState;
+} as unknown as EpicState;
 
-      let capturedEpic: EpicWorkflowInput | null = null;
+      let capturedEpic: EpicInput | null = null;
       const report = await executeConsolidation({
         sourceProjectId: EXEC_SOURCE,
         targetProjectId: EXEC_TARGET,
@@ -1307,7 +1307,7 @@ describe("executeConsolidation", () => {
       // rejection) AFTER the deadline has already failed the item.
       let rejectQuery: ((e: unknown) => void) | null = null;
       let queryCalls = 0;
-      const hung = new Promise<EpicWorkflowState | null>((_res, rej) => {
+      const hung = new Promise<EpicState | null>((_res, rej) => {
         rejectQuery = rej;
       });
       const report = await executeConsolidation({
@@ -1412,8 +1412,8 @@ describe("executeConsolidation", () => {
         },
         idempotencyLedger: {},
         lastSignalAt: "2026-06-02T00:00:00.000Z",
-      } as unknown as EpicWorkflowState;
-      let recreated: EpicWorkflowInput | null = null;
+} as unknown as EpicState;
+      let recreated: EpicInput | null = null;
       const report = await executeConsolidation({
         sourceProjectId: EXEC_SOURCE,
         targetProjectId: EXEC_TARGET,

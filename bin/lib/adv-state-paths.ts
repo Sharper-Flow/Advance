@@ -1,8 +1,8 @@
 /**
  * adv CLI — ADV project state directory resolution
  *
- * Temporal was removed; disk projections are the sole read authority. The CLI
- * must therefore locate a project's state directory itself.
+ * Disk projections are the sole read authority. The CLI locates a project's
+ * state directory itself.
  *
  * Two layouts exist:
  *   canonical: {dataHome}/opencode/plugins/advance/{projectId}

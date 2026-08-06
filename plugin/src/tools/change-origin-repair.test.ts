@@ -16,7 +16,7 @@ import { describe, expect, test, vi, beforeEach } from "vitest";
 import { changeTools } from "./change";
 import { originRepairedSignal } from "../temporal/messages";
 import type { Change, Store } from "../types";
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import { parseToolOutput } from "../__tests__/setup";
 
 const mocks = vi.hoisted(() => ({
@@ -324,7 +324,7 @@ describe("adv_change_repair_origin", () => {
     );
 
     const payload = mocks.fireSignalAndRefresh.mock.calls[0][4] as {
-      previousOrigin: ChangeWorkflowState["origin"];
+      previousOrigin: ChangeState["origin"];
     };
     expect(payload.previousOrigin).toEqual(previous);
   });

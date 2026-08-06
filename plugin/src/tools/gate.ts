@@ -74,8 +74,8 @@ import {
 } from "../temporal/activities";
 import {
   changeToDirectiveState,
-  changeToWorkflowState,
-} from "../temporal/change-state";
+  changeToState,
+} from "../types/change-state-helpers";
 import { deriveDirectiveSafe } from "../utils/workflow-directive";
 import {
   degradedPhasePlan,
@@ -84,11 +84,7 @@ import {
 } from "../utils/phase-plan";
 import { checkPlanRoutingGuard } from "../migration/routing-guard";
 import { createLogger } from "../utils/debug-log";
-import type { ChangeWorkflowState } from "../temporal/contracts";
-import {
-  isPreciseWorkflowRecoveryEvidence,
-  RECOVERY_RECONCILIATION_WARNING,
-} from "../temporal/recovery-classification";
+import type { ChangeState } from "../types/change-state";
 import { hasGateRecoveryAudit } from "./recovery-audit";
 import { saveRecoveredGateCompletion } from "./_recovery-writers";
 import { evaluateLightweightProfileAndSignal } from "./lightweight-profile";
@@ -548,13 +544,11 @@ function getReleaseFinalizationBlocker(input: {
 function buildRecoveryReadinessState(input: {
   change: Change;
   gates: Gates;
-  projectionChangesDir: string;
 }) {
-  return changeToWorkflowState({
+  return changeToState({
     projectId: "recovery-disk-projection",
     change: input.change,
     initializedAt: input.change.created_at,
-    projectionChangesDir: input.projectionChangesDir,
     gates: input.gates,
   });
 }
@@ -572,7 +566,7 @@ function buildRecoveryReadinessState(input: {
 export async function resolveAcceptanceRecoveryArtifactEvidence(input: {
   store: Store;
   changeId: string;
-  recoveryState: ChangeWorkflowState;
+  recoveryState: ChangeState;
   fallbackEvidence: GateArtifactEvidence | undefined;
 }): Promise<
   | { ok: true; artifactEvidence: GateArtifactEvidence | undefined }
@@ -761,14 +755,6 @@ async function completeGateViaRecovery(input: {
   const recoveryReason = input.recoveryReason?.trim() ?? "";
   const recoveryEvidence = input.recoveryEvidence?.trim() ?? "";
   const priorApprovalEvidence = input.priorApprovalEvidence?.trim();
-  if (!isPreciseWorkflowRecoveryEvidence(recoveryEvidence)) {
-    return formatToolOutput({
-      error: `poisoned-history ${input.gateId} recoveryEvidence must cite precise poisoned-history or completed-workflow evidence`,
-      changeId: input.changeId,
-      gateId: input.gateId,
-      ...(input.extraPayload ?? {}),
-    });
-  }
   let recoveryChange = input.change;
   let recoveryGates = input.gates;
   if (input.diskDirect) {
@@ -886,7 +872,6 @@ async function completeGateViaRecovery(input: {
   const recoveryState = buildRecoveryReadinessState({
     change: readinessChange,
     gates: readinessGates,
-    projectionChangesDir: input.store.paths.changes,
   });
   const readiness = evaluateGateReadiness(recoveryState, input.gateId, {
     compatibilityReason: input.compatibilityReason,
@@ -953,7 +938,6 @@ async function completeGateViaRecovery(input: {
     boundaryWarning: input.boundaryWarning,
     _recoveryMutation: true,
     recovered: true,
-    reconciliationWarning: RECOVERY_RECONCILIATION_WARNING,
     ...(input.extraPayload ?? {}),
   });
 }

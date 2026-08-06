@@ -45,7 +45,7 @@ export type WorkerBundleImpact = z.infer<typeof WorkerBundleImpactSchema>;
  * `workerBundleProvenanceRecordedSignal` and read by the release-readiness
  * evaluator (`temporal/gate-readiness.ts`).
  *
- * Mirrors the stored declaration on `ChangeWorkflowState`
+ * Mirrors the stored declaration on `ChangeState`
  * (`temporal/contracts.ts`), which uses plain `string` / `number`. Format
  * validation of `recorded_at` belongs to the signal boundary
  * (`types/signals.ts` applies `IsoTimestampSchema`); repeating it here could
@@ -1184,6 +1184,7 @@ export const SignalRejectionSchema = z.object({
   payloadDigest: SignalPayloadDigestSchema,
   rejectedAt: z.string(),
 });
+export type SignalRejection = z.infer<typeof SignalRejectionSchema>;
 
 /**
  * Read-model mirror of the workflow's bounded `state.testRuns[taskId][]`
@@ -1207,6 +1208,7 @@ export const TestRunRecordSchema = z.object({
     .optional(),
   recordedAt: z.string(),
 });
+export type TestRunRecord = z.infer<typeof TestRunRecordSchema>;
 
 /**
  * Bounded audit entry for a storage-owned conditional projection commit.

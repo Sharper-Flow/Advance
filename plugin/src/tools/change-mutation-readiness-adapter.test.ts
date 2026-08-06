@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { evaluateGateReadinessFromMutationOutcome } from "./change-mutation-readiness-adapter";
-import { createChangeWorkflowState } from "../temporal/change-state";
+import { createChangeState } from "../types/change-state-helpers";
 import { ChangeSchema } from "../types";
 import { createDefaultGates } from "../types/gates";
 import type { Change } from "../types";
@@ -16,7 +16,7 @@ import type { MutationOutcome } from "./change-mutation-coordinator";
 const PROJECT_ID = "test-project";
 
 function passingTemporalState() {
-  const state = createChangeWorkflowState({
+  const state = createChangeState({
     changeId: "gate-ready-change",
     title: "Gate Ready",
     createdAt: "2026-07-25T00:00:00.000Z",

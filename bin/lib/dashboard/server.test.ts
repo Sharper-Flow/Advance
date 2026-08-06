@@ -88,7 +88,7 @@ describe("dashboard server state", () => {
       now: () => new Date("2026-06-25T22:00:00.000Z"),
       advReader: async (project) => {
         if (project.id === "toolbox")
-          throw new Error("Temporal token ghp_secret123 leaked");
+          throw new Error("provider token ghp_secret123 leaked");
         return {
           ok: true,
           project: { id: project.id, label: project.label, path: project.path },

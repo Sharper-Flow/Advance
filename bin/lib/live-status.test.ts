@@ -3,92 +3,28 @@ import { describe, expect, test } from "bun:test";
 import {
   buildLiveStatusPayload,
   buildLiveStatusPayloadFromSummaries,
-  buildSummaryFromSearchAttributes,
   filterTerminalSummaries,
-  QUERY_TIMEOUT_MS,
-  summariesFromVisibility,
 } from "./live-status";
 
 const PROJECT_ID = "0".repeat(40);
+const NOW = new Date("2026-06-05T17:00:00.000Z");
 
-function fakeVisibilityOwner(
-  executions: Array<{
-    id: string;
-    attrs: Record<string, unknown[]>;
-    executionStatus?: "Running" | "Completed";
-  }>,
-  listError?: Error,
-) {
-  const queries: string[] = [];
-  return {
-    queries,
-    list: async <T extends { workflowId: string }>(
-      _ctx: unknown,
-      query: string,
-      _options?: { limit?: number; nextPageToken?: string },
-    ): Promise<{ kind: "complete"; value: T[]; truncated: boolean }> => {
-      if (listError) throw listError;
-      queries.push(query);
-      const requiresRunning = /ExecutionStatus\s*=\s*"Running"/.test(query);
-      const items = executions
-        .filter((exec) => {
-          if (
-            requiresRunning &&
-            exec.executionStatus !== undefined &&
-            exec.executionStatus !== "Running"
-          ) {
-            return false;
-          }
-          return true;
-        })
-        .map((exec) => ({
-          workflowId: `adv/change/${PROJECT_ID}/${exec.id}`,
-          searchAttributes: exec.attrs,
-        })) as T[];
-      return { kind: "complete", value: items, truncated: false };
-    },
-  };
-}
-
-function fakeClient(states: Record<string, unknown>, listError?: Error) {
-  return {
-    workflow: {
-      list: () => {
-        if (listError) throw listError;
-        async function* iter() {
-          for (const id of Object.keys(states)) {
-            yield { workflowId: `adv/change/project123/${id}` };
-          }
-        }
-        return iter();
-      },
-      getHandle: (workflowId: string) => ({
-        query: async (queryName: string) => {
-          expect(queryName).toBe("adv.change.getState");
-          const id = workflowId.slice("adv/change/project123/".length);
-          const value = states[id];
-          if (value instanceof Error) throw value;
-          return value;
-        },
-      }),
-    },
-  };
-}
-
-const liveState = {
-  id: "liveChange",
-  title: "Live change",
+const summary = (id: string, lastActivityAt: string) => ({
+  id,
+  title: id,
   status: "draft",
-  createdAt: "2026-06-05T10:00:00.000Z",
-  tasks: [{ id: "t1", title: "Task", status: "done" }],
-  gates: {
-    proposal: { status: "done", completed_at: "2026-06-05T10:01:00.000Z" },
-  },
-  wisdom: [],
-};
+  lifecycleState: "open",
+  recency: "fresh" as const,
+  lastActivityAt,
+  minutesSinceActivity: 0,
+  tasksDone: 0,
+  tasksTotal: 0,
+  firstIncompleteGate: "proposal" as const,
+  gateProgressStr: "○ ○ ○ ○ ○ ○ ○",
+});
 
-describe("live status reader", () => {
-  test("does not include disk-only active changes in the live payload", async () => {
+describe("disk status reader", () => {
+  test("builds a disk-sourced payload with terminal counts", () => {
     const payload = buildLiveStatusPayload(
       [
         {
@@ -112,314 +48,28 @@ describe("live status reader", () => {
     expect(payload.live).toBe(true);
     expect(payload.stale).toBe(false);
     expect(payload.changes.map((change) => change.id)).toEqual(["liveChange"]);
-    expect(payload.changes.map((change) => change.id)).not.toContain(
-      "diskOnly",
-    );
     expect(payload.counts).toEqual({ active: 1, archived: 2, closed: 1 });
   });
 
-  test("uses bounded query timeout constant", () => {
-    expect(QUERY_TIMEOUT_MS).toBe(5_000);
-  });
-});
-
-describe("visibility search-attribute status reader", () => {
-  const now = new Date("2026-06-05T17:00:00.000Z");
-
-  test("builds a summary from search attributes and synthesizes gate progress", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "hardenMigrationSafety",
-      {
-        AdvChangeTitle: ["Harden migration safety"],
-        AdvChangeStatus: ["draft"],
-        AdvLifecycleState: ["open"],
-        AdvCurrentGate: ["release"],
-        AdvLastSignalAt: ["2026-06-05T16:55:26.526Z"],
-        AdvCreatedAt: ["2026-06-05T16:05:54.815Z"],
-      },
-      now,
-    );
-
-    expect(summary).not.toBeNull();
-    expect(summary?.id).toBe("hardenMigrationSafety");
-    expect(summary?.title).toBe("Harden migration safety");
-    expect(summary?.status).toBe("draft");
-    expect(summary?.lifecycleState).toBe("open");
-    expect(summary?.firstIncompleteGate).toBe("release");
-    expect(summary?.gateProgressStr).toBe("✓ ✓ ✓ ✓ ✓ ✓ ○");
-    expect(summary?.lastActivityAt).toBe("2026-06-05T16:55:26.526Z");
-  });
-
-  test("excludes terminal-complete changes (AdvCurrentGate done)", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "alreadyDone",
-      {
-        AdvChangeTitle: ["Done change"],
-        AdvChangeStatus: ["draft"],
-        AdvCurrentGate: ["done"],
-        AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
-      },
-      now,
-    );
-
-    expect(summary).toBeNull();
-  });
-
-  test("excludes non-open lifecycle rows even when gate data is stale", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "archivedButStale",
-      {
-        AdvChangeTitle: ["Archived but stale"],
-        AdvChangeStatus: ["active"],
-        AdvLifecycleState: ["archived"],
-        AdvCurrentGate: ["execution"],
-        AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
-      },
-      now,
-    );
-
-    expect(summary).toBeNull();
-  });
-
-  test("decodes Datetime values returned as Date objects", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "dateChange",
-      {
-        AdvChangeTitle: ["Date change"],
-        AdvChangeStatus: ["active"],
-        AdvCurrentGate: ["execution"],
-        AdvLastSignalAt: [new Date("2026-06-05T16:30:00.000Z")],
-      },
-      now,
-    );
-
-    expect(summary?.lastActivityAt).toBe("2026-06-05T16:30:00.000Z");
-    expect(summary?.gateProgressStr).toBe("✓ ✓ ✓ ✓ ○ ○ ○");
-    expect(summary?.firstIncompleteGate).toBe("execution");
-  });
-
-  test("falls back to changeId title and proposal gate when attrs are sparse", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "sparse",
-      { AdvCreatedAt: ["2026-06-05T15:00:00.000Z"] },
-      now,
-    );
-
-    expect(summary?.title).toBe("sparse");
-    expect(summary?.status).toBe("draft");
-    expect(summary?.lifecycleState).toBe("open");
-    expect(summary?.firstIncompleteGate).toBe("proposal");
-    expect(summary?.gateProgressStr).toBe("○ ○ ○ ○ ○ ○ ○");
-    expect(summary?.lastActivityAt).toBe("2026-06-05T15:00:00.000Z");
-  });
-
-  test("carries epicId from AdvEpicId search attribute", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "epicMember",
-      {
-        AdvChangeTitle: ["Epic member"],
-        AdvChangeStatus: ["active"],
-        AdvLifecycleState: ["open"],
-        AdvCurrentGate: ["execution"],
-        AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
-        AdvEpicId: ["addAuthEpic"],
-      },
-      now,
-    );
-    expect(summary?.epicId).toBe("addAuthEpic");
-  });
-
-  test("decodes all worktree branch and path search-attribute values", () => {
-    const summary = buildSummaryFromSearchAttributes(
-      "withWorktrees",
-      {
-        AdvChangeTitle: ["With worktrees"],
-        AdvChangeStatus: ["active"],
-        AdvCurrentGate: ["execution"],
-        AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
-        AdvWorktreeBranches: ["change/one", "", "change/two"],
-        AdvWorktreePaths: ["/tmp/wt/one", "  ", "/tmp/wt/two"],
-      },
-      now,
-    );
-
-    expect(summary?.worktreeBranches).toEqual(["change/one", "change/two"]);
-    expect(summary?.worktreePaths).toEqual(["/tmp/wt/one", "/tmp/wt/two"]);
-  });
-
-  test("summariesFromVisibility maps executions, drops terminal-complete, sorts by activity desc", async () => {
-    const summaries = await summariesFromVisibility(
-      fakeVisibilityOwner([
-        {
-          id: "older",
-          attrs: {
-            AdvChangeTitle: ["Older"],
-            AdvChangeStatus: ["draft"],
-            AdvCurrentGate: ["proposal"],
-            AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
-          },
-        },
-        {
-          id: "doneChange",
-          attrs: {
-            AdvChangeTitle: ["Done"],
-            AdvChangeStatus: ["draft"],
-            AdvCurrentGate: ["done"],
-            AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
-          },
-        },
-        {
-          id: "newer",
-          attrs: {
-            AdvChangeTitle: ["Newer"],
-            AdvChangeStatus: ["active"],
-            AdvCurrentGate: ["execution"],
-            AdvLastSignalAt: ["2026-06-05T12:00:00.000Z"],
-          },
-        },
-      ]),
-      { projectId: PROJECT_ID, now },
-    );
-
-    expect(summaries.map((s) => s.id)).toEqual(["newer", "older"]);
-  });
-
-  test("filters active rows to running executions so stale completed workflows are excluded", async () => {
-    const client = fakeVisibilityOwner([
-      {
-        id: "archivedButStaleActive",
-        executionStatus: "Completed",
-        attrs: {
-          AdvChangeTitle: ["Archived but stale active"],
-          AdvChangeStatus: ["active"],
-          AdvCurrentGate: ["release"],
-          AdvLastSignalAt: ["2026-06-05T16:30:00.000Z"],
-        },
-      },
-      {
-        id: "runningActive",
-        executionStatus: "Running",
-        attrs: {
-          AdvChangeTitle: ["Running active"],
-          AdvChangeStatus: ["active"],
-          AdvCurrentGate: ["execution"],
-          AdvLastSignalAt: ["2026-06-05T16:45:00.000Z"],
-        },
-      },
-    ]);
-
-    const summaries = await summariesFromVisibility(client, {
-      projectId: PROJECT_ID,
-      now,
-    });
-
-    expect(client.queries).toHaveLength(1);
-    expect(client.queries[0]).toContain(
-      `AdvAffectedProjects = "${PROJECT_ID}"`,
-    );
-    expect(client.queries[0]).not.toContain("AdvChangeStatus");
-    expect(client.queries[0]).toContain('ExecutionStatus = "Running"');
-    expect(summaries.map((s) => s.id)).toEqual(["runningActive"]);
-  });
-
-  test("summariesFromVisibility fails closed when visibility listing fails", async () => {
-    await expect(
-      summariesFromVisibility(
-        fakeVisibilityOwner([], new Error("visibility unavailable")),
-        { projectId: PROJECT_ID, now },
-      ),
-    ).rejects.toThrow("visibility unavailable");
-  });
-
-  test("buildLiveStatusPayloadFromSummaries marks live and carries counts", () => {
+  test("buildLiveStatusPayloadFromSummaries carries disk summaries and counts", () => {
     const payload = buildLiveStatusPayloadFromSummaries(
-      [
-        buildSummaryFromSearchAttributes(
-          "c1",
-          {
-            AdvChangeTitle: ["C1"],
-            AdvChangeStatus: ["draft"],
-            AdvCurrentGate: ["design"],
-            AdvLastSignalAt: ["2026-06-05T16:00:00.000Z"],
-          },
-          now,
-        )!,
-      ],
-      { projectId: PROJECT_ID, archivedCount: 3, closedCount: 0, now },
+      [summary("c1", "2026-06-05T16:00:00.000Z")],
+      { projectId: PROJECT_ID, archivedCount: 3, closedCount: 0, now: NOW },
     );
 
     expect(payload.source).toBe("disk");
     expect(payload.live).toBe(true);
     expect(payload.stale).toBe(false);
-    expect(payload.changes.map((c) => c.id)).toEqual(["c1"]);
+    expect(payload.changes.map((change) => change.id)).toEqual(["c1"]);
     expect(payload.counts).toEqual({ active: 1, archived: 3, closed: 0 });
   });
 
-  test("filters stale visibility rows proven terminal by disk ids while preserving stale-open rows", () => {
-    const archivedLookingOpen = buildSummaryFromSearchAttributes(
-      "archivedButStaleVisibility",
-      {
-        AdvChangeTitle: ["Archived but stale visibility"],
-        AdvChangeStatus: ["draft"],
-        AdvCurrentGate: ["acceptance"],
-        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
-      },
-      now,
-    );
-    const staleOpen = buildSummaryFromSearchAttributes(
-      "staleOpen",
-      {
-        AdvChangeTitle: ["Stale open"],
-        AdvChangeStatus: ["draft"],
-        AdvCurrentGate: ["execution"],
-        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
-      },
-      now,
-    );
-
+  test("filters only change IDs proven terminal by disk state", () => {
     const filtered = filterTerminalSummaries(
-      [archivedLookingOpen, staleOpen].filter(
-        (s): s is NonNullable<typeof s> => s !== null,
-      ),
-      new Set(["archivedButStaleVisibility"]),
+      [summary("archived", "2026-06-05T10:00:00.000Z"), summary("open", "2026-06-05T11:00:00.000Z")],
+      new Set(["archived"]),
     );
 
-    expect(filtered.map((summary) => summary.id)).toEqual(["staleOpen"]);
-    expect(filtered[0]?.recency).toBe("stale");
-  });
-
-  test("does not filter live visibility rows merely because disk has no matching change dir", () => {
-    const staleOpen = buildSummaryFromSearchAttributes(
-      "staleOpen",
-      {
-        AdvChangeTitle: ["Stale open"],
-        AdvChangeStatus: ["draft"],
-        AdvCurrentGate: ["execution"],
-        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
-      },
-      now,
-    );
-    const phantom = buildSummaryFromSearchAttributes(
-      "visibilityOnlyActive",
-      {
-        AdvChangeTitle: ["Visibility only active"],
-        AdvChangeStatus: ["draft"],
-        AdvCurrentGate: ["design"],
-        AdvLastSignalAt: ["2026-06-05T10:00:00.000Z"],
-      },
-      now,
-    );
-
-    const filtered = filterTerminalSummaries(
-      [staleOpen, phantom].filter(
-        (s): s is NonNullable<typeof s> => s !== null,
-      ),
-      new Set(),
-    );
-
-    expect(filtered.map((summary) => summary.id)).toEqual([
-      "staleOpen",
-      "visibilityOnlyActive",
-    ]);
+    expect(filtered.map((change) => change.id)).toEqual(["open"]);
   });
 });

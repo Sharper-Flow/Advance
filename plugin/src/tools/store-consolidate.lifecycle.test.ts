@@ -33,7 +33,7 @@ import {
   ensureChangeWorkflowStarted,
   ensureEpicWorkflowStarted,
 } from "../temporal/workflow-start";
-import type { EpicWorkflowState } from "../temporal/contracts";
+import type { EpicState } from "../types/epic-state";
 
 const createBundleMock = vi.hoisted(() => vi.fn());
 
@@ -143,7 +143,7 @@ async function readLedgerRows(
 const listSourceLiveEpics = async (projectId: string): Promise<string[]> =>
   projectId === EXEC_SOURCE ? ["epic-live-a"] : [];
 
-function makeEpicState(): EpicWorkflowState {
+function makeEpicState(): EpicState {
   return {
     projectId: EXEC_SOURCE,
     epicId: "epic-live-a",
@@ -171,7 +171,7 @@ function makeEpicState(): EpicWorkflowState {
     },
     idempotencyLedger: {},
     lastSignalAt: "2026-06-02T00:00:00.000Z",
-  } as unknown as EpicWorkflowState;
+} as unknown as EpicState;
 }
 
 function makeBundle(opts: {

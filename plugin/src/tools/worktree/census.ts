@@ -1,4 +1,4 @@
-import type { SessionRecord, WorktreeRecord } from "../../temporal/contracts";
+import type { SessionRecord, WorktreeRecord } from "../../types";
 import { execFileGitAsync } from "../../utils/git-binary";
 import { inferChangeIdFromBranch } from "./state";
 

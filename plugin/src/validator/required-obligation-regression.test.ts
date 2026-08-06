@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { createDefaultGates } from "../types";
 import type {
   Change,
-  ChangeWorkflowState,
+  ChangeState,
   EngineerSubagentReport,
 } from "../types";
 import type { Store } from "../storage/store-types";
@@ -65,9 +65,9 @@ import { subagentReportTools } from "../tools/subagent-report";
 // Helpers
 // =============================================================================
 
-function makeChangeWorkflowState(
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+function makeChangeState(
+  overrides: Partial<ChangeState> = {},
+): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",
@@ -98,7 +98,7 @@ function releaseReadyGates() {
 
 function makeContract(
   items: Array<
-    Partial<NonNullable<ChangeWorkflowState["contract"]>["items"][number]> & {
+    Partial<NonNullable<ChangeState["contract"]>["items"][number]> & {
       id: string;
     }
   >,
@@ -107,7 +107,7 @@ function makeContract(
     status: string;
     evidencePolicy?: string;
   }>,
-): NonNullable<ChangeWorkflowState["contract"]> {
+): NonNullable<ChangeState["contract"]> {
   return {
     version: 1,
     rigor: "standard",
@@ -285,7 +285,7 @@ describe("required-obligation end-to-end pipeline", () => {
 
     test("release passes when requiredCritical item has passing review matrix", () => {
       const result = evaluateGateReadiness(
-        makeChangeWorkflowState({
+        makeChangeState({
           gates: releaseReadyGates(),
           contract: makeContract(
             [{ id: "RC-1", requiredCritical: true }],
@@ -317,7 +317,7 @@ describe("required-obligation end-to-end pipeline", () => {
 
     test("release blocks for silently deferred requiredCritical (no row, no coverage)", () => {
       const result = evaluateGateReadiness(
-        makeChangeWorkflowState({
+        makeChangeState({
           gates: releaseReadyGates(),
           contract: makeContract(
             [{ id: "RC-1", requiredCritical: true }],
@@ -340,7 +340,7 @@ describe("required-obligation end-to-end pipeline", () => {
 
     test("release also blocks for requiredCritical with failing review status", () => {
       const result = evaluateGateReadiness(
-        makeChangeWorkflowState({
+        makeChangeState({
           gates: releaseReadyGates(),
           contract: makeContract(
             [{ id: "RC-1", requiredCritical: true }],
@@ -403,7 +403,7 @@ describe("checkCriticalOpsCoverage", () => {
 
 describe("checkRequiredObligationReleaseBlockers", () => {
   test("blocks release for failing requiredCritical review row", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "fail" }],
@@ -416,7 +416,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
   });
 
   test("blocks release for 'unknown' review status", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "unknown" }],
@@ -429,7 +429,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
   });
 
   test("does not block for 'violated' non-requiredCritical items", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [
           { id: "RC-1", requiredCritical: false },
@@ -446,7 +446,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
   });
 
   test("no-op for non-release gates", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "fail" }],
@@ -469,7 +469,7 @@ describe("checkRequiredObligationReleaseBlockers", () => {
 
 describe("checkRequiredObligationRouting", () => {
   test("blocks release for requiredCritical with no row and no task coverage", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [], // no review matrix rows at all
@@ -482,7 +482,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("allows release when task coverage exists even without review row", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       tasks: [
         {
           id: "tk-cover",
@@ -500,7 +500,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("allows release when notRequiredReason is set", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [
           {
@@ -517,7 +517,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("allows release when review matrix row exists", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract(
         [{ id: "RC-1", requiredCritical: true }],
         [{ contractId: "RC-1", status: "pass" }],
@@ -528,7 +528,7 @@ describe("checkRequiredObligationRouting", () => {
   });
 
   test("no-op for non-release gates", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       contract: makeContract([{ id: "RC-1", requiredCritical: true }], []),
     });
     for (const gateId of [
@@ -740,7 +740,7 @@ describe("edge cases", () => {
     expect(issues).toHaveLength(0);
 
     const result = evaluateGateReadiness(
-      makeChangeWorkflowState({
+      makeChangeState({
         gates: releaseReadyGates(),
         contract: makeContract(
           [{ id: "AC-1" }, { id: "AC-2" }],
@@ -756,7 +756,7 @@ describe("edge cases", () => {
   });
 
   test("existing non-requiredCritical items are not affected by new release checks", () => {
-    const state = makeChangeWorkflowState({
+    const state = makeChangeState({
       gates: releaseReadyGates(),
       contract: makeContract(
         [{ id: "AC-1", requiredCritical: false }, { id: "AC-2" }],

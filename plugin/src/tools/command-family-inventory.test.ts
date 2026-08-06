@@ -13,7 +13,7 @@
  *     projection-proof `commitChangeProjection` writer.
  *
  * This file inventories every storage module that directly signals
- * ChangeWorkflowState, listing the exported mutation method names and the
+ * ChangeState, listing the exported mutation method names and the
  * signal names they fire. It deliberately does NOT enumerate the ADV tool
  * registry; tool dispatch is the consumer of the storage surface.
  */

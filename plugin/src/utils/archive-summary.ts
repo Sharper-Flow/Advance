@@ -1,7 +1,7 @@
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 
 export interface RenderBriefSummaryInput {
-  state: ChangeWorkflowState;
+  state: ChangeState;
   status: "archived" | "cancelled";
   archivedAt: string;
   branch?: string;

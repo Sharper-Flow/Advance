@@ -164,7 +164,7 @@ describe("adv slop-scan dispatcher", () => {
 });
 
 describe("adv epic list dispatcher", () => {
-  test("--json outputs live Temporal Epic list payload", async () => {
+  test("--json outputs disk Epic list payload", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-epic-list-"));
     const initProc = Bun.spawn(
       ["git", "-c", "init.defaultBranch=trunk", "init", "--quiet"],
@@ -253,17 +253,13 @@ describe("adv status live default", () => {
       env: {
         ...process.env,
         NO_COLOR: "1",
-        ADV_TEMPORAL_ADDRESS: "127.0.0.1:1",
-        ADV_STATUS_TIMEOUT_MS: "250",
       },
     });
     const stdout = await new Response(proc.stdout).text();
     const exitCode = await proc.exited;
 
     // A git repo with no ADV state has zero changes — that is a truthful
-    // result, not an error. Temporal is unreachable here by construction
-    // (ADV_TEMPORAL_ADDRESS points at a dead port) and it no longer matters:
-    // disk projections are the sole read authority.
+    // result, not an error: disk projections are the sole read authority.
     expect(exitCode).toBe(0);
     const parsed = JSON.parse(stdout);
     expect(parsed.source).toBe("disk");

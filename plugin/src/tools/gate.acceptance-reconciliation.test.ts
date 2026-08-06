@@ -314,7 +314,7 @@ describe("adv_gate_complete acceptance reconciliation", () => {
         artifacts: {
           executiveSummary: { contentHash: "executive-summary-hash" },
         },
-      } as import("../temporal/contracts").ChangeWorkflowState,
+      } as import("../types/change-state").ChangeState,
       fallbackEvidence: undefined,
     });
 

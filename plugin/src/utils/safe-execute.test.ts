@@ -23,7 +23,7 @@ import {
   createAdvSessionNotReadyEnvelope,
   ADV_SESSION_READINESS_RETRY_HINT,
   isAdvSessionNotReady,
-} from "../temporal/readiness-types";
+} from "./readiness-envelope";
 
 describe("safe-execute", () => {
   let profileDir: string;

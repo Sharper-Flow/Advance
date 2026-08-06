@@ -20,7 +20,7 @@ import {
 } from "./change-projection-transaction";
 import { projectTemporalStateOntoLatest } from "./store-temporal/shared";
 import { ChangeSchema } from "../types";
-import { changeToWorkflowState } from "../temporal/change-state";
+import { changeToState } from "../types/change-state-helpers";
 import {
   createTempDir,
   cleanupTempDir,
@@ -461,7 +461,7 @@ describe("commitChangeProjection", () => {
     const changeId = "temporal-recovery-race";
     const base = makeChange(changeId);
     await seedChange(changesDir, base);
-    const temporalState = changeToWorkflowState({
+    const temporalState = changeToState({
       projectId: "0000ec0100000000000000000000000000000000",
       change: { ...base, title: "Temporal authoritative title" },
     });

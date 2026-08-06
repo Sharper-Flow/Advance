@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ChangeWorkflowState } from "../temporal/contracts";
+import type { ChangeState } from "../types/change-state";
 import type { GateId, GateReadinessBlocker, Gates } from "../types";
 import { createDefaultGates, GATE_ORDER } from "../types";
 import {
@@ -36,8 +36,8 @@ const PLAN_KINDS = [
 ] as const;
 
 function makeState(
-  overrides: Partial<ChangeWorkflowState> = {},
-): ChangeWorkflowState {
+  overrides: Partial<ChangeState> = {},
+): ChangeState {
   return {
     projectId: "0000ec0100000000000000000000000000000000",
     changeId: "change-1",
@@ -109,7 +109,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-function stateWithGateInProgress(gate: GateId): ChangeWorkflowState {
+function stateWithGateInProgress(gate: GateId): ChangeState {
   const idx = GATE_ORDER.indexOf(gate);
   const prior = GATE_ORDER.slice(0, idx);
   let gates = gatesWith(gate, "in_progress");
@@ -172,25 +172,6 @@ describe("derivePhasePlan — variants (AC1)", () => {
     expect("command" in plan).toBe(false);
   });
 
-  it("produces recovery-required with precise recovery classification", () => {
-    const ctx = makeCtx({
-      noGatesStarted: false,
-      firstOpenGate: "execution",
-      bucket: "stuck",
-      recovery: {
-        reason: "poisoned_history",
-        description: "Gate execution stuck with poisoned-history evidence",
-      },
-    });
-    const plan = derivePhasePlan(ctx);
-    expect(plan.kind).toBe("recovery-required");
-    if (plan.kind !== "recovery-required") return;
-    expect(plan.recovery.reason).toBe("poisoned_history");
-    expect(plan.gateId).toBe("execution");
-    expect(plan.failClosed).toBe(true);
-    expect("command" in plan).toBe(false);
-  });
-
   it("produces terminal for archived and closed changes", () => {
     const allDone = markDone(createDefaultGates(), ...GATE_ORDER);
     const archived = derivePhasePlanFromState(
@@ -225,7 +206,7 @@ describe("derivePhasePlan — variants (AC1)", () => {
   });
 
   it("reports exactly one current state kind across a representative matrix", () => {
-    const states: ChangeWorkflowState[] = [
+    const states: ChangeState[] = [
       makeState(),
       stateWithGateInProgress("planning"),
       makeState({
@@ -347,7 +328,7 @@ describe("phase plan — provenance and recovery distinction (AC4)", () => {
     });
   });
 
-  it("distinguishes recovery-required from ordinary progress by kind", () => {
+  it("turns a stuck gate into a durable blocker", () => {
     const progress = derivePhasePlanFromState(
       stateWithGateInProgress("execution"),
       EPOCH,
@@ -368,9 +349,7 @@ describe("phase plan — provenance and recovery distinction (AC4)", () => {
       makeState({ gates: ready }),
       EPOCH,
     );
-    expect(recovery.kind).toBe("recovery-required");
-    if (recovery.kind !== "recovery-required") return;
-    expect(recovery.recovery.reason).toBe("poisoned_history");
+    expect(recovery.kind).toBe("blocked");
   });
 
   it("distinguishes initial start from advancing progress", () => {
@@ -639,7 +618,7 @@ describe("directiveFromPlan — lossless legacy adapter", () => {
   });
 
   it("matches deriveWorkflowDirective across a state matrix", () => {
-    const states: ChangeWorkflowState[] = [
+    const states: ChangeState[] = [
       makeState(),
       stateWithGateInProgress("design"),
       makeState({ gates: markDone(createDefaultGates(), ...GATE_ORDER) }),

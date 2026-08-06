@@ -31,7 +31,7 @@ import {
   PARITY_ROWS,
   toolChangeFor,
 } from "../__tests__/phase-plan-parity-matrix";
-import { changeToDirectiveState } from "../temporal/change-state";
+import { changeToDirectiveState } from "../types/change-state-helpers";
 import { cleanupTempDir, createTempDir } from "../__tests__/setup";
 import * as gitFinalize from "./archive-helpers/git-finalize";
 import * as worktree from "./worktree";
