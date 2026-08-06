@@ -181,7 +181,7 @@ describe("adv epic list dispatcher", () => {
 
     expect(exitCode).toBe(0);
     const parsed = JSON.parse(stdout);
-    expect(parsed.source).toBe("temporal");
+    expect(parsed.source).toBe("disk");
     expect(parsed.live).toBe(true);
     expect(parsed.stale).toBe(false);
     expect(typeof parsed.project_id).toBe("string");
@@ -206,7 +206,7 @@ describe("adv epic list dispatcher", () => {
 
     expect(exitCode).not.toBe(0);
     const parsed = JSON.parse(stdout);
-    expect(parsed.source).toBe("temporal");
+    expect(parsed.source).toBe("disk");
     expect(parsed.live).toBe(false);
     expect(parsed.stale).toBe(false);
     expect(parsed.project_id).toBeNull();
@@ -233,7 +233,7 @@ describe("adv status live default", () => {
     expect(exitCode).toBe(0);
   });
 
-  test("status --json failure reports live Temporal error without disk fallback", async () => {
+  test("status --json reports zero changes for a repo with no ADV state", async () => {
     const tmp = mkdtempSync(join(tmpdir(), "adv-dispatch-"));
     const initProc = Bun.spawn(
       ["git", "-c", "init.defaultBranch=trunk", "init", "--quiet"],
@@ -260,12 +260,16 @@ describe("adv status live default", () => {
     const stdout = await new Response(proc.stdout).text();
     const exitCode = await proc.exited;
 
-    expect(exitCode).toBe(2);
+    // A git repo with no ADV state has zero changes — that is a truthful
+    // result, not an error. Temporal is unreachable here by construction
+    // (ADV_TEMPORAL_ADDRESS points at a dead port) and it no longer matters:
+    // disk projections are the sole read authority.
+    expect(exitCode).toBe(0);
     const parsed = JSON.parse(stdout);
-    expect(parsed.source).toBe("temporal");
-    expect(parsed.live).toBe(false);
+    expect(parsed.source).toBe("disk");
+    expect(parsed.live).toBe(true);
     expect(parsed.stale).toBe(false);
-    expect(parsed.remediation).toContain("Temporal");
+    expect(parsed.counts.active).toBe(0);
     expect(parsed.changes).toEqual([]);
   });
 });

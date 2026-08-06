@@ -108,7 +108,7 @@ describe("live status reader", () => {
       },
     );
 
-    expect(payload.source).toBe("temporal");
+    expect(payload.source).toBe("disk");
     expect(payload.live).toBe(true);
     expect(payload.stale).toBe(false);
     expect(payload.changes.map((change) => change.id)).toEqual(["liveChange"]);
@@ -348,7 +348,7 @@ describe("visibility search-attribute status reader", () => {
       { projectId: PROJECT_ID, archivedCount: 3, closedCount: 0, now },
     );
 
-    expect(payload.source).toBe("temporal");
+    expect(payload.source).toBe("disk");
     expect(payload.live).toBe(true);
     expect(payload.stale).toBe(false);
     expect(payload.changes.map((c) => c.id)).toEqual(["c1"]);

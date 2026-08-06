@@ -114,7 +114,7 @@ function runCheck(payload: string): number {
 /** Healthy live payload — the shape that broke the original check. */
 const HEALTHY_LIVE_PAYLOAD = JSON.stringify(
   {
-    source: "temporal",
+    source: "disk",
     live: true,
     stale: false,
     generated_at: "2026-08-05T00:00:00.000Z",
@@ -141,7 +141,7 @@ const HEALTHY_LIVE_PAYLOAD = JSON.stringify(
  */
 const LIVE_ERROR_PAYLOAD = JSON.stringify(
   {
-    source: "temporal",
+    source: "disk",
     live: false,
     stale: false,
     generated_at: "2026-08-05T00:00:00.000Z",
@@ -188,9 +188,9 @@ describe("verify_adv_cli_live_json", () => {
     expect(runCheck(DISK_ONLY_PAYLOAD)).not.toBe(0);
   });
 
-  test("rejects a payload whose source is not temporal", () => {
+  test("rejects a payload whose source is not disk", () => {
     expect(
-      runCheck(JSON.stringify({ source: "disk", live: false }, null, 2)),
+      runCheck(JSON.stringify({ source: "temporal", live: false }, null, 2)),
     ).not.toBe(0);
   });
 
@@ -204,13 +204,13 @@ describe("verify_adv_cli_live_json", () => {
     // string and never said what it actually saw. Report observed values so the
     // next divergence is legible in one run.
 
-    test("reports the observed source when it is not temporal", () => {
+    test("reports the observed source when it is not disk", () => {
       const { exitCode, diagnostic } = runCheckDetailed(
-        JSON.stringify({ source: "disk", live: false }),
+        JSON.stringify({ source: "temporal", live: false }),
       );
       expect(exitCode).not.toBe(0);
       expect(diagnostic).toContain("source");
-      expect(diagnostic).toContain("disk");
+      expect(diagnostic).toContain("temporal");
     });
 
     test("reports the observed top-level schema_version on a disk-only payload", () => {

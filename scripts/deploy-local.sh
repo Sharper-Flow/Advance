@@ -968,9 +968,13 @@ verify_adv_cli_live_json() {
 		;;
 	esac
 
-	# rq-advCliLocalInstall01: accept live-status metadata — `source: "temporal"`
-	# on success OR fail-closed live error metadata — and reject stale disk-only
+	# rq-advCliLocalInstall01: accept live-status metadata — `source: "disk"`
+	# on success OR fail-closed error metadata — and reject stale disk-only
 	# `schema_version: 1` output.
+	#
+	# Temporal was removed; disk projections are the sole read authority, so
+	# the CLI now reports `source: "disk"`. Asserting `"temporal"` here would
+	# require the CLI to report a source it no longer reads from.
 	#
 	# Assert structurally on the parsed document, not by substring. A previous
 	# whole-document grep for `"schema_version": 1` matched
@@ -996,7 +1000,7 @@ verify_adv_cli_live_json() {
 	fi
 
 	if printf '%s' "$output" |
-		jq -e '.source == "temporal" and (.schema_version != 1)' >/dev/null 2>&1; then
+		jq -e '.source == "disk" and (.schema_version != 1)' >/dev/null 2>&1; then
 		return 0
 	fi
 

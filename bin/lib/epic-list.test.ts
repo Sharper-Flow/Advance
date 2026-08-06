@@ -49,7 +49,7 @@ describe("epic list CLI helper", () => {
     );
 
     expect(payload).toEqual({
-      source: "temporal",
+      source: "disk",
       live: true,
       stale: false,
       generated_at: "2026-06-26T03:00:00.000Z",
@@ -83,7 +83,7 @@ describe("epic list CLI helper", () => {
       now,
     );
 
-    expect(payload.source).toBe("temporal");
+    expect(payload.source).toBe("disk");
     expect(payload.live).toBe(false);
     expect(payload.stale).toBe(false);
     expect(payload.project_id).toBe(PROJECT_ID);
